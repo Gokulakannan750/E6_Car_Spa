@@ -25,6 +25,8 @@ import {
 	Loader2,
 	X,
 	Check,
+	ArrowRight,
+	ArrowLeft,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -360,6 +362,7 @@ export default function NewJobCard() {
 				vehicleId: selectedVehicle.id,
 				services: services.map(s => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount })),
 				notes: undefined,
+				isGstEnabled: true,
 			});
 			setSuccess({ id: result.id, number: result.jobCardNumber, customerName: customer.name, vehicleLabel: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`, total: result.totalAmount });
 		} catch (err) {
@@ -378,6 +381,25 @@ export default function NewJobCard() {
 		setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
 		setNewService({ name: '', category: '', description: '', durationMinutes: '', price: '', isActive: true });
 		setStep(0); setCustomerError(null); setSubmitError(null); setSuccess(null); setCustomerCreated(false);
+	};
+
+	// ── Step validation ───────────────────────────────────────────────────────
+	const validateStep = (): boolean => {
+		if (step === 0) {
+			if (!customer) {
+				setCustomerError('Please enter a phone number and press Enter to look up or create a customer.');
+				return false;
+			}
+			if (!selectedVehicle) {
+				setCustomerError('Please select a vehicle.');
+				return false;
+			}
+		}
+		if (step === 1 && services.length === 0) {
+			setCustomerError('Add at least one service to create a job card.');
+			return false;
+		}
+		return true;
 	};
 
 	// ════════════════════════════════════════════════════════════════════════════
@@ -424,6 +446,8 @@ export default function NewJobCard() {
 	}
 
 	// ════════════════════════════════════════════════════════════════════════════
+	// FORM VIEW
+	// ════════════════════════════════════════════════════════════════════════════
 	return (
 		<div className="flex flex-col h-full animate-fade-in">
 			{/* ── Header ──────────────────────────────────────────────────────── */}
@@ -447,9 +471,7 @@ export default function NewJobCard() {
 									}`}>
 										{isCompleted ? <Check className="w-4 h-4" /> : i + 1}
 									</div>
-									<span className={`text-xs mt-1 whitespace-nowrap transition-colors ${
-										isCompleted || isActive ? 'text-secondary font-medium' : 'text-on-surface-variant'
-									}`}>{label}</span>
+									<span className={`text-xs mt-1 whitespace-nowrap transition-colors ${isCompleted || isActive ? 'text-secondary font-medium' : 'text-on-surface-variant'}`}>{label}</span>
 								</div>
 								{i < STEPS.length - 1 && <div className={`flex-1 h-[2px] mx-2 transition-colors ${isCompleted ? 'bg-secondary' : 'bg-outline-variant'}`} />}
 							</div>
@@ -460,7 +482,7 @@ export default function NewJobCard() {
 
 			{/* ── Scrollable Content ─────────────────────────────────────────── */}
 			<div className="flex-1 overflow-y-auto px-6 py-5">
-				{customerError && (
+				{customerError && step === 0 && (
 					<div className="max-w-5xl mx-auto mb-4 p-3 bg-error/10 border border-error/30 rounded-lg text-error text-sm flex items-center gap-2">
 						<X className="w-4 h-4 shrink-0" />
 						<span>{customerError}</span>
@@ -471,352 +493,258 @@ export default function NewJobCard() {
 					{/* ══════════════════════════════════════════════════════════════ */}
 					{/* STEP 1 — Customer & Vehicle */}
 					{/* ══════════════════════════════════════════════════════════════ */}
-					<div className="app-card p-5">
-						<h3 className="text-base font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant">Customer & Vehicle Information</h3>
+					{step === 0 && (
+						<div className="app-card p-5">
+							<h3 className="text-base font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant">Customer & Vehicle Information</h3>
 
-						{/* ── Lookup Row ───────────────────────────────────────────── */}
-						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-							{/* Phone lookup */}
-							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1.5">Phone Number <span className="text-error">*</span></label>
-								<div className="flex gap-2">
-									<div className="flex-1 relative">
-										<User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-										<input
-											type="tel"
-											value={phone}
-											onChange={(e) => setPhone(e.target.value)}
-											onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handlePhoneSearch())}
-											placeholder="Enter customer phone number"
-											className="form-input pl-9"
-										/>
-									</div>
-									<Button type="button" onClick={handlePhoneSearch} disabled={!phone.trim() || isSearching} variant="secondary">
-										{isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-										Search
-									</Button>
-								</div>
-							</div>
-
-							{/* Registration lookup */}
-							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1.5">Vehicle Registration Number</label>
-								<div className="flex gap-2">
-									<div className="flex-1 relative">
-										<Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-										<input
-											type="text"
-											value={regNumber}
-											onChange={(e) => setRegNumber(e.target.value)}
-											onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleRegSearch())}
-											placeholder="E.G. TN56P1234"
-											className="form-input pl-9 uppercase"
-										/>
-									</div>
-									<Button type="button" onClick={handleRegSearch} disabled={!regNumber.trim() || isSearching} variant="secondary">
-										<Search className="w-4 h-4" />
-										Search
-									</Button>
-								</div>
-							</div>
-						</div>
-
-						{/* ── Error ────────────────────────────────────────────────── */}
-						{customerError && (
-							<div className="mb-4 bg-error-container border border-error rounded-lg p-3 text-error text-sm flex items-center gap-2">
-								<X className="w-4 h-4" />
-								{customerError}
-							</div>
-						)}
-
-						{/* ── Customer Found Card ───────────────────────────────────── */}
-						{customer && (
-							<div className="mb-4 bg-surface-container-low rounded-lg border border-outline-variant p-4">
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Customer</p>
-										<p className="text-sm font-medium text-on-surface">{customer.name}</p>
-										<p className="text-sm text-on-surface-variant">{customer.phoneNumber}</p>
-										{customer.email && <p className="text-sm text-on-surface-variant">{customer.email}</p>}
-										{customer.address && <p className="text-sm text-on-surface-variant">{customer.address}</p>}
-									</div>
-									{customerCreated && (
-										<span className="flex items-center gap-1 text-success text-sm font-medium">
-											<CheckCircle2 className="w-4 h-4" />
-											Created
-										</span>
-									)}
-								</div>
-							</div>
-						)}
-
-						{/* ── New Customer Form ────────────────────────────────────── */}
-						{showNewCustomer && (
-							<div className="mb-4 app-card p-5">
-								<h4 className="text-base font-semibold text-on-surface mb-4">New Customer</h4>
-								<form onSubmit={handleCreateCustomer} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Name <span className="text-error">*</span></label>
-										<input required value={newCustomer.name} onChange={(e) => setNewCustomer(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Full name" />
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Phone <span className="text-error">*</span></label>
-										<input required value={newCustomer.phone} onChange={(e) => setNewCustomer(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="Phone number" />
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Email</label>
-										<input value={newCustomer.email} onChange={(e) => setNewCustomer(p => ({ ...p, email: e.target.value }))} className="form-input" placeholder="email@example.com" />
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Address</label>
-										<input value={newCustomer.address} onChange={(e) => setNewCustomer(p => ({ ...p, address: e.target.value }))} className="form-input" placeholder="Address" />
-									</div>
-									<div className="md:col-span-2">
-										<Button type="submit" disabled={isCreatingCustomer} loading={isCreatingCustomer}>
-											{isCreatingCustomer ? 'Creating…' : 'Create Customer'}
+							{/* ── Lookup Row ───────────────────────────────────────────── */}
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+								{/* Phone lookup */}
+								<div>
+									<label className="block text-sm font-medium text-on-surface mb-1.5">Phone Number <span className="text-error">*</span></label>
+									<div className="flex gap-2">
+										<div className="flex-1 relative">
+											<User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+											<input
+												type="tel"
+												value={phone}
+												onChange={(e) => setPhone(e.target.value)}
+												onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handlePhoneSearch())}
+												placeholder="Enter customer phone number"
+												className="form-input pl-9"
+											/>
+										</div>
+										<Button type="button" onClick={handlePhoneSearch} disabled={!phone.trim() || isSearching} variant="secondary">
+											{isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+											Search
 										</Button>
 									</div>
-								</form>
+								</div>
+
+								{/* Registration lookup */}
+								<div>
+									<label className="block text-sm font-medium text-on-surface mb-1.5">Vehicle Registration Number</label>
+									<div className="flex gap-2">
+										<div className="flex-1 relative">
+											<Car className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+											<input
+												type="text"
+												value={regNumber}
+												onChange={(e) => setRegNumber(e.target.value)}
+												onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleRegSearch())}
+												placeholder="E.G. TN56P1234"
+												className="form-input pl-9 uppercase"
+											/>
+										</div>
+										<Button type="button" onClick={handleRegSearch} disabled={!regNumber.trim() || isSearching} variant="secondary">
+											<Search className="w-4 h-4" />
+											Search
+										</Button>
+									</div>
+								</div>
 							</div>
-						)}
 
-						{/* ── Vehicle Section ──────────────────────────────────────── */}
-						{customer && (
-							<div className="border-t border-outline-variant pt-4 mt-4">
-								<h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Vehicle</h4>
+							{/* ── Error ────────────────────────────────────────────────── */}
+							{customerError && (
+								<div className="mb-4 bg-error-container border border-error rounded-lg p-3 text-error text-sm flex items-center gap-2">
+									<X className="w-4 h-4" />
+									{customerError}
+								</div>
+							)}
 
-								{/* Existing vehicles */}
-								{vehicles.length > 0 && (
-									<div className="space-y-2 mb-4">
+							{/* ── Customer Found Card ───────────────────────────────────── */}
+							{customer && (
+								<div className="mb-4 bg-surface-container-low rounded-lg border border-outline-variant p-4">
+									<div className="flex items-center justify-between">
+										<div>
+											<p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Customer</p>
+											<p className="text-sm font-medium text-on-surface">{customer.name}</p>
+											<p className="text-sm text-on-surface-variant">{customer.phoneNumber}</p>
+											{customer.email && <p className="text-sm text-on-surface-variant">{customer.email}</p>}
+											{customer.address && <p className="text-sm text-on-surface-variant">{customer.address}</p>}
+										</div>
+										{customerCreated && (
+											<span className="flex items-center gap-1 text-success text-sm font-medium">
+												<CheckCircle2 className="w-4 h-4" />
+												Created
+											</span>
+										)}
+									</div>
+								</div>
+							)}
+
+							{/* ── New Customer Form ────────────────────────────────────── */}
+							{showNewCustomer && (
+								<div className="mb-4 app-card p-5">
+									<h4 className="text-base font-semibold text-on-surface mb-4">New Customer</h4>
+									<form onSubmit={handleCreateCustomer} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Name <span className="text-error">*</span></label>
+											<input required value={newCustomer.name} onChange={(e) => setNewCustomer(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Full name" />
+										</div>
+										<div>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Phone <span className="text-error">*</span></label>
+											<input required value={newCustomer.phone} onChange={(e) => setNewCustomer(p => ({ ...p, phone: e.target.value }))} className="form-input" placeholder="Phone number" />
+										</div>
+										<div>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Email</label>
+											<input type="email" value={newCustomer.email} onChange={(e) => setNewCustomer(p => ({ ...p, email: e.target.value }))} className="form-input" placeholder="Email (optional)" />
+										</div>
+										<div>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Address</label>
+											<input value={newCustomer.address} onChange={(e) => setNewCustomer(p => ({ ...p, address: e.target.value }))} className="form-input" placeholder="Address (optional)" />
+										</div>
+										<div className="md:col-span-2">
+											<Button type="submit" disabled={isCreatingCustomer} loading={isCreatingCustomer}>
+												{isCreatingCustomer ? 'Creating…' : 'Create Customer'}
+											</Button>
+										</div>
+									</form>
+								</div>
+							)}
+
+							{/* ── Vehicle Selection ─────────────────────────────────────── */}
+							{vehicles.length > 0 && (
+								<div className="mb-4">
+									<label className="block text-sm font-medium text-on-surface mb-2">Select Vehicle <span className="text-error">*</span></label>
+									<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
 										{vehicles.map(v => (
-											<label key={v.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedVehicle?.id === v.id ? 'border-secondary bg-secondary/5' : 'border-outline-variant hover:bg-surface-container-low'}`}>
-												<input
-													type="radio"
-													name="vehicle"
-													checked={selectedVehicle?.id === v.id}
-													onChange={() => setSelectedVehicle(v)}
-													className="accent-secondary"
-												/>
-												<div>
-													<p className="text-sm font-medium text-on-surface">{v.registrationNumber}</p>
-													<p className="text-sm text-on-surface-variant">{v.make} {v.model}{v.variant ? ` — ${v.variant}` : ''}</p>
+											<div
+												key={v.id}
+												onClick={() => setSelectedVehicle(v)}
+												className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+													selectedVehicle?.id === v.id
+														? 'border-secondary bg-secondary/5'
+														: 'border-outline-variant hover:border-outline bg-surface-container-low'
+												}`}
+											>
+												<div className="flex items-center gap-3">
+													<div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+														selectedVehicle?.id === v.id ? 'border-secondary' : 'border-outline-variant'
+													}`}>
+														{selectedVehicle?.id === v.id && <div className="w-2.5 h-2.5 rounded-full bg-secondary" />}
+													</div>
+													<div>
+														<p className="text-sm font-semibold text-on-surface">{v.registrationNumber.toUpperCase()}</p>
+														<p className="text-xs text-on-surface-variant">{v.make} {v.model}</p>
+													</div>
 												</div>
-											</label>
+											</div>
 										))}
 									</div>
-								)}
+								</div>
+							)}
 
-								{/* Add new vehicle button / form */}
-								{!showNewVehicle ? (
-									<Button type="button" onClick={() => setShowNewVehicle(true)} variant="secondary">
+							{/* ── Add New Vehicle ──────────────────────────────────────── */}
+							{customer && !selectedVehicle && (
+								<div>
+									<button type="button" onClick={() => setShowNewVehicle(!showNewVehicle)} className="text-sm text-secondary font-medium flex items-center gap-1 hover:underline">
 										<Plus className="w-4 h-4" />
-										Add New Vehicle
-									</Button>
-								) : (
-									<div className="app-card p-5">
-										<h4 className="text-base font-semibold text-on-surface mb-4">New Vehicle</h4>
-										<form onSubmit={handleCreateVehicle} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<div>
-												<label className="block text-sm font-medium text-on-surface mb-1.5">Registration Number <span className="text-error">*</span></label>
-												<input required value={newVehicle.registrationNumber} onChange={(e) => setNewVehicle(p => ({ ...p, registrationNumber: e.target.value }))} className="form-input uppercase" placeholder="TN56P1234" />
-											</div>
-											<div>
-												<label className="block text-sm font-medium text-on-surface mb-1.5">Make <span className="text-error">*</span></label>
-												<input required value={newVehicle.make} onChange={(e) => setNewVehicle(p => ({ ...p, make: e.target.value }))} className="form-input" placeholder="Maruti" />
-											</div>
-											<div>
-												<label className="block text-sm font-medium text-on-surface mb-1.5">Model <span className="text-error">*</span></label>
-												<input required value={newVehicle.model} onChange={(e) => setNewVehicle(p => ({ ...p, model: e.target.value }))} className="form-input" placeholder="Alto 800" />
-											</div>
-											<div>
-												<label className="block text-sm font-medium text-on-surface mb-1.5">Variant</label>
-												<input value={newVehicle.variant} onChange={(e) => setNewVehicle(p => ({ ...p, variant: e.target.value }))} className="form-input" placeholder="Variant" />
-											</div>
-											<div className="md:col-span-2 flex gap-3">
-												<Button type="submit" disabled={isCreatingVehicle} loading={isCreatingVehicle}>
-													{isCreatingVehicle ? 'Adding…' : 'Add Vehicle'}
-												</Button>
-												<Button type="button" variant="secondary" onClick={() => setShowNewVehicle(false)}>Cancel</Button>
+										{showNewVehicle ? 'Cancel' : 'Add New Vehicle'}
+									</button>
+									{showNewVehicle && (
+										<form onSubmit={handleCreateVehicle} className="mt-3 app-card p-5">
+											<h4 className="text-base font-semibold text-on-surface mb-4">New Vehicle</h4>
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div>
+													<label className="block text-sm font-medium text-on-surface mb-1.5">Registration Number <span className="text-error">*</span></label>
+													<input required value={newVehicle.registrationNumber} onChange={(e) => setNewVehicle(p => ({ ...p, registrationNumber: e.target.value.toUpperCase() }))} className="form-input uppercase" placeholder="TN56P1234" />
+												</div>
+												<div>
+													<label className="block text-sm font-medium text-on-surface mb-1.5">Make <span className="text-error">*</span></label>
+													<input required value={newVehicle.make} onChange={(e) => setNewVehicle(p => ({ ...p, make: e.target.value }))} className="form-input" placeholder="Maruti" />
+												</div>
+												<div>
+													<label className="block text-sm font-medium text-on-surface mb-1.5">Model <span className="text-error">*</span></label>
+													<input required value={newVehicle.model} onChange={(e) => setNewVehicle(p => ({ ...p, model: e.target.value }))} className="form-input" placeholder="Alto 800" />
+												</div>
+												<div>
+													<label className="block text-sm font-medium text-on-surface mb-1.5">Variant</label>
+													<input value={newVehicle.variant} onChange={(e) => setNewVehicle(p => ({ ...p, variant: e.target.value }))} className="form-input" placeholder="VXi (optional)" />
+												</div>
+												<div className="md:col-span-2">
+													<Button type="submit" disabled={isCreatingVehicle} loading={isCreatingVehicle}>
+														{isCreatingVehicle ? 'Adding…' : 'Add Vehicle'}
+													</Button>
+												</div>
 											</div>
 										</form>
-									</div>
-								)}
-							</div>
-						)}
-					</div>
+									)}
+								</div>
+							)}
+						</div>
+					)}
 
 					{/* ══════════════════════════════════════════════════════════════ */}
 					{/* STEP 2 — Services */}
 					{/* ══════════════════════════════════════════════════════════════ */}
-					<div className={`app-card p-5 ${!canProceedToServices ? 'opacity-50 pointer-events-none' : ''}`}>
-						<h3 className="text-base font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant">Services</h3>
+					{step === 1 && (
+						<div className="app-card p-5">
+							<h3 className="text-base font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant">Services</h3>
 
-						{!canProceedToServices && (
-							<p className="text-sm text-on-surface-variant">Select a customer and vehicle first to add services.</p>
-						)}
-
-						{canProceedToServices && (
-							<>
-								{/* Full-width search + Add Service button */}
-								<div className="flex items-center gap-3 mb-2">
-									<div className="relative flex-1">
-										<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-										<input
-											ref={searchInputRef}
-											type="text"
-											value={serviceSearch}
-											onChange={(e) => setServiceSearch(e.target.value)}
-											placeholder="Search services..."
-											className="form-input w-full pl-9"
-										/>
-									</div>
-									<Button type="button" onClick={() => setShowNewService(true)}>
-										<Plus className="w-4 h-4" />
-										Add Service
-									</Button>
+							{/* ── Service Search ────────────────────────────────────────── */}
+							<div className="relative mb-4">
+								<label className="block text-sm font-medium text-on-surface mb-1.5">Search Services</label>
+								<div className="relative">
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+									<input
+										ref={searchInputRef}
+										type="text"
+										value={serviceSearch}
+										onChange={(e) => setServiceSearch(e.target.value)}
+										placeholder="Search services..."
+										className="form-input pl-9"
+									/>
 								</div>
-
-								{/* Search dropdown — click anywhere on a row to add */}
 								{searchResults.length > 0 && (
-									<div className="relative mb-4">
-										<div className="absolute z-20 w-full bg-surface border border-outline-variant rounded-lg shadow-elevation-2 max-h-60 overflow-y-auto">
-											{searchResults.map(svc => (
-												<div key={svc.id} onClick={() => handleAddService(svc)} className="flex items-center justify-between px-4 py-3 hover:bg-surface-variant transition-colors border-b border-outline-variant last:border-b-0 cursor-pointer">
+									<div className="absolute z-20 w-full mt-1 bg-surface border border-outline-variant rounded-lg shadow-lg max-h-60 overflow-y-auto">
+										{searchResults.map(svc => (
+											<div
+												key={svc.id}
+												onClick={() => handleAddService(svc)}
+												className="px-4 py-3 hover:bg-surface-container-low cursor-pointer border-b border-outline-variant last:border-b-0"
+											>
+												<div className="flex items-center justify-between">
 													<div>
-														<p className="text-sm text-on-surface font-medium">{svc.name}</p>
-														<p className="text-xs text-on-surface-variant">{svc.category} — {formatCurrency(svc.price)}{svc.durationMinutes ? ` — ${svc.durationMinutes} min` : ''}</p>
+														<p className="text-sm font-medium text-on-surface">{svc.name}</p>
+														<p className="text-xs text-on-surface-variant">{svc.category} {svc.taxPercentage > 0 ? `• ${svc.taxPercentage}% tax` : ''}</p>
 													</div>
+													<span className="text-sm font-semibold text-on-surface">{formatCurrency(svc.price)}</span>
 												</div>
-											))}
-										</div>
-									</div>
-								)}
-
-								{/* Quick-create link when nothing matches or user wants a new service */}
-								{serviceSearch.trim() && !searchResults.some(s => s.name.toLowerCase() === serviceSearch.trim().toLowerCase()) && (
-									<button type="button" onClick={() => setShowNewService(true)} className="text-sm text-secondary hover:text-secondary/80 font-medium flex items-center gap-1 mb-4">
-										<Plus className="w-4 h-4" />
-										Create new service &quot;{serviceSearch.trim()}&quot;
-									</button>
-								)}
-
-								{/* Services table */}
-								{services.length > 0 && (
-									<div className="overflow-x-auto rounded-lg border border-outline-variant mb-4">
-										<table className="app-table">
-											<thead>
-												<tr>
-													<th className="text-left">Service</th>
-													<th className="text-right">Qty</th>
-													<th className="text-right">Rate</th>
-													<th className="text-right">Discount</th>
-													<th className="text-right">Total</th>
-													<th className="w-10"></th>
-												</tr>
-											</thead>
-											<tbody>
-												{services.map(item => (
-													<tr key={item.id}>
-														<td>
-															<p className="text-sm font-medium text-on-surface">{item.name}</p>
-															{item.category && <p className="text-xs text-on-surface-variant">{item.category}</p>}
-														</td>
-														<td className="text-right">
-															<input type="number" value={item.quantity} onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)} min="1" className="w-16 bg-surface-container-low border border-outline-variant rounded p-1 text-right text-sm form-input text-center" />
-														</td>
-														<td className="text-sm text-on-surface-variant text-right">{formatCurrency(item.unitPrice)}</td>
-														<td className="text-right">
-															<input type="number" value={item.discountAmount} onChange={(e) => updateDiscount(item.id, parseFloat(e.target.value) || 0)} min="0" step="0.01" className="w-24 bg-surface-container-low border border-outline-variant rounded p-1 text-right text-sm form-input text-center" />
-														</td>
-														<td className="text-sm text-on-surface font-medium text-right">{formatCurrency(item.lineTotal)}</td>
-														<td className="text-center">
-															<button type="button" onClick={() => removeService(item.id)} className="text-error hover:text-on-error-container transition-colors p-1 rounded hover:bg-error-container">
-																<Trash2 className="w-4 h-4" />
-															</button>
-														</td>
-													</tr>
-												))}
-											</tbody>
-										</table>
-									</div>
-								)}
-
-								{/* Financial summary inline */}
-								{services.length > 0 && (
-									<div className="flex justify-end">
-										<div className="w-full md:w-64 space-y-1.5">
-											<div className="flex justify-between text-sm text-on-surface-variant">
-												<span>Subtotal</span>
-												<span>{formatCurrency(calcSubtotal)}</span>
 											</div>
-											{calcDiscount > 0 && (
-												<div className="flex justify-between text-sm text-on-surface-variant">
-													<span>Discount</span>
-													<span>-{formatCurrency(calcDiscount)}</span>
-												</div>
-											)}
-											<div className="flex justify-between text-sm font-semibold text-on-surface pt-1.5 border-t border-outline-variant">
-												<span>Total</span>
-												<span>{formatCurrency(calcTotal)}</span>
-											</div>
-										</div>
+										))}
 									</div>
 								)}
-							</>
-						)}
-					</div>
+							</div>
 
-					{/* ══════════════════════════════════════════════════════════════ */}
-					{/* Add Service Modal */}
-					{/* ══════════════════════════════════════════════════════════════ */}
-					{showNewService && (
-						<div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowNewService(false)}>
-							<div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
-							<div className="relative bg-surface-container-lowest rounded-xl shadow-elevation-2 w-full mx-4 max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
-								<div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant">
-									<h2 className="text-lg font-semibold text-on-surface">New Service</h2>
-									<button type="button" onClick={() => setShowNewService(false)} className="p-1 rounded hover:bg-surface-container transition-colors">
-										<X className="w-4 h-4 text-on-surface-variant" />
-									</button>
-								</div>
-								<form onSubmit={handleCreateService} className="px-6 py-4 space-y-4">
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Service Name <span className="text-error">*</span></label>
-										<input required value={newService.name} onChange={(e) => setNewService(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="e.g. Premium Wash" />
-									</div>
-									<div className="grid grid-cols-2 gap-4">
+							{/* ── Add New Service ──────────────────────────────────────── */}
+							{!showNewService ? (
+								<button type="button" onClick={() => setShowNewService(true)} className="text-sm text-secondary font-medium flex items-center gap-1 hover:underline mb-4">
+									<Plus className="w-4 h-4" />
+									Create New Service
+								</button>
+							) : (
+								<form onSubmit={handleCreateService} className="mb-4 app-card p-5 space-y-4">
+									<h4 className="text-base font-semibold text-on-surface">New Service</h4>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Service Name <span className="text-error">*</span></label>
+											<input required value={newService.name} onChange={(e) => setNewService(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="e.g. Premium Wash" />
+										</div>
 										<div>
 											<label className="block text-sm font-medium text-on-surface mb-1.5">Category</label>
-											<select
-												value={newService.category}
-												onChange={(e) => setNewService(p => ({ ...p, category: e.target.value }))}
-												className="form-input"
-											>
+											<select value={newService.category} onChange={(e) => setNewService(p => ({ ...p, category: e.target.value }))} className="form-input">
 												<option value="">Select category</option>
-												{serviceCategories.map(cat => (
-													<option key={cat} value={cat}>{cat}</option>
-												))}
+												{serviceCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
 											</select>
 										</div>
 										<div>
 											<label className="block text-sm font-medium text-on-surface mb-1.5">Price (₹) <span className="text-error">*</span></label>
 											<input required type="number" step="0.01" min="0" value={newService.price} onChange={(e) => setNewService(p => ({ ...p, price: e.target.value }))} className="form-input" placeholder="0.00" />
 										</div>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1.5">Description</label>
-										<textarea value={newService.description} onChange={(e) => setNewService(p => ({ ...p, description: e.target.value }))} rows={2} className="form-input resize-none" placeholder="Service description..." />
-									</div>
-									<div className="grid grid-cols-2 gap-4">
 										<div>
-											<label className="block text-sm font-medium text-on-surface mb-1.5">Duration (min)</label>
-											<input type="number" min="0" value={newService.durationMinutes} onChange={(e) => setNewService(p => ({ ...p, durationMinutes: e.target.value }))} className="form-input" placeholder="30" />
-										</div>
-										<div>
-											<label className="flex items-center gap-2 mt-7 cursor-pointer">
-												<input type="checkbox" checked={newService.isActive} onChange={(e) => setNewService(p => ({ ...p, isActive: e.target.checked }))} className="w-4 h-4 accent-secondary rounded" />
-												<span className="text-sm text-on-surface">Active</span>
-											</label>
+											<label className="block text-sm font-medium text-on-surface mb-1.5">Tax %</label>
+											<input type="number" step="0.01" min="0" max="100" value={newService.price ? "18" : ""} readOnly className="form-input bg-surface-container-high" />
 										</div>
 									</div>
 									<div className="flex justify-end gap-3 pt-2">
@@ -826,14 +754,49 @@ export default function NewJobCard() {
 										</Button>
 									</div>
 								</form>
-							</div>
+							)}
+
+							{/* ── Selected Services ─────────────────────────────────────── */}
+							{services.length > 0 && (
+								<div className="space-y-3">
+									{services.map(svc => (
+										<div key={svc.id} className="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant">
+											<div className="flex-1">
+												<p className="text-sm font-medium text-on-surface">{svc.name}</p>
+												<p className="text-xs text-on-surface-variant">{svc.category} {svc.taxPercentage > 0 ? `• ${svc.taxPercentage}% tax` : ''}</p>
+											</div>
+											<div className="flex items-center gap-2">
+												<label className="text-xs text-on-surface-variant">Qty:</label>
+												<input type="number" min="1" value={svc.quantity} onChange={(e) => updateQuantity(svc.id, parseInt(e.target.value) || 1)} className="w-16 form-input text-center text-sm py-1" />
+											</div>
+											<div className="flex items-center gap-2">
+												<label className="text-xs text-on-surface-variant">Discount:</label>
+												<input type="number" min="0" step="0.01" value={svc.discountAmount} onChange={(e) => updateDiscount(svc.id, parseFloat(e.target.value) || 0)} className="w-20 form-input text-center text-sm py-1" />
+											</div>
+											<div className="text-right min-w-[80px]">
+												<p className="text-sm font-semibold text-on-surface">{formatCurrency(svc.lineTotal)}</p>
+											</div>
+											<button type="button" onClick={() => removeService(svc.id)} className="p-1 text-on-surface-variant hover:text-error transition-colors">
+												<Trash2 className="w-4 h-4" />
+											</button>
+										</div>
+									))}
+								</div>
+							)}
+
+							{services.length === 0 && (
+								<div className="text-center py-8 text-on-surface-variant">
+									<Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
+									<p className="text-sm">Search and add services above</p>
+								</div>
+							)}
 						</div>
 					)}
 
 					{/* ══════════════════════════════════════════════════════════════ */}
 					{/* STEP 3 — Review & Summary */}
 					{/* ══════════════════════════════════════════════════════════════ */}
-					{canProceedToServices && (
+					{step === 2 && canProceedToServices && (
 						<div className="app-card p-5">
 							<h3 className="text-base font-semibold text-on-surface mb-4 pb-3 border-b border-outline-variant">Review & Summary</h3>
 							<div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -843,38 +806,40 @@ export default function NewJobCard() {
 									<div className="grid grid-cols-2 gap-2 text-sm">
 										<div className="text-on-surface-variant">Customer:</div><div className="font-medium text-on-surface">{customer?.name}</div>
 										<div className="text-on-surface-variant">Phone:</div><div className="font-medium text-on-surface">{customer?.phoneNumber}</div>
-										<div className="text-on-surface-variant">Registration:</div><div className="font-medium text-on-surface">{selectedVehicle?.registrationNumber}</div>
-										<div className="text-on-surface-variant">Make / Model:</div><div className="font-medium text-on-surface">{selectedVehicle?.make} {selectedVehicle?.model}{selectedVehicle?.variant ? ` — ${selectedVehicle.variant}` : ''}</div>
+										<div className="text-on-surface-variant">Vehicle:</div><div className="font-medium text-on-surface">{selectedVehicle?.registrationNumber?.toUpperCase()}</div>
+										<div className="text-on-surface-variant">Make/Model:</div><div className="font-medium text-on-surface">{selectedVehicle?.make} {selectedVehicle?.model}</div>
 									</div>
 								</div>
 
-								{/* Financial summary */}
+								{/* Services summary */}
 								<div className="app-card p-4">
-									<h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Services Summary</h4>
-									<div className="space-y-1.5 text-sm mb-4">
-										{services.map(s => (
-											<div key={s.id} className="flex justify-between">
-												<span className="text-on-surface">{s.name} (x{s.quantity})</span>
-												<span className="font-medium text-on-surface">{formatCurrency(s.lineTotal)}</span>
+									<h4 className="text-sm font-semibold text-on-surface-variant uppercase tracking-wider mb-3">Services ({services.length})</h4>
+									<div className="space-y-2 max-h-48 overflow-y-auto">
+										{services.map(svc => (
+											<div key={svc.id} className="flex justify-between text-sm">
+												<span className="text-on-surface">{svc.name} (x{svc.quantity})</span>
+												<span className="font-medium text-on-surface">{formatCurrency(svc.lineTotal)}</span>
 											</div>
 										))}
 									</div>
-									<div className="border-t border-outline-variant pt-2 space-y-1.5">
-										<div className="flex justify-between text-sm text-on-surface-variant">
-											<span>Items Subtotal ({services.length})</span>
-											<span>{formatCurrency(calcSubtotal)}</span>
-										</div>
-										{calcDiscount > 0 && (
-											<div className="flex justify-between text-sm text-on-surface-variant">
-												<span>Discount</span>
-												<span>-{formatCurrency(calcDiscount)}</span>
-											</div>
-										)}
-										<div className="flex justify-between text-sm font-semibold text-secondary pt-2 border-t border-outline-variant">
-											<span>Final Estimate</span>
-											<span>{formatCurrency(calcTotal)}</span>
-										</div>
+								</div>
+							</div>
+
+							{/* Totals */}
+							<div className="mt-5 app-card p-4">
+								<div className="flex justify-between text-sm text-on-surface-variant">
+									<span>Items Subtotal ({services.length})</span>
+									<span>{formatCurrency(calcSubtotal)}</span>
+								</div>
+								{calcDiscount > 0 && (
+									<div className="flex justify-between text-sm text-on-surface-variant mt-1">
+										<span>Discount</span>
+										<span>-{formatCurrency(calcDiscount)}</span>
 									</div>
+								)}
+								<div className="flex justify-between text-sm font-semibold text-secondary pt-2 mt-2 border-t border-outline-variant">
+									<span>Final Estimate</span>
+									<span>{formatCurrency(calcTotal)}</span>
 								</div>
 							</div>
 						</div>
@@ -888,15 +853,32 @@ export default function NewJobCard() {
 						</div>
 					)}
 
-					{/* ── Action Buttons ───────────────────────────────────────────── */}
+					{/* ── Navigation ────────────────────────────────────────────────── */}
 					<div className="flex justify-between items-center pt-2 pb-6">
-						<Button type="button" variant="secondary" onClick={handleReset}>
-							Reset
-						</Button>
-						<Button type="submit" disabled={!canCreate} loading={isCreatingJobCard} size="lg">
-							<CheckCircle2 className="w-4 h-4" />
-							{isCreatingJobCard ? 'Creating…' : 'Create Job Card'}
-						</Button>
+						<div>
+							{step > 0 && (
+								<Button type="button" variant="secondary" onClick={() => { setStep(s => s - 1); setCustomerError(null); }}>
+									<ArrowLeft className="w-4 h-4" />
+									Back
+								</Button>
+							)}
+						</div>
+						<div className="flex gap-3">
+							<Button type="button" variant="secondary" onClick={handleReset}>
+								Reset
+							</Button>
+							{step < 2 ? (
+								<Button type="button" onClick={() => { if (validateStep()) setStep(s => s + 1); }} size="lg">
+									Next
+									<ArrowRight className="w-4 h-4" />
+								</Button>
+							) : (
+								<Button type="submit" disabled={!canCreate} loading={isCreatingJobCard} size="lg">
+									<CheckCircle2 className="w-4 h-4" />
+									{isCreatingJobCard ? 'Creating…' : 'Create Job Card'}
+								</Button>
+							)}
+						</div>
 					</div>
 				</form>
 			</div>
