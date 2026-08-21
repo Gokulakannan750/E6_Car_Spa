@@ -15,18 +15,16 @@ import {
 	type ServiceDto,
 } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
-import { SearchInput } from '../../components/ui/SearchInput';
 import {
 	Search,
 	Plus,
 	Trash2,
 	CheckCircle2,
-	Circle,
 	User,
 	Car,
-	Wrench,
 	Loader2,
 	X,
+	Check,
 } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -426,12 +424,6 @@ export default function NewJobCard() {
 	}
 
 	// ════════════════════════════════════════════════════════════════════════════
-	// FORM VIEW
-	// ════════════════════════════════════════════════════════════════════════════
-	const stepIcon = (i: number) => i <= step
-		? <CheckCircle2 className="w-4 h-4" />
-		: <Circle className="w-4 h-4" />;
-
 	return (
 		<div className="flex flex-col h-full animate-fade-in">
 			{/* ── Header ──────────────────────────────────────────────────────── */}
@@ -441,23 +433,39 @@ export default function NewJobCard() {
 
 			{/* ── Stepper ────────────────────────────────────────────────────── */}
 			<div className="px-6 pt-5">
-				<div className="flex items-center gap-0">
-					{STEPS.map((label, i) => (
-						<div key={label} className="flex items-center">
-							<div className="flex flex-col items-center">
-								<div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 transition-colors ${i <= step ? 'bg-secondary text-white' : 'bg-surface-container-high text-on-surface-variant border border-outline-variant'}`}>
-									{stepIcon(i)}
+				<div className="flex items-center">
+					{STEPS.map((label, i) => {
+						const isCompleted = step > i;
+						const isActive = step === i;
+						return (
+							<div key={label} className="flex items-center flex-1">
+								<div className="flex flex-col items-center">
+									<div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+										isCompleted ? 'bg-secondary text-white' :
+										isActive ? 'bg-secondary text-white' :
+										'bg-surface-container-high text-on-surface-variant border border-outline-variant'
+									}`}>
+										{isCompleted ? <Check className="w-4 h-4" /> : i + 1}
+									</div>
+									<span className={`text-xs mt-1 whitespace-nowrap transition-colors ${
+										isCompleted || isActive ? 'text-secondary font-medium' : 'text-on-surface-variant'
+									}`}>{label}</span>
 								</div>
-								<span className={`text-sm whitespace-nowrap transition-colors ${i <= step ? 'text-secondary font-medium' : 'text-on-surface-variant'}`}>{label}</span>
+								{i < STEPS.length - 1 && <div className={`flex-1 h-[2px] mx-2 transition-colors ${isCompleted ? 'bg-secondary' : 'bg-outline-variant'}`} />}
 							</div>
-							{i < STEPS.length - 1 && <div className={`w-16 h-[2px] mx-3 -mt-5 transition-colors ${i < step ? 'bg-secondary' : 'bg-outline-variant'}`} />}
-						</div>
-					))}
+						);
+					})}
 				</div>
 			</div>
 
 			{/* ── Scrollable Content ─────────────────────────────────────────── */}
 			<div className="flex-1 overflow-y-auto px-6 py-5">
+				{customerError && (
+					<div className="max-w-5xl mx-auto mb-4 p-3 bg-error/10 border border-error/30 rounded-lg text-error text-sm flex items-center gap-2">
+						<X className="w-4 h-4 shrink-0" />
+						<span>{customerError}</span>
+					</div>
+				)}
 				<form onSubmit={handleCreateJobCard} className="max-w-5xl mx-auto space-y-5">
 
 					{/* ══════════════════════════════════════════════════════════════ */}
@@ -779,7 +787,16 @@ export default function NewJobCard() {
 									<div className="grid grid-cols-2 gap-4">
 										<div>
 											<label className="block text-sm font-medium text-on-surface mb-1.5">Category</label>
-											<input value={newService.category} onChange={(e) => setNewService(p => ({ ...p, category: e.target.value }))} className="form-input" placeholder="e.g. Washing" />
+											<select
+												value={newService.category}
+												onChange={(e) => setNewService(p => ({ ...p, category: e.target.value }))}
+												className="form-input"
+											>
+												<option value="">Select category</option>
+												{serviceCategories.map(cat => (
+													<option key={cat} value={cat}>{cat}</option>
+												))}
+											</select>
 										</div>
 										<div>
 											<label className="block text-sm font-medium text-on-surface mb-1.5">Price (₹) <span className="text-error">*</span></label>
