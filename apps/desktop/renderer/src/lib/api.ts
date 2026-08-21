@@ -272,32 +272,6 @@ export interface CreateCatalogueServiceInput {
  isActive?: boolean;
 }
 
-export interface AdvanceDto {
- id: string;
- staffId: string;
- staffName: string;
- amount: number;
- reason: string | null;
- status: string;
- createdAt: string;
- settledAt: string | null;
-}
-
-export interface CreateAdvanceInput {
- staffId: string;
- amount: number;
- reason?: string | null;
-}
-
-export interface StaffDto {
- id: string;
- name: string;
- role: string;
- phone: string;
- email: string | null;
- isActive: boolean;
-}
-
 export interface DashboardStats {
  totalCustomers: number;
  activeJobCards: number;
@@ -519,33 +493,97 @@ export async function deleteCatalogueService(id: string) {
 // Staff Advances
 // ============================================================================
 
-export async function getAdvances(params: { page: number; pageSize: number; search?: string }) {
+export interface StaffAdvanceDto {
+ id: string;
+ staffId: string;
+ staffName: string;
+ staffRole: string | null;
+ advanceType: string;
+ description: string | null;
+ amount: number;
+ advanceDate: string;
+ paymentMethod: string | null;
+ status: string;
+ notes: string | null;
+ createdAt: string;
+}
+
+export interface StaffDto {
+ id: string;
+ name: string;
+ phoneNumber: string;
+ email: string | null;
+ address: string | null;
+ role: string | null;
+ isActive: boolean;
+ totalAdvances: number;
+ totalAdvanceAmount: number;
+}
+
+export interface CreateStaffAdvanceInput {
+ staffName: string;
+ staffRole?: string | null;
+ advanceType: string;
+ description?: string | null;
+ amount: number;
+ advanceDate: string;
+ paymentMethod?: string | null;
+ notes?: string | null;
+}
+
+export interface StaffAdvanceListResponse {
+ items: StaffAdvanceDto[];
+ totalCount: number;
+ page: number;
+ pageSize: number;
+}
+
+export async function getStaffAdvances(params: { page: number; pageSize: number; staffId?: string; status?: string; fromDate?: string; toDate?: string; search?: string }) {
  const qs = new URLSearchParams();
  qs.set('page', String(params.page));
  qs.set('pageSize', String(params.pageSize));
+ if (params.staffId) qs.set('staffId', params.staffId);
+ if (params.status) qs.set('status', params.status);
+ if (params.fromDate) qs.set('fromDate', params.fromDate);
+ if (params.toDate) qs.set('toDate', params.toDate);
  if (params.search) qs.set('search', params.search);
- return request<{ items: AdvanceDto[]; totalCount: number }>('/api/advances?' + qs.toString());
+ return request<StaffAdvanceListResponse>('/api/staff-advances?' + qs.toString());
 }
 
-export async function createAdvance(data: CreateAdvanceInput) {
- return request<AdvanceDto>('/api/advances', {
+export async function getStaffAdvanceById(id: string) {
+ return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`);
+}
+
+export async function createStaffAdvance(data: CreateStaffAdvanceInput) {
+ return request<StaffAdvanceDto>('/api/staff-advances', {
  method: 'POST',
- body: JSON.stringify(data),
+ body: JSON.stringify(cleanPayload(data)),
  });
 }
 
-export async function settleAdvance(id: string) {
- return request<AdvanceDto>(`/api/advances/${encodeURIComponent(id)}/settle`, {
- method: 'POST',
+export async function updateStaffAdvance(id: string, data: Partial<CreateStaffAdvanceInput>) {
+ return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`, {
+ method: 'PUT',
+ body: JSON.stringify(cleanPayload(data)),
  });
 }
 
-// ============================================================================
-// Staff
-// ============================================================================
+export async function deleteStaffAdvance(id: string) {
+ return request<void>(`/api/staff-advances/${encodeURIComponent(id)}`, {
+ method: 'DELETE',
+ });
+}
 
-export async function getStaff() {
- return request<StaffDto[]>('/api/staff');
+export async function getStaffList() {
+ return request<StaffDto[]>('/api/staff-advances/staff');
+}
+
+export async function getStaffById(id: string) {
+ return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`);
+}
+
+export async function getStaffAdvancesByStaffId(staffId: string) {
+ return request<StaffAdvanceDto[]>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/advances`);
 }
 
 // ============================================================================

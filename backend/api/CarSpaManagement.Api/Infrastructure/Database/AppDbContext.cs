@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<Service> Services => Set<Service>();
  public DbSet<JobCard> JobCards => Set<JobCard>();
  public DbSet<JobCardService> JobCardServices => Set<JobCardService>();
+ public DbSet<Staff> Staff => Set<Staff>();
+ public DbSet<StaffAdvance> StaffAdvances => Set<StaffAdvance>();
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {
