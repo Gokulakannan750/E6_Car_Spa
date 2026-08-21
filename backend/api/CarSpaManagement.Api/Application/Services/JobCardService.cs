@@ -358,12 +358,10 @@ public class JobCardService : IJobCardService
  private async Task<string> GenerateJobCardNumberAsync(CancellationToken cancellationToken)
  {
  var currentYear = DateTime.UtcNow.Year;
- var count = await _db.JobCards
- .Where(j => !j.IsDeleted && j.JobCardNumber.StartsWith($"JC-{currentYear}-"))
- .CountAsync(cancellationToken);
-
- var nextNumber = count + 1;
- return $"JC-{currentYear}-{nextNumber:D6}";
+ var nextVal = await _db.Database.SqlQueryRaw<long>("SELECT nextval('job_card_number_seq')")
+ .FirstAsync(cancellationToken);
+ var nextNumber = (int)nextVal;
+ return string.Concat("JC-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
  }
 
  private static JobCardDto ToDetailDto(JCard j) => new(
