@@ -71,6 +71,9 @@ public class VehicleService : IVehicleService
 
  await _db.Vehicles.AddAsync(vehicle, cancellationToken);
  await _db.SaveChangesAsync(cancellationToken);
+
+ // Load customer for DTO
+ await _db.Entry(vehicle).Reference(v => v.Customer).LoadAsync(cancellationToken);
  return ToDto(vehicle);
  }
 
