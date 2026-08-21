@@ -12,4 +12,5 @@ public interface IVehicleService
  Task<VehicleDto?> UpdateAsync(Guid id, UpdateVehicleRequest request, CancellationToken cancellationToken = default);
  Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
  Task<bool> RegistrationNumberExistsAsync(string registrationNumber, Guid? excludeId = null, CancellationToken cancellationToken = default);
+ Task<VehicleDto?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default);
 }

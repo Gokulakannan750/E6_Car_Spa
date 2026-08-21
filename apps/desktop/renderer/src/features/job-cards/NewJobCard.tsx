@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
  getCustomerByPhone,
- getCustomerByRegistration,
+ getVehicleByRegistration,
  createCustomer,
  getVehiclesByCustomer,
  createVehicle,
@@ -12,7 +12,6 @@ import {
  ApiError,
  type CustomerDto,
  type VehicleDto,
- type CreateJobCardInput,
  type ServiceDto,
 } from '../../lib/api';
 import PhoneInput from '../../components/PhoneInput';
@@ -21,7 +20,7 @@ interface ServiceItem {
  id: string;
  serviceId: string;
  name: string;
- category: string;
+ category: string | null;
  unitPrice: number;
  quantity: number;
  taxPercentage: number;
@@ -62,7 +61,7 @@ export default function NewJobCard() {
 
  const [isCreatingJobCard, setIsCreatingJobCard] = useState(false);
  const [isGstEnabled, setIsGstEnabled] = useState(true);
- const [isPrinting, setIsPrinting] = useState(false);
+ const [isPrinting] = useState(false);
  const [success, setSuccess] = useState<{ id: string; number: string; customer: string; vehicle: string; total: number } | null>(null);
  const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -133,16 +132,39 @@ export default function NewJobCard() {
  setShowNewVehicleForm(false);
 
  try {
- const result = await getCustomerByRegistration(regNumber.trim());
+ const result = await getVehicleByRegistration(regNumber.trim());
  if (result) {
- await loadCustomerAndVehicles(result);
+ // If phone is also entered, verify cross-match
+ if (phone.trim()) {
+ try {
+ const custFromPhone = await getCustomerByPhone(phone.trim());
+ if (custFromPhone.id !== result.customerId) {
+ setCustomerError('The vehicle registration number does not belong to this customer.');
+ setIsSearchingCustomer(false);
+ return;
+ }
+ await loadCustomerAndVehicles(custFromPhone);
+ setSelectedVehicle(result);
+ setNewCustomer(prev => ({ ...prev, phone: phone.trim() }));
+ } catch {
+ // Phone lookup failed — use vehicle's customer instead
+ await loadCustomerAndVehicles({ id: result.customerId, name: result.customerName, phoneNumber: result.customerName, email: null, address: null, createdAt: result.createdAt } as CustomerDto);
+ setSelectedVehicle(result);
+ }
+ } else {
+ // No phone — use the vehicle's customer
+ await loadCustomerAndVehicles({ id: result.customerId, name: result.customerName, phoneNumber: result.customerName, email: null, address: null, createdAt: result.createdAt } as CustomerDto);
+ setSelectedVehicle(result);
+ }
+ } else {
+ setCustomerError('Vehicle not found. Please create a new customer and vehicle.');
  }
  } catch (err) {
  setCustomerError(err instanceof Error ? err.message : 'Failed to search by registration number');
  } finally {
  setIsSearchingCustomer(false);
  }
- }, [regNumber, loadCustomerAndVehicles]);
+ }, [regNumber, phone, loadCustomerAndVehicles]);
 
  // ── Create Customer ─────────────────────────────────────────────────────────
  const handleCreateCustomer = async (e: React.FormEvent) => {
@@ -153,7 +175,7 @@ export default function NewJobCard() {
  try {
  const created = await createCustomer({
  name: newCustomer.name,
- phone: newCustomer.phone,
+ phoneNumber: newCustomer.phone,
  email: newCustomer.email || undefined,
  address: newCustomer.address || undefined,
  });
@@ -238,13 +260,13 @@ export default function NewJobCard() {
  id: crypto.randomUUID(),
  serviceId: svc.id,
  name: svc.name,
- category: svc.category,
+ category: svc.category ?? '',
  unitPrice: svc.price,
  quantity: 1,
  taxPercentage: svc.taxPercentage,
  discountAmount: 0,
  lineTotal: svc.price,
- }]);
+ } as ServiceItem]);
  }
  setServiceSearch('');
  setSearchResults([]);
@@ -451,7 +473,7 @@ export default function NewJobCard() {
  <div className="flex items-center justify-between">
  <div>
  <p className="font-body-md text-body-md text-on-surface font-medium">{customer.name}</p>
- <p className="font-body-sm text-body-sm text-on-surface-variant">{customer.phone}</p>
+ <p className="font-body-sm text-body-sm text-on-surface-variant">{customer.phoneNumber}</p>
  {customer.email && <p className="font-body-sm text-body-sm text-on-surface-variant">{customer.email}</p>}
  </div>
  {!isLoadingVehicles && vehicles.length > 1 && (

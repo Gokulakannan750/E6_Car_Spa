@@ -111,5 +111,13 @@ public class VehicleService : IVehicleService
  return await query.AnyAsync(cancellationToken);
  }
 
+ public async Task<VehicleDto?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
+ {
+ var vehicle = await _db.Vehicles
+ .Include(v => v.Customer)
+ .FirstOrDefaultAsync(v => v.RegistrationNumber == registrationNumber.ToUpper(), cancellationToken);
+ return vehicle is null ? null : ToDto(vehicle);
+ }
+
  private static VehicleDto ToDto(Vehicle v) => new(v.Id, v.RegistrationNumber, v.Make, v.Model, v.Variant, v.Color, v.CustomerId, v.Customer.Name, v.CreatedAt);
 }

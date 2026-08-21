@@ -26,6 +26,10 @@ public class VehiclesController : ControllerBase
  public async Task<IActionResult> GetByCustomer(Guid customerId, CancellationToken ct)
  => Ok(await _service.GetByCustomerIdAsync(customerId, ct));
 
+ [HttpGet("by-registration/{registrationNumber}")]
+ public async Task<IActionResult> GetByRegistration(string registrationNumber, CancellationToken ct)
+ => (await _service.GetByRegistrationNumberAsync(registrationNumber, ct)) is { } dto ? Ok(dto) : NotFound();
+
  [HttpGet]
  public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, CancellationToken ct = default)
  {

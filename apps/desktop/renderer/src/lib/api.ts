@@ -99,9 +99,9 @@ export interface VehicleDto {
  registrationNumber: string;
  make: string;
  model: string;
- year: number | null;
+ variant: string | null;
  color: string | null;
- vin: string | null;
+ customerName: string;
  createdAt: string;
 }
 
@@ -110,9 +110,8 @@ export interface CreateVehicleInput {
  registrationNumber: string;
  make: string;
  model: string;
- year?: number | null;
+ variant?: string | null;
  color?: string | null;
- vin?: string | null;
 }
 
 export interface JobCardDto {
@@ -188,13 +187,14 @@ export interface JobCardServiceDto {
  quantity: number;
  taxPercentage: number;
  discountAmount: number;
+ lineTotal?: number;
 }
 
 export interface ServiceDto {
  id: string;
  name: string;
- category: string;
  description: string | null;
+ category: string | null;
  price: number;
  taxPercentage: number;
  durationMinutes: number | null;
@@ -331,8 +331,8 @@ export async function getCustomerByPhone(phone: string) {
  return request<CustomerDto>(`/api/customers/by-phone/${encodeURIComponent(phone)}`);
 }
 
-export async function getCustomerByRegistration(registrationNumber: string) {
- return request<CustomerDto>(`/api/customers/by-registration/${encodeURIComponent(registrationNumber)}`);
+export async function getVehicleByRegistration(registrationNumber: string) {
+ return request<VehicleDto>(`/api/vehicles/by-registration/${encodeURIComponent(registrationNumber)}`);
 }
 
 export async function createCustomer(data: CreateCustomerInput) {
