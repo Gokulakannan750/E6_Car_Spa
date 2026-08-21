@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Wrench } from 'lucide-react';
 import { mockServices } from '../../mock/data/services';
 import { Button } from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/SearchInput';
