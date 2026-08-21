@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Staff Advances - CAR SPA MANAGEMENT</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#39485a",
+                        "surface-dim": "#d9dadb",
+                        "primary-fixed": "#e2e2e5",
+                        "on-primary-fixed-variant": "#454749",
+                        "tertiary": "#000103",
+                        "surface-variant": "#e1e3e4",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "secondary-fixed-dim": "#b2c5ff",
+                        "tertiary-fixed": "#d4e4fa",
+                        "surface-bright": "#f8f9fa",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-primary-container": "#838486",
+                        "background": "#f8f9fa",
+                        "surface-container": "#edeeef",
+                        "tertiary-fixed-dim": "#b9c8de",
+                        "surface-container-low": "#f3f4f5",
+                        "on-secondary-container": "#fefcff",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#1a1c1e",
+                        "primary": "#000101",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#1a1c1e",
+                        "on-surface-variant": "#44474a",
+                        "on-background": "#191c1d",
+                        "on-secondary-fixed-variant": "#0040a2",
+                        "tertiary-container": "#0e1d2d",
+                        "on-tertiary-container": "#77859a",
+                        "inverse-surface": "#2e3132",
+                        "surface-container-highest": "#e1e3e4",
+                        "error-container": "#ffdad6",
+                        "surface-container-high": "#e7e8e9",
+                        "secondary-fixed": "#dae2ff",
+                        "secondary-container": "#356ee7",
+                        "on-surface": "#191c1d",
+                        "surface-tint": "#5d5e61",
+                        "outline": "#75777a",
+                        "on-secondary-fixed": "#001848",
+                        "secondary": "#0453cd",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#c6c6c9",
+                        "outline-variant": "#c5c6ca",
+                        "surface": "#f8f9fa",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#0d1c2d",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "xs": "8px",
+                        "sm": "12px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "max-width": "1440px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-primary-container h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col py-md z-50">
+<div class="px-lg pb-lg border-b border-outline-variant/30 flex items-center gap-sm">
+<div class="w-10 h-10 rounded bg-secondary flex items-center justify-center text-on-secondary font-headline-sm font-bold">C</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-primary-container">CAR SPA</h1>
+<p class="font-label-md text-label-md text-on-primary-container/70">Management Suite</p>
+</div>
+</div>
+<ul class="flex-1 overflow-y-auto py-sm">
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">dashboard</span>Dashboard</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">group</span>Customers</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">assignment</span>Job Cards</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">receipt_long</span>Quotations &amp; Invoices</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">inventory_2</span>Catalogue</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-secondary-container bg-secondary-container border-l-4 border-secondary transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">payments</span>Staff Advances</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">analytics</span>Reports</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">directions_car</span>Showroom</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">settings</span>Settings</a></li>
+<li><a class="flex items-center gap-md px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#"><span class="material-symbols-outlined text-xl">account_circle</span>Profile</a></li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen bg-background">
+<!-- TopNavBar -->
+<header class="bg-surface docked full-width top-0 sticky z-40 border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-xl">
+<div class="flex items-center gap-lg flex-1">
+<span class="font-headline-md text-headline-md font-black text-on-surface tracking-tight">CAR SPA MANAGEMENT</span>
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-variant border-none rounded-lg text-body-md focus:ring-2 focus:ring-secondary focus:bg-surface outline-none transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="px-4 py-2 border border-outline rounded-lg text-on-surface font-label-md text-label-md uppercase tracking-wider hover:bg-surface-variant transition-colors">New Job Card</button>
+<button class="px-4 py-2 bg-secondary text-on-secondary rounded-lg font-label-md text-label-md uppercase tracking-wider hover:bg-secondary/90 transition-colors shadow-sm">Add Customer</button>
+<img alt="User Avatar" class="w-10 h-10 rounded-full object-cover border border-outline-variant ml-sm" data-alt="A professional headshot of a business manager in a modern office setting. The lighting is soft and natural, creating a clean corporate look. The manager is wearing a dark navy suit. The background is a slightly blurred modern office space." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQnl9uisZ2R0t8a1VkqMW1ITKD78bxY9fMCpoTSxRAOgK4j9fCc9ITjNk4HfiSWhpoKmkpfw0hNMbqOPY1OutzJ8JPsI8vZdWA8IDp3LLYyFlA-VFgIP_WAd6Danrza5DAk9UA0U0H5Zvfd1d0aR6X7lJOrUM3bH5HcD2yNuNCgVV7YrTVs3Ybq4BeRxmdZC_a-AG9aD65uAU-yOrRKbdISb29xOp6rgkTUoEa1goHsm-C2VMeHf2W"/>
+</div>
+</header>
+<!-- Page Content -->
+<main class="flex-1 p-margin-desktop overflow-y-auto">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-xl">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-1">Staff Advances</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Manage employee advances and repayments</p>
+</div>
+<button class="px-6 py-3 bg-secondary text-on-secondary rounded-lg font-body-md text-body-md font-semibold hover:bg-secondary/90 transition-colors shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                    Add Advance
+                </button>
+</div>
+<!-- Summary Cards (Bento Grid) -->
+<div class="grid grid-cols-4 gap-gutter mb-xl">
+<div class="bg-surface rounded-xl p-lg border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden group hover:border-secondary/50 transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Total Advances</span>
+<div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">₹85,000</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="bg-surface rounded-xl p-lg border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden group hover:border-error/50 transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Outstanding</span>
+<div class="w-8 h-8 rounded bg-error-container/50 flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</div>
+</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">₹32,000</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-error opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="bg-surface rounded-xl p-lg border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden group hover:border-secondary/50 transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Recovered This Month</span>
+<div class="w-8 h-8 rounded bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">₹18,500</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-tertiary-fixed-dim opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="bg-surface rounded-xl p-lg border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden group hover:border-secondary/50 transition-colors">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Employees With Advances</span>
+<div class="w-8 h-8 rounded bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+</div>
+</div>
+<div class="font-headline-lg text-headline-lg text-on-surface">8</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-secondary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+</div>
+<!-- Main Content Area: Table & Side Panel Layout -->
+<div class="flex gap-gutter h-[600px]">
+<!-- Data Table Section -->
+<div class="flex-[2] bg-surface rounded-xl border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden">
+<div class="p-lg border-b border-outline-variant flex justify-between items-center bg-surface">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Staff Advance Ledger</h3>
+<div class="flex gap-sm">
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-variant border border-outline-variant"><span class="material-symbols-outlined text-[18px]">filter_list</span></button>
+<button class="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:bg-surface-variant border border-outline-variant"><span class="material-symbols-outlined text-[18px]">download</span></button>
+</div>
+</div>
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low sticky top-0 z-10">
+<tr>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">Employee</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">Total Advances</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">Outstanding</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider border-b border-outline-variant">Status</th>
+<th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider border-b border-outline-variant text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<!-- Row 1 (Active/Selected State) -->
+<tr class="bg-surface-variant/50 hover:bg-surface-variant transition-colors cursor-pointer group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-sm">
+<img alt="Ramesh Kumar" class="w-10 h-10 rounded-full object-cover" data-alt="A professional portrait of an automotive senior technician in a clean grey uniform. Soft workshop lighting in the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGqeuNQLL2xOMBV-5kry1Q_4LazrtOV4j60V5EPKBwNkXyJv0nDNJVuiFLUBJtQ6jlvLeC9G5p5vNfpZuTFDvoEbOHh-uW5UQA3kGkmyTijL6fHCfnN_x95ZvkjYoXf7ZCQdz3vATBUiJJwQcYLFgxgv9t73iYPG8pzx-wnMMVSixgpk1kQ4W0aUOyCKrJnfz6ZIlNDTrKlY37npoTE9XQj7Lk5U-SJtdIKckQy_1pnZ79Jk_F-cii"/>
+<div>
+<div class="font-body-md text-body-md font-bold text-on-surface">Ramesh Kumar</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Senior Technician</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">₹25,000</td>
+<td class="px-6 py-4 font-body-md text-body-md font-semibold text-error">₹15,000</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-[#fff8e1] text-[#ff8f00] font-label-md text-label-md uppercase border border-[#ffe082]">Active Balance</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-secondary hover:text-secondary-fixed-dim font-body-sm text-body-sm mr-4">View</button>
+<button class="px-3 py-1.5 border border-secondary text-secondary rounded font-label-md text-label-md hover:bg-secondary/10">Repay</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-variant/50 transition-colors cursor-pointer">
+<td class="px-6 py-4">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed font-bold">SM</div>
+<div>
+<div class="font-body-md text-body-md font-bold text-on-surface">Suresh Menon</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Senior Detailer</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">₹10,000</td>
+<td class="px-6 py-4 font-body-md text-body-md font-semibold text-on-surface-variant">₹0</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-[#e8f5e9] text-[#2e7d32] font-label-md text-label-md uppercase border border-[#a5d6a7]">Fully Recovered</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-secondary hover:text-secondary-fixed-dim font-body-sm text-body-sm mr-4">View</button>
+<button class="px-3 py-1.5 border border-outline text-on-surface-variant rounded font-label-md text-label-md opacity-50 cursor-not-allowed">Repay</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-variant/50 transition-colors cursor-pointer">
+<td class="px-6 py-4">
+<div class="flex items-center gap-sm">
+<img alt="Arjun P" class="w-10 h-10 rounded-full object-cover" data-alt="A portrait of a young automotive junior technician in a workshop setting, wearing a dark blue polo shirt." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMvkT9UYnZw8ksEv_dg5HtKk1_WsVoOCS4lJHFNEvcJ_o8MgNLwF-iFPen4k6pubjgQX-TWsyDbXJx9wlSO-ZbqAkEN6trHgQNaJru85xj5-R8p4tQIx687KKpPdiqWcL6cqeTSisOGyWIeejVWoyS6a7YCt7D003TBKEmoX8z-m5l8FsmogvupLMWjxdfPubMe9NlhJ4AKb0jktgb8_A-quCYQVUJVmQDI4seWY0b4T4Z59BiTQbJ"/>
+<div>
+<div class="font-body-md text-body-md font-bold text-on-surface">Arjun P</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Junior Technician</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">₹15,000</td>
+<td class="px-6 py-4 font-body-md text-body-md font-semibold text-error">₹5,000</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-[#fff8e1] text-[#ff8f00] font-label-md text-label-md uppercase border border-[#ffe082]">Active Balance</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-secondary hover:text-secondary-fixed-dim font-body-sm text-body-sm mr-4">View</button>
+<button class="px-3 py-1.5 border border-secondary text-secondary rounded font-label-md text-label-md hover:bg-secondary/10">Repay</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Side Panel (Staff Advance Profile) -->
+<div class="flex-1 bg-surface rounded-xl border border-outline-variant shadow-[0_4px_12px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden">
+<div class="p-lg bg-surface-container-low border-b border-outline-variant flex items-center gap-md">
+<img alt="Ramesh Kumar" class="w-16 h-16 rounded-full object-cover border-2 border-surface" data-alt="A professional portrait of an automotive senior technician in a clean grey uniform. Soft workshop lighting in the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI97esQ-LhbixMHGexf7JnWpxsCgcMFbRu9Lsz4HVglQetDqUL2s1kH-JmXUm8tSzlU7WK5fpiy5WhFWNLMwUzt7AuRgiZ-cOEfdscyoMLv_cA0_8bGhaK0kufsizsI_zZKuhyxGGLLAtGOuBxkeiSlR1EsAeyHNv1QtyWcDZ7-ItfqvvlObiUH7ZOMpgXkJoiyJkpvGzGN9uT0E18YO55t6P4OogxEppm9KbZiy0Wqcl9u-TeNhwl"/>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-1">Ramesh Kumar</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">work</span> Senior Technician</p>
+</div>
+</div>
+<div class="p-lg border-b border-outline-variant grid grid-cols-2 gap-4 bg-surface">
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase mb-1">Current Outstanding</div>
+<div class="font-headline-md text-headline-md text-error">₹15,000</div>
+</div>
+<div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase mb-1">Total Recovered</div>
+<div class="font-headline-md text-headline-md text-on-surface">₹10,000</div>
+</div>
+</div>
+<div class="flex-1 overflow-auto p-lg bg-surface">
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-md">Transaction History</h4>
+<div class="relative border-l-2 border-outline-variant ml-3 space-y-6">
+<!-- Timeline Item (Repayment) -->
+<div class="relative pl-6">
+<div class="absolute w-3 h-3 bg-tertiary-fixed rounded-full -left-[7px] top-1.5 border-2 border-surface"></div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#e8f5e9] text-[#2e7d32] uppercase mb-1">Repayment</span>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Oct 01, 2023 • Salary Deduction</div>
+</div>
+<div class="font-body-md text-body-md font-bold text-[#2e7d32]">-₹5,000</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant italic">"October Salary Deduction"</p>
+</div>
+</div>
+<!-- Timeline Item (Repayment) -->
+<div class="relative pl-6">
+<div class="absolute w-3 h-3 bg-tertiary-fixed rounded-full -left-[7px] top-1.5 border-2 border-surface"></div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#e8f5e9] text-[#2e7d32] uppercase mb-1">Repayment</span>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Sep 01, 2023 • Salary Deduction</div>
+</div>
+<div class="font-body-md text-body-md font-bold text-[#2e7d32]">-₹5,000</div>
+</div>
+</div>
+</div>
+<!-- Timeline Item (Advance) -->
+<div class="relative pl-6">
+<div class="absolute w-3 h-3 bg-error rounded-full -left-[7px] top-1.5 border-2 border-surface"></div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant">
+<div class="flex justify-between items-start mb-2">
+<div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-[#ffdad6] text-[#ba1a1a] uppercase mb-1">Advance Given</span>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Aug 15, 2023 • Bank Transfer</div>
+</div>
+<div class="font-body-md text-body-md font-bold text-error">+₹25,000</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant italic">"Medical emergency advance approved by Manager."</p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-outline-variant bg-surface-container-low flex gap-3">
+<button class="flex-1 px-4 py-2 bg-secondary text-on-secondary rounded font-body-md text-body-md font-semibold hover:bg-secondary/90 transition-colors shadow-sm">Record Repayment</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

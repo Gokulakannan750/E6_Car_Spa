@@ -1,0 +1,35 @@
+{
+ "appId": "com.carspapro.app",
+ "productName": "Car Spa Pro",
+ "version": "1.0.0",
+ "directories": {
+ "output": "release"
+ },
+ "files": [
+ "dist/**/*",
+ "dist-electron/**/*"
+ ],
+ "mac": {
+ "target": "dmg",
+ "category": "public.app-category.business"
+ },
+ "win": {
+ "target": "nsis",
+ "icon": "build/icon.ico"
+ },
+ "linux": {
+ "target": "AppImage",
+ "category": "Office"
+ },
+ "nsis": {
+ "oneClick": false,
+ "allowToChangeInstallationDirectory": true,
+ "installerIcon": "build/icon.ico",
+ "uninstallerIcon": "build/icon.ico"
+ },
+ "publish": {
+ "provider": "github",
+ "owner": "carspa",
+ "repo": "car-spa-pro"
+ }
+}

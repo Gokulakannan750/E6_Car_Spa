@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-*
+dist-electron
+release
+*.log
+.DS_Store
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg

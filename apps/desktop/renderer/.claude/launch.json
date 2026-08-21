@@ -1,0 +1,11 @@
+{
+ "version": "0.0.1",
+ "configurations": [
+ {
+ "name": "Car Spa Dev Server",
+ "runtimeExecutable": "npx",
+ "runtimeArgs": ["vite", "--port", "5173"],
+ "cwd": "E:/TTS/Projects/Desktop_Apps/E6_Car_spa_new/apps/desktop/renderer"
+ }
+ ]
+}

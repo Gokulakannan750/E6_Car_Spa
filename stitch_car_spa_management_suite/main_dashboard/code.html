@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CAR SPA MANAGEMENT - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#000103",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-container": "#fefcff",
+                        "surface-container": "#edeeef",
+                        "outline-variant": "#c5c6ca",
+                        "on-primary-fixed": "#1a1c1e",
+                        "primary-container": "#1a1c1e",
+                        "inverse-surface": "#2e3132",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#77859a",
+                        "background": "#f8f9fa",
+                        "secondary-fixed": "#dae2ff",
+                        "outline": "#75777a",
+                        "primary-fixed": "#e2e2e5",
+                        "on-secondary-fixed-variant": "#0040a2",
+                        "primary": "#000101",
+                        "inverse-primary": "#c6c6c9",
+                        "surface-container-low": "#f3f4f5",
+                        "on-surface-variant": "#44474a",
+                        "on-primary-container": "#838486",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "on-background": "#191c1d",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#356ee7",
+                        "surface-dim": "#d9dadb",
+                        "on-primary-fixed-variant": "#454749",
+                        "surface-container-high": "#e7e8e9",
+                        "secondary-fixed-dim": "#b2c5ff",
+                        "surface-bright": "#f8f9fa",
+                        "on-secondary-fixed": "#001848",
+                        "tertiary-container": "#0e1d2d",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-tint": "#5d5e61",
+                        "tertiary-fixed": "#d4e4fa",
+                        "on-surface": "#191c1d",
+                        "surface-variant": "#e1e3e4",
+                        "on-tertiary-fixed": "#0d1c2d",
+                        "on-tertiary-fixed-variant": "#39485a",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#b9c8de",
+                        "secondary": "#0453cd",
+                        "surface": "#f8f9fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "margin-mobile": "16px",
+                        "sm": "12px",
+                        "margin-desktop": "32px",
+                        "max-width": "1440px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "xs": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Ambient shadow for cards */
+        .ambient-shadow {
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* High density table rows */
+        .table-row-dense {
+            height: 48px;
+        }
+        
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased overflow-x-hidden min-h-screen flex flex-col md:flex-row">
+<!-- SIDE NAVBAR (MOBILE: HIDDEN, DESKTOP: SHOWN) -->
+<nav class="hidden md:flex bg-primary-container dark:bg-primary-container h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex-col py-md z-50">
+<div class="px-lg mb-xl flex items-center gap-sm">
+<img alt="Car Spa Management Logo" class="w-10 h-10 object-contain rounded-DEFAULT" data-alt="A minimalist, premium vector logo for an automotive detailing enterprise, featuring a highly stylized, sharp metallic sports car silhouette intertwined with water droplets and a subtle gleam. Rendered in monochromatic silver and deep charcoal against a clean white background, high-resolution, vector art style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzQpXjL4Lf0DRMK-M0A3ugQwzi6VzARce__sTNd2qlGCQ_C04sk-TT_An3Yodn13PVLuh1BLJAA6L-B549jGOHhMFQt0V1GaeTJFmwgMQPcMOcYTFLIkT1yQ9hv6WCbXDC-fC7RXadw2qPYZRp3v01wOG_JynCy6z5Y3UYhIUZEvKmHzTr7PN8IUC25MgJ4WO2rZK7XovQ7cFLvBZ2s8CjnMn25eVGrvXbQUnZMDAg6eL5VKmccdyZ"/>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-primary-container uppercase">CAR SPA</h1>
+<p class="font-label-md text-label-md text-on-primary-container opacity-70">Management Suite</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto w-full">
+<ul class="flex flex-col gap-base w-full">
+<!-- ACTIVE: Dashboard -->
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-secondary-container bg-secondary-container border-l-4 border-secondary transition-all duration-200 ease-in-out font-body-md text-body-md w-full" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Job Cards</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span>Quotations &amp; Invoices</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Catalogue</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Staff Advances</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Showroom</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="mt-auto w-full flex flex-col gap-base pt-md border-t border-outline-variant border-opacity-20">
+<ul class="flex flex-col gap-base w-full">
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</li>
+<li class="w-full">
+<a class="flex items-center gap-sm px-lg py-sm text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md border-l-4 border-transparent w-full" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span>Profile</span>
+</a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- MAIN CONTENT AREA -->
+<div class="flex-1 flex flex-col min-h-screen md:ml-64 w-full relative">
+<!-- TOP NAV BAR -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 sticky z-40 border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-xl w-full">
+<div class="flex items-center gap-md">
+<!-- Mobile Menu Trigger -->
+<button class="md:hidden text-primary p-2 -ml-2 rounded-DEFAULT hover:bg-surface-variant transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<div class="flex flex-col">
+<h1 class="font-headline-md text-headline-md font-black text-on-surface hidden md:block uppercase tracking-tight">Dashboard</h1>
+<span class="font-body-sm text-body-sm text-on-surface-variant hidden md:block">Overview of today's business activity</span>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<!-- Search -->
+<div class="hidden lg:flex items-center bg-surface-container-low border border-outline-variant rounded-DEFAULT px-sm py-2 w-64 focus-within:border-secondary focus-within:ring-1 focus-within:ring-secondary transition-all">
+<span class="material-symbols-outlined text-on-surface-variant mr-xs text-[20px]" data-icon="search">search</span>
+<input class="bg-transparent border-none outline-none text-body-sm font-body-sm w-full p-0 text-on-surface placeholder:text-on-surface-variant focus:ring-0" placeholder="Search job cards, customers..." type="text"/>
+</div>
+<!-- Icons & Actions -->
+<div class="flex items-center gap-sm">
+<button class="text-on-surface-variant hover:text-secondary transition-colors p-2 rounded-full hover:bg-surface-container-low cursor-pointer active:opacity-80 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="hidden md:flex items-center justify-center bg-surface text-on-surface border-[1.5px] border-on-surface font-label-md text-label-md uppercase px-4 py-2 rounded-DEFAULT hover:bg-surface-container-low transition-colors whitespace-nowrap cursor-pointer active:opacity-80">
+                        New Job Card
+                    </button>
+<button class="flex items-center justify-center bg-secondary text-on-secondary font-label-md text-label-md uppercase px-4 py-2 rounded-DEFAULT hover:bg-secondary/90 shadow-sm transition-colors whitespace-nowrap cursor-pointer active:opacity-80">
+                        Add Customer
+                    </button>
+<button class="ml-sm rounded-full w-8 h-8 overflow-hidden border-2 border-outline-variant hover:border-secondary transition-colors cursor-pointer active:opacity-80 shrink-0">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="Professional headshot of a service advisor in a sleek, modern garage setting. The lighting is crisp and cool, casting soft shadows. The advisor is smiling subtly, wearing a sharp, dark polo shirt. Corporate, high-quality, shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1_PvHko3UlSrErbHNYJUJKeuejPVY9O0dsSBkqoayxxsr9WWXkhC4nq3ZtgxkZ7IYMwP_2qzb5Clwf2ppVn04wlo_nvRmLZeHKUVzIDORu7zCEQg9Ge_MjThxrqMRqH_cNWS8hcY0H1WK3P50fhOgxOWrU3xHsBCBHRtRiUMEctPPfHRO2_gRWbj7TCJ-IqnWOddxUN0oSGl3mbxR2t3MDsYxC39Tqtcu3KfZPufBbkPWJJptemGj"/>
+</button>
+</div>
+</div>
+</header>
+<!-- DASHBOARD CANVAS -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop lg:px-[32px] overflow-x-hidden bg-background max-w-max-width mx-auto w-full">
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-xl">
+<!-- LEFT COLUMN: Primary Metrics & Data (Col span 12 or 8 on large) -->
+<div class="col-span-1 md:col-span-12 lg:col-span-8 flex flex-col gap-gutter">
+<!-- 1. KPI CARDS BENTO GRID -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-sm">
+<!-- KPI: Today's Sales -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Today's Sales</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[20px]" data-icon="currency_rupee">currency_rupee</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">₹48,500</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-green-700">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+12% vs yesterday</span>
+</div>
+</div>
+</div>
+<!-- KPI: Today's Collection -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Today's Collection</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[20px]" data-icon="accountability">save_as</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">₹37,200</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-green-700">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span>+5% vs yesterday</span>
+</div>
+</div>
+</div>
+<!-- KPI: Outstanding -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Outstanding</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">₹11,300</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-green-700">
+<span class="material-symbols-outlined text-[16px]">trending_down</span>
+<span>-2% vs yesterday</span>
+</div>
+</div>
+</div>
+<!-- KPI: Jobs Today -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Jobs Today</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-surface-container-high flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[20px]" data-icon="car_repair">car_repair</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">18</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+<span>Up 3 from yesterday</span>
+</div>
+</div>
+</div>
+<!-- KPI: Vehicles In Workshop -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">In Workshop</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-[#fff7ed] flex items-center justify-center text-[#c2410c]">
+<span class="material-symbols-outlined text-[20px]" data-icon="garage">garage</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">9</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-on-surface-variant">
+<span>Currently active</span>
+</div>
+</div>
+</div>
+<!-- KPI: Vehicles Ready -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-lg ambient-shadow flex flex-col justify-between">
+<div class="flex justify-between items-start mb-md">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Ready for Delivery</span>
+<div class="w-8 h-8 rounded-DEFAULT bg-[#ecfdf5] flex items-center justify-center text-[#047857]">
+<span class="material-symbols-outlined text-[20px]" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+<div>
+<div class="font-headline-lg text-headline-lg text-on-surface mb-xs">4</div>
+<div class="flex items-center gap-xs text-[13px] font-medium text-on-surface-variant">
+<span>Pending pickup</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. SALES CHART -->
+<section class="bg-surface-container-lowest border border-surface-variant rounded-xl p-lg ambient-shadow">
+<div class="flex justify-between items-center border-b border-surface-variant pb-md mb-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Sales Trends</h2>
+<!-- Toggle Tabs -->
+<div class="flex bg-surface-container-low rounded-DEFAULT p-1 border border-outline-variant">
+<button class="px-sm py-1 font-label-md text-label-md rounded-sm text-on-surface-variant hover:text-on-surface transition-colors">7 Days</button>
+<button class="px-sm py-1 font-label-md text-label-md rounded-sm bg-surface text-on-surface shadow-sm border border-outline-variant border-opacity-50">30 Days</button>
+<button class="px-sm py-1 font-label-md text-label-md rounded-sm text-on-surface-variant hover:text-on-surface transition-colors">90 Days</button>
+</div>
+</div>
+<!-- Chart Placeholder Area -->
+<div class="h-64 w-full relative bg-background rounded-lg border border-dashed border-outline-variant flex items-end justify-between px-md pt-lg pb-md">
+<!-- Faux Y-Axis -->
+<div class="absolute left-md top-lg bottom-md flex flex-col justify-between text-[10px] text-on-surface-variant font-medium">
+<span>₹60k</span>
+<span>₹45k</span>
+<span>₹30k</span>
+<span>₹15k</span>
+<span>₹0</span>
+</div>
+<!-- Faux Grid Lines -->
+<div class="absolute inset-0 pl-xl pr-md py-md flex flex-col justify-between pointer-events-none">
+<div class="w-full border-b border-outline-variant border-opacity-20 h-0"></div>
+<div class="w-full border-b border-outline-variant border-opacity-20 h-0"></div>
+<div class="w-full border-b border-outline-variant border-opacity-20 h-0"></div>
+<div class="w-full border-b border-outline-variant border-opacity-20 h-0"></div>
+<div class="w-full border-b border-outline-variant border-opacity-20 h-0"></div>
+</div>
+<!-- Faux Area Chart path representation via SVG placeholder structure if needed, or just CSS blocks -->
+<div class="w-full h-full ml-xl relative overflow-hidden">
+<!-- Abstract line representation using SVG -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 100 100">
+<defs>
+<lineargradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#0453cd" stop-opacity="0.3"></stop>
+<stop offset="100%" stop-color="#0453cd" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<path d="M0,100 L0,70 Q10,60 20,75 T40,50 T60,60 T80,30 T100,20 L100,100 Z" fill="url(#chartGrad)"></path>
+<path d="M0,70 Q10,60 20,75 T40,50 T60,60 T80,30 T100,20" fill="none" stroke="#0453cd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<!-- Faux X-Axis -->
+<div class="absolute bottom-0 left-xl right-md flex justify-between text-[10px] text-on-surface-variant font-medium translate-y-full pt-1">
+<span>Nov 1</span>
+<span>Nov 8</span>
+<span>Nov 15</span>
+<span>Nov 22</span>
+<span>Nov 29</span>
+</div>
+</div>
+</section>
+<!-- 5. TODAY'S JOB CARDS (Table) -->
+<section class="bg-surface-container-lowest border border-surface-variant rounded-xl ambient-shadow overflow-hidden flex flex-col">
+<div class="flex justify-between items-center p-md border-b border-surface-variant">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Today's Job Cards</h2>
+<button class="text-secondary font-label-md text-label-md uppercase hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-background border-b border-surface-variant text-[#64748B] text-[12px] uppercase tracking-wider font-semibold">
+<th class="px-md py-sm">Job Card No.</th>
+<th class="px-md py-sm">Customer</th>
+<th class="px-md py-sm">Vehicle</th>
+<th class="px-md py-sm">Service</th>
+<th class="px-md py-sm">Assigned Staff</th>
+<th class="px-md py-sm">Status</th>
+<th class="px-md py-sm">Expected Delivery</th>
+</tr>
+</thead>
+<tbody class="text-body-sm font-body-sm text-on-surface divide-y divide-surface-variant">
+<!-- Row 1 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8410</td>
+<td class="px-md">Rahul Sharma</td>
+<td class="px-md text-on-surface-variant">BMW X5</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">Ceramic Coating</td>
+<td class="px-md">Mike</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] uppercase tracking-wider border border-[#bae6fd]">In Progress</span>
+</td>
+<td class="px-md text-on-surface-variant">4:00 PM</td>
+</tr>
+<!-- Row 2 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8411</td>
+<td class="px-md">Anita Desai</td>
+<td class="px-md text-on-surface-variant">Honda City</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">Interior Detail</td>
+<td class="px-md">Alex</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#fef9c3] text-[#b45309] uppercase tracking-wider border border-[#fde047]">Pending</span>
+</td>
+<td class="px-md text-on-surface-variant">Tomorrow 10 AM</td>
+</tr>
+<!-- Row 3 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8408</td>
+<td class="px-md">Vikram Singh</td>
+<td class="px-md text-on-surface-variant">Audi Q7</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">PPF Installation</td>
+<td class="px-md">Carlos</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] uppercase tracking-wider border border-[#bae6fd]">In Progress</span>
+</td>
+<td class="px-md text-on-surface-variant">Today 6:00 PM</td>
+</tr>
+<!-- Row 4 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8405</td>
+<td class="px-md">Meera Reddy</td>
+<td class="px-md text-on-surface-variant">Mercedes C-Class</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">General Service</td>
+<td class="px-md">Alex</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#dcfce7] text-[#047857] uppercase tracking-wider border border-[#bbf7d0]">Ready</span>
+</td>
+<td class="px-md text-on-surface-variant">Ready for pickup</td>
+</tr>
+<!-- Row 5 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8412</td>
+<td class="px-md">Karan Johar</td>
+<td class="px-md text-on-surface-variant">Porsche 911</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">Premium Wash</td>
+<td class="px-md">Mike</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#e0f2fe] text-[#0369a1] uppercase tracking-wider border border-[#bae6fd]">In Progress</span>
+</td>
+<td class="px-md text-on-surface-variant">3:30 PM</td>
+</tr>
+<!-- Row 6 -->
+<tr class="table-row-dense hover:bg-[#F1F5F9] transition-colors group">
+<td class="px-md font-bold text-on-surface">#JC-8399</td>
+<td class="px-md">Priya Kapoor</td>
+<td class="px-md text-on-surface-variant">Hyundai Creta</td>
+<td class="px-md text-on-surface-variant truncate max-w-[120px]">Deep Cleaning</td>
+<td class="px-md">Carlos</td>
+<td class="px-md">
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-bold bg-[#dcfce7] text-[#047857] uppercase tracking-wider border border-[#bbf7d0]">Ready</span>
+</td>
+<td class="px-md text-on-surface-variant">Ready for pickup</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- RIGHT COLUMN: Secondary Info & Actions (Col span 12 or 4 on large) -->
+<div class="col-span-1 md:col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<!-- 2. JOB STATUS OVERVIEW -->
+<section class="bg-surface-container-lowest border border-surface-variant rounded-xl p-lg ambient-shadow">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-md">Workflow Status</h2>
+<div class="flex flex-col gap-sm">
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-surface-variant"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">New</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">3</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-surface-variant h-full rounded-full" style="width: 15%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-[#fef08a]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Inspection</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">2</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-[#fef08a] h-full rounded-full" style="width: 10%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-[#c7d2fe]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Quotation</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">4</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-[#c7d2fe] h-full rounded-full" style="width: 20%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-[#93c5fd]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Approved</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">5</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-[#93c5fd] h-full rounded-full" style="width: 25%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors font-medium">In Progress</span>
+</div>
+<span class="font-body-sm text-body-sm font-bold text-on-surface">9</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-secondary h-full rounded-full" style="width: 45%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-[#fca5a5]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Quality Check</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">2</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-[#fca5a5] h-full rounded-full" style="width: 10%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-[#86efac]"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Ready</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">4</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden mb-xs">
+<div class="bg-[#86efac] h-full rounded-full" style="width: 20%"></div>
+</div>
+<!-- Status Item -->
+<div class="flex items-center justify-between group">
+<div class="flex items-center gap-sm">
+<div class="w-3 h-3 rounded-full bg-primary-container"></div>
+<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Delivered</span>
+</div>
+<span class="font-body-sm text-body-sm font-semibold text-on-surface">12</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 60%"></div>
+</div>
+</div>
+</section>
+<!-- 4. SERVICE REVENUE BREAKDOWN (Visual Representation) -->
+<section class="bg-surface-container-lowest border border-surface-variant rounded-xl p-lg ambient-shadow">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-md">Revenue by Service</h2>
+<!-- Donut Chart Faux Representation -->
+<div class="flex items-center justify-center py-md relative">
+<!-- Simple CSS based circle representation -->
+<div class="w-40 h-40 rounded-full border-[16px] border-surface-container-low relative">
+<!-- Using conic-gradient for a quick donut chart look -->
+<div class="absolute inset-[-16px] rounded-full" style="background: conic-gradient(
+                                    #0453cd 0% 35%, 
+                                    #356ee7 35% 60%, 
+                                    #b2c5ff 60% 75%, 
+                                    #1a1c1e 75% 85%, 
+                                    #75777a 85% 95%, 
+                                    #e2e2e5 95% 100%
+                                ); -webkit-mask: radial-gradient(transparent 55%, black 56%); mask: radial-gradient(transparent 55%, black 56%);"></div>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-semibold">Total Rev</span>
+<span class="font-body-md text-body-md font-bold text-on-surface">₹1.2M</span>
+</div>
+</div>
+</div>
+<!-- Legend -->
+<div class="grid grid-cols-2 gap-x-sm gap-y-xs mt-sm">
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#0453cd]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">Detailing (35%)</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#356ee7]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">Ceramic Coating (25%)</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#b2c5ff]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">PPF (15%)</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#1a1c1e]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">General Svc (10%)</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#75777a]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">Car Wash (10%)</span>
+</div>
+<div class="flex items-center gap-xs">
+<div class="w-2.5 h-2.5 rounded-sm bg-[#e2e2e5]"></div>
+<span class="text-[11px] text-on-surface-variant truncate">Accessories (5%)</span>
+</div>
+</div>
+</section>
+<!-- 6. QUICK ACTIONS & ACTIVITY -->
+<section class="bg-surface-container-lowest border border-surface-variant rounded-xl p-lg ambient-shadow flex flex-col h-full">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-md">Quick Actions</h2>
+<div class="grid grid-cols-2 gap-sm mb-lg">
+<button class="flex items-center justify-center gap-xs bg-surface text-on-surface border border-outline-variant border-opacity-50 font-label-md text-label-md py-2 rounded-DEFAULT hover:border-secondary hover:text-secondary transition-colors cursor-pointer text-[11px] whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]" data-icon="person_add">person_add</span>
+                                New Customer
+                            </button>
+<button class="flex items-center justify-center gap-xs bg-surface text-on-surface border border-outline-variant border-opacity-50 font-label-md text-label-md py-2 rounded-DEFAULT hover:border-secondary hover:text-secondary transition-colors cursor-pointer text-[11px] whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]" data-icon="assignment_add">assignment_add</span>
+                                New Job Card
+                            </button>
+<button class="flex items-center justify-center gap-xs bg-surface text-on-surface border border-outline-variant border-opacity-50 font-label-md text-label-md py-2 rounded-DEFAULT hover:border-secondary hover:text-secondary transition-colors cursor-pointer text-[11px] whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]" data-icon="request_quote">request_quote</span>
+                                New Quotation
+                            </button>
+<button class="flex items-center justify-center gap-xs bg-surface text-on-surface border border-outline-variant border-opacity-50 font-label-md text-label-md py-2 rounded-DEFAULT hover:border-secondary hover:text-secondary transition-colors cursor-pointer text-[11px] whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]" data-icon="receipt">receipt</span>
+                                New Invoice
+                            </button>
+<button class="col-span-2 flex items-center justify-center gap-xs bg-surface text-on-surface border border-outline-variant border-opacity-50 font-label-md text-label-md py-2 rounded-DEFAULT hover:border-secondary hover:text-secondary transition-colors cursor-pointer text-[11px] whitespace-nowrap">
+<span class="material-symbols-outlined text-[16px]" data-icon="payments">payments</span>
+                                Record Payment
+                            </button>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-sm border-t border-surface-variant pt-md">Recent Activity</h3>
+<ul class="flex flex-col gap-md">
+<li class="flex items-start gap-sm">
+<div class="mt-0.5 w-6 h-6 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[14px] text-on-secondary-fixed" data-icon="check">check</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface leading-tight">Quotation approved for <strong>#JC-8405</strong></span>
+<span class="text-[11px] text-on-surface-variant">10 mins ago</span>
+</div>
+</li>
+<li class="flex items-start gap-sm">
+<div class="mt-0.5 w-6 h-6 rounded-full bg-[#dcfce7] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[14px] text-[#047857]" data-icon="directions_car">directions_car</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface leading-tight">Vehicle ready for delivery: <strong>Audi A4</strong></span>
+<span class="text-[11px] text-on-surface-variant">32 mins ago</span>
+</div>
+</li>
+<li class="flex items-start gap-sm">
+<div class="mt-0.5 w-6 h-6 rounded-full bg-[#fef08a] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[14px] text-[#854d0e]" data-icon="payments">payments</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface leading-tight">Payment received: <strong>₹12,000</strong></span>
+<span class="text-[11px] text-on-surface-variant">1 hour ago</span>
+</div>
+</li>
+<li class="flex items-start gap-sm">
+<div class="mt-0.5 w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[14px] text-on-surface" data-icon="person_add">person_add</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-sm text-body-sm text-on-surface leading-tight">New customer registered: <strong>Vikram Malhotra</strong></span>
+<span class="text-[11px] text-on-surface-variant">2 hours ago</span>
+</div>
+</li>
+</ul>
+</section>
+</div>
+</div>
+</main>
+</div>
+<!-- BOTTOM NAVBAR (MOBILE ONLY) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-surface-variant flex justify-around items-center h-16 z-50 ambient-shadow">
+<a class="flex flex-col items-center justify-center text-secondary h-full w-full" href="#">
+<span class="material-symbols-outlined fill" data-icon="dashboard">dashboard</span>
+<span class="text-[10px] font-bold mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="text-[10px] mt-1">Jobs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+<span class="text-[10px] mt-1">New</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="text-[10px] mt-1">Clients</span>
+</a>
+</nav>
+<!-- Mobile Bottom Padding to prevent content hiding behind fixed nav -->
+<div class="h-16 md:hidden w-full"></div>
+</body></html>

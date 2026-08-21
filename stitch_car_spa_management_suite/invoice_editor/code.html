@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CAR SPA MANAGEMENT - Invoice Editor</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#191c1d",
+                      "outline": "#75777a",
+                      "tertiary-fixed": "#d4e4fa",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-primary-fixed-variant": "#454749",
+                      "surface-container-low": "#f3f4f5",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f8f9fa",
+                      "surface-tint": "#5d5e61",
+                      "outline-variant": "#c5c6ca",
+                      "surface-container-lowest": "#ffffff",
+                      "surface": "#f8f9fa",
+                      "tertiary-fixed-dim": "#b9c8de",
+                      "on-primary-fixed": "#1a1c1e",
+                      "on-surface-variant": "#44474a",
+                      "surface-dim": "#d9dadb",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed-variant": "#0040a2",
+                      "error": "#ba1a1a",
+                      "tertiary-container": "#0e1d2d",
+                      "on-secondary-fixed": "#001848",
+                      "surface-variant": "#e1e3e4",
+                      "inverse-surface": "#2e3132",
+                      "on-tertiary-container": "#77859a",
+                      "primary-fixed": "#e2e2e5",
+                      "on-secondary": "#ffffff",
+                      "background": "#f8f9fa",
+                      "on-primary-container": "#838486",
+                      "surface-container-highest": "#e1e3e4",
+                      "inverse-primary": "#c6c6c9",
+                      "on-secondary-container": "#fefcff",
+                      "on-tertiary-fixed-variant": "#39485a",
+                      "on-background": "#191c1d",
+                      "secondary-container": "#356ee7",
+                      "primary": "#000101",
+                      "primary-fixed-dim": "#c6c6c9",
+                      "primary-container": "#1a1c1e",
+                      "tertiary": "#000103",
+                      "surface-container-high": "#e7e8e9",
+                      "surface-container": "#edeeef",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#0d1c2d",
+                      "secondary-fixed": "#dae2ff",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed-dim": "#b2c5ff",
+                      "error-container": "#ffdad6",
+                      "secondary": "#0453cd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "xl": "32px",
+                      "base": "4px",
+                      "margin-desktop": "32px",
+                      "margin-mobile": "16px",
+                      "lg": "24px",
+                      "md": "16px",
+                      "max-width": "1440px",
+                      "gutter": "24px",
+                      "xs": "8px",
+                      "sm": "12px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background min-h-screen font-body-md text-on-surface">
+<!-- Shell Structure -->
+<div class="flex h-screen overflow-hidden">
+<!-- Side Navigation -->
+<nav class="bg-primary-container dark:bg-primary-container h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full py-md z-50">
+<div class="px-md mb-xl flex items-center space-x-sm">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A highly detailed metallic luxury car wheel rim on a dark background, showcasing precision engineering, high-contrast lighting, professional studio setup, modern corporate aesthetic. 3d render" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXBUDOb7TtdPWd44zFdPTic_t78K826Ewmjgj3yCbV9Doc2itkekDMx9eKFPYgmBByNki7sYXZBx0pdhT0KPQhQJVoX2DjC9SZSIfsGoyC_aGgKrt0wdyJiEk2ekKBLfiaxqEDk4vJLdwZ3aQNIXj8VooQphRoBkg5PYOY-rrrT1GQssSmI89G7sCSZuO-o0925LCuc0dcR4pe03v2RXq4zDSDlLk5U3hoPI3ZQOZbzOA5Gz58SeLj"/>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-primary-container">CAR SPA</h1>
+<p class="font-label-md text-label-md text-on-primary-container opacity-70">Management Suite</p>
+</div>
+</div>
+<ul class="flex flex-col space-y-base flex-grow font-body-md text-body-md px-md">
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Customers</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span>Job Cards</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-secondary-container bg-secondary-container border-l-4 border-secondary transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span>Quotations &amp; Invoices</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span>Catalogue</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span>Staff Advances</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span>Reports</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span>Showroom</span>
+</a>
+</li>
+</ul>
+<ul class="flex flex-col space-y-base font-body-md text-body-md px-md mt-auto">
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-md px-md py-sm rounded-DEFAULT text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span>Profile</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-64 flex flex-col h-screen">
+<!-- Top App Bar -->
+<header class="bg-surface dark:bg-surface-dim font-body-md text-body-md docked full-width top-0 sticky z-40 shadow-sm flex justify-between items-center h-16 px-xl">
+<div class="flex items-center space-x-lg">
+<span class="font-headline-md text-headline-md font-black text-on-surface">CAR SPA MANAGEMENT</span>
+<div class="relative hidden lg:block w-64">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-DEFAULT py-xs pl-xl pr-sm text-body-sm focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-lg">
+<button class="text-on-surface-variant hover:text-secondary transition-colors cursor-pointer active:opacity-80 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="font-label-md text-label-md border border-on-surface text-on-surface px-md py-xs rounded-DEFAULT hover:bg-surface-variant transition-colors">New Job Card</button>
+<button class="font-label-md text-label-md bg-secondary text-on-secondary px-md py-xs rounded-DEFAULT hover:bg-secondary-container transition-colors">Add Customer</button>
+<img class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A professional studio portrait of a corporate manager in a dark suit, soft Rembrandt lighting, dark background, premium enterprise aesthetic, high resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8BxhWTmevpyn5_R-XyGFAEd-wEm-VKe5OEPD2q_yEdJ5CrvNrZhP1KI9FHpZQf2RWiyXMvGXjl17B7EPMmKf0MvVFxm4UAqP_WSz1xGblu0XIxuNLE40LIOnNYOmmoH0CMBdZSKeEMP8dWvR6kyMmBO6wkg0xAcTuqE3CPDf4CLoiBKGpcqusRlsnB1-u3UXVKIxHZ0OEG7_u1nA39tavb7rIGkotXyAOJWcXU21xE3GigBC5PtMa"/>
+</div>
+</header>
+<!-- Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto p-margin-desktop bg-background grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column: Editor (8 cols on desktop) -->
+<div class="col-span-1 lg:col-span-8 flex flex-col gap-lg">
+<!-- Header Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-surface-container-lowest p-lg rounded-lg border border-outline-variant shadow-sm gap-md">
+<div>
+<div class="flex items-center space-x-md mb-xs">
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Invoice: INV-2026-00458</h2>
+<span class="bg-[#FEF08A] text-[#92400E] font-label-md text-label-md px-sm py-xs rounded-full">Partially Paid</span>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-sm">
+<button class="font-label-md text-label-md border border-on-surface text-on-surface px-md py-sm rounded-DEFAULT hover:bg-surface-variant transition-colors flex items-center space-x-xs">
+<span class="material-symbols-outlined text-sm">visibility</span>
+<span>Preview</span>
+</button>
+<button class="font-label-md text-label-md border border-on-surface text-on-surface px-md py-sm rounded-DEFAULT hover:bg-surface-variant transition-colors flex items-center space-x-xs">
+<span class="material-symbols-outlined text-sm">picture_as_pdf</span>
+<span>PDF</span>
+</button>
+<button class="font-label-md text-label-md bg-secondary text-on-secondary px-md py-sm rounded-DEFAULT hover:bg-secondary-container transition-colors flex items-center space-x-xs">
+<span class="material-symbols-outlined text-sm">save</span>
+<span>Save</span>
+</button>
+</div>
+</div>
+<!-- Customer & Vehicle Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+<div class="bg-surface-container-lowest p-md rounded-lg border border-outline-variant shadow-sm flex items-start space-x-md">
+<div class="bg-surface-container-low p-sm rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs uppercase">Customer Details</p>
+<p class="font-body-lg text-body-lg font-semibold text-on-surface">Gokula Kannan</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">+91 98765 43210</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-lg border border-outline-variant shadow-sm flex items-start space-x-md">
+<div class="bg-surface-container-low p-sm rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">directions_car</span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-xs uppercase">Vehicle Details</p>
+<p class="font-body-lg text-body-lg font-semibold text-on-surface">BMW X1</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">TN 33 AB 1234</p>
+</div>
+</div>
+</div>
+<!-- Invoice Items Table -->
+<div class="bg-surface-container-lowest rounded-lg border border-outline-variant shadow-sm overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low border-b border-outline-variant font-label-md text-label-md text-outline uppercase">
+<tr>
+<th class="p-md font-semibold">Service / Product</th>
+<th class="p-md font-semibold">Qty</th>
+<th class="p-md font-semibold">Rate (₹)</th>
+<th class="p-md font-semibold">Disc (%)</th>
+<th class="p-md font-semibold">Tax (%)</th>
+<th class="p-md font-semibold text-right">Total (₹)</th>
+<th class="p-md font-semibold w-12"></th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-surface">
+<tr class="border-b border-outline-variant hover:bg-[#F1F5F9] transition-colors">
+<td class="p-md">
+<p class="font-semibold text-on-surface">Ceramic Coating - 9H Nano Tech</p>
+<p class="text-on-surface-variant text-xs mt-1">Full body protection</p>
+</td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="1"/></td>
+<td class="p-md"><input class="w-24 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="25000"/></td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="10"/></td>
+<td class="p-md">18%</td>
+<td class="p-md text-right font-semibold">26,550.00</td>
+<td class="p-md text-center">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-sm">delete</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-[#F1F5F9] transition-colors">
+<td class="p-md">
+<p class="font-semibold text-on-surface">Interior Deep Cleaning</p>
+<p class="text-on-surface-variant text-xs mt-1">Steam Sanitize</p>
+</td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="1"/></td>
+<td class="p-md"><input class="w-24 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="3500"/></td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="0"/></td>
+<td class="p-md">18%</td>
+<td class="p-md text-right font-semibold">4,130.00</td>
+<td class="p-md text-center">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-sm">delete</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-[#F1F5F9] transition-colors">
+<td class="p-md">
+<p class="font-semibold text-on-surface">Windshield Treatment</p>
+<p class="text-on-surface-variant text-xs mt-1">Hydrophobic</p>
+</td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="1"/></td>
+<td class="p-md"><input class="w-24 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="1200"/></td>
+<td class="p-md"><input class="w-16 border-outline-variant rounded p-xs text-sm focus:ring-secondary focus:border-secondary" type="number" value="0"/></td>
+<td class="p-md">18%</td>
+<td class="p-md text-right font-semibold">1,416.00</td>
+<td class="p-md text-center">
+<button class="text-outline hover:text-error transition-colors"><span class="material-symbols-outlined text-sm">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-md border-t border-outline-variant flex justify-between items-start">
+<button class="font-label-md text-label-md border border-on-surface text-on-surface px-md py-sm rounded-DEFAULT hover:bg-surface-variant transition-colors flex items-center space-x-xs">
+<span class="material-symbols-outlined text-sm">add</span>
+<span>Add Item</span>
+</button>
+<!-- Summary Panel -->
+<div class="w-64">
+<div class="flex justify-between py-xs border-b border-outline-variant font-body-sm text-body-sm text-on-surface-variant">
+<span>Subtotal</span>
+<span>₹ 29,700.00</span>
+</div>
+<div class="flex justify-between py-xs border-b border-outline-variant font-body-sm text-body-sm text-error">
+<span>Total Discount</span>
+<span>- ₹ 2,500.00</span>
+</div>
+<div class="flex justify-between py-xs border-b border-outline-variant font-body-sm text-body-sm text-on-surface-variant">
+<span>CGST (9%)</span>
+<span>₹ 2,448.00</span>
+</div>
+<div class="flex justify-between py-xs border-b border-outline-variant font-body-sm text-body-sm text-on-surface-variant">
+<span>SGST (9%)</span>
+<span>₹ 2,448.00</span>
+</div>
+<div class="flex justify-between py-xs border-b border-outline-variant font-body-sm text-body-sm text-on-surface-variant">
+<span>Round Off</span>
+<span>₹ 0.00</span>
+</div>
+<div class="flex justify-between py-sm font-headline-sm text-headline-sm font-bold text-on-surface">
+<span>Grand Total</span>
+<span>₹ 32,096.00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Payment Section -->
+<div class="bg-surface-container-lowest p-lg rounded-lg border border-outline-variant shadow-sm flex flex-col md:flex-row justify-between items-start gap-md">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-sm">Payment Status</h3>
+<div class="grid grid-cols-3 gap-md font-body-sm text-body-sm">
+<div>
+<p class="text-outline uppercase text-xs font-semibold mb-1">Invoice Total</p>
+<p class="font-semibold text-on-surface">₹ 32,096.00</p>
+</div>
+<div>
+<p class="text-outline uppercase text-xs font-semibold mb-1">Paid Amount</p>
+<p class="font-semibold text-[#166534]">₹ 10,000.00</p>
+</div>
+<div>
+<p class="text-outline uppercase text-xs font-semibold mb-1">Balance Due</p>
+<p class="font-semibold text-error">₹ 22,096.00</p>
+</div>
+</div>
+<div class="mt-md flex gap-sm">
+<label class="flex items-center space-x-xs font-body-sm text-body-sm text-on-surface cursor-pointer">
+<input checked="" class="text-secondary focus:ring-secondary border-outline-variant" name="payment_method" type="radio" value="cash"/>
+<span>Cash</span>
+</label>
+<label class="flex items-center space-x-xs font-body-sm text-body-sm text-on-surface cursor-pointer">
+<input class="text-secondary focus:ring-secondary border-outline-variant" name="payment_method" type="radio" value="upi"/>
+<span>UPI</span>
+</label>
+<label class="flex items-center space-x-xs font-body-sm text-body-sm text-on-surface cursor-pointer">
+<input class="text-secondary focus:ring-secondary border-outline-variant" name="payment_method" type="radio" value="card"/>
+<span>Card</span>
+</label>
+<label class="flex items-center space-x-xs font-body-sm text-body-sm text-on-surface cursor-pointer">
+<input class="text-secondary focus:ring-secondary border-outline-variant" name="payment_method" type="radio" value="bank"/>
+<span>Bank Transfer</span>
+</label>
+</div>
+</div>
+<div class="self-end md:self-center">
+<button class="font-label-md text-label-md bg-[#0F172A] text-white px-lg py-md rounded-DEFAULT hover:bg-[#1E293B] transition-colors shadow-sm w-full md:w-auto">
+                                Record Payment
+                            </button>
+</div>
+</div>
+</div>
+<!-- Right Column: Live Preview (4 cols on desktop) -->
+<div class="col-span-1 lg:col-span-4 hidden lg:block">
+<div class="bg-surface-container-lowest p-lg rounded-sm border border-outline-variant shadow-lg h-full flex flex-col font-body-sm text-body-sm text-on-surface relative overflow-hidden">
+<!-- Paper texture overlay -->
+<div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: url('data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100\' height=\'100\' filter=\'url(%23noise)\'/%3E%3C/svg%3E');"></div>
+<!-- Invoice Header -->
+<div class="flex justify-between items-start border-b-2 border-primary pb-md mb-md">
+<div>
+<h2 class="font-headline-sm text-headline-sm font-black text-primary tracking-tight">CAR SPA</h2>
+<p class="text-xs text-on-surface-variant mt-1">123 Auto Avenue, Detail District<br/>Metropolis, 10001<br/>GSTIN: 33ABCDE1234F1Z5</p>
+</div>
+<div class="text-right">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface uppercase tracking-widest text-outline">Invoice</h3>
+<p class="text-xs text-on-surface-variant mt-1"><span class="font-semibold text-on-surface">INV:</span> INV-2026-00458<br/><span class="font-semibold text-on-surface">Date:</span> 24 Oct 2026</p>
+</div>
+</div>
+<!-- Bill To & Vehicle -->
+<div class="grid grid-cols-2 gap-sm mb-lg text-xs">
+<div>
+<p class="font-semibold text-outline uppercase mb-1 border-b border-outline-variant pb-1">Bill To</p>
+<p class="font-semibold text-on-surface">Gokula Kannan</p>
+<p class="text-on-surface-variant">+91 98765 43210</p>
+</div>
+<div>
+<p class="font-semibold text-outline uppercase mb-1 border-b border-outline-variant pb-1">Vehicle</p>
+<p class="font-semibold text-on-surface">BMW X1</p>
+<p class="text-on-surface-variant">TN 33 AB 1234</p>
+</div>
+</div>
+<!-- Items Table (Preview) -->
+<table class="w-full text-left text-xs mb-lg">
+<thead class="border-b border-outline-variant text-on-surface font-semibold bg-surface-container-low">
+<tr>
+<th class="py-1 px-1">Description</th>
+<th class="py-1 px-1 text-right">Qty</th>
+<th class="py-1 px-1 text-right">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant border-dashed">
+<td class="py-2 px-1">Ceramic Coating 9H</td>
+<td class="py-2 px-1 text-right">1</td>
+<td class="py-2 px-1 text-right">26,550</td>
+</tr>
+<tr class="border-b border-outline-variant border-dashed">
+<td class="py-2 px-1">Int. Deep Cleaning</td>
+<td class="py-2 px-1 text-right">1</td>
+<td class="py-2 px-1 text-right">4,130</td>
+</tr>
+<tr class="border-b border-outline-variant border-dashed">
+<td class="py-2 px-1">Windshield Trtmt</td>
+<td class="py-2 px-1 text-right">1</td>
+<td class="py-2 px-1 text-right">1,416</td>
+</tr>
+</tbody>
+</table>
+<!-- Totals (Preview) -->
+<div class="ml-auto w-48 text-xs">
+<div class="flex justify-between py-1 text-on-surface-variant">
+<span>Subtotal:</span>
+<span>29,700</span>
+</div>
+<div class="flex justify-between py-1 text-on-surface-variant">
+<span>Discount:</span>
+<span>-2,500</span>
+</div>
+<div class="flex justify-between py-1 text-on-surface-variant">
+<span>Taxes (18%):</span>
+<span>4,896</span>
+</div>
+<div class="flex justify-between py-2 border-t-2 border-primary font-semibold text-sm text-on-surface mt-1">
+<span>Total:</span>
+<span>₹ 32,096</span>
+</div>
+<div class="flex justify-between py-1 text-on-surface-variant">
+<span>Paid:</span>
+<span>10,000</span>
+</div>
+<div class="flex justify-between py-1 font-semibold text-error">
+<span>Balance Due:</span>
+<span>₹ 22,096</span>
+</div>
+</div>
+<div class="mt-auto pt-lg text-center text-[10px] text-outline border-t border-outline-variant">
+                            Thank you for your business. For terms &amp; conditions, please visit our website.
+                        </div>
+</div>
+</div>
+</main>
+</div>
+</div>
+</body></html>

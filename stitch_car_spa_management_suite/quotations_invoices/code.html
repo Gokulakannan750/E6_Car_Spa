@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CAR SPA - Quotations &amp; Invoices</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#356ee7",
+                        "on-secondary-container": "#fefcff",
+                        "surface-variant": "#e1e3e4",
+                        "primary": "#000101",
+                        "on-secondary-fixed-variant": "#0040a2",
+                        "on-primary-fixed-variant": "#454749",
+                        "tertiary-container": "#0e1d2d",
+                        "secondary-fixed": "#dae2ff",
+                        "background": "#f8f9fa",
+                        "on-tertiary-fixed-variant": "#39485a",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3132",
+                        "surface-container": "#edeeef",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#1a1c1e",
+                        "secondary-fixed-dim": "#b2c5ff",
+                        "surface": "#f8f9fa",
+                        "on-background": "#191c1d",
+                        "surface-container-high": "#e7e8e9",
+                        "surface-container-low": "#f3f4f5",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f8f9fa",
+                        "outline": "#75777a",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#e2e2e5",
+                        "tertiary-fixed-dim": "#b9c8de",
+                        "surface-dim": "#d9dadb",
+                        "secondary": "#0453cd",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#77859a",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "on-surface": "#191c1d",
+                        "inverse-primary": "#c6c6c9",
+                        "on-primary-container": "#838486",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-primary-fixed": "#1a1c1e",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#44474a",
+                        "surface-tint": "#5d5e61",
+                        "tertiary": "#000103",
+                        "tertiary-fixed": "#d4e4fa",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-secondary-fixed": "#001848",
+                        "on-tertiary-fixed": "#0d1c2d",
+                        "outline-variant": "#c5c6ca"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "12px",
+                        "base": "4px",
+                        "xs": "8px",
+                        "max-width": "1440px",
+                        "md": "16px",
+                        "margin-desktop": "32px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "margin-mobile": "16px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .ambient-shadow { box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05); }
+        .table-shadow { box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.05); }
+    </style>
+</head>
+<body class="bg-background text-on-surface flex min-h-screen">
+<!-- SideNavBar (from JSON component rules) -->
+<nav class="h-screen w-64 fixed left-0 top-0 bg-primary-container border-r border-outline-variant flex flex-col h-full py-6 z-50">
+<div class="px-6 mb-8 flex flex-col">
+<h1 class="font-headline-md text-headline-md font-bold tracking-tight text-on-primary">CAR SPA</h1>
+<span class="text-on-primary-container text-xs tracking-wider uppercase mt-1">Velocity Enterprise</span>
+</div>
+<button class="mx-6 mb-6 bg-secondary text-on-secondary font-label-md text-label-md py-3 px-4 rounded flex items-center justify-center gap-2 hover:bg-secondary-container transition-colors shadow-sm">
+<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+            New Service Order
+        </button>
+<div class="flex-1 flex flex-col gap-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container opacity-70 hover:bg-secondary-container/5 hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-sm text-body-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container opacity-70 hover:bg-secondary-container/5 hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined">precision_manufacturing</span>
+<span class="font-body-sm text-body-sm">Service Queue</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container opacity-70 hover:bg-secondary-container/5 hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+<span class="font-body-sm text-body-sm">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container opacity-70 hover:bg-secondary-container/5 hover:opacity-100 transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-body-sm text-body-sm">Customers</span>
+</a>
+<!-- Active State Navigation based on user intent (Financials relates to Quotations & Invoices) -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-secondary-container border-l-4 border-secondary bg-secondary-container/10" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-body-sm text-body-sm font-medium">Financials</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-container opacity-70 hover:bg-secondary-container/5 hover:opacity-100 transition-colors mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-sm text-body-sm">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 flex flex-col min-h-screen w-[calc(100%-16rem)]">
+<!-- TopNavBar (from JSON component rules) -->
+<header class="full-width h-16 sticky top-0 z-40 bg-surface border-b border-outline-variant shadow-sm flex justify-between items-center px-8">
+<div class="flex-1 flex items-center">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size: 20px;">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container border border-outline-variant rounded text-body-sm text-on-surface focus:outline-none focus:border-secondary transition-colors" placeholder="Search orders, customers, or VIN..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<button class="text-secondary font-label-md text-label-md hover:text-secondary-container transition-colors font-bold">Create Order</button>
+<button class="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors">Export Data</button>
+</div>
+<div class="h-6 w-px bg-outline-variant"></div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<button class="hover:text-secondary transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<button class="hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="p-margin-desktop flex-1 flex flex-col">
+<!-- Page Header -->
+<div class="mb-lg">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">Quotations &amp; Invoices</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage quotes, billing, and payment history</p>
+</div>
+<!-- Module Tabs -->
+<div class="border-b border-outline-variant mb-lg flex gap-8">
+<button class="pb-3 border-b-2 border-secondary text-secondary font-label-md text-label-md tracking-wide px-1">QUOTATIONS</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-secondary transition-colors font-label-md text-label-md tracking-wide px-1">INVOICES</button>
+<button class="pb-3 border-b-2 border-transparent text-on-surface-variant hover:text-secondary transition-colors font-label-md text-label-md tracking-wide px-1">PAYMENTS</button>
+</div>
+<!-- Summary Metrics Cards -->
+<div class="grid grid-cols-5 gap-md mb-xl">
+<!-- Draft -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-md ambient-shadow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-outline"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Draft</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">12</span>
+</div>
+<!-- Sent -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-md ambient-shadow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-[#0ea5e9]"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Sent</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">28</span>
+</div>
+<!-- Approved -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-md ambient-shadow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Approved</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">145</span>
+</div>
+<!-- Rejected -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-md ambient-shadow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-[#ef4444]"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Rejected</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">8</span>
+</div>
+<!-- Converted -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg p-md ambient-shadow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Converted</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">112</span>
+</div>
+</div>
+<!-- Quotations Table Area -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-lg table-shadow flex-1 flex flex-col overflow-hidden">
+<!-- Table Header Actions -->
+<div class="p-md border-b border-surface-variant flex justify-between items-center bg-surface-bright">
+<div class="flex gap-4">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size: 18px;">search</span>
+<input class="w-full pl-9 pr-3 py-1.5 bg-surface border border-outline-variant rounded font-body-sm text-body-sm focus:outline-none focus:border-secondary transition-colors" placeholder="Filter quotations..." type="text"/>
+</div>
+<button class="px-3 py-1.5 border border-outline-variant rounded font-label-md text-label-md text-on-surface-variant flex items-center gap-2 hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined" style="font-size: 16px;">filter_list</span>
+                            Filter
+                        </button>
+</div>
+<button class="bg-secondary text-on-secondary px-4 py-2 rounded font-label-md text-label-md hover:bg-secondary-container transition-colors">
+                        New Quotation
+                    </button>
+</div>
+<!-- Table Content -->
+<div class="overflow-x-auto flex-1">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-surface-variant">
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-32">Quotation No.</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-48">Customer</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-32">Vehicle</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-32">Date</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-32">Valid Until</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold text-right w-32">Amount</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold w-32">Status</th>
+<th class="p-4 font-label-md text-label-md text-[#64748B] uppercase tracking-wider font-semibold text-right w-40">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant font-body-sm text-body-sm text-on-surface">
+<!-- Row 1: Approved -->
+<tr class="hover:bg-[#F1F5F9] transition-colors h-[48px]">
+<td class="p-4 font-medium">#QT-1024</td>
+<td class="p-4 text-on-surface-variant">Anita Desai</td>
+<td class="p-4 text-on-surface-variant">BMW X5</td>
+<td class="p-4 text-on-surface-variant">24 Oct 2023</td>
+<td class="p-4 text-on-surface-variant">31 Oct 2023</td>
+<td class="p-4 text-right font-medium">₹12,500</td>
+<td class="p-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-[#10b981]/10 text-[#047857]">Approved</span>
+</td>
+<td class="p-4">
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="View"><span class="material-symbols-outlined" style="font-size: 18px;">visibility</span></button>
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="Download PDF"><span class="material-symbols-outlined" style="font-size: 18px;">picture_as_pdf</span></button>
+<button class="p-1.5 hover:text-[#25D366] rounded hover:bg-[#25D366]/10 transition-colors" title="Send WhatsApp"><span class="material-symbols-outlined" style="font-size: 18px;">chat</span></button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="p-1.5 text-secondary hover:bg-secondary/10 rounded transition-colors" title="Convert to Invoice"><span class="material-symbols-outlined" style="font-size: 18px;">receipt_long</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Sent -->
+<tr class="hover:bg-[#F1F5F9] transition-colors h-[48px]">
+<td class="p-4 font-medium">#QT-1025</td>
+<td class="p-4 text-on-surface-variant">Rajesh Kumar</td>
+<td class="p-4 text-on-surface-variant">Audi A6</td>
+<td class="p-4 text-on-surface-variant">24 Oct 2023</td>
+<td class="p-4 text-on-surface-variant">31 Oct 2023</td>
+<td class="p-4 text-right font-medium">₹8,200</td>
+<td class="p-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-[#0ea5e9]/10 text-[#0369a1]">Sent</span>
+</td>
+<td class="p-4">
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="View"><span class="material-symbols-outlined" style="font-size: 18px;">visibility</span></button>
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="Edit"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+<button class="p-1.5 hover:text-[#25D366] rounded hover:bg-[#25D366]/10 transition-colors" title="Resend WhatsApp"><span class="material-symbols-outlined" style="font-size: 18px;">chat</span></button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="p-1.5 text-secondary opacity-50 cursor-not-allowed rounded transition-colors" title="Cannot Convert - Awaiting Approval"><span class="material-symbols-outlined" style="font-size: 18px;">receipt_long</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Converted -->
+<tr class="hover:bg-[#F1F5F9] transition-colors h-[48px]">
+<td class="p-4 font-medium">#QT-1020</td>
+<td class="p-4 text-on-surface-variant">Priya Sharma</td>
+<td class="p-4 text-on-surface-variant">Hyundai Creta</td>
+<td class="p-4 text-on-surface-variant">22 Oct 2023</td>
+<td class="p-4 text-on-surface-variant">29 Oct 2023</td>
+<td class="p-4 text-right font-medium">₹4,500</td>
+<td class="p-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-secondary/10 text-secondary">Converted</span>
+</td>
+<td class="p-4">
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="View Quote"><span class="material-symbols-outlined" style="font-size: 18px;">visibility</span></button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container rounded transition-colors flex items-center gap-1 text-xs font-medium" title="View Invoice">
+<span class="material-symbols-outlined" style="font-size: 16px;">receipt</span>
+                                            #INV-890
+                                        </button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Draft -->
+<tr class="hover:bg-[#F1F5F9] transition-colors h-[48px]">
+<td class="p-4 font-medium">#QT-1026</td>
+<td class="p-4 text-on-surface-variant">Vikram Singh</td>
+<td class="p-4 text-on-surface-variant">Toyota Fortuner</td>
+<td class="p-4 text-on-surface-variant">25 Oct 2023</td>
+<td class="p-4 text-on-surface-variant">01 Nov 2023</td>
+<td class="p-4 text-right font-medium">₹18,000</td>
+<td class="p-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-surface-variant text-on-surface-variant border border-outline-variant">Draft</span>
+</td>
+<td class="p-4">
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="Edit"><span class="material-symbols-outlined" style="font-size: 18px;">edit</span></button>
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="Send to Customer"><span class="material-symbols-outlined" style="font-size: 18px;">send</span></button>
+<button class="p-1.5 hover:text-error rounded hover:bg-error/10 transition-colors" title="Delete"><span class="material-symbols-outlined" style="font-size: 18px;">delete</span></button>
+</div>
+</td>
+</tr>
+<!-- Row 5: Expired -->
+<tr class="hover:bg-[#F1F5F9] transition-colors h-[48px] opacity-70">
+<td class="p-4 font-medium">#QT-1015</td>
+<td class="p-4 text-on-surface-variant">Sanjay Gupta</td>
+<td class="p-4 text-on-surface-variant">Honda City</td>
+<td class="p-4 text-on-surface-variant">15 Oct 2023</td>
+<td class="p-4 text-on-surface-variant">22 Oct 2023</td>
+<td class="p-4 text-right font-medium">₹3,200</td>
+<td class="p-4">
+<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-[#ef4444]/10 text-[#b91c1c]">Expired</span>
+</td>
+<td class="p-4">
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="View"><span class="material-symbols-outlined" style="font-size: 18px;">visibility</span></button>
+<button class="p-1.5 hover:text-secondary rounded hover:bg-surface-container transition-colors" title="Duplicate"><span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span></button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="p-4 border-t border-surface-variant bg-surface-bright flex justify-between items-center text-body-sm text-on-surface-variant">
+<div>Showing 1 to 5 of 45 entries</div>
+<div class="flex gap-2">
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-container transition-colors disabled:opacity-50">Previous</button>
+<button class="px-3 py-1 border border-outline-variant rounded bg-secondary text-on-secondary hover:bg-secondary-container transition-colors">1</button>
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-container transition-colors">2</button>
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-container transition-colors">3</button>
+<button class="px-3 py-1 border border-outline-variant rounded hover:bg-surface-container transition-colors">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings - CAR SPA MANAGEMENT</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#2e3132",
+                        "secondary-fixed": "#dae2ff",
+                        "on-primary-fixed-variant": "#454749",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface": "#f8f9fa",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "on-surface": "#191c1d",
+                        "tertiary-fixed": "#d4e4fa",
+                        "secondary": "#0453cd",
+                        "surface-tint": "#5d5e61",
+                        "primary-container": "#1a1c1e",
+                        "surface-variant": "#e1e3e4",
+                        "surface-dim": "#d9dadb",
+                        "on-tertiary-container": "#77859a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#1a1c1e",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#44474a",
+                        "tertiary-fixed-dim": "#b9c8de",
+                        "on-background": "#191c1d",
+                        "on-secondary-fixed": "#001848",
+                        "on-error-container": "#93000a",
+                        "surface-bright": "#f8f9fa",
+                        "secondary-container": "#356ee7",
+                        "background": "#f8f9fa",
+                        "tertiary-container": "#0e1d2d",
+                        "on-secondary-fixed-variant": "#0040a2",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#e2e2e5",
+                        "on-tertiary-fixed": "#0d1c2d",
+                        "secondary-fixed-dim": "#b2c5ff",
+                        "primary": "#000101",
+                        "surface-container": "#edeeef",
+                        "outline-variant": "#c5c6ca",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "on-secondary-container": "#fefcff",
+                        "on-primary-container": "#838486",
+                        "tertiary": "#000103",
+                        "on-tertiary-fixed-variant": "#39485a",
+                        "inverse-primary": "#c6c6c9",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-container-high": "#e7e8e9",
+                        "on-secondary": "#ffffff",
+                        "outline": "#75777a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px",
+                        "sm": "12px",
+                        "max-width": "1440px",
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "xs": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased min-h-screen flex">
+<!-- SideNavBar -->
+<aside class="bg-primary-container dark:bg-primary-container h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full py-md z-50">
+<div class="px-lg pb-xl pt-lg border-b border-outline-variant/30 flex items-center gap-xs">
+<span class="material-symbols-outlined text-headline-md text-on-primary-container" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-primary-container tracking-tight">CAR SPA</h1>
+<p class="font-label-md text-label-md text-on-primary-container opacity-70">Management Suite</p>
+</div>
+</div>
+<nav class="flex-1 overflow-y-auto py-lg px-md flex flex-col gap-xs">
+<!-- Inactive -->
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">group</span>
+                Customers
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">assignment</span>
+                Job Cards
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+                Quotations &amp; Invoices
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Catalogue
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Staff Advances
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">analytics</span>
+                Reports
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">directions_car</span>
+                Showroom
+            </a>
+<!-- Active -->
+<a class="flex items-center gap-sm px-sm py-sm rounded-r text-on-secondary-container bg-secondary-container border-l-4 border-secondary transition-all duration-200 ease-in-out font-body-md text-body-md shadow-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+<a class="flex items-center gap-sm px-sm py-sm rounded text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out font-body-md text-body-md mt-auto" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+                Profile
+            </a>
+</nav>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen relative">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim full-width top-0 sticky z-40 border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-xl">
+<div class="flex items-center gap-md">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface tracking-tighter">CAR SPA MANAGEMENT</h2>
+</div>
+<div class="flex items-center gap-lg">
+<!-- Search -->
+<div class="relative hidden lg:block w-64">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" style="font-size: 20px;">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-full py-xs pl-xl pr-sm font-body-sm text-body-sm text-on-surface focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" placeholder="Search..." type="text"/>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-sm">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-variant hover:text-secondary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="hidden md:flex px-md py-xs rounded border-2 border-primary-container text-primary-container font-label-md text-label-md hover:bg-primary-container hover:text-on-primary transition-colors cursor-pointer active:opacity-80 items-center justify-center">
+                        New Job Card
+                    </button>
+<button class="px-md py-xs rounded bg-secondary text-on-secondary font-label-md text-label-md hover:bg-secondary-container transition-colors cursor-pointer active:opacity-80 items-center justify-center shadow-sm">
+                        Add Customer
+                    </button>
+</div>
+<!-- Profile -->
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant overflow-hidden cursor-pointer hover:ring-2 hover:ring-secondary transition-all">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A professional close-up portrait of an automotive service manager in a well-lit modern corporate environment. Light mode aesthetic with crisp details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfyG-5AiGQ5lB-5IUjk4v7RsTxTFjoLoEf0GMQXoN13n3TELPh7144CyNoCNGVLXse3xOmdicg03cRvTow_vai1eKYxzzHNZHX5PEiKczUTlNeAeGNC-yAJLFvILTn7xBv-lf3f4mWYaXb71tH32OY-jcmtRLGVh-q8yrWSz_tG1HgD-WuT7vUE_W579gFcu9U41XhwoJSku64bsDkBP96rPXJjMRo6Eo3xXtWoMTwMPGJT9R6N1dU"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-margin-desktop bg-surface flex flex-col gap-lg">
+<!-- Page Header -->
+<div class="flex justify-between items-end">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">System Settings</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-base">Configure your Car Spa Management suite preferences and operational parameters.</p>
+</div>
+</div>
+<!-- Settings Layout Container -->
+<div class="flex flex-col lg:flex-row gap-gutter flex-1 items-start">
+<!-- Secondary Nav Rail (Settings Categories) -->
+<nav class="w-full lg:w-64 flex-shrink-0 bg-surface-container-lowest border border-outline-variant rounded-lg p-sm shadow-[0px_4px_12px_rgba(0,0,0,0.05)] sticky top-[calc(64px+32px)]">
+<ul class="flex flex-col gap-base">
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded bg-surface-variant text-primary font-label-md text-label-md border-l-2 border-secondary" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">storefront</span>
+                                Company Profile
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">manage_accounts</span>
+                                Users &amp; Roles
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">receipt</span>
+                                Invoice Settings
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">account_balance</span>
+                                Tax Settings
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">category</span>
+                                Catalogue Settings
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">chat</span>
+                                WhatsApp
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">notifications_active</span>
+                                Notifications
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">backup</span>
+                                Backup &amp; Restore
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">tune</span>
+                                System Preferences
+                            </a>
+</li>
+<li>
+<a class="flex items-center gap-sm px-md py-sm rounded text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-size: 18px;">security</span>
+                                Security
+                            </a>
+</li>
+</ul>
+</nav>
+<!-- Configuration Panel (Company Profile) -->
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-lg shadow-[0px_4px_12px_rgba(0,0,0,0.05)] w-full">
+<div class="border-b border-outline-variant pb-md mb-lg">
+<h2 class="font-headline-sm text-headline-sm text-primary">Company Profile</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-base">Manage your business identity and contact information used across invoices and communications.</p>
+</div>
+<form class="flex flex-col gap-lg">
+<!-- Logo Upload Section -->
+<div class="flex flex-col sm:flex-row gap-lg items-start">
+<div class="w-32 h-32 rounded bg-surface-container border border-dashed border-outline-variant flex flex-col items-center justify-center text-on-surface-variant cursor-pointer hover:bg-surface-container-high hover:border-secondary transition-all">
+<span class="material-symbols-outlined mb-xs" style="font-size: 32px;">add_photo_alternate</span>
+<span class="font-label-md text-label-md">Upload Logo</span>
+</div>
+<div class="flex-1 pt-sm">
+<h3 class="font-body-md text-body-md font-bold text-primary mb-xs">Brand Logo</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-md">Recommended size: 256x256px. PNG or JPG. Max size 2MB.</p>
+<button class="px-md py-xs rounded bg-surface border border-outline text-on-surface font-label-md text-label-md hover:bg-surface-variant transition-colors" type="button">
+                                    Choose File
+                                </button>
+</div>
+</div>
+<!-- Form Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-x-gutter gap-y-md">
+<div class="flex flex-col gap-base col-span-1 md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">Company Name</label>
+<input class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" type="text" value="Elite Car Spa &amp; Detailing"/>
+</div>
+<div class="flex flex-col gap-base col-span-1 md:col-span-2">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">Registered Address</label>
+<textarea class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all resize-none" rows="3">123 Automotive Plaza, Industrial Estate, Chennai - 600032</textarea>
+</div>
+<div class="flex flex-col gap-base">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">Phone Number</label>
+<input class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" type="tel" value="+91 98765 43210"/>
+</div>
+<div class="flex flex-col gap-base">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">Email Address</label>
+<input class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" type="email" value="info@elitecarspa.com"/>
+</div>
+<div class="flex flex-col gap-base">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">Website URL</label>
+<input class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all" type="url" value="www.elitecarspa.com"/>
+</div>
+<div class="flex flex-col gap-base">
+<label class="font-label-md text-label-md text-on-surface uppercase tracking-wider text-xs">GSTIN / Tax ID</label>
+<input class="w-full bg-surface border border-outline-variant rounded py-sm px-md font-body-md text-body-md text-primary focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all font-mono" type="text" value="33AAAAA0000A1Z5"/>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-lg pt-lg border-t border-outline-variant flex justify-end gap-md">
+<button class="px-lg py-sm rounded border border-transparent text-secondary font-label-md text-label-md hover:bg-surface-variant transition-colors" type="button">
+                                Cancel
+                            </button>
+<button class="px-lg py-sm rounded bg-secondary text-on-secondary font-label-md text-label-md hover:bg-secondary-container transition-colors shadow-sm" type="button">
+                                Save Changes
+                            </button>
+</div>
+</form>
+</div>
+</div>
+</main>
+</div>
+</body></html>

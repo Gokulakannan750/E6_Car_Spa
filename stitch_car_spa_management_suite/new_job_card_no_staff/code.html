@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>New Job Card - CAR SPA</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#dae2ff",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed-variant": "#454749",
+                        "on-secondary-fixed": "#001848",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-tint": "#5d5e61",
+                        "on-tertiary-container": "#77859a",
+                        "on-primary-container": "#838486",
+                        "on-tertiary-fixed-variant": "#39485a",
+                        "inverse-on-surface": "#f0f1f2",
+                        "surface-container-high": "#e7e8e9",
+                        "secondary": "#0453cd",
+                        "tertiary-fixed-dim": "#b9c8de",
+                        "surface-bright": "#f8f9fa",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#356ee7",
+                        "tertiary-container": "#0e1d2d",
+                        "on-primary-fixed": "#1a1c1e",
+                        "surface-container-highest": "#e1e3e4",
+                        "secondary-fixed-dim": "#b2c5ff",
+                        "inverse-primary": "#c6c6c9",
+                        "surface-variant": "#e1e3e4",
+                        "primary": "#000101",
+                        "surface-container": "#edeeef",
+                        "tertiary-fixed": "#d4e4fa",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#191c1d",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#c6c6c9",
+                        "surface-dim": "#d9dadb",
+                        "error": "#ba1a1a",
+                        "background": "#f8f9fa",
+                        "primary-container": "#1a1c1e",
+                        "on-secondary-fixed-variant": "#0040a2",
+                        "inverse-surface": "#2e3132",
+                        "surface": "#f8f9fa",
+                        "outline-variant": "#c5c6ca",
+                        "on-background": "#191c1d",
+                        "on-primary": "#ffffff",
+                        "on-secondary-container": "#fefcff",
+                        "on-tertiary-fixed": "#0d1c2d",
+                        "on-surface-variant": "#44474a",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#000103",
+                        "outline": "#75777a",
+                        "primary-fixed": "#e2e2e5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "xl": "32px",
+                        "max-width": "1440px",
+                        "margin-mobile": "16px",
+                        "sm": "12px",
+                        "lg": "24px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "xs": "8px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Custom Scrollbar for better Webkit appearance */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c5c6ca; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #75777a; 
+        }
+
+        /* Checkbox and Radio styling to match Metallic Blue */
+        input[type="checkbox"]:checked, input[type="radio"]:checked {
+            background-color: #0453cd;
+            border-color: #0453cd;
+        }
+        input[type="checkbox"]:focus, input[type="radio"]:focus {
+            --tw-ring-color: #356ee7;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-primary-container dark:bg-primary-container h-screen w-64 fixed left-0 top-0 border-r border-outline-variant flex flex-col h-full py-md z-50 hidden md:flex">
+<!-- Logo Area -->
+<div class="px-lg mb-xl flex items-center space-x-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-secondary font-bold text-[24px]">directions_car</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm font-bold text-on-primary-container leading-tight">CAR SPA</h1>
+<p class="font-label-md text-label-md text-on-primary-container opacity-70">Management Suite</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex-1 overflow-y-auto px-sm space-y-base">
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard">dashboard</span>
+<span class="font-body-sm text-body-sm">Dashboard</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
+<span class="font-body-sm text-body-sm">Customers</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-secondary-container bg-secondary-container border-l-4 border-secondary transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="assignment">assignment</span>
+<span class="font-body-sm text-body-sm font-semibold">Job Cards</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="receipt_long">receipt_long</span>
+<span class="font-body-sm text-body-sm">Quotations &amp; Invoices</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="inventory_2">inventory_2</span>
+<span class="font-body-sm text-body-sm">Catalogue</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="payments">payments</span>
+<span class="font-body-sm text-body-sm">Staff Advances</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+<span class="font-body-sm text-body-sm">Reports</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="directions_car">directions_car</span>
+<span class="font-body-sm text-body-sm">Showroom</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="settings">settings</span>
+<span class="font-body-sm text-body-sm">Settings</span>
+</a>
+<a class="flex items-center space-x-sm px-md py-sm rounded-lg text-on-primary-container opacity-70 hover:bg-surface-variant hover:text-on-surface-variant transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="account_circle">account_circle</span>
+<span class="font-body-sm text-body-sm">Profile</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 sticky z-40 border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-xl">
+<!-- Mobile Menu Toggle (Visible only on mobile) -->
+<button class="md:hidden p-xs text-on-surface-variant hover:bg-surface-container-high rounded-md">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<!-- Brand / Product Name -->
+<div class="hidden md:block font-headline-md text-headline-md font-black text-on-surface tracking-tight">
+                CAR SPA MANAGEMENT
+            </div>
+<!-- Global Search -->
+<div class="flex-1 max-w-md mx-lg hidden md:block">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 pl-10 pr-4 text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" placeholder="Search customers, vehicles, or job cards..." type="text"/>
+</div>
+</div>
+<!-- Actions & Profile -->
+<div class="flex items-center space-x-md">
+<button class="p-xs text-on-surface-variant hover:text-secondary hover:bg-surface-container-highest rounded-full transition-colors cursor-pointer active:opacity-80 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="hidden md:flex items-center justify-center px-md py-2 border-[1.5px] border-primary-container text-primary-container font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer active:opacity-80">
+                    New Job Card
+                </button>
+<button class="flex items-center justify-center px-md py-2 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg hover:bg-secondary-container transition-colors shadow-sm cursor-pointer active:opacity-80">
+                    Add Customer
+                </button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant ml-sm cursor-pointer">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A small circular avatar of a professional automotive service manager in a crisp white shirt, set against a clean, bright, light-mode background with soft lighting, reflecting a premium corporate SaaS aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDM2jimnEjbrjxIvUiPVTfIeN5grZNw8C6USQv8LFjs9xmVCYeUYmFW8h1XsfkC03IEJjLAPG-IedQNudvPDjypuNxO-sDkFhyGIkXBZ5_0aqcMA09VOANHZovuWYw8My88xW78JK2Y1MwXWaMaLBWNFt_5cBoRKoSIDxDkWg_PNtz9F_DghNlJWeI9XbJDFIrl7F6XMccp2pHA4TzXqFr5JjeHqY1R98qAFOB5jfYqlydrHDpXXZEc"/>
+</div>
+</div>
+</header>
+<!-- Page Content: New Job Card -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto bg-surface-container-low">
+<!-- Page Header -->
+<div class="mb-lg flex flex-col md:flex-row md:items-end justify-between border-b border-outline-variant pb-md">
+<div>
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface mb-xs">New Job Card</h2>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-[18px] mr-xs text-outline" data-icon="tag">tag</span>
+                        Job Card Number: <span class="font-semibold text-on-surface ml-xs">JC-2026-00458</span>
+</p>
+</div>
+<div class="mt-md md:mt-0 flex space-x-sm">
+<button class="px-md py-2 border border-outline-variant text-on-surface-variant rounded-lg font-label-md text-label-md hover:bg-surface-container-highest transition-colors">
+                        Cancel
+                    </button>
+</div>
+</div>
+<!-- Stepper Navigation -->
+<div class="mb-xl bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm overflow-x-auto">
+<div class="flex items-center min-w-max"><!-- Step 1 (Active) -->
+<div class="flex items-center">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-md text-label-md mb-xs shadow-sm">1</div>
+<span class="font-label-md text-label-md text-secondary whitespace-nowrap">Customer &amp; Vehicle</span>
+</div>
+<div class="w-12 md:w-24 h-[2px] bg-outline-variant mx-sm -mt-6"></div>
+</div>
+<!-- Step 2 -->
+<div class="flex items-center">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-md text-label-md mb-xs border border-outline-variant">2</div>
+<span class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Services</span>
+</div>
+<div class="w-12 md:w-24 h-[2px] bg-outline-variant mx-sm -mt-6"></div>
+</div>
+<!-- Step 3 -->
+<div class="flex items-center">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-md text-label-md mb-xs border border-outline-variant">3</div>
+<span class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Review</span>
+</div>
+</div></div>
+</div>
+<!-- Step 1 Content Canvas: Customer & Vehicle -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg mb-xl">
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface mb-lg pb-sm border-b border-surface-variant">Customer &amp; Vehicle Information</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Left Column -->
+<div class="space-y-lg">
+<!-- Customer Selection -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface">Select Customer <span class="text-error">*</span></label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="person_search">person_search</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg py-2 pl-10 pr-4 text-body-md focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" placeholder="Search by name, phone, or email..." type="text"/>
+<span class="material-symbols-outlined absolute right-sm top-1/2 transform -translate-y-1/2 text-outline text-[20px]" data-icon="arrow_drop_down">arrow_drop_down</span>
+</div>
+<button class="flex items-center space-x-xs text-secondary hover:text-secondary-container font-label-md text-label-md transition-colors mt-xs">
+<span class="material-symbols-outlined text-[16px]" data-icon="add">add</span>
+<span>Create new customer</span>
+</button>
+</div>
+<!-- Vehicle Selection -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface">Select Vehicle <span class="text-error">*</span></label>
+<div class="relative opacity-50 cursor-not-allowed" title="Select a customer first">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="directions_car">directions_car</span>
+<select class="w-full bg-surface-container-highest border border-outline-variant rounded-lg py-2 pl-10 pr-10 text-body-md appearance-none focus:outline-none" disabled="">
+<option>Select vehicle...</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 transform -translate-y-1/2 text-outline text-[20px]" data-icon="arrow_drop_down">arrow_drop_down</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Please select a customer to view their registered vehicles.</p>
+</div>
+</div>
+<!-- Right Column -->
+<div class="space-y-lg">
+<!-- Registration Number -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface">Registration Number <span class="text-error">*</span></label>
+<input class="w-full bg-surface border border-outline-variant rounded-lg py-2 px-sm text-body-md focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all uppercase" placeholder="e.g. MH-01-AB-1234" type="text"/>
+</div>
+<!-- Current KM -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface">Current Odometer (KM) <span class="text-error">*</span></label>
+<div class="relative">
+<input class="w-full bg-surface border border-outline-variant rounded-lg py-2 pl-sm pr-12 text-body-md focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" placeholder="Enter current reading" type="number"/>
+<span class="absolute right-sm top-1/2 transform -translate-y-1/2 font-body-sm text-on-surface-variant">KM</span>
+</div>
+</div>
+<!-- Fuel Level -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface flex justify-between">
+<span>Fuel Level</span>
+<span class="text-secondary font-semibold">50%</span>
+</label>
+<div class="flex items-center space-x-sm">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]" data-icon="local_gas_station">local_gas_station</span>
+<input class="w-full h-2 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-secondary" max="100" min="0" step="10" type="range" value="50"/>
+<span class="font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Full</span>
+</div>
+</div>
+<!-- Expected Delivery -->
+<div class="space-y-sm">
+<label class="block font-label-md text-label-md text-on-surface">Expected Delivery Date <span class="text-error">*</span></label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="calendar_month">calendar_month</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg py-2 pl-10 pr-sm text-body-md focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" type="datetime-local"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 2 Content Canvas: Vehicle Inspection -->
+<!-- Step 3 Content Canvas: Complaint -->
+<!-- Step 4 Content Canvas: Services -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg mb-xl">
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface mb-lg pb-sm border-b border-surface-variant">Services</h3>
+<div class="space-y-lg">
+<div class="flex items-center gap-md">
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-sm top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg py-2 pl-10 pr-4 text-body-sm focus:outline-none focus:ring-2 focus:ring-secondary focus:border-transparent transition-all" placeholder="Search services..." type="text"/>
+</div>
+<button class="flex items-center justify-center px-md py-2 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg hover:bg-secondary-container transition-colors shadow-sm cursor-pointer active:opacity-80 whitespace-nowrap">
+<span class="material-symbols-outlined mr-xs text-[18px]" data-icon="add">add</span>
+Add Service
+</button>
+</div>
+<div class="overflow-x-auto rounded-lg border border-outline-variant">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high border-b border-outline-variant">
+<th class="p-sm font-label-md text-label-md text-on-surface-variant">Service Name</th>
+<th class="p-sm font-label-md text-label-md text-on-surface-variant text-right">Qty</th>
+<th class="p-sm font-label-md text-label-md text-on-surface-variant text-right">Rate ($)</th>
+<th class="p-sm font-label-md text-label-md text-on-surface-variant text-right">Discount ($)</th>
+<th class="p-sm font-label-md text-label-md text-on-surface-variant text-right">Tax (%)</th>
+<th class="p-sm font-label-md text-label-md text-on-surface-variant text-right">Total ($)</th>
+<th class="p-sm w-10"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant hover:bg-surface transition-colors">
+<td class="p-sm text-body-sm font-medium text-on-surface">Premium Exterior Wash</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">
+<input class="w-16 bg-surface border border-outline-variant rounded p-1 text-right text-body-sm focus:ring-1 focus:ring-secondary focus:border-secondary" min="1" type="number" value="1"/>
+</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">45.00</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">
+<input class="w-16 bg-surface border border-outline-variant rounded p-1 text-right text-body-sm focus:ring-1 focus:ring-secondary focus:border-secondary" min="0" type="number" value="0"/>
+</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">10</td>
+<td class="p-sm text-body-sm font-semibold text-on-surface text-right">49.50</td>
+<td class="p-sm text-center">
+<button class="text-error hover:text-on-error-container transition-colors"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface transition-colors">
+<td class="p-sm text-body-sm font-medium text-on-surface">Interior Deep Clean</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">
+<input class="w-16 bg-surface border border-outline-variant rounded p-1 text-right text-body-sm focus:ring-1 focus:ring-secondary focus:border-secondary" min="1" type="number" value="1"/>
+</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">80.00</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">
+<input class="w-16 bg-surface border border-outline-variant rounded p-1 text-right text-body-sm focus:ring-1 focus:ring-secondary focus:border-secondary" min="0" type="number" value="5.00"/>
+</td>
+<td class="p-sm text-body-sm text-on-surface-variant text-right">10</td>
+<td class="p-sm text-body-sm font-semibold text-on-surface text-right">82.50</td>
+<td class="p-sm text-center">
+<button class="text-error hover:text-on-error-container transition-colors"><span class="material-symbols-outlined text-[18px]" data-icon="delete">delete</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex justify-end pt-md">
+<div class="w-full md:w-64 space-y-xs">
+<div class="flex justify-between font-body-sm text-on-surface-variant">
+<span>Subtotal</span>
+<span>$125.00</span>
+</div>
+<div class="flex justify-between font-body-sm text-on-surface-variant">
+<span>Discount</span>
+<span>-$5.00</span>
+</div>
+<div class="flex justify-between font-body-sm text-on-surface-variant">
+<span>Tax (10%)</span>
+<span>$12.00</span>
+</div>
+<div class="flex justify-between font-headline-sm font-bold text-on-surface pt-xs border-t border-outline-variant mt-xs">
+<span>Total</span>
+<span>$132.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Step 6 Content Canvas: Review -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-lg mb-xl">
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface mb-lg pb-sm border-b border-surface-variant">Review &amp; Summary</h3>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-lg">
+<!-- Info Summary -->
+<div class="space-y-lg">
+<div class="bg-surface p-md rounded-lg border border-outline-variant">
+<h4 class="font-label-md text-label-md font-bold text-on-surface-variant mb-sm uppercase tracking-wider">Customer &amp; Vehicle</h4>
+<div class="grid grid-cols-2 gap-sm text-body-sm">
+<div class="text-on-surface-variant">Customer:</div><div class="font-medium text-on-surface">To be selected</div>
+<div class="text-on-surface-variant">Vehicle:</div><div class="font-medium text-on-surface">To be selected</div>
+<div class="text-on-surface-variant">Reg No:</div><div class="font-medium text-on-surface">MH-01-AB-1234</div>
+<div class="text-on-surface-variant">Odometer:</div><div class="font-medium text-on-surface">15,000 KM</div>
+<div class="text-on-surface-variant">Expected Delivery:</div><div class="font-medium text-on-surface">24 Oct, 5:00 PM</div>
+</div>
+</div>
+<div class="bg-surface p-md rounded-lg border border-outline-variant">
+<h4 class="font-label-md text-label-md font-bold text-on-surface-variant mb-sm uppercase tracking-wider">Inspection &amp; Complaint</h4>
+<div class="text-body-sm space-y-sm">
+<div><span class="text-on-surface-variant">Damages Reported:</span> <span class="font-medium text-on-surface">Dent (Front Left)</span></div>
+<div><span class="text-on-surface-variant">Complaint:</span> <span class="font-medium text-on-surface">Need general checkup and interior clean.</span></div>
+</div>
+</div>
+</div>
+<!-- Financial Summary -->
+<div class="bg-surface p-md rounded-lg border border-outline-variant h-fit">
+<h4 class="font-label-md text-label-md font-bold text-on-surface-variant mb-md uppercase tracking-wider">Services Summary</h4>
+<div class="space-y-sm text-body-sm mb-lg">
+<div class="flex justify-between">
+<span class="text-on-surface">Premium Exterior Wash (x1)</span>
+<span class="font-medium text-on-surface">$49.50</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface">Interior Deep Clean (x1)</span>
+<span class="font-medium text-on-surface">$82.50</span>
+</div>
+</div>
+<div class="border-t border-outline-variant pt-sm space-y-xs">
+<div class="flex justify-between text-on-surface-variant text-body-sm">
+<span>Items Subtotal (2)</span>
+<span>$125.00</span>
+</div>
+<div class="flex justify-between text-on-surface-variant text-body-sm">
+<span>Discount</span>
+<span>-$5.00</span>
+</div>
+<div class="flex justify-between text-on-surface-variant text-body-sm">
+<span>Tax</span>
+<span>$12.00</span>
+</div>
+<div class="flex justify-between font-headline-sm font-bold text-secondary pt-sm border-t border-outline-variant mt-sm">
+<span>Final Estimate</span>
+<span>$132.00</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Action Bar (Footer Actions) -->
+<div class="flex justify-between items-center bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm sticky bottom-margin-mobile md:bottom-margin-desktop z-30">
+<button class="px-lg py-2 border-[1.5px] border-outline text-on-surface-variant font-label-md text-label-md rounded-lg hover:bg-surface-container-high transition-colors">
+                    Save Draft
+                </button>
+<div class="flex space-x-md">
+<button class="flex items-center justify-center px-xl py-2 bg-secondary text-on-secondary font-label-md text-label-md rounded-lg hover:bg-secondary-container transition-colors shadow-sm">
+                        Create Job Card
+                        <span class="material-symbols-outlined ml-xs text-[18px]" data-icon="check_circle">check_circle</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</body></html>
