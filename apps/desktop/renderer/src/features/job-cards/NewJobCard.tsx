@@ -649,40 +649,41 @@ export default function NewJobCard() {
 
 						{canProceedToServices && (
 							<>
-								{/* Search + Add button */}
-								<div className="flex items-center gap-3 mb-4">
-									<div className="relative flex-1 max-w-md">
-										<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-										<input
-											ref={searchInputRef}
-											type="text"
-											value={serviceSearch}
-											onChange={(e) => setServiceSearch(e.target.value)}
-											placeholder="Search services..."
-											className="form-input pl-9"
-										/>
-									</div>
-									<Button type="button" onClick={() => setShowNewService(true)}>
-										<Plus className="w-4 h-4" />
-										Add Service
-									</Button>
+								{/* Full-width search */}
+								<div className="relative mb-2">
+									<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+									<input
+										ref={searchInputRef}
+										type="text"
+										value={serviceSearch}
+										onChange={(e) => setServiceSearch(e.target.value)}
+										placeholder="Search services..."
+										className="form-input w-full pl-9"
+									/>
 								</div>
 
-								{/* Search dropdown */}
+								{/* Search dropdown — click anywhere on a row to add */}
 								{searchResults.length > 0 && (
 									<div className="relative mb-4">
-										<div className="absolute z-20 w-full max-w-md bg-surface border border-outline-variant rounded-lg shadow-elevation-2 max-h-60 overflow-y-auto">
+										<div className="absolute z-20 w-full bg-surface border border-outline-variant rounded-lg shadow-elevation-2 max-h-60 overflow-y-auto">
 											{searchResults.map(svc => (
-												<div key={svc.id} className="flex items-center justify-between px-4 py-3 hover:bg-surface-variant transition-colors border-b border-outline-variant last:border-b-0">
+												<div key={svc.id} onClick={() => handleAddService(svc)} className="flex items-center justify-between px-4 py-3 hover:bg-surface-variant transition-colors border-b border-outline-variant last:border-b-0 cursor-pointer">
 													<div>
 														<p className="text-sm text-on-surface font-medium">{svc.name}</p>
 														<p className="text-xs text-on-surface-variant">{svc.category} — {formatCurrency(svc.price)}{svc.durationMinutes ? ` — ${svc.durationMinutes} min` : ''}</p>
 													</div>
-													<button type="button" onClick={() => handleAddService(svc)} className="text-secondary hover:text-secondary-container text-sm font-medium whitespace-nowrap">+ Add</button>
 												</div>
 											))}
 										</div>
 									</div>
+								)}
+
+								{/* Quick-create link when nothing matches or user wants a new service */}
+								{serviceSearch.trim() && !searchResults.some(s => s.name.toLowerCase() === serviceSearch.trim().toLowerCase()) && (
+									<button type="button" onClick={() => setShowNewService(true)} className="text-sm text-secondary hover:text-secondary/80 font-medium flex items-center gap-1 mb-4">
+										<Plus className="w-4 h-4" />
+										Create new service &quot;{serviceSearch.trim()}&quot;
+									</button>
 								)}
 
 								{/* Services table */}
