@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from './api';
 
 // Generic query hook factory
 export function useApiQuery<T>(

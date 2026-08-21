@@ -1,4 +1,4 @@
-import { FileText, FileCheck, Clock, TrendingUp, DollarSign, Users } from 'lucide-react';
+import { FileText, Clock, TrendingUp, DollarSign, Users } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface StatCardProps {

@@ -35,14 +35,14 @@ function GlobalHeader() {
  return (
  <header className="h-16 bg-surface border-b border-outline-variant shadow-sm flex items-center justify-between px-6 shrink-0">
  <div className="flex items-center gap-4">
- <h2 className="font-headline-lg text-headline-lg text-on-surface uppercase tracking-tight">{title}</h2>
+ <h2 className="text-2xl font-semibold tracking-tight text-headline-lg text-on-surface uppercase tracking-tight">{title}</h2>
  {/* Search */}
  <div className="hidden lg:flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-64 focus-within:border-secondary focus-within:ring-1 focus-within:ring-secondary transition-all ml-4">
  <span className="material-symbols-outlined text-on-surface-variant mr-1" style={{ fontSize: '20px' }}>
  search
  </span>
  <input
- className="bg-transparent border-none outline-none text-body-sm font-body-sm w-full p-0 text-on-surface placeholder:text-on-surface-variant focus:ring-0"
+ className="bg-transparent border-none outline-none text-sm text-sm w-full p-0 text-on-surface placeholder:text-on-surface-variant focus:ring-0"
  placeholder="Search job cards, customers..."
  />
  </div>
@@ -54,7 +54,7 @@ function GlobalHeader() {
  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full" />
  </button>
  {/* New Job Card */}
- <button className="hidden md:flex items-center justify-center gap-1.5 bg-secondary text-on-secondary font-label-md text-label-md uppercase px-4 py-2 rounded hover:opacity-90 shadow-sm transition-opacity">
+ <button className="hidden md:flex items-center justify-center gap-1.5 bg-secondary text-white font-semibold text-xs uppercase tracking-wider text-label-md uppercase px-4 py-2 rounded hover:opacity-90 shadow-sm transition-opacity">
  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>assignment_add</span>
  New Job Card
  </button>

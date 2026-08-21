@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, MoreHorizontal, MapPin, Phone, Users, UserPlus, Calendar } from 'lucide-react';
+import { MapPin, Phone, Users, UserPlus, Calendar, Plus } from 'lucide-react';
 import { mockStaff } from '../../mock/data/staff';
 import { Button } from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/SearchInput';

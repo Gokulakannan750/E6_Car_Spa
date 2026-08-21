@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, FileText, Search, MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { mockInvoices } from '../../mock/data/invoices';
 import { mockJobCards } from '../../mock/data/jobCards';

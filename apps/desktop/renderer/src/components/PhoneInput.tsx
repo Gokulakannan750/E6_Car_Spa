@@ -25,7 +25,7 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
  return (
  <div className="flex flex-col gap-1">
  {label && (
- <label className="font-label-md text-label-md text-on-surface-variant uppercase">
+ <label className="font-semibold text-xs uppercase tracking-wider text-label-md text-on-surface-variant uppercase">
  {label}
  {required && <span className="text-error ml-0.5">*</span>}
  </label>
@@ -40,7 +40,7 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
  placeholder="Enter 10-digit phone number"
  className={`
  w-full bg-surface-container-lowest border rounded-lg
- py-2.5 px-3 text-body-md
+ py-2.5 px-3 text-sm
  focus:outline-none focus:ring-2 focus:ring-secondary
  transition-colors
  ${error ? 'border-error focus:border-error' : 'border-outline-variant'}
@@ -48,7 +48,7 @@ const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
  `}
  {...props}
  />
- {error && <span className="font-body-sm text-body-sm text-error">{error}</span>}
+ {error && <span className="text-sm text-sm text-error">{error}</span>}
  </div>
  );
 },

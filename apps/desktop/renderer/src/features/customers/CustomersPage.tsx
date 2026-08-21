@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, MoreHorizontal, Phone, Car, Calendar, ArrowUpRight } from 'lucide-react';
+import { Plus, MoreHorizontal, Phone, Car, Calendar, ArrowUpRight } from 'lucide-react';
 import { mockCustomers } from '../../mock/data/customers';
 import { mockVehicles } from '../../mock/data/vehicles';
 import { mockJobCards } from '../../mock/data/jobCards';

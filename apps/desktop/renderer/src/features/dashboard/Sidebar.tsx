@@ -61,7 +61,7 @@ export default function Sidebar({ children }: { children?: ReactNode }) {
  </div>
  {isExpanded && (
  <div className="overflow-hidden whitespace-nowrap">
- <h1 className="text-body-sm text-headline-sm font-bold text-on-primary-container tracking-tight">
+ <h1 className="text-sm text-headline-sm font-bold text-on-primary-container tracking-tight">
  CAR SPA
  </h1>
  <p className="font-label-sm text-label-sm text-on-primary-container opacity-70 mt-0.5 uppercase">

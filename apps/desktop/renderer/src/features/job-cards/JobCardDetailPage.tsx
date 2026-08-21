@@ -6,7 +6,7 @@ export function JobCardDetailPage() {
  if (!id) {
  return (
  <div className="p-8 text-center">
- <p className="font-body-md text-on-error-container">Invalid job card ID</p>
+ <p className="font-medium text-on-error-container">Invalid job card ID</p>
  </div>
  );
  }

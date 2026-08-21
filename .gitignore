@@ -20,3 +20,11 @@ release
 *.runtimeconfig.json
 *.sourcelink.json
 *.genruntimeconfig.cache
+# .NET
+bin/
+obj/
+*.user
+*.rsuser
+*.suo
+*.cache
+*.publishsettings

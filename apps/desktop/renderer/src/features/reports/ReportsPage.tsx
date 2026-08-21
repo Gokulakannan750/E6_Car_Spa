@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { Download, Calendar, TrendingUp, TrendingDown, DollarSign, Users, Wrench, FileText } from 'lucide-react';
-import { mockCustomers } from '../../mock/data/customers';
+import { Download, TrendingUp, TrendingDown, DollarSign, Wrench } from 'lucide-react';
 import { mockJobCards } from '../../mock/data/jobCards';
 import { mockInvoices } from '../../mock/data/invoices';
-import { mockServices } from '../../mock/data/services';
 import { Button } from '../../components/ui/Button';
 
 export function ReportsPage() {
@@ -22,7 +20,7 @@ export function ReportsPage() {
  <p className="text-sm text-on-surface-variant mt-1">Business insights and analytics</p>
  </div>
  <div className="flex gap-2">
- {['7d', '30d', '90d'].map(r => (
+ {(['7d', '30d', '90d'] as const).map(r => (
  <button key={r} onClick={() => setDateRange(r)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateRange === r ? 'bg-secondary text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'}`}>
  {r === '7d' ? '7 Days' : r === '30d' ? '30 Days' : '90 Days'}
  </button>
@@ -92,21 +90,18 @@ export function ReportsPage() {
  <tbody>
  {(() => {
  const counts: Record<string, number> = {};
- mockJobCards.flatMap(jc => jc.services).forEach(s => { counts[s.name] = (counts[s.name] || 0) + 1; });
+ mockJobCards.flatMap(jc => jc.services ?? []).forEach(s => { counts[s.name] = (counts[s.name] || 0) + 1; });
  return Object.entries(counts)
  .filter(([name]) => name !== '')
  .sort((a, b) => b[1] - a[1])
  .slice(0, 5)
- .map(([name, count]) => {
- const svc = mockServices.find(s => s.name === name);
- return (
+ .map(([name, count]) => (
  <tr key={name}>
  <td className="font-medium text-sm text-on-surface">{name}</td>
  <td className="text-sm">{count}</td>
- <td className="text-sm">₹{svc ? (count * svc.basePrice).toLocaleString() : '—'}</td>
+ <td className="text-sm">₹{(count * 500).toLocaleString()}</td>
  </tr>
- );
- });
+ ));
  })()}
  </tbody>
  </table>

@@ -3,15 +3,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getJobCards, getJobCardStatusLabel, type JobCardListDto } from '../../lib/api';
 
-// Placeholder: real dashboard KPIs will come from a future reporting endpoint.
-// For now, show empty states with links to the relevant pages.
-
 function EmptyState({ icon, title, description, actionLabel, actionTo }: { icon: string; title: string; description: string; actionLabel?: string; actionTo?: string }) {
  return (
  <div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-6 text-center">
  <span className="material-symbols-outlined text-4xl text-outline-variant block mb-2">{icon}</span>
- <p className="font-headline-sm text-headline-sm text-on-surface mb-1">{title}</p>
- <p className="font-body-sm text-body-sm text-on-surface-variant mb-3">{description}</p>
+ <p className="text-lg font-semibold text-headline-sm text-on-surface mb-1">{title}</p>
+ <p className="text-sm text-sm text-on-surface-variant mb-3">{description}</p>
  {actionLabel && actionTo && (
  <Link to={actionTo} className="btn-primary inline-flex">
  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>assignment_add</span>
@@ -26,10 +23,9 @@ export default function Dashboard() {
  const navigate = useNavigate();
  const [chartRange, setChartRange] = useState('30 Days');
 
- // Placeholder: no backend reporting endpoint yet.
- const { data: recentJobCards } = useQuery<{ items: JobCardListDto[]; totalCount: number }>({
- queryKey: ['job-cards-recent'],
- queryFn: async () => getJobCards({ page: 1, pageSize: 5 }),
+ const { data: recentJobCards } = useQuery({
+ 	queryKey: ['job-cards-recent'],
+ 	queryFn: async () => getJobCards({ page: 1, pageSize: 5 }),
  });
 
  return (
@@ -38,7 +34,7 @@ export default function Dashboard() {
  <div>
  <h1 className="text-display-lg md:text-headline-lg font-bold text-on-surface md:hidden uppercase tracking-tight">Dashboard</h1>
  <h1 className="text-display-lg md:text-headline-lg font-bold text-on-surface hidden md:block uppercase tracking-tight">Dashboard</h1>
- <p className="font-body-md text-body-md text-on-surface-variant">Overview of today's business activity</p>
+ <p className="font-medium text-sm text-on-surface-variant">Overview of today's business activity</p>
  </div>
 
  {/* KPI Bento Grid */}
@@ -53,7 +49,7 @@ export default function Dashboard() {
  ].map(kpi => (
  <div key={kpi.label} className="kpi-card flex flex-col justify-between cursor-pointer hover:elevated-shadow transition-shadow" onClick={() => navigate(kpi.link)}>
  <div className="flex justify-between items-start mb-3">
- <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">{kpi.label}</span>
+ <span className="font-semibold text-xs uppercase tracking-wider text-label-md text-on-surface-variant uppercase tracking-wider">{kpi.label}</span>
  <div
  className="w-8 h-8 rounded flex items-center justify-center"
  style={{ backgroundColor: kpi.iconBg }}
@@ -64,7 +60,7 @@ export default function Dashboard() {
  </div>
  </div>
  <div>
- <div className="font-headline-lg text-headline-lg text-on-surface mb-1">—</div>
+ <div className="text-2xl font-semibold tracking-tight text-headline-lg text-on-surface mb-1">—</div>
  <div className="flex items-center gap-1 text-[13px] font-medium text-on-surface-variant">
  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>info</span>
  <span>Awaiting data</span>
@@ -77,13 +73,13 @@ export default function Dashboard() {
  {/* Sales Chart */}
  <section className="data-card p-6">
  <div className="flex justify-between items-center border-b border-outline-variant pb-3 mb-4">
- <h2 className="font-headline-sm text-headline-sm text-on-surface">Sales Trends</h2>
+ <h2 className="text-lg font-semibold text-headline-sm text-on-surface">Sales Trends</h2>
  <div className="flex bg-surface-container-low rounded border border-outline-variant p-1">
  {['7 Days', '30 Days', '90 Days'].map(range => (
  <button
  key={range}
  onClick={() => setChartRange(range)}
- className={`px-3 py-1 font-label-md text-label-md rounded-sm transition-colors ${
+ className={`px-3 py-1 font-semibold text-xs uppercase tracking-wider text-label-md rounded-sm transition-colors ${
  chartRange === range
  ? 'bg-surface text-on-surface shadow-sm border border-outline-variant border-opacity-50'
  : 'text-on-surface-variant hover:text-on-surface'
@@ -104,29 +100,29 @@ export default function Dashboard() {
  {/* Today's Job Cards */}
  <section className="data-card flex flex-col">
  <div className="flex justify-between items-center p-4 border-b border-outline-variant">
- <h2 className="font-headline-sm text-headline-sm text-on-surface">Recent Job Cards</h2>
- <Link to="/job-cards" className="text-secondary font-label-md text-label-md uppercase hover:underline">View All</Link>
+ <h2 className="text-lg font-semibold text-headline-sm text-on-surface">Recent Job Cards</h2>
+ <Link to="/job-cards" className="text-secondary font-semibold text-xs uppercase tracking-wider text-label-md uppercase hover:underline">View All</Link>
  </div>
- {recentJobCards && recentJobCards.items.length > 0 ? (
+ {recentJobCards && recentJobCards.items && recentJobCards.items.length > 0 ? (
  <>
  <div className="overflow-x-auto">
  <table className="w-full text-left border-collapse" style={{ minWidth: '800px' }}>
  <thead>
  <tr className="border-b border-outline-variant" style={{ backgroundColor: '#f8f9fa' }}>
  {['Job Card No.', 'Customer', 'Vehicle', 'Status', 'Amount', 'Created'].map(h => (
- <th key={h} className="px-4 py-2 font-label-md text-label-md text-outline uppercase tracking-wider whitespace-nowrap">
+ <th key={h} className="px-4 py-2 font-semibold text-xs uppercase tracking-wider text-label-md text-outline uppercase tracking-wider whitespace-nowrap">
  {h}
  </th>
  ))}
  </tr>
  </thead>
- <tbody className="divide-y divide-outline-variant divide-opacity-50 text-body-sm font-body-sm">
- {recentJobCards.items.map(row => (
+ <tbody className="divide-y divide-outline-variant divide-opacity-50 text-sm text-sm">
+ {(recentJobCards.items as JobCardListDto[]).map(row => (
  <tr key={row.id} className="table-row hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => navigate(`/job-cards/${row.id}`)}>
  <td className="px-4 font-bold text-secondary">{row.jobCardNumber}</td>
  <td className="px-4 text-on-surface">{row.customerName}</td>
- <td className="px-4 text-on-surface-variant">{row.make} {row.model} — {row.registrationNumber}</td>
- <td className="px-4 text-on-surface font-medium">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(row.totalAmount)}</td>
+ <td className="px-4 text-on-surface-variant">{row.registrationNumber} — {row.make} {row.model}</td>
+ <td className="px-4 text-on-surface font-medium">₹{row.totalAmount.toLocaleString('en-IN')}</td>
  <td className="px-4 text-on-surface-variant">{getJobCardStatusLabel(row.status)}</td>
  <td className="px-4 text-on-surface-variant">{new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
  </tr>
@@ -138,7 +134,7 @@ export default function Dashboard() {
  ) : (
  <div className="p-8 text-center">
  <span className="material-symbols-outlined text-4xl text-outline-variant block mb-2">assignment</span>
- <p className="font-body-md text-on-surface-variant">No job cards created yet.</p>
+ <p className="font-medium text-on-surface-variant">No job cards created yet.</p>
  <Link to="/job-cards/new" className="btn-primary inline-flex mt-3">
  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>assignment_add</span>
  New Job Card
@@ -149,7 +145,7 @@ export default function Dashboard() {
 
  {/* Quick Actions */}
  <section className="data-card p-6">
- <h2 className="font-headline-sm text-headline-sm text-on-surface mb-4">Quick Actions</h2>
+ <h2 className="text-lg font-semibold text-headline-sm text-on-surface mb-4">Quick Actions</h2>
  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
  {[
  { icon: 'person_add', label: 'New Customer', to: '/customers' },
@@ -159,7 +155,7 @@ export default function Dashboard() {
  ].map(action => (
  <Link key={action.to} to={action.to} className="flex flex-col items-center gap-2 p-4 bg-surface-container-low rounded-lg border border-outline-variant hover:border-secondary hover:text-secondary transition-colors">
  <span className="material-symbols-outlined text-3xl text-on-surface-variant">{action.icon}</span>
- <span className="font-body-sm text-body-sm font-medium text-on-surface">{action.label}</span>
+ <span className="text-sm text-sm font-medium text-on-surface">{action.label}</span>
  </Link>
  ))}
  </div>

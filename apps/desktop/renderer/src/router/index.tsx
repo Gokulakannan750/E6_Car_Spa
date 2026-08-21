@@ -35,7 +35,7 @@ export const router = createBrowserRouter([
  { path: '/staff-advances', lazy: async () => { const m = await loadStaffAdvances(); return { Component: m.StaffAdvancesPage }; } },
  { path: '/reports', lazy: async () => { const m = await loadReports(); return { Component: m.ReportsPage }; } },
  { path: '/showroom', lazy: async () => { const m = await loadShowroom(); return { Component: m.ShowroomPage }; } },
- { path: '/settings', lazy: async () => { const m = await loadSettings(); return { Component: m.SettingsPage }; } },
+ { path: '/settings', lazy: async () => { const m = await loadSettings(); return { Component: m.default }; } },
  { path: '*', lazy: async () => { const m = await loadDashboard(); return { Component: m.DashboardPage }; } },
  ],
  },

@@ -6,7 +6,7 @@ export default function StaffAdvances() {
 	return (
 		<div className="flex flex-col h-full">
 			<div className="px-6 py-4 border-b border-outline-variant">
-				<h1 className="font-headline-md">Staff Advances</h1>
+				<h1 className="text-xl font-semibold">Staff Advances</h1>
 				<p className="text-sm text-on-surface-variant mt-1">Placeholder — implementation pending</p>
 			</div>
 			<div className="flex-1 flex items-center justify-center">

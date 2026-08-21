@@ -380,7 +380,7 @@ export async function getJobCards(params: { page: number; pageSize: number; stat
  qs.set('pageSize', String(params.pageSize));
  if (params.status) qs.set('status', params.status);
  if (params.search) qs.set('search', params.search);
- return request<{ items: JobCardDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
+ return request<{ items: JobCardListDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
 }
 
 export async function getJobCardById(id: string) {
