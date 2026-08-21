@@ -1,1 +1,1 @@
-export { default as ShowroomPage } from './ShowroomPage';
+export { ShowroomPage } from './ShowroomPage';
