@@ -649,17 +649,23 @@ export default function NewJobCard() {
 
 						{canProceedToServices && (
 							<>
-								{/* Full-width search */}
-								<div className="relative mb-2">
-									<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-									<input
-										ref={searchInputRef}
-										type="text"
-										value={serviceSearch}
-										onChange={(e) => setServiceSearch(e.target.value)}
-										placeholder="Search services..."
-										className="form-input w-full pl-9"
-									/>
+								{/* Full-width search + Add Service button */}
+								<div className="flex items-center gap-3 mb-2">
+									<div className="relative flex-1">
+										<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+										<input
+											ref={searchInputRef}
+											type="text"
+											value={serviceSearch}
+											onChange={(e) => setServiceSearch(e.target.value)}
+											placeholder="Search services..."
+											className="form-input w-full pl-9"
+										/>
+									</div>
+									<Button type="button" onClick={() => setShowNewService(true)}>
+										<Plus className="w-4 h-4" />
+										Add Service
+									</Button>
 								</div>
 
 								{/* Search dropdown — click anywhere on a row to add */}
