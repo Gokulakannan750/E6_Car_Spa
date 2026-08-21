@@ -6,7 +6,7 @@ const loadDashboard = () => import('../features/dashboard/DashboardPage');
 const loadCustomers = () => import('../features/customers/CustomersPage');
 const loadCustomerDetail = () => import('../features/customers/CustomerDetailPage');
 const loadJobCards = () => import('../features/job-cards/JobCardsPage');
-const loadNewJobCard = () => import('../features/job-cards/NewJobCardPage');
+const loadNewJobCard = () => import('../features/job-cards/NewJobCard');
 const loadJobCardDetail = () => import('../features/job-cards/JobCardDetailPage');
 const loadQuotations = () => import('../features/quotations/QuotationsInvoicesPage');
 const loadQuotationDetail = () => import('../features/quotations/QuotationDetailPage');
@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
  { path: '/customers', lazy: async () => { const m = await loadCustomers(); return { Component: m.CustomersPage }; } },
  { path: '/customers/:id', lazy: async () => { const m = await loadCustomerDetail(); return { Component: m.CustomerDetailPage }; } },
  { path: '/job-cards', lazy: async () => { const m = await loadJobCards(); return { Component: m.JobCardsPage }; } },
- { path: '/job-cards/new', lazy: async () => { const m = await loadNewJobCard(); return { Component: m.NewJobCardPage }; } },
+ { path: '/job-cards/new', lazy: async () => { const m = await loadNewJobCard(); return { Component: m.default }; } },
  { path: '/job-cards/:id', lazy: async () => { const m = await loadJobCardDetail(); return { Component: m.JobCardDetailPage }; } },
  { path: '/quotations-invoices', lazy: async () => { const m = await loadQuotations(); return { Component: m.QuotationsInvoicesPage }; } },
  { path: '/quotations/:id', lazy: async () => { const m = await loadQuotationDetail(); return { Component: m.QuotationDetailPage }; } },

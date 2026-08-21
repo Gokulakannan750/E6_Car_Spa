@@ -1,3 +1,3 @@
 export { JobCardsPage } from './JobCardsPage';
-export { NewJobCardPage } from './NewJobCardPage';
 export { JobCardDetailPage } from './JobCardDetailPage';
+export { default as NewJobCard } from './NewJobCard';
