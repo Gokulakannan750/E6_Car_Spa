@@ -109,10 +109,6 @@ export default function NewJobCard() {
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
-	// ── Financials ────────────────────────────────────────────────────────────
-	const [isGstEnabled, setIsGstEnabled] = useState(true);
-
-	// ── Submit ────────────────────────────────────────────────────────────────
 	const [isCreatingJobCard, setIsCreatingJobCard] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<{ id: string; number: string; customerName: string; vehicleLabel: string; total: number } | null>(null);
@@ -120,7 +116,7 @@ export default function NewJobCard() {
 	// ── Derived ───────────────────────────────────────────────────────────────
 	const calcSubtotal = services.reduce((s, svc) => s + svc.unitPrice * svc.quantity, 0);
 	const calcDiscount = services.reduce((s, svc) => s + svc.discountAmount, 0);
-	const calcTax = isGstEnabled ? services.reduce((s, svc) => s + svc.unitPrice * svc.quantity * svc.taxPercentage / 100, 0) : 0;
+	const calcTax = services.reduce((s, svc) => s + svc.unitPrice * svc.quantity * svc.taxPercentage / 100, 0);
 	const calcTotal = calcSubtotal - calcDiscount + calcTax;
 	const canProceedToServices = customer !== null && selectedVehicle !== null;
 	const canCreate = canProceedToServices && services.length > 0 && !isCreatingJobCard;
@@ -358,7 +354,6 @@ export default function NewJobCard() {
 				vehicleId: selectedVehicle.id,
 				services: services.map(s => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount })),
 				notes: undefined,
-				isGstEnabled,
 			});
 			setSuccess({ id: result.id, number: result.jobCardNumber, customerName: customer.name, vehicleLabel: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`, total: result.totalAmount });
 		} catch (err) {
@@ -438,12 +433,6 @@ export default function NewJobCard() {
 			{/* ── Header ──────────────────────────────────────────────────────── */}
 			<div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between">
 				<h1 className="text-xl font-semibold">New Job Card</h1>
-				<div className="flex items-center gap-3">
-					<label className="flex items-center gap-2 text-sm text-on-surface cursor-pointer select-none">
-						<input type="checkbox" checked={isGstEnabled} onChange={(e) => setIsGstEnabled(e.target.checked)} className="w-4 h-4 accent-secondary" />
-						GST Enabled
-					</label>
-				</div>
 			</div>
 
 			{/* ── Stepper ────────────────────────────────────────────────────── */}
@@ -739,12 +728,6 @@ export default function NewJobCard() {
 													<span>-{formatCurrency(calcDiscount)}</span>
 												</div>
 											)}
-											{isGstEnabled && (
-												<div className="flex justify-between font-body-sm text-on-surface-variant">
-													<span>GST</span>
-													<span>{formatCurrency(calcTax)}</span>
-												</div>
-											)}
 											<div className="flex justify-between font-headline-sm font-bold text-on-surface pt-xs border-t border-outline-variant mt-xs">
 												<span>Total</span>
 												<span>{formatCurrency(calcTotal)}</span>
@@ -853,12 +836,6 @@ export default function NewJobCard() {
 											<div className="flex justify-between text-on-surface-variant text-body-sm">
 												<span>Discount</span>
 												<span>-{formatCurrency(calcDiscount)}</span>
-											</div>
-										)}
-										{isGstEnabled && (
-											<div className="flex justify-between text-on-surface-variant text-body-sm">
-												<span>Tax</span>
-												<span>{formatCurrency(calcTax)}</span>
 											</div>
 										)}
 										<div className="flex justify-between font-headline-sm font-bold text-secondary pt-sm border-t border-outline-variant mt-sm">
