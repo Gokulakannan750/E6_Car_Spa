@@ -1,8 +1,14 @@
+import { useParams } from 'react-router-dom';
+import JobCardDetails from './JobCardDetails';
+
 export function JobCardDetailPage() {
+ const { id } = useParams<{ id: string }>();
+ if (!id) {
  return (
- <div className="space-y-6">
- <h1>Job Card Details</h1>
- <p className="text-slate-500">Job card detail view coming soon...</p>
+ <div className="p-8 text-center">
+ <p className="font-body-md text-on-error-container">Invalid job card ID</p>
  </div>
  );
+ }
+ return <JobCardDetails />;
 }

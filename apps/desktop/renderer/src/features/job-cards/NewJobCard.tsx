@@ -6,17 +6,20 @@ import {
  createCustomer,
  getVehiclesByCustomer,
  createVehicle,
- getCatalogueServices,
+ getServices,
+ createService,
  createJobCard,
  ApiError,
  type CustomerDto,
  type VehicleDto,
  type CreateJobCardInput,
+ type ServiceDto,
 } from '../../lib/api';
 import PhoneInput from '../../components/PhoneInput';
 
 interface ServiceItem {
  id: string;
+ serviceId: string;
  name: string;
  category: string;
  unitPrice: number;
@@ -51,13 +54,11 @@ export default function NewJobCard() {
 
  const [services, setServices] = useState<ServiceItem[]>([]);
  const [serviceSearch, setServiceSearch] = useState('');
- const [searchResults, setSearchResults] = useState<{ id: string; name: string; category: string; basePrice: number }[]>([]);
- const [isSearchingServices, setIsSearchingServices] = useState(false);
+ const [searchResults, setSearchResults] = useState<ServiceDto[]>([]);
  const [showNewServiceForm, setShowNewServiceForm] = useState(false);
- const [newService, setNewService] = useState({ name: '', category: '', basePrice: 0 });
+ const [newService, setNewService] = useState({ name: '', category: '', basePrice: 0, taxPercentage: 18 });
  const [isCreatingService, setIsCreatingService] = useState(false);
  const [serviceCategories, setServiceCategories] = useState<string[]>([]);
- const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
  const [isCreatingJobCard, setIsCreatingJobCard] = useState(false);
  const [isGstEnabled, setIsGstEnabled] = useState(true);
@@ -193,25 +194,22 @@ export default function NewJobCard() {
  useEffect(() => {
  if (!showNewServiceForm) return;
  if (serviceCategories.length > 0) return;
- setIsLoadingCategories(true);
  (async () => {
  try {
- const result = await getCatalogueServices({ category: undefined, search: undefined });
- const uniqueCategories = [...new Set(result.map(s => s.category).filter(Boolean))] as string[];
+ const result = await getServices({ page: 1, pageSize: 200, isActive: true });
+ const uniqueCategories = [...new Set(result.items.map(s => s.category).filter(Boolean))] as string[];
  setServiceCategories(uniqueCategories);
  } catch { /* no categories available yet */ }
- setIsLoadingCategories(false);
  })();
  }, [showNewServiceForm, serviceCategories.length]);
 
  // ── Service Search (live / debounced) ───────────────────────────────────────
  const doServiceSearch = useCallback(async (query: string) => {
  if (!query.trim()) { setSearchResults([]); return; }
- setIsSearchingServices(true);
  try {
- const result = await getCatalogueServices({ search: query.trim() });
- setSearchResults(result);
- } catch { setSearchResults([]); } finally { setIsSearchingServices(false); }
+ const result = await getServices({ page: 1, pageSize: 50, search: query.trim() });
+ setSearchResults(result.items);
+ } catch { setSearchResults([]); }
  }, []);
 
  useEffect(() => {
@@ -231,20 +229,21 @@ export default function NewJobCard() {
  }, []);
 
  // ── Add Service ──────────────────────────────────────────────────────────────
- const handleAddService = (svc: { id: string; name: string; category: string; basePrice: number }) => {
- const exists = services.find(s => s.name === svc.name);
+ const handleAddService = (svc: ServiceDto) => {
+ const exists = services.find(s => s.serviceId === svc.id);
  if (exists) {
- setServices(prev => prev.map(s => s.name === svc.name ? { ...s, quantity: s.quantity + 1 } : s));
+ setServices(prev => prev.map(s => s.serviceId === svc.id ? { ...s, quantity: s.quantity + 1 } : s));
  } else {
  setServices(prev => [...prev, {
  id: crypto.randomUUID(),
+ serviceId: svc.id,
  name: svc.name,
  category: svc.category,
- unitPrice: svc.basePrice,
+ unitPrice: svc.price,
  quantity: 1,
- taxPercentage: 18,
+ taxPercentage: svc.taxPercentage,
  discountAmount: 0,
- lineTotal: svc.basePrice,
+ lineTotal: svc.price,
  }]);
  }
  setServiceSearch('');
@@ -258,12 +257,20 @@ export default function NewJobCard() {
  if (!newService.name.trim()) return;
  setIsCreatingService(true);
  try {
- const created = await getCatalogueServices({ category: newService.category, search: newService.name }).then(r => r.find(s => s.name === newService.name));
- if (created) {
+ const existing = await getServices({ page: 1, pageSize: 1, search: newService.name }).then(r => r.items.find(s => s.name.toLowerCase() === newService.name.trim().toLowerCase()));
+ if (existing) {
+ handleAddService(existing);
+ } else {
+ const created = await createService({
+ name: newService.name.trim(),
+ category: newService.category || 'General',
+ price: newService.basePrice,
+ taxPercentage: newService.taxPercentage,
+ });
  handleAddService(created);
  }
  setShowNewServiceForm(false);
- setNewService({ name: '', category: '', basePrice: 0 });
+ setNewService({ name: '', category: '', basePrice: 0, taxPercentage: 18 });
  } catch { /* handled */ } finally { setIsCreatingService(false); }
  };
 
@@ -288,9 +295,10 @@ export default function NewJobCard() {
  const result = await createJobCard({
  customerId: customer.id,
  vehicleId: selectedVehicle.id,
- services: services.map(s => ({ name: s.name, category: s.category, price: s.unitPrice, quantity: s.quantity })),
+ services: services.map(s => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount })),
  notes: undefined,
- } as CreateJobCardInput);
+ isGstEnabled,
+ });
  setSuccess({ id: result.id, number: result.jobCardNumber, customer: customer.name, vehicle: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`, total: result.totalAmount });
  } catch (err) {
  setSubmitError(err instanceof Error ? err.message : 'Failed to create job card');
@@ -309,7 +317,8 @@ export default function NewJobCard() {
  setShowNewCustomerForm(false); setShowNewVehicleForm(false); setShowNewServiceForm(false);
  setNewCustomer({ name: '', phone: '', email: '', address: '' });
  setNewVehicle({ registrationNumber: '', make: '', model: '', color: '' });
- setNewService({ name: '', category: '', basePrice: 0 });
+ setNewService({ name: '', category: '', basePrice: 0, taxPercentage: 18 });
+ setServiceCategories([]);
  setSuccess(null); setSubmitError(null); setCustomerError(null);
  };
 
@@ -564,7 +573,7 @@ export default function NewJobCard() {
  className="w-full text-left px-4 py-3 hover:bg-surface-variant transition-colors border-b border-outline-variant last:border-b-0"
  >
  <p className="font-body-sm text-body-sm text-on-surface">{svc.name}</p>
- <p className="font-label-md text-label-md text-on-surface-variant">{svc.category} — {formatCurrency(svc.basePrice)}</p>
+ <p className="font-label-md text-label-md text-on-surface-variant">{svc.category} — {formatCurrency(svc.price)}</p>
  </button>
  ))}
  </div>

@@ -69,12 +69,10 @@ async function request<T>(
 export interface CustomerDto {
  id: string;
  name: string;
- phone: string;
+ phoneNumber: string;
  email: string | null;
  address: string | null;
- gstNumber: string | null;
  createdAt: string;
- updatedAt: string;
 }
 
 export interface CustomerListResponse {
@@ -86,10 +84,9 @@ export interface CustomerListResponse {
 
 export interface CreateCustomerInput {
  name: string;
- phone: string;
+ phoneNumber: string;
  email?: string | null;
  address?: string | null;
- gstNumber?: string | null;
 }
 
 export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
@@ -121,16 +118,58 @@ export interface CreateVehicleInput {
 export interface JobCardDto {
  id: string;
  jobCardNumber: string;
- customerId: string;
- vehicleId: string;
- status: string;
- services: ServiceItemDto[];
- totalAmount: number;
- advancePaid: number;
- balanceDue: number;
+ customer: {
+ id: string;
+ name: string;
+ phone: string;
+ };
+ vehicle: {
+ id: string;
+ registrationNumber: string;
+ make: string;
+ model: string;
+ variant: string | null;
+ color: string | null;
+ };
+ status: number;
  notes: string | null;
+ services: JobCardServiceDto[];
+ subtotal: number;
+ taxAmount: number;
+ discountAmount: number;
+ totalAmount: number;
  createdAt: string;
- updatedAt: string;
+ updatedAt: string | null;
+}
+
+export interface JobCardServiceDto {
+ id: string;
+ serviceId: string;
+ serviceName: string;
+ unitPrice: number;
+ quantity: number;
+ taxPercentage: number;
+ discountAmount: number;
+}
+
+export interface JobCardListDto {
+ id: string;
+ jobCardNumber: string;
+ customerName: string;
+ customerPhone: string;
+ registrationNumber: string;
+ make: string;
+ model: string;
+ status: number;
+ totalAmount: number;
+ createdAt: string;
+}
+
+export interface JobCardListResponse {
+ items: JobCardListDto[];
+ totalCount: number;
+ page: number;
+ pageSize: number;
 }
 
 export interface ServiceItemDto {
@@ -141,11 +180,43 @@ export interface ServiceItemDto {
  quantity: number;
 }
 
+export interface JobCardServiceDto {
+ id: string;
+ serviceId: string;
+ serviceName: string;
+ unitPrice: number;
+ quantity: number;
+ taxPercentage: number;
+ discountAmount: number;
+}
+
+export interface ServiceDto {
+ id: string;
+ name: string;
+ category: string;
+ description: string | null;
+ price: number;
+ taxPercentage: number;
+ durationMinutes: number | null;
+ isActive: boolean;
+ createdAt: string;
+}
+
 export interface CreateJobCardInput {
  customerId: string;
  vehicleId: string;
- services: { name: string; category: string; price: number; quantity: number }[];
+ services: { serviceId: string; quantity: number; discountAmount: number }[];
  notes?: string | null;
+ isGstEnabled?: boolean;
+}
+
+export interface CreateServiceInput {
+ name: string;
+ category: string;
+ price: number;
+ taxPercentage?: number;
+ description?: string | null;
+ isActive?: boolean;
 }
 
 export interface QuotationDto {
@@ -289,7 +360,7 @@ export async function deleteCustomer(id: string) {
 // ============================================================================
 
 export async function getVehiclesByCustomer(customerId: string) {
- return request<VehicleDto[]>(`/api/customers/${encodeURIComponent(customerId)}/vehicles`);
+ return request<VehicleDto[]>(`/api/vehicles/by-customer/${encodeURIComponent(customerId)}`);
 }
 
 export async function createVehicle(data: CreateVehicleInput) {
@@ -309,29 +380,29 @@ export async function getJobCards(params: { page: number; pageSize: number; stat
  qs.set('pageSize', String(params.pageSize));
  if (params.status) qs.set('status', params.status);
  if (params.search) qs.set('search', params.search);
- return request<{ items: JobCardDto[]; totalCount: number }>('/api/jobcards?' + qs.toString());
+ return request<{ items: JobCardDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
 }
 
 export async function getJobCardById(id: string) {
- return request<JobCardDto>(`/api/jobcards/${encodeURIComponent(id)}`);
+ return request<JobCardDto>(`/api/job-cards/${encodeURIComponent(id)}`);
 }
 
 export async function createJobCard(data: CreateJobCardInput) {
- return request<JobCardDto>('/api/jobcards', {
+ return request<JobCardDto>('/api/job-cards', {
  method: 'POST',
  body: JSON.stringify(data),
  });
 }
 
-export async function updateJobCard(id: string, data: Partial<CreateJobCardInput>) {
- return request<JobCardDto>(`/api/jobcards/${encodeURIComponent(id)}`, {
+export async function updateJobCardServices(id: string, services: { serviceId: string; quantity: number; discountAmount: number }[]) {
+ return request<JobCardDto>(`/api/job-cards/${encodeURIComponent(id)}/services`, {
  method: 'PUT',
- body: JSON.stringify(data),
+ body: JSON.stringify({ services }),
  });
 }
 
 export async function deleteJobCard(id: string) {
- return request<void>(`/api/jobcards/${encodeURIComponent(id)}`, {
+ return request<void>(`/api/job-cards/${encodeURIComponent(id)}`, {
  method: 'DELETE',
  });
 }
@@ -379,8 +450,30 @@ export async function recordPayment(invoiceId: string, data: { amount: number; p
 }
 
 // ============================================================================
-// Catalogue
+// Services
 // ============================================================================
+
+export async function getServices(params: { page: number; pageSize: number; isActive?: boolean; search?: string; category?: string }) {
+ const qs = new URLSearchParams();
+ qs.set('page', String(params.page));
+ qs.set('pageSize', String(params.pageSize));
+ if (params.isActive !== undefined) qs.set('isActive', String(params.isActive));
+ if (params.search) qs.set('search', params.search);
+ if (params.category) qs.set('category', params.category);
+ const suffix = '?' + qs.toString();
+ return request<{ items: ServiceDto[]; totalCount: number }>('/api/services' + suffix);
+}
+
+export async function getServiceById(id: string) {
+ return request<ServiceDto>(`/api/services/${encodeURIComponent(id)}`);
+}
+
+export async function createService(data: CreateServiceInput) {
+ return request<ServiceDto>('/api/services', {
+ method: 'POST',
+ body: JSON.stringify(cleanPayload(data)),
+ });
+}
 
 export async function getCatalogueServices(params?: { category?: string; search?: string }) {
  const qs = new URLSearchParams();
@@ -488,4 +581,9 @@ function cleanPayload(obj: unknown): unknown {
  return out;
  }
  return obj;
+}
+
+export function getJobCardStatusLabel(status: number): string {
+ const labels: Record<number, string> = { 0: 'Draft', 1: 'In Progress', 2: 'Quality Check', 3: 'Ready', 4: 'Invoiced', 5: 'Paid', 6: 'Delivered', 7: 'Cancelled' };
+ return labels[status] ?? `Status ${status}`;
 }

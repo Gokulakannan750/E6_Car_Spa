@@ -15,3 +15,8 @@ release
 *.jpeg
 *.gif
 *.svg
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+*.sourcelink.json
+*.genruntimeconfig.cache

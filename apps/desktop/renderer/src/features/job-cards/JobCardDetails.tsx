@@ -1,12 +1,12 @@
 import { useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
  getJobCardById,
+ updateJobCardServices,
  getServices,
  type JobCardDto,
  type ServiceDto,
- type CreateJobCardInput,
 } from '../../lib/api';
 
 // Status colors matching C# enum values
@@ -105,12 +105,12 @@ export default function JobCardDetails() {
  useEffect(() => {
  if (jobCard && !isEditing) {
  const mapped: ServiceRow[] = jobCard.services.map((s) => ({
- serviceId: s.id,
- serviceName: s.name,
+ serviceId: s.serviceId,
+ serviceName: s.serviceName,
  quantity: s.quantity,
- discountAmount: 0,
- unitPrice: s.price,
- taxPercentage: 0,
+ discountAmount: s.discountAmount,
+ unitPrice: s.unitPrice,
+ taxPercentage: s.taxPercentage,
  isNew: false,
  }));
  setEditingServices(mapped);
@@ -151,19 +151,11 @@ export default function JobCardDetails() {
  if (!id || isSaving) return;
  setIsSaving(true);
  try {
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5298'}/api/jobcards/${id}/services`, {
- method: 'PUT',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- services: editingServices.map((s) => ({
+ await updateJobCardServices(id, editingServices.map((s) => ({
  serviceId: s.serviceId,
  quantity: s.quantity,
  discountAmount: s.discountAmount,
- })),
- notes: editingNotes,
- }),
- });
- if (!res.ok) throw new Error(`HTTP ${res.status}`);
+ })));
  await queryClient.invalidateQueries({ queryKey: ['job-card', id] });
  await queryClient.invalidateQueries({ queryKey: ['job-cards'] });
  setIsEditing(false);
@@ -172,14 +164,14 @@ export default function JobCardDetails() {
  } finally {
  setIsSaving(false);
  }
- }, [id, isSaving, editingServices, editingNotes, queryClient]);
+ }, [id, isSaving, editingServices, queryClient]);
 
  const handlePrint = useCallback(async () => {
  if (!id || isPrinting) return;
  setIsPrinting(true);
  try {
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5298'}/api/jobcards/${id}/print`, {
- method: 'POST',
+ const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5298'}/api/job-cards/${id}/print`, {
+ method: 'GET',
  });
  if (!res.ok) throw new Error(`HTTP ${res.status}`);
  const blob = await res.blob();
@@ -256,7 +248,8 @@ export default function JobCardDetails() {
  <StatusBadge status={jobCard.status} />
  </div>
  <p className="font-body-md text-body-md text-on-surface-variant">
- Created {formatDate(jobCard.createdAt)} · Last updated {formatDate(jobCard.updatedAt)}
+ Created {formatDate(jobCard.createdAt)}
+ {jobCard.updatedAt ? ` · Last updated ${formatDate(jobCard.updatedAt)}` : ''}
  </p>
  </div>
  <div className="flex gap-2">
@@ -412,18 +405,18 @@ export default function JobCardDetails() {
  <div className="space-y-2">
  <div className="flex items-center gap-2">
  <span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>person</span>
- <span className="text-body-sm text-on-surface">{jobCard.customerName}</span>
+ <span className="text-body-sm text-on-surface">{jobCard.customer.name}</span>
  </div>
- {jobCard.vehicleRegistration && (
+ {jobCard.vehicle.registrationNumber && (
  <div className="flex items-center gap-2">
  <span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>directions_car</span>
- <span className="text-body-sm text-on-surface-variant font-mono">{jobCard.vehicleRegistration}</span>
+ <span className="text-body-sm text-on-surface-variant font-mono">{jobCard.vehicle.registrationNumber}</span>
  </div>
  )}
- {jobCard.customerPhone && (
+ {jobCard.customer.phone && (
  <div className="flex items-center gap-2">
  <span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>phone</span>
- <span className="text-body-sm text-on-surface-variant">{jobCard.customerPhone}</span>
+ <span className="text-body-sm text-on-surface-variant">{jobCard.customer.phone}</span>
  </div>
  )}
  </div>
@@ -449,18 +442,6 @@ export default function JobCardDetails() {
  <span className="font-semibold text-on-surface">Total</span>
  <span className="font-bold text-on-surface">{formatCurrency(total)}</span>
  </div>
- {jobCard.advancePaid > 0 && (
- <div className="flex justify-between text-body-sm">
- <span className="text-on-surface-variant">Advance Paid</span>
- <span className="text-green-700">{formatCurrency(jobCard.advancePaid)}</span>
- </div>
- )}
- {jobCard.balanceDue > 0 && (
- <div className="flex justify-between text-body-sm">
- <span className="text-on-surface-variant">Balance Due</span>
- <span className="text-error font-medium">{formatCurrency(jobCard.balanceDue)}</span>
- </div>
- )}
  </div>
  </div>
  </div>

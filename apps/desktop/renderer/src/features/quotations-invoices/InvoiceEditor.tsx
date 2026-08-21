@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
-import { getJobCardById, getCustomerById, getVehiclesByCustomer, type JobCardDto, type ServiceItemDto, type CustomerDto, type VehicleDto } from '../../lib/api';
+import { getJobCardById, getCustomerById, getVehiclesByCustomer, type JobCardDto, type JobCardServiceDto, type CustomerDto, type VehicleDto } from '../../lib/api';
 
 function formatCurrency(amount: number): string {
  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
@@ -19,29 +19,29 @@ export default function InvoiceEditor() {
  });
 
  const customerQuery = useQuery({
- queryKey: ['customer', jobCard?.customerId],
+ queryKey: ['customer', jobCard?.customer?.id],
  queryFn: async () => {
- if (!jobCard?.customerId) return null;
- return getCustomerById(jobCard.customerId);
+ if (!jobCard?.customer?.id) return null;
+ return getCustomerById(jobCard.customer.id);
  },
- enabled: !!jobCard?.customerId,
+ enabled: !!jobCard?.customer?.id,
  });
 
  const vehicleQuery = useQuery({
- queryKey: ['vehicles', jobCard?.customerId],
+ queryKey: ['vehicles', jobCard?.customer?.id],
  queryFn: async () => {
- if (!jobCard?.customerId) return [];
- return getVehiclesByCustomer(jobCard.customerId);
+ if (!jobCard?.customer?.id) return [];
+ return getVehiclesByCustomer(jobCard.customer.id);
  },
- enabled: !!jobCard?.customerId,
+ enabled: !!jobCard?.customer?.id,
  });
 
  if (!jobCardId) return <div className="p-8 text-center text-error">Invalid job card ID</div>;
 
  const customer: CustomerDto | undefined = customerQuery.data ?? undefined;
- const vehicle: VehicleDto | undefined = vehicleQuery.data?.find(v => v.id === jobCard.vehicleId);
- const services: ServiceItemDto[] = jobCard ? (jobCard.services ?? []) : [];
- const subtotal = services.reduce((sum, s) => sum + s.price * s.quantity, 0);
+ const vehicle: VehicleDto | undefined = vehicleQuery.data?.find(v => v.id === jobCard.vehicle.id);
+ const services: JobCardServiceDto[] = jobCard ? (jobCard.services ?? []) : [];
+ const subtotal = services.reduce((sum, s) => sum + s.unitPrice * s.quantity, 0);
  const grandTotal = jobCard ? jobCard.totalAmount : subtotal;
 
  return (
