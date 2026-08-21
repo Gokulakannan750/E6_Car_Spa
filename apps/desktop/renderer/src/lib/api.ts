@@ -215,6 +215,7 @@ export interface CreateServiceInput {
  category: string;
  price: number;
  taxPercentage?: number;
+ durationMinutes?: number | null;
  description?: string | null;
  isActive?: boolean;
 }
@@ -473,6 +474,17 @@ export async function createService(data: CreateServiceInput) {
  method: 'POST',
  body: JSON.stringify(cleanPayload(data)),
  });
+}
+
+export async function updateService(id: string, data: CreateServiceInput) {
+ return request<ServiceDto>(`/api/services/${encodeURIComponent(id)}`, {
+ method: 'PUT',
+ body: JSON.stringify(cleanPayload(data)),
+ });
+}
+
+export async function getServiceCategories() {
+ return request<string[]>('/api/services/categories');
 }
 
 export async function getCatalogueServices(params?: { category?: string; search?: string }) {

@@ -6,6 +6,7 @@ const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
  pending: { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
  draft: { bg: 'bg-surface-container', text: 'text-on-surface-variant', dot: 'bg-on-surface-variant' },
  cancelled: { bg: 'bg-error-container', text: 'text-error', dot: 'bg-error' },
+ inactive: { bg: 'bg-surface-container', text: 'text-on-surface-variant', dot: 'bg-on-surface-variant' },
  'in-progress': { bg: 'bg-secondary-container', text: 'text-secondary', dot: 'bg-secondary' },
  'partially-paid': { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
  paid: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
@@ -20,6 +21,7 @@ const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
 const labelMap: Record<string, string> = {
  completed: 'Completed',
  active: 'Active',
+ inactive: 'Inactive',
  pending: 'Pending',
  draft: 'Draft',
  cancelled: 'Cancelled',

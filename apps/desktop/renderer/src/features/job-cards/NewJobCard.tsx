@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
 	getCustomerByPhone,
 	getVehicleByRegistration,
@@ -9,6 +9,7 @@ import {
 	getServices,
 	createService,
 	createJobCard,
+	getServiceById,
 	ApiError,
 	type CustomerDto,
 	type VehicleDto,
@@ -84,6 +85,8 @@ const STEPS = ['Customer & Vehicle', 'Services', 'Review'] as const;
 
 export default function NewJobCard() {
 	const navigate = useNavigate();
+	const location = useLocation();
+	const preselectedServiceId = (location.state as { preselectedServiceId?: string } | null)?.preselectedServiceId;
 
 	// ── Step tracking ─────────────────────────────────────────────────────────
 	const [step, setStep] = useState(0);
@@ -286,6 +289,40 @@ export default function NewJobCard() {
 		window.addEventListener('keydown', onKey);
 		return () => window.removeEventListener('keydown', onKey);
 	}, []);
+
+	// ── Preselect service from Catalogue ───────────────────────────────────────
+	useEffect(() => {
+		if (!preselectedServiceId) return;
+		let cancelled = false;
+		(async () => {
+			try {
+				const svc = await getServiceById(preselectedServiceId);
+				if (!cancelled && svc) {
+					setServices(prev => {
+						const existing = prev.find(s => s.serviceId === svc.id);
+						if (existing) {
+							return prev.map(s => s.serviceId === svc.id ? { ...s, quantity: s.quantity + 1, lineTotal: s.unitPrice * (s.quantity + 1) - s.discountAmount } : s);
+						}
+						return [...prev, {
+							id: crypto.randomUUID(),
+							serviceId: svc.id,
+							name: svc.name,
+							category: svc.category,
+							unitPrice: svc.price,
+							quantity: 1,
+							taxPercentage: svc.taxPercentage,
+							discountAmount: 0,
+							lineTotal: svc.price,
+						}];
+					});
+					navigate('/job-cards/new', { replace: true, state: {} });
+				}
+			} catch {
+				// service not found — ignore
+			}
+		})();
+		return () => { cancelled = true; };
+	}, [preselectedServiceId]);
 
 	// ── Add service ───────────────────────────────────────────────────────────
 	const handleAddService = (svc: ServiceDto) => {
