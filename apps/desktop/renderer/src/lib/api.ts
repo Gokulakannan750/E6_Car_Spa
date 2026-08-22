@@ -417,6 +417,12 @@ export async function createInvoice(data: { quotationId: string; paymentMethod?:
  });
 }
 
+export async function convertJobCardToInvoice(jobCardId: string) {
+ return request<InvoiceDto>(`/api/job-cards/${encodeURIComponent(jobCardId)}/convert-to-invoice`, {
+ method: 'POST',
+ });
+}
+
 export async function recordPayment(invoiceId: string, data: { amount: number; paymentMethod: string }) {
  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payment`, {
  method: 'POST',

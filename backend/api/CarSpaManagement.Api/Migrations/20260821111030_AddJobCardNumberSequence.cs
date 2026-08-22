@@ -9,11 +9,13 @@ namespace CarSpaManagement.Api.Migrations
  protected override void Up(MigrationBuilder migrationBuilder)
  {
  migrationBuilder.Sql(@"
- CREATE SEQUENCE IF NOT EXISTS job_card_number_seq
- START 11
- INCREMENT 1
- MINVALUE 1
- OWNED BY NONE;
+ DO $$
+ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = 'job_card_number_seq') THEN
+ CREATE SEQUENCE job_card_number_seq START 11 INCREMENT 1 MINVALUE 1 OWNED BY NONE;
+ END IF;
+ END
+ $$;
  ");
  }
 
