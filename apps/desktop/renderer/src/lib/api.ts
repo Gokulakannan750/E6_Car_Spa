@@ -383,55 +383,7 @@ export async function deleteJobCard(id: string) {
 }
 
 // ============================================================================
-// Quotations & Invoices
-// ============================================================================
-
-export async function getQuotations(params: { page: number; pageSize: number; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.search) qs.set('search', params.search);
- return request<{ items: QuotationDto[]; totalCount: number }>('/api/quotations?' + qs.toString());
-}
-
-export async function getQuotationById(id: string) {
- return request<QuotationDto>(`/api/quotations/${encodeURIComponent(id)}`);
-}
-
-export async function getInvoices(params: { page: number; pageSize: number; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.search) qs.set('search', params.search);
- return request<{ items: InvoiceDto[]; totalCount: number }>('/api/invoices?' + qs.toString());
-}
-
-export async function getInvoiceById(id: string) {
- return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`);
-}
-
-export async function createInvoice(data: { quotationId: string; paymentMethod?: string }) {
- return request<InvoiceDto>('/api/invoices', {
- method: 'POST',
- body: JSON.stringify(data),
- });
-}
-
-export async function convertJobCardToInvoice(jobCardId: string) {
- return request<InvoiceDto>(`/api/job-cards/${encodeURIComponent(jobCardId)}/convert-to-invoice`, {
- method: 'POST',
- });
-}
-
-export async function recordPayment(invoiceId: string, data: { amount: number; paymentMethod: string }) {
- return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payment`, {
- method: 'POST',
- body: JSON.stringify(data),
- });
-}
-
-// ============================================================================
-// Services
+// Invoices
 // ============================================================================
 
 export async function getServices(params: { page: number; pageSize: number; isActive?: boolean; search?: string; category?: string }) {

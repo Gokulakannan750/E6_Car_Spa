@@ -14,12 +14,18 @@ export function CustomersPage() {
  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
 
  const filtered = useMemo(() => {
- return mockCustomers.filter(c => {
- if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.phone.includes(search)) return false;
- if (statusFilter !== 'all' && c.status !== statusFilter) return false;
- return true;
- });
- }, [search, statusFilter]);
+	const q = search.trim().toLowerCase();
+	return mockCustomers.filter((c) => {
+		if (q) {
+			const matchesName = c.name.toLowerCase().includes(q);
+			const matchesPhone = c.phone.includes(q);
+			const matchesReg = mockVehicles.some((v) => v.customerId === c.id && v.registrationNumber.toLowerCase().includes(q));
+			if (!matchesName && !matchesPhone && !matchesReg) return false;
+		}
+		if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+		return true;
+	});
+}, [search, statusFilter]);
 
  const getVehicles = (cid: string) => mockVehicles.filter(v => v.customerId === cid);
  const selected = selectedCustomer ? mockCustomers.find(c => c.id === selectedCustomer) : null;
@@ -46,7 +52,7 @@ export function CustomersPage() {
  <div className="app-card p-4">
  <div className="flex items-center gap-3">
  <div className="flex-1 max-w-md">
- <SearchInput placeholder="Search by name or phone..." value={search} onChange={e => setSearch(e.target.value)} />
+ <SearchInput placeholder="Search by name, phone, or registration number..." value={search} onChange={e => setSearch(e.target.value)} />
  </div>
  <div className="flex items-center gap-1">
  {['all', 'active', 'inactive'].map(s => (

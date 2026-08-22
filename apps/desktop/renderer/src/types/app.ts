@@ -26,8 +26,6 @@ export interface AppSettings {
  currency: string;
  currencySymbol: string;
  taxRate: number;
- invoicePrefix: string;
- quotationPrefix: string;
  jobCardPrefix: string;
  fiscalYearStart: string;
  createdAt: string;

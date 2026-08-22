@@ -73,7 +73,6 @@ export function DashboardPage() {
  <div className="space-y-3">
  {[
  { text: 'New job card created for Arjun Mehta (MH12AB1234)', time: '2 minutes ago' },
- { text: 'Quotation #QT-2026-001 sent to Priya Sharma', time: '15 minutes ago' },
  { text: 'Invoice #INV-2026-042 paid by Rahul Patel', time: '1 hour ago' },
  { text: 'New customer registered: Sneha Kapoor', time: '3 hours ago' },
  { text: 'Job card JC-2026-089 marked as ready', time: '5 hours ago' },

@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { Download, TrendingUp, TrendingDown, DollarSign, Wrench } from 'lucide-react';
 import { mockJobCards } from '../../mock/data/jobCards';
-import { mockInvoices } from '../../mock/data/invoices';
 import { Button } from '../../components/ui/Button';
 
 export function ReportsPage() {
  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
 
- const totalRevenue = mockInvoices.reduce((s, i) => s + i.totalAmount, 0);
- const totalPaid = mockInvoices.reduce((s, i) => s + i.paidAmount, 0);
- const totalOutstanding = mockInvoices.reduce((s, i) => s + i.balance, 0);
  const activeJobs = mockJobCards.filter(jc => jc.status === 'in-progress').length;
 
  return (
@@ -32,9 +28,9 @@ export function ReportsPage() {
  {/* KPI Cards */}
  <div className="grid grid-cols-4 gap-4">
  {[
- { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, change: '+12.5%', up: true, Icon: DollarSign, color: 'text-success' },
- { label: 'Total Collected', value: `₹${totalPaid.toLocaleString()}`, change: '+8.2%', up: true, Icon: TrendingUp, color: 'text-info' },
- { label: 'Outstanding', value: `₹${totalOutstanding.toLocaleString()}`, change: '-3.1%', up: false, Icon: TrendingDown, color: 'text-warning' },
+ { label: 'Total Revenue', value: '—', change: 'Invoices coming soon', up: true, Icon: DollarSign, color: 'text-success' },
+ { label: 'Total Collected', value: '—', change: 'Invoices coming soon', up: true, Icon: TrendingUp, color: 'text-info' },
+ { label: 'Outstanding', value: '—', change: 'Invoices coming soon', up: false, Icon: TrendingDown, color: 'text-warning' },
  { label: 'Active Jobs', value: activeJobs.toString(), change: 'In progress', Icon: Wrench, color: 'text-secondary' },
  ].map(kpi => {
  const IconComp = kpi.Icon;

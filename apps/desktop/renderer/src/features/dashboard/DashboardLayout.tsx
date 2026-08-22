@@ -22,7 +22,7 @@ function GlobalHeader() {
  '/dashboard': 'Dashboard',
  '/customers': 'Customers',
  '/job-cards': 'Job Cards',
- '/quotations-invoices': 'Quotations & Invoices',
+ '/quotations-invoices': 'Invoices',
  '/catalogue': 'Service Catalogue',
  '/staff-advances': 'Staff Advances',
  '/reports': 'Reports',
