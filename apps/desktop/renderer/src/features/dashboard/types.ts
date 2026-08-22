@@ -8,7 +8,7 @@ export const navItems: NavItem[] = [
  { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
  { path: '/customers', label: 'Customers', icon: 'group' },
  { path: '/job-cards', label: 'Job Cards', icon: 'assignment' },
- { path: '/quotations-invoices', label: 'Invoices', icon: 'receipt_long' },
+ { path: '/invoices', label: 'Invoices', icon: 'receipt_long' },
  { path: '/catalogue', label: 'Catalogue', icon: 'inventory_2' },
  { path: '/staff-advances', label: 'Staff Advances', icon: 'payments' },
  { path: '/reports', label: 'Reports', icon: 'analytics' },

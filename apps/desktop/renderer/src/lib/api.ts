@@ -220,25 +220,9 @@ export interface CreateServiceInput {
  isActive?: boolean;
 }
 
-export interface QuotationDto {
- id: string;
- quotationNumber: string;
- jobCardId: string;
- customerId: string;
- vehicleId: string;
- services: ServiceItemDto[];
- subtotal: number;
- taxAmount: number;
- totalAmount: number;
- status: string;
- validUntil: string;
- createdAt: string;
-}
-
 export interface InvoiceDto {
  id: string;
  invoiceNumber: string;
- quotationId: string;
  jobCardId: string;
  customerId: string;
  vehicleId: string;

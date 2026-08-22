@@ -30,7 +30,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
  },
  {
  label: 'Invoices',
- path: '/quotations-invoices',
+ path: '/invoices',
  icon: 'FileText',
  },
  {

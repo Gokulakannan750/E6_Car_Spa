@@ -3,7 +3,9 @@
  "configurations": [
  {
  "name": "car-spa-dev",
- "url": "http://localhost:5173"
+ "runtimeExecutable": "npx",
+ "runtimeArgs": ["vite", "--port", "5173"],
+ "cwd": "E:/TTS/Projects/Desktop_Apps/E6_Car_spa_new/apps/desktop/renderer"
  }
  ]
 }

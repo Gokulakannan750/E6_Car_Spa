@@ -1,1 +1,0 @@
-export { QuotationsInvoices } from './QuotationsInvoices';
