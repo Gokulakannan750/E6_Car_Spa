@@ -90,8 +90,8 @@
 
  	@media print {
 		@page {
-			size: A4;
-			margin: 12mm 15mm;
+			size: A4 portrait;
+			margin: 15mm;
 		}
 		body, html {
 			background: #ffffff !important;
