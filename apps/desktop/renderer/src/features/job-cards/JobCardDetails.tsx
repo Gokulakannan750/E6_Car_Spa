@@ -93,156 +93,154 @@ function emptyServiceRow(svc: ServiceDto): ServiceRow {
 // ═════════════════════════════════════════════════════════════════════════════
 export function JobCardPrintDocument({ jobCard }: { jobCard: JobCardDto }) {
 	return (
-		<div className="bg-white text-slate-900 font-sans p-8 w-[210mm] min-h-[297mm] mx-auto flex flex-col justify-between box-border">
-			<div>
-				{/* ── Header: Logo Banner & Titles ─────────────────────────────── */}
-				<div className="flex items-start justify-between">
-					{/* Left: Brand Logo & Title */}
-					<div className="space-y-1">
-						<img
-							src="/e6-logo.png"
-							alt="E6 Car Spa"
-							className="h-10 w-auto object-contain rounded-xs"
-							onError={(e) => {
-								(e.target as HTMLElement).style.display = 'none';
-							}}
-						/>
-						<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight leading-tight">
-							E6 Car Spa
-						</h1>
-					</div>
-
-					{/* Right: JOB CARD & Workshop work order */}
-					<div className="text-right">
-						<h2 className="text-3xl font-bold text-[#a11a1a] tracking-tight uppercase leading-none">
-							JOB CARD
-						</h2>
-						<p className="text-xs text-slate-500 font-normal mt-1">
-							Workshop work order
-						</p>
-					</div>
+		<div className="bg-white text-slate-900 font-sans p-8 w-[210mm] min-h-[297mm] mx-auto box-border">
+			{/* ── Header: Logo Banner & Titles ─────────────────────────────── */}
+			<div className="flex items-start justify-between">
+				{/* Left: Brand Logo & Title */}
+				<div className="space-y-1">
+					<img
+						src="/e6-logo.png"
+						alt="E6 Car Spa"
+						className="h-10 w-auto object-contain rounded-xs"
+						onError={(e) => {
+							(e.target as HTMLElement).style.display = 'none';
+						}}
+					/>
+					<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight leading-tight">
+						E6 Car Spa
+					</h1>
 				</div>
 
-				{/* ── Red Horizontal Accent Divider Line ──────────────────────── */}
-				<div className="h-[3px] bg-[#a11a1a] w-full mt-3 mb-5" />
-
-				{/* ── Customer / Vehicle Information Table ─────────────────────── */}
-				<table className="w-full border-collapse border border-slate-400 text-xs mb-5">
-					<tbody>
-						{/* Row 1: Date & Customer */}
-						<tr className="border-b border-slate-400">
-							<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
-								Date
-							</td>
-							<td className="p-2 border-r border-slate-400 font-medium text-slate-900 w-[35%]">
-								{formatDateOnly(jobCard.createdAt)}
-							</td>
-							<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
-								Customer
-							</td>
-							<td className="p-2 font-medium text-slate-900">
-								{jobCard.customer.name}
-							</td>
-						</tr>
-
-						{/* Row 2: Phone & Vehicle No */}
-						<tr className="border-b border-slate-400">
-							<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
-								Phone
-							</td>
-							<td className="p-2 border-r border-slate-400 font-medium text-slate-900">
-								{jobCard.customer.phone || '—'}
-							</td>
-							<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
-								Vehicle No
-							</td>
-							<td className="p-2 font-bold text-sm text-slate-950">
-								{jobCard.vehicle.registrationNumber || '—'}
-							</td>
-						</tr>
-
-						{/* Row 3: Model */}
-						<tr>
-							<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
-								Model
-							</td>
-							<td colSpan={3} className="p-2 font-medium text-slate-900">
-								{jobCard.vehicle.make ? `${jobCard.vehicle.make} ` : ''}
-								{jobCard.vehicle.model}
-								{jobCard.vehicle.variant ? ` (${jobCard.vehicle.variant})` : ''}
-								{jobCard.vehicle.color ? ` - ${jobCard.vehicle.color}` : ''}
-							</td>
-						</tr>
-					</tbody>
-				</table>
-
-				{/* ── Jobs to be done Section ──────────────────────────────────── */}
-				<div className="mb-6">
-					<h3 className="text-sm font-medium text-[#a11a1a] mb-2">
-						Jobs to be done
-					</h3>
-
-					<table className="w-full border-collapse border border-slate-400 text-xs">
-						<thead>
-							<tr className="bg-[#dcdcdc] text-slate-900 font-bold border-b border-slate-400">
-								<th className="border border-slate-400 py-2 px-3 w-12 text-center">
-									#
-								</th>
-								<th className="border border-slate-400 py-2 px-4 text-left font-bold">
-									Service
-								</th>
-								<th className="border border-slate-400 py-2 px-3 w-20 text-center font-bold">
-									Qty
-								</th>
-								<th className="border border-slate-400 py-2 px-4 w-28 text-center font-bold">
-									Done
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							{jobCard.services.length === 0 ? (
-								<tr>
-									<td colSpan={4} className="py-6 text-center text-slate-400 italic border border-slate-400">
-										No services specified for this job card.
-									</td>
-								</tr>
-							) : (
-								jobCard.services.map((svc, idx) => (
-									<tr key={svc.id || idx} className="border-b border-slate-400">
-										<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-800">
-											{idx + 1}
-										</td>
-										<td className="border border-slate-400 py-2.5 px-4 text-slate-900">
-											{svc.serviceName}
-										</td>
-										<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-900">
-											{svc.quantity}
-										</td>
-										<td className="border border-slate-400 py-2.5 px-4 text-center">
-											{/* Blank cell for manual workshop marking */}
-										</td>
-									</tr>
-								))
-							)}
-						</tbody>
-					</table>
+				{/* Right: JOB CARD & Workshop work order */}
+				<div className="text-right">
+					<h2 className="text-3xl font-bold text-[#a11a1a] tracking-tight uppercase leading-none">
+						JOB CARD
+					</h2>
+					<p className="text-xs text-slate-500 font-normal mt-1">
+						Workshop work order
+					</p>
 				</div>
-
-				{/* ── Optional Customer Notes / Instructions ──────────────────── */}
-				{jobCard.notes && jobCard.notes.trim() && (
-					<div className="border border-slate-400 rounded p-3 mb-6 text-xs bg-slate-50">
-						<span className="font-bold text-slate-700 block mb-1">
-							Customer Notes / Remarks:
-						</span>
-						<p className="text-slate-900 whitespace-pre-wrap">
-							{jobCard.notes}
-						</p>
-					</div>
-				)}
 			</div>
 
-			{/* ── Bottom: Signature Section ─────────────────────────────────── */}
-			<div className="pt-16 pb-6">
+			{/* ── Red Horizontal Accent Divider Line ──────────────────────── */}
+			<div className="h-[3px] bg-[#a11a1a] w-full mt-3 mb-5" />
+
+			{/* ── Customer / Vehicle Information Table ─────────────────────── */}
+			<table className="w-full border-collapse border border-slate-400 text-xs mb-5">
+				<tbody>
+					{/* Row 1: Date & Customer */}
+					<tr className="border-b border-slate-400">
+						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+							Date
+						</td>
+						<td className="p-2 border-r border-slate-400 font-medium text-slate-900 w-[35%]">
+							{formatDateOnly(jobCard.createdAt)}
+						</td>
+						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+							Customer
+						</td>
+						<td className="p-2 font-medium text-slate-900">
+							{jobCard.customer.name}
+						</td>
+					</tr>
+
+					{/* Row 2: Phone & Vehicle No */}
+					<tr className="border-b border-slate-400">
+						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+							Phone
+						</td>
+						<td className="p-2 border-r border-slate-400 font-medium text-slate-900">
+							{jobCard.customer.phone || '—'}
+						</td>
+						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+							Vehicle No
+						</td>
+						<td className="p-2 font-bold text-sm text-slate-950">
+							{jobCard.vehicle.registrationNumber || '—'}
+						</td>
+					</tr>
+
+					{/* Row 3: Model */}
+					<tr>
+						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+							Model
+						</td>
+						<td colSpan={3} className="p-2 font-medium text-slate-900">
+							{jobCard.vehicle.make ? `${jobCard.vehicle.make} ` : ''}
+							{jobCard.vehicle.model}
+							{jobCard.vehicle.variant ? ` (${jobCard.vehicle.variant})` : ''}
+							{jobCard.vehicle.color ? ` - ${jobCard.vehicle.color}` : ''}
+						</td>
+					</tr>
+				</tbody>
+			</table>
+
+			{/* ── Jobs to be done Section ──────────────────────────────────── */}
+			<div className="mb-6">
+				<h3 className="text-sm font-medium text-[#a11a1a] mb-2">
+					Jobs to be done
+				</h3>
+
+				<table className="w-full border-collapse border border-slate-400 text-xs">
+					<thead>
+						<tr className="bg-[#dcdcdc] text-slate-900 font-bold border-b border-slate-400">
+							<th className="border border-slate-400 py-2 px-3 w-12 text-center">
+								#
+							</th>
+							<th className="border border-slate-400 py-2 px-4 text-left font-bold">
+								Service
+							</th>
+							<th className="border border-slate-400 py-2 px-3 w-20 text-center font-bold">
+								Qty
+							</th>
+							<th className="border border-slate-400 py-2 px-4 w-28 text-center font-bold">
+								Done
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						{jobCard.services.length === 0 ? (
+							<tr>
+								<td colSpan={4} className="py-6 text-center text-slate-400 italic border border-slate-400">
+									No services specified for this job card.
+								</td>
+							</tr>
+						) : (
+							jobCard.services.map((svc, idx) => (
+								<tr key={svc.id || idx} className="border-b border-slate-400">
+									<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-800">
+										{idx + 1}
+									</td>
+									<td className="border border-slate-400 py-2.5 px-4 text-slate-900">
+										{svc.serviceName}
+									</td>
+									<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-900">
+										{svc.quantity}
+									</td>
+									<td className="border border-slate-400 py-2.5 px-4 text-center">
+										{/* Blank cell for manual workshop marking */}
+									</td>
+								</tr>
+							))
+						)}
+					</tbody>
+				</table>
+			</div>
+
+			{/* ── Optional Customer Notes / Instructions ──────────────────── */}
+			{jobCard.notes && jobCard.notes.trim() && (
+				<div className="border border-slate-400 rounded p-3 mb-6 text-xs bg-slate-50">
+					<span className="font-bold text-slate-700 block mb-1">
+						Customer Notes / Remarks:
+					</span>
+					<p className="text-slate-900 whitespace-pre-wrap">
+						{jobCard.notes}
+					</p>
+				</div>
+			)}
+
+			{/* ── Signature Section (Directly after nth row / notes) ────────── */}
+			<div className="pt-10 pb-4">
 				<div className="flex justify-between items-end text-xs">
 					{/* Customer signature */}
 					<div className="w-64">
