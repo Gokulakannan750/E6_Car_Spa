@@ -13,6 +13,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<JobCardService> JobCardServices => Set<JobCardService>();
  public DbSet<Staff> Staff => Set<Staff>();
  public DbSet<StaffAdvance> StaffAdvances => Set<StaffAdvance>();
+ public DbSet<Invoice> Invoices => Set<Invoice>();
+ public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {
