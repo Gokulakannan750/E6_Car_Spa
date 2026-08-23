@@ -13,18 +13,14 @@ import {
 	ArrowLeft,
 	Car,
 	CheckCircle2,
-	XCircle,
 	ChevronLeft,
 	ChevronRight,
 	Minus,
-	Save,
-	X,
 	Building2,
 	AlertCircle,
 	Receipt,
 	Clock,
 	IndianRupee,
-	CreditCard,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/SearchInput';
@@ -52,10 +48,34 @@ import {
 	type ShowroomPaymentDto,
 } from '../../lib/api';
 
-// Format helpers
+// ── Pure Calendar Date Helpers (No Timezone Offset Skipping) ─────────────────
+function addDays(dateStr: string, days: number): string {
+	if (!dateStr) return getTodayStr();
+	const parts = dateStr.split('-').map(Number);
+	if (parts.length !== 3 || parts.some(isNaN)) return getTodayStr();
+	const [year, month, day] = parts;
+	const dt = new Date(year, month - 1, day + days);
+	const y = dt.getFullYear();
+	const m = String(dt.getMonth() + 1).padStart(2, '0');
+	const d = String(dt.getDate()).padStart(2, '0');
+	return `${y}-${m}-${d}`;
+}
+
+function getTodayStr(): string {
+	const now = new Date();
+	const y = now.getFullYear();
+	const m = String(now.getMonth() + 1).padStart(2, '0');
+	const d = String(now.getDate()).padStart(2, '0');
+	return `${y}-${m}-${d}`;
+}
+
 function formatDateHeading(dateStr: string): string {
-	const d = new Date(dateStr + 'T00:00:00');
-	return d.toLocaleDateString('en-IN', {
+	if (!dateStr) return '';
+	const parts = dateStr.split('-').map(Number);
+	if (parts.length !== 3 || parts.some(isNaN)) return dateStr;
+	const [year, month, day] = parts;
+	const dt = new Date(year, month - 1, day);
+	return dt.toLocaleDateString('en-IN', {
 		day: 'numeric',
 		month: 'short',
 		year: 'numeric',
@@ -101,8 +121,8 @@ export function ShowroomPage() {
 	const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
 	const [selectedShowroom, setSelectedShowroom] = useState<ShowroomDto | null>(null);
 
-	// Daily staff assignment date (YYYY-MM-DD)
-	const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+	// Daily date (YYYY-MM-DD)
+	const [selectedDate, setSelectedDate] = useState<string>(getTodayStr);
 
 	// Showroom modal state (Create / Edit)
 	const [showShowroomModal, setShowShowroomModal] = useState(false);
@@ -129,7 +149,7 @@ export function ShowroomPage() {
 	// Local optimistic vehicles count cache for immediate responsiveness
 	const [localVehicleCounts, setLocalVehicleCounts] = useState<Record<string, number>>({});
 
-	// ── STEP 2: Showroom Daily Billing & Payment States ────────────────────────
+	// ── Daily Showroom Billing & Payment States ──────────────────────────────
 	const [showSetBillModal, setShowSetBillModal] = useState(false);
 	const [billAmountInput, setBillAmountInput] = useState('');
 	const [billNotesInput, setBillNotesInput] = useState('');
@@ -422,9 +442,7 @@ export function ShowroomPage() {
 	};
 
 	const shiftDate = (days: number) => {
-		const d = new Date(selectedDate + 'T00:00:00');
-		d.setDate(d.getDate() + days);
-		setSelectedDate(d.toISOString().split('T')[0]);
+		setSelectedDate((prev) => addDays(prev, days));
 	};
 
 	// Daily Bill handlers
@@ -882,13 +900,13 @@ export function ShowroomPage() {
 					</div>
 				</div>
 
-				{/* Interactive Date Selector */}
+				{/* Interactive Date Selector with Pure Calendar Math */}
 				<div className="flex items-center gap-2 self-start lg:self-auto bg-white p-1.5 rounded-xl border border-outline-variant/80 shadow-2xs">
 					<button
 						type="button"
 						onClick={() => shiftDate(-1)}
 						className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-						title="Previous day"
+						title="Previous day (1 day before)"
 					>
 						<ChevronLeft className="w-4 h-4" />
 					</button>
@@ -907,14 +925,14 @@ export function ShowroomPage() {
 						type="button"
 						onClick={() => shiftDate(1)}
 						className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-						title="Next day"
+						title="Next day (1 day after)"
 					>
 						<ChevronRight className="w-4 h-4" />
 					</button>
 
 					<button
 						type="button"
-						onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}
+						onClick={() => setSelectedDate(getTodayStr())}
 						className="ml-1 text-[11px] font-semibold text-secondary hover:underline px-2 py-1 rounded hover:bg-secondary/10 transition-colors cursor-pointer"
 					>
 						Today
