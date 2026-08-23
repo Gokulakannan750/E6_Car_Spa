@@ -478,141 +478,136 @@ export default function JobCardDetails() {
 			</div>
 
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			{/* ── DEDICATED PRINT JOB CARD VIEW (Shown ONLY during print) ────── */}
+			{/* ── CLIENT EXACT PRINT JOB CARD VIEW (Shown ONLY on print) ─────── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			<div className="print-only bg-white text-slate-900 font-sans p-6 sm:p-8 max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between">
+			<div className="print-only bg-white text-slate-900 font-sans p-8 max-w-[210mm] mx-auto min-h-[297mm] flex flex-col justify-between">
 				<div>
-					{/* ── Document Header ───────────────────────────────────────── */}
-					<div className="flex items-center justify-between pb-3">
-						{/* Left: Branding & Logo */}
-						<div className="flex items-center gap-3">
-							<div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white font-black text-xl tracking-wider shadow-sm">
-								E6
-							</div>
-							<div>
-								<h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">
-									E6 Car Spa
-								</h1>
-								<p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-									Automotive Detailing &amp; Care Workshop
-								</p>
-							</div>
+					{/* ── Header ───────────────────────────────────────────────── */}
+					<div className="flex items-start justify-between">
+						{/* Left: Brand Logo & Title */}
+						<div className="space-y-1">
+							<img
+								src="/e6-logo.png"
+								alt="E6 Car Spa"
+								className="h-10 w-auto object-contain rounded-xs"
+								onError={(e) => {
+									// Fallback emblem if image fails to load
+									(e.target as HTMLElement).style.display = 'none';
+								}}
+							/>
+							<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight leading-tight">
+								E6 Car Spa
+							</h1>
 						</div>
 
-						{/* Right: Job Card Title & Ref */}
+						{/* Right: JOB CARD & Workshop work order */}
 						<div className="text-right">
-							<h2 className="text-2xl font-black tracking-tight text-red-600 uppercase leading-none">
+							<h2 className="text-3xl font-bold text-[#a11a1a] tracking-tight uppercase leading-none">
 								JOB CARD
 							</h2>
-							<p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider mt-1">
-								Workshop Work Order
-							</p>
-							<p className="text-sm font-mono font-bold text-slate-900 mt-0.5">
-								{jobCard.jobCardNumber}
+							<p className="text-xs text-slate-500 font-normal mt-1">
+								Workshop work order
 							</p>
 						</div>
 					</div>
 
-					{/* Red horizontal accent divider */}
-					<div className="h-1 bg-red-600 w-full mb-5 rounded-full" />
+					{/* ── Red Horizontal Divider Line ──────────────────────────── */}
+					<div className="h-[3px] bg-[#a11a1a] w-full mt-3 mb-5" />
 
-					{/* ── Customer / Vehicle Info Table ─────────────────────────── */}
-					<div className="border border-slate-300 rounded overflow-hidden mb-6 text-xs">
-						<div className="grid grid-cols-2 divide-x divide-slate-300">
-							{/* Left Column: Date, JC#, Customer, Phone */}
-							<div className="divide-y divide-slate-200">
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Date</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-medium">{formatDateOnly(jobCard.createdAt)}</span>
-								</div>
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Job Card No.</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-mono font-bold">{jobCard.jobCardNumber}</span>
-								</div>
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Customer</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-bold">{jobCard.customer.name}</span>
-								</div>
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Phone</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-mono">{jobCard.customer.phone || '—'}</span>
-								</div>
-							</div>
+					{/* ── Customer / Vehicle Information Table ─────────────────── */}
+					<table className="w-full border-collapse border border-slate-400 text-xs mb-5">
+						<tbody>
+							{/* Row 1: Date & Customer */}
+							<tr className="border-b border-slate-400">
+								<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+									Date
+								</td>
+								<td className="p-2 border-r border-slate-400 font-medium text-slate-900 w-[35%]">
+									{formatDateOnly(jobCard.createdAt)}
+								</td>
+								<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+									Customer
+								</td>
+								<td className="p-2 font-medium text-slate-900">
+									{jobCard.customer.name}
+								</td>
+							</tr>
 
-							{/* Right Column: Vehicle Reg, Make, Model, Color/Status */}
-							<div className="divide-y divide-slate-200">
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Vehicle No.</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-mono font-bold">
-										{jobCard.vehicle.registrationNumber || '—'}
-									</span>
-								</div>
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Make</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-medium">{jobCard.vehicle.make || '—'}</span>
-								</div>
-								<div className="flex">
-									<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Model</span>
-									<span className="flex-1 px-3 py-2 text-slate-900 font-medium">
-										{jobCard.vehicle.model}
-										{jobCard.vehicle.variant ? ` (${jobCard.vehicle.variant})` : ''}
-									</span>
-								</div>
-								{jobCard.vehicle.color ? (
-									<div className="flex">
-										<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Color</span>
-										<span className="flex-1 px-3 py-2 text-slate-900">{jobCard.vehicle.color}</span>
-									</div>
-								) : (
-									<div className="flex">
-										<span className="w-28 bg-slate-100 px-3 py-2 font-bold text-slate-700">Status</span>
-										<span className="flex-1 px-3 py-2 text-slate-900 font-medium">{getJobCardStatusLabel(jobCard.status)}</span>
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
+							{/* Row 2: Phone & Vehicle No */}
+							<tr className="border-b border-slate-400">
+								<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+									Phone
+								</td>
+								<td className="p-2 border-r border-slate-400 font-medium text-slate-900">
+									{jobCard.customer.phone || '—'}
+								</td>
+								<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+									Vehicle No
+								</td>
+								<td className="p-2 font-bold text-sm text-slate-950">
+									{jobCard.vehicle.registrationNumber || '—'}
+								</td>
+							</tr>
 
-					{/* ── Jobs To Be Done Section ───────────────────────────────── */}
+							{/* Row 3: Model */}
+							<tr>
+								<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
+									Model
+								</td>
+								<td colSpan={3} className="p-2 font-medium text-slate-900">
+									{jobCard.vehicle.make ? `${jobCard.vehicle.make} ` : ''}
+									{jobCard.vehicle.model}
+									{jobCard.vehicle.variant ? ` (${jobCard.vehicle.variant})` : ''}
+									{jobCard.vehicle.color ? ` - ${jobCard.vehicle.color}` : ''}
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					{/* ── Jobs to be done Section ──────────────────────────────── */}
 					<div className="mb-6">
-						<div className="flex items-center gap-2 mb-2">
-							<div className="w-2 h-3.5 bg-red-600 rounded-xs" />
-							<h3 className="text-sm font-bold uppercase tracking-wider text-red-600">
-								Jobs to be done
-							</h3>
-						</div>
+						<h3 className="text-sm font-medium text-[#a11a1a] mb-2">
+							Jobs to be done
+						</h3>
 
-						<table className="w-full border-collapse border border-slate-300 text-xs">
+						<table className="w-full border-collapse border border-slate-400 text-xs">
 							<thead>
-								<tr className="bg-slate-100 text-slate-700 font-bold border-b border-slate-300">
-									<th className="border border-slate-300 py-2.5 px-3 w-12 text-center">#</th>
-									<th className="border border-slate-300 py-2.5 px-4 text-left">Service</th>
-									<th className="border border-slate-300 py-2.5 px-3 w-20 text-center">Qty</th>
-									<th className="border border-slate-300 py-2.5 px-4 w-28 text-center">Done</th>
+								<tr className="bg-[#dcdcdc] text-slate-900 font-bold border-b border-slate-400">
+									<th className="border border-slate-400 py-2 px-3 w-12 text-center">
+										#
+									</th>
+									<th className="border border-slate-400 py-2 px-4 text-left font-bold">
+										Service
+									</th>
+									<th className="border border-slate-400 py-2 px-3 w-20 text-center font-bold">
+										Qty
+									</th>
+									<th className="border border-slate-400 py-2 px-4 w-28 text-center font-bold">
+										Done
+									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{jobCard.services.length === 0 ? (
 									<tr>
-										<td colSpan={4} className="py-6 text-center text-slate-400 italic">
+										<td colSpan={4} className="py-6 text-center text-slate-400 italic border border-slate-400">
 											No services specified for this job card.
 										</td>
 									</tr>
 								) : (
 									jobCard.services.map((svc, idx) => (
-										<tr key={svc.id || idx} className="border-b border-slate-200">
-											<td className="border border-slate-300 py-3 px-3 text-center font-mono font-medium text-slate-600">
+										<tr key={svc.id || idx} className="border-b border-slate-400">
+											<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-800">
 												{idx + 1}
 											</td>
-											<td className="border border-slate-300 py-3 px-4 font-bold text-slate-900">
+											<td className="border border-slate-400 py-2.5 px-4 text-slate-900">
 												{svc.serviceName}
 											</td>
-											<td className="border border-slate-300 py-3 px-3 text-center font-bold text-slate-900">
+											<td className="border border-slate-400 py-2.5 px-3 text-center text-slate-900">
 												{svc.quantity}
 											</td>
-											<td className="border border-slate-300 py-3 px-4 text-center">
-												{/* Blank checkbox area for workshop employee to mark */}
-												<div className="w-5 h-5 border-2 border-slate-400 rounded-sm mx-auto" />
+											<td className="border border-slate-400 py-2.5 px-4 text-center">
+												{/* Blank cell for workshop technician to tick/mark */}
 											</td>
 										</tr>
 									))
@@ -621,41 +616,37 @@ export default function JobCardDetails() {
 						</table>
 					</div>
 
-					{/* ── Customer Notes / Instructions ─────────────────────────── */}
+					{/* Optional Customer Notes */}
 					{jobCard.notes && jobCard.notes.trim() && (
-						<div className="border border-slate-300 rounded p-3 mb-6 text-xs bg-slate-50">
+						<div className="border border-slate-400 rounded p-3 mb-6 text-xs bg-slate-50">
 							<span className="font-bold text-slate-700 block mb-1">
-								Customer Notes / Special Instructions:
+								Customer Notes / Remarks:
 							</span>
-							<p className="text-slate-900 whitespace-pre-wrap font-medium">
+							<p className="text-slate-900 whitespace-pre-wrap">
 								{jobCard.notes}
 							</p>
 						</div>
 					)}
 				</div>
 
-				{/* ── Bottom: Signatures & Footer ───────────────────────────── */}
-				<div className="pt-8">
-					<div className="grid grid-cols-2 gap-12 text-xs">
-						<div className="space-y-1.5">
-							<div className="border-b border-slate-400 pb-1 w-4/5 min-h-[3.5rem] flex items-end">
-								{/* Signature line */}
-							</div>
-							<p className="font-bold text-slate-800">Customer Signature</p>
-							<p className="text-slate-500">Date: ________________________</p>
+				{/* ── Bottom: Signature Section ─────────────────────────────── */}
+				<div className="pt-16 pb-6">
+					<div className="flex justify-between items-end text-xs">
+						{/* Customer signature */}
+						<div className="w-64">
+							<div className="border-b border-slate-600 w-full mb-1.5" />
+							<p className="text-slate-600 font-normal text-[11px]">
+								Customer signature
+							</p>
 						</div>
 
-						<div className="space-y-1.5 text-right">
-							<div className="border-b border-slate-400 pb-1 w-4/5 min-h-[3.5rem] ml-auto flex items-end justify-end">
-								{/* Signature line */}
-							</div>
-							<p className="font-bold text-slate-800">Authorised Signature</p>
-							<p className="text-slate-500">Date: ________________________</p>
+						{/* Authorised signature */}
+						<div className="w-64">
+							<div className="border-b border-slate-600 w-full mb-1.5" />
+							<p className="text-slate-600 font-normal text-[11px]">
+								Authorised signature
+							</p>
 						</div>
-					</div>
-
-					<div className="pt-6 mt-6 text-center text-[10px] text-slate-400 border-t border-slate-200">
-						<p className="font-semibold text-slate-600">E6 Car Spa • Workshop Work Order</p>
 					</div>
 				</div>
 			</div>
