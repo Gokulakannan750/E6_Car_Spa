@@ -8,9 +8,8 @@ const loadCustomerDetail = () => import('../features/customers/CustomerDetailPag
 const loadJobCards = () => import('../features/job-cards/JobCardsPage');
 const loadNewJobCard = () => import('../features/job-cards/NewJobCard');
 const loadJobCardDetail = () => import('../features/job-cards/JobCardDetailPage');
-const loadQuotations = () => import('../features/quotations/QuotationsInvoicesPage');
-const loadQuotationDetail = () => import('../features/quotations/QuotationDetailPage');
-const loadInvoiceDetail = () => import('../features/quotations/InvoiceDetailPage');
+const loadInvoices = () => import('../features/invoices/Invoices');
+const loadInvoiceDetail = () => import('../features/invoices/InvoiceDetailPage');
 const loadCatalogue = () => import('../features/catalogue/CataloguePage');
 const loadStaffAdvances = () => import('../features/staff-advances/StaffAdvancesPage');
 const loadReports = () => import('../features/reports/ReportsPage');
@@ -28,8 +27,7 @@ export const router = createBrowserRouter([
  { path: '/job-cards', lazy: async () => { const m = await loadJobCards(); return { Component: m.JobCardsPage }; } },
  { path: '/job-cards/new', lazy: async () => { const m = await loadNewJobCard(); return { Component: m.default }; } },
  { path: '/job-cards/:id', lazy: async () => { const m = await loadJobCardDetail(); return { Component: m.JobCardDetailPage }; } },
- { path: '/quotations-invoices', lazy: async () => { const m = await loadQuotations(); return { Component: m.QuotationsInvoicesPage }; } },
- { path: '/quotations/:id', lazy: async () => { const m = await loadQuotationDetail(); return { Component: m.QuotationDetailPage }; } },
+ { path: '/invoices', lazy: async () => { const m = await loadInvoices(); return { Component: m.Invoices }; } },
  { path: '/invoices/:id', lazy: async () => { const m = await loadInvoiceDetail(); return { Component: m.InvoiceDetailPage }; } },
  { path: '/catalogue', lazy: async () => { const m = await loadCatalogue(); return { Component: m.CataloguePage }; } },
  { path: '/staff-advances', lazy: async () => { const m = await loadStaffAdvances(); return { Component: m.StaffAdvancesPage }; } },

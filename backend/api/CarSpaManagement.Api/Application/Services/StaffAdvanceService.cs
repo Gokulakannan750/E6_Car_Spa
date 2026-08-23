@@ -161,44 +161,125 @@ public class StaffAdvanceService : IStaffAdvanceService
  return true;
  }
 
- public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
- {
- return await _db.Staff
- .Where(s => !s.IsDeleted)
- .OrderBy(s => s.Name)
- .Select(s => new StaffDto(
- s.Id,
- s.Name,
- s.PhoneNumber,
- s.Email,
- s.Address,
- s.Role,
- s.IsActive,
- 0,
- 0))
- .ToListAsync(cancellationToken);
- }
+	public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
+	{
+		var staffList = await _db.Staff
+			.Where(s => !s.IsDeleted)
+			.OrderBy(s => s.Name)
+			.ToListAsync(cancellationToken);
 
- public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
- {
- var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId, cancellationToken);
- if (staff is null) return null;
+		var staffIds = staffList.Select(s => s.Id).ToList();
+		var advancesStats = await _db.StaffAdvances
+			.Where(a => !a.IsDeleted && staffIds.Contains(a.StaffId))
+			.GroupBy(a => a.StaffId)
+			.Select(g => new { StaffId = g.Key, Count = g.Count(), Total = g.Sum(x => x.Amount) })
+			.ToDictionaryAsync(x => x.StaffId, cancellationToken);
 
- var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted);
- var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
- var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+		return staffList.Select(s => {
+			var hasStats = advancesStats.TryGetValue(s.Id, out var st);
+			return new StaffDto(
+				s.Id,
+				s.Name,
+				s.PhoneNumber,
+				s.Email,
+				s.Address,
+				s.Role,
+				s.IsActive,
+				hasStats && st != null ? st.Count : 0,
+				hasStats && st != null ? st.Total : 0m);
+		}).ToList();
+	}
 
- return new StaffDto(
- staff.Id,
- staff.Name,
- staff.PhoneNumber,
- staff.Email,
- staff.Address,
- staff.Role,
- staff.IsActive,
- totalAdvances,
- totalAmount);
- }
+	public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
+	{
+		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+		if (staff is null) return null;
+
+		var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted);
+		var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+		var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+		return new StaffDto(
+			staff.Id,
+			staff.Name,
+			staff.PhoneNumber,
+			staff.Email,
+			staff.Address,
+			staff.Role,
+			staff.IsActive,
+			totalAdvances,
+			totalAmount);
+	}
+
+	public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
+	{
+		var staff = new Staff
+		{
+			Id = Guid.NewGuid(),
+			Name = request.Name.Trim(),
+			PhoneNumber = request.PhoneNumber.Trim(),
+			Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+			Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
+			Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim(),
+			IsActive = request.IsActive
+		};
+
+		await _db.Staff.AddAsync(staff, cancellationToken);
+		await _db.SaveChangesAsync(cancellationToken);
+
+		return new StaffDto(
+			staff.Id,
+			staff.Name,
+			staff.PhoneNumber,
+			staff.Email,
+			staff.Address,
+			staff.Role,
+			staff.IsActive,
+			0,
+			0m);
+	}
+
+	public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
+	{
+		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+		if (staff is null) return null;
+
+		if (request.Name is not null) staff.Name = request.Name.Trim();
+		if (request.PhoneNumber is not null) staff.PhoneNumber = request.PhoneNumber.Trim();
+		if (request.Email is not null) staff.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+		if (request.Address is not null) staff.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+		if (request.Role is not null) staff.Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim();
+		if (request.IsActive.HasValue) staff.IsActive = request.IsActive.Value;
+
+		staff.UpdatedAt = DateTime.UtcNow;
+		await _db.SaveChangesAsync(cancellationToken);
+
+		var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted);
+		var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+		var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+		return new StaffDto(
+			staff.Id,
+			staff.Name,
+			staff.PhoneNumber,
+			staff.Email,
+			staff.Address,
+			staff.Role,
+			staff.IsActive,
+			totalAdvances,
+			totalAmount);
+	}
+
+	public async Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default)
+	{
+		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+		if (staff is null) return false;
+
+		staff.IsDeleted = true;
+		staff.UpdatedAt = DateTime.UtcNow;
+		await _db.SaveChangesAsync(cancellationToken);
+		return true;
+	}
 
  public async Task<IReadOnlyList<StaffAdvanceDto>> GetByStaffIdAsync(Guid staffId, CancellationToken cancellationToken = default)
  {

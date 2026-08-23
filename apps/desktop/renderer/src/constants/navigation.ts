@@ -29,8 +29,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
  icon: 'ClipboardList',
  },
  {
- label: 'Quotations & Invoices',
- path: '/quotations-invoices',
+ label: 'Invoices',
+ path: '/invoices',
  icon: 'FileText',
  },
  {

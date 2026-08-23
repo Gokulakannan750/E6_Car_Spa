@@ -78,4 +78,27 @@ public class StaffAdvancesController : ControllerBase
  var items = await _service.GetByStaffIdAsync(staffId, ct);
  return Ok(items);
  }
+
+ [HttpPost("staff")]
+ public async Task<IActionResult> CreateStaff([FromBody] CreateStaffRequest request, CancellationToken ct)
+ {
+ var dto = await _service.CreateStaffMemberAsync(request, ct);
+ return CreatedAtAction(nameof(GetStaffById), new { staffId = dto.Id }, dto);
+ }
+
+ [HttpPut("staff/{staffId:guid}")]
+ public async Task<IActionResult> UpdateStaff(Guid staffId, [FromBody] UpdateStaffRequest request, CancellationToken ct)
+ {
+ var dto = await _service.UpdateStaffMemberAsync(staffId, request, ct);
+ if (dto is null) return NotFound();
+ return Ok(dto);
+ }
+
+ [HttpDelete("staff/{staffId:guid}")]
+ public async Task<IActionResult> DeleteStaff(Guid staffId, CancellationToken ct)
+ {
+ var deleted = await _service.DeleteStaffMemberAsync(staffId, ct);
+ if (!deleted) return NotFound();
+ return NoContent();
+ }
 }

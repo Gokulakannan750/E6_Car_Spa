@@ -137,6 +137,9 @@ export interface JobCardDto {
  taxAmount: number;
  discountAmount: number;
  totalAmount: number;
+ invoiceId?: string | null;
+ invoiceNumber?: string | null;
+ invoiceStatus?: string | null;
  createdAt: string;
  updatedAt: string | null;
 }
@@ -161,6 +164,9 @@ export interface JobCardListDto {
  model: string;
  status: number;
  totalAmount: number;
+ invoiceId?: string | null;
+ invoiceNumber?: string | null;
+ invoiceStatus?: string | null;
  createdAt: string;
 }
 
@@ -220,38 +226,97 @@ export interface CreateServiceInput {
  isActive?: boolean;
 }
 
-export interface QuotationDto {
- id: string;
- quotationNumber: string;
- jobCardId: string;
- customerId: string;
- vehicleId: string;
- services: ServiceItemDto[];
- subtotal: number;
- taxAmount: number;
- totalAmount: number;
- status: string;
- validUntil: string;
- createdAt: string;
+// Invoice status values matching backend Domain/Enums/InvoiceStatus.cs
+export type InvoiceStatus = 'Draft' | 'Generated' | 'PartiallyPaid' | 'Paid' | 'Cancelled' | number;
+
+export interface InvoiceItemDto {
+  id: string;
+  serviceId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxableAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+}
+
+export interface PaymentDto {
+  id: string;
+  invoiceId: string;
+  amount: number;
+  paymentMethod: string;
+  reference: string | null;
+  paymentDate: string;
+  createdAt: string;
+}
+
+export interface RecordPaymentInput {
+  amount: number;
+  paymentMethod: string;
+  reference?: string | null;
+  paymentDate?: string | null;
 }
 
 export interface InvoiceDto {
- id: string;
- invoiceNumber: string;
- quotationId: string;
- jobCardId: string;
- customerId: string;
- vehicleId: string;
- services: ServiceItemDto[];
- subtotal: number;
- discount: number;
- taxAmount: number;
- totalAmount: number;
- amountPaid: number;
- balanceDue: number;
- paymentStatus: string;
- paymentMethod: string | null;
- createdAt: string;
+  id: string;
+  invoiceNumber: string | null;
+  jobCardId: string;
+  jobCardNumber: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  vehicleId: string;
+  registrationNumber: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleVariant: string | null;
+  vehicleColor: string | null;
+  invoiceDate: string;
+  subtotal: number;
+  discount: number;
+  taxableAmount: number;
+  gstAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  status: InvoiceStatus;
+  notes: string | null;
+  isGstEnabled: boolean;
+  items: InvoiceItemDto[];
+  payments?: PaymentDto[];
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface InvoiceListDto {
+  id: string;
+  invoiceNumber: string | null;
+  jobCardNumber: string;
+  customerName: string;
+  customerPhone: string;
+  registrationNumber: string;
+  vehicle: string;
+  invoiceDate: string;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  status: InvoiceStatus;
+  createdAt: string;
+}
+
+export interface InvoiceListResponse {
+  items: InvoiceListDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface UpdateInvoiceInput {
+  discount?: number | null;
+  notes?: string | null;
+  status?: InvoiceStatus | null;
+  isGstEnabled?: boolean | null;
 }
 
 export interface CatalogueServiceDto {
@@ -383,55 +448,67 @@ export async function deleteJobCard(id: string) {
 }
 
 // ============================================================================
-// Quotations & Invoices
+// Invoices
 // ============================================================================
 
-export async function getQuotations(params: { page: number; pageSize: number; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.search) qs.set('search', params.search);
- return request<{ items: QuotationDto[]; totalCount: number }>('/api/quotations?' + qs.toString());
-}
-
-export async function getQuotationById(id: string) {
- return request<QuotationDto>(`/api/quotations/${encodeURIComponent(id)}`);
-}
-
-export async function getInvoices(params: { page: number; pageSize: number; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.search) qs.set('search', params.search);
- return request<{ items: InvoiceDto[]; totalCount: number }>('/api/invoices?' + qs.toString());
+export async function getInvoices(params: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: InvoiceStatus;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params.page));
+  qs.set('pageSize', String(params.pageSize));
+  if (params.search) qs.set('search', params.search);
+  if (params.status !== undefined) qs.set('status', String(params.status));
+  if (params.fromDate) qs.set('fromDate', params.fromDate);
+  if (params.toDate) qs.set('toDate', params.toDate);
+  return request<InvoiceListResponse>('/api/invoices?' + qs.toString());
 }
 
 export async function getInvoiceById(id: string) {
- return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`);
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`);
 }
 
-export async function createInvoice(data: { quotationId: string; paymentMethod?: string }) {
- return request<InvoiceDto>('/api/invoices', {
- method: 'POST',
- body: JSON.stringify(data),
- });
+export async function getInvoiceByNumber(invoiceNumber: string) {
+  return request<InvoiceDto>(`/api/invoices/by-number/${encodeURIComponent(invoiceNumber)}`);
 }
 
-export async function convertJobCardToInvoice(jobCardId: string) {
- return request<InvoiceDto>(`/api/job-cards/${encodeURIComponent(jobCardId)}/convert-to-invoice`, {
- method: 'POST',
- });
+export async function createInvoiceFromJobCard(jobCardId: string) {
+  return request<InvoiceDto>(`/api/invoices/from-job-card/${encodeURIComponent(jobCardId)}`, {
+    method: 'POST',
+  });
 }
 
-export async function recordPayment(invoiceId: string, data: { amount: number; paymentMethod: string }) {
- return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payment`, {
- method: 'POST',
- body: JSON.stringify(data),
- });
+export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(cleanPayload(data)),
+  });
+}
+
+export async function generateInvoice(id: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
+    method: 'POST',
+  });
+}
+
+export async function getInvoicePayments(invoiceId: string) {
+  return request<PaymentDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`);
+}
+
+export async function recordPayment(invoiceId: string, data: RecordPaymentInput) {
+  return request<PaymentDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(cleanPayload(data)),
+  });
 }
 
 // ============================================================================
-// Services
+// Services (Catalogue)
 // ============================================================================
 
 export async function getServices(params: { page: number; pageSize: number; isActive?: boolean; search?: string; category?: string }) {
@@ -584,6 +661,44 @@ export async function getStaffList() {
  return request<StaffDto[]>('/api/staff-advances/staff');
 }
 
+export interface CreateStaffInput {
+	name: string;
+	phoneNumber: string;
+	email?: string | null;
+	address?: string | null;
+	role?: string | null;
+	isActive?: boolean;
+}
+
+export interface UpdateStaffInput {
+	name?: string;
+	phoneNumber?: string;
+	email?: string | null;
+	address?: string | null;
+	role?: string | null;
+	isActive?: boolean;
+}
+
+export async function createStaffMember(data: CreateStaffInput) {
+	return request<StaffDto>('/api/staff-advances/staff', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateStaffMember(id: string, data: UpdateStaffInput) {
+	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteStaffMember(id: string) {
+	return request<void>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	});
+}
+
 export async function getStaffById(id: string) {
  return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`);
 }
@@ -605,7 +720,261 @@ export async function getDashboardStats() {
 // ============================================================================
 
 export async function getHealth() {
- return request<HealthResponse>('/api/health');
+	return request<HealthResponse>('/api/health');
+}
+
+// ============================================================================
+// Showrooms & Daily Staff Assignments
+// ============================================================================
+
+export interface ShowroomDto {
+	id: string;
+	name: string;
+	address: string;
+	phone?: string | null;
+	isActive: boolean;
+	activeStaffCountToday: number;
+	totalVehiclesToday: number;
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface CreateShowroomInput {
+	name: string;
+	address: string;
+	phone?: string | null;
+	isActive?: boolean;
+}
+
+export interface UpdateShowroomInput {
+	name?: string;
+	address?: string;
+	phone?: string | null;
+	isActive?: boolean;
+}
+
+export interface DailyStaffAssignmentDto {
+	id: string;
+	showroomId: string;
+	showroomName: string;
+	staffId: string;
+	staffName: string;
+	staffPhone: string;
+	staffRole?: string | null;
+	date: string;
+	vehiclesAttended: number;
+	createdAt: string;
+}
+
+export interface DailyStaffResponse {
+	showroomId: string;
+	showroomName: string;
+	date: string;
+	totalVehiclesAttended: number;
+	staffAssignments: DailyStaffAssignmentDto[];
+}
+
+export interface CreateDailyStaffAssignmentInput {
+	staffId: string;
+	date: string;
+	vehiclesAttended?: number;
+}
+
+export async function getShowrooms(params?: { search?: string; isActive?: boolean }) {
+	const qs = new URLSearchParams();
+	if (params?.search) qs.set('search', params.search);
+	if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomDto[]>('/api/showrooms' + suffix);
+}
+
+export async function getShowroomById(id: string) {
+	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`);
+}
+
+export async function createShowroom(data: CreateShowroomInput) {
+	return request<ShowroomDto>('/api/showrooms', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateShowroom(id: string, data: UpdateShowroomInput) {
+	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteShowroom(id: string) {
+	return request<void>(`/api/showrooms/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	});
+}
+
+export async function toggleShowroomActive(id: string) {
+	return request<void>(`/api/showrooms/${encodeURIComponent(id)}/toggle-active`, {
+		method: 'PATCH',
+	});
+}
+
+export async function getDailyStaff(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff?` + qs.toString());
+}
+
+export async function assignDailyStaff(showroomId: string, data: CreateDailyStaffAssignmentInput) {
+	return request<DailyStaffAssignmentDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	});
+}
+
+export async function updateDailyStaffVehicles(assignmentId: string, vehiclesAttended: number) {
+	return request<DailyStaffAssignmentDto>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
+		method: 'PUT',
+		body: JSON.stringify({ vehiclesAttended }),
+	});
+}
+
+export async function removeDailyStaff(assignmentId: string) {
+	return request<void>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
+		method: 'DELETE',
+	});
+}
+
+export interface ShowroomPaymentDto {
+	id: string;
+	showroomDailyBillId: string;
+	amount: number;
+	paymentMethod: string;
+	reference?: string | null;
+	paymentDate: string;
+	notes?: string | null;
+	createdAt: string;
+}
+
+export interface ShowroomDailyBillDto {
+	id: string;
+	showroomId: string;
+	showroomName: string;
+	date: string;
+	amount: number;
+	amountReceived: number;
+	balanceAmount: number;
+	status: 'Unpaid' | 'PartiallyPaid' | 'Paid';
+	notes?: string | null;
+	payments: ShowroomPaymentDto[];
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface SetShowroomDailyBillInput {
+	amount: number;
+	notes?: string | null;
+}
+
+export interface RecordShowroomPaymentInput {
+	amount: number;
+	paymentMethod: string;
+	reference?: string | null;
+	paymentDate?: string | null;
+	notes?: string | null;
+}
+
+export async function getShowroomDailyBill(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString());
+}
+
+export async function setShowroomDailyBill(showroomId: string, date: string, data: SetShowroomDailyBillInput) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString(), {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function recordShowroomPayment(showroomId: string, date: string, data: RecordShowroomPaymentInput) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill/payments?` + qs.toString(), {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteShowroomPayment(paymentId: string) {
+	return request<void>(`/api/showroom-payments/${encodeURIComponent(paymentId)}`, {
+		method: 'DELETE',
+	});
+}
+
+export interface ShowroomDailyHistoryRowDto {
+	date: string;
+	staffCount: number;
+	totalVehicles: number;
+	billedAmount: number;
+	receivedAmount: number;
+	balanceAmount: number;
+	status: 'Unpaid' | 'PartiallyPaid' | 'Paid';
+	hasBill: boolean;
+}
+
+export interface ShowroomStaffProductivityDto {
+	staffId: string;
+	staffName: string;
+	staffPhone: string;
+	staffRole?: string | null;
+	daysAssigned: number;
+	totalVehiclesAttended: number;
+	averageVehiclesPerDay: number;
+}
+
+export interface ShowroomSummaryDto {
+	showroomId: string;
+	showroomName: string;
+	fromDate: string;
+	toDate: string;
+	totalDaysWithActivity: number;
+	totalStaffAssignments: number;
+	totalVehiclesAttended: number;
+	averageVehiclesPerDay: number;
+	totalBilled: number;
+	totalReceived: number;
+	outstandingAmount: number;
+	paidDaysCount: number;
+	partiallyPaidDaysCount: number;
+	unpaidDaysCount: number;
+	dailyHistory: ShowroomDailyHistoryRowDto[];
+	staffProductivity: ShowroomStaffProductivityDto[];
+}
+
+export interface ShowroomOutstandingOverviewDto {
+	showroomId: string;
+	showroomName: string;
+	address: string;
+	phone?: string | null;
+	isActive: boolean;
+	totalBilled: number;
+	totalReceived: number;
+	outstandingAmount: number;
+	unpaidDaysCount: number;
+}
+
+export async function getShowroomSummary(showroomId: string, fromDate?: string, toDate?: string) {
+	const qs = new URLSearchParams();
+	if (fromDate) qs.set('fromDate', fromDate);
+	if (toDate) qs.set('toDate', toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomSummaryDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/summary` + suffix);
+}
+
+export async function getShowroomsOutstanding(fromDate?: string, toDate?: string) {
+	const qs = new URLSearchParams();
+	if (fromDate) qs.set('fromDate', fromDate);
+	if (toDate) qs.set('toDate', toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomOutstandingOverviewDto[]>('/api/showrooms/outstanding' + suffix);
 }
 
 // ============================================================================

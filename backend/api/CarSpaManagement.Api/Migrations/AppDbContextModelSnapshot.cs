@@ -66,6 +66,170 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("Customers", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BalanceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Discount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("GstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsGstEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("JobCardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Invoices_InvoiceNumber");
+
+                    b.HasIndex("JobCardId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Invoices_JobCardId");
+
+                    b.HasIndex("Status", "InvoiceDate")
+                        .HasDatabaseName("IX_Invoices_Status_InvoiceDate");
+
+                    b.HasIndex("VehicleId", "Status")
+                        .HasDatabaseName("IX_Invoices_VehicleId_Status");
+
+                    b.HasIndex("CustomerId", "Status", "InvoiceDate")
+                        .HasDatabaseName("IX_Invoices_CustomerId_Status_InvoiceDate");
+
+                    b.ToTable("Invoices", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Discount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_InvoiceItems_InvoiceId");
+
+                    b.HasIndex("ServiceId")
+                        .HasDatabaseName("IX_InvoiceItems_ServiceId");
+
+                    b.HasIndex("InvoiceId", "ServiceId")
+                        .HasDatabaseName("IX_InvoiceItems_InvoiceId_ServiceId");
+
+                    b.ToTable("InvoiceItems", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
                 {
                     b.Property<Guid>("Id")
@@ -190,6 +354,52 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("JobCardServices", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_Payments_InvoiceId");
+
+                    b.HasIndex("PaymentDate")
+                        .HasDatabaseName("IX_Payments_PaymentDate");
+
+                    b.ToTable("Payments", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Service", b =>
                 {
                     b.Property<Guid>("Id")
@@ -247,6 +457,156 @@ namespace CarSpaManagement.Api.Migrations
                         .HasDatabaseName("IX_Services_Name");
 
                     b.ToTable("Services", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Showroom", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Showrooms");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ShowroomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShowroomId", "Date");
+
+                    b.ToTable("ShowroomDailyBills");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PaymentMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ShowroomDailyBillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShowroomDailyBillId");
+
+                    b.ToTable("ShowroomPayments");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ShowroomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VehiclesAttended")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("ShowroomId", "StaffId", "Date");
+
+                    b.ToTable("ShowroomStaffAssignments");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
@@ -425,6 +785,51 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("Vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.JobCard", "JobCard")
+                        .WithMany()
+                        .HasForeignKey("JobCardId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("JobCard");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceItem", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("InvoiceItems")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
@@ -463,6 +868,58 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Payment", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("Payments")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
+                        .WithMany("DailyBills")
+                        .HasForeignKey("ShowroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Showroom");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomPayment", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", "ShowroomDailyBill")
+                        .WithMany("Payments")
+                        .HasForeignKey("ShowroomDailyBillId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ShowroomDailyBill");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffAssignment", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
+                        .WithMany("StaffAssignments")
+                        .HasForeignKey("ShowroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Staff", "Staff")
+                        .WithMany("ShowroomAssignments")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Showroom");
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.StaffAdvance", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Staff", "Staff")
@@ -492,6 +949,13 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Vehicles");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
+                {
+                    b.Navigation("InvoiceItems");
+
+                    b.Navigation("Payments");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
                 {
                     b.Navigation("JobCardServices");
@@ -502,8 +966,22 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("JobCardServices");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Showroom", b =>
+                {
+                    b.Navigation("DailyBills");
+
+                    b.Navigation("StaffAssignments");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
                 {
+                    b.Navigation("ShowroomAssignments");
+
                     b.Navigation("StaffAdvances");
                 });
 

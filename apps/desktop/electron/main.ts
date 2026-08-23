@@ -11,10 +11,13 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
 function createWindow() {
  mainWindow = new BrowserWindow({
+ title: 'E6 Car Spa Management',
  width: 1400,
  height: 900,
  minWidth: 1024,
  minHeight: 700,
+ center: true,
+ show: true,
  backgroundColor: '#f8fafc',
  webPreferences: {
  preload: path.join(__dirname, 'preload.mjs'),
@@ -30,6 +33,11 @@ function createWindow() {
 } else {
  mainWindow.loadFile(path.join(__dirname, '../dist-renderer/index.html'));
 }
+
+ mainWindow.once('ready-to-show', () => {
+ mainWindow?.show();
+ mainWindow?.focus();
+});
 
  mainWindow.on('closed', () => {
  mainWindow = null;

@@ -12,5 +12,8 @@ public interface IStaffAdvanceService
  Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
  Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default);
  Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default);
+ Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default);
+ Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default);
+ Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default);
  Task<IReadOnlyList<StaffAdvanceDto>> GetByStaffIdAsync(Guid staffId, CancellationToken cancellationToken = default);
 }

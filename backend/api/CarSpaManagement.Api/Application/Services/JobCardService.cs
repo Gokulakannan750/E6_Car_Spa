@@ -21,32 +21,46 @@ public class JobCardService : IJobCardService
 	public async Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 	{
 		var jobCard = await _db.JobCards
-		.Include(j => j.Customer)
-		.Include(j => j.Vehicle)
-		.Include(j => j.JobCardServices)
-		.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
+			.Include(j => j.JobCardServices)
+			.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
 
-		return jobCard is null ? null : ToDetailDto(jobCard);
+		if (jobCard is null) return null;
+
+		var invoice = await _db.Invoices
+			.Where(i => i.JobCardId == id && !i.IsDeleted)
+			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
+			.FirstOrDefaultAsync(cancellationToken);
+
+		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString());
 	}
 
 	public async Task<JobCardDto?> GetByNumberAsync(string jobCardNumber, CancellationToken cancellationToken = default)
 	{
 		var jobCard = await _db.JobCards
-		.Include(j => j.Customer)
-		.Include(j => j.Vehicle)
-		.Include(j => j.JobCardServices)
-		.FirstOrDefaultAsync(j => j.JobCardNumber == jobCardNumber, cancellationToken);
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
+			.Include(j => j.JobCardServices)
+			.FirstOrDefaultAsync(j => j.JobCardNumber == jobCardNumber, cancellationToken);
 
-		return jobCard is null ? null : ToDetailDto(jobCard);
+		if (jobCard is null) return null;
+
+		var invoice = await _db.Invoices
+			.Where(i => i.JobCardId == jobCard.Id && !i.IsDeleted)
+			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
+			.FirstOrDefaultAsync(cancellationToken);
+
+		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString());
 	}
 
 	public async Task<JobCardPrintDto?> GetForPrintAsync(Guid id, CancellationToken cancellationToken = default)
 	{
 		var jobCard = await _db.JobCards
-		.Include(j => j.Customer)
-		.Include(j => j.Vehicle)
-		.Include(j => j.JobCardServices)
-		.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
+			.Include(j => j.JobCardServices)
+			.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
 
 		if (jobCard is null) return null;
 
@@ -57,19 +71,19 @@ public class JobCardService : IJobCardService
 			new VehicleSummaryDto(jobCard.Vehicle.Id, jobCard.Vehicle.RegistrationNumber, jobCard.Vehicle.Make, jobCard.Vehicle.Model, jobCard.Vehicle.Variant, jobCard.Vehicle.Color),
 			jobCard.Notes,
 			jobCard.JobCardServices
-			.Where(s => !s.IsDeleted)
-			.OrderBy(s => s.CreatedAt)
-			.Select(s => new JobCardServicePrintDto(s.Id, s.ServiceName, s.Quantity, s.UnitPrice))
-			.ToList(),
+				.Where(s => !s.IsDeleted)
+				.OrderBy(s => s.CreatedAt)
+				.Select(s => new JobCardServicePrintDto(s.Id, s.ServiceName, s.Quantity, s.UnitPrice))
+				.ToList(),
 			jobCard.CreatedAt);
 	}
 
 	public async Task<IReadOnlyList<JobCardListDto>> GetAllAsync(int page, int pageSize, JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
 	{
 		var query = _db.JobCards
-		.Include(j => j.Customer)
-		.Include(j => j.Vehicle)
-		.AsQueryable();
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
+			.AsQueryable();
 
 		if (status.HasValue) query = query.Where(j => j.Status == status.Value);
 		if (customerId.HasValue) query = query.Where(j => j.CustomerId == customerId.Value);
@@ -81,24 +95,42 @@ public class JobCardService : IJobCardService
 		{
 			search = search.Trim().ToLower();
 			query = query.Where(j => j.JobCardNumber.ToLower().Contains(search)
-			|| (j.Customer.Name != null && j.Customer.Name.ToLower().Contains(search))
-			|| (j.Customer.PhoneNumber != null && j.Customer.PhoneNumber.Contains(search))
-			|| (j.Vehicle.RegistrationNumber != null && j.Vehicle.RegistrationNumber.ToLower().Contains(search)));
+				|| (j.Customer.Name != null && j.Customer.Name.ToLower().Contains(search))
+				|| (j.Customer.PhoneNumber != null && j.Customer.PhoneNumber.Contains(search))
+				|| (j.Vehicle.RegistrationNumber != null && j.Vehicle.RegistrationNumber.ToLower().Contains(search)));
 		}
 
-		return await query.OrderByDescending(j => j.CreatedAt)
-		.Skip((page - 1) * pageSize)
-		.Take(pageSize)
-		.Select(j => ToListDto(j))
-		.ToListAsync(cancellationToken);
+		var paged = await query.OrderByDescending(j => j.CreatedAt)
+			.Skip((page - 1) * pageSize)
+			.Take(pageSize)
+			.Select(j => new {
+				JobCard = j,
+				Invoice = _db.Invoices.Where(i => i.JobCardId == j.Id && !i.IsDeleted).Select(i => new { i.Id, i.InvoiceNumber, i.Status }).FirstOrDefault()
+			})
+			.ToListAsync(cancellationToken);
+
+		return paged.Select(x => new JobCardListDto(
+			x.JobCard.Id,
+			x.JobCard.JobCardNumber,
+			x.JobCard.Customer.Name,
+			x.JobCard.Customer.PhoneNumber,
+			x.JobCard.Vehicle.RegistrationNumber,
+			x.JobCard.Vehicle.Make,
+			x.JobCard.Vehicle.Model,
+			x.JobCard.Status,
+			x.JobCard.TotalAmount,
+			x.Invoice != null ? x.Invoice.Id : null,
+			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+			x.Invoice != null ? x.Invoice.Status.ToString() : null,
+			x.JobCard.CreatedAt)).ToList();
 	}
 
 	public async Task<int> GetTotalCountAsync(JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
 	{
 		var query = _db.JobCards
-		.Include(j => j.Customer)
-		.Include(j => j.Vehicle)
-		.AsQueryable();
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
+			.AsQueryable();
 
 		if (status.HasValue) query = query.Where(j => j.Status == status.Value);
 		if (customerId.HasValue) query = query.Where(j => j.CustomerId == customerId.Value);
@@ -110,9 +142,9 @@ public class JobCardService : IJobCardService
 		{
 			search = search.Trim().ToLower();
 			query = query.Where(j => j.JobCardNumber.ToLower().Contains(search)
-			|| (j.Customer.Name != null && j.Customer.Name.ToLower().Contains(search))
-			|| (j.Customer.PhoneNumber != null && j.Customer.PhoneNumber.Contains(search))
-			|| (j.Vehicle.RegistrationNumber != null && j.Vehicle.RegistrationNumber.ToLower().Contains(search)));
+				|| (j.Customer.Name != null && j.Customer.Name.ToLower().Contains(search))
+				|| (j.Customer.PhoneNumber != null && j.Customer.PhoneNumber.Contains(search))
+				|| (j.Vehicle.RegistrationNumber != null && j.Vehicle.RegistrationNumber.ToLower().Contains(search)));
 		}
 
 		return await query.CountAsync(cancellationToken);
@@ -120,24 +152,60 @@ public class JobCardService : IJobCardService
 
 	public async Task<IReadOnlyList<JobCardListDto>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default)
 	{
-		return await _db.JobCards
-		.Where(j => j.CustomerId == customerId)
-		.OrderByDescending(j => j.CreatedAt)
-		.Skip((page - 1) * pageSize)
-		.Take(pageSize)
-		.Select(j => ToListDto(j))
-		.ToListAsync(cancellationToken);
+		var paged = await _db.JobCards
+			.Where(j => j.CustomerId == customerId)
+			.OrderByDescending(j => j.CreatedAt)
+			.Skip((page - 1) * pageSize)
+			.Take(pageSize)
+			.Select(j => new {
+				JobCard = j,
+				Invoice = _db.Invoices.Where(i => i.JobCardId == j.Id && !i.IsDeleted).Select(i => new { i.Id, i.InvoiceNumber, i.Status }).FirstOrDefault()
+			})
+			.ToListAsync(cancellationToken);
+
+		return paged.Select(x => new JobCardListDto(
+			x.JobCard.Id,
+			x.JobCard.JobCardNumber,
+			x.JobCard.Customer.Name,
+			x.JobCard.Customer.PhoneNumber,
+			x.JobCard.Vehicle.RegistrationNumber,
+			x.JobCard.Vehicle.Make,
+			x.JobCard.Vehicle.Model,
+			x.JobCard.Status,
+			x.JobCard.TotalAmount,
+			x.Invoice != null ? x.Invoice.Id : null,
+			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+			x.Invoice != null ? x.Invoice.Status.ToString() : null,
+			x.JobCard.CreatedAt)).ToList();
 	}
 
 	public async Task<IReadOnlyList<JobCardListDto>> GetByVehicleIdAsync(Guid vehicleId, int page, int pageSize, CancellationToken cancellationToken = default)
 	{
-		return await _db.JobCards
-		.Where(j => j.VehicleId == vehicleId)
-		.OrderByDescending(j => j.CreatedAt)
-		.Skip((page - 1) * pageSize)
-		.Take(pageSize)
-		.Select(j => ToListDto(j))
-		.ToListAsync(cancellationToken);
+		var paged = await _db.JobCards
+			.Where(j => j.VehicleId == vehicleId)
+			.OrderByDescending(j => j.CreatedAt)
+			.Skip((page - 1) * pageSize)
+			.Take(pageSize)
+			.Select(j => new {
+				JobCard = j,
+				Invoice = _db.Invoices.Where(i => i.JobCardId == j.Id && !i.IsDeleted).Select(i => new { i.Id, i.InvoiceNumber, i.Status }).FirstOrDefault()
+			})
+			.ToListAsync(cancellationToken);
+
+		return paged.Select(x => new JobCardListDto(
+			x.JobCard.Id,
+			x.JobCard.JobCardNumber,
+			x.JobCard.Customer.Name,
+			x.JobCard.Customer.PhoneNumber,
+			x.JobCard.Vehicle.RegistrationNumber,
+			x.JobCard.Vehicle.Make,
+			x.JobCard.Vehicle.Model,
+			x.JobCard.Status,
+			x.JobCard.TotalAmount,
+			x.Invoice != null ? x.Invoice.Id : null,
+			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+			x.Invoice != null ? x.Invoice.Status.ToString() : null,
+			x.JobCard.CreatedAt)).ToList();
 	}
 
 	public async Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default)
@@ -246,6 +314,9 @@ public class JobCardService : IJobCardService
 		_db.JobCards.Add(jobCard);
 		await _db.SaveChangesAsync(cancellationToken);
 
+		await _db.Entry(jobCard).Reference(j => j.Customer).LoadAsync(cancellationToken);
+		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
+
 		return ToDetailDto(jobCard);
 	}
 
@@ -341,7 +412,12 @@ public class JobCardService : IJobCardService
 		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
 		await _db.Entry(jobCard).Collection(j => j.JobCardServices).LoadAsync(cancellationToken);
 
-		return ToDetailDto(jobCard);
+		var invoice = await _db.Invoices
+			.Where(i => i.JobCardId == jobCard.Id && !i.IsDeleted)
+			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
+			.FirstOrDefaultAsync(cancellationToken);
+
+		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString());
 	}
 
 	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -387,7 +463,7 @@ public class JobCardService : IJobCardService
 		}
 	}
 
-	private static JobCardDto ToDetailDto(JCard j) => new(
+	private static JobCardDto ToDetailDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null) => new(
 		j.Id,
 		j.JobCardNumber,
 		new CustomerSummaryDto(j.Customer.Id, j.Customer.Name, j.Customer.PhoneNumber),
@@ -395,22 +471,25 @@ public class JobCardService : IJobCardService
 		j.Status,
 		j.Notes,
 		j.JobCardServices.Select(s => new JobCardServiceDto(
-		s.Id,
-		s.ServiceId,
-		s.ServiceName,
-		s.UnitPrice,
-		s.Quantity,
-		s.TaxPercentage,
-		s.DiscountAmount,
-		s.LineTotal)).ToList(),
+			s.Id,
+			s.ServiceId,
+			s.ServiceName,
+			s.UnitPrice,
+			s.Quantity,
+			s.TaxPercentage,
+			s.DiscountAmount,
+			s.LineTotal)).ToList(),
 		j.Subtotal,
 		j.TaxAmount,
 		j.DiscountAmount,
 		j.TotalAmount,
+		invoiceId,
+		invoiceNumber,
+		invoiceStatus,
 		j.CreatedAt,
 		j.UpdatedAt);
 
-	private static JobCardListDto ToListDto(JCard j) => new(
+	private static JobCardListDto ToListDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null) => new(
 		j.Id,
 		j.JobCardNumber,
 		j.Customer.Name,
@@ -420,5 +499,8 @@ public class JobCardService : IJobCardService
 		j.Vehicle.Model,
 		j.Status,
 		j.TotalAmount,
+		invoiceId,
+		invoiceNumber,
+		invoiceStatus,
 		j.CreatedAt);
 }

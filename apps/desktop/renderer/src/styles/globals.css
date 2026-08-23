@@ -88,10 +88,47 @@
  .electron-drag { -webkit-app-region: drag; }
  .electron-no-drag { -webkit-app-region: no-drag; }
 
- @media print {
- body { background: white; }
- .no-print { display: none !important; }
- }
+ 	@media print {
+		@page {
+			size: A4 portrait;
+			margin: 15mm;
+		}
+		body, html {
+			background: #ffffff !important;
+			color: #000000 !important;
+			padding: 0 !important;
+			margin: 0 !important;
+		}
+		.no-print,
+		aside,
+		header,
+		nav,
+		.app-header,
+		.app-sidebar {
+			display: none !important;
+		}
+		div[style*="margin-left"] {
+			margin-left: 0 !important;
+		}
+		main {
+			padding: 0 !important;
+			margin: 0 !important;
+			overflow: visible !important;
+			max-width: 100% !important;
+		}
+		.app-card {
+			box-shadow: none !important;
+		}
+		.print-only {
+			display: block !important;
+		}
+	}
+
+	@media screen {
+		.print-only {
+			display: none !important;
+		}
+	}
 }
 
 @layer components {

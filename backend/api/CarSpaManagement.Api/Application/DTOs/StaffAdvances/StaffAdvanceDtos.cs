@@ -27,6 +27,26 @@ public record StaffDto(
  int TotalAdvances,
  decimal TotalAdvanceAmount);
 
+public record CreateStaffRequest
+{
+	[Required, MaxLength(100)] public string Name { get; init; } = string.Empty;
+	[Required, MaxLength(15)] public string PhoneNumber { get; init; } = string.Empty;
+	[MaxLength(100)] public string? Email { get; init; }
+	[MaxLength(200)] public string? Address { get; init; }
+	[MaxLength(50)] public string? Role { get; init; }
+	public bool IsActive { get; init; } = true;
+}
+
+public record UpdateStaffRequest
+{
+	[MaxLength(100)] public string? Name { get; init; }
+	[MaxLength(15)] public string? PhoneNumber { get; init; }
+	[MaxLength(100)] public string? Email { get; init; }
+	[MaxLength(200)] public string? Address { get; init; }
+	[MaxLength(50)] public string? Role { get; init; }
+	public bool? IsActive { get; init; }
+}
+
 public record CreateStaffAdvanceRequest
 {
  [Required, MaxLength(100)] public string StaffName { get; init; } = string.Empty;

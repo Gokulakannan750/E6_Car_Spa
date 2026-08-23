@@ -89,16 +89,16 @@ export function Sidebar({ collapsed = false }: SidebarProps) {
  {!collapsed ? (
  <div className="flex items-center gap-2.5 min-w-0">
  <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
- <span className="text-white font-bold text-sm">CS</span>
+ <span className="text-white font-bold text-xs">E6</span>
  </div>
  <div className="sidebar-transition overflow-hidden whitespace-nowrap">
- <span className="text-white font-semibold text-sm">Car Spa</span>
+ <span className="text-white font-semibold text-sm">E6 Car Spa</span>
  <span className="text-slate-400 text-xs block -mt-0.5">Management</span>
  </div>
  </div>
  ) : (
  <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
- <span className="text-white font-bold text-sm">CS</span>
+ <span className="text-white font-bold text-xs">E6</span>
  </div>
  )}
  </div>

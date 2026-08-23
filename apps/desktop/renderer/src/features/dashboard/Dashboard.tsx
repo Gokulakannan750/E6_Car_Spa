@@ -105,31 +105,43 @@ export default function Dashboard() {
  </div>
  {recentJobCards && recentJobCards.items && recentJobCards.items.length > 0 ? (
  <>
- <div className="overflow-x-auto">
- <table className="w-full text-left border-collapse" style={{ minWidth: '800px' }}>
- <thead>
- <tr className="border-b border-outline-variant" style={{ backgroundColor: '#f8f9fa' }}>
- {['Job Card No.', 'Customer', 'Vehicle', 'Status', 'Amount', 'Created'].map(h => (
- <th key={h} className="px-4 py-2 font-semibold text-xs uppercase tracking-wider text-label-md text-outline uppercase tracking-wider whitespace-nowrap">
- {h}
- </th>
- ))}
- </tr>
- </thead>
- <tbody className="divide-y divide-outline-variant divide-opacity-50 text-sm text-sm">
- {(recentJobCards.items as JobCardListDto[]).map(row => (
- <tr key={row.id} className="table-row hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => navigate(`/job-cards/${row.id}`)}>
- <td className="px-4 font-bold text-secondary">{row.jobCardNumber}</td>
- <td className="px-4 text-on-surface">{row.customerName}</td>
- <td className="px-4 text-on-surface-variant">{row.registrationNumber} — {row.make} {row.model}</td>
- <td className="px-4 text-on-surface font-medium">₹{row.totalAmount.toLocaleString('en-IN')}</td>
- <td className="px-4 text-on-surface-variant">{getJobCardStatusLabel(row.status)}</td>
- <td className="px-4 text-on-surface-variant">{new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</td>
- </tr>
- ))}
- </tbody>
- </table>
- </div>
+ 						<div className="overflow-x-auto">
+							<table className="app-table" style={{ minWidth: '800px' }}>
+								<thead>
+									<tr>
+										<th>Job Card No.</th>
+										<th>Customer</th>
+										<th>Vehicle</th>
+										<th>Amount</th>
+										<th>Status</th>
+										<th>Created</th>
+									</tr>
+								</thead>
+								<tbody>
+									{(recentJobCards.items as JobCardListDto[]).map((row) => (
+										<tr
+											key={row.id}
+											className="cursor-pointer"
+											onClick={() => navigate(`/job-cards/${row.id}`)}
+										>
+											<td className="font-mono font-bold text-secondary">{row.jobCardNumber}</td>
+											<td className="font-medium text-on-surface">{row.customerName}</td>
+											<td className="text-on-surface-variant">
+												<span className="bg-surface-container px-1.5 py-0.5 rounded font-mono font-bold text-xs text-on-surface mr-1.5">
+													{row.registrationNumber}
+												</span>
+												{row.make} {row.model}
+											</td>
+											<td className="font-medium text-on-surface">₹{row.totalAmount.toLocaleString('en-IN')}</td>
+											<td>{getJobCardStatusLabel(row.status)}</td>
+											<td className="text-on-surface-variant">
+												{new Date(row.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
  </>
  ) : (
  <div className="p-8 text-center">

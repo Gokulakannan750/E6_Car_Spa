@@ -28,6 +28,9 @@ public record JobCardDto(
  decimal TaxAmount,
  decimal DiscountAmount,
  decimal TotalAmount,
+ Guid? InvoiceId,
+ string? InvoiceNumber,
+ string? InvoiceStatus,
  DateTime CreatedAt,
  DateTime? UpdatedAt);
 
@@ -41,6 +44,9 @@ public record JobCardListDto(
  string Model,
  JobCardStatus Status,
  decimal TotalAmount,
+ Guid? InvoiceId,
+ string? InvoiceNumber,
+ string? InvoiceStatus,
  DateTime CreatedAt);
 
 public record JobCardListResponse(IReadOnlyList<JobCardListDto> Items, int TotalCount, int Page, int PageSize);
