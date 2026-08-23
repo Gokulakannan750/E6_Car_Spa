@@ -1,21 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-	Download,
 	TrendingUp,
 	TrendingDown,
 	IndianRupee,
-	Wrench,
 	Calendar,
-	CreditCard,
 	Receipt,
 	Sparkles,
-	PieChart as PieIcon,
 	BarChart3,
-	Layers,
 	FileSpreadsheet,
-	Filter,
-	ArrowUpRight,
 	Car,
 	CheckCircle2,
 } from 'lucide-react';
@@ -23,8 +16,6 @@ import {
 	ResponsiveContainer,
 	AreaChart,
 	Area,
-	BarChart,
-	Bar,
 	PieChart,
 	Pie,
 	Cell,
@@ -32,16 +23,13 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	Legend,
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { Button } from '../../components/ui/Button';
-import { StatusBadge } from '../../components/ui/Badge';
 import {
 	getInvoices,
 	getJobCards,
 	getStaffAdvances,
-	getServices,
 	type InvoiceListDto,
 	type JobCardListDto,
 	type StaffAdvanceDto,
@@ -157,24 +145,19 @@ export function ReportsPage() {
 	const bounds = useMemo(() => getDateBounds(preset, customStart, customEnd), [preset, customStart, customEnd]);
 
 	// ── Live Data Queries ─────────────────────────────────────────────────────
-	const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
+	const { data: invoicesData } = useQuery({
 		queryKey: ['reports-invoices'],
 		queryFn: () => getInvoices({ page: 1, pageSize: 1000 }),
 	});
 
-	const { data: jobCardsData, isLoading: jobsLoading } = useQuery({
+	const { data: jobCardsData } = useQuery({
 		queryKey: ['reports-job-cards'],
 		queryFn: () => getJobCards({ page: 1, pageSize: 1000 }),
 	});
 
-	const { data: advancesData, isLoading: advancesLoading } = useQuery({
+	const { data: advancesData } = useQuery({
 		queryKey: ['reports-advances'],
 		queryFn: () => getStaffAdvances({ page: 1, pageSize: 1000 }),
-	});
-
-	const { data: servicesData } = useQuery({
-		queryKey: ['reports-services'],
-		queryFn: () => getServices({ page: 1, pageSize: 200 }),
 	});
 
 	const allInvoices: InvoiceListDto[] = invoicesData?.items ?? [];
@@ -282,27 +265,6 @@ export function ReportsPage() {
 			.filter(([_, count]) => count > 0)
 			.map(([name, value]) => ({ name, value }));
 	}, [filteredJobCards]);
-
-	// ── Chart 3: Payment Modes Breakdown ─────────────────────────────────────
-	const paymentModesData = useMemo(() => {
-		const modes: Record<string, number> = {
-			Cash: 0,
-			UPI: 0,
-			Card: 0,
-			'Bank Transfer': 0,
-		};
-
-		filteredInvoices.forEach((inv) => {
-			if (inv.paidAmount > 0) {
-				// Default assumption if not itemized: Cash or UPI based on general trends
-				modes['Cash'] = (modes['Cash'] || 0) + inv.paidAmount;
-			}
-		});
-
-		return Object.entries(modes)
-			.filter(([_, val]) => val > 0)
-			.map(([name, amount]) => ({ name, amount }));
-	}, [filteredInvoices]);
 
 	// ── Top Services Ranking ─────────────────────────────────────────────────
 	const topServices = useMemo(() => {
@@ -484,8 +446,6 @@ export function ReportsPage() {
 			setIsExporting(false);
 		}
 	};
-
-	const isLoading = invoicesLoading || jobsLoading || advancesLoading;
 
 	return (
 		<div className="space-y-6 animate-fade-in pb-12">

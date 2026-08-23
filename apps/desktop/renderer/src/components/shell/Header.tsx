@@ -30,8 +30,8 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 				.join('')
 				.slice(0, 2)
 				.toUpperCase()
-		: currentUser?.firstName
-		? `${currentUser.firstName[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase()
+		: currentUser?.username
+		? currentUser.username.slice(0, 2).toUpperCase()
 		: 'U';
 
 	const getRoleIcon = (role?: string) => {
@@ -142,7 +142,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 							</div>
 							<div className="hidden md:block text-left">
 								<p className="text-xs font-semibold text-slate-800 leading-tight">
-									{currentUser.fullName || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`}
+									{currentUser.fullName || currentUser.username}
 								</p>
 								<div className="flex items-center gap-1 text-[11px] text-slate-500 capitalize">
 									{getRoleIcon(currentUser.role)}
@@ -161,7 +161,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 								<div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
 									<div className="px-4 py-2 border-b border-slate-100">
 										<p className="text-xs font-bold text-slate-900">
-											{currentUser.fullName || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`}
+											{currentUser.fullName || currentUser.username}
 										</p>
 										{currentUser.email && (
 											<p className="text-[11px] text-slate-400 truncate mt-0.5">

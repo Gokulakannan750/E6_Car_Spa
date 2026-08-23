@@ -21,7 +21,6 @@ function formatINR(value: number): string {
 }
 
 type TabType = 'advances' | 'staff';
-type StatusFilter = 'all' | 'Pending' | 'Paid' | 'Partially Paid';
 type StaffStatusFilter = 'all' | 'active' | 'inactive';
 
 const defaultMockStaff: StaffDto[] = [

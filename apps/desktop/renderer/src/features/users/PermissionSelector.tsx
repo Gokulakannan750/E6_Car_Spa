@@ -34,10 +34,6 @@ export function PermissionSelector({ groups, selected, onChange, disabled = fals
 	return (
 		<div className="space-y-6">
 			{groups.map((group) => {
-				const groupCodes = group.permissions.map((p) => p.code);
-				const allSelected = groupCodes.length > 0 && groupCodes.every((c) => selected.includes(c));
-				const someSelected = groupCodes.some((c) => selected.includes(c));
-
 				return (
 					<div
 						key={group.module}

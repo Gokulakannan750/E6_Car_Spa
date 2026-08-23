@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
@@ -16,10 +17,7 @@ public class ShowroomService : IShowroomService
         _db = db;
     }
 
-    private static DateTime ToUtcDate(DateTime dt)
-    {
-        return DateTime.SpecifyKind(dt.Date, DateTimeKind.Utc);
-    }
+    private static DateTime ToUtcDate(DateTime dt) => ShowroomDateHelper.ToUtcDate(dt);
 
     public async Task<IReadOnlyList<ShowroomDto>> GetAllAsync(string? search = null, bool? isActive = null, CancellationToken ct = default)
     {
@@ -170,6 +168,24 @@ public class ShowroomService : IShowroomService
         return true;
     }
 
+    // ── Daily Staff Assignment & Attendance Confirmation ────────────────────
+
+    private async Task EnsureAttendanceNotLockedAsync(Guid showroomId, DateTime date, bool isOwner, CancellationToken ct)
+    {
+        var targetDate = ToUtcDate(date);
+        var isConfirmed = await _db.ShowroomDailyAttendances
+            .AnyAsync(a => a.ShowroomId == showroomId && a.Date == targetDate && a.IsAttendanceConfirmed && !a.IsDeleted, ct);
+
+        if (isConfirmed)
+        {
+            if (!isOwner)
+            {
+                throw new ForbiddenException("Showroom attendance is confirmed and locked for this date.");
+            }
+            throw new ConflictException("Showroom attendance is confirmed and locked for this date. Please unlock attendance to make corrections.");
+        }
+    }
+
     public async Task<DailyStaffResponse?> GetDailyStaffAsync(Guid showroomId, DateTime date, CancellationToken ct = default)
     {
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct);
@@ -199,24 +215,110 @@ public class ShowroomService : IShowroomService
 
         var totalVehicles = list.Sum(a => a.VehiclesAttended);
 
+        var attendance = await _db.ShowroomDailyAttendances
+            .Include(a => a.AttendanceConfirmedByUser)
+            .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted, ct);
+
+        var isConfirmed = attendance?.IsAttendanceConfirmed ?? false;
+        var confirmedAt = attendance?.AttendanceConfirmedAt;
+        var confirmedByUserId = attendance?.AttendanceConfirmedByUserId;
+        var confirmedByName = attendance?.AttendanceConfirmedByUser?.FullName;
+
         return new DailyStaffResponse(
             showroom.Id,
             showroom.Name,
             targetDate,
             totalVehicles,
+            isConfirmed,
+            confirmedAt,
+            confirmedByUserId,
+            confirmedByName,
             list
         );
     }
 
-    public async Task<DailyStaffAssignmentDto> AssignStaffAsync(Guid showroomId, CreateDailyStaffAssignmentRequest request, CancellationToken ct = default)
+    public async Task<DailyStaffResponse> ConfirmAttendanceAsync(Guid showroomId, DateTime date, Guid userId, CancellationToken ct = default)
     {
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId && !s.IsDeleted, ct)
+            ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
+
+        var targetDate = ToUtcDate(date);
+
+        // Validate non-negative vehicles attended on existing assignments
+        var assignments = await _db.ShowroomStaffAssignments
+            .Where(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted)
+            .ToListAsync(ct);
+
+        if (assignments.Any(a => a.VehiclesAttended < 0))
+        {
+            throw new InvalidOperationException("Vehicles attended count cannot be negative.");
+        }
+
+        var attendance = await _db.ShowroomDailyAttendances
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.Date == targetDate, ct);
+
+        if (attendance == null)
+        {
+            attendance = new ShowroomDailyAttendance
+            {
+                ShowroomId = showroomId,
+                Date = targetDate,
+                IsAttendanceConfirmed = true,
+                AttendanceConfirmedAt = DateTime.UtcNow,
+                AttendanceConfirmedByUserId = userId
+            };
+            _db.ShowroomDailyAttendances.Add(attendance);
+        }
+        else
+        {
+            attendance.IsDeleted = false;
+            attendance.IsAttendanceConfirmed = true;
+            attendance.AttendanceConfirmedAt = DateTime.UtcNow;
+            attendance.AttendanceConfirmedByUserId = userId;
+            attendance.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return (await GetDailyStaffAsync(showroomId, targetDate, ct))!;
+    }
+
+    public async Task<DailyStaffResponse> UnlockAttendanceAsync(Guid showroomId, DateTime date, Guid userId, bool isOwner, CancellationToken ct = default)
+    {
+        if (!isOwner)
+        {
+            throw new ForbiddenException("Only the Owner can unlock and correct attendance.");
+        }
+
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId && !s.IsDeleted, ct)
+            ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
+
+        var targetDate = ToUtcDate(date);
+
+        var attendance = await _db.ShowroomDailyAttendances
+            .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted, ct);
+
+        if (attendance != null && attendance.IsAttendanceConfirmed)
+        {
+            attendance.IsAttendanceConfirmed = false;
+            attendance.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return (await GetDailyStaffAsync(showroomId, targetDate, ct))!;
+    }
+
+    public async Task<DailyStaffAssignmentDto> AssignStaffAsync(Guid showroomId, CreateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default)
+    {
+        var targetDate = ToUtcDate(request.Date);
+        await EnsureAttendanceNotLockedAsync(showroomId, targetDate, isOwner, ct);
+
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct)
             ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
 
         var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == request.StaffId, ct)
             ?? throw new KeyNotFoundException($"Staff member with ID '{request.StaffId}' was not found.");
-
-        var targetDate = ToUtcDate(request.Date);
 
         // Check if an assignment already exists for this showroom, staff and date
         var existing = await _db.ShowroomStaffAssignments
@@ -275,7 +377,7 @@ public class ShowroomService : IShowroomService
         );
     }
 
-    public async Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, CancellationToken ct = default)
+    public async Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, bool isOwner = false, CancellationToken ct = default)
     {
         var assignment = await _db.ShowroomStaffAssignments
             .Include(a => a.Staff)
@@ -283,6 +385,8 @@ public class ShowroomService : IShowroomService
             .FirstOrDefaultAsync(a => a.Id == assignmentId, ct);
 
         if (assignment == null) return null;
+
+        await EnsureAttendanceNotLockedAsync(assignment.ShowroomId, assignment.Date, isOwner, ct);
 
         assignment.VehiclesAttended = Math.Max(0, vehiclesAttended);
         assignment.UpdatedAt = DateTime.UtcNow;
@@ -303,10 +407,12 @@ public class ShowroomService : IShowroomService
         );
     }
 
-    public async Task<bool> RemoveAssignmentAsync(Guid assignmentId, CancellationToken ct = default)
+    public async Task<bool> RemoveAssignmentAsync(Guid assignmentId, bool isOwner = false, CancellationToken ct = default)
     {
         var assignment = await _db.ShowroomStaffAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, ct);
         if (assignment == null) return false;
+
+        await EnsureAttendanceNotLockedAsync(assignment.ShowroomId, assignment.Date, isOwner, ct);
 
         assignment.IsDeleted = true;
         assignment.UpdatedAt = DateTime.UtcNow;

@@ -25,12 +25,15 @@ import {
 	TrendingUp,
 	Eye,
 	Layers,
-	BarChart3,
+	Lock,
+	Unlock,
+	AlertTriangle,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
+import { useAuth } from '../auth/auth-context';
 import {
 	getShowrooms,
 	createShowroom,
@@ -38,6 +41,8 @@ import {
 	deleteShowroom,
 	toggleShowroomActive,
 	getDailyStaff,
+	confirmDailyStaffAttendance,
+	unlockDailyStaffAttendance,
 	assignDailyStaff,
 	updateDailyStaffVehicles,
 	removeDailyStaff,
@@ -51,10 +56,7 @@ import {
 	type ShowroomDto,
 	type DailyStaffAssignmentDto,
 	type StaffDto,
-	type ShowroomDailyBillDto,
 	type ShowroomPaymentDto,
-	type ShowroomSummaryDto,
-	type ShowroomOutstandingOverviewDto,
 } from '../../lib/api';
 
 // ── Pure Calendar Date Helpers (No Timezone Offset Skipping) ─────────────────
@@ -88,6 +90,20 @@ function formatDateHeading(dateStr: string): string {
 		day: 'numeric',
 		month: 'short',
 		year: 'numeric',
+	});
+}
+
+function formatDateTime(dateStr?: string | null): string {
+	if (!dateStr) return '';
+	const dt = new Date(dateStr);
+	if (isNaN(dt.getTime())) return dateStr;
+	return dt.toLocaleDateString('en-IN', {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric',
+		hour: 'numeric',
+		minute: '2-digit',
+		hour12: true,
 	});
 }
 
@@ -215,6 +231,17 @@ export function ShowroomPage() {
 
 	// Local optimistic vehicles count cache
 	const [localVehicleCounts, setLocalVehicleCounts] = useState<Record<string, number>>({});
+
+	// Attendance Confirmation & Locking states
+	const { isOwner, hasPermission } = useAuth();
+	const [showUnlockModal, setShowUnlockModal] = useState(false);
+	const [isCorrectionMode, setIsCorrectionMode] = useState(false);
+
+	// Reset local cache & correction mode on selection change
+	useEffect(() => {
+		setLocalVehicleCounts({});
+		setIsCorrectionMode(false);
+	}, [selectedShowroom?.id, selectedDate]);
 
 	// Daily Showroom Billing & Payment States
 	const [showSetBillModal, setShowSetBillModal] = useState(false);
@@ -403,6 +430,41 @@ export function ShowroomPage() {
 			qc.invalidateQueries({ queryKey: ['showroomSummary', selectedShowroom?.id] });
 			qc.invalidateQueries({ queryKey: ['showrooms'] });
 			setDeletingAssignment(null);
+		},
+	});
+
+	// 7.1 Confirm Daily Staff Attendance
+	const confirmAttendanceMutation = useMutation({
+		mutationFn: () => {
+			if (!selectedShowroom) throw new Error('No showroom selected');
+			return confirmDailyStaffAttendance(selectedShowroom.id, selectedDate);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ['daily-staff', selectedShowroom?.id, selectedDate] });
+			qc.invalidateQueries({ queryKey: ['showroomSummary', selectedShowroom?.id] });
+			qc.invalidateQueries({ queryKey: ['showrooms'] });
+			setIsCorrectionMode(false);
+		},
+		onError: (err: any) => {
+			alert(err.message || 'Failed to confirm attendance.');
+		},
+	});
+
+	// 7.2 Unlock Daily Staff Attendance (Owner Correction)
+	const unlockAttendanceMutation = useMutation({
+		mutationFn: () => {
+			if (!selectedShowroom) throw new Error('No showroom selected');
+			return unlockDailyStaffAttendance(selectedShowroom.id, selectedDate);
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ['daily-staff', selectedShowroom?.id, selectedDate] });
+			qc.invalidateQueries({ queryKey: ['showroomSummary', selectedShowroom?.id] });
+			qc.invalidateQueries({ queryKey: ['showrooms'] });
+			setShowUnlockModal(false);
+			setIsCorrectionMode(true);
+		},
+		onError: (err: any) => {
+			alert(err.message || 'Failed to unlock attendance for correction.');
 		},
 	});
 
@@ -810,7 +872,6 @@ export function ShowroomPage() {
 														>
 															<StatusBadge
 																status={sr.isActive ? 'Active' : 'Inactive'}
-																variant={sr.isActive ? 'success' : 'neutral'}
 															/>
 														</span>
 													</td>
@@ -1139,7 +1200,6 @@ export function ShowroomPage() {
 							</h1>
 							<StatusBadge
 								status={selectedShowroom.isActive ? 'Active' : 'Inactive'}
-								variant={selectedShowroom.isActive ? 'success' : 'neutral'}
 							/>
 						</div>
 						<p className="text-xs text-on-surface-variant flex items-center gap-1.5 mt-0.5">
@@ -1331,174 +1391,315 @@ export function ShowroomPage() {
 						</div>
 					</div>
 
-					{/* ── SECTION 1: DAILY STAFF ASSIGNMENTS TABLE ───────────────────────── */}
-					<div className="app-card overflow-hidden">
-						<div className="p-4 border-b border-outline-variant/60 flex items-center justify-between">
-							<div>
-								<h2 className="text-base font-semibold text-on-surface">Staff Attendance &amp; Vehicles Attended</h2>
-								<p className="text-xs text-on-surface-variant mt-0.5">
-									Operational roster for <span className="font-semibold text-on-surface">{formatDateHeading(selectedDate)}</span>
-								</p>
+					{/* ── ATTENDANCE CONFIRMATION STATUS BANNER ──────────────────────── */}
+					{(() => {
+						const isConfirmed = dailyStaffData?.isAttendanceConfirmed ?? false;
+						const isLocked = isConfirmed && !isCorrectionMode;
+
+						if (isLocked) {
+							return (
+								<div className="p-4 bg-emerald-50/90 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+									<div className="flex items-center gap-3">
+										<div className="w-9 h-9 rounded-full bg-emerald-500/15 text-emerald-700 flex items-center justify-center shrink-0">
+											<CheckCircle2 className="w-5 h-5 text-emerald-600" />
+										</div>
+										<div>
+											<div className="flex items-center gap-2">
+												<span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">
+													Attendance Confirmed
+												</span>
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100/80 text-emerald-800 border border-emerald-200">
+													<Lock className="w-3 h-3" /> Locked
+												</span>
+											</div>
+											<p className="text-xs text-emerald-700 mt-0.5">
+												Confirmed by <strong className="font-semibold text-emerald-900">{dailyStaffData?.attendanceConfirmedByName || 'Authorized User'}</strong> • {formatDateTime(dailyStaffData?.attendanceConfirmedAt)}
+											</p>
+										</div>
+									</div>
+
+									{isOwner && (
+										<Button
+											type="button"
+											variant="secondary"
+											size="sm"
+											icon={<Unlock className="w-3.5 h-3.5 text-purple-600" />}
+											onClick={() => setShowUnlockModal(true)}
+											className="shrink-0 border-purple-200 hover:bg-purple-50 text-purple-700 font-semibold"
+										>
+											Correct Attendance
+										</Button>
+									)}
+								</div>
+							);
+						}
+
+						if (isCorrectionMode) {
+							return (
+								<div className="p-4 bg-purple-50/90 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+									<div className="flex items-center gap-3">
+										<div className="w-9 h-9 rounded-full bg-purple-500/15 text-purple-700 flex items-center justify-center shrink-0">
+											<Unlock className="w-5 h-5 text-purple-600" />
+										</div>
+										<div>
+											<div className="flex items-center gap-2">
+												<span className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+													Administrative Correction Mode
+												</span>
+												<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-100/80 text-purple-800 border border-purple-200">
+													Owner Edit
+												</span>
+											</div>
+											<p className="text-xs text-purple-700 mt-0.5">
+												Changes are being made by Owner. Attendance must be confirmed again after updates.
+											</p>
+										</div>
+									</div>
+
+									<Button
+										type="button"
+										variant="primary"
+										size="sm"
+										icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+										loading={confirmAttendanceMutation.isPending}
+										onClick={() => confirmAttendanceMutation.mutate()}
+										className="shrink-0 bg-purple-700 hover:bg-purple-800"
+									>
+										Confirm Attendance
+									</Button>
+								</div>
+							);
+						}
+
+						return (
+							<div className="p-4 bg-amber-50/90 border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+								<div className="flex items-center gap-3">
+									<div className="w-9 h-9 rounded-full bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0">
+										<Clock className="w-5 h-5 text-amber-600" />
+									</div>
+									<div>
+										<div className="flex items-center gap-2">
+											<span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+												Attendance Not Confirmed
+											</span>
+											<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100/80 text-amber-800 border border-amber-200">
+												Open for edits
+											</span>
+										</div>
+										<p className="text-xs text-amber-700 mt-0.5">
+											Attendance and vehicle counts can still be edited.
+										</p>
+									</div>
+								</div>
+
+								{(isOwner || hasPermission('showroom.confirm_attendance')) && (
+									<Button
+										type="button"
+										variant="primary"
+										size="sm"
+										icon={<CheckCircle2 className="w-3.5 h-3.5" />}
+										loading={confirmAttendanceMutation.isPending}
+										onClick={() => confirmAttendanceMutation.mutate()}
+										className="shrink-0"
+									>
+										Confirm Attendance
+									</Button>
+								)}
 							</div>
-							<Button
-								variant="secondary"
-								size="sm"
-								icon={<Plus className="w-3.5 h-3.5" />}
-								onClick={openAddStaffModal}
-							>
-								Assign Staff
-							</Button>
-						</div>
+						);
+					})()}
 
-						<div className="overflow-x-auto">
-							<table className="app-table">
-								<thead>
-									<tr>
-										<th>Staff</th>
-										<th>Phone</th>
-										<th>Role</th>
-										<th className="w-60 text-center">Vehicles Attended</th>
-										<th className="text-right">Actions</th>
-									</tr>
-								</thead>
-								<tbody>
-									{dailyStaffLoading && (
-										<tr>
-											<td colSpan={5} className="py-12 text-center text-on-surface-variant">
-												Loading staff assignments for {formatDateHeading(selectedDate)}...
-											</td>
-										</tr>
-									)}
+					{/* ── SECTION 1: DAILY STAFF ASSIGNMENTS TABLE ───────────────────────── */}
+					{(() => {
+						const isConfirmed = dailyStaffData?.isAttendanceConfirmed ?? false;
+						const isLocked = isConfirmed && !isCorrectionMode;
 
-									{!dailyStaffLoading && (!dailyStaffData?.staffAssignments || dailyStaffData.staffAssignments.length === 0) && (
-										<tr>
-											<td colSpan={5} className="py-16 text-center">
-												<div className="max-w-xs mx-auto text-center space-y-3">
-													<Users className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
-													<div>
-														<p className="text-sm font-medium text-on-surface">No staff assigned yet</p>
-														<p className="text-xs text-on-surface-variant mt-0.5">
-															No staff members have been assigned to {selectedShowroom.name} on {formatDateHeading(selectedDate)}.
-														</p>
-													</div>
-													<Button
-														variant="primary"
-														icon={<UserPlus className="w-4 h-4" />}
-														onClick={openAddStaffModal}
-													>
-														Assign First Staff
-													</Button>
-												</div>
-											</td>
-										</tr>
-									)}
+						return (
+							<div className="app-card overflow-hidden">
+								<div className="p-4 border-b border-outline-variant/60 flex items-center justify-between">
+									<div>
+										<h2 className="text-base font-semibold text-on-surface">Staff Attendance &amp; Vehicles Attended</h2>
+										<p className="text-xs text-on-surface-variant mt-0.5">
+											Operational roster for <span className="font-semibold text-on-surface">{formatDateHeading(selectedDate)}</span>
+										</p>
+									</div>
+									<Button
+										variant="secondary"
+										size="sm"
+										icon={<Plus className="w-3.5 h-3.5" />}
+										disabled={isLocked}
+										onClick={openAddStaffModal}
+									>
+										Assign Staff
+									</Button>
+								</div>
 
-									{!dailyStaffLoading &&
-										dailyStaffData?.staffAssignments?.map((assignment) => {
-											const currentCount =
-												localVehicleCounts[assignment.id] !== undefined
-													? localVehicleCounts[assignment.id]
-													: assignment.vehiclesAttended;
-
-											return (
-												<tr key={assignment.id} className="hover:bg-surface-container/30 transition-colors">
-													<td>
-														<div className="flex items-center gap-3">
-															<div className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-xs font-bold shrink-0">
-																{assignment.staffName
-																	.split(' ')
-																	.map((n) => n[0])
-																	.slice(0, 2)
-																	.join('')
-																	.toUpperCase()}
-															</div>
-															<div>
-																<p className="font-semibold text-sm text-on-surface">{assignment.staffName}</p>
-																<p className="text-xs text-on-surface-variant">Staff ID: {assignment.staffId.slice(0, 8)}</p>
-															</div>
-														</div>
-													</td>
-
-													<td className="text-sm text-on-surface-variant font-mono">
-														{assignment.staffPhone || '—'}
-													</td>
-
-													<td>
-														<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-container text-on-surface-variant">
-															{assignment.staffRole || 'Technician'}
-														</span>
-													</td>
-
-													<td className="text-center">
-														<div className="inline-flex items-center gap-1.5 bg-surface-container-low p-1 rounded-lg border border-outline-variant/80">
-															<button
-																type="button"
-																onClick={() => handleVehiclesChange(assignment.id, currentCount - 1)}
-																disabled={currentCount <= 0}
-																className="w-7 h-7 rounded-md bg-white border border-outline-variant/80 flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
-																title="Decrease vehicle count"
-															>
-																<Minus className="w-3.5 h-3.5" />
-															</button>
-
-															<input
-																type="number"
-																min={0}
-																value={currentCount}
-																onChange={(e) => {
-																	const val = parseInt(e.target.value, 10);
-																	handleVehiclesChange(assignment.id, isNaN(val) ? 0 : val);
-																}}
-																className="w-14 text-center font-bold text-sm text-on-surface bg-transparent outline-hidden"
-																title="Directly edit vehicle count"
-															/>
-
-															<button
-																type="button"
-																onClick={() => handleVehiclesChange(assignment.id, currentCount + 1)}
-																className="w-7 h-7 rounded-md bg-white border border-outline-variant/80 flex items-center justify-center text-on-surface hover:bg-surface-container transition-all cursor-pointer"
-																title="Increase vehicle count"
-															>
-																<Plus className="w-3.5 h-3.5" />
-															</button>
-														</div>
-													</td>
-
-													<td className="text-right">
-														<button
-															type="button"
-															onClick={() => setDeletingAssignment(assignment)}
-															className="text-error hover:text-error/80 hover:bg-error/10 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
-															title="Remove staff assignment"
-														>
-															<Trash2 className="w-3.5 h-3.5" />
-															Remove
-														</button>
+								<div className="overflow-x-auto">
+									<table className="app-table">
+										<thead>
+											<tr>
+												<th>Staff</th>
+												<th>Phone</th>
+												<th>Role</th>
+												<th className="w-60 text-center">Vehicles Attended</th>
+												<th className="text-right">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											{dailyStaffLoading && (
+												<tr>
+													<td colSpan={5} className="py-12 text-center text-on-surface-variant">
+														Loading staff assignments for {formatDateHeading(selectedDate)}...
 													</td>
 												</tr>
-											);
-										})}
-								</tbody>
-							</table>
-						</div>
+											)}
 
-						{/* Bottom Staff Summary Bar */}
-						{dailyStaffData?.staffAssignments && dailyStaffData.staffAssignments.length > 0 && (
-							<div className="p-4 bg-surface-container-low/60 border-t border-outline-variant/60 flex items-center justify-between">
-								<span className="text-xs font-medium text-on-surface-variant">
-									{dailyStaffData.staffAssignments.length} staff assigned on {formatDateHeading(selectedDate)}
-								</span>
-								<div className="flex items-center gap-2">
-									<span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-										Total Vehicles Attended:
-									</span>
-									<span className="text-base font-bold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-md border border-blue-200">
-										{liveTotalVehicles}
-									</span>
+											{!dailyStaffLoading && (!dailyStaffData?.staffAssignments || dailyStaffData.staffAssignments.length === 0) && (
+												<tr>
+													<td colSpan={5} className="py-16 text-center">
+														<div className="max-w-xs mx-auto text-center space-y-3">
+															<Users className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
+															<div>
+																<p className="text-sm font-medium text-on-surface">No staff assigned yet</p>
+																<p className="text-xs text-on-surface-variant mt-0.5">
+																	No staff members have been assigned to {selectedShowroom.name} on {formatDateHeading(selectedDate)}.
+																</p>
+															</div>
+															{!isLocked && (
+																<Button
+																	variant="primary"
+																	icon={<UserPlus className="w-4 h-4" />}
+																	onClick={openAddStaffModal}
+																>
+																	Assign First Staff
+																</Button>
+															)}
+														</div>
+													</td>
+												</tr>
+											)}
+
+											{!dailyStaffLoading &&
+												dailyStaffData?.staffAssignments?.map((assignment) => {
+													const currentCount =
+														localVehicleCounts[assignment.id] !== undefined
+															? localVehicleCounts[assignment.id]
+															: assignment.vehiclesAttended;
+
+													return (
+														<tr key={assignment.id} className="hover:bg-surface-container/30 transition-colors">
+															<td>
+																<div className="flex items-center gap-3">
+																	<div className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-xs font-bold shrink-0">
+																		{assignment.staffName
+																			.split(' ')
+																			.map((n) => n[0])
+																			.slice(0, 2)
+																			.join('')
+																			.toUpperCase()}
+																	</div>
+																	<div>
+																		<p className="font-semibold text-sm text-on-surface">{assignment.staffName}</p>
+																		<p className="text-xs text-on-surface-variant">Staff ID: {assignment.staffId.slice(0, 8)}</p>
+																	</div>
+																</div>
+															</td>
+
+															<td className="text-sm text-on-surface-variant font-mono">
+																{assignment.staffPhone || '—'}
+															</td>
+
+															<td>
+																<span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-container text-on-surface-variant">
+																	{assignment.staffRole || 'Technician'}
+																</span>
+															</td>
+
+															<td className="text-center">
+																{isLocked ? (
+																	<div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-surface-container/80 border border-outline-variant/60 text-on-surface">
+																		<Lock className="w-3.5 h-3.5 text-slate-400" />
+																		<span className="font-bold text-sm font-mono">{currentCount}</span>
+																	</div>
+																) : (
+																	<div className="inline-flex items-center gap-1.5 bg-surface-container-low p-1 rounded-lg border border-outline-variant/80">
+																		<button
+																			type="button"
+																			onClick={() => handleVehiclesChange(assignment.id, currentCount - 1)}
+																			disabled={currentCount <= 0}
+																			className="w-7 h-7 rounded-md bg-white border border-outline-variant/80 flex items-center justify-center text-on-surface hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer"
+																			title="Decrease vehicle count"
+																		>
+																			<Minus className="w-3.5 h-3.5" />
+																		</button>
+
+																		<input
+																			type="number"
+																			min={0}
+																			value={currentCount}
+																			onChange={(e) => {
+																				const val = parseInt(e.target.value, 10);
+																				handleVehiclesChange(assignment.id, isNaN(val) ? 0 : val);
+																			}}
+																			className="w-14 text-center font-bold text-sm text-on-surface bg-transparent outline-hidden"
+																			title="Directly edit vehicle count"
+																		/>
+
+																		<button
+																			type="button"
+																			onClick={() => handleVehiclesChange(assignment.id, currentCount + 1)}
+																			className="w-7 h-7 rounded-md bg-white border border-outline-variant/80 flex items-center justify-center text-on-surface hover:bg-surface-container transition-all cursor-pointer"
+																			title="Increase vehicle count"
+																		>
+																			<Plus className="w-3.5 h-3.5" />
+																		</button>
+																	</div>
+																)}
+															</td>
+
+															<td className="text-right">
+																{isLocked ? (
+																	<span className="text-xs text-slate-400 font-medium inline-flex items-center justify-end gap-1">
+																		<Lock className="w-3 h-3" /> Locked
+																	</span>
+																) : (
+																	<button
+																		type="button"
+																		onClick={() => setDeletingAssignment(assignment)}
+																		className="text-error hover:text-error/80 hover:bg-error/10 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
+																		title="Remove staff assignment"
+																	>
+																		<Trash2 className="w-3.5 h-3.5" />
+																		Remove
+																	</button>
+																)}
+															</td>
+														</tr>
+													);
+												})}
+										</tbody>
+									</table>
 								</div>
+
+								{/* Bottom Staff Summary Bar */}
+								{dailyStaffData?.staffAssignments && dailyStaffData.staffAssignments.length > 0 && (
+									<div className="p-4 bg-surface-container-low/60 border-t border-outline-variant/60 flex items-center justify-between">
+										<span className="text-xs font-medium text-on-surface-variant">
+											{dailyStaffData.staffAssignments.length} staff assigned on {formatDateHeading(selectedDate)}
+										</span>
+										<div className="flex items-center gap-2">
+											<span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+												Total Vehicles Attended:
+											</span>
+											<span className="text-base font-bold text-blue-600 bg-blue-50 px-3 py-0.5 rounded-md border border-blue-200">
+												{liveTotalVehicles}
+											</span>
+										</div>
+									</div>
+								)}
 							</div>
-						)}
-					</div>
+						);
+					})()}
 
 					{/* ── SECTION 2: SHOWROOM DAILY FINANCIAL BILLING & PAYMENTS ─────────── */}
 					<div className="app-card overflow-hidden">
@@ -2537,6 +2738,59 @@ export function ShowroomPage() {
 								onClick={() => deletePaymentMutation.mutate(deletingPayment.id)}
 							>
 								Void Payment
+							</Button>
+						</div>
+					</div>
+				</Dialog>
+			)}
+
+			{/* ── MODAL: OWNER UNLOCK ATTENDANCE CONFIRMATION ──────────────────── */}
+			{showUnlockModal && (
+				<Dialog
+					open={showUnlockModal}
+					onOpenChange={(open) => {
+						if (!open && !unlockAttendanceMutation.isPending) {
+							setShowUnlockModal(false);
+						}
+					}}
+					title="Unlock Daily Attendance"
+					description="Owner administrative correction workflow for confirmed showroom attendance."
+					size="sm"
+				>
+					<div className="space-y-4 pt-2">
+						<div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+							<AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+							<div>
+								<p className="font-semibold">
+									Attendance is currently confirmed for {formatDateHeading(selectedDate)}.
+								</p>
+								<p className="text-amber-800 mt-1">
+									Unlocking it will activate <strong>Administrative Correction Mode</strong>, allowing vehicle counts and staff rosters to be modified.
+								</p>
+								<p className="text-amber-800 mt-1 font-medium">
+									Attendance must be confirmed again once your corrections are complete.
+								</p>
+							</div>
+						</div>
+
+						<div className="flex items-center justify-end gap-2 pt-2 border-t border-outline-variant/60">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => setShowUnlockModal(false)}
+								disabled={unlockAttendanceMutation.isPending}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="button"
+								variant="primary"
+								loading={unlockAttendanceMutation.isPending}
+								onClick={() => unlockAttendanceMutation.mutate()}
+								className="bg-purple-700 hover:bg-purple-800"
+								icon={<Unlock className="w-3.5 h-3.5" />}
+							>
+								Unlock Attendance
 							</Button>
 						</div>
 					</div>

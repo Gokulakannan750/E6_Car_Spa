@@ -801,6 +801,10 @@ export interface DailyStaffResponse {
 	showroomName: string;
 	date: string;
 	totalVehiclesAttended: number;
+	isAttendanceConfirmed: boolean;
+	attendanceConfirmedAt?: string | null;
+	attendanceConfirmedByUserId?: string | null;
+	attendanceConfirmedByName?: string | null;
 	staffAssignments: DailyStaffAssignmentDto[];
 }
 
@@ -851,6 +855,20 @@ export async function toggleShowroomActive(id: string) {
 export async function getDailyStaff(showroomId: string, date: string) {
 	const qs = new URLSearchParams({ date });
 	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff?` + qs.toString());
+}
+
+export async function confirmDailyStaffAttendance(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff/confirm?` + qs.toString(), {
+		method: 'POST',
+	});
+}
+
+export async function unlockDailyStaffAttendance(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff/unlock?` + qs.toString(), {
+		method: 'POST',
+	});
 }
 
 export async function assignDailyStaff(showroomId: string, data: CreateDailyStaffAssignmentInput) {

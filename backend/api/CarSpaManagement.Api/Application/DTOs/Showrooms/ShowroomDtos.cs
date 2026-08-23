@@ -58,6 +58,10 @@ public record DailyStaffResponse(
     string ShowroomName,
     DateTime Date,
     int TotalVehiclesAttended,
+    bool IsAttendanceConfirmed,
+    DateTime? AttendanceConfirmedAt,
+    Guid? AttendanceConfirmedByUserId,
+    string? AttendanceConfirmedByName,
     IReadOnlyList<DailyStaffAssignmentDto> StaffAssignments);
 
 public record CreateDailyStaffAssignmentRequest

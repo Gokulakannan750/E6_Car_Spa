@@ -42,7 +42,6 @@ public static class PermissionSeeder
         ("showroom.assign_staff", "Assign Staff", "Showroom", "Allows assigning staff to showroom for the day"),
         ("showroom.edit_attendance", "Edit Attendance", "Showroom", "Allows updating staff vehicle counts"),
         ("showroom.confirm_attendance", "Confirm Attendance", "Showroom", "Allows confirming showroom daily attendance"),
-        ("showroom.unlock_attendance", "Unlock Attendance", "Showroom", "Allows unlocking attendance for correction"),
         ("showroom.manage_billing", "Manage Billing", "Showroom", "Allows setting daily showroom billing amount"),
         ("showroom.record_payment", "Record Payment", "Showroom", "Allows recording payments from showrooms"),
         ("showroom.view_history", "View History", "Showroom", "Allows viewing historical records and productivity"),

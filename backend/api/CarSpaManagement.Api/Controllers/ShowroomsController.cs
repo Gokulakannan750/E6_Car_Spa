@@ -74,6 +74,22 @@ public class ShowroomsController : ControllerBase
         return NoContent();
     }
 
+    private (Guid UserId, bool IsOwner) GetCallerInfo()
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        Guid.TryParse(userIdStr, out var userId);
+
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+            ?? User.FindFirst("role")?.Value;
+        var isOwnerClaim = User.FindFirst("isOwner")?.Value;
+
+        var isOwner = string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(isOwnerClaim, "true", StringComparison.OrdinalIgnoreCase);
+
+        return (userId, isOwner);
+    }
+
     // ── Daily Staff Assignment Endpoints ─────────────────────────────────────
 
     [HttpGet("{id:guid}/daily-staff")]
@@ -92,8 +108,39 @@ public class ShowroomsController : ControllerBase
     {
         try
         {
-            var assignment = await _service.AssignStaffAsync(id, request, ct);
+            var (_, isOwner) = GetCallerInfo();
+            var assignment = await _service.AssignStaffAsync(id, request, isOwner, ct);
             return Ok(assignment);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/daily-staff/{date:datetime}/confirm")]
+    [HttpPost("{id:guid}/daily-staff/confirm")]
+    [RequirePermission("showroom.confirm_attendance")]
+    public async Task<IActionResult> ConfirmAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
+    {
+        try
+        {
+            var targetDate = date ?? queryDate ?? DateTime.UtcNow.Date;
+            var (userId, _) = GetCallerInfo();
+            var res = await _service.ConfirmAttendanceAsync(id, targetDate, userId, ct);
+            return Ok(res);
         }
         catch (KeyNotFoundException ex)
         {
@@ -101,7 +148,29 @@ public class ShowroomsController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return Conflict(new { message = ex.Message });
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/daily-staff/{date:datetime}/unlock")]
+    [HttpPost("{id:guid}/daily-staff/unlock")]
+    public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
+    {
+        var (userId, isOwner) = GetCallerInfo();
+        if (!isOwner)
+        {
+            return StatusCode(403, new { message = "Only the Owner can unlock and correct attendance." });
+        }
+
+        try
+        {
+            var targetDate = date ?? queryDate ?? DateTime.UtcNow.Date;
+            var res = await _service.UnlockAttendanceAsync(id, targetDate, userId, isOwner, ct);
+            return Ok(res);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 
