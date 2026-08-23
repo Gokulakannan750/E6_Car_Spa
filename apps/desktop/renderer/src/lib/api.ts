@@ -137,6 +137,9 @@ export interface JobCardDto {
  taxAmount: number;
  discountAmount: number;
  totalAmount: number;
+ invoiceId?: string | null;
+ invoiceNumber?: string | null;
+ invoiceStatus?: string | null;
  createdAt: string;
  updatedAt: string | null;
 }
@@ -161,6 +164,9 @@ export interface JobCardListDto {
  model: string;
  status: number;
  totalAmount: number;
+ invoiceId?: string | null;
+ invoiceNumber?: string | null;
+ invoiceStatus?: string | null;
  createdAt: string;
 }
 
@@ -714,7 +720,127 @@ export async function getDashboardStats() {
 // ============================================================================
 
 export async function getHealth() {
- return request<HealthResponse>('/api/health');
+	return request<HealthResponse>('/api/health');
+}
+
+// ============================================================================
+// Showrooms & Daily Staff Assignments
+// ============================================================================
+
+export interface ShowroomDto {
+	id: string;
+	name: string;
+	address: string;
+	phone?: string | null;
+	isActive: boolean;
+	activeStaffCountToday: number;
+	totalVehiclesToday: number;
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface CreateShowroomInput {
+	name: string;
+	address: string;
+	phone?: string | null;
+	isActive?: boolean;
+}
+
+export interface UpdateShowroomInput {
+	name?: string;
+	address?: string;
+	phone?: string | null;
+	isActive?: boolean;
+}
+
+export interface DailyStaffAssignmentDto {
+	id: string;
+	showroomId: string;
+	showroomName: string;
+	staffId: string;
+	staffName: string;
+	staffPhone: string;
+	staffRole?: string | null;
+	date: string;
+	vehiclesAttended: number;
+	createdAt: string;
+}
+
+export interface DailyStaffResponse {
+	showroomId: string;
+	showroomName: string;
+	date: string;
+	totalVehiclesAttended: number;
+	staffAssignments: DailyStaffAssignmentDto[];
+}
+
+export interface CreateDailyStaffAssignmentInput {
+	staffId: string;
+	date: string;
+	vehiclesAttended?: number;
+}
+
+export async function getShowrooms(params?: { search?: string; isActive?: boolean }) {
+	const qs = new URLSearchParams();
+	if (params?.search) qs.set('search', params.search);
+	if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomDto[]>('/api/showrooms' + suffix);
+}
+
+export async function getShowroomById(id: string) {
+	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`);
+}
+
+export async function createShowroom(data: CreateShowroomInput) {
+	return request<ShowroomDto>('/api/showrooms', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateShowroom(id: string, data: UpdateShowroomInput) {
+	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteShowroom(id: string) {
+	return request<void>(`/api/showrooms/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	});
+}
+
+export async function toggleShowroomActive(id: string) {
+	return request<void>(`/api/showrooms/${encodeURIComponent(id)}/toggle-active`, {
+		method: 'PATCH',
+	});
+}
+
+export async function getDailyStaff(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff?` + qs.toString());
+}
+
+export async function assignDailyStaff(showroomId: string, data: CreateDailyStaffAssignmentInput) {
+	return request<DailyStaffAssignmentDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	});
+}
+
+export async function updateDailyStaffVehicles(assignmentId: string, vehiclesAttended: number) {
+	return request<DailyStaffAssignmentDto>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
+		method: 'PUT',
+		body: JSON.stringify({ vehiclesAttended }),
+	});
+}
+
+export async function removeDailyStaff(assignmentId: string) {
+	return request<void>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
+		method: 'DELETE',
+	});
 }
 
 // ============================================================================

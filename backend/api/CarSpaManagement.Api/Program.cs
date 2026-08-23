@@ -53,6 +53,7 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IJobCardService, JobCardSvc>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
+builder.Services.AddScoped<IShowroomService, ShowroomService>();
 
 // CORS
 builder.Services.AddCors(options =>

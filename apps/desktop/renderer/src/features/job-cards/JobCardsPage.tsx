@@ -7,6 +7,8 @@ import {
 	RefreshCw,
 	Car,
 	Calendar,
+	PenLine,
+	Check,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
@@ -24,6 +26,9 @@ const mockFallbackList: JobCardListDto[] = mockJobCards.map((m) => ({
 	model: m.model,
 	status: m.status === 'draft' ? 0 : m.status === 'in-progress' ? 1 : m.status === 'ready-for-delivery' ? 3 : 6,
 	totalAmount: m.totalAmount,
+	invoiceId: null,
+	invoiceNumber: null,
+	invoiceStatus: null,
 	createdAt: m.createdAt,
 }));
 
@@ -108,6 +113,10 @@ export function JobCardsPage() {
 			const msg = err instanceof Error ? err.message : 'Failed to convert job card to invoice';
 			console.warn('Convert to invoice error:', msg);
 			setConvertError(msg);
+			// Duplicate invoice protection: if an invoice already exists, refresh job cards to get current invoice state
+			if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('conflict')) {
+				loadJobCards();
+			}
 		} finally {
 			setConvertingId(null);
 		}
@@ -281,16 +290,54 @@ export function JobCardsPage() {
 										</div>
 									</td>
 									<td className="text-right" onClick={(e) => e.stopPropagation()}>
-										<Button
-											variant="primary"
-											size="sm"
-											icon={<FileText className="w-3.5 h-3.5" />}
-											onClick={() => handleConvertToInvoice(jc)}
-											disabled={convertingId !== null}
-											loading={convertingId === jc.id}
-										>
-											{convertingId === jc.id ? 'Converting…' : 'Convert to Invoice'}
-										</Button>
+										{(() => {
+											// State A — No Invoice
+											if (!jc.invoiceId) {
+												return (
+													<Button
+														variant="primary"
+														size="sm"
+														icon={<FileText className="w-3.5 h-3.5" />}
+														onClick={() => handleConvertToInvoice(jc)}
+														disabled={convertingId !== null}
+														loading={convertingId === jc.id}
+													>
+														{convertingId === jc.id ? 'Converting…' : 'Convert to Invoice'}
+													</Button>
+												);
+											}
+
+											// State B — Invoice Drafted (invoice exists, unfinalized / Draft)
+											const statusStr = typeof jc.invoiceStatus === 'string' ? jc.invoiceStatus.toLowerCase() : '';
+											const isDraft =
+												(statusStr === 'draft' || jc.invoiceStatus === '0') &&
+												(!jc.invoiceNumber || jc.invoiceNumber.trim() === '');
+
+											if (isDraft) {
+												return (
+													<Button
+														size="sm"
+														className="bg-amber-500 hover:bg-amber-600 text-white border-transparent shadow-xs cursor-pointer"
+														icon={<PenLine className="w-3.5 h-3.5" />}
+														onClick={() => navigate(`/invoices/${jc.invoiceId}`)}
+													>
+														Invoice Drafted
+													</Button>
+												);
+											}
+
+											// State C — Invoice Generated (finalized)
+											return (
+												<Button
+													size="sm"
+													className="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-xs cursor-pointer"
+													icon={<Check className="w-3.5 h-3.5" />}
+													onClick={() => navigate(`/invoices/${jc.invoiceId}`)}
+												>
+													Invoice Generated
+												</Button>
+											);
+										})()}
 									</td>
 								</tr>
 							))}

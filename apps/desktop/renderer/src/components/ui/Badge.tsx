@@ -4,7 +4,7 @@ const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
  completed: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
  active: { bg: 'bg-info-container', text: 'text-info', dot: 'bg-info' },
  pending: { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
- draft: { bg: 'bg-surface-container', text: 'text-on-surface-variant', dot: 'bg-on-surface-variant' },
+ draft: { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
  generated: { bg: 'bg-info-container', text: 'text-info', dot: 'bg-info' },
  cancelled: { bg: 'bg-error-container', text: 'text-error', dot: 'bg-error' },
  inactive: { bg: 'bg-surface-container', text: 'text-on-surface-variant', dot: 'bg-on-surface-variant' },

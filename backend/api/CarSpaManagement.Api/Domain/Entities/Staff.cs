@@ -26,4 +26,5 @@ public class Staff : BaseEntity
  public bool IsActive { get; set; } = true;
 
  public List<StaffAdvance> StaffAdvances { get; set; } = new();
+ public List<ShowroomStaffAssignment> ShowroomAssignments { get; set; } = new();
 }

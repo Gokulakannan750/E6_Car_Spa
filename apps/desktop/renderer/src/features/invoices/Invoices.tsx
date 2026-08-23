@@ -42,7 +42,7 @@ interface KpiConfig {
 }
 
 const KPI_CARDS: KpiConfig[] = [
-	{ label: 'Draft', status: 'Draft', icon: <FileText className="w-5 h-5" />, colorClass: 'text-on-surface-variant', bgClass: 'bg-surface-container' },
+	{ label: 'Draft', status: 'Draft', icon: <FileText className="w-5 h-5" />, colorClass: 'text-warning', bgClass: 'bg-warning-container' },
 	{ label: 'Generated', status: 'Generated', icon: <Sparkles className="w-5 h-5" />, colorClass: 'text-info', bgClass: 'bg-info-container' },
 	{ label: 'Partially Paid', status: 'PartiallyPaid', icon: <Clock className="w-5 h-5" />, colorClass: 'text-warning', bgClass: 'bg-warning-container' },
 	{ label: 'Paid', status: 'Paid', icon: <CircleDollarSign className="w-5 h-5" />, colorClass: 'text-success', bgClass: 'bg-success-container' },
@@ -50,15 +50,19 @@ const KPI_CARDS: KpiConfig[] = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
+export type InvoiceDisplayStatus = 'Draft' | 'Generated' | 'PartiallyPaid' | 'Paid' | 'Cancelled';
+
+const STATUS_ENUM_MAP: Record<number, InvoiceDisplayStatus> = {
 	0: 'Draft',
+	1: 'Generated',
 	2: 'Paid',
 	3: 'PartiallyPaid',
 	4: 'Cancelled',
+	5: 'Generated',
 	6: 'Generated',
 };
 
-function normalizeInvoiceStatus(status: unknown): InvoiceStatus {
+function normalizeInvoiceStatus(status: unknown): InvoiceDisplayStatus {
 	if (typeof status === 'number') {
 		return STATUS_ENUM_MAP[status] ?? 'Draft';
 	}
@@ -67,26 +71,54 @@ function normalizeInvoiceStatus(status: unknown): InvoiceStatus {
 		if (!isNaN(num) && status.trim() !== '') {
 			return STATUS_ENUM_MAP[num] ?? 'Draft';
 		}
-		return (status as InvoiceStatus) || 'Draft';
+		const s = status.trim().toLowerCase();
+		if (s === 'draft' || s === '0') return 'Draft';
+		if (s === 'paid' || s === '2') return 'Paid';
+		if (s === 'partiallypaid' || s === 'partially paid' || s === 'partially-paid' || s === '3') return 'PartiallyPaid';
+		if (s === 'cancelled' || s === 'canceled' || s === '4') return 'Cancelled';
+		if (s === 'generated' || s === '6') return 'Generated';
 	}
 	return 'Draft';
 }
 
-function getInvoiceStatusSlug(inv: { status: unknown; paidAmount: number; totalAmount: number; balanceAmount: number }): string {
+function getInvoiceDisplayStatus(inv: {
+	status: unknown;
+	invoiceNumber?: string | null;
+}): InvoiceDisplayStatus {
 	const normalized = normalizeInvoiceStatus(inv.status);
-	if (normalized === 'Cancelled') return 'cancelled';
 
-	if (inv.balanceAmount <= 0 && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
-		return 'paid';
+	if (normalized === 'Cancelled') return 'Cancelled';
+	if (normalized === 'Paid') return 'Paid';
+	if (normalized === 'PartiallyPaid') return 'PartiallyPaid';
+
+	const hasInvoiceNumber = Boolean(inv.invoiceNumber && inv.invoiceNumber.trim() !== '');
+
+	// Condition 1: Draft if status == Draft OR invoiceNumber == null/empty
+	if (normalized === 'Draft' || !hasInvoiceNumber) {
+		return 'Draft';
 	}
-	if (inv.paidAmount > 0 && inv.paidAmount < inv.totalAmount) {
-		return 'partially-paid';
+
+	// Condition 2: Generated if status == Generated AND invoiceNumber != null
+	if (normalized === 'Generated' && hasInvoiceNumber) {
+		return 'Generated';
 	}
-	if (normalized === 'Paid') return 'paid';
-	if (normalized === 'PartiallyPaid') return 'partially-paid';
-	if (normalized === 'Generated') return 'generated';
-	if (normalized === 'Draft') return 'draft';
-	return 'draft';
+
+	return hasInvoiceNumber ? 'Generated' : 'Draft';
+}
+
+function getInvoiceStatusSlug(inv: {
+	status: unknown;
+	invoiceNumber?: string | null;
+}): string {
+	const displayStatus = getInvoiceDisplayStatus(inv);
+	switch (displayStatus) {
+		case 'Draft': return 'draft';
+		case 'Generated': return 'generated';
+		case 'PartiallyPaid': return 'partially-paid';
+		case 'Paid': return 'paid';
+		case 'Cancelled': return 'cancelled';
+		default: return 'draft';
+	}
 }
 
 function formatCurrency(value: number) {
@@ -161,12 +193,8 @@ export function Invoices() {
 			Cancelled: 0,
 		};
 		for (const item of items) {
-			const slug = getInvoiceStatusSlug(item);
-			if (slug === 'draft') counts.Draft = (counts.Draft || 0) + 1;
-			else if (slug === 'generated') counts.Generated = (counts.Generated || 0) + 1;
-			else if (slug === 'partially-paid') counts.PartiallyPaid = (counts.PartiallyPaid || 0) + 1;
-			else if (slug === 'paid') counts.Paid = (counts.Paid || 0) + 1;
-			else if (slug === 'cancelled') counts.Cancelled = (counts.Cancelled || 0) + 1;
+			const displayStatus = getInvoiceDisplayStatus(item);
+			counts[displayStatus] = (counts[displayStatus] || 0) + 1;
 		}
 		return counts;
 	}, [items]);
@@ -317,7 +345,7 @@ export function Invoices() {
 
 							{items.map((inv) => {
 								const statusSlug = getInvoiceStatusSlug(inv);
-								const isDraft = !inv.invoiceNumber || statusSlug === 'draft';
+								const isDraft = statusSlug === 'draft';
 								return (
 									<tr
 										key={inv.id}
@@ -331,13 +359,13 @@ export function Invoices() {
 													<Receipt className="w-4 h-4" />
 												</div>
 												<div>
-													{inv.invoiceNumber ? (
+													{inv.invoiceNumber && inv.invoiceNumber.trim() !== '' ? (
 														<p className="font-mono font-medium text-sm text-secondary hover:underline">
 															{inv.invoiceNumber}
 														</p>
 													) : (
 														<div className="flex items-center gap-1.5">
-															<span className="bg-surface-container px-1.5 py-0.5 rounded text-xs font-medium text-on-surface-variant">
+															<span className="bg-warning-container text-warning px-1.5 py-0.5 rounded text-xs font-medium">
 																Draft
 															</span>
 														</div>

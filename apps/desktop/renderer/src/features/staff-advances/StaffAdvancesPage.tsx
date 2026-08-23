@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit2, History, UserPlus, Phone, Mail, MapPin } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Plus, Search, Edit2, History, UserPlus, Phone, Mail, MapPin, ChevronDown, Trash2, Calendar, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -8,6 +8,7 @@ import {
 	getStaffAdvances,
 	getStaffList,
 	createStaffAdvance,
+	deleteStaffAdvance,
 	createStaffMember,
 	updateStaffMember,
 	getStaffAdvancesByStaffId,
@@ -38,7 +39,7 @@ export function StaffAdvancesPage() {
 	const [search, setSearch] = useState('');
 	const [page, setPage] = useState(1);
 	const [staffFilter, setStaffFilter] = useState('');
-	const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+	const [dateFilter, setDateFilter] = useState('');
 	const [showAdvanceModal, setShowAdvanceModal] = useState(false);
 
 	// Advance Form state
@@ -70,6 +71,9 @@ export function StaffAdvancesPage() {
 	// Staff Advance History Modal
 	const [selectedStaffHistory, setSelectedStaffHistory] = useState<StaffDto | null>(null);
 
+	// Delete Advance Confirmation Modal State
+	const [deletingAdvance, setDeletingAdvance] = useState<{ id: string; staffName: string; amount: number; advanceType: string } | null>(null);
+
 	// ── Queries ─────────────────────────────────────────────────────────────
 	const { data: staffList = defaultMockStaff } = useQuery({
 		queryKey: ['staff-list'],
@@ -84,14 +88,15 @@ export function StaffAdvancesPage() {
 	});
 
 	const { data: advancesData, isLoading: advancesLoading, error: advancesError } = useQuery({
-		queryKey: ['staff-advances', page, staffFilter, statusFilter, search],
+		queryKey: ['staff-advances', page, staffFilter, dateFilter, search],
 		queryFn: async () => {
 			try {
 				return await getStaffAdvances({
 					page,
 					pageSize: 20,
 					staffId: staffFilter || undefined,
-					status: statusFilter === 'all' ? undefined : statusFilter,
+					fromDate: dateFilter || undefined,
+					toDate: dateFilter || undefined,
 					search: search || undefined,
 				});
 			} catch (err) {
@@ -113,6 +118,8 @@ export function StaffAdvancesPage() {
 			}
 		},
 		enabled: !!selectedStaffHistory,
+		staleTime: 0,
+		refetchOnMount: 'always',
 	});
 
 	const advances = advancesData?.items ?? [];
@@ -143,8 +150,19 @@ export function StaffAdvancesPage() {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ['staff-advances'] });
 			qc.invalidateQueries({ queryKey: ['staff-list'] });
+			qc.invalidateQueries({ queryKey: ['staff-history-advances'] });
 			setShowAdvanceModal(false);
 			resetAdvanceForm();
+		},
+	});
+
+	const deleteAdvanceMutation = useMutation({
+		mutationFn: deleteStaffAdvance,
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: ['staff-advances'] });
+			qc.invalidateQueries({ queryKey: ['staff-list'] });
+			qc.invalidateQueries({ queryKey: ['staff-history-advances'] });
+			setDeletingAdvance(null);
 		},
 	});
 
@@ -170,7 +188,7 @@ export function StaffAdvancesPage() {
 	// Reset page on filter change
 	useEffect(() => {
 		setPage(1);
-	}, [staffFilter, statusFilter, search]);
+	}, [staffFilter, dateFilter, search]);
 
 	// ── Form Handlers ───────────────────────────────────────────────────────
 	const resetAdvanceForm = () => {
@@ -370,7 +388,10 @@ export function StaffAdvancesPage() {
 							</div>
 							<select
 								value={staffFilter}
-								onChange={(e) => setStaffFilter(e.target.value)}
+								onChange={(e) => {
+									setStaffFilter(e.target.value);
+									setPage(1);
+								}}
 								className="form-input w-48"
 							>
 								<option value="">All Staff</option>
@@ -380,16 +401,32 @@ export function StaffAdvancesPage() {
 									</option>
 								))}
 							</select>
-							<select
-								value={statusFilter}
-								onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-								className="form-input w-40"
-							>
-								<option value="all">All Status</option>
-								<option value="Pending">Pending</option>
-								<option value="Paid">Paid</option>
-								<option value="Partially Paid">Partially Paid</option>
-							</select>
+							<div className="relative flex items-center">
+								<Calendar className="w-4 h-4 absolute left-2.5 text-on-surface-variant pointer-events-none" />
+								<input
+									type="date"
+									value={dateFilter}
+									onChange={(e) => {
+										setDateFilter(e.target.value);
+										setPage(1);
+									}}
+									className="form-input pl-8 pr-7 py-1.5 text-sm w-44"
+									title="Filter advances by date"
+								/>
+								{dateFilter && (
+									<button
+										type="button"
+										onClick={() => {
+											setDateFilter('');
+											setPage(1);
+										}}
+										className="absolute right-2 text-on-surface-variant hover:text-on-surface p-0.5 rounded cursor-pointer"
+										title="Clear date filter"
+									>
+										<X className="w-3.5 h-3.5" />
+									</button>
+								)}
+							</div>
 							<div className="ml-auto text-sm text-on-surface-variant">
 								{advancesData?.totalCount ?? 0} record{(advancesData?.totalCount ?? 0) !== 1 ? 's' : ''}
 							</div>
@@ -407,21 +444,20 @@ export function StaffAdvancesPage() {
 										<th>Type</th>
 										<th>Amount</th>
 										<th>Payment Method</th>
-										<th>Status</th>
 										<th className="text-right">Actions</th>
 									</tr>
 								</thead>
 								<tbody>
 									{advancesLoading && (
 										<tr>
-											<td colSpan={7} className="py-12 text-center text-on-surface-variant">
+											<td colSpan={6} className="py-12 text-center text-on-surface-variant">
 												Loading advances...
 											</td>
 										</tr>
 									)}
 									{advancesError && (
 										<tr>
-											<td colSpan={7} className="py-12 text-center text-error">
+											<td colSpan={6} className="py-12 text-center text-error">
 												Failed to load advances.
 											</td>
 										</tr>
@@ -443,25 +479,27 @@ export function StaffAdvancesPage() {
 											<td className="text-sm">{a.advanceType}</td>
 											<td className="text-sm font-semibold text-on-surface">{formatINR(a.amount)}</td>
 											<td className="text-sm text-on-surface-variant">{a.paymentMethod ?? '—'}</td>
-											<td>
-												<StatusBadge status={a.status === 'Paid' ? 'active' : a.status === 'Pending' ? 'inactive' : 'warning'} />
-											</td>
 											<td className="text-right">
 												<button
-													className="text-secondary hover:underline text-sm font-medium"
-													onClick={() => {
-														const foundStaff = staffList.find((s) => s.id === a.staffId || s.name === a.staffName);
-														if (foundStaff) setSelectedStaffHistory(foundStaff);
-													}}
+													type="button"
+													className="text-error hover:text-error/80 hover:bg-error/10 px-2.5 py-1 rounded-md inline-flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
+													title="Delete advance record"
+													onClick={() => setDeletingAdvance({
+														id: a.id,
+														staffName: a.staffName,
+														amount: a.amount,
+														advanceType: a.advanceType,
+													})}
 												>
-													View History
+													<Trash2 className="w-3.5 h-3.5" />
+													Delete
 												</button>
 											</td>
 										</tr>
 									))}
 									{!advancesLoading && !advancesError && advances.length === 0 && (
 										<tr>
-											<td colSpan={7} className="py-16 text-center">
+											<td colSpan={6} className="py-16 text-center">
 												<p className="text-on-surface-variant text-sm">No staff advances found.</p>
 												<Button variant="secondary" className="mt-3" onClick={() => { resetAdvanceForm(); setShowAdvanceModal(true); }}>
 													Record First Advance
@@ -900,7 +938,7 @@ export function StaffAdvancesPage() {
 										</div>
 										<div className="text-right">
 											<p className="font-semibold text-on-surface">{formatINR(adv.amount)}</p>
-											<StatusBadge status={adv.status === 'Paid' ? 'active' : adv.status === 'Pending' ? 'inactive' : 'warning'} />
+											<StatusBadge status={adv.status?.toLowerCase() === 'paid' ? 'paid' : adv.status?.toLowerCase() === 'pending' ? 'pending' : 'partially-paid'} />
 										</div>
 									</div>
 								))}
@@ -913,6 +951,43 @@ export function StaffAdvancesPage() {
 							</div>
 						)}
 					</div>
+				</Dialog>
+			)}
+
+			{/* ─────────────────────────────────────────────────────────────────── */}
+			{/* MODAL 4: DELETE ADVANCE CONFIRMATION */}
+			{/* ─────────────────────────────────────────────────────────────────── */}
+			{deletingAdvance && (
+				<Dialog
+					open={!!deletingAdvance}
+					onOpenChange={(open) => {
+						if (!open && !deleteAdvanceMutation.isPending) setDeletingAdvance(null);
+					}}
+					title="Delete Advance Record"
+					description={`Are you sure you want to delete the ${deletingAdvance.advanceType} advance of ${formatINR(deletingAdvance.amount)} for ${deletingAdvance.staffName}?`}
+					footer={
+						<>
+							<Button
+								variant="secondary"
+								disabled={deleteAdvanceMutation.isPending}
+								onClick={() => setDeletingAdvance(null)}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="danger"
+								loading={deleteAdvanceMutation.isPending}
+								onClick={() => deleteAdvanceMutation.mutate(deletingAdvance.id)}
+							>
+								Delete Advance
+							</Button>
+						</>
+					}
+					size="sm"
+				>
+					<p className="text-sm text-on-surface-variant">
+						This transaction will be permanently removed from staff records and the staff member's total advance amount will be updated. This action cannot be undone.
+					</p>
 				</Dialog>
 			)}
 		</div>
@@ -949,6 +1024,102 @@ interface AdvanceFormProps {
 	staffList: StaffDto[];
 }
 
+function StaffCombobox({
+	staffName,
+	setStaffName,
+	setStaffRole,
+	staffList,
+}: {
+	staffName: string;
+	setStaffName: (v: string) => void;
+	setStaffRole: (v: string) => void;
+	staffList: StaffDto[];
+}) {
+	const [isOpen, setIsOpen] = useState(false);
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+				setIsOpen(false);
+			}
+		}
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
+	const filteredStaff = staffList.filter(
+		(s) =>
+			s.name.toLowerCase().includes(staffName.toLowerCase()) ||
+			(s.role && s.role.toLowerCase().includes(staffName.toLowerCase()))
+	);
+
+	const handleSelect = (staff: StaffDto) => {
+		setStaffName(staff.name);
+		if (staff.role) {
+			setStaffRole(staff.role);
+		}
+		setIsOpen(false);
+	};
+
+	return (
+		<div ref={containerRef} className="relative">
+			<div className="relative flex items-center">
+				<input
+					type="text"
+					className="form-input w-full pr-8"
+					value={staffName}
+					onFocus={() => setIsOpen(true)}
+					onChange={(e) => {
+						const val = e.target.value;
+						setStaffName(val);
+						setIsOpen(true);
+						const matched = staffList.find((s) => s.name.toLowerCase() === val.toLowerCase());
+						if (matched && matched.role) {
+							setStaffRole(matched.role);
+						}
+					}}
+					placeholder="Enter or select staff name"
+				/>
+				<button
+					type="button"
+					tabIndex={-1}
+					onClick={() => setIsOpen((prev) => !prev)}
+					className="absolute right-2.5 text-gray-400 hover:text-gray-600 focus:outline-hidden cursor-pointer"
+				>
+					<ChevronDown className={`w-4 h-4 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+				</button>
+			</div>
+
+			{isOpen && (
+				<div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-56 overflow-y-auto py-1">
+					{filteredStaff.length > 0 ? (
+						filteredStaff.map((s) => (
+							<button
+								key={s.id}
+								type="button"
+								onClick={() => handleSelect(s)}
+								className="w-full text-left px-3 py-2.5 hover:bg-blue-50/80 flex items-center justify-between gap-2 text-sm transition-colors cursor-pointer"
+							>
+								<span className="font-medium text-gray-800">{s.name}</span>
+								{s.role && (
+									<span className="text-xs text-gray-600 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-md font-normal">
+										{s.role}
+									</span>
+								)}
+							</button>
+						))
+					) : (
+						<div className="px-3 py-2.5 text-xs text-gray-500">
+							No staff found. Continue typing to use "{staffName}".
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	);
+}
+
 function NewAdvanceFormFields({
 	staffName,
 	setStaffName,
@@ -982,27 +1153,12 @@ function NewAdvanceFormFields({
 					<label className="block text-sm font-medium text-on-surface mb-1">
 						Select or Enter Staff Name <span className="text-error">*</span>
 					</label>
-					<input
-						list="staff-names-list"
-						className="form-input w-full"
-						value={staffName}
-						onChange={(e) => {
-							const val = e.target.value;
-							setStaffName(val);
-							const matched = staffList.find((s) => s.name.toLowerCase() === val.toLowerCase());
-							if (matched && matched.role) {
-								setStaffRole(matched.role);
-							}
-						}}
-						placeholder="Enter or select staff name"
+					<StaffCombobox
+						staffName={staffName}
+						setStaffName={setStaffName}
+						setStaffRole={setStaffRole}
+						staffList={staffList}
 					/>
-					<datalist id="staff-names-list">
-						{staffList.map((s) => (
-							<option key={s.id} value={s.name}>
-								{s.role ? `${s.name} (${s.role})` : s.name}
-							</option>
-						))}
-					</datalist>
 				</div>
 
 				<div className="col-span-2 sm:col-span-1">
