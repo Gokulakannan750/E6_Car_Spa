@@ -1,4 +1,4 @@
-import { useLocation, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 
 export default function DashboardLayout() {
@@ -16,26 +16,10 @@ export default function DashboardLayout() {
 }
 
 function GlobalHeader() {
- const { pathname } = useLocation();
-
- const pageTitles: Record<string, string> = {
- '/dashboard': 'Dashboard',
- '/customers': 'Customers',
- '/job-cards': 'Job Cards',
- '/invoices': 'Invoices',
- '/catalogue': 'Service Catalogue',
- '/staff-advances': 'Staff Advances',
- '/reports': 'Reports',
- '/showroom': 'Showroom',
- '/settings': 'Settings',
- };
-
- const title = pageTitles[pathname] || 'Car Spa';
-
  return (
  <header className="h-16 bg-surface border-b border-outline-variant shadow-sm flex items-center justify-between px-6 shrink-0">
  <div className="flex items-center gap-4">
- <h2 className="text-2xl font-semibold tracking-tight text-headline-lg text-on-surface uppercase tracking-tight">{title}</h2>
+ <h2 className="text-2xl font-semibold tracking-tight text-headline-lg text-on-surface uppercase tracking-tight">Car Spa Management</h2>
  {/* Search */}
  <div className="hidden lg:flex items-center bg-surface-container-low border border-outline-variant rounded px-3 py-2 w-64 focus-within:border-secondary focus-within:ring-1 focus-within:ring-secondary transition-all ml-4">
  <span className="material-symbols-outlined text-on-surface-variant mr-1" style={{ fontSize: '20px' }}>

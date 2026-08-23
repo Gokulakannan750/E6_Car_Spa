@@ -15,7 +15,11 @@ const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
  accepted: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
  rejected: { bg: 'bg-error-container', text: 'text-error', dot: 'bg-error' },
  expired: { bg: 'bg-surface-container', text: 'text-on-surface-variant', dot: 'bg-on-surface-variant' },
+ ready: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
  'ready-for-delivery': { bg: 'bg-info-container', text: 'text-info', dot: 'bg-info' },
+ 'quality-check': { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
+ invoiced: { bg: 'bg-info-container', text: 'text-info', dot: 'bg-info' },
+ delivered: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
 };
 
 const labelMap: Record<string, string> = {
@@ -33,7 +37,11 @@ const labelMap: Record<string, string> = {
  accepted: 'Accepted',
  rejected: 'Rejected',
  expired: 'Expired',
+ ready: 'Ready',
  'ready-for-delivery': 'Ready for Delivery',
+ 'quality-check': 'Quality Check',
+ invoiced: 'Invoiced',
+ delivered: 'Delivered',
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

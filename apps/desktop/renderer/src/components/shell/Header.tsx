@@ -46,8 +46,10 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 						))}
 					</nav>
 				)}
-				{/* Company name - always shown in header */}
-				<h1 className="text-lg font-semibold text-slate-900">{pageTitle}</h1>
+				{/* Show page title only when no breadcrumbs */}
+				{(!breadcrumbs || breadcrumbs.length === 0) && (
+					<h1 className="text-lg font-semibold text-slate-900">{pageTitle}</h1>
+				)}
 			</div>
 
 			{/* Right: Search + Actions + User */}

@@ -67,8 +67,9 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 			.IsUnique()
 			.HasDatabaseName("UX_Invoices_InvoiceNumber");
 
-		builder.HasIndex(i => new { i.JobCardId, i.Status })
-			.HasDatabaseName("IX_Invoices_JobCardId_Status");
+		builder.HasIndex(i => i.JobCardId)
+			.IsUnique()
+			.HasDatabaseName("UX_Invoices_JobCardId");
 
 		builder.HasIndex(i => new { i.CustomerId, i.Status, i.InvoiceDate })
 			.HasDatabaseName("IX_Invoices_CustomerId_Status_InvoiceDate");

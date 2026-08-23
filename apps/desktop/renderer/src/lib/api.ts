@@ -520,6 +520,44 @@ export async function getStaffList() {
  return request<StaffDto[]>('/api/staff-advances/staff');
 }
 
+export interface CreateStaffInput {
+	name: string;
+	phoneNumber: string;
+	email?: string | null;
+	address?: string | null;
+	role?: string | null;
+	isActive?: boolean;
+}
+
+export interface UpdateStaffInput {
+	name?: string;
+	phoneNumber?: string;
+	email?: string | null;
+	address?: string | null;
+	role?: string | null;
+	isActive?: boolean;
+}
+
+export async function createStaffMember(data: CreateStaffInput) {
+	return request<StaffDto>('/api/staff-advances/staff', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateStaffMember(id: string, data: UpdateStaffInput) {
+	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteStaffMember(id: string) {
+	return request<void>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	});
+}
+
 export async function getStaffById(id: string) {
  return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`);
 }
