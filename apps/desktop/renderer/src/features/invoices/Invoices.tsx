@@ -320,33 +320,48 @@ export function Invoices() {
 										onClick={() => navigate(`/invoices/${inv.id}`)}
 									>
 										{/* Invoice # + Job Card */}
-										<td className="py-3.5 px-4">
-											<div className="flex items-center gap-2">
-												<div className="w-7 h-7 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
-													<Receipt className="w-3.5 h-3.5" />
+										<td>
+											<div className="flex items-center gap-3">
+												<div className="w-9 h-9 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+													<Receipt className="w-4 h-4" />
 												</div>
 												<div>
-													<p className="font-mono font-bold text-on-surface text-sm">{inv.invoiceNumber}</p>
+													{inv.invoiceNumber ? (
+														<p className="font-mono font-medium text-sm text-secondary hover:underline">
+															{inv.invoiceNumber}
+														</p>
+													) : (
+														<div className="flex items-center gap-1.5">
+															<span className="bg-surface-container px-1.5 py-0.5 rounded text-xs font-medium text-on-surface-variant">
+																Draft
+															</span>
+														</div>
+													)}
 													<p className="text-xs font-mono text-on-surface-variant">{inv.jobCardNumber}</p>
 												</div>
 											</div>
 										</td>
 
 										{/* Customer */}
-										<td className="py-3.5 px-4">
-											<div>
-												<p className="font-semibold text-on-surface">{inv.customerName}</p>
-												<p className="text-xs font-mono text-on-surface-variant">{inv.customerPhone}</p>
+										<td>
+											<div className="flex items-center gap-3">
+												<div className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-xs font-semibold shrink-0">
+													{inv.customerName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'CU'}
+												</div>
+												<div>
+													<p className="font-medium text-on-surface">{inv.customerName}</p>
+													<p className="text-sm text-on-surface-variant font-mono">{inv.customerPhone}</p>
+												</div>
 											</div>
 										</td>
 
 										{/* Vehicle */}
-										<td className="py-3.5 px-4">
-											<div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
-												<Car className="w-3.5 h-3.5 shrink-0 text-on-surface-variant/70" />
-												<span className="font-medium text-on-surface">{inv.vehicle}</span>
+										<td>
+											<div className="flex items-center gap-1.5 text-sm text-on-surface-variant">
+												<Car className="w-3.5 h-3.5 shrink-0" />
+												<span className="text-on-surface font-medium">{inv.vehicle}</span>
 												{inv.registrationNumber && (
-													<span className="bg-surface-container px-1.5 py-0.5 rounded font-mono font-bold text-[11px] text-on-surface">
+													<span className="bg-surface-container px-1.5 py-0.5 rounded text-xs font-medium text-on-surface-variant font-mono">
 														{inv.registrationNumber}
 													</span>
 												)}
@@ -354,32 +369,32 @@ export function Invoices() {
 										</td>
 
 										{/* Date */}
-										<td className="py-3.5 px-4 text-xs text-on-surface-variant whitespace-nowrap">
+										<td className="text-sm text-on-surface-variant whitespace-nowrap">
 											<div className="flex items-center gap-1">
-												<Calendar className="w-3.5 h-3.5 shrink-0 text-on-surface-variant/70" />
+												<Calendar className="w-3.5 h-3.5 shrink-0" />
 												<span>{formatDate(inv.invoiceDate)}</span>
 											</div>
 										</td>
 
 										{/* Amount */}
-										<td className="py-3.5 px-4 text-right">
-											<p className="font-mono font-bold text-on-surface text-sm">
+										<td className="text-right">
+											<p className="font-medium text-on-surface text-sm">
 												{formatCurrency(inv.totalAmount)}
 											</p>
 											{inv.paidAmount > 0 && inv.balanceAmount > 0 && (
-												<p className="text-[11px] font-mono text-warning">
+												<p className="text-xs text-warning">
 													Bal: {formatCurrency(inv.balanceAmount)}
 												</p>
 											)}
 										</td>
 
 										{/* Status (Automatic derived) */}
-										<td className="py-3.5 px-4 text-center">
+										<td className="text-center">
 											<StatusBadge status={statusSlug} />
 										</td>
 
 										{/* Actions */}
-										<td className="py-3.5 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+										<td className="text-right" onClick={(e) => e.stopPropagation()}>
 											<Button
 												variant="secondary"
 												size="sm"

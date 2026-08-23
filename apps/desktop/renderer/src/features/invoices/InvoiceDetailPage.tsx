@@ -433,16 +433,16 @@ export function InvoiceDetailPage() {
 										const lineItemTotal = item.unitPrice * item.quantity;
 										return (
 											<tr key={item.id || idx} className="hover:bg-surface-container-low/30 transition-colors">
-												<td className="py-3.5 px-4">
-													<p className="font-semibold text-on-surface">{item.description}</p>
+												<td>
+													<p className="font-medium text-on-surface">{item.description}</p>
 												</td>
-												<td className="py-3.5 px-3 text-center font-mono text-xs">
+												<td className="text-center font-medium text-sm">
 													{item.quantity}
 												</td>
-												<td className="py-3.5 px-4 text-right font-mono text-on-surface text-xs">
+												<td className="text-right text-sm text-on-surface-variant">
 													{formatCurrency(item.unitPrice)}
 												</td>
-												<td className="py-3.5 px-4 text-right font-mono font-bold text-on-surface text-sm">
+												<td className="text-right font-medium text-on-surface text-sm">
 													{formatCurrency(lineItemTotal)}
 												</td>
 											</tr>
