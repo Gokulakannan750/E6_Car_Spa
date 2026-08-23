@@ -51,4 +51,6 @@ public class Invoice : BaseEntity
 	public string? Notes { get; set; }
 
 	public List<InvoiceItem> InvoiceItems { get; set; } = new();
+
+	public List<Payment> Payments { get; set; } = new();
 }

@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<StaffAdvance> StaffAdvances => Set<StaffAdvance>();
  public DbSet<Invoice> Invoices => Set<Invoice>();
  public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+ public DbSet<Payment> Payments => Set<Payment>();
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {

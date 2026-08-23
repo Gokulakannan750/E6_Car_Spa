@@ -120,4 +120,50 @@ public class InvoicesController : ControllerBase
 			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
 		}
 	}
+
+	[HttpPost("{id:guid}/payments")]
+	public async Task<IActionResult> RecordPayment(Guid id, [FromBody] RecordPaymentRequest request, CancellationToken ct)
+	{
+		if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+		try
+		{
+			var payment = await _service.RecordPaymentAsync(id, request, ct);
+			return Ok(payment);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (ArgumentOutOfRangeException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (ArgumentException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+		}
+	}
+
+	[HttpGet("{id:guid}/payments")]
+	public async Task<IActionResult> GetPayments(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			var payments = await _service.GetPaymentsByInvoiceIdAsync(id, ct);
+			return Ok(payments);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+	}
 }

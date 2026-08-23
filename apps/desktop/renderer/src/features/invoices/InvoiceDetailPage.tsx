@@ -28,6 +28,7 @@ import {
 	getInvoiceById,
 	updateInvoice,
 	generateInvoice,
+	recordPayment,
 	type InvoiceDto,
 	type InvoiceStatus,
 } from '../../lib/api';
@@ -121,10 +122,12 @@ export function InvoiceDetailPage() {
 	const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 	const [cancelNotice, setCancelNotice] = useState<string | null>(null);
 
-	// Payment placeholder state
+	// Payment state
 	const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'UPI' | 'Card' | 'BankTransfer'>('Cash');
 	const [paymentAmount, setPaymentAmount] = useState<string>('');
 	const [paymentReference, setPaymentReference] = useState<string>('');
+	const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+	const [paymentError, setPaymentError] = useState<string | null>(null);
 	const [paymentFeedback, setPaymentFeedback] = useState<string | null>(null);
 
 	// Initial loaded values for modification check
@@ -345,11 +348,45 @@ export function InvoiceDetailPage() {
 		window.print();
 	};
 
-	// ─── Record Payment Placeholder ──────────────────────────────────────────
-	const handleRecordPayment = (e: React.FormEvent) => {
+	// ─── Record Payment ──────────────────────────────────────────────────────
+	const handleRecordPayment = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setPaymentFeedback('Payment functionality will be enabled in the upcoming payment module.');
-		setTimeout(() => setPaymentFeedback(null), 4000);
+		if (!id || !isFinalized || isCancelled || isPaid || isRecordingPayment) return;
+
+		const amt = parseFloat(paymentAmount);
+		if (isNaN(amt) || amt <= 0) {
+			setPaymentError('Payment amount must be greater than ₹0.');
+			return;
+		}
+
+		if (amt > calculations.balanceAmount) {
+			setPaymentError(`Payment amount cannot exceed remaining balance of ${formatCurrency(calculations.balanceAmount)}.`);
+			return;
+		}
+
+		setIsRecordingPayment(true);
+		setPaymentError(null);
+		setPaymentFeedback(null);
+
+		try {
+			await recordPayment(id, {
+				amount: amt,
+				paymentMethod,
+				reference: paymentReference.trim() || null,
+			});
+
+			const updated = await getInvoiceById(id);
+			setInvoice(updated);
+			setPaymentAmount(String(updated.balanceAmount));
+			setPaymentReference('');
+			setPaymentFeedback(`Payment of ${formatCurrency(amt)} recorded successfully via ${paymentMethod === 'BankTransfer' ? 'Bank Transfer' : paymentMethod}.`);
+			setTimeout(() => setPaymentFeedback(null), 5000);
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Failed to record payment. Please try again.';
+			setPaymentError(msg);
+		} finally {
+			setIsRecordingPayment(false);
+		}
 	};
 
 	// ─── Render Loading / Error States ───────────────────────────────────────
@@ -824,7 +861,7 @@ export function InvoiceDetailPage() {
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			{/* ── 5 · COLLECT PAYMENT SECTION (Hidden on Draft & on Print) ───── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			{isFinalized && (
+			{isFinalized && !isCancelled && (
 				<div className="no-print app-card p-6 space-y-4 border border-outline-variant bg-white">
 					<div className="flex items-center justify-between pb-3 border-b border-outline-variant">
 						<div className="flex items-center gap-2">
@@ -847,28 +884,74 @@ export function InvoiceDetailPage() {
 							</span>
 						) : (
 							<span className="text-xs font-mono font-medium text-on-surface-variant">
-								Balance Due: <strong className="text-error">{formatCurrency(calculations.balanceAmount)}</strong>
+								Balance Due: <strong className="text-error font-bold">{formatCurrency(calculations.balanceAmount)}</strong>
 							</span>
 						)}
 					</div>
 
 					{paymentFeedback && (
-						<div className="p-3 bg-info-container/30 border border-info/30 rounded-lg text-xs text-info flex items-center gap-2 font-medium">
+						<div className="p-3 bg-success-container/30 border border-success/30 rounded-lg text-xs text-success flex items-center gap-2 font-medium">
 							<CheckCircle2 className="w-4 h-4 shrink-0" />
 							<span>{paymentFeedback}</span>
 						</div>
 					)}
 
+					{paymentError && (
+						<div className="p-3 bg-error-container/30 border border-error/30 rounded-lg text-xs text-error flex items-center justify-between gap-2 font-medium">
+							<div className="flex items-center gap-2">
+								<AlertCircle className="w-4 h-4 shrink-0" />
+								<span>{paymentError}</span>
+							</div>
+							<button
+								type="button"
+								onClick={() => setPaymentError(null)}
+								className="text-xs underline hover:no-underline"
+							>
+								Dismiss
+							</button>
+						</div>
+					)}
+
 					{!isPaid ? (
 						<form onSubmit={handleRecordPayment} className="space-y-4 pt-1">
+							{/* Payment Method Quick Chips */}
+							<div className="flex flex-wrap gap-2">
+								{(
+									[
+										{ method: 'Cash', label: 'Cash', icon: Wallet },
+										{ method: 'UPI', label: 'UPI / QR', icon: QrCode },
+										{ method: 'Card', label: 'Card', icon: CreditCard },
+										{ method: 'BankTransfer', label: 'Bank Transfer', icon: Building2 },
+									] as const
+								).map((m) => {
+									const Icon = m.icon;
+									const isSelected = paymentMethod === m.method;
+									return (
+										<button
+											key={m.method}
+											type="button"
+											onClick={() => setPaymentMethod(m.method)}
+											className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+												isSelected
+													? 'bg-secondary text-white border-secondary shadow-xs'
+													: 'bg-surface-container-low text-on-surface-variant border-outline-variant hover:border-secondary hover:text-on-surface'
+											}`}
+										>
+											<Icon className="w-3.5 h-3.5" />
+											<span>{m.label}</span>
+										</button>
+									);
+								})}
+							</div>
+
 							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-								{/* Payment Method */}
+								{/* Payment Method Dropdown */}
 								<div className="form-field">
 									<label className="text-xs font-bold text-on-surface">Payment Method</label>
 									<select
 										value={paymentMethod}
 										onChange={(e) => setPaymentMethod(e.target.value as any)}
-										className="form-input text-xs"
+										className="form-input text-xs bg-white"
 									>
 										<option value="Cash">Cash</option>
 										<option value="UPI">UPI / QR Code</option>
@@ -887,11 +970,11 @@ export function InvoiceDetailPage() {
 										<input
 											type="number"
 											step="0.01"
-											min="1"
+											min="0.01"
 											max={calculations.balanceAmount}
 											value={paymentAmount}
 											onChange={(e) => setPaymentAmount(e.target.value)}
-											className="form-input pl-7 text-xs font-mono font-medium"
+											className="form-input pl-7 text-xs font-mono font-medium bg-white"
 											placeholder={String(calculations.balanceAmount)}
 										/>
 									</div>
@@ -899,45 +982,134 @@ export function InvoiceDetailPage() {
 
 								{/* Reference */}
 								<div className="form-field">
-									<label className="text-xs font-bold text-on-surface">Reference / Txn ID</label>
+									<label className="text-xs font-bold text-on-surface">
+										Reference / Txn ID {paymentMethod === 'Cash' ? '(Optional)' : '(Required for audit)'}
+									</label>
 									<input
 										type="text"
 										value={paymentReference}
 										onChange={(e) => setPaymentReference(e.target.value)}
-										placeholder="e.g. UPI Ref / Cheque No"
-										className="form-input text-xs"
+										placeholder={
+											paymentMethod === 'UPI'
+												? 'e.g. UPI Ref / UTR / Txn ID'
+												: paymentMethod === 'Card'
+													? 'e.g. Auth Code / Last 4 digits'
+													: paymentMethod === 'BankTransfer'
+														? 'e.g. NEFT / IMPS UTR No'
+														: 'e.g. Cash note / receipt #'
+										}
+										className="form-input text-xs bg-white"
 									/>
 								</div>
 							</div>
 
 							<div className="flex items-center justify-between pt-2">
-								<div className="flex items-center gap-3 text-xs text-on-surface-variant">
-									<span className="flex items-center gap-1">
-										<Wallet className="w-3.5 h-3.5 text-secondary" /> Cash
-									</span>
-									<span className="flex items-center gap-1">
-										<QrCode className="w-3.5 h-3.5 text-secondary" /> UPI
-									</span>
-									<span className="flex items-center gap-1">
-										<CreditCard className="w-3.5 h-3.5 text-secondary" /> Card
-									</span>
-									<span className="flex items-center gap-1">
-										<Building2 className="w-3.5 h-3.5 text-secondary" /> Bank Transfer
-									</span>
-								</div>
+								<p className="text-xs text-on-surface-variant">
+									Recording payment will automatically update invoice status and outstanding balance.
+								</p>
 
 								<Button
 									type="submit"
-									icon={<Check className="w-4 h-4" />}
+									disabled={
+										isRecordingPayment ||
+										!paymentAmount ||
+										parseFloat(paymentAmount) <= 0 ||
+										parseFloat(paymentAmount) > calculations.balanceAmount
+									}
+									icon={isRecordingPayment ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
 								>
-									Record Payment
+									{isRecordingPayment ? 'Recording…' : 'Record Payment'}
 								</Button>
 							</div>
 						</form>
 					) : (
 						<div className="p-4 bg-success-container/20 border border-success/20 rounded-lg text-center space-y-1">
-							<p className="text-sm font-bold text-success">Invoice is Fully Paid</p>
-							<p className="text-xs text-on-surface-variant">No outstanding balance remains on this invoice.</p>
+							<p className="text-sm font-bold text-success">Invoice Paid</p>
+							<p className="text-xs text-on-surface-variant">This invoice is fully settled. No further payments required.</p>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{/* ── 6 · PAYMENT HISTORY SECTION (Hidden on Draft & on Print) ───── */}
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{isFinalized && (
+				<div className="no-print app-card p-6 space-y-4 border border-outline-variant bg-white">
+					<div className="flex items-center justify-between pb-3 border-b border-outline-variant">
+						<div className="flex items-center gap-2">
+							<div className="w-7 h-7 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center font-bold text-xs">
+								<Receipt className="w-4 h-4" />
+							</div>
+							<div>
+								<h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
+									Payment History
+								</h3>
+								<p className="text-xs text-on-surface-variant">
+									Audit trail of all recorded transactions for this invoice
+								</p>
+							</div>
+						</div>
+
+						{/* Quick Balance Summary Pills */}
+						<div className="flex items-center gap-3 text-xs">
+							<span className="text-on-surface-variant">
+								Total: <strong className="font-mono text-on-surface">{formatCurrency(calculations.totalAmount)}</strong>
+							</span>
+							<span className="text-on-surface-variant">
+								Paid: <strong className="font-mono text-success">{formatCurrency(calculations.paidAmount)}</strong>
+							</span>
+							<span className="text-on-surface-variant">
+								Balance: <strong className={`font-mono ${calculations.balanceAmount > 0 ? 'text-error' : 'text-success'}`}>{formatCurrency(calculations.balanceAmount)}</strong>
+							</span>
+						</div>
+					</div>
+
+					{/* Payment Transactions Table */}
+					{invoice.payments && invoice.payments.length > 0 ? (
+						<div className="overflow-x-auto rounded-lg border border-outline-variant">
+							<table className="w-full text-left text-sm">
+								<thead>
+									<tr className="bg-surface-container-low border-b border-outline-variant text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+										<th className="py-2.5 px-4 w-12 text-center">#</th>
+										<th className="py-2.5 px-4">Date</th>
+										<th className="py-2.5 px-4">Method</th>
+										<th className="py-2.5 px-4">Reference / Txn ID</th>
+										<th className="py-2.5 px-4 text-right">Amount</th>
+									</tr>
+								</thead>
+								<tbody className="divide-y divide-outline-variant/50">
+									{invoice.payments.map((p, idx) => (
+										<tr key={p.id || idx} className="hover:bg-surface-container-low/30">
+											<td className="py-3 px-4 text-center text-xs text-on-surface-variant font-mono">
+												{idx + 1}
+											</td>
+											<td className="py-3 px-4 text-xs text-on-surface font-medium">
+												{formatDate(p.paymentDate || p.createdAt)}
+											</td>
+											<td className="py-3 px-4">
+												<span className="inline-flex items-center gap-1.5 text-xs font-bold text-on-surface">
+													{p.paymentMethod === 'Cash' && <Wallet className="w-3.5 h-3.5 text-secondary" />}
+													{p.paymentMethod === 'UPI' && <QrCode className="w-3.5 h-3.5 text-secondary" />}
+													{p.paymentMethod === 'Card' && <CreditCard className="w-3.5 h-3.5 text-secondary" />}
+													{p.paymentMethod === 'BankTransfer' && <Building2 className="w-3.5 h-3.5 text-secondary" />}
+													{p.paymentMethod === 'BankTransfer' ? 'Bank Transfer' : p.paymentMethod}
+												</span>
+											</td>
+											<td className="py-3 px-4 text-xs font-mono text-on-surface-variant">
+												{p.reference || '—'}
+											</td>
+											<td className="py-3 px-4 text-right font-mono font-bold text-success text-sm">
+												{formatCurrency(p.amount)}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
+					) : (
+						<div className="py-6 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg">
+							No payments recorded yet for this invoice.
 						</div>
 					)}
 				</div>

@@ -39,6 +39,7 @@ public record InvoiceDto(
  string? Notes,
  bool IsGstEnabled,
  IReadOnlyList<InvoiceItemDto> Items,
+ IReadOnlyList<PaymentDto> Payments,
  DateTime CreatedAt,
  DateTime? UpdatedAt);
 

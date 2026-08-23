@@ -235,6 +235,23 @@ export interface InvoiceItemDto {
   totalAmount: number;
 }
 
+export interface PaymentDto {
+  id: string;
+  invoiceId: string;
+  amount: number;
+  paymentMethod: string;
+  reference: string | null;
+  paymentDate: string;
+  createdAt: string;
+}
+
+export interface RecordPaymentInput {
+  amount: number;
+  paymentMethod: string;
+  reference?: string | null;
+  paymentDate?: string | null;
+}
+
 export interface InvoiceDto {
   id: string;
   invoiceNumber: string | null;
@@ -261,6 +278,7 @@ export interface InvoiceDto {
   notes: string | null;
   isGstEnabled: boolean;
   items: InvoiceItemDto[];
+  payments?: PaymentDto[];
   createdAt: string;
   updatedAt: string | null;
 }
@@ -469,6 +487,17 @@ export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
 export async function generateInvoice(id: string) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
     method: 'POST',
+  });
+}
+
+export async function getInvoicePayments(invoiceId: string) {
+  return request<PaymentDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`);
+}
+
+export async function recordPayment(invoiceId: string, data: RecordPaymentInput) {
+  return request<PaymentDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(cleanPayload(data)),
   });
 }
 

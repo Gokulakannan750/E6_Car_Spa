@@ -68,6 +68,7 @@ public class InvoiceService : IInvoiceService
 			.Include(i => i.Vehicle)
 			.Include(i => i.JobCard)
 			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
 			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
 		return invoice is null ? null : ToDto(invoice);
@@ -80,6 +81,7 @@ public class InvoiceService : IInvoiceService
 			.Include(i => i.Vehicle)
 			.Include(i => i.JobCard)
 			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
 			.FirstOrDefaultAsync(i => i.InvoiceNumber == invoiceNumber, cancellationToken);
 
 		return invoice is null ? null : ToDto(invoice);
@@ -348,6 +350,120 @@ public class InvoiceService : IInvoiceService
 		}
 	}
 
+	public async Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default)
+	{
+		if (request.Amount <= 0)
+			throw new ArgumentOutOfRangeException(nameof(request.Amount), "Payment amount must be greater than ₹0.");
+
+		var invoice = await _db.Invoices
+			.Include(i => i.Payments)
+			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
+
+		if (invoice is null)
+			throw new KeyNotFoundException("Invoice not found.");
+
+		if (invoice.Status == InvoiceStatus.Cancelled)
+			throw new InvalidOperationException("This invoice has been cancelled and cannot receive payments.");
+
+		if (invoice.Status == InvoiceStatus.Draft || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+			throw new InvalidOperationException("Cannot record payment on a Draft invoice. Finalize the invoice first.");
+
+		if (request.Amount > invoice.BalanceAmount)
+			throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{invoice.BalanceAmount:N2}.");
+
+		if (!Enum.TryParse<PaymentMethod>(request.PaymentMethod, true, out var paymentMethod))
+		{
+			if (int.TryParse(request.PaymentMethod, out var intMethod) && Enum.IsDefined(typeof(PaymentMethod), intMethod))
+			{
+				paymentMethod = (PaymentMethod)intMethod;
+			}
+			else
+			{
+				throw new ArgumentException($"Invalid payment method '{request.PaymentMethod}'. Valid methods: Cash, UPI, Card, BankTransfer.");
+			}
+		}
+
+		var payment = new Payment
+		{
+			Id = Guid.NewGuid(),
+			InvoiceId = invoice.Id,
+			Amount = Math.Round(request.Amount, 2),
+			PaymentMethod = paymentMethod,
+			Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
+			PaymentDate = request.PaymentDate ?? DateTime.UtcNow,
+			CreatedAt = DateTime.UtcNow,
+			IsDeleted = false
+		};
+
+		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+		try
+		{
+			_db.Payments.Add(payment);
+			await _db.SaveChangesAsync(cancellationToken);
+
+			// Recalculate totals from all valid payments
+			var totalPaid = await _db.Payments
+				.Where(p => p.InvoiceId == invoice.Id && !p.IsDeleted)
+				.SumAsync(p => p.Amount, cancellationToken);
+
+			invoice.PaidAmount = Math.Round(totalPaid, 2);
+			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+
+			// Automatic Status calculation
+			if (invoice.BalanceAmount <= 0 && invoice.PaidAmount >= invoice.TotalAmount && invoice.TotalAmount > 0)
+			{
+				invoice.Status = InvoiceStatus.Paid;
+			}
+			else if (invoice.PaidAmount > 0 && invoice.PaidAmount < invoice.TotalAmount)
+			{
+				invoice.Status = InvoiceStatus.PartiallyPaid;
+			}
+			else if (invoice.PaidAmount == 0)
+			{
+				invoice.Status = InvoiceStatus.Generated;
+			}
+
+			invoice.UpdatedAt = DateTime.UtcNow;
+			await _db.SaveChangesAsync(cancellationToken);
+			await transaction.CommitAsync(cancellationToken);
+		}
+		catch
+		{
+			await transaction.RollbackAsync(cancellationToken);
+			throw;
+		}
+
+		return new PaymentDto(
+			payment.Id,
+			payment.InvoiceId,
+			payment.Amount,
+			payment.PaymentMethod.ToString(),
+			payment.Reference,
+			payment.PaymentDate,
+			payment.CreatedAt);
+	}
+
+	public async Task<IReadOnlyList<PaymentDto>> GetPaymentsByInvoiceIdAsync(Guid invoiceId, CancellationToken cancellationToken = default)
+	{
+		var exists = await _db.Invoices.AnyAsync(i => i.Id == invoiceId, cancellationToken);
+		if (!exists)
+			throw new KeyNotFoundException("Invoice not found.");
+
+		return await _db.Payments
+			.Where(p => p.InvoiceId == invoiceId && !p.IsDeleted)
+			.OrderByDescending(p => p.PaymentDate)
+			.ThenByDescending(p => p.CreatedAt)
+			.Select(p => new PaymentDto(
+				p.Id,
+				p.InvoiceId,
+				p.Amount,
+				p.PaymentMethod.ToString(),
+				p.Reference,
+				p.PaymentDate,
+				p.CreatedAt))
+			.ToListAsync(cancellationToken);
+	}
+
 	private static InvoiceDto ToDto(Invoice i) => new(
 		i.Id,
 		i.InvoiceNumber,
@@ -383,6 +499,17 @@ public class InvoiceService : IInvoiceService
 			it.TaxableAmount,
 			it.TaxAmount,
 			it.TotalAmount)).ToList(),
+		i.Payments.Where(p => !p.IsDeleted)
+			.OrderByDescending(p => p.PaymentDate)
+			.ThenByDescending(p => p.CreatedAt)
+			.Select(p => new PaymentDto(
+				p.Id,
+				p.InvoiceId,
+				p.Amount,
+				p.PaymentMethod.ToString(),
+				p.Reference,
+				p.PaymentDate,
+				p.CreatedAt)).ToList(),
 		i.CreatedAt,
 		i.UpdatedAt);
 
