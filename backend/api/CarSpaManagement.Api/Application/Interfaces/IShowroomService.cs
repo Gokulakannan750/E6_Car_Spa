@@ -17,4 +17,10 @@ public interface IShowroomService
     Task<DailyStaffAssignmentDto> AssignStaffAsync(Guid showroomId, CreateDailyStaffAssignmentRequest request, CancellationToken ct = default);
     Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, CancellationToken ct = default);
     Task<bool> RemoveAssignmentAsync(Guid assignmentId, CancellationToken ct = default);
+
+    // Daily Showroom Billing & Payments
+    Task<ShowroomDailyBillDto?> GetDailyBillAsync(Guid showroomId, DateTime date, CancellationToken ct = default);
+    Task<ShowroomDailyBillDto> SetDailyBillAsync(Guid showroomId, DateTime date, SetShowroomDailyBillRequest request, CancellationToken ct = default);
+    Task<ShowroomDailyBillDto> RecordPaymentAsync(Guid showroomId, DateTime date, RecordShowroomPaymentRequest request, CancellationToken ct = default);
+    Task<bool> DeletePaymentAsync(Guid paymentId, CancellationToken ct = default);
 }

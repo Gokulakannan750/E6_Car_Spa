@@ -77,3 +77,54 @@ public record UpdateDailyStaffAssignmentRequest
     [Range(0, 99999)]
     public int VehiclesAttended { get; init; }
 }
+
+public record ShowroomPaymentDto(
+    Guid Id,
+    Guid ShowroomDailyBillId,
+    decimal Amount,
+    string PaymentMethod,
+    string? Reference,
+    DateTime PaymentDate,
+    string? Notes,
+    DateTime CreatedAt);
+
+public record ShowroomDailyBillDto(
+    Guid Id,
+    Guid ShowroomId,
+    string ShowroomName,
+    DateTime Date,
+    decimal Amount,
+    decimal AmountReceived,
+    decimal BalanceAmount,
+    string Status,
+    string? Notes,
+    IReadOnlyList<ShowroomPaymentDto> Payments,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt);
+
+public record SetShowroomDailyBillRequest
+{
+    [Range(0, 999999999.99)]
+    public decimal Amount { get; init; }
+
+    [MaxLength(500)]
+    public string? Notes { get; init; }
+}
+
+public record RecordShowroomPaymentRequest
+{
+    [Required]
+    [Range(0.01, 999999999.99)]
+    public decimal Amount { get; init; }
+
+    [Required]
+    public string PaymentMethod { get; init; } = "Cash";
+
+    [MaxLength(100)]
+    public string? Reference { get; init; }
+
+    public DateTime? PaymentDate { get; init; }
+
+    [MaxLength(500)]
+    public string? Notes { get; init; }
+}

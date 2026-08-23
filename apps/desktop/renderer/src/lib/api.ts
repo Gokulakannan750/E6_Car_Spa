@@ -843,6 +843,72 @@ export async function removeDailyStaff(assignmentId: string) {
 	});
 }
 
+export interface ShowroomPaymentDto {
+	id: string;
+	showroomDailyBillId: string;
+	amount: number;
+	paymentMethod: string;
+	reference?: string | null;
+	paymentDate: string;
+	notes?: string | null;
+	createdAt: string;
+}
+
+export interface ShowroomDailyBillDto {
+	id: string;
+	showroomId: string;
+	showroomName: string;
+	date: string;
+	amount: number;
+	amountReceived: number;
+	balanceAmount: number;
+	status: 'Unpaid' | 'PartiallyPaid' | 'Paid';
+	notes?: string | null;
+	payments: ShowroomPaymentDto[];
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface SetShowroomDailyBillInput {
+	amount: number;
+	notes?: string | null;
+}
+
+export interface RecordShowroomPaymentInput {
+	amount: number;
+	paymentMethod: string;
+	reference?: string | null;
+	paymentDate?: string | null;
+	notes?: string | null;
+}
+
+export async function getShowroomDailyBill(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString());
+}
+
+export async function setShowroomDailyBill(showroomId: string, date: string, data: SetShowroomDailyBillInput) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString(), {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function recordShowroomPayment(showroomId: string, date: string, data: RecordShowroomPaymentInput) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill/payments?` + qs.toString(), {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function deleteShowroomPayment(paymentId: string) {
+	return request<void>(`/api/showroom-payments/${encodeURIComponent(paymentId)}`, {
+		method: 'DELETE',
+	});
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================

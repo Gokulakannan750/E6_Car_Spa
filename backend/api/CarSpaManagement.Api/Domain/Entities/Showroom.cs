@@ -19,4 +19,5 @@ public class Showroom : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public List<ShowroomStaffAssignment> StaffAssignments { get; set; } = new();
+    public List<ShowroomDailyBill> DailyBills { get; set; } = new();
 }

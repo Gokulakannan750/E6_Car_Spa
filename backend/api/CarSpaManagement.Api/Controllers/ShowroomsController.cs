@@ -95,4 +95,61 @@ public class ShowroomsController : ControllerBase
             return Conflict(new { message = ex.Message });
         }
     }
+
+    // ── Daily Showroom Billing & Payment Endpoints ──────────────────────────
+
+    [HttpGet("{id:guid}/daily-bill")]
+    public async Task<IActionResult> GetDailyBill(Guid id, [FromQuery] DateTime? date, CancellationToken ct)
+    {
+        var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+        var bill = await _service.GetDailyBillAsync(id, targetDate, ct);
+        if (bill == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
+        return Ok(bill);
+    }
+
+    [HttpPost("{id:guid}/daily-bill")]
+    public async Task<IActionResult> SetDailyBill(Guid id, [FromQuery] DateTime? date, [FromBody] SetShowroomDailyBillRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            var bill = await _service.SetDailyBillAsync(id, targetDate, request, ct);
+            return Ok(bill);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:guid}/daily-bill/payments")]
+    public async Task<IActionResult> RecordDailyPayment(Guid id, [FromQuery] DateTime? date, [FromBody] RecordShowroomPaymentRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var targetDate = date?.Date ?? request.PaymentDate?.Date ?? DateTime.UtcNow.Date;
+            var bill = await _service.RecordPaymentAsync(id, targetDate, request, ct);
+            return Ok(bill);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

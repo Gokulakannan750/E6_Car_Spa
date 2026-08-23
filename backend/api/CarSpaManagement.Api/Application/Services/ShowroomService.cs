@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -309,6 +310,202 @@ public class ShowroomService : IShowroomService
 
         assignment.IsDeleted = true;
         assignment.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    // ── Daily Showroom Billing & Payments ───────────────────────────────────
+
+    private static PaymentMethod ParsePaymentMethod(string method)
+    {
+        if (string.IsNullOrWhiteSpace(method)) return PaymentMethod.Cash;
+        var s = method.Trim().ToLower();
+        if (s == "upi" || s == "1") return PaymentMethod.UPI;
+        if (s == "card" || s == "2") return PaymentMethod.Card;
+        if (s == "banktransfer" || s == "bank transfer" || s == "bank_transfer" || s == "3") return PaymentMethod.BankTransfer;
+        return PaymentMethod.Cash;
+    }
+
+    private static ShowroomDailyBillDto ToBillDto(ShowroomDailyBill bill, string showroomName)
+    {
+        var validPayments = bill.Payments
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.PaymentDate)
+            .Select(p => new ShowroomPaymentDto(
+                p.Id,
+                p.ShowroomDailyBillId,
+                p.Amount,
+                p.PaymentMethod.ToString(),
+                p.Reference,
+                p.PaymentDate,
+                p.Notes,
+                p.CreatedAt
+            ))
+            .ToList();
+
+        var received = validPayments.Sum(p => p.Amount);
+        var balance = Math.Max(0m, bill.Amount - received);
+
+        string status;
+        if (received == 0m)
+        {
+            status = "Unpaid";
+        }
+        else if (received < bill.Amount)
+        {
+            status = "PartiallyPaid";
+        }
+        else
+        {
+            status = "Paid";
+        }
+
+        return new ShowroomDailyBillDto(
+            bill.Id,
+            bill.ShowroomId,
+            showroomName,
+            bill.Date,
+            bill.Amount,
+            received,
+            balance,
+            status,
+            bill.Notes,
+            validPayments,
+            bill.CreatedAt,
+            bill.UpdatedAt
+        );
+    }
+
+    public async Task<ShowroomDailyBillDto?> GetDailyBillAsync(Guid showroomId, DateTime date, CancellationToken ct = default)
+    {
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct);
+        if (showroom == null) return null;
+
+        var targetDate = ToUtcDate(date);
+
+        var bill = await _db.ShowroomDailyBills
+            .Include(b => b.Payments)
+            .Include(b => b.Showroom)
+            .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate && !b.IsDeleted, ct);
+
+        if (bill != null)
+        {
+            return ToBillDto(bill, showroom.Name);
+        }
+
+        // Return empty bill template for UI
+        return new ShowroomDailyBillDto(
+            Guid.Empty,
+            showroom.Id,
+            showroom.Name,
+            targetDate,
+            0m,
+            0m,
+            0m,
+            "Unpaid",
+            null,
+            new List<ShowroomPaymentDto>(),
+            DateTime.UtcNow,
+            null
+        );
+    }
+
+    public async Task<ShowroomDailyBillDto> SetDailyBillAsync(Guid showroomId, DateTime date, SetShowroomDailyBillRequest request, CancellationToken ct = default)
+    {
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct)
+            ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
+
+        if (request.Amount < 0m)
+            throw new ArgumentOutOfRangeException(nameof(request.Amount), "Showroom bill amount cannot be negative.");
+
+        var targetDate = ToUtcDate(date);
+
+        var bill = await _db.ShowroomDailyBills
+            .Include(b => b.Payments)
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate, ct);
+
+        if (bill != null)
+        {
+            var received = bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+            if (request.Amount < received)
+            {
+                throw new InvalidOperationException($"Bill amount ₹{request.Amount:N2} cannot be less than already received payments ₹{received:N2}.");
+            }
+
+            bill.IsDeleted = false;
+            bill.Amount = request.Amount;
+            bill.Notes = request.Notes?.Trim();
+            bill.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            bill = new ShowroomDailyBill
+            {
+                ShowroomId = showroomId,
+                Date = targetDate,
+                Amount = request.Amount,
+                Notes = request.Notes?.Trim()
+            };
+            _db.ShowroomDailyBills.Add(bill);
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return ToBillDto(bill, showroom.Name);
+    }
+
+    public async Task<ShowroomDailyBillDto> RecordPaymentAsync(Guid showroomId, DateTime date, RecordShowroomPaymentRequest request, CancellationToken ct = default)
+    {
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct)
+            ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
+
+        if (request.Amount <= 0m)
+            throw new ArgumentOutOfRangeException(nameof(request.Amount), "Payment amount must be greater than zero.");
+
+        var targetDate = ToUtcDate(date);
+
+        var bill = await _db.ShowroomDailyBills
+            .Include(b => b.Payments)
+            .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate && !b.IsDeleted, ct);
+
+        if (bill == null || bill.Amount <= 0m)
+        {
+            throw new InvalidOperationException("Please set the showroom bill amount before recording a payment.");
+        }
+
+        var currentReceived = bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+        var remainingBalance = Math.Max(0m, bill.Amount - currentReceived);
+
+        if (request.Amount > remainingBalance)
+        {
+            throw new InvalidOperationException($"Payment amount ₹{request.Amount:N2} exceeds the remaining balance of ₹{remainingBalance:N2}.");
+        }
+
+        var payment = new ShowroomPayment
+        {
+            ShowroomDailyBillId = bill.Id,
+            Amount = request.Amount,
+            PaymentMethod = ParsePaymentMethod(request.PaymentMethod),
+            Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
+            PaymentDate = request.PaymentDate ?? DateTime.UtcNow,
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
+        };
+
+        _db.ShowroomPayments.Add(payment);
+        bill.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+        return ToBillDto(bill, showroom.Name);
+    }
+
+    public async Task<bool> DeletePaymentAsync(Guid paymentId, CancellationToken ct = default)
+    {
+        var payment = await _db.ShowroomPayments.FirstOrDefaultAsync(p => p.Id == paymentId, ct);
+        if (payment == null) return false;
+
+        payment.IsDeleted = true;
+        payment.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
         return true;

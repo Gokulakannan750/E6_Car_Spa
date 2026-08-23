@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<StaffAdvance> StaffAdvances => Set<StaffAdvance>();
  public DbSet<Showroom> Showrooms => Set<Showroom>();
  public DbSet<ShowroomStaffAssignment> ShowroomStaffAssignments => Set<ShowroomStaffAssignment>();
+ public DbSet<ShowroomDailyBill> ShowroomDailyBills => Set<ShowroomDailyBill>();
+ public DbSet<ShowroomPayment> ShowroomPayments => Set<ShowroomPayment>();
  public DbSet<Invoice> Invoices => Set<Invoice>();
  public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
  public DbSet<Payment> Payments => Set<Payment>();
@@ -23,6 +25,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  {
   modelBuilder.Entity<ShowroomStaffAssignment>()
    .HasIndex(s => new { s.ShowroomId, s.StaffId, s.Date });
+
+  modelBuilder.Entity<ShowroomDailyBill>()
+   .HasIndex(b => new { b.ShowroomId, b.Date });
  // Apply all IEntityTypeConfiguration implementations from this assembly
  modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
