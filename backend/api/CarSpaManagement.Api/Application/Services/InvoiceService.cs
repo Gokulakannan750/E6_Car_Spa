@@ -290,6 +290,13 @@ public class InvoiceService : IInvoiceService
 			}
 
 			invoice.UpdatedAt = DateTime.UtcNow;
+
+			if (invoice.JobCard != null)
+			{
+				invoice.JobCard.Status = JobCardStatus.Invoiced;
+				invoice.JobCard.UpdatedAt = DateTime.UtcNow;
+			}
+
 			await _db.SaveChangesAsync(cancellationToken);
 			await transaction.CommitAsync(cancellationToken);
 		}

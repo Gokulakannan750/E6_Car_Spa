@@ -118,12 +118,27 @@ function normalizeInvoiceStatus(status: unknown): string {
 	return 'Draft';
 }
 
+function isJobCardCompleted(j: JobCardListDto): boolean {
+	if (j.invoiceNumber || j.invoiceId) return true;
+	if (j.invoiceStatus && ['generated', 'paid', 'partiallypaid', 'partially-paid'].includes(j.invoiceStatus.toLowerCase())) return true;
+	if (j.status === 2 || j.status === 3 || j.status === 4 || j.status === 5 || j.status === 6) return true;
+	return false;
+}
+
+type JobCardStage = 'Completed' | 'In Progress' | 'Draft' | 'Cancelled';
+
+function getJobCardStage(j: JobCardListDto): JobCardStage {
+	if (j.status === 7) return 'Cancelled';
+	if (isJobCardCompleted(j)) return 'Completed';
+	if (j.status === 1) return 'In Progress';
+	return 'Draft';
+}
+
 const JOB_STATUS_COLORS: Record<string, string> = {
+	Completed: '#2e7d32',
 	'In Progress': '#0453cd',
-	'Ready / Delivered': '#2e7d32',
-	'Draft / Pending': '#f57c00',
+	Draft: '#f57c00',
 	Cancelled: '#ba1a1a',
-	Completed: '#1976d2',
 };
 
 const PAYMENT_METHOD_COLORS = ['#0453cd', '#2e7d32', '#f57c00', '#7b1fa2', '#0097a7'];
@@ -196,7 +211,7 @@ export function ReportsPage() {
 		const outstanding = nonCancelledInvoices.reduce((s, i) => s + (i.balanceAmount || 0), 0);
 		const invoicesCount = nonCancelledInvoices.length;
 		const jobCardsCount = filteredJobCards.length;
-		const completedJobs = filteredJobCards.filter((j) => j.status === 3 || j.status === 6 || j.status === 2).length;
+		const completedJobs = filteredJobCards.filter((j) => isJobCardCompleted(j)).length;
 		const avgTicket = invoicesCount > 0 ? billedRevenue / invoicesCount : 0;
 		const advancesTotal = filteredAdvances.reduce((s, a) => s + (a.amount || 0), 0);
 
@@ -251,19 +266,16 @@ export function ReportsPage() {
 
 	// ── Chart 2: Job Card Status Distribution ────────────────────────────────
 	const jobStatusData = useMemo(() => {
-		const counts: Record<string, number> = {
+		const counts: Record<JobCardStage, number> = {
+			Completed: 0,
 			'In Progress': 0,
-			'Ready / Delivered': 0,
-			'Draft / Pending': 0,
+			Draft: 0,
 			Cancelled: 0,
 		};
 
 		filteredJobCards.forEach((j) => {
-			if (j.status === 1) counts['In Progress']++;
-			else if (j.status === 3 || j.status === 6) counts['Ready / Delivered']++;
-			else if (j.status === 0) counts['Draft / Pending']++;
-			else if (j.status === 4) counts['Cancelled']++;
-			else counts['In Progress']++;
+			const stage = getJobCardStage(j);
+			counts[stage]++;
 		});
 
 		return Object.entries(counts)
@@ -413,7 +425,7 @@ export function ReportsPage() {
 				j.customerPhone,
 				`${j.make} ${j.model}`.trim(),
 				j.registrationNumber,
-				j.status === 0 ? 'Draft' : j.status === 1 ? 'In Progress' : j.status === 3 ? 'Ready' : j.status === 6 ? 'Delivered' : 'Other',
+				j.status === 7 ? 'Cancelled' : isJobCardCompleted(j) ? 'Completed' : j.status === 1 ? 'In Progress' : 'Draft',
 				j.totalAmount,
 				j.invoiceNumber || (j.invoiceId ? 'Draft Invoice' : 'None'),
 			]);
@@ -763,13 +775,7 @@ export function ReportsPage() {
 					{/* Donut Legend */}
 					<div className="grid grid-cols-2 gap-2 pt-2 border-t border-outline-variant/60">
 						{Object.entries(JOB_STATUS_COLORS).map(([statusName, color]) => {
-							const count = filteredJobCards.filter((j) => {
-								if (statusName === 'In Progress') return j.status === 1;
-								if (statusName === 'Ready / Delivered') return j.status === 3 || j.status === 6;
-								if (statusName === 'Draft / Pending') return j.status === 0;
-								if (statusName === 'Cancelled') return j.status === 4;
-								return false;
-							}).length;
+							const count = filteredJobCards.filter((j) => getJobCardStage(j) === statusName).length;
 							return (
 								<div key={statusName} className="flex items-center justify-between text-xs">
 									<div className="flex items-center gap-1.5 truncate">
