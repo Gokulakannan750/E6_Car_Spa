@@ -128,3 +128,52 @@ public record RecordShowroomPaymentRequest
     [MaxLength(500)]
     public string? Notes { get; init; }
 }
+
+public record ShowroomDailyHistoryRowDto(
+    DateTime Date,
+    int StaffCount,
+    int TotalVehicles,
+    decimal BilledAmount,
+    decimal ReceivedAmount,
+    decimal BalanceAmount,
+    string Status,
+    bool HasBill);
+
+public record ShowroomStaffProductivityDto(
+    Guid StaffId,
+    string StaffName,
+    string StaffPhone,
+    string? StaffRole,
+    int DaysAssigned,
+    int TotalVehiclesAttended,
+    decimal AverageVehiclesPerDay);
+
+public record ShowroomSummaryDto(
+    Guid ShowroomId,
+    string ShowroomName,
+    DateTime FromDate,
+    DateTime ToDate,
+    int TotalDaysWithActivity,
+    int TotalStaffAssignments,
+    int TotalVehiclesAttended,
+    decimal AverageVehiclesPerDay,
+    decimal TotalBilled,
+    decimal TotalReceived,
+    decimal OutstandingAmount,
+    int PaidDaysCount,
+    int PartiallyPaidDaysCount,
+    int UnpaidDaysCount,
+    IReadOnlyList<ShowroomDailyHistoryRowDto> DailyHistory,
+    IReadOnlyList<ShowroomStaffProductivityDto> StaffProductivity);
+
+public record ShowroomOutstandingOverviewDto(
+    Guid ShowroomId,
+    string ShowroomName,
+    string Address,
+    string? Phone,
+    bool IsActive,
+    decimal TotalBilled,
+    decimal TotalReceived,
+    decimal OutstandingAmount,
+    int UnpaidDaysCount);
+

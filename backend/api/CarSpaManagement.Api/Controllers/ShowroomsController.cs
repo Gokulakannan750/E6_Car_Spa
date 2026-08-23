@@ -152,4 +152,23 @@ public class ShowroomsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    // ── History & Financial Summary Endpoints ───────────────────────────────
+
+    [HttpGet("{id:guid}/summary")]
+    public async Task<IActionResult> GetSummary(Guid id, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
+    {
+        var start = fromDate?.Date ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        var end = toDate?.Date ?? start.AddMonths(1).AddDays(-1);
+        var summary = await _service.GetShowroomSummaryAsync(id, start, end, ct);
+        if (summary == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
+        return Ok(summary);
+    }
+
+    [HttpGet("outstanding")]
+    public async Task<IActionResult> GetOutstanding([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
+    {
+        var list = await _service.GetOutstandingOverviewAsync(fromDate, toDate, ct);
+        return Ok(list);
+    }
 }

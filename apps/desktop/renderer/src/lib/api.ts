@@ -909,6 +909,74 @@ export async function deleteShowroomPayment(paymentId: string) {
 	});
 }
 
+export interface ShowroomDailyHistoryRowDto {
+	date: string;
+	staffCount: number;
+	totalVehicles: number;
+	billedAmount: number;
+	receivedAmount: number;
+	balanceAmount: number;
+	status: 'Unpaid' | 'PartiallyPaid' | 'Paid';
+	hasBill: boolean;
+}
+
+export interface ShowroomStaffProductivityDto {
+	staffId: string;
+	staffName: string;
+	staffPhone: string;
+	staffRole?: string | null;
+	daysAssigned: number;
+	totalVehiclesAttended: number;
+	averageVehiclesPerDay: number;
+}
+
+export interface ShowroomSummaryDto {
+	showroomId: string;
+	showroomName: string;
+	fromDate: string;
+	toDate: string;
+	totalDaysWithActivity: number;
+	totalStaffAssignments: number;
+	totalVehiclesAttended: number;
+	averageVehiclesPerDay: number;
+	totalBilled: number;
+	totalReceived: number;
+	outstandingAmount: number;
+	paidDaysCount: number;
+	partiallyPaidDaysCount: number;
+	unpaidDaysCount: number;
+	dailyHistory: ShowroomDailyHistoryRowDto[];
+	staffProductivity: ShowroomStaffProductivityDto[];
+}
+
+export interface ShowroomOutstandingOverviewDto {
+	showroomId: string;
+	showroomName: string;
+	address: string;
+	phone?: string | null;
+	isActive: boolean;
+	totalBilled: number;
+	totalReceived: number;
+	outstandingAmount: number;
+	unpaidDaysCount: number;
+}
+
+export async function getShowroomSummary(showroomId: string, fromDate?: string, toDate?: string) {
+	const qs = new URLSearchParams();
+	if (fromDate) qs.set('fromDate', fromDate);
+	if (toDate) qs.set('toDate', toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomSummaryDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/summary` + suffix);
+}
+
+export async function getShowroomsOutstanding(fromDate?: string, toDate?: string) {
+	const qs = new URLSearchParams();
+	if (fromDate) qs.set('fromDate', fromDate);
+	if (toDate) qs.set('toDate', toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomOutstandingOverviewDto[]>('/api/showrooms/outstanding' + suffix);
+}
+
 // ============================================================================
 // Helpers
 // ============================================================================

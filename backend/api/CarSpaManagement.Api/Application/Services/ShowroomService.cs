@@ -510,4 +510,189 @@ public class ShowroomService : IShowroomService
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    // ── History & Financial Summary Aggregations ────────────────────────────
+
+    public async Task<ShowroomSummaryDto?> GetShowroomSummaryAsync(Guid showroomId, DateTime fromDate, DateTime toDate, CancellationToken ct = default)
+    {
+        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId && !s.IsDeleted, ct);
+        if (showroom == null) return null;
+
+        var startUtc = ToUtcDate(fromDate);
+        var endUtc = ToUtcDate(toDate);
+        if (startUtc > endUtc)
+        {
+            (startUtc, endUtc) = (endUtc, startUtc);
+        }
+
+        // Fetch staff assignments in date range
+        var assignments = await _db.ShowroomStaffAssignments
+            .Include(a => a.Staff)
+            .Where(a => a.ShowroomId == showroomId && a.Date >= startUtc && a.Date <= endUtc && !a.IsDeleted)
+            .ToListAsync(ct);
+
+        // Fetch daily bills with non-deleted payments in date range
+        var bills = await _db.ShowroomDailyBills
+            .Include(b => b.Payments)
+            .Where(b => b.ShowroomId == showroomId && b.Date >= startUtc && b.Date <= endUtc && !b.IsDeleted)
+            .ToListAsync(ct);
+
+        // Date maps
+        var staffCountByDate = assignments
+            .GroupBy(a => a.Date)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var vehiclesByDate = assignments
+            .GroupBy(a => a.Date)
+            .ToDictionary(g => g.Key, g => g.Sum(a => a.VehiclesAttended));
+
+        var billsByDate = bills.ToDictionary(b => b.Date, b => b);
+
+        var allDistinctDates = assignments.Select(a => a.Date)
+            .Union(bills.Select(b => b.Date))
+            .Distinct()
+            .OrderByDescending(d => d)
+            .ToList();
+
+        var dailyHistoryRows = new List<ShowroomDailyHistoryRowDto>();
+
+        foreach (var date in allDistinctDates)
+        {
+            var staffCount = staffCountByDate.GetValueOrDefault(date, 0);
+            var vehicles = vehiclesByDate.GetValueOrDefault(date, 0);
+            var bill = billsByDate.GetValueOrDefault(date);
+
+            var billed = bill?.Amount ?? 0m;
+            var received = bill?.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount) ?? 0m;
+            var balance = Math.Max(0m, billed - received);
+
+            string status;
+            if (received == 0m) status = "Unpaid";
+            else if (received < billed) status = "PartiallyPaid";
+            else status = "Paid";
+
+            var hasBill = bill != null && bill.Amount > 0;
+
+            dailyHistoryRows.Add(new ShowroomDailyHistoryRowDto(
+                date,
+                staffCount,
+                vehicles,
+                billed,
+                received,
+                balance,
+                status,
+                hasBill
+            ));
+        }
+
+        // Staff Productivity Map
+        var staffProductivity = assignments
+            .GroupBy(a => a.StaffId)
+            .Select(g =>
+            {
+                var first = g.First();
+                var totalVehicles = g.Sum(a => a.VehiclesAttended);
+                var daysAssigned = g.Select(a => a.Date).Distinct().Count();
+                var avg = daysAssigned > 0 ? Math.Round((decimal)totalVehicles / daysAssigned, 1) : 0m;
+
+                return new ShowroomStaffProductivityDto(
+                    g.Key,
+                    first.Staff?.Name ?? "Staff Member",
+                    first.Staff?.PhoneNumber ?? string.Empty,
+                    first.Staff?.Role,
+                    daysAssigned,
+                    totalVehicles,
+                    avg
+                );
+            })
+            .OrderByDescending(p => p.TotalVehiclesAttended)
+            .ToList();
+
+        var totalDays = allDistinctDates.Count;
+        var totalAssignments = assignments.Count;
+        var totalVehiclesAttended = assignments.Sum(a => a.VehiclesAttended);
+        var avgVehiclesPerDay = totalDays > 0 ? Math.Round((decimal)totalVehiclesAttended / totalDays, 1) : 0m;
+        var totalBilled = bills.Sum(b => b.Amount);
+        var totalReceived = bills.SelectMany(b => b.Payments.Where(p => !p.IsDeleted)).Sum(p => p.Amount);
+        var outstanding = Math.Max(0m, totalBilled - totalReceived);
+
+        var paidDays = dailyHistoryRows.Count(r => r.HasBill && r.Status == "Paid");
+        var partialDays = dailyHistoryRows.Count(r => r.Status == "PartiallyPaid");
+        var unpaidDays = dailyHistoryRows.Count(r => r.HasBill && r.Status == "Unpaid");
+
+        return new ShowroomSummaryDto(
+            showroom.Id,
+            showroom.Name,
+            startUtc,
+            endUtc,
+            totalDays,
+            totalAssignments,
+            totalVehiclesAttended,
+            avgVehiclesPerDay,
+            totalBilled,
+            totalReceived,
+            outstanding,
+            paidDays,
+            partialDays,
+            unpaidDays,
+            dailyHistoryRows,
+            staffProductivity
+        );
+    }
+
+    public async Task<IReadOnlyList<ShowroomOutstandingOverviewDto>> GetOutstandingOverviewAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default)
+    {
+        var showrooms = await _db.Showrooms
+            .Where(s => !s.IsDeleted && s.IsActive)
+            .OrderBy(s => s.Name)
+            .ToListAsync(ct);
+
+        var billsQuery = _db.ShowroomDailyBills
+            .Include(b => b.Payments)
+            .Where(b => !b.IsDeleted);
+
+        if (fromDate.HasValue)
+        {
+            var startUtc = ToUtcDate(fromDate.Value);
+            billsQuery = billsQuery.Where(b => b.Date >= startUtc);
+        }
+
+        if (toDate.HasValue)
+        {
+            var endUtc = ToUtcDate(toDate.Value);
+            billsQuery = billsQuery.Where(b => b.Date <= endUtc);
+        }
+
+        var allBills = await billsQuery.ToListAsync(ct);
+        var billsByShowroom = allBills.GroupBy(b => b.ShowroomId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var list = new List<ShowroomOutstandingOverviewDto>();
+
+        foreach (var sr in showrooms)
+        {
+            var showroomBills = billsByShowroom.GetValueOrDefault(sr.Id, new List<ShowroomDailyBill>());
+            var totalBilled = showroomBills.Sum(b => b.Amount);
+            var totalReceived = showroomBills.SelectMany(b => b.Payments.Where(p => !p.IsDeleted)).Sum(p => p.Amount);
+            var outstanding = Math.Max(0m, totalBilled - totalReceived);
+            var unpaidDays = showroomBills.Count(b =>
+            {
+                var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+                return b.Amount > rec;
+            });
+
+            list.Add(new ShowroomOutstandingOverviewDto(
+                sr.Id,
+                sr.Name,
+                sr.Address,
+                sr.Phone,
+                sr.IsActive,
+                totalBilled,
+                totalReceived,
+                outstanding,
+                unpaidDays
+            ));
+        }
+
+        return list;
+    }
 }
