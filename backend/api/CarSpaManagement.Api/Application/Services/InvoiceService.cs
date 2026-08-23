@@ -4,6 +4,7 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CarSpaManagement.Api.Application.Services;
 
@@ -307,31 +308,43 @@ public class InvoiceService : IInvoiceService
 	{
 		var currentYear = DateTime.UtcNow.Year;
 		var conn = _db.Database.GetDbConnection();
-		await conn.OpenAsync(cancellationToken);
+		var openedLocally = false;
+		if (conn.State != System.Data.ConnectionState.Open)
+		{
+			await conn.OpenAsync(cancellationToken);
+			openedLocally = true;
+		}
+
 		try
 		{
 			using var cmd = conn.CreateCommand();
+			var currentTransaction = _db.Database.CurrentTransaction?.GetDbTransaction();
+			if (currentTransaction != null)
+			{
+				cmd.Transaction = currentTransaction;
+			}
+
 			cmd.CommandText = "SELECT nextval('invoice_number_seq')";
 			try
 			{
 				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt32(result);
+				var nextNumber = Convert.ToInt64(result);
 				return string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 			}
 			catch
 			{
-				cmd.CommandText = "CREATE SEQUENCE invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE";
-				await cmd.ExecuteNonQueryAsync(cancellationToken);
-
-				cmd.CommandText = "SELECT nextval('invoice_number_seq')";
+				cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('invoice_number_seq');";
 				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt32(result);
+				var nextNumber = Convert.ToInt64(result);
 				return string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 			}
 		}
 		finally
 		{
-			await conn.CloseAsync();
+			if (openedLocally && conn.State == System.Data.ConnectionState.Open)
+			{
+				await conn.CloseAsync();
+			}
 		}
 	}
 
