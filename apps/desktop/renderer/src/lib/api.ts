@@ -221,7 +221,7 @@ export interface CreateServiceInput {
 }
 
 // Invoice status values matching backend Domain/Enums/InvoiceStatus.cs
-export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'PartiallyPaid' | 'Cancelled' | 'Overdue' | 'Generated' | number;
+export type InvoiceStatus = 'Draft' | 'Generated' | 'PartiallyPaid' | 'Paid' | 'Cancelled' | number;
 
 export interface InvoiceItemDto {
   id: string;

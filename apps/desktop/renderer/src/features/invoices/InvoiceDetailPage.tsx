@@ -12,12 +12,16 @@ import {
 	Save,
 	Tag,
 	Check,
+	Lock,
+	Sparkles,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
+import { Dialog } from '../../components/ui/Dialog';
 import {
 	getInvoiceById,
 	updateInvoice,
+	generateInvoice,
 	type InvoiceDto,
 	type InvoiceStatus,
 } from '../../lib/api';
@@ -25,11 +29,10 @@ import {
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
 	0: 'Draft',
-	1: 'Sent',
 	2: 'Paid',
 	3: 'PartiallyPaid',
 	4: 'Cancelled',
-	5: 'Overdue',
+	6: 'Generated',
 };
 
 function normalizeInvoiceStatus(status: unknown): InvoiceStatus {
@@ -64,7 +67,9 @@ function getInvoiceStatusSlug(
 
 	if (normalized === 'Paid') return 'paid';
 	if (normalized === 'PartiallyPaid') return 'partially-paid';
-	return 'unpaid';
+	if (normalized === 'Generated') return 'generated';
+	if (normalized === 'Draft') return 'draft';
+	return 'draft';
 }
 
 // ─── Formatting Helpers ──────────────────────────────────────────────────────
@@ -101,6 +106,11 @@ export function InvoiceDetailPage() {
 	const [saveSuccess, setSaveSuccess] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
 
+	// Generate modal & action state
+	const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+	const [isGenerating, setIsGenerating] = useState(false);
+	const [generateError, setGenerateError] = useState<string | null>(null);
+
 	// Initial loaded values for modification check
 	const [initialGstEnabled, setInitialGstEnabled] = useState<boolean>(true);
 
@@ -130,6 +140,19 @@ export function InvoiceDetailPage() {
 		fetchInvoice();
 	}, [fetchInvoice]);
 
+	// ─── Lifecycle State Derivation ──────────────────────────────────────────
+	const normalizedStatus = useMemo(() => {
+		return invoice ? normalizeInvoiceStatus(invoice.status) : 'Draft';
+	}, [invoice]);
+
+	const isDraft = useMemo(() => {
+		if (!invoice) return true;
+		return !invoice.invoiceNumber || normalizedStatus === 'Draft';
+	}, [invoice, normalizedStatus]);
+
+	const isCancelled = normalizedStatus === 'Cancelled';
+	const isFinalized = !isDraft;
+
 	// ─── Real-Time Recalculations ────────────────────────────────────────────
 	const parsedDiscount = useMemo(() => {
 		const val = parseFloat(discount);
@@ -151,6 +174,22 @@ export function InvoiceDetailPage() {
 			};
 		}
 
+		// For finalized invoice, use confirmed values
+		if (isFinalized) {
+			return {
+				subtotal: invoice.subtotal,
+				discount: invoice.discount,
+				cgst: invoice.isGstEnabled ? Math.round(invoice.gstAmount / 2 * 100) / 100 : 0,
+				sgst: invoice.isGstEnabled ? Math.round(invoice.gstAmount / 2 * 100) / 100 : 0,
+				gstAmount: invoice.gstAmount,
+				totalAmount: invoice.totalAmount,
+				paidAmount: invoice.paidAmount ?? 0,
+				balanceAmount: invoice.balanceAmount ?? invoice.totalAmount,
+				isValidDiscount: true,
+			};
+		}
+
+		// For Draft invoice, calculate dynamically based on inputs
 		const subtotal = invoice.subtotal;
 		const isValidDiscount = parsedDiscount >= 0 && parsedDiscount <= subtotal;
 		const effectiveDiscount = isValidDiscount ? parsedDiscount : (parsedDiscount > subtotal ? subtotal : 0);
@@ -174,11 +213,11 @@ export function InvoiceDetailPage() {
 			balanceAmount,
 			isValidDiscount,
 		};
-	}, [invoice, parsedDiscount, isGstEnabled]);
+	}, [invoice, isFinalized, parsedDiscount, isGstEnabled]);
 
 	// ─── Check if modified ───────────────────────────────────────────────────
 	const isModified = useMemo(() => {
-		if (!invoice) return false;
+		if (!invoice || !isDraft) return false;
 		const originalDiscount = invoice.discount ?? 0;
 		const originalNotes = invoice.notes ?? '';
 
@@ -187,11 +226,11 @@ export function InvoiceDetailPage() {
 			isGstEnabled !== initialGstEnabled ||
 			notes !== originalNotes
 		);
-	}, [invoice, parsedDiscount, isGstEnabled, initialGstEnabled, notes]);
+	}, [invoice, isDraft, parsedDiscount, isGstEnabled, initialGstEnabled, notes]);
 
-	// ─── Save Changes ────────────────────────────────────────────────────────
+	// ─── Save Draft Changes ──────────────────────────────────────────────────
 	const handleSave = async () => {
-		if (!id || !invoice || isSaving) return;
+		if (!id || !invoice || isSaving || !isDraft) return;
 		if (parsedDiscount < 0) {
 			setSaveError('Discount cannot be negative.');
 			return;
@@ -228,6 +267,54 @@ export function InvoiceDetailPage() {
 			setSaveError(msg);
 		} finally {
 			setIsSaving(false);
+		}
+	};
+
+	// ─── Generate Invoice ────────────────────────────────────────────────────
+	const handleGenerateInvoice = async () => {
+		if (!id || isGenerating || !isDraft) return;
+
+		setIsGenerating(true);
+		setGenerateError(null);
+
+		try {
+			// Save unsaved draft changes first if any
+			if (isModified) {
+				await updateInvoice(id, {
+					discount: parsedDiscount,
+					notes: notes.trim() || null,
+					isGstEnabled,
+				});
+			}
+
+			const finalized = await generateInvoice(id);
+			setInvoice(finalized);
+			setDiscount(String(finalized.discount ?? 0));
+			setNotes(finalized.notes ?? '');
+			setIsGstEnabled(finalized.isGstEnabled);
+			setInitialGstEnabled(finalized.isGstEnabled);
+			setShowGenerateConfirm(false);
+		} catch (err: unknown) {
+			console.warn('Generate invoice error:', err);
+			// In case of conflict (already generated), reload from API
+			try {
+				const reloaded = await getInvoiceById(id);
+				if (reloaded && reloaded.invoiceNumber) {
+					setInvoice(reloaded);
+					setDiscount(String(reloaded.discount ?? 0));
+					setNotes(reloaded.notes ?? '');
+					setIsGstEnabled(reloaded.isGstEnabled);
+					setInitialGstEnabled(reloaded.isGstEnabled);
+					setShowGenerateConfirm(false);
+					return;
+				}
+			} catch {
+				// Ignore reload error and report main error
+			}
+			const msg = err instanceof Error ? err.message : 'Unable to generate invoice. Please try again.';
+			setGenerateError(msg);
+		} finally {
+			setIsGenerating(false);
 		}
 	};
 
@@ -279,13 +366,29 @@ export function InvoiceDetailPage() {
 						</div>
 						<div>
 							<div className="flex items-center gap-2.5">
-								<h1 className="text-2xl font-bold font-mono text-on-surface tracking-tight">
-									Invoice #{invoice.invoiceNumber}
-								</h1>
-								{/* Read-only status badge derived from payment status */}
-								<StatusBadge status={getInvoiceStatusSlug(invoice.status, calculations)} />
+								{isDraft ? (
+									<h1 className="text-2xl font-bold text-on-surface tracking-tight">
+										Draft Invoice
+									</h1>
+								) : (
+									<h1 className="text-2xl font-bold font-mono text-on-surface tracking-tight">
+										#{invoice.invoiceNumber}
+									</h1>
+								)}
+								<StatusBadge status={isDraft ? 'draft' : getInvoiceStatusSlug(invoice.status, calculations)} />
 							</div>
 							<div className="flex items-center gap-3 text-xs text-on-surface-variant mt-0.5 flex-wrap">
+								{isDraft ? (
+									<span className="italic text-on-surface-variant/80">
+										Invoice number will be generated when finalized
+									</span>
+								) : (
+									<span className="flex items-center gap-1 text-info font-medium">
+										<CheckCircle2 className="w-3.5 h-3.5" />
+										Finalized · Locked
+									</span>
+								)}
+								<span>•</span>
 								<span>
 									Job Card:{' '}
 									<Link
@@ -302,39 +405,80 @@ export function InvoiceDetailPage() {
 					</div>
 				</div>
 
-				{/* Save Action */}
-				<div className="flex items-center gap-3">
+				{/* Header Actions */}
+				<div className="flex items-center gap-2.5">
 					{saveSuccess && (
 						<div className="flex items-center gap-1.5 text-success text-xs font-semibold bg-success-container/50 px-3 py-1.5 rounded-lg">
 							<CheckCircle2 className="w-4 h-4" />
-							<span>Saved successfully</span>
+							<span>Draft saved</span>
 						</div>
 					)}
+
 					<Button
 						variant="secondary"
 						onClick={() => navigate('/invoices')}
 					>
-						Cancel
+						{isDraft ? 'Cancel' : 'Back to Invoices'}
 					</Button>
-					<Button
-						onClick={handleSave}
-						disabled={!isModified || isSaving || !calculations.isValidDiscount}
-						loading={isSaving}
-						icon={<Save className="w-4 h-4" />}
-					>
-						Save Changes
-					</Button>
+
+					{/* Draft Actions */}
+					{isDraft && !isCancelled && (
+						<>
+							<Button
+								variant="secondary"
+								onClick={handleSave}
+								disabled={!isModified || isSaving || !calculations.isValidDiscount}
+								loading={isSaving}
+								icon={<Save className="w-4 h-4" />}
+							>
+								Save Changes
+							</Button>
+							<Button
+								onClick={() => {
+									setGenerateError(null);
+									setShowGenerateConfirm(true);
+								}}
+								disabled={isGenerating || !calculations.isValidDiscount}
+								icon={<Sparkles className="w-4 h-4" />}
+							>
+								Generate Invoice
+							</Button>
+						</>
+					)}
 				</div>
 			</div>
 
+			{/* ── Status Banner for Finalized Invoices ───────────────────────── */}
+			{isFinalized && !isCancelled && (
+				<div className="p-3 bg-info-container/20 border border-info/20 rounded-xl flex items-center gap-3 text-xs text-info">
+					<Lock className="w-4 h-4 shrink-0" />
+					<p className="font-medium">
+						This invoice is <strong>Finalized</strong> and locked. Official invoice number <strong>{invoice.invoiceNumber}</strong> has been issued. Edits to service items, discount, notes, and GST are disabled.
+					</p>
+				</div>
+			)}
+
+			{/* ── Status Banner for Cancelled Invoices ───────────────────────── */}
+			{isCancelled && (
+				<div className="p-3 bg-error-container/20 border border-error/20 rounded-xl flex items-center gap-3 text-xs text-error">
+					<AlertCircle className="w-4 h-4 shrink-0" />
+					<p className="font-medium">
+						This invoice has been <strong>Cancelled</strong>. No further edits or generations are permitted.
+					</p>
+				</div>
+			)}
+
 			{/* ── Error Notification ────────────────────────────────────────── */}
-			{saveError && (
+			{(saveError || generateError) && (
 				<div className="app-card p-4 border-error/40 bg-error/10 flex items-center gap-3 text-sm text-error">
 					<AlertCircle className="w-5 h-5 shrink-0" />
-					<p className="flex-1 font-medium">{saveError}</p>
+					<p className="flex-1 font-medium">{saveError || generateError}</p>
 					<button
 						type="button"
-						onClick={() => setSaveError(null)}
+						onClick={() => {
+							setSaveError(null);
+							setGenerateError(null);
+						}}
 						className="text-xs underline hover:no-underline"
 					>
 						Dismiss
@@ -346,30 +490,30 @@ export function InvoiceDetailPage() {
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				{/* Customer */}
 				<div className="app-card p-4 space-y-2">
-					<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+					<div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
 						<User className="w-4 h-4 text-secondary" />
 						<span>Customer</span>
 					</div>
 					<div>
-						<p className="text-base font-bold text-on-surface">{invoice.customerName}</p>
+						<p className="text-base font-medium text-on-surface">{invoice.customerName}</p>
 						<p className="text-xs font-mono text-on-surface-variant mt-0.5">{invoice.customerPhone}</p>
 					</div>
 				</div>
 
 				{/* Vehicle */}
 				<div className="app-card p-4 space-y-2">
-					<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+					<div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
 						<Car className="w-4 h-4 text-secondary" />
 						<span>Vehicle</span>
 					</div>
 					<div>
-						<p className="text-base font-bold text-on-surface">
+						<p className="text-base font-medium text-on-surface">
 							{invoice.vehicleMake} {invoice.vehicleModel}
 							{invoice.vehicleVariant ? ` (${invoice.vehicleVariant})` : ''}
 						</p>
 						<div className="flex items-center gap-2 mt-0.5">
 							{invoice.registrationNumber && (
-								<span className="bg-surface-container px-2 py-0.5 rounded text-xs font-bold font-mono text-on-surface">
+								<span className="bg-surface-container px-1.5 py-0.5 rounded text-xs font-medium font-mono text-on-surface-variant">
 									{invoice.registrationNumber}
 								</span>
 							)}
@@ -382,14 +526,14 @@ export function InvoiceDetailPage() {
 
 				{/* Job Card */}
 				<div className="app-card p-4 space-y-2">
-					<div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+					<div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
 						<FileText className="w-4 h-4 text-secondary" />
 						<span>Job Card Reference</span>
 					</div>
 					<div>
 						<Link
 							to={`/job-cards/${invoice.jobCardId}`}
-							className="text-base font-bold font-mono text-secondary hover:underline inline-flex items-center gap-1"
+							className="text-base font-medium font-mono text-secondary hover:underline inline-flex items-center gap-1"
 						>
 							{invoice.jobCardNumber}
 						</Link>
@@ -407,7 +551,7 @@ export function InvoiceDetailPage() {
 					{/* Service Table */}
 					<div className="app-card overflow-hidden">
 						<div className="p-4 border-b border-outline-variant bg-surface-container-low/50 flex items-center justify-between">
-							<h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
+							<h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
 								Service Items ({invoice.items?.length ?? 0})
 							</h3>
 						</div>
@@ -455,22 +599,37 @@ export function InvoiceDetailPage() {
 
 					{/* Notes */}
 					<div className="app-card p-5 space-y-3">
-						<div className="flex items-center gap-2">
-							<FileText className="w-4 h-4 text-secondary" />
-							<h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
-								Invoice Notes &amp; Terms
-							</h3>
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-2">
+								<FileText className="w-4 h-4 text-secondary" />
+								<h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
+									Invoice Notes &amp; Terms
+								</h3>
+							</div>
+							{!isDraft && (
+								<span className="text-xs text-on-surface-variant flex items-center gap-1">
+									<Lock className="w-3 h-3" /> Read-only
+								</span>
+							)}
 						</div>
-						<textarea
-							rows={4}
-							value={notes}
-							onChange={(e) => setNotes(e.target.value)}
-							placeholder="Add customer notes, warranty info, or terms of service..."
-							className="form-input w-full text-sm resize-none bg-white"
-						/>
-						<p className="text-[11px] text-on-surface-variant">
-							Notes will be printed on the invoice receipt. Click "Save Changes" to apply.
-						</p>
+						{isDraft ? (
+							<>
+								<textarea
+									rows={4}
+									value={notes}
+									onChange={(e) => setNotes(e.target.value)}
+									placeholder="Add customer notes, warranty info, or terms of service..."
+									className="form-input w-full text-sm resize-none bg-white"
+								/>
+								<p className="text-[11px] text-on-surface-variant">
+									Notes will be printed on the invoice receipt. Click "Save Changes" to apply.
+								</p>
+							</>
+						) : (
+							<div className="p-3 bg-surface-container-low/60 rounded-lg text-sm text-on-surface border border-outline-variant/50 min-h-[5rem] whitespace-pre-wrap">
+								{invoice.notes || <span className="text-on-surface-variant italic">No notes recorded on this invoice.</span>}
+							</div>
+						)}
 					</div>
 				</div>
 
@@ -480,7 +639,7 @@ export function InvoiceDetailPage() {
 					<div className="app-card p-5 space-y-3">
 						<div className="flex items-center justify-between">
 							<div>
-								<h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
+								<h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
 									GST Control
 								</h3>
 								<p className="text-xs text-on-surface-variant mt-0.5">
@@ -491,10 +650,11 @@ export function InvoiceDetailPage() {
 							{/* Toggle switch */}
 							<button
 								type="button"
-								onClick={() => setIsGstEnabled((prev) => !prev)}
-								className={`relative inline-flex h-6 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-									isGstEnabled ? 'bg-secondary' : 'bg-outline-variant'
-								}`}
+								disabled={!isDraft}
+								onClick={() => isDraft && setIsGstEnabled((prev) => !prev)}
+								className={`relative inline-flex h-6 w-12 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+									isDraft ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'
+								} ${isGstEnabled ? 'bg-secondary' : 'bg-outline-variant'}`}
 								role="switch"
 								aria-checked={isGstEnabled}
 							>
@@ -506,9 +666,9 @@ export function InvoiceDetailPage() {
 							</button>
 						</div>
 
-						<div className="pt-2 border-t border-outline-variant/60 flex items-center gap-2">
+						<div className="pt-2 border-t border-outline-variant/60 flex items-center justify-between">
 							<span
-								className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
+								className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium ${
 									isGstEnabled
 										? 'bg-secondary/10 text-secondary border border-secondary/20'
 										: 'bg-surface-container text-on-surface-variant'
@@ -517,58 +677,77 @@ export function InvoiceDetailPage() {
 								{isGstEnabled && <Check className="w-3.5 h-3.5" />}
 								GST Enabled: {isGstEnabled ? 'ON' : 'OFF'}
 							</span>
+							{!isDraft && (
+								<span className="text-[11px] text-on-surface-variant flex items-center gap-1">
+									<Lock className="w-3 h-3" /> Locked
+								</span>
+							)}
 						</div>
 					</div>
 
 					{/* Financial Summary */}
 					<div className="app-card p-5 space-y-4">
-						<h3 className="text-sm font-bold text-on-surface uppercase tracking-wider pb-2 border-b border-outline-variant">
-							Summary
+						<h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant pb-2 border-b border-outline-variant">
+							Financial Summary
 						</h3>
 
 						<div className="space-y-2.5 text-sm">
 							{/* Subtotal */}
 							<div className="flex justify-between text-on-surface-variant">
 								<span>Subtotal</span>
-								<span className="font-mono font-medium text-on-surface">
+								<span className="font-medium text-on-surface">
 									{formatCurrency(calculations.subtotal)}
 								</span>
 							</div>
 
-							{/* Editable Discount */}
+							{/* Discount Section */}
 							<div className="py-2 border-y border-outline-variant/60 space-y-1.5">
 								<div className="flex items-center justify-between">
-									<label className="text-xs font-bold text-on-surface flex items-center gap-1">
+									<label className="text-xs font-semibold text-on-surface flex items-center gap-1">
 										<Tag className="w-3.5 h-3.5 text-secondary" />
 										<span>Discount ₹</span>
 									</label>
-									<span className="text-[11px] text-on-surface-variant font-mono">
-										Max: {formatCurrency(calculations.subtotal)}
-									</span>
+									{isDraft && (
+										<span className="text-[11px] text-on-surface-variant font-mono">
+											Max: {formatCurrency(calculations.subtotal)}
+										</span>
+									)}
 								</div>
-								<div className="relative">
-									<span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-mono text-sm">
-										₹
-									</span>
-									<input
-										type="number"
-										min="0"
-										step="0.01"
-										max={calculations.subtotal}
-										value={discount}
-										onChange={(e) => setDiscount(e.target.value)}
-										className={`form-input pl-7 pr-3 py-1.5 w-full font-mono text-sm ${
-											!calculations.isValidDiscount ? 'border-error ring-1 ring-error' : ''
-										}`}
-										placeholder="0.00"
-									/>
-								</div>
-								{!calculations.isValidDiscount && (
-									<p className="text-[11px] text-error font-medium">
-										{parsedDiscount < 0
-											? 'Discount cannot be negative.'
-											: 'Discount cannot exceed subtotal.'}
-									</p>
+
+								{isDraft ? (
+									<>
+										<div className="relative">
+											<span className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant font-mono text-sm">
+												₹
+											</span>
+											<input
+												type="number"
+												min="0"
+												step="0.01"
+												max={calculations.subtotal}
+												value={discount}
+												onChange={(e) => setDiscount(e.target.value)}
+												className={`form-input pl-7 pr-3 py-1.5 w-full font-mono text-sm ${
+													!calculations.isValidDiscount ? 'border-error ring-1 ring-error' : ''
+												}`}
+												placeholder="0.00"
+											/>
+										</div>
+										{!calculations.isValidDiscount && (
+											<p className="text-[11px] text-error font-medium">
+												{parsedDiscount < 0
+													? 'Discount cannot be negative.'
+													: 'Discount cannot exceed subtotal.'}
+											</p>
+										)}
+									</>
+								) : (
+									<div className="flex justify-between items-center py-0.5">
+										<span className="text-xs text-on-surface-variant">Applied Discount</span>
+										<span className="font-medium text-on-surface">
+											{formatCurrency(calculations.discount)}
+										</span>
+									</div>
 								)}
 							</div>
 
@@ -576,7 +755,7 @@ export function InvoiceDetailPage() {
 							{isGstEnabled && (
 								<div className="flex justify-between text-on-surface-variant">
 									<span>CGST 9%</span>
-									<span className="font-mono font-medium text-on-surface">
+									<span className="font-medium text-on-surface">
 										{formatCurrency(calculations.cgst)}
 									</span>
 								</div>
@@ -586,16 +765,16 @@ export function InvoiceDetailPage() {
 							{isGstEnabled && (
 								<div className="flex justify-between text-on-surface-variant">
 									<span>SGST 9%</span>
-									<span className="font-mono font-medium text-on-surface">
+									<span className="font-medium text-on-surface">
 										{formatCurrency(calculations.sgst)}
 									</span>
 								</div>
 							)}
 
 							{/* Grand Total */}
-							<div className="flex justify-between text-base font-bold text-on-surface pt-3 border-t border-outline-variant">
+							<div className="flex justify-between text-base font-semibold text-on-surface pt-3 border-t border-outline-variant">
 								<span>Grand Total</span>
-								<span className="font-mono text-secondary text-lg">
+								<span className="text-secondary text-lg font-bold">
 									{formatCurrency(calculations.totalAmount)}
 								</span>
 							</div>
@@ -603,33 +782,110 @@ export function InvoiceDetailPage() {
 							{/* Paid */}
 							<div className="flex justify-between text-xs text-on-surface-variant pt-1">
 								<span>Paid</span>
-								<span className="font-mono font-medium text-success">
+								<span className="font-medium text-success">
 									{formatCurrency(calculations.paidAmount)}
 								</span>
 							</div>
 
 							{/* Balance */}
-							<div className="flex justify-between text-sm font-bold pt-2 border-t border-outline-variant/60">
+							<div className="flex justify-between text-sm font-semibold pt-2 border-t border-outline-variant/60">
 								<span className="text-on-surface">Balance</span>
-								<span className={`font-mono ${calculations.balanceAmount > 0 ? 'text-error' : 'text-success'}`}>
+								<span className={calculations.balanceAmount > 0 ? 'text-error' : 'text-success'}>
 									{formatCurrency(calculations.balanceAmount)}
 								</span>
 							</div>
 						</div>
 
-						{/* Quick Save Button in sidebar */}
-						<Button
-							className="w-full mt-2"
-							onClick={handleSave}
-							disabled={!isModified || isSaving || !calculations.isValidDiscount}
-							loading={isSaving}
-							icon={<Save className="w-4 h-4" />}
-						>
-							Save Changes
-						</Button>
+						{/* Draft Prominent Action Buttons in sidebar */}
+						{isDraft && !isCancelled && (
+							<div className="pt-2 space-y-2">
+								<Button
+									className="w-full"
+									onClick={() => {
+										setGenerateError(null);
+										setShowGenerateConfirm(true);
+									}}
+									disabled={isGenerating || !calculations.isValidDiscount}
+									icon={<Sparkles className="w-4 h-4" />}
+								>
+									Generate Invoice
+								</Button>
+
+								<Button
+									variant="secondary"
+									className="w-full"
+									onClick={handleSave}
+									disabled={!isModified || isSaving || !calculations.isValidDiscount}
+									loading={isSaving}
+									icon={<Save className="w-4 h-4" />}
+								>
+									Save Changes
+								</Button>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
+
+			{/* ── Generate Invoice Confirmation Dialog ────────────────────────── */}
+			<Dialog
+				open={showGenerateConfirm}
+				onOpenChange={(open) => !isGenerating && setShowGenerateConfirm(open)}
+				title="Generate Invoice?"
+				description="Once generated, this invoice will be finalized and locked against edits. An official invoice number will be generated automatically."
+				footer={
+					<div className="flex items-center justify-end gap-2">
+						<Button
+							variant="secondary"
+							onClick={() => setShowGenerateConfirm(false)}
+							disabled={isGenerating}
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleGenerateInvoice}
+							disabled={isGenerating || !calculations.isValidDiscount}
+							loading={isGenerating}
+							icon={<Sparkles className="w-4 h-4" />}
+						>
+							{isGenerating ? 'Generating Invoice...' : 'Generate Invoice'}
+						</Button>
+					</div>
+				}
+			>
+				<div className="space-y-4 text-sm text-on-surface-variant">
+					<div className="p-3.5 bg-surface-container-low rounded-lg border border-outline-variant space-y-2">
+						<div className="flex justify-between items-center text-xs">
+							<span className="text-on-surface-variant">Customer:</span>
+							<span className="font-medium text-on-surface">{invoice.customerName}</span>
+						</div>
+						<div className="flex justify-between items-center text-xs">
+							<span className="text-on-surface-variant">Vehicle:</span>
+							<span className="font-medium text-on-surface">
+								{invoice.vehicleMake} {invoice.vehicleModel} ({invoice.registrationNumber})
+							</span>
+						</div>
+						<div className="flex justify-between items-center text-xs">
+							<span className="text-on-surface-variant">GST Mode:</span>
+							<span className="font-medium text-on-surface">{isGstEnabled ? '18% GST (ON)' : 'Tax Exempt (OFF)'}</span>
+						</div>
+						{calculations.discount > 0 && (
+							<div className="flex justify-between items-center text-xs">
+								<span className="text-on-surface-variant">Discount:</span>
+								<span className="font-medium text-on-surface">{formatCurrency(calculations.discount)}</span>
+							</div>
+						)}
+						<div className="flex justify-between items-center pt-2 border-t border-outline-variant text-sm font-semibold">
+							<span className="text-on-surface">Grand Total:</span>
+							<span className="text-secondary font-bold">{formatCurrency(calculations.totalAmount)}</span>
+						</div>
+					</div>
+
+					<p className="text-xs text-on-surface-variant">
+						Please confirm that all items, discounts, and GST selections are final. After generating, the invoice cannot be modified.
+					</p>
+				</div>
+			</Dialog>
 		</div>
 	);
 }

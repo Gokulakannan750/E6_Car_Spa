@@ -1,20 +1,20 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-	Search,
-	RefreshCw,
-	FileText,
+	Receipt,
 	Eye,
+	Search,
 	Calendar,
 	Car,
-	Receipt,
+	AlertCircle,
 	CircleDollarSign,
 	Clock,
-	AlertCircle,
+	FileText,
+	Sparkles,
 } from 'lucide-react';
-import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
+import { useAppStore } from '../../stores/app';
 import {
 	getInvoices,
 	type InvoiceListDto,
@@ -22,11 +22,13 @@ import {
 	type InvoiceStatus,
 } from '../../lib/api';
 
-// ─── Status filter config ────────────────────────────────────────────────────
+// ─── Status filter config (Draft, Generated, Partially Paid, Paid, Cancelled) ──
 const STATUS_FILTERS: { label: string; value: InvoiceStatus | 'All' }[] = [
 	{ label: 'All', value: 'All' },
-	{ label: 'Paid', value: 'Paid' },
+	{ label: 'Draft', value: 'Draft' },
+	{ label: 'Generated', value: 'Generated' },
 	{ label: 'Partially Paid', value: 'PartiallyPaid' },
+	{ label: 'Paid', value: 'Paid' },
 	{ label: 'Cancelled', value: 'Cancelled' },
 ];
 
@@ -40,19 +42,20 @@ interface KpiConfig {
 }
 
 const KPI_CARDS: KpiConfig[] = [
-	{ label: 'Paid', status: 'Paid', icon: <CircleDollarSign className="w-5 h-5" />, colorClass: 'text-success', bgClass: 'bg-success-container' },
+	{ label: 'Draft', status: 'Draft', icon: <FileText className="w-5 h-5" />, colorClass: 'text-on-surface-variant', bgClass: 'bg-surface-container' },
+	{ label: 'Generated', status: 'Generated', icon: <Sparkles className="w-5 h-5" />, colorClass: 'text-info', bgClass: 'bg-info-container' },
 	{ label: 'Partially Paid', status: 'PartiallyPaid', icon: <Clock className="w-5 h-5" />, colorClass: 'text-warning', bgClass: 'bg-warning-container' },
+	{ label: 'Paid', status: 'Paid', icon: <CircleDollarSign className="w-5 h-5" />, colorClass: 'text-success', bgClass: 'bg-success-container' },
 	{ label: 'Cancelled', status: 'Cancelled', icon: <AlertCircle className="w-5 h-5" />, colorClass: 'text-error', bgClass: 'bg-error-container' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
 	0: 'Draft',
-	1: 'Sent',
 	2: 'Paid',
 	3: 'PartiallyPaid',
 	4: 'Cancelled',
-	5: 'Overdue',
+	6: 'Generated',
 };
 
 function normalizeInvoiceStatus(status: unknown): InvoiceStatus {
@@ -81,7 +84,9 @@ function getInvoiceStatusSlug(inv: { status: unknown; paidAmount: number; totalA
 	}
 	if (normalized === 'Paid') return 'paid';
 	if (normalized === 'PartiallyPaid') return 'partially-paid';
-	return 'unpaid';
+	if (normalized === 'Generated') return 'generated';
+	if (normalized === 'Draft') return 'draft';
+	return 'draft';
 }
 
 function formatCurrency(value: number) {
@@ -149,14 +154,18 @@ export function Invoices() {
 	// ─── KPI counts (computed from loaded data) ──────────────────────────────
 	const statusCounts = useMemo(() => {
 		const counts: Record<string, number> = {
-			Paid: 0,
+			Draft: 0,
+			Generated: 0,
 			PartiallyPaid: 0,
+			Paid: 0,
 			Cancelled: 0,
 		};
 		for (const item of items) {
 			const slug = getInvoiceStatusSlug(item);
-			if (slug === 'paid') counts.Paid = (counts.Paid || 0) + 1;
+			if (slug === 'draft') counts.Draft = (counts.Draft || 0) + 1;
+			else if (slug === 'generated') counts.Generated = (counts.Generated || 0) + 1;
 			else if (slug === 'partially-paid') counts.PartiallyPaid = (counts.PartiallyPaid || 0) + 1;
+			else if (slug === 'paid') counts.Paid = (counts.Paid || 0) + 1;
 			else if (slug === 'cancelled') counts.Cancelled = (counts.Cancelled || 0) + 1;
 		}
 		return counts;
@@ -168,12 +177,12 @@ export function Invoices() {
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-semibold text-on-surface tracking-tight">Invoices</h1>
-					<p className="text-sm text-on-surface-variant mt-1">Manage invoices</p>
+					<p className="text-sm text-on-surface-variant mt-1">Manage invoice lifecycle, drafts, and payments</p>
 				</div>
 			</div>
 
-			{/* ── KPI Summary Cards (Paid, Partially Paid, Cancelled) ────────── */}
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+			{/* ── KPI Summary Cards (Draft, Generated, Partially Paid, Paid, Cancelled) ── */}
+			<div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
 				{KPI_CARDS.map((kpi) => {
 					const count = statusCounts[kpi.status] ?? 0;
 					const isActive = statusFilter === kpi.status;
@@ -184,98 +193,93 @@ export function Invoices() {
 								setStatusFilter(isActive ? 'All' : kpi.status);
 								setPage(1);
 							}}
-							className={`app-card p-4 text-left transition-all duration-150 hover:shadow-md cursor-pointer ${
-								isActive ? 'ring-2 ring-secondary shadow-md' : ''
+							className={`app-card p-3.5 text-left transition-all hover:shadow-elevation-1 ${
+								isActive ? 'ring-2 ring-secondary shadow-sm' : ''
 							}`}
 						>
-							<div className="flex items-center justify-between mb-2">
-								<div className={`w-9 h-9 rounded-lg ${kpi.bgClass} ${kpi.colorClass} flex items-center justify-center`}>
+							<div className="flex items-center justify-between mb-1.5">
+								<span className="text-xs font-semibold text-on-surface-variant">{kpi.label}</span>
+								<div className={`w-8 h-8 rounded-lg ${kpi.bgClass} ${kpi.colorClass} flex items-center justify-center`}>
 									{kpi.icon}
 								</div>
-								<span className="text-2xl font-bold text-on-surface">{count}</span>
 							</div>
-							<p className="text-xs font-medium text-on-surface-variant">{kpi.label}</p>
+							<div className="text-xl font-bold text-on-surface">{count}</div>
+							<p className="text-[11px] text-on-surface-variant mt-0.5">
+								{kpi.status === 'Draft' ? 'Pending generation' : `${kpi.label} invoices`}
+							</p>
 						</button>
 					);
 				})}
 			</div>
 
-			{/* ── Error State ───────────────────────────────────────────────── */}
+			{/* ── Error Banner ──────────────────────────────────────────────── */}
 			{error && (
-				<div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/10 p-4">
-					<FileText className="mt-0.5 h-5 w-5 shrink-0 text-error" />
-					<div className="flex-1">
-						<p className="text-sm font-medium text-error">Failed to load invoices</p>
-						<p className="mt-0.5 text-sm text-on-surface-variant">{error}</p>
+				<div className="app-card p-4 border-error/30 bg-error/5 flex items-center justify-between gap-3 text-sm text-error">
+					<div className="flex items-center gap-2">
+						<AlertCircle className="w-5 h-5 shrink-0" />
+						<span>{error}</span>
 					</div>
-					<Button
-						variant="secondary"
-						size="sm"
-						icon={<RefreshCw className="w-3.5 h-3.5" />}
-						onClick={loadInvoices}
-					>
+					<Button size="sm" variant="secondary" onClick={loadInvoices}>
 						Retry
 					</Button>
 				</div>
 			)}
 
-			{/* ── Filters Bar ──────────────────────────────────────────────── */}
-			<div className="app-card p-4">
-				<div className="flex flex-col gap-3">
-					{/* Search + count */}
-					<div className="flex items-center gap-3">
-						<div className="flex-1 max-w-md">
-							<div className="relative">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
-								<input
-									type="text"
-									value={search}
-									onChange={(e) => {
-										setSearch(e.target.value);
-										setPage(1);
-									}}
-									placeholder="Search invoices..."
-									className="form-input pl-9 pr-4 w-full"
-								/>
-							</div>
-						</div>
-
-						{/* Global Search Indicator */}
-						{globalSearch && (
-							<div className="flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-1.5">
-								<span className="text-sm text-secondary truncate">
-									Global: <strong>"{globalSearch}"</strong>
-								</span>
-							</div>
-						)}
-
-						<div className="ml-auto text-sm text-on-surface-variant">
-							{totalCount} invoice{totalCount !== 1 ? 's' : ''}
+			{/* ── Search & Filter Controls ──────────────────────────────────── */}
+			<div className="app-card p-4 space-y-3">
+				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+					{/* Search input */}
+					<div className="flex items-center gap-2 flex-1 max-w-md">
+						<div className="relative flex-1">
+							<Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+							<input
+								type="text"
+								placeholder="Search invoices by number, customer, vehicle..."
+								value={search}
+								onChange={(e) => {
+									setSearch(e.target.value);
+									setPage(1);
+								}}
+								className="form-input pl-9 pr-3 py-1.5 w-full text-sm"
+							/>
 						</div>
 					</div>
 
-					{/* Status filter tabs: [ All ] [ Paid ] [ Partially Paid ] [ Cancelled ] */}
-					<div className="flex items-center gap-1 flex-wrap">
-						{STATUS_FILTERS.map((sf) => {
-							const isActive = statusFilter === sf.value;
-							return (
-								<button
-									key={sf.value}
-									onClick={() => {
-										setStatusFilter(sf.value);
-										setPage(1);
-									}}
-									className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-										isActive
-											? 'bg-secondary text-white shadow-sm'
-											: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
-									}`}
-								>
-									{sf.label}
-								</button>
-							);
-						})}
+					{/* Global Search Indicator */}
+					{globalSearch && (
+						<div className="flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-lg px-3 py-1.5">
+							<span className="text-sm text-secondary truncate">
+								Global: <strong>"{globalSearch}"</strong>
+							</span>
+						</div>
+					)}
+
+					<div className="ml-auto text-sm text-on-surface-variant">
+						{totalCount} invoice{totalCount !== 1 ? 's' : ''}
 					</div>
+				</div>
+
+				{/* Status filter tabs: [ All ] [ Draft ] [ Generated ] [ Partially Paid ] [ Paid ] [ Cancelled ] */}
+				<div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-outline-variant/50">
+					{STATUS_FILTERS.map((sf) => {
+						const isActive = statusFilter === sf.value;
+						return (
+							<button
+								key={sf.value}
+								onClick={() => {
+									setStatusFilter(sf.value);
+									setPage(1);
+								}}
+								className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+									isActive
+										? 'bg-secondary text-white shadow-sm'
+										: 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
+								}`}
+							>
+								{sf.label}
+							</button>
+						);
+					})}
 				</div>
 			</div>
 
@@ -313,6 +317,7 @@ export function Invoices() {
 
 							{items.map((inv) => {
 								const statusSlug = getInvoiceStatusSlug(inv);
+								const isDraft = !inv.invoiceNumber || statusSlug === 'draft';
 								return (
 									<tr
 										key={inv.id}
@@ -401,7 +406,7 @@ export function Invoices() {
 												icon={<Eye className="w-3.5 h-3.5" />}
 												onClick={() => navigate(`/invoices/${inv.id}`)}
 											>
-												View
+												{isDraft ? 'View / Edit' : 'View'}
 											</Button>
 										</td>
 									</tr>
@@ -414,7 +419,7 @@ export function Invoices() {
 				{/* ── Pagination ──────────────────────────────────────────────── */}
 				{totalCount > pageSize && (
 					<div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant bg-surface-container-low/30">
-						<span className="text-xs text-on-surface-variant">
+						<span className="text-sm text-on-surface-variant">
 							Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount}
 						</span>
 						<div className="flex items-center gap-1">
@@ -422,7 +427,7 @@ export function Invoices() {
 								variant="secondary"
 								size="sm"
 								disabled={page <= 1}
-								onClick={() => setPage((p) => Math.max(1, p - 1))}
+								onClick={() => setPage((p) => p - 1)}
 							>
 								Previous
 							</Button>
@@ -443,7 +448,7 @@ export function Invoices() {
 								variant="secondary"
 								size="sm"
 								disabled={page >= totalPages}
-								onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+								onClick={() => setPage((p) => p + 1)}
 							>
 								Next
 							</Button>
