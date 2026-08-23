@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Customers;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -16,18 +17,22 @@ public class CustomersController : ControllerBase
  }
 
  [HttpGet("{id:guid}")]
+ [RequirePermission("customers.view")]
  public async Task<IActionResult> Get(Guid id, CancellationToken ct)
  => (await _service.GetByIdAsync(id, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet("by-phone/{phoneNumber}")]
+ [RequirePermission("customers.view")]
  public async Task<IActionResult> GetByPhone(string phoneNumber, CancellationToken ct)
  => (await _service.GetByPhoneAsync(phoneNumber, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet("by-registration/{registrationNumber}")]
+ [RequirePermission("customers.view")]
  public async Task<IActionResult> GetByRegistration(string registrationNumber, CancellationToken ct)
  => (await _service.GetByRegistrationAsync(registrationNumber, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet]
+ [RequirePermission("customers.view")]
  public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, CancellationToken ct = default)
  {
  if (page < 1) page = 1;
@@ -39,6 +44,7 @@ public class CustomersController : ControllerBase
  }
 
  [HttpGet("{id:guid}/history")]
+ [RequirePermission("customers.view")]
  public async Task<IActionResult> GetHistory(Guid id, CancellationToken ct)
  {
  var history = await _service.GetHistoryAsync(id, ct);
@@ -49,6 +55,7 @@ public class CustomersController : ControllerBase
  }
 
  [HttpPost]
+ [RequirePermission("customers.create")]
  public async Task<IActionResult> Create([FromBody] CreateCustomerRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -61,6 +68,7 @@ public class CustomersController : ControllerBase
  }
 
  [HttpPut("{id:guid}")]
+ [RequirePermission("customers.edit")]
  public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCustomerRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -73,6 +81,7 @@ public class CustomersController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
+ [RequirePermission("customers.delete")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);

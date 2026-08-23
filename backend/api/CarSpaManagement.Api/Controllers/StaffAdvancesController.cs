@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.StaffAdvances;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -16,6 +17,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpGet]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] Guid? staffId = null, [FromQuery] string? status = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] string? search = null, CancellationToken ct = default)
  {
  if (page < 1) page = 1;
@@ -27,6 +29,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpGet("{id:guid}")]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> Get(Guid id, CancellationToken ct)
  {
  var dto = await _service.GetByIdAsync(id, ct);
@@ -35,6 +38,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpPost]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> Create([FromBody] CreateStaffAdvanceRequest request, CancellationToken ct)
  {
  var dto = await _service.CreateAsync(request, ct);
@@ -42,6 +46,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpPut("{id:guid}")]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> Update(Guid id, [FromBody] UpdateStaffAdvanceRequest request, CancellationToken ct)
  {
  var dto = await _service.UpdateAsync(id, request, ct);
@@ -50,6 +55,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);
@@ -58,6 +64,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpGet("staff")]
+ [RequirePermission("staff.view")]
  public async Task<IActionResult> GetStaff(CancellationToken ct)
  {
  var staff = await _service.GetStaffAsync(ct);
@@ -65,6 +72,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpGet("staff/{staffId:guid}")]
+ [RequirePermission("staff.view")]
  public async Task<IActionResult> GetStaffById(Guid staffId, CancellationToken ct)
  {
  var staff = await _service.GetStaffByIdAsync(staffId, ct);
@@ -73,6 +81,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpGet("staff/{staffId:guid}/advances")]
+ [RequirePermission("staff.advances")]
  public async Task<IActionResult> GetByStaffId(Guid staffId, CancellationToken ct)
  {
  var items = await _service.GetByStaffIdAsync(staffId, ct);
@@ -80,6 +89,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpPost("staff")]
+ [RequirePermission("staff.create")]
  public async Task<IActionResult> CreateStaff([FromBody] CreateStaffRequest request, CancellationToken ct)
  {
  var dto = await _service.CreateStaffMemberAsync(request, ct);
@@ -87,6 +97,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpPut("staff/{staffId:guid}")]
+ [RequirePermission("staff.edit")]
  public async Task<IActionResult> UpdateStaff(Guid staffId, [FromBody] UpdateStaffRequest request, CancellationToken ct)
  {
  var dto = await _service.UpdateStaffMemberAsync(staffId, request, ct);
@@ -95,6 +106,7 @@ public class StaffAdvancesController : ControllerBase
  }
 
  [HttpDelete("staff/{staffId:guid}")]
+ [RequirePermission("staff.edit")]
  public async Task<IActionResult> DeleteStaff(Guid staffId, CancellationToken ct)
  {
  var deleted = await _service.DeleteStaffMemberAsync(staffId, ct);

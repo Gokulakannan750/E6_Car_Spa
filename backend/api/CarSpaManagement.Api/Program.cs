@@ -1,11 +1,16 @@
+using System.Text;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Application.Services;
 using CarSpaManagement.Api.Domain.Common;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using CarSpaManagement.Api.Infrastructure.Database;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 // Alias to avoid ambiguity with CarSpaManagement.Api.JobCardService
@@ -55,6 +60,44 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
 builder.Services.AddScoped<IShowroomService, ShowroomService>();
 
+// Security & Authentication Services
+builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+// JWT Authentication
+var jwtSecret = builder.Configuration["Jwt:Key"] ?? "E6CarSpa_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "E6CarSpa";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "E6CarSpaDesktop";
+
+builder.Services.AddAuthentication(options =>
+{
+ options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+ options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+ options.RequireHttpsMetadata = false;
+ options.SaveToken = true;
+ options.TokenValidationParameters = new TokenValidationParameters
+ {
+ ValidateIssuerSigningKey = true,
+ IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+ ValidateIssuer = true,
+ ValidIssuer = jwtIssuer,
+ ValidateAudience = true,
+ ValidAudience = jwtAudience,
+ ValidateLifetime = true,
+ ClockSkew = TimeSpan.Zero
+ };
+});
+
+// Dynamic Permission Authorization
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+builder.Services.AddAuthorization();
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -98,6 +141,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 
 // ── Routes ───────────────────────────────────────────────────────────────────
@@ -133,6 +177,7 @@ using (var scope = app.Services.CreateScope())
  {
  var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
  await db.Database.MigrateAsync();
+ await PermissionSeeder.SeedAsync(db);
 
  if (!await db.Customers.AnyAsync())
  {

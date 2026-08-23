@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -16,6 +17,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetAll([FromQuery] string? search = null, [FromQuery] bool? isActive = null, CancellationToken ct = default)
     {
         var showrooms = await _service.GetAllAsync(search, isActive, ct);
@@ -23,6 +25,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
         var showroom = await _service.GetByIdAsync(id, ct);
@@ -31,6 +34,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Create([FromBody] CreateShowroomRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
@@ -44,6 +48,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShowroomRequest request, CancellationToken ct)
     {
         var updated = await _service.UpdateAsync(id, request, ct);
@@ -52,6 +57,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var deleted = await _service.DeleteAsync(id, ct);
@@ -60,6 +66,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/toggle-active")]
+    [RequirePermission("showroom.manage")]
     public async Task<IActionResult> ToggleActive(Guid id, CancellationToken ct)
     {
         var updated = await _service.ToggleActiveAsync(id, ct);
@@ -70,6 +77,7 @@ public class ShowroomsController : ControllerBase
     // ── Daily Staff Assignment Endpoints ─────────────────────────────────────
 
     [HttpGet("{id:guid}/daily-staff")]
+    [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetDailyStaff(Guid id, [FromQuery] DateTime? date, CancellationToken ct)
     {
         var targetDate = date?.Date ?? DateTime.UtcNow.Date;
@@ -79,6 +87,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/daily-staff")]
+    [RequirePermission("showroom.assign_staff")]
     public async Task<IActionResult> AssignDailyStaff(Guid id, [FromBody] CreateDailyStaffAssignmentRequest request, CancellationToken ct)
     {
         try
@@ -99,6 +108,7 @@ public class ShowroomsController : ControllerBase
     // ── Daily Showroom Billing & Payment Endpoints ──────────────────────────
 
     [HttpGet("{id:guid}/daily-bill")]
+    [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetDailyBill(Guid id, [FromQuery] DateTime? date, CancellationToken ct)
     {
         var targetDate = date?.Date ?? DateTime.UtcNow.Date;
@@ -108,6 +118,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/daily-bill")]
+    [RequirePermission("showroom.manage_billing")]
     public async Task<IActionResult> SetDailyBill(Guid id, [FromQuery] DateTime? date, [FromBody] SetShowroomDailyBillRequest request, CancellationToken ct)
     {
         try
@@ -131,6 +142,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/daily-bill/payments")]
+    [RequirePermission("showroom.record_payment")]
     public async Task<IActionResult> RecordDailyPayment(Guid id, [FromQuery] DateTime? date, [FromBody] RecordShowroomPaymentRequest request, CancellationToken ct)
     {
         try
@@ -156,6 +168,7 @@ public class ShowroomsController : ControllerBase
     // ── History & Financial Summary Endpoints ───────────────────────────────
 
     [HttpGet("{id:guid}/summary")]
+    [RequirePermission("showroom.view_history")]
     public async Task<IActionResult> GetSummary(Guid id, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
     {
         var start = fromDate?.Date ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
@@ -166,6 +179,7 @@ public class ShowroomsController : ControllerBase
     }
 
     [HttpGet("outstanding")]
+    [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetOutstanding([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
     {
         var list = await _service.GetOutstandingOverviewAsync(fromDate, toDate, ct);

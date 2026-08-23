@@ -400,6 +400,47 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("Payments", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Permission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Permissions_Code");
+
+                    b.HasIndex("Module")
+                        .HasDatabaseName("IX_Permissions_Module");
+
+                    b.ToTable("Permissions", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Service", b =>
                 {
                     b.Property<Guid>("Id")
@@ -727,6 +768,107 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("StaffAdvances", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Users_IsActive");
+
+                    b.HasIndex("Role")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_SingleOwner")
+                        .HasFilter("\"Role\" = 1 AND \"IsDeleted\" = false");
+
+                    b.HasIndex("Username")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Username")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.UserPermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("PermissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("UserId", "PermissionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserPermissions_UserId_PermissionId")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("UserPermissions", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -931,6 +1073,25 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.UserPermission", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Permission", "Permission")
+                        .WithMany("UserPermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.User", "User")
+                        .WithMany("UserPermissions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vehicle", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
@@ -961,6 +1122,11 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("JobCardServices");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Permission", b =>
+                {
+                    b.Navigation("UserPermissions");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Service", b =>
                 {
                     b.Navigation("JobCardServices");
@@ -983,6 +1149,11 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("ShowroomAssignments");
 
                     b.Navigation("StaffAdvances");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.User", b =>
+                {
+                    b.Navigation("UserPermissions");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vehicle", b =>

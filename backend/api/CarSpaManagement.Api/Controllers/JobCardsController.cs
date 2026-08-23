@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.DTOs.JobCards;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet("{id:guid}")]
+	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> Get(Guid id, CancellationToken ct)
 	{
 		var dto = await _service.GetByIdAsync(id, ct);
@@ -26,6 +28,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet("{id:guid}/print")]
+	[RequirePermission("jobcards.print")]
 	public async Task<IActionResult> GetForPrint(Guid id, CancellationToken ct)
 	{
 		var dto = await _service.GetForPrintAsync(id, ct);
@@ -34,6 +37,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet("by-number/{jobCardNumber}")]
+	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> GetByNumber(string jobCardNumber, CancellationToken ct)
 	{
 		var dto = await _service.GetByNumberAsync(jobCardNumber, ct);
@@ -42,6 +46,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet]
+	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] JobCardStatus? status = null, [FromQuery] Guid? customerId = null, [FromQuery] Guid? vehicleId = null, [FromQuery] string? search = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, CancellationToken ct = default)
 	{
 		if (page < 1) page = 1;
@@ -53,6 +58,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet("by-customer/{customerId:guid}")]
+	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> GetByCustomer(Guid customerId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
 	{
 		if (page < 1) page = 1;
@@ -64,6 +70,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpGet("by-vehicle/{vehicleId:guid}")]
+	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> GetByVehicle(Guid vehicleId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
 	{
 		if (page < 1) page = 1;
@@ -75,6 +82,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpPost]
+	[RequirePermission("jobcards.create")]
 	public async Task<IActionResult> Create([FromBody] CreateJobCardRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -91,6 +99,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpPut("{id:guid}/services")]
+	[RequirePermission("jobcards.edit")]
 	public async Task<IActionResult> UpdateServices(Guid id, [FromBody] UpdateJobCardServicesRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -101,6 +110,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpDelete("{id:guid}")]
+	[RequirePermission("jobcards.edit")]
 	public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
 	{
 		var deleted = await _service.DeleteAsync(id, ct);

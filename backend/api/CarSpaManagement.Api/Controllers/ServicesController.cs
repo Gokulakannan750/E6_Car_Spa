@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Services;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -35,6 +36,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpPost]
+ [RequirePermission("settings.edit")]
  public async Task<IActionResult> Create([FromBody] CreateServiceRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -44,6 +46,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpPut("{id:guid}")]
+ [RequirePermission("settings.edit")]
  public async Task<IActionResult> Update(Guid id, [FromBody] UpdateServiceRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -53,6 +56,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
+ [RequirePermission("settings.edit")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);

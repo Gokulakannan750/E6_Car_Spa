@@ -1,6 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Vehicles;
 using CarSpaManagement.Api.Application.Interfaces;
-using CarSpaManagement.Api.Infrastructure.Database;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -19,18 +19,22 @@ public class VehiclesController : ControllerBase
  }
 
  [HttpGet("{id:guid}")]
+ [RequirePermission("vehicles.view")]
  public async Task<IActionResult> Get(Guid id, CancellationToken ct)
  => (await _service.GetByIdAsync(id, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet("by-customer/{customerId:guid}")]
+ [RequirePermission("vehicles.view")]
  public async Task<IActionResult> GetByCustomer(Guid customerId, CancellationToken ct)
  => Ok(await _service.GetByCustomerIdAsync(customerId, ct));
 
  [HttpGet("by-registration/{registrationNumber}")]
+ [RequirePermission("vehicles.view")]
  public async Task<IActionResult> GetByRegistration(string registrationNumber, CancellationToken ct)
  => (await _service.GetByRegistrationNumberAsync(registrationNumber, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet]
+ [RequirePermission("vehicles.view")]
  public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, CancellationToken ct = default)
  {
  if (page < 1) page = 1;
@@ -42,6 +46,7 @@ public class VehiclesController : ControllerBase
  }
 
  [HttpPost]
+ [RequirePermission("vehicles.create")]
  public async Task<IActionResult> Create([FromBody] CreateVehicleRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -55,6 +60,7 @@ public class VehiclesController : ControllerBase
  }
 
  [HttpPut("{id:guid}")]
+ [RequirePermission("vehicles.edit")]
  public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVehicleRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -64,6 +70,7 @@ public class VehiclesController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
+ [RequirePermission("vehicles.edit")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);

@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -16,6 +17,7 @@ public class ShowroomStaffAssignmentsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("showroom.edit_attendance")]
     public async Task<IActionResult> UpdateVehicles(Guid id, [FromBody] UpdateDailyStaffAssignmentRequest request, CancellationToken ct)
     {
         var updated = await _service.UpdateAssignmentVehiclesAsync(id, request.VehiclesAttended, ct);
@@ -24,6 +26,7 @@ public class ShowroomStaffAssignmentsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission("showroom.assign_staff")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var removed = await _service.RemoveAssignmentAsync(id, ct);

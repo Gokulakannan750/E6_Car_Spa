@@ -1,118 +1,103 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth-context';
+import { User, Lock, ArrowRight } from 'lucide-react';
 
 export default function LoginForm() {
- const [email, setEmail] = useState('demo@carspa.com');
- const [password, setPassword] = useState('password');
- const [error, setError] = useState('');
- const [isSubmitting, setIsSubmitting] = useState(false);
- const { login } = useAuth();
+	const [username, setUsername] = useState('');
+	const [password, setPassword] = useState('');
+	const [error, setError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const { login } = useAuth();
+	const navigate = useNavigate();
+	const location = useLocation();
 
- const handleSubmit = async (e: React.FormEvent) => {
- e.preventDefault();
- setError('');
- setIsSubmitting(true);
+	const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard';
 
- // Simulate API call
- await new Promise(resolve => setTimeout(resolve, 800));
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setError('');
 
- // Demo validation
- if (email === 'demo@carspa.com' && password === 'password') {
- login({
- id: '1',
- name: 'Demo User',
- email: 'demo@carspa.com',
- role: 'Owner',
- roleLabel: 'Owner',
- avatar: undefined,
- loginTime: new Date().toISOString(),
-});
-} else {
- setError('Invalid credentials. Use demo@carspa.com / password');
-}
+		if (!username.trim() || !password) {
+			setError('Please enter both username and password.');
+			return;
+		}
 
- setIsSubmitting(false);
-};
+		setIsSubmitting(true);
 
- return (
- <form onSubmit={handleSubmit} className="space-y-5">
- {error && (
- <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
- {error}
- </div>
-)}
+		try {
+			await login(username.trim(), password);
+			navigate(from, { replace: true });
+		} catch (err: unknown) {
+			// Security rule: generic error message, do not reveal whether user exists
+			setError('Invalid username or password.');
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
 
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1.5">
- Email Address
- </label>
- <input
- type="email"
- value={email}
- onChange={e => setEmail(e.target.value)}
- className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm
- focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
- transition-all"
- placeholder="Enter your email"
- required
-/>
- </div>
+	return (
+		<form onSubmit={handleSubmit} className="space-y-4">
+			{error && (
+				<div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+					{error}
+				</div>
+			)}
 
- <div>
- <label className="block text-sm font-medium text-gray-700 mb-1.5">
- Password
- </label>
- <input
- type="password"
- value={password}
- onChange={e => setPassword(e.target.value)}
- className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm
- focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none
- transition-all"
- placeholder="Enter your password"
- required
-/>
- </div>
+			<div>
+				<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+					Username
+				</label>
+				<div className="relative">
+					<User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+					<input
+						type="text"
+						value={username}
+						onChange={(e) => setUsername(e.target.value)}
+						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+						placeholder="Enter your username"
+						required
+						autoComplete="username"
+						autoFocus
+					/>
+				</div>
+			</div>
 
- <div className="flex items-center justify-between">
- <label className="flex items-center">
- <input type="checkbox" className="rounded border-gray-300 text-blue-600
- focus:ring-blue-500" />
- <span className="ml-2 text-sm text-gray-600">Remember me</span>
- </label>
- <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
- Forgot password?
- </a>
- </div>
+			<div>
+				<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+					Password
+				</label>
+				<div className="relative">
+					<Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+					<input
+						type="password"
+						value={password}
+						onChange={(e) => setPassword(e.target.value)}
+						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+						placeholder="Enter your password"
+						required
+						autoComplete="current-password"
+					/>
+				</div>
+			</div>
 
- <button
- type="submit"
- disabled={isSubmitting}
- className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold
- py-2.5 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed
- flex items-center justify-center gap-2"
->
- {isSubmitting ? (
- <>
- <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
- <circle className="opacity-25" cx="12" cy="12" r="10"
- stroke="currentColor" strokeWidth="4" fill="none" />
- <path className="opacity-75" fill="currentColor"
- d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
- </svg>
- Signing in...
- </>
- ) : (
- 'Sign In'
- )}
- </button>
-
- <div className="text-center">
- <p className="text-sm text-gray-500">
- Demo: <span className="font-mono text-gray-700">demo@carspa.com</span> /
- <span className="font-mono text-gray-700">password</span>
- </p>
- </div>
- </form>
-);
+			<button
+				type="submit"
+				disabled={isSubmitting}
+				className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm cursor-pointer"
+			>
+				{isSubmitting ? (
+					<>
+						<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+						Signing in...
+					</>
+				) : (
+					<>
+						Sign In
+						<ArrowRight className="w-4 h-4" />
+					</>
+				)}
+			</button>
+		</form>
+	);
 }

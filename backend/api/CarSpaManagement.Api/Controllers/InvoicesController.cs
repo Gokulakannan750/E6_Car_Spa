@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
+using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpGet]
+	[RequirePermission("invoices.view")]
 	public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] InvoiceStatus? status = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, CancellationToken ct = default)
 	{
 		if (page < 1) page = 1;
@@ -29,6 +31,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpGet("{id:guid}")]
+	[RequirePermission("invoices.view")]
 	public async Task<IActionResult> Get(Guid id, CancellationToken ct)
 	{
 		var dto = await _service.GetByIdAsync(id, ct);
@@ -37,6 +40,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpGet("by-number/{invoiceNumber}")]
+	[RequirePermission("invoices.view")]
 	public async Task<IActionResult> GetByNumber(string invoiceNumber, CancellationToken ct)
 	{
 		var dto = await _service.GetByNumberAsync(invoiceNumber, ct);
@@ -45,6 +49,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("from-job-card/{jobCardId:guid}")]
+	[RequirePermission("invoices.edit_draft")]
 	public async Task<IActionResult> CreateFromJobCard(Guid jobCardId, CancellationToken ct)
 	{
 		try
@@ -67,6 +72,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPut("{id:guid}")]
+	[RequirePermission("invoices.edit_draft")]
 	public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInvoiceRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -96,6 +102,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("{id:guid}/generate")]
+	[RequirePermission("invoices.generate")]
 	public async Task<IActionResult> Generate(Guid id, CancellationToken ct)
 	{
 		try
@@ -122,6 +129,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("{id:guid}/payments")]
+	[RequirePermission("invoices.record_payment")]
 	public async Task<IActionResult> RecordPayment(Guid id, [FromBody] RecordPaymentRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -154,6 +162,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpGet("{id:guid}/payments")]
+	[RequirePermission("invoices.view")]
 	public async Task<IActionResult> GetPayments(Guid id, CancellationToken ct)
 	{
 		try

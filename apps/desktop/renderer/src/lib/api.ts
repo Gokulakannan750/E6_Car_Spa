@@ -10,56 +10,86 @@ const API_BASE = (() => {
  return 'http://localhost:5298';
 })();
 
+export const TOKEN_STORAGE_KEY = 'car_spa_token';
+export const USER_STORAGE_KEY = 'car_spa_user';
+
+export function getAuthToken(): string | null {
+	if (typeof localStorage === 'undefined') return null;
+	return localStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export function setAuthToken(token: string | null) {
+	if (typeof localStorage === 'undefined') return;
+	if (token) {
+		localStorage.setItem(TOKEN_STORAGE_KEY, token);
+	} else {
+		localStorage.removeItem(TOKEN_STORAGE_KEY);
+	}
+}
+
 export class ApiError extends Error {
- constructor(
- message: string,
- public status: number,
- public body: unknown,
- ) {
- super(message);
- this.name = 'ApiError';
- }
+	constructor(
+		message: string,
+		public status: number,
+		public body: unknown,
+	) {
+		super(message);
+		this.name = 'ApiError';
+	}
 }
 
 async function request<T>(
- path: string,
- options: RequestInit = {},
+	path: string,
+	options: RequestInit = {},
 ): Promise<T> {
- const res = await fetch(`${API_BASE}${path}`, {
- ...options,
- headers: {
- 'Content-Type': 'application/json',
- ...options.headers,
- },
- });
+	const token = getAuthToken();
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json',
+		...(token ? { Authorization: `Bearer ${token}` } : {}),
+		...((options.headers as Record<string, string>) || {}),
+	};
 
- if (res.status === 204) return undefined as T;
+	const res = await fetch(`${API_BASE}${path}`, {
+		...options,
+		headers,
+	});
 
- if (!res.ok) {
- let errorMessage = `HTTP ${res.status} ${res.statusText}`;
- try {
- const errBody = await res.clone().json();
- if (errBody && typeof errBody === 'object') {
- const rec = errBody as Record<string, unknown>;
- if (typeof rec.detail === 'string' && rec.detail.trim()) errorMessage = rec.detail;
- else if (typeof rec.error === 'string' && rec.error.trim()) errorMessage = rec.error;
- else if (typeof rec.title === 'string' && rec.title.trim()) errorMessage = rec.title;
- }
- } catch {
- // Non-JSON error response
- }
- throw new ApiError(errorMessage, res.status, null);
- }
+	if (res.status === 204) return undefined as T;
 
- const body = (() => {
- const ct = res.headers.get('content-type') || '';
- if (ct.includes('application/json')) {
- return res.json();
- }
- return res.text();
- })();
+	if (res.status === 401 && !path.includes('/api/auth/login')) {
+		setAuthToken(null);
+		localStorage.removeItem(USER_STORAGE_KEY);
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+		}
+	}
 
- return body as T;
+	if (!res.ok) {
+		let errorMessage = `HTTP ${res.status} ${res.statusText}`;
+		try {
+			const errBody = await res.clone().json();
+			if (errBody && typeof errBody === 'object') {
+				const rec = errBody as Record<string, unknown>;
+				if (typeof rec.detail === 'string' && rec.detail.trim()) errorMessage = rec.detail;
+				else if (typeof rec.error === 'string' && rec.error.trim()) errorMessage = rec.error;
+				else if (typeof rec.title === 'string' && rec.title.trim()) errorMessage = rec.title;
+				else if (typeof rec.message === 'string' && rec.message.trim()) errorMessage = rec.message;
+			}
+		} catch {
+			// Non-JSON error response
+		}
+		throw new ApiError(errorMessage, res.status, null);
+	}
+
+	const body = (() => {
+		const ct = res.headers.get('content-type') || '';
+		if (ct.includes('application/json')) {
+			return res.json();
+		}
+		return res.text();
+	})();
+
+	return body as T;
 }
 
 // ============================================================================
@@ -1009,6 +1039,139 @@ function cleanPayload(obj: unknown): unknown {
 }
 
 export function getJobCardStatusLabel(status: number): string {
- const labels: Record<number, string> = { 0: 'Draft', 1: 'In Progress', 2: 'Quality Check', 3: 'Ready', 4: 'Invoiced', 5: 'Paid', 6: 'Delivered', 7: 'Cancelled' };
- return labels[status] ?? `Status ${status}`;
+	const labels: Record<number, string> = { 0: 'Draft', 1: 'In Progress', 2: 'Quality Check', 3: 'Ready', 4: 'Invoiced', 5: 'Paid', 6: 'Delivered', 7: 'Cancelled' };
+	return labels[status] ?? `Status ${status}`;
+}
+
+// ============================================================================
+// Authentication & User Management
+// ============================================================================
+
+export interface AuthStatusResponse {
+	initialized: boolean;
+}
+
+export interface BootstrapOwnerInput {
+	fullName: string;
+	username: string;
+	password: string;
+	confirmPassword: string;
+}
+
+export interface LoginInput {
+	username: string;
+	password: string;
+}
+
+export interface AuthUserResponse {
+	id: string;
+	fullName: string;
+	username: string;
+	email?: string | null;
+	role: 'Owner' | 'Manager' | 'Staff';
+	isOwner: boolean;
+	permissions: string[];
+}
+
+export interface LoginResponse {
+	token: string;
+	user: AuthUserResponse;
+}
+
+export interface UserItemDto {
+	id: string;
+	fullName: string;
+	username: string;
+	email?: string | null;
+	role: 'Owner' | 'Manager' | 'Staff';
+	isActive: boolean;
+	lastLoginAt?: string | null;
+	createdAt: string;
+	permissions: string[];
+}
+
+export interface CreateUserInput {
+	fullName: string;
+	username: string;
+	email?: string | null;
+	password: string;
+	confirmPassword: string;
+	role: string;
+	permissionCodes: string[];
+}
+
+export interface UpdateUserInput {
+	fullName: string;
+	email?: string | null;
+	password?: string | null;
+	confirmPassword?: string | null;
+	role?: string | null;
+	permissionCodes?: string[] | null;
+}
+
+export interface PermissionDetailDto {
+	id: string;
+	code: string;
+	name: string;
+	module: string;
+	description?: string | null;
+}
+
+export interface PermissionGroupDetailDto {
+	module: string;
+	permissions: PermissionDetailDto[];
+}
+
+export async function getAuthStatus() {
+	return request<AuthStatusResponse>('/api/auth/status');
+}
+
+export async function bootstrapOwner(data: BootstrapOwnerInput) {
+	return request<AuthUserResponse>('/api/auth/bootstrap', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function loginApi(data: LoginInput) {
+	return request<LoginResponse>('/api/auth/login', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function getMe() {
+	return request<AuthUserResponse>('/api/auth/me');
+}
+
+export async function getUsers() {
+	return request<UserItemDto[]>('/api/users');
+}
+
+export async function getUserById(id: string) {
+	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}`);
+}
+
+export async function createUser(data: CreateUserInput) {
+	return request<UserItemDto>('/api/users', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateUser(id: string, data: UpdateUserInput) {
+	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function toggleUserStatus(id: string) {
+	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}/toggle-status`, {
+		method: 'PATCH',
+	});
+}
+
+export async function getAvailablePermissions() {
+	return request<PermissionGroupDetailDto[]>('/api/users/permissions');
 }
