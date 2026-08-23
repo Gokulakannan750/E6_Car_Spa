@@ -32,11 +32,19 @@ export default function Shell() {
 
 function GlobalHeader() {
 	const location = useLocation();
-	const title = PAGE_TITLES[location.pathname] || 'Car Spa Management';
+	const title = PAGE_TITLES[location.pathname] || 'Dashboard';
 	return (
 		<header className="h-16 bg-surface border-b border-outline-variant shadow-sm flex items-center justify-between px-6 shrink-0">
-			<div className="flex items-center gap-4">
-				<h2 className="text-2xl font-semibold tracking-tight text-headline-lg text-on-surface uppercase">{title}</h2>
+			<div className="flex items-center gap-3.5">
+				<div className="flex items-center gap-2.5 pr-3.5 border-r border-outline-variant">
+					<div className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center font-bold text-xs">
+						E6
+					</div>
+					<span className="font-bold text-sm text-on-surface tracking-tight whitespace-nowrap">
+						E6 Car Spa
+					</span>
+				</div>
+				<h2 className="text-base font-semibold tracking-tight text-on-surface uppercase">{title}</h2>
 			</div>
 		</header>
 	);

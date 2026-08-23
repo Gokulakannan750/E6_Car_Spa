@@ -11,4 +11,5 @@ public interface IInvoiceService
  Task<InvoiceDto?> GetByNumberAsync(string invoiceNumber, CancellationToken cancellationToken = default);
  Task<InvoiceDto> CreateFromJobCardAsync(CreateInvoiceFromJobCardRequest request, CancellationToken cancellationToken = default);
  Task<InvoiceDto?> UpdateAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default);
+ Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default);
 }

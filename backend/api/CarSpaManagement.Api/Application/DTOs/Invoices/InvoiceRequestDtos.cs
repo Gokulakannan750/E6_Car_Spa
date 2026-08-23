@@ -8,4 +8,5 @@ public record CreateInvoiceFromJobCardRequest(
 public record UpdateInvoiceRequest(
  decimal? Discount,
  string? Notes,
- InvoiceStatus? Status);
+ InvoiceStatus? Status,
+ bool? IsGstEnabled = null);

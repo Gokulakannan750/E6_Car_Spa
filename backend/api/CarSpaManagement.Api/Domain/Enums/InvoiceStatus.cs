@@ -7,5 +7,6 @@ public enum InvoiceStatus
  Paid = 2,
  PartiallyPaid = 3,
  Cancelled = 4,
- Overdue = 5
+ Overdue = 5,
+ Generated = 6
 }

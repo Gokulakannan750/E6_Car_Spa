@@ -220,22 +220,79 @@ export interface CreateServiceInput {
  isActive?: boolean;
 }
 
+// Invoice status values matching backend Domain/Enums/InvoiceStatus.cs
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'PartiallyPaid' | 'Cancelled' | 'Overdue' | 'Generated' | number;
+
+export interface InvoiceItemDto {
+  id: string;
+  serviceId: string | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxableAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+}
+
 export interface InvoiceDto {
- id: string;
- invoiceNumber: string;
- jobCardId: string;
- customerId: string;
- vehicleId: string;
- services: ServiceItemDto[];
- subtotal: number;
- discount: number;
- taxAmount: number;
- totalAmount: number;
- amountPaid: number;
- balanceDue: number;
- paymentStatus: string;
- paymentMethod: string | null;
- createdAt: string;
+  id: string;
+  invoiceNumber: string | null;
+  jobCardId: string;
+  jobCardNumber: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  vehicleId: string;
+  registrationNumber: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleVariant: string | null;
+  vehicleColor: string | null;
+  invoiceDate: string;
+  subtotal: number;
+  discount: number;
+  taxableAmount: number;
+  gstAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  status: InvoiceStatus;
+  notes: string | null;
+  isGstEnabled: boolean;
+  items: InvoiceItemDto[];
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface InvoiceListDto {
+  id: string;
+  invoiceNumber: string | null;
+  jobCardNumber: string;
+  customerName: string;
+  customerPhone: string;
+  registrationNumber: string;
+  vehicle: string;
+  invoiceDate: string;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+  status: InvoiceStatus;
+  createdAt: string;
+}
+
+export interface InvoiceListResponse {
+  items: InvoiceListDto[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface UpdateInvoiceInput {
+  discount?: number | null;
+  notes?: string | null;
+  status?: InvoiceStatus | null;
+  isGstEnabled?: boolean | null;
 }
 
 export interface CatalogueServiceDto {
@@ -368,6 +425,55 @@ export async function deleteJobCard(id: string) {
 
 // ============================================================================
 // Invoices
+// ============================================================================
+
+export async function getInvoices(params: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: InvoiceStatus;
+  fromDate?: string;
+  toDate?: string;
+}) {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params.page));
+  qs.set('pageSize', String(params.pageSize));
+  if (params.search) qs.set('search', params.search);
+  if (params.status !== undefined) qs.set('status', String(params.status));
+  if (params.fromDate) qs.set('fromDate', params.fromDate);
+  if (params.toDate) qs.set('toDate', params.toDate);
+  return request<InvoiceListResponse>('/api/invoices?' + qs.toString());
+}
+
+export async function getInvoiceById(id: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`);
+}
+
+export async function getInvoiceByNumber(invoiceNumber: string) {
+  return request<InvoiceDto>(`/api/invoices/by-number/${encodeURIComponent(invoiceNumber)}`);
+}
+
+export async function createInvoiceFromJobCard(jobCardId: string) {
+  return request<InvoiceDto>(`/api/invoices/from-job-card/${encodeURIComponent(jobCardId)}`, {
+    method: 'POST',
+  });
+}
+
+export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(cleanPayload(data)),
+  });
+}
+
+export async function generateInvoice(id: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
+    method: 'POST',
+  });
+}
+
+// ============================================================================
+// Services (Catalogue)
 // ============================================================================
 
 export async function getServices(params: { page: number; pageSize: number; isActive?: boolean; search?: string; category?: string }) {

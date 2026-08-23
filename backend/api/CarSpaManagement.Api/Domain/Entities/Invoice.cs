@@ -7,9 +7,8 @@ namespace CarSpaManagement.Api.Domain.Entities;
 
 public class Invoice : BaseEntity
 {
-	[Required]
 	[MaxLength(30)]
-	public string InvoiceNumber { get; set; } = string.Empty;
+	public string? InvoiceNumber { get; set; }
 
 	public Guid JobCardId { get; set; }
 	public JobCard JobCard { get; set; } = null!;
@@ -45,6 +44,8 @@ public class Invoice : BaseEntity
 	public decimal BalanceAmount { get; set; }
 
 	public InvoiceStatus Status { get; set; } = InvoiceStatus.Draft;
+
+	public bool IsGstEnabled { get; set; } = true;
 
 	[MaxLength(500)]
 	public string? Notes { get; set; }

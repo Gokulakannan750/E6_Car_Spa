@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
-import { getJobCards } from '../../lib/api';
+import { getJobCards, createInvoiceFromJobCard } from '../../lib/api';
 import type { JobCardListDto } from '../../lib/api';
 import { mockJobCards } from '../../mock/data/jobCards';
 
@@ -36,6 +36,8 @@ export function JobCardsPage() {
 	const [page, setPage] = useState(1);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [convertingId, setConvertingId] = useState<string | null>(null);
+	const [convertError, setConvertError] = useState<string | null>(null);
 	const pageSize = 10;
 
 	const effectiveSearch = search.trim() || globalSearch.trim();
@@ -94,7 +96,21 @@ export function JobCardsPage() {
 	};
 
 	const handleConvertToInvoice = async (jobCard: JobCardListDto) => {
-		alert(`Convert to invoice coming soon!\n\nJob Card: ${jobCard.jobCardNumber}\nCustomer: ${jobCard.customerName}`);
+		if (convertingId) return;
+		setConvertingId(jobCard.id);
+		setConvertError(null);
+		try {
+			const invoice = await createInvoiceFromJobCard(jobCard.id);
+			if (invoice && invoice.id) {
+				navigate(`/invoices/${invoice.id}`);
+			}
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Failed to convert job card to invoice';
+			console.warn('Convert to invoice error:', msg);
+			setConvertError(msg);
+		} finally {
+			setConvertingId(null);
+		}
 	};
 
 	return (
@@ -126,6 +142,24 @@ export function JobCardsPage() {
 					>
 						Retry
 					</Button>
+				</div>
+			)}
+
+			{/* Convert to Invoice Error Banner */}
+			{convertError && (
+				<div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/10 p-4">
+					<FileText className="mt-0.5 h-5 w-5 shrink-0 text-error" />
+					<div className="flex-1">
+						<p className="text-sm font-medium text-error">Conversion Failed</p>
+						<p className="mt-0.5 text-sm text-on-surface-variant">{convertError}</p>
+					</div>
+					<button
+						type="button"
+						onClick={() => setConvertError(null)}
+						className="text-xs text-on-surface-variant hover:text-on-surface font-medium"
+					>
+						Dismiss
+					</button>
 				</div>
 			)}
 
@@ -252,8 +286,10 @@ export function JobCardsPage() {
 											size="sm"
 											icon={<FileText className="w-3.5 h-3.5" />}
 											onClick={() => handleConvertToInvoice(jc)}
+											disabled={convertingId !== null}
+											loading={convertingId === jc.id}
 										>
-											Convert to Invoice
+											{convertingId === jc.id ? 'Converting…' : 'Convert to Invoice'}
 										</Button>
 									</td>
 								</tr>

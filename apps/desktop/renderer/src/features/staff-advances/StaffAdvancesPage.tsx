@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit2, History, UserPlus, Phone, Mail, MapPin, DollarSign, Users, Briefcase } from 'lucide-react';
+import { Plus, Search, Edit2, History, UserPlus, Phone, Mail, MapPin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -12,7 +12,7 @@ import {
 	updateStaffMember,
 	getStaffAdvancesByStaffId,
 	type StaffDto,
-	type StaffAdvanceDto,
+
 } from '../../lib/api';
 
 function formatINR(value: number): string {
@@ -32,7 +32,7 @@ const defaultMockStaff: StaffDto[] = [
 
 export function StaffAdvancesPage() {
 	const qc = useQueryClient();
-	const [activeTab, setActiveTab] = useState<TabType>('advances');
+	const [activeTab, setActiveTab] = useState<TabType>('staff');
 
 	// ── Advances Tab State ──────────────────────────────────────────────────
 	const [search, setSearch] = useState('');
@@ -296,22 +296,22 @@ export function StaffAdvancesPage() {
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-semibold text-on-surface tracking-tight">
-						{activeTab === 'advances' ? 'Staff Advances' : 'Staff Directory'}
+						{activeTab === 'staff' ? 'Staff Directory' : 'Advance Payments'}
 					</h1>
 					<p className="text-sm text-on-surface-variant mt-1">
-						{activeTab === 'advances'
-							? 'Manage employee salary advances, loans and repayments'
-							: 'Maintain staff records, designations, and contact details'}
+						{activeTab === 'staff'
+							? 'Maintain staff records, designations, and contact details'
+							: 'Manage employee salary advances, loans and repayments'}
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
-					{activeTab === 'advances' ? (
-						<Button icon={<Plus className="w-4 h-4" />} onClick={() => { resetAdvanceForm(); setShowAdvanceModal(true); }}>
-							Record Advance
-						</Button>
-					) : (
+					{activeTab === 'staff' ? (
 						<Button icon={<UserPlus className="w-4 h-4" />} onClick={() => { resetStaffForm(); setShowStaffModal(true); }}>
 							Add Staff Member
+						</Button>
+					) : (
+						<Button icon={<Plus className="w-4 h-4" />} onClick={() => { resetAdvanceForm(); setShowAdvanceModal(true); }}>
+							Record Advance
 						</Button>
 					)}
 				</div>
@@ -319,16 +319,6 @@ export function StaffAdvancesPage() {
 
 			{/* Main Tab Switcher */}
 			<div className="flex items-center gap-1 border-b border-outline-variant pb-px">
-				<button
-					onClick={() => setActiveTab('advances')}
-					className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-						activeTab === 'advances'
-							? 'border-secondary text-secondary font-semibold'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface'
-					}`}
-				>
-					Advances &amp; Repayments
-				</button>
 				<button
 					onClick={() => setActiveTab('staff')}
 					className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
@@ -338,6 +328,16 @@ export function StaffAdvancesPage() {
 					}`}
 				>
 					Staff Directory ({staffList.length})
+				</button>
+				<button
+					onClick={() => setActiveTab('advances')}
+					className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+						activeTab === 'advances'
+							? 'border-secondary text-secondary font-semibold'
+							: 'border-transparent text-on-surface-variant hover:text-on-surface'
+					}`}
+				>
+					Advance Payments
 				</button>
 			</div>
 

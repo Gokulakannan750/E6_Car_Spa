@@ -20,6 +20,7 @@ const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
  'quality-check': { bg: 'bg-warning-container', text: 'text-warning', dot: 'bg-warning' },
  invoiced: { bg: 'bg-info-container', text: 'text-info', dot: 'bg-info' },
  delivered: { bg: 'bg-success-container', text: 'text-success', dot: 'bg-success' },
+ overdue: { bg: 'bg-error-container', text: 'text-error', dot: 'bg-error' },
 };
 
 const labelMap: Record<string, string> = {
@@ -42,6 +43,7 @@ const labelMap: Record<string, string> = {
  'quality-check': 'Quality Check',
  invoiced: 'Invoiced',
  delivered: 'Delivered',
+ overdue: 'Overdue',
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

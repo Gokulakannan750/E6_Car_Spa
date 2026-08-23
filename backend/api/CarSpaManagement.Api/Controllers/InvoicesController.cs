@@ -77,6 +77,44 @@ public class InvoicesController : ControllerBase
 			if (dto is null) return NotFound();
 			return Ok(dto);
 		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+		catch (ArgumentOutOfRangeException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+		}
+	}
+
+	[HttpPost("{id:guid}/generate")]
+	public async Task<IActionResult> Generate(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			var dto = await _service.GenerateInvoiceAsync(id, ct);
+			return Ok(dto);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+		catch (ArgumentOutOfRangeException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
 		catch (DbUpdateException ex)
 		{
 			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });

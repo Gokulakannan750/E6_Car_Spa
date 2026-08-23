@@ -15,7 +15,7 @@ public record InvoiceItemDto(
 
 public record InvoiceDto(
  Guid Id,
- string InvoiceNumber,
+ string? InvoiceNumber,
  Guid JobCardId,
  string JobCardNumber,
  Guid CustomerId,
@@ -37,13 +37,14 @@ public record InvoiceDto(
  decimal BalanceAmount,
  InvoiceStatus Status,
  string? Notes,
+ bool IsGstEnabled,
  IReadOnlyList<InvoiceItemDto> Items,
  DateTime CreatedAt,
  DateTime? UpdatedAt);
 
 public record InvoiceListDto(
  Guid Id,
- string InvoiceNumber,
+ string? InvoiceNumber,
  string JobCardNumber,
  string CustomerName,
  string CustomerPhone,

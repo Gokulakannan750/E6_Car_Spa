@@ -25,8 +25,17 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 				'flex-shrink-0',
 			)}
 		>
-			{/* Left: Title + Breadcrumbs */}
-			<div className="flex items-center gap-3 min-w-0">
+			{/* Left: Company Branding & Title + Breadcrumbs */}
+			<div className="flex items-center gap-3.5 min-w-0">
+				<div className="flex items-center gap-2.5 pr-3.5 border-r border-slate-200">
+					<div className="h-8 w-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center font-bold text-xs shadow-xs">
+						E6
+					</div>
+					<span className="font-bold text-sm text-slate-900 tracking-tight whitespace-nowrap">
+						E6 Car Spa
+					</span>
+				</div>
+
 				{breadcrumbs && breadcrumbs.length > 0 && (
 					<nav className="flex items-center gap-1.5 text-sm">
 						{breadcrumbs.map((crumb, index) => (
@@ -48,7 +57,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 				)}
 				{/* Show page title only when no breadcrumbs */}
 				{(!breadcrumbs || breadcrumbs.length === 0) && (
-					<h1 className="text-lg font-semibold text-slate-900">{pageTitle}</h1>
+					<h1 className="text-sm font-semibold text-slate-600">{pageTitle}</h1>
 				)}
 			</div>
 

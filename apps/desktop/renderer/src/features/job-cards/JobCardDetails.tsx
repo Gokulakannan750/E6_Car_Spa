@@ -1,4 +1,5 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
@@ -78,6 +79,7 @@ function emptyServiceRow(svc: ServiceDto): ServiceRow {
 
 export default function JobCardDetails() {
  const { id } = useParams<{ id: string }>();
+ const navigate = useNavigate();
  const queryClient = useQueryClient();
  const [isEditing, setIsEditing] = useState(false);
  const [editingServices, setEditingServices] = useState<ServiceRow[]>([]);
@@ -128,12 +130,7 @@ export default function JobCardDetails() {
  [editingServices],
  );
 
- const discountTotal = useMemo(
- () => editingServices.reduce((sum, s) => sum + s.discountAmount, 0),
- [editingServices],
- );
-
- const total = subtotal + taxTotal - discountTotal;
+ const total = subtotal + taxTotal;
 
  const cancelEditing = useCallback(() => {
  setEditingServices(savedServicesRef.current);
@@ -148,7 +145,7 @@ export default function JobCardDetails() {
  await updateJobCardServices(id, editingServices.map((s) => ({
  serviceId: s.serviceId,
  quantity: s.quantity,
- discountAmount: s.discountAmount,
+ discountAmount: 0,
  })));
  await queryClient.invalidateQueries({ queryKey: ['job-card', id] });
  await queryClient.invalidateQueries({ queryKey: ['job-cards'] });
@@ -235,6 +232,14 @@ export default function JobCardDetails() {
  {/* Page Header */}
  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
  <div>
+ <button
+ type="button"
+ onClick={() => navigate('/job-cards')}
+ className="inline-flex items-center text-xs font-semibold text-on-surface-variant hover:text-secondary mb-2 transition-colors cursor-pointer"
+ >
+ <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+ Back to Job Cards
+ </button>
  <div className="flex items-center gap-3 mb-1">
  <h1 className="font-display-lg text-display-lg md:text-headline-lg font-bold text-on-surface tracking-tight">
  {jobCard.jobCardNumber}
@@ -292,14 +297,15 @@ export default function JobCardDetails() {
  <div className="p-8 text-center text-on-surface-variant">No services added yet</div>
  ) : (
  <div className="overflow-x-auto">
- <table className="w-full">
+ <table className="app-table">
  <thead>
- <tr className="border-b border-outline-variant" style={{ backgroundColor: '#f8f9fa' }}>
- {['Service', 'Unit Price', 'Qty', 'Discount', 'Tax %', 'Amount', ''].map((h) => (
- <th key={h} className="py-2 px-4 text-left text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
- {h}
- </th>
- ))}
+ <tr>
+ <th>Service</th>
+ <th>Unit Price</th>
+ <th>Qty</th>
+ <th>Tax %</th>
+ <th>Amount</th>
+ <th></th>
  </tr>
  </thead>
  <tbody>
@@ -336,23 +342,7 @@ export default function JobCardDetails() {
  svc.quantity
  )}
  </td>
- <td className="px-4 py-3 text-on-surface-variant">
- {isEditing ? (
- <input
- type="number"
- min={0}
- step={0.01}
- value={svc.discountAmount}
- onChange={(e) => {
- const val = parseFloat(e.target.value);
- setEditingServices((prev) => prev.map((s, i) => (i === index ? { ...s, discountAmount: isNaN(val) ? 0 : val } : s)));
- }}
- className="w-24 bg-surface-container-low border border-outline-variant rounded px-2 py-1 text-sm"
- />
- ) : (
- svc.discountAmount > 0 ? formatCurrency(svc.discountAmount) : '—'
- )}
- </td>
+ 
  <td className="px-4 py-3 text-on-surface-variant">{svc.taxPercentage}%</td>
  <td className="px-4 py-3 text-on-surface font-medium">{formatCurrency(svc.unitPrice * svc.quantity)}</td>
  <td className="px-4 py-3 text-right">
@@ -428,10 +418,7 @@ export default function JobCardDetails() {
  <span className="text-on-surface-variant">Tax</span>
  <span className="text-on-surface">{formatCurrency(taxTotal)}</span>
  </div>
- <div className="flex justify-between text-sm">
- <span className="text-on-surface-variant">Discount</span>
- <span className="text-on-surface">{formatCurrency(discountTotal)}</span>
- </div>
+ 
  <div className="border-t border-outline-variant pt-3 flex justify-between">
  <span className="font-semibold text-on-surface">Total</span>
  <span className="font-bold text-on-surface">{formatCurrency(total)}</span>
