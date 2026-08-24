@@ -11,10 +11,12 @@ namespace CarSpaManagement.Api.Application.Services;
 public class StaffAdvanceService : IStaffAdvanceService
 {
     private readonly AppDbContext _db;
+    private readonly IAuditLogService _auditLogService;
 
-    public StaffAdvanceService(AppDbContext db)
+    public StaffAdvanceService(AppDbContext db, IAuditLogService auditLogService)
     {
         _db = db;
+        _auditLogService = auditLogService;
     }
 
     public async Task<StaffAdvanceListResponse> GetAllAsync(
@@ -58,6 +60,14 @@ public class StaffAdvanceService : IStaffAdvanceService
                 (!string.IsNullOrEmpty(a.StaffName) && a.StaffName.ToLower().Contains(term)) ||
                 (!string.IsNullOrEmpty(a.Reason) && a.Reason.ToLower().Contains(term)) ||
                 (!string.IsNullOrEmpty(a.Notes) && a.Notes.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (Enum.TryParse<StaffAdvanceStatus>(status, true, out var parsedStatus))
+            {
+                baseQuery = baseQuery.Where(a => a.Status == parsedStatus);
+            }
         }
 
         // Summary KPI calculation across all active records matching the current staff / date / search scope
@@ -182,6 +192,22 @@ public class StaffAdvanceService : IStaffAdvanceService
         await _db.StaffAdvances.AddAsync(advance, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.AdvanceCreated,
+            module: Domain.Constants.AuditModules.StaffAdvances,
+            description: $"Staff advance of ₹{advance.Amount:F2} issued to '{advance.StaffName}'. Reason: {advance.Reason}.",
+            entityType: "StaffAdvance",
+            entityId: advance.Id,
+            entityReference: advance.StaffName,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new {
+                staffName = advance.StaffName,
+                amount = advance.Amount,
+                advanceDate = advance.AdvanceDate,
+                reason = advance.Reason
+            }),
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
         return ToDto(advance);
     }
 
@@ -210,6 +236,21 @@ public class StaffAdvanceService : IStaffAdvanceService
         advance.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.AdvanceSettled,
+            module: Domain.Constants.AuditModules.StaffAdvances,
+            description: $"Staff advance of ₹{advance.Amount:F2} for '{advance.StaffName}' marked as settled.",
+            entityType: "StaffAdvance",
+            entityId: advance.Id,
+            entityReference: advance.StaffName,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new {
+                status = "Settled",
+                amount = advance.Amount,
+                settledAt = advance.SettledAt
+            }),
+            outcome: "Success",
+            cancellationToken: cancellationToken);
 
         if (advance.SettledByUser == null && advance.SettledByUserId.HasValue)
         {
@@ -253,6 +294,25 @@ public class StaffAdvanceService : IStaffAdvanceService
         advance.IsDeleted = false;
 
         await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.AdvanceObsoleted,
+            module: Domain.Constants.AuditModules.StaffAdvances,
+            description: $"Staff advance of ₹{advance.Amount:F2} for '{advance.StaffName}' marked obsolete. Reason: {advance.ObsoleteReason}.",
+            entityType: "StaffAdvance",
+            entityId: advance.Id,
+            entityReference: advance.StaffName,
+            oldValues: System.Text.Json.JsonSerializer.Serialize(new {
+                status = "Outstanding",
+                amount = advance.Amount
+            }),
+            newValues: System.Text.Json.JsonSerializer.Serialize(new {
+                status = "Obsolete",
+                reason = advance.ObsoleteReason,
+                obsoletedAt = advance.ObsoletedAt
+            }),
+            outcome: "Success",
+            cancellationToken: cancellationToken);
 
         if (advance.ObsoletedByUser == null && advance.ObsoletedByUserId.HasValue)
         {

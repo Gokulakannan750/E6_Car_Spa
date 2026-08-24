@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<Permission> Permissions => Set<Permission>();
  public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
  public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
+ public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {

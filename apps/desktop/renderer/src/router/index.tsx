@@ -18,6 +18,7 @@ const loadReports = () => import('../features/reports/ReportsPage');
 const loadShowroom = () => import('../features/showroom/ShowroomPage');
 const loadSettings = () => import('../features/settings/SettingsPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
+const loadAudit = () => import('../features/audit/AuditLogPage');
 
 export const router = createBrowserRouter([
 	{
@@ -192,6 +193,19 @@ export const router = createBrowserRouter([
 						Component: () => (
 							<RouteGuard requiredPermission="showroom.view">
 								<m.ShowroomPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/audit',
+				lazy: async () => {
+					const m = await loadAudit();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="audit.view">
+								<m.AuditLogPage />
 							</RouteGuard>
 						),
 					};

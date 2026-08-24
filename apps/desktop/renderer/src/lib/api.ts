@@ -1295,3 +1295,66 @@ export async function removeBusinessLogo() {
 		method: 'DELETE',
 	});
 }
+
+// ── Audit Logs ──────────────────────────────────────────────────────────────
+
+export interface AuditLogDto {
+	id: string;
+	timestampUtc: string;
+	userId: string | null;
+	userName: string | null;
+	userRole: string | null;
+	action: string;
+	module: string;
+	entityType: string | null;
+	entityId: string | null;
+	entityReference: string | null;
+	description: string;
+	oldValues: string | null;
+	newValues: string | null;
+	metadata: string | null;
+	ipAddress: string | null;
+	outcome: string;
+	createdAt: string;
+}
+
+export interface AuditLogQueryParams {
+	page?: number;
+	pageSize?: number;
+	fromDate?: string;
+	toDate?: string;
+	userId?: string;
+	module?: string;
+	action?: string;
+	entityType?: string;
+	outcome?: string;
+	search?: string;
+}
+
+export interface PagedAuditLogResult {
+	items: AuditLogDto[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+	totalPages: number;
+	hasPreviousPage: boolean;
+	hasNextPage: boolean;
+}
+
+export async function getAuditLogs(params: AuditLogQueryParams = {}) {
+	const query = new URLSearchParams();
+	if (params.page) query.set('page', params.page.toString());
+	if (params.pageSize) query.set('pageSize', params.pageSize.toString());
+	if (params.fromDate) query.set('fromDate', params.fromDate);
+	if (params.toDate) query.set('toDate', params.toDate);
+	if (params.userId) query.set('userId', params.userId);
+	if (params.module) query.set('module', params.module);
+	if (params.action) query.set('action', params.action);
+	if (params.entityType) query.set('entityType', params.entityType);
+	if (params.outcome) query.set('outcome', params.outcome);
+	if (params.search) query.set('search', params.search);
+
+	const qs = query.toString();
+	return request<PagedAuditLogResult>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
+}
+

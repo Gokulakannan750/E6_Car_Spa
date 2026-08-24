@@ -11,10 +11,12 @@ namespace CarSpaManagement.Api.Application.Services;
 public class InvoiceService : IInvoiceService
 {
 	private readonly AppDbContext _db;
+	private readonly IAuditLogService _auditLogService;
 
-	public InvoiceService(AppDbContext db)
+	public InvoiceService(AppDbContext db, IAuditLogService auditLogService)
 	{
 		_db = db;
+		_auditLogService = auditLogService;
 	}
 
 	public async Task<IReadOnlyList<InvoiceListDto>> GetAllAsync(int page, int pageSize, string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
@@ -175,6 +177,16 @@ public class InvoiceService : IInvoiceService
 		_db.Invoices.Add(invoice);
 		await _db.SaveChangesAsync(cancellationToken);
 
+		await _auditLogService.RecordAsync(
+			action: Domain.Constants.AuditActions.CreateDraft,
+			module: Domain.Constants.AuditModules.Invoices,
+			description: $"Draft invoice created for Job Card '{jobCard.JobCardNumber}'.",
+			entityType: "Invoice",
+			entityId: invoice.Id,
+			entityReference: jobCard.JobCardNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
 		return ToDto(invoice);
 	}
 
@@ -191,6 +203,9 @@ public class InvoiceService : IInvoiceService
 		// Immutability: finalized invoices cannot be modified
 		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
 			throw new InvalidOperationException("Finalized invoices cannot be modified.");
+
+		var oldDiscount = invoice.Discount;
+		var oldGst = invoice.IsGstEnabled;
 
 		if (request.IsGstEnabled.HasValue)
 		{
@@ -225,6 +240,18 @@ public class InvoiceService : IInvoiceService
 		invoice.UpdatedAt = DateTime.UtcNow;
 
 		await _db.SaveChangesAsync(cancellationToken);
+
+		await _auditLogService.RecordAsync(
+			action: Domain.Constants.AuditActions.UpdateDraft,
+			module: Domain.Constants.AuditModules.Invoices,
+			description: $"Draft invoice '{invoice.Id}' updated.",
+			entityType: "Invoice",
+			entityId: invoice.Id,
+			entityReference: invoice.InvoiceNumber ?? invoice.JobCard?.JobCardNumber,
+			oldValues: System.Text.Json.JsonSerializer.Serialize(new { discount = oldDiscount, isGstEnabled = oldGst }),
+			newValues: System.Text.Json.JsonSerializer.Serialize(new { discount = invoice.Discount, isGstEnabled = invoice.IsGstEnabled }),
+			outcome: "Success",
+			cancellationToken: cancellationToken);
 
 		await _db.Entry(invoice).Reference(i => i.Customer).LoadAsync(cancellationToken);
 		await _db.Entry(invoice).Reference(i => i.Vehicle).LoadAsync(cancellationToken);
@@ -298,6 +325,27 @@ public class InvoiceService : IInvoiceService
 			}
 
 			await _db.SaveChangesAsync(cancellationToken);
+
+			await _auditLogService.RecordAsync(
+				action: Domain.Constants.AuditActions.Generate,
+				module: Domain.Constants.AuditModules.Invoices,
+				description: $"Invoice {invoice.InvoiceNumber} generated and finalized.",
+				entityType: "Invoice",
+				entityId: invoice.Id,
+				entityReference: invoice.InvoiceNumber,
+				newValues: System.Text.Json.JsonSerializer.Serialize(new {
+					invoiceNumber = invoice.InvoiceNumber,
+					status = invoice.Status.ToString(),
+					subtotal = invoice.Subtotal,
+					discount = invoice.Discount,
+					taxableAmount = invoice.TaxableAmount,
+					gstAmount = invoice.GstAmount,
+					totalAmount = invoice.TotalAmount,
+					isGstEnabled = invoice.IsGstEnabled
+				}),
+				outcome: "Success",
+				cancellationToken: cancellationToken);
+
 			await transaction.CommitAsync(cancellationToken);
 		}
 		catch
@@ -433,6 +481,24 @@ public class InvoiceService : IInvoiceService
 
 			invoice.UpdatedAt = DateTime.UtcNow;
 			await _db.SaveChangesAsync(cancellationToken);
+
+			await _auditLogService.RecordAsync(
+				action: Domain.Constants.AuditActions.PaymentRecorded,
+				module: Domain.Constants.AuditModules.Payments,
+				description: $"Payment of ₹{payment.Amount:F2} recorded for Invoice '{invoice.InvoiceNumber}'. Method: {payment.PaymentMethod}.",
+				entityType: "Payment",
+				entityId: payment.Id,
+				entityReference: invoice.InvoiceNumber,
+				newValues: System.Text.Json.JsonSerializer.Serialize(new {
+					invoiceNumber = invoice.InvoiceNumber,
+					amount = payment.Amount,
+					paymentMethod = payment.PaymentMethod.ToString(),
+					reference = payment.Reference,
+					balanceRemaining = invoice.BalanceAmount
+				}),
+				outcome: "Success",
+				cancellationToken: cancellationToken);
+
 			await transaction.CommitAsync(cancellationToken);
 		}
 		catch

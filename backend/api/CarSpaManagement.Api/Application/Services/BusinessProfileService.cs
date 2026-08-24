@@ -14,6 +14,7 @@ public partial class BusinessProfileService : IBusinessProfileService
 {
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
+    private readonly IAuditLogService _auditLogService;
 
     [GeneratedRegex(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
     private static partial Regex GstinRegex();
@@ -30,10 +31,11 @@ public partial class BusinessProfileService : IBusinessProfileService
 
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-    public BusinessProfileService(AppDbContext db, IWebHostEnvironment environment)
+    public BusinessProfileService(AppDbContext db, IWebHostEnvironment environment, IAuditLogService auditLogService)
     {
         _db = db;
         _environment = environment;
+        _auditLogService = auditLogService;
     }
 
     public async Task<BusinessProfileDto> GetProfileAsync(CancellationToken ct = default)
@@ -85,6 +87,23 @@ public partial class BusinessProfileService : IBusinessProfileService
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.BusinessProfileUpdated,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Business profile updated ({profile.BusinessName}).",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new {
+                businessName = profile.BusinessName,
+                gstin = profile.Gstin,
+                phone = profile.Phone,
+                email = profile.Email
+            }),
+            outcome: "Success",
+            cancellationToken: ct);
+
         return ToDto(profile);
     }
 
@@ -141,6 +160,16 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         await _db.SaveChangesAsync(ct);
 
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LogoChanged,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Business profile logo uploaded/updated: '{relativeUrl}'.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
         return new LogoUploadResponse(relativeUrl, ToDto(profile));
     }
 
@@ -151,6 +180,17 @@ public partial class BusinessProfileService : IBusinessProfileService
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LogoRemoved,
+            module: Domain.Constants.AuditModules.Settings,
+            description: "Business profile logo removed.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
         return ToDto(profile);
     }
 

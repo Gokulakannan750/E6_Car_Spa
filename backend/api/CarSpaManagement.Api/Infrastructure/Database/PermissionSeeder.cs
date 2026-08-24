@@ -68,6 +68,9 @@ public static class PermissionSeeder
         ("reports.staff_advances", "Staff Advances Report", "Reports", "Allows viewing staff advances and settlement reports"),
         ("reports.export", "Export Reports", "Reports", "Allows exporting reports to Excel/PDF"),
 
+        // Audit
+        ("audit.view", "View Audit Trail", "Audit", "Allows viewing system audit history."),
+
         // Settings
         ("settings.view", "View Settings", "Settings", "Allows viewing application settings"),
         ("settings.edit", "Edit Settings", "Settings", "Allows updating application configuration"),

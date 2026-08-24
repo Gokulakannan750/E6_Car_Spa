@@ -11,10 +11,12 @@ namespace CarSpaManagement.Api.Application.Services;
 public class ShowroomService : IShowroomService
 {
     private readonly AppDbContext _db;
+    private readonly IAuditLogService _auditLogService;
 
-    public ShowroomService(AppDbContext db)
+    public ShowroomService(AppDbContext db, IAuditLogService auditLogService)
     {
         _db = db;
+        _auditLogService = auditLogService;
     }
 
     private static DateTime ToUtcDate(DateTime dt) => ShowroomDateHelper.ToUtcDate(dt);
@@ -258,6 +260,10 @@ public class ShowroomService : IShowroomService
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.Date == targetDate, ct);
 
+        var isCorrection = attendance != null && attendance.AttendanceConfirmedAt.HasValue;
+        var totalVehicles = assignments.Sum(a => a.VehiclesAttended);
+        var staffCount = assignments.Count;
+
         if (attendance == null)
         {
             attendance = new ShowroomDailyAttendance
@@ -280,6 +286,28 @@ public class ShowroomService : IShowroomService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        var action = isCorrection ? Domain.Constants.AuditActions.AttendanceCorrected : Domain.Constants.AuditActions.AttendanceConfirmed;
+        var desc = isCorrection
+            ? $"Showroom attendance corrected for {showroom.Name} ({targetDate:dd-MMM-yyyy}). Staff: {staffCount}, Vehicles: {totalVehicles}."
+            : $"Showroom attendance confirmed for {showroom.Name} ({targetDate:dd-MMM-yyyy}). Staff: {staffCount}, Vehicles: {totalVehicles}.";
+
+        await _auditLogService.RecordAsync(
+            action: action,
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: desc,
+            entityType: "ShowroomAttendance",
+            entityId: showroom.Id,
+            entityReference: $"{showroom.Name} - {targetDate:yyyy-MM-dd}",
+            newValues: System.Text.Json.JsonSerializer.Serialize(new {
+                showroomId = showroom.Id,
+                showroomName = showroom.Name,
+                date = targetDate,
+                staffCount = staffCount,
+                vehiclesAttended = totalVehicles
+            }),
+            outcome: "Success",
+            cancellationToken: ct);
 
         return (await GetDailyStaffAsync(showroomId, targetDate, ct))!;
     }
@@ -304,6 +332,16 @@ public class ShowroomService : IShowroomService
             attendance.IsAttendanceConfirmed = false;
             attendance.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
+
+            await _auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.AttendanceUnlocked,
+                module: Domain.Constants.AuditModules.Showrooms,
+                description: $"Showroom attendance unlocked for administrative correction: {showroom.Name} ({targetDate:dd-MMM-yyyy}).",
+                entityType: "ShowroomAttendance",
+                entityId: showroom.Id,
+                entityReference: $"{showroom.Name} - {targetDate:yyyy-MM-dd}",
+                outcome: "Success",
+                cancellationToken: ct);
         }
 
         return (await GetDailyStaffAsync(showroomId, targetDate, ct))!;

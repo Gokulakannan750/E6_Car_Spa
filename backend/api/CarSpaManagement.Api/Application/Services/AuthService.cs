@@ -13,7 +13,8 @@ namespace CarSpaManagement.Api.Application.Services;
 public class AuthService(
     AppDbContext db,
     IPasswordHasherService passwordHasher,
-    IJwtTokenService jwtTokenService) : IAuthService
+    IJwtTokenService jwtTokenService,
+    IAuditLogService auditLogService) : IAuthService
 {
     public async Task<AuthStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -65,6 +66,20 @@ public class AuthService(
 
             await db.Users.AddAsync(owner, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
+
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.UserCreated,
+                module: Domain.Constants.AuditModules.Users,
+                description: "Initial Owner account created via bootstrap.",
+                userId: owner.Id,
+                userName: owner.FullName,
+                userRole: owner.Role.ToString(),
+                entityType: "User",
+                entityId: owner.Id,
+                entityReference: owner.Username,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+
             await tx.CommitAsync(cancellationToken);
 
             Log.Information("Initial Owner account successfully bootstrapped with username '{Username}'", owner.Username);
@@ -82,6 +97,13 @@ public class AuthService(
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
         {
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.LoginFailed,
+                module: Domain.Constants.AuditModules.Authentication,
+                description: "Login attempt failed.",
+                outcome: "Failure",
+                cancellationToken: cancellationToken);
+
             throw new UnauthorizedException("Invalid username or password.");
         }
 
@@ -96,6 +118,14 @@ public class AuthService(
         if (user == null || !user.IsActive)
         {
             Log.Warning("Login failed for username '{Username}' (user missing or inactive)", request.Username);
+
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.LoginFailed,
+                module: Domain.Constants.AuditModules.Authentication,
+                description: "Login attempt failed.",
+                outcome: "Failure",
+                cancellationToken: cancellationToken);
+
             throw new UnauthorizedException("Invalid username or password.");
         }
 
@@ -103,11 +133,32 @@ public class AuthService(
         if (!isPasswordValid)
         {
             Log.Warning("Login failed for username '{Username}' (invalid password)", request.Username);
+
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.LoginFailed,
+                module: Domain.Constants.AuditModules.Authentication,
+                description: "Login attempt failed.",
+                outcome: "Failure",
+                cancellationToken: cancellationToken);
+
             throw new UnauthorizedException("Invalid username or password.");
         }
 
         user.LastLoginAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LoginSuccess,
+            module: Domain.Constants.AuditModules.Authentication,
+            description: "User signed in successfully.",
+            userId: user.Id,
+            userName: user.FullName,
+            userRole: user.Role.ToString(),
+            entityType: "User",
+            entityId: user.Id,
+            entityReference: user.Username,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
 
         var token = jwtTokenService.GenerateToken(user);
         var permissions = user.Role == UserRole.Owner

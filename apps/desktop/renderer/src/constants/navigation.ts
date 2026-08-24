@@ -9,6 +9,7 @@ import {
 	Store,
 	Settings,
 	Shield,
+	History,
 } from 'lucide-react';
 
 import type { NavigationItem } from '../types/app';
@@ -62,6 +63,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 		icon: 'Store',
 		requiresPermission: 'showroom.view',
 	},
+	{
+		label: 'Audit Trail',
+		path: '/audit',
+		icon: 'History',
+		requiresPermission: 'audit.view',
+	},
 ];
 
 export const BOTTOM_NAVIGATION_ITEMS: NavigationItem[] = [
@@ -93,4 +100,5 @@ export const ICON_MAP: Record<string, React.ForwardRefExoticComponent<React.RefA
 	Store,
 	Settings,
 	Shield,
+	History,
 };

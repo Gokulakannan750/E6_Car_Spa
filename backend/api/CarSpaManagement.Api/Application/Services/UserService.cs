@@ -11,7 +11,8 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class UserService(
     AppDbContext db,
-    IPasswordHasherService passwordHasher) : IUserService
+    IPasswordHasherService passwordHasher,
+    IAuditLogService auditLogService) : IUserService
 {
     public async Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
@@ -98,6 +99,17 @@ public class UserService(
         await db.Users.AddAsync(user, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
+        await auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.UserCreated,
+            module: Domain.Constants.AuditModules.Users,
+            description: $"User account '{user.Username}' with role '{user.Role}' created.",
+            entityType: "User",
+            entityId: user.Id,
+            entityReference: user.Username,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new { role = user.Role.ToString(), fullName = user.FullName, permissions = request.PermissionCodes }),
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
         Log.Information("User '{Username}' with role {Role} created successfully", user.Username, user.Role);
 
         return await GetUserByIdAsync(user.Id, cancellationToken);
@@ -107,12 +119,17 @@ public class UserService(
     {
         var user = await db.Users
             .Include(u => u.UserPermissions)
+            .ThenInclude(up => up.Permission)
             .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
 
         if (user == null)
         {
             throw new NotFoundException($"User with ID '{id}' was not found.");
         }
+
+        var oldRole = user.Role.ToString();
+        var oldFullName = user.FullName;
+        var oldPermissions = user.UserPermissions.Select(up => up.Permission?.Code).Where(c => c != null).ToList();
 
         user.FullName = request.FullName.Trim();
         user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
@@ -151,9 +168,11 @@ public class UserService(
             Log.Information("Password updated for user '{Username}'", user.Username);
         }
 
+        var isPermissionChange = false;
         // Permission updates (only for Manager/Staff; Owner permissions are not managed in DB)
         if (user.Role != UserRole.Owner && request.PermissionCodes != null)
         {
+            isPermissionChange = true;
             // Remove existing permissions
             db.UserPermissions.RemoveRange(user.UserPermissions);
 
@@ -176,6 +195,35 @@ public class UserService(
 
         user.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        if (isPermissionChange)
+        {
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.PermissionChanged,
+                module: Domain.Constants.AuditModules.Users,
+                description: $"Permissions updated for user '{user.Username}'.",
+                entityType: "User",
+                entityId: user.Id,
+                entityReference: user.Username,
+                oldValues: System.Text.Json.JsonSerializer.Serialize(new { permissions = oldPermissions }),
+                newValues: System.Text.Json.JsonSerializer.Serialize(new { permissions = request.PermissionCodes }),
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
+        else
+        {
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.Update,
+                module: Domain.Constants.AuditModules.Users,
+                description: $"User profile '{user.Username}' updated.",
+                entityType: "User",
+                entityId: user.Id,
+                entityReference: user.Username,
+                oldValues: System.Text.Json.JsonSerializer.Serialize(new { role = oldRole, fullName = oldFullName }),
+                newValues: System.Text.Json.JsonSerializer.Serialize(new { role = user.Role.ToString(), fullName = user.FullName }),
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
 
         Log.Information("User '{Username}' updated successfully", user.Username);
 
@@ -206,6 +254,18 @@ public class UserService(
         user.IsActive = !user.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        var toggleAction = user.IsActive ? Domain.Constants.AuditActions.UserActivated : Domain.Constants.AuditActions.UserDeactivated;
+        await auditLogService.RecordAsync(
+            action: toggleAction,
+            module: Domain.Constants.AuditModules.Users,
+            description: $"User '{user.Username}' was {(user.IsActive ? "activated" : "deactivated")}.",
+            entityType: "User",
+            entityId: user.Id,
+            entityReference: user.Username,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new { isActive = user.IsActive }),
+            outcome: "Success",
+            cancellationToken: cancellationToken);
 
         Log.Information("User '{Username}' status toggled to {Status}", user.Username, user.IsActive ? "Active" : "Inactive");
 

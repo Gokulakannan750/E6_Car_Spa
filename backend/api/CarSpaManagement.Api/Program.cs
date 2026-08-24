@@ -52,6 +52,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 builder.Services.AddDatabase(builder.Configuration);
 
 // Application services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
