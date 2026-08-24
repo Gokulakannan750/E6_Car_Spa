@@ -71,6 +71,7 @@ public static class PermissionSeeder
         // Settings
         ("settings.view", "View Settings", "Settings", "Allows viewing application settings"),
         ("settings.edit", "Edit Settings", "Settings", "Allows updating application configuration"),
+        ("settings.business", "Manage Business Settings", "Settings", "Allows managing business profile, company details, and invoice configuration"),
 
         // Users
         ("users.view", "View Users", "Users", "Allows viewing user accounts and permissions"),

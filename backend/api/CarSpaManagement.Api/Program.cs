@@ -60,6 +60,7 @@ builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
 builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 
 // Security & Authentication Services
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
@@ -125,10 +126,23 @@ builder.Services.AddHealthChecks()
  name: "postgres",
  tags: new[] { "db", "postgres" });
 
+var webRootPath = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(webRootPath))
+{
+    Directory.CreateDirectory(webRootPath);
+}
+builder.Environment.WebRootPath = webRootPath;
+
 var app = builder.Build();
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.UseSerilogRequestLogging();
+app.UseHttpsRedirection();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootPath),
+    RequestPath = ""
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -141,7 +155,6 @@ else
  app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -177,6 +190,7 @@ using (var scope = app.Services.CreateScope())
  try
  {
  		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 		await db.Database.MigrateAsync();
 		await db.Database.ExecuteSqlRawAsync(@"
 			UPDATE ""StaffAdvances"" 
@@ -187,6 +201,55 @@ using (var scope = app.Services.CreateScope())
 			WHERE ""Reason"" IS NULL OR ""Reason"" = '';
 		");
 		await PermissionSeeder.SeedAsync(db);
+
+		// ── Seed Default Business Profile (Singleton) ────────────────────────
+		var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+		var logosDir = Path.Combine(webRoot, "uploads", "logos");
+		if (!Directory.Exists(logosDir))
+		{
+			Directory.CreateDirectory(logosDir);
+		}
+
+		var targetLogoPath = Path.Combine(logosDir, "e6-logo.png");
+		if (!File.Exists(targetLogoPath))
+		{
+			var sourceLogo = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "apps", "desktop", "renderer", "public", "e6-logo.png");
+			if (File.Exists(sourceLogo))
+			{
+				try
+				{
+					File.Copy(sourceLogo, targetLogoPath, true);
+				}
+				catch (Exception ex)
+				{
+					Log.Warning(ex, "Could not copy default logo from frontend public directory");
+				}
+			}
+		}
+
+		if (!await db.BusinessProfiles.AnyAsync())
+		{
+			var profile = new BusinessProfile
+			{
+				Id = Guid.NewGuid(),
+				SingletonKey = 1,
+				BusinessName = "E6 Car Spa",
+				AddressLine1 = "36, Geetha Nagar Main Road",
+				AddressLine2 = "Behind Sakthi Mahal, Perundurai Road",
+				City = "Erode",
+				State = "Tamil Nadu",
+				PostalCode = "638011",
+				Phone = "+91 9578749449",
+				Email = "e6carspaerd@gmail.com",
+				Gstin = null,
+				LogoPath = "/uploads/logos/e6-logo.png",
+				InvoicePrefix = "INV",
+				CreatedAt = DateTime.UtcNow
+			};
+			db.BusinessProfiles.Add(profile);
+			await db.SaveChangesAsync();
+			Log.Information("Seeded verified default E6 Car Spa business profile");
+		}
 
  if (!await db.Customers.AnyAsync())
  {

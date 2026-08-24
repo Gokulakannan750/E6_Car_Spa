@@ -43,8 +43,9 @@ async function request<T>(
 	options: RequestInit = {},
 ): Promise<T> {
 	const token = getAuthToken();
+	const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 	const headers: Record<string, string> = {
-		'Content-Type': 'application/json',
+		...(isFormData ? {} : { 'Content-Type': 'application/json' }),
 		...(token ? { Authorization: `Bearer ${token}` } : {}),
 		...((options.headers as Record<string, string>) || {}),
 	};
@@ -1227,4 +1228,70 @@ export async function toggleUserStatus(id: string) {
 
 export async function getAvailablePermissions() {
 	return request<PermissionGroupDetailDto[]>('/api/users/permissions');
+}
+
+// ── Business Profile & Settings ─────────────────────────────────────────────
+
+export interface BusinessProfileDto {
+	id: string;
+	businessName: string;
+	addressLine1: string;
+	addressLine2: string | null;
+	city: string;
+	state: string;
+	postalCode: string;
+	phone: string;
+	email: string;
+	gstin: string | null;
+	logoPath: string | null;
+	invoicePrefix: string;
+	termsAndConditions?: string | null;
+	createdAt: string;
+	updatedAt: string | null;
+}
+
+export interface UpdateBusinessProfileInput {
+	businessName: string;
+	addressLine1: string;
+	addressLine2?: string | null;
+	city: string;
+	state: string;
+	postalCode: string;
+	phone: string;
+	email: string;
+	gstin?: string | null;
+	logoPath?: string | null;
+	invoicePrefix?: string | null;
+	termsAndConditions?: string | null;
+}
+
+export interface LogoUploadResponse {
+	logoUrl: string;
+	profile: BusinessProfileDto;
+}
+
+export async function getBusinessProfile() {
+	return request<BusinessProfileDto>('/api/settings/business');
+}
+
+export async function updateBusinessProfile(data: UpdateBusinessProfileInput) {
+	return request<BusinessProfileDto>('/api/settings/business', {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function uploadBusinessLogo(file: File) {
+	const formData = new FormData();
+	formData.append('file', file);
+	return request<LogoUploadResponse>('/api/settings/business/logo', {
+		method: 'POST',
+		body: formData,
+	});
+}
+
+export async function removeBusinessLogo() {
+	return request<BusinessProfileDto>('/api/settings/business/logo', {
+		method: 'DELETE',
+	});
 }
