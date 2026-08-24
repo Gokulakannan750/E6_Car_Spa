@@ -20,6 +20,8 @@ import {
 	Wallet,
 	QrCode,
 	Building2,
+	Download,
+	X,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -29,9 +31,12 @@ import {
 	updateInvoice,
 	generateInvoice,
 	recordPayment,
+	getBusinessProfile,
 	type InvoiceDto,
 	type InvoiceStatus,
+	type BusinessProfileDto,
 } from '../../lib/api';
+import { InvoicePrintDocument } from './InvoicePrintDocument';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
@@ -100,8 +105,10 @@ export function InvoiceDetailPage() {
 
 	// State
 	const [invoice, setInvoice] = useState<InvoiceDto | null>(null);
+	const [businessProfile, setBusinessProfile] = useState<BusinessProfileDto | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [showPrintPreview, setShowPrintPreview] = useState(false);
 
 	// Editable fields (Draft only)
 	const [discount, setDiscount] = useState<string>('0');
@@ -139,8 +146,14 @@ export function InvoiceDetailPage() {
 		setLoading(true);
 		setError(null);
 		try {
-			const data = await getInvoiceById(id);
+			const [data, profileData] = await Promise.all([
+				getInvoiceById(id),
+				getBusinessProfile().catch(() => null),
+			]);
 			setInvoice(data);
+			if (profileData) {
+				setBusinessProfile(profileData);
+			}
 			setDiscount(String(data.discount ?? 0));
 			setNotes(data.notes ?? '');
 			setPaymentAmount(String(data.balanceAmount ?? data.totalAmount));
@@ -343,10 +356,18 @@ export function InvoiceDetailPage() {
 		}
 	};
 
-	// ─── Print Invoice ───────────────────────────────────────────────────────
-	const handlePrint = () => {
+	// ─── Print & PDF Actions ─────────────────────────────────────────────────
+	const handleOpenPrintPreview = useCallback(() => {
+		setShowPrintPreview(true);
+	}, []);
+
+	const handleExecutePrint = useCallback(() => {
 		window.print();
-	};
+	}, []);
+
+	const handleSavePdf = useCallback(() => {
+		window.print();
+	}, []);
 
 	// ─── Record Payment ──────────────────────────────────────────────────────
 	const handleRecordPayment = async (e: React.FormEvent) => {
@@ -528,7 +549,7 @@ export function InvoiceDetailPage() {
 								Cancel Bill
 							</Button>
 							<Button
-								onClick={handlePrint}
+								onClick={handleOpenPrintPreview}
 								icon={<Printer className="w-4 h-4" />}
 							>
 								Print Invoice
@@ -588,23 +609,25 @@ export function InvoiceDetailPage() {
 			)}
 
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			{/* ── INVOICE DOCUMENT VIEW (Prints Professionally) ──────────────── */}
+			{/* ── INVOICE DOCUMENT VIEW (Interactive Screen View) ────────────── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			<div className="app-card bg-white p-6 sm:p-8 space-y-6 shadow-sm border border-outline-variant">
+			<div className="no-print app-card bg-white p-6 sm:p-8 space-y-6 shadow-sm border border-outline-variant">
 				{/* ── Document Header ───────────────────────────────────────── */}
 				<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-outline-variant">
 					<div className="space-y-1">
 						<h2 className="text-2xl font-bold text-on-surface tracking-tight uppercase">
-							E6 Car Spa
+							{businessProfile?.businessName || 'E6 Car Spa'}
 						</h2>
 						<p className="text-xs text-on-surface-variant font-medium">
 							Premium Auto Detailing &amp; Car Care Solutions
 						</p>
 						<p className="text-xs text-on-surface-variant">
-							No. 12, Car Spa Avenue, Auto Nagar, Chennai - 600001
+							{[businessProfile?.addressLine1, businessProfile?.addressLine2, businessProfile?.city, businessProfile?.state].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : '')}
 						</p>
 						<p className="text-xs text-on-surface-variant">
-							Phone: +91 98765 43210 &nbsp;|&nbsp; GSTIN: 33AAAAA0000A1Z5
+							Phone: {businessProfile?.phone || '+91 9578749449'}
+							{businessProfile?.email && <span> &nbsp;|&nbsp; Email: {businessProfile.email}</span>}
+							{isGstEnabled && businessProfile?.gstin && <span> &nbsp;|&nbsp; GSTIN: <strong className="font-mono">{businessProfile.gstin}</strong></span>}
 						</p>
 					</div>
 
@@ -1211,6 +1234,73 @@ export function InvoiceDetailPage() {
 					</p>
 				</div>
 			</Dialog>
+
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{/* ── IN-APP A4 PRINT PREVIEW MODAL (Hidden during print) ─────────── */}
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{showPrintPreview && (
+				<div className="fixed inset-0 z-50 flex flex-col bg-slate-950/85 backdrop-blur-xs animate-fade-in no-print">
+					{/* Top Preview Controls Toolbar */}
+					<div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800 text-white shadow-md shrink-0">
+						<div className="flex items-center gap-3">
+							<div className="w-8 h-8 rounded-lg bg-[#a11a1a] flex items-center justify-center font-bold text-xs text-white">
+								E6
+							</div>
+							<div>
+								<h2 className="text-sm font-bold text-white tracking-tight">
+									Print Preview — {invoice.invoiceNumber || 'Draft Invoice'}
+								</h2>
+								<p className="text-xs text-slate-400">
+									A4 Portrait (210 × 297 mm) · {isGstEnabled ? 'Official Tax Invoice' : 'Standard Invoice'}
+								</p>
+							</div>
+						</div>
+
+						{/* Action Buttons: [Print] [Save PDF] [Close] */}
+						<div className="flex items-center gap-2.5">
+							<Button
+								onClick={handleExecutePrint}
+								icon={<Printer className="w-4 h-4" />}
+								className="bg-[#a11a1a] hover:bg-[#851515] text-white border-transparent shadow-sm"
+							>
+								Print
+							</Button>
+
+							<Button
+								variant="secondary"
+								onClick={handleSavePdf}
+								icon={<Download className="w-4 h-4" />}
+								className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+							>
+								Save PDF
+							</Button>
+
+							<Button
+								variant="secondary"
+								onClick={() => setShowPrintPreview(false)}
+								icon={<X className="w-4 h-4" />}
+								className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+							>
+								Close
+							</Button>
+						</div>
+					</div>
+
+					{/* Centered A4 Document Canvas */}
+					<div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center items-start bg-slate-950/60">
+						<div className="shadow-2xl ring-1 ring-black/20 rounded-xs">
+							<InvoicePrintDocument invoice={invoice} businessProfile={businessProfile} />
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{/* ── DEDICATED PRINT DOM (Rendered ONLY during physical print) ──── */}
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			<div className="print-only">
+				<InvoicePrintDocument invoice={invoice} businessProfile={businessProfile} />
+			</div>
 		</div>
 	);
 }

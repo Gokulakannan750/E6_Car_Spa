@@ -56,8 +56,24 @@ ipcMain.handle('app:printJobCard', async (_event, html: string) => {
  });
  await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
  printWindow.webContents.on('did-finish-load', () => {
- printWindow.webContents.print({ silent: false, printBackground: true });
+ printWindow.webContents.print({ silent: false, printBackground: true }, () => {
  printWindow.close();
+ });
+ });
+});
+
+ipcMain.handle('app:printInvoice', async (_event, html: string) => {
+ const printWindow = new BrowserWindow({
+ width: 800,
+ height: 600,
+ show: false,
+ webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+ });
+ await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+ printWindow.webContents.on('did-finish-load', () => {
+ printWindow.webContents.print({ silent: false, printBackground: true }, () => {
+ printWindow.close();
+ });
  });
 });
 
