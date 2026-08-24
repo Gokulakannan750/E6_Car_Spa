@@ -335,22 +335,15 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 				</div>
 			</div>
 
-			{/* ── Footer: Signatures & Thank You ──────────────────────────── */}
+			{/* ── Footer: Thank You & Computer Generated Notice ────────────── */}
 			<div className="pt-4 border-t border-slate-200">
-				<div className="flex items-end justify-between text-xs text-slate-600">
+				<div className="flex items-center justify-between text-xs text-slate-600">
 					<div>
-						<p className="font-bold text-[#a11a1a] text-sm tracking-tight mb-1">
+						<p className="font-bold text-[#a11a1a] text-sm tracking-tight mb-0.5">
 							Thank you for choosing {businessName}!
 						</p>
 						<p className="text-[11px] text-slate-400">
 							This is a computer generated invoice. No physical signature is required.
-						</p>
-					</div>
-
-					<div className="text-right space-y-8">
-						<p className="font-semibold text-slate-700">For {businessName}</p>
-						<p className="text-[10px] text-slate-400 border-t border-slate-300 pt-1 px-4">
-							Authorized Signatory
 						</p>
 					</div>
 				</div>
