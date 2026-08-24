@@ -2,21 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
 	History,
 	Search,
-	Filter,
 	RotateCw,
 	Eye,
 	X,
 	CheckCircle2,
 	XCircle,
-	Calendar,
-	User,
 	Shield,
-	Layers,
-	FileText,
-	Clock,
-	ArrowRight,
-	Globe,
-	Info,
 } from 'lucide-react';
 import { getAuditLogs, type AuditLogDto, type AuditLogQueryParams } from '../../lib/api';
 
