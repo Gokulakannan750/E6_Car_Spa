@@ -1,6 +1,8 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.StaffAdvances;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,299 +10,438 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class StaffAdvanceService : IStaffAdvanceService
 {
- private readonly AppDbContext _db;
+    private readonly AppDbContext _db;
 
- public StaffAdvanceService(AppDbContext db)
- {
- _db = db;
- }
+    public StaffAdvanceService(AppDbContext db)
+    {
+        _db = db;
+    }
 
- public async Task<IReadOnlyList<StaffAdvanceDto>> GetAllAsync(int page, int pageSize, Guid? staffId = null, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, string? search = null, CancellationToken cancellationToken = default)
- {
- var query = _db.StaffAdvances.AsQueryable();
+    public async Task<StaffAdvanceListResponse> GetAllAsync(
+        int page,
+        int pageSize,
+        Guid? staffId = null,
+        string? status = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseQuery = _db.StaffAdvances
+            .Include(a => a.Staff)
+            .Include(a => a.SettledByUser)
+            .Include(a => a.ObsoletedByUser)
+            .Where(a => !a.IsDeleted);
 
- if (staffId.HasValue)
- query = query.Where(a => a.StaffId == staffId.Value);
+        if (staffId.HasValue)
+        {
+            baseQuery = baseQuery.Where(a => a.StaffId == staffId.Value);
+        }
 
- if (!string.IsNullOrWhiteSpace(status))
- query = query.Where(a => a.Status == status);
+        if (fromDate.HasValue)
+        {
+            var from = fromDate.Value.Date;
+            baseQuery = baseQuery.Where(a => a.AdvanceDate >= from);
+        }
 
- if (fromDate.HasValue)
- query = query.Where(a => a.AdvanceDate >= fromDate.Value);
+        if (toDate.HasValue)
+        {
+            var to = toDate.Value.Date;
+            baseQuery = baseQuery.Where(a => a.AdvanceDate <= to);
+        }
 
- if (toDate.HasValue)
- query = query.Where(a => a.AdvanceDate <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            baseQuery = baseQuery.Where(a =>
+                (a.Staff != null && a.Staff.Name.ToLower().Contains(term)) ||
+                (!string.IsNullOrEmpty(a.StaffName) && a.StaffName.ToLower().Contains(term)) ||
+                (!string.IsNullOrEmpty(a.Reason) && a.Reason.ToLower().Contains(term)) ||
+                (!string.IsNullOrEmpty(a.Notes) && a.Notes.ToLower().Contains(term)));
+        }
 
- if (!string.IsNullOrWhiteSpace(search))
- {
- search = search.Trim().ToLower();
- query = query.Where(a => a.StaffName.ToLower().Contains(search) || a.Description != null && a.Description.ToLower().Contains(search) || a.AdvanceType.ToLower().Contains(search));
- }
+        // Summary KPI calculation across all active records matching the current staff / date / search scope
+        // CRITICAL: Obsolete records are strictly EXCLUDED from active KPI calculations
+        var activeForSummary = baseQuery.Where(a => a.Status != StaffAdvanceStatus.Obsolete);
 
- return await query
- .OrderByDescending(a => a.AdvanceDate)
- .ThenByDescending(a => a.CreatedAt)
- .Skip((page - 1) * pageSize)
- .Take(pageSize)
- .Select(a => ToDto(a))
- .ToListAsync(cancellationToken);
- }
+        var outstandingRecords = await activeForSummary
+            .Where(a => a.Status == StaffAdvanceStatus.Outstanding)
+            .Select(a => a.Amount)
+            .ToListAsync(cancellationToken);
 
- public async Task<int> GetTotalCountAsync(Guid? staffId = null, string? status = null, DateTime? fromDate = null, DateTime? toDate = null, string? search = null, CancellationToken cancellationToken = default)
- {
- var query = _db.StaffAdvances.AsQueryable();
+        var settledRecords = await activeForSummary
+            .Where(a => a.Status == StaffAdvanceStatus.Settled)
+            .Select(a => a.Amount)
+            .ToListAsync(cancellationToken);
 
- if (staffId.HasValue)
- query = query.Where(a => a.StaffId == staffId.Value);
+        var outstandingCount = outstandingRecords.Count;
+        var outstandingAmount = outstandingRecords.Sum();
+        var settledCount = settledRecords.Count;
+        var settledAmount = settledRecords.Sum();
 
- if (!string.IsNullOrWhiteSpace(status))
- query = query.Where(a => a.Status == status);
+        var summary = new StaffAdvanceSummaryDto(
+            OutstandingCount: outstandingCount,
+            OutstandingAmount: Math.Round(outstandingAmount, 2),
+            SettledCount: settledCount,
+            SettledAmount: Math.Round(settledAmount, 2),
+            TotalActiveCount: outstandingCount + settledCount,
+            TotalActiveAmount: Math.Round(outstandingAmount + settledAmount, 2)
+        );
 
- if (fromDate.HasValue)
- query = query.Where(a => a.AdvanceDate >= fromDate.Value);
+        // Apply Status Filter for listing
+        var listQuery = baseQuery;
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var s = status.Trim().ToLowerInvariant();
+            if (s == "outstanding")
+            {
+                listQuery = listQuery.Where(a => a.Status == StaffAdvanceStatus.Outstanding);
+            }
+            else if (s == "settled")
+            {
+                listQuery = listQuery.Where(a => a.Status == StaffAdvanceStatus.Settled);
+            }
+            else if (s == "obsolete")
+            {
+                listQuery = listQuery.Where(a => a.Status == StaffAdvanceStatus.Obsolete);
+            }
+            else if (s == "all")
+            {
+                // Show all including obsolete
+            }
+            else
+            {
+                // Default active view: Outstanding and Settled only
+                listQuery = listQuery.Where(a => a.Status != StaffAdvanceStatus.Obsolete);
+            }
+        }
+        else
+        {
+            // Default view: Show active advances (Outstanding and Settled), exclude Obsolete
+            listQuery = listQuery.Where(a => a.Status != StaffAdvanceStatus.Obsolete);
+        }
 
- if (toDate.HasValue)
- query = query.Where(a => a.AdvanceDate <= toDate.Value);
+        var totalCount = await listQuery.CountAsync(cancellationToken);
 
- if (!string.IsNullOrWhiteSpace(search))
- {
- search = search.Trim().ToLower();
- query = query.Where(a => a.StaffName.ToLower().Contains(search) || a.Description != null && a.Description.ToLower().Contains(search) || a.AdvanceType.ToLower().Contains(search));
- }
+        var items = await listQuery
+            .OrderByDescending(a => a.AdvanceDate)
+            .ThenByDescending(a => a.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(a => ToDto(a))
+            .ToListAsync(cancellationToken);
 
- return await query.CountAsync(cancellationToken);
- }
+        return new StaffAdvanceListResponse(items, totalCount, page, pageSize, summary);
+    }
 
- public async Task<StaffAdvanceDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
- {
- var advance = await _db.StaffAdvances.FindAsync([id], cancellationToken);
- return advance is null ? null : ToDto(advance);
- }
+    public async Task<StaffAdvanceDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var advance = await _db.StaffAdvances
+            .Include(a => a.Staff)
+            .Include(a => a.SettledByUser)
+            .Include(a => a.ObsoletedByUser)
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
- public async Task<StaffAdvanceDto> CreateAsync(CreateStaffAdvanceRequest request, CancellationToken cancellationToken = default)
- {
- // Find or create the Staff record
- var staff = await _db.Staff
- .FirstOrDefaultAsync(s => s.Name == request.StaffName.Trim(), cancellationToken);
+        return advance is null ? null : ToDto(advance);
+    }
 
- if (staff is null)
- {
- staff = new Staff
- {
- Id = Guid.NewGuid(),
- Name = request.StaffName.Trim(),
- PhoneNumber = string.Empty,
- Role = request.StaffRole?.Trim() ?? string.Empty,
- IsActive = true
- };
+    public async Task<StaffAdvanceDto> CreateAsync(CreateStaffAdvanceRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.Amount <= 0)
+        {
+            throw new ValidationException("Advance amount must be greater than zero.");
+        }
 
- await _db.Staff.AddAsync(staff, cancellationToken);
- await _db.SaveChangesAsync(cancellationToken);
- }
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ValidationException("Advance reason is required.");
+        }
 
- var advance = new StaffAdvance
- {
- StaffId = staff.Id,
- StaffName = staff.Name,
- StaffRole = staff.Role,
- AdvanceType = request.AdvanceType.Trim(),
- Description = request.Description?.Trim(),
- Amount = request.Amount,
- AdvanceDate = request.AdvanceDate.Date,
- PaymentMethod = request.PaymentMethod?.Trim(),
- Status = "Pending",
- Notes = request.Notes?.Trim()
- };
+        var staff = await _db.Staff
+            .FirstOrDefaultAsync(s => s.Id == request.StaffId && !s.IsDeleted, cancellationToken)
+            ?? throw new KeyNotFoundException($"Staff member with ID '{request.StaffId}' was not found.");
 
- await _db.StaffAdvances.AddAsync(advance, cancellationToken);
- await _db.SaveChangesAsync(cancellationToken);
+        var advance = new StaffAdvance
+        {
+            Id = Guid.NewGuid(),
+            StaffId = staff.Id,
+            Staff = staff,
+            StaffName = staff.Name,
+            StaffRole = staff.Role,
+            AdvanceType = "Advance",
+            Description = request.Reason.Trim(),
+            Amount = Math.Round(request.Amount, 2),
+            AdvanceDate = request.AdvanceDate.Date,
+            Reason = request.Reason.Trim(),
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            Status = StaffAdvanceStatus.Outstanding,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
 
- return ToDto(advance);
- }
+        await _db.StaffAdvances.AddAsync(advance, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
- public async Task<StaffAdvanceDto?> UpdateAsync(Guid id, UpdateStaffAdvanceRequest request, CancellationToken cancellationToken = default)
- {
- var advance = await _db.StaffAdvances.FindAsync([id], cancellationToken);
- if (advance is null) return null;
+        return ToDto(advance);
+    }
 
- if (request.StaffName is not null)
- {
- advance.StaffName = request.StaffName.Trim();
+    public async Task<StaffAdvanceDto> SettleAsync(Guid id, Guid userId, CancellationToken cancellationToken = default)
+    {
+        var advance = await _db.StaffAdvances
+            .Include(a => a.Staff)
+            .Include(a => a.SettledByUser)
+            .Include(a => a.ObsoletedByUser)
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken)
+            ?? throw new KeyNotFoundException($"Staff advance with ID '{id}' was not found.");
 
- // Also update Staff record name if it exists
- var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == advance.StaffId, cancellationToken);
- if (staff is not null)
- {
- staff.Name = request.StaffName.Trim();
- staff.UpdatedAt = DateTime.UtcNow;
- }
- }
- if (request.StaffRole is not null) advance.StaffRole = request.StaffRole.Trim();
- if (request.AdvanceType is not null) advance.AdvanceType = request.AdvanceType.Trim();
- if (request.Description is not null) advance.Description = request.Description.Trim();
- if (request.Amount.HasValue) advance.Amount = request.Amount.Value;
- if (request.AdvanceDate.HasValue) advance.AdvanceDate = request.AdvanceDate.Value.Date;
- if (request.PaymentMethod is not null) advance.PaymentMethod = request.PaymentMethod.Trim();
- if (request.Status is not null) advance.Status = request.Status;
- if (request.Notes is not null) advance.Notes = request.Notes.Trim();
+        if (advance.Status == StaffAdvanceStatus.Obsolete)
+        {
+            throw new ConflictException("Obsolete staff advances cannot be settled.");
+        }
 
- advance.UpdatedAt = DateTime.UtcNow;
- await _db.SaveChangesAsync(cancellationToken);
+        if (advance.Status == StaffAdvanceStatus.Settled)
+        {
+            throw new ConflictException("Staff advance is already settled.");
+        }
 
- return ToDto(advance);
- }
+        advance.Status = StaffAdvanceStatus.Settled;
+        advance.SettledAt = DateTime.UtcNow;
+        advance.SettledByUserId = userId;
+        advance.UpdatedAt = DateTime.UtcNow;
 
- public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
- {
- var advance = await _db.StaffAdvances.FindAsync([id], cancellationToken);
- if (advance is null) return false;
+        await _db.SaveChangesAsync(cancellationToken);
 
- advance.IsDeleted = true;
- advance.UpdatedAt = DateTime.UtcNow;
- await _db.SaveChangesAsync(cancellationToken);
- return true;
- }
+        if (advance.SettledByUser == null && advance.SettledByUserId.HasValue)
+        {
+            advance.SettledByUser = await _db.Users.FindAsync([advance.SettledByUserId.Value], cancellationToken);
+        }
 
-	public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
-	{
-		var staffList = await _db.Staff
-			.Where(s => !s.IsDeleted)
-			.OrderBy(s => s.Name)
-			.ToListAsync(cancellationToken);
+        return ToDto(advance);
+    }
 
-		var staffIds = staffList.Select(s => s.Id).ToList();
-		var advancesStats = await _db.StaffAdvances
-			.Where(a => !a.IsDeleted && staffIds.Contains(a.StaffId))
-			.GroupBy(a => a.StaffId)
-			.Select(g => new { StaffId = g.Key, Count = g.Count(), Total = g.Sum(x => x.Amount) })
-			.ToDictionaryAsync(x => x.StaffId, cancellationToken);
+    public async Task<StaffAdvanceDto> ObsoleteAsync(Guid id, ObsoleteStaffAdvanceRequest request, Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 3)
+        {
+            throw new ValidationException("A valid obsolete reason (at least 3 characters) is mandatory.");
+        }
 
-		return staffList.Select(s => {
-			var hasStats = advancesStats.TryGetValue(s.Id, out var st);
-			return new StaffDto(
-				s.Id,
-				s.Name,
-				s.PhoneNumber,
-				s.Email,
-				s.Address,
-				s.Role,
-				s.IsActive,
-				hasStats && st != null ? st.Count : 0,
-				hasStats && st != null ? st.Total : 0m);
-		}).ToList();
-	}
+        var advance = await _db.StaffAdvances
+            .Include(a => a.Staff)
+            .Include(a => a.SettledByUser)
+            .Include(a => a.ObsoletedByUser)
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken)
+            ?? throw new KeyNotFoundException($"Staff advance with ID '{id}' was not found.");
 
-	public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
-	{
-		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
-		if (staff is null) return null;
+        if (advance.Status == StaffAdvanceStatus.Obsolete)
+        {
+            throw new ConflictException("Staff advance is already obsolete.");
+        }
 
-		var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted);
-		var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-		var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        if (advance.Status == StaffAdvanceStatus.Settled)
+        {
+            throw new ConflictException("Settled staff advances cannot be made obsolete.");
+        }
 
-		return new StaffDto(
-			staff.Id,
-			staff.Name,
-			staff.PhoneNumber,
-			staff.Email,
-			staff.Address,
-			staff.Role,
-			staff.IsActive,
-			totalAdvances,
-			totalAmount);
-	}
+        // Marking an advance Obsolete is a business status change, NOT a database deletion.
+        // Keep IsDeleted = false; exclude Status = Obsolete from active views and KPI calculations.
+        advance.Status = StaffAdvanceStatus.Obsolete;
+        advance.ObsoleteReason = request.Reason.Trim();
+        advance.ObsoletedAt = DateTime.UtcNow;
+        advance.ObsoletedByUserId = userId;
+        advance.UpdatedAt = DateTime.UtcNow;
+        advance.IsDeleted = false;
 
-	public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
-	{
-		var staff = new Staff
-		{
-			Id = Guid.NewGuid(),
-			Name = request.Name.Trim(),
-			PhoneNumber = request.PhoneNumber.Trim(),
-			Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
-			Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
-			Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim(),
-			IsActive = request.IsActive
-		};
+        await _db.SaveChangesAsync(cancellationToken);
 
-		await _db.Staff.AddAsync(staff, cancellationToken);
-		await _db.SaveChangesAsync(cancellationToken);
+        if (advance.ObsoletedByUser == null && advance.ObsoletedByUserId.HasValue)
+        {
+            advance.ObsoletedByUser = await _db.Users.FindAsync([advance.ObsoletedByUserId.Value], cancellationToken);
+        }
 
-		return new StaffDto(
-			staff.Id,
-			staff.Name,
-			staff.PhoneNumber,
-			staff.Email,
-			staff.Address,
-			staff.Role,
-			staff.IsActive,
-			0,
-			0m);
-	}
+        return ToDto(advance);
+    }
 
-	public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
-	{
-		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
-		if (staff is null) return null;
+    public async Task<StaffAdvanceHistoryDto> GetStaffAdvanceHistoryAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff
+            .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken)
+            ?? throw new KeyNotFoundException($"Staff member with ID '{staffId}' was not found.");
 
-		if (request.Name is not null) staff.Name = request.Name.Trim();
-		if (request.PhoneNumber is not null) staff.PhoneNumber = request.PhoneNumber.Trim();
-		if (request.Email is not null) staff.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
-		if (request.Address is not null) staff.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-		if (request.Role is not null) staff.Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim();
-		if (request.IsActive.HasValue) staff.IsActive = request.IsActive.Value;
+        var advances = await _db.StaffAdvances
+            .Include(a => a.Staff)
+            .Include(a => a.SettledByUser)
+            .Include(a => a.ObsoletedByUser)
+            .Where(a => a.StaffId == staffId && !a.IsDeleted)
+            .OrderByDescending(a => a.AdvanceDate)
+            .ThenByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
 
-		staff.UpdatedAt = DateTime.UtcNow;
-		await _db.SaveChangesAsync(cancellationToken);
+        var activeAdvances = advances.Where(a => a.Status != StaffAdvanceStatus.Obsolete).ToList();
+        var outstandingAmount = activeAdvances.Where(a => a.Status == StaffAdvanceStatus.Outstanding).Sum(a => a.Amount);
+        var settledAmount = activeAdvances.Where(a => a.Status == StaffAdvanceStatus.Settled).Sum(a => a.Amount);
+        var totalAdvancesAmount = outstandingAmount + settledAmount;
 
-		var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted);
-		var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-		var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        var dtos = advances.Select(ToDto).ToList();
 
-		return new StaffDto(
-			staff.Id,
-			staff.Name,
-			staff.PhoneNumber,
-			staff.Email,
-			staff.Address,
-			staff.Role,
-			staff.IsActive,
-			totalAdvances,
-			totalAmount);
-	}
+        return new StaffAdvanceHistoryDto(
+            StaffId: staff.Id,
+            StaffName: staff.Name,
+            StaffPhone: staff.PhoneNumber,
+            StaffRole: staff.Role,
+            TotalAdvancesAmount: Math.Round(totalAdvancesAmount, 2),
+            OutstandingAmount: Math.Round(outstandingAmount, 2),
+            SettledAmount: Math.Round(settledAmount, 2),
+            Advances: dtos
+        );
+    }
 
-	public async Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default)
-	{
-		var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
-		if (staff is null) return false;
+    // ── Staff Directory Management ──────────────────────────────────────────
 
-		staff.IsDeleted = true;
-		staff.UpdatedAt = DateTime.UtcNow;
-		await _db.SaveChangesAsync(cancellationToken);
-		return true;
-	}
+    public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
+    {
+        var staffList = await _db.Staff
+            .Where(s => !s.IsDeleted)
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
 
- public async Task<IReadOnlyList<StaffAdvanceDto>> GetByStaffIdAsync(Guid staffId, CancellationToken cancellationToken = default)
- {
- return await _db.StaffAdvances
- .Where(a => a.StaffId == staffId)
- .OrderByDescending(a => a.AdvanceDate)
- .Select(a => ToDto(a))
- .ToListAsync(cancellationToken);
- }
+        var staffIds = staffList.Select(s => s.Id).ToList();
 
- private static StaffAdvanceDto ToDto(StaffAdvance a) => new(
- a.Id,
- a.StaffId.ToString(),
- a.StaffName,
- a.StaffRole,
- a.AdvanceType,
- a.Description,
- a.Amount,
- a.AdvanceDate,
- a.PaymentMethod,
- a.Status ?? "Pending",
- a.Notes,
- a.CreatedAt);
+        // Calculate active outstanding advances for staff badges
+        var advancesStats = await _db.StaffAdvances
+            .Where(a => !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding && staffIds.Contains(a.StaffId))
+            .GroupBy(a => a.StaffId)
+            .Select(g => new { StaffId = g.Key, Count = g.Count(), Total = g.Sum(x => x.Amount) })
+            .ToDictionaryAsync(x => x.StaffId, cancellationToken);
+
+        return staffList.Select(s =>
+        {
+            var hasStats = advancesStats.TryGetValue(s.Id, out var st);
+            return new StaffDto(
+                s.Id,
+                s.Name,
+                s.PhoneNumber,
+                s.Email,
+                s.Address,
+                s.Role,
+                s.IsActive,
+                hasStats && st != null ? st.Count : 0,
+                hasStats && st != null ? Math.Round(st.Total, 2) : 0m);
+        }).ToList();
+    }
+
+    public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return null;
+
+        var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
+        var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+        return new StaffDto(
+            staff.Id,
+            staff.Name,
+            staff.PhoneNumber,
+            staff.Email,
+            staff.Address,
+            staff.Role,
+            staff.IsActive,
+            totalAdvances,
+            Math.Round(totalAmount, 2));
+    }
+
+    public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
+    {
+        var staff = new Staff
+        {
+            Id = Guid.NewGuid(),
+            Name = request.Name.Trim(),
+            PhoneNumber = request.PhoneNumber.Trim(),
+            Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+            Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
+            Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim(),
+            IsActive = request.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _db.Staff.AddAsync(staff, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new StaffDto(
+            staff.Id,
+            staff.Name,
+            staff.PhoneNumber,
+            staff.Email,
+            staff.Address,
+            staff.Role,
+            staff.IsActive,
+            0,
+            0m);
+    }
+
+    public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return null;
+
+        if (request.Name is not null) staff.Name = request.Name.Trim();
+        if (request.PhoneNumber is not null) staff.PhoneNumber = request.PhoneNumber.Trim();
+        if (request.Email is not null) staff.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
+        if (request.Address is not null) staff.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
+        if (request.Role is not null) staff.Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim();
+        if (request.IsActive.HasValue) staff.IsActive = request.IsActive.Value;
+
+        staff.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
+        var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+        return new StaffDto(
+            staff.Id,
+            staff.Name,
+            staff.PhoneNumber,
+            staff.Email,
+            staff.Address,
+            staff.Role,
+            staff.IsActive,
+            totalAdvances,
+            Math.Round(totalAmount, 2));
+    }
+
+    public async Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return false;
+
+        staff.IsDeleted = true;
+        staff.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    // ── Helper ──────────────────────────────────────────────────────────────
+
+    private static StaffAdvanceDto ToDto(StaffAdvance a) => new(
+        Id: a.Id,
+        StaffId: a.StaffId,
+        StaffName: a.Staff?.Name ?? a.StaffName ?? "Unknown",
+        StaffPhone: a.Staff?.PhoneNumber,
+        StaffRole: a.Staff?.Role ?? a.StaffRole,
+        Amount: Math.Round(a.Amount, 2),
+        AdvanceDate: a.AdvanceDate,
+        Reason: !string.IsNullOrWhiteSpace(a.Reason) ? a.Reason : (!string.IsNullOrWhiteSpace(a.Description) ? a.Description : (!string.IsNullOrWhiteSpace(a.AdvanceType) ? a.AdvanceType : "Staff Advance")),
+        Notes: a.Notes,
+        Status: a.Status.ToString(),
+        SettledAt: a.SettledAt,
+        SettledByUserId: a.SettledByUserId,
+        SettledByName: a.SettledByUser?.FullName ?? a.SettledByUser?.Username,
+        ObsoletedAt: a.ObsoletedAt,
+        ObsoletedByUserId: a.ObsoletedByUserId,
+        ObsoletedByName: a.ObsoletedByUser?.FullName ?? a.ObsoletedByUser?.Username,
+        ObsoleteReason: a.ObsoleteReason,
+        CreatedAt: a.CreatedAt,
+        UpdatedAt: a.UpdatedAt);
 }

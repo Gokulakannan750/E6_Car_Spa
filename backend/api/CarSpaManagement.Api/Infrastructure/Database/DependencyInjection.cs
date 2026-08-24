@@ -14,6 +14,7 @@ public static class DependencyInjection
  {
  npgsqlOptions.MigrationsAssembly(typeof(DependencyInjection).Assembly.FullName);
  })
+ .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
  .EnableSensitiveDataLogging());
 
  return services;

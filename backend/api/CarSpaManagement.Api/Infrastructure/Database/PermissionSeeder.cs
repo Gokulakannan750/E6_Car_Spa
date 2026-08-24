@@ -46,14 +46,26 @@ public static class PermissionSeeder
         ("showroom.record_payment", "Record Payment", "Showroom", "Allows recording payments from showrooms"),
         ("showroom.view_history", "View History", "Showroom", "Allows viewing historical records and productivity"),
 
-        // Staff
+        // Staff & Staff Advances
         ("staff.view", "View Staff", "Staff", "Allows viewing staff members"),
         ("staff.create", "Create Staff", "Staff", "Allows adding new staff members"),
         ("staff.edit", "Edit Staff", "Staff", "Allows updating staff details"),
         ("staff.advances", "Manage Advances", "Staff", "Allows issuing and tracking staff advances"),
+        ("staff_advances.view", "View Staff Advances", "Staff Advances", "Allows viewing staff advances and history"),
+        ("staff_advances.create", "Create Staff Advance", "Staff Advances", "Allows recording new staff advances"),
+        ("staff_advances.settle", "Settle Staff Advance", "Staff Advances", "Allows marking staff advances as settled upon salary recovery"),
+        ("staff_advances.obsolete", "Obsolete Staff Advance", "Staff Advances", "Allows marking staff advances as obsolete with mandatory reason"),
 
         // Reports
         ("reports.view", "View Reports", "Reports", "Allows viewing business and financial reports"),
+        ("reports.sales", "Sales Report", "Reports", "Allows viewing sales and revenue reports"),
+        ("reports.payments", "Payment Collection Report", "Reports", "Allows viewing payment collection reports"),
+        ("reports.invoices", "Outstanding Invoice Report", "Reports", "Allows viewing outstanding invoices and ageing"),
+        ("reports.gst", "GST Report", "Reports", "Allows viewing tax and GST summary reports"),
+        ("reports.job_cards", "Job Card Report", "Reports", "Allows viewing job card activity and status reports"),
+        ("reports.showrooms", "Showroom Report", "Reports", "Allows viewing showroom daily billing and attendance reports"),
+        ("reports.staff_productivity", "Staff Productivity Report", "Reports", "Allows viewing staff assignment and productivity reports"),
+        ("reports.staff_advances", "Staff Advances Report", "Reports", "Allows viewing staff advances and settlement reports"),
         ("reports.export", "Export Reports", "Reports", "Allows exporting reports to Excel/PDF"),
 
         // Settings

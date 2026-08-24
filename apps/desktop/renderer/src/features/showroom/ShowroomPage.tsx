@@ -663,11 +663,6 @@ export function ShowroomPage() {
 			return;
 		}
 
-		if (paymentMethod !== 'Cash' && !paymentReference.trim()) {
-			setRecordPaymentError(`Transaction Reference / Txn ID is required for ${paymentMethod} payment.`);
-			return;
-		}
-
 		recordPaymentMutation.mutate({
 			amount,
 			paymentMethod,
@@ -2621,15 +2616,14 @@ export function ShowroomPage() {
 
 						<div className="space-y-1.5">
 							<label className="text-xs font-medium text-on-surface">
-								Reference / Txn ID {paymentMethod === 'Cash' ? '(Optional)' : '*'}
+								Transaction ID / Reference (Optional)
 							</label>
 							<input
 								type="text"
-								placeholder={paymentMethod === 'UPI' ? 'e.g. UPI123456789' : paymentMethod === 'Card' ? 'e.g. AUTH-987654' : 'e.g. NEFT/IMPS Ref Number'}
+								placeholder={paymentMethod === 'UPI' ? 'e.g. UPI123456789 (Optional)' : paymentMethod === 'Card' ? 'e.g. AUTH-987654 (Optional)' : 'e.g. NEFT/IMPS Ref Number (Optional)'}
 								value={paymentReference}
 								onChange={(e) => setPaymentReference(e.target.value)}
 								className="form-input w-full text-xs font-mono"
-								required={paymentMethod !== 'Cash'}
 							/>
 						</div>
 

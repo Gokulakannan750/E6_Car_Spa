@@ -983,7 +983,7 @@ export function InvoiceDetailPage() {
 								{/* Reference */}
 								<div className="form-field">
 									<label className="text-xs font-bold text-on-surface">
-										Reference / Txn ID {paymentMethod === 'Cash' ? '(Optional)' : '(Required for audit)'}
+										Transaction ID / Reference (Optional)
 									</label>
 									<input
 										type="text"
@@ -991,12 +991,12 @@ export function InvoiceDetailPage() {
 										onChange={(e) => setPaymentReference(e.target.value)}
 										placeholder={
 											paymentMethod === 'UPI'
-												? 'e.g. UPI Ref / UTR / Txn ID'
+												? 'e.g. UPI Ref / UTR / Txn ID (Optional)'
 												: paymentMethod === 'Card'
-													? 'e.g. Auth Code / Last 4 digits'
+													? 'e.g. Auth Code / Last 4 digits (Optional)'
 													: paymentMethod === 'BankTransfer'
-														? 'e.g. NEFT / IMPS UTR No'
-														: 'e.g. Cash note / receipt #'
+														? 'e.g. NEFT / IMPS UTR No (Optional)'
+														: 'e.g. Cash note / receipt # (Optional)'
 										}
 										className="form-input text-xs bg-white"
 									/>

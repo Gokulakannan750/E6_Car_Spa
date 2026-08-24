@@ -606,85 +606,120 @@ export async function deleteCatalogueService(id: string) {
 // Staff Advances
 // ============================================================================
 
+export type StaffAdvanceStatus = 'Outstanding' | 'Settled' | 'Obsolete';
+
 export interface StaffAdvanceDto {
- id: string;
- staffId: string;
- staffName: string;
- staffRole: string | null;
- advanceType: string;
- description: string | null;
- amount: number;
- advanceDate: string;
- paymentMethod: string | null;
- status: string;
- notes: string | null;
- createdAt: string;
+	id: string;
+	staffId: string;
+	staffName: string;
+	staffPhone?: string | null;
+	staffRole?: string | null;
+	amount: number;
+	advanceDate: string;
+	reason: string;
+	notes?: string | null;
+	status: StaffAdvanceStatus | string;
+	settledAt?: string | null;
+	settledByUserId?: string | null;
+	settledByName?: string | null;
+	obsoletedAt?: string | null;
+	obsoletedByUserId?: string | null;
+	obsoletedByName?: string | null;
+	obsoleteReason?: string | null;
+	createdAt: string;
+	updatedAt?: string | null;
 }
 
 export interface StaffDto {
- id: string;
- name: string;
- phoneNumber: string;
- email: string | null;
- address: string | null;
- role: string | null;
- isActive: boolean;
- totalAdvances: number;
- totalAdvanceAmount: number;
+	id: string;
+	name: string;
+	phoneNumber: string;
+	email: string | null;
+	address: string | null;
+	role: string | null;
+	isActive: boolean;
+	totalAdvances: number;
+	totalAdvanceAmount: number;
 }
 
 export interface CreateStaffAdvanceInput {
- staffName: string;
- staffRole?: string | null;
- advanceType: string;
- description?: string | null;
- amount: number;
- advanceDate: string;
- paymentMethod?: string | null;
- notes?: string | null;
+	staffId: string;
+	amount: number;
+	advanceDate: string;
+	reason: string;
+	notes?: string | null;
+}
+
+export interface ObsoleteStaffAdvanceInput {
+	reason: string;
+}
+
+export interface StaffAdvanceSummaryDto {
+	outstandingCount: number;
+	outstandingAmount: number;
+	settledCount: number;
+	settledAmount: number;
+	totalActiveCount: number;
+	totalActiveAmount: number;
 }
 
 export interface StaffAdvanceListResponse {
- items: StaffAdvanceDto[];
- totalCount: number;
- page: number;
- pageSize: number;
+	items: StaffAdvanceDto[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+	summary: StaffAdvanceSummaryDto;
+}
+
+export interface StaffAdvanceHistoryDto {
+	staffId: string;
+	staffName: string;
+	staffPhone?: string | null;
+	staffRole?: string | null;
+	totalAdvancesAmount: number;
+	outstandingAmount: number;
+	settledAmount: number;
+	advances: StaffAdvanceDto[];
 }
 
 export async function getStaffAdvances(params: { page: number; pageSize: number; staffId?: string; status?: string; fromDate?: string; toDate?: string; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.staffId) qs.set('staffId', params.staffId);
- if (params.status) qs.set('status', params.status);
- if (params.fromDate) qs.set('fromDate', params.fromDate);
- if (params.toDate) qs.set('toDate', params.toDate);
- if (params.search) qs.set('search', params.search);
- return request<StaffAdvanceListResponse>('/api/staff-advances?' + qs.toString());
+	const qs = new URLSearchParams();
+	qs.set('page', String(params.page));
+	qs.set('pageSize', String(params.pageSize));
+	if (params.staffId) qs.set('staffId', params.staffId);
+	if (params.status) qs.set('status', params.status);
+	if (params.fromDate) qs.set('fromDate', params.fromDate);
+	if (params.toDate) qs.set('toDate', params.toDate);
+	if (params.search) qs.set('search', params.search);
+	return request<StaffAdvanceListResponse>('/api/staff-advances?' + qs.toString());
 }
 
 export async function getStaffAdvanceById(id: string) {
- return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`);
+	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`);
 }
 
 export async function createStaffAdvance(data: CreateStaffAdvanceInput) {
- return request<StaffAdvanceDto>('/api/staff-advances', {
- method: 'POST',
- body: JSON.stringify(cleanPayload(data)),
- });
+	return request<StaffAdvanceDto>('/api/staff-advances', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
 }
 
-export async function updateStaffAdvance(id: string, data: Partial<CreateStaffAdvanceInput>) {
- return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`, {
- method: 'PUT',
- body: JSON.stringify(cleanPayload(data)),
- });
+export async function settleStaffAdvance(id: string) {
+	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}/settle`, {
+		method: 'POST',
+	});
 }
 
-export async function deleteStaffAdvance(id: string) {
- return request<void>(`/api/staff-advances/${encodeURIComponent(id)}`, {
- method: 'DELETE',
- });
+export async function obsoleteStaffAdvance(id: string, data: ObsoleteStaffAdvanceInput) {
+	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}/obsolete`, {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function getStaffAdvanceHistory(staffId: string) {
+	return request<StaffAdvanceHistoryDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/history`);
 }
 
 export async function getStaffList() {

@@ -4,6 +4,7 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using JCard = CarSpaManagement.Api.Domain.Entities.JobCard;
 using JCardSvc = CarSpaManagement.Api.Domain.Entities.JobCardService;
 
@@ -435,31 +436,49 @@ public class JobCardService : IJobCardService
 	{
 		var currentYear = DateTime.UtcNow.Year;
 		var conn = _db.Database.GetDbConnection();
-		await conn.OpenAsync(cancellationToken);
+		var openedLocally = false;
+		if (conn.State != System.Data.ConnectionState.Open)
+		{
+			await conn.OpenAsync(cancellationToken);
+			openedLocally = true;
+		}
+
 		try
 		{
 			using var cmd = conn.CreateCommand();
-			cmd.CommandText = "SELECT nextval('job_card_number_seq')";
-			try
-			{
-				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt32(result);
-				return string.Concat("JC-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
-			}
-			catch
-			{
-				cmd.CommandText = "CREATE SEQUENCE job_card_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE";
-				await cmd.ExecuteNonQueryAsync(cancellationToken);
+			var currentTx = _db.Database.CurrentTransaction?.GetDbTransaction();
+			if (currentTx != null) cmd.Transaction = currentTx;
 
+			while (true)
+			{
 				cmd.CommandText = "SELECT nextval('job_card_number_seq')";
-				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt32(result);
-				return string.Concat("JC-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				long nextNumber;
+				try
+				{
+					var result = await cmd.ExecuteScalarAsync(cancellationToken);
+					nextNumber = Convert.ToInt64(result);
+				}
+				catch
+				{
+					cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS job_card_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('job_card_number_seq');";
+					var result = await cmd.ExecuteScalarAsync(cancellationToken);
+					nextNumber = Convert.ToInt64(result);
+				}
+
+				var candidate = string.Concat("JC-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				var exists = await _db.JobCards.AnyAsync(j => j.JobCardNumber == candidate, cancellationToken);
+				if (!exists)
+				{
+					return candidate;
+				}
 			}
 		}
 		finally
 		{
-			await conn.CloseAsync();
+			if (openedLocally && conn.State == System.Data.ConnectionState.Open)
+			{
+				await conn.CloseAsync();
+			}
 		}
 	}
 

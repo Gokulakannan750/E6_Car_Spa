@@ -59,6 +59,7 @@ builder.Services.AddScoped<IJobCardService, JobCardSvc>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
 builder.Services.AddScoped<IShowroomService, ShowroomService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // Security & Authentication Services
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
@@ -175,9 +176,17 @@ using (var scope = app.Services.CreateScope())
 {
  try
  {
- var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
- await db.Database.MigrateAsync();
- await PermissionSeeder.SeedAsync(db);
+ 		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+		await db.Database.MigrateAsync();
+		await db.Database.ExecuteSqlRawAsync(@"
+			UPDATE ""StaffAdvances"" 
+			SET ""Status"" = 'Outstanding' 
+			WHERE ""Status"" = 'Pending' OR ""Status"" IS NULL;
+			UPDATE ""StaffAdvances""
+			SET ""Reason"" = COALESCE(NULLIF(""Description"", ''), NULLIF(""AdvanceType"", ''), 'Staff Advance')
+			WHERE ""Reason"" IS NULL OR ""Reason"" = '';
+		");
+		await PermissionSeeder.SeedAsync(db);
 
  if (!await db.Customers.AnyAsync())
  {

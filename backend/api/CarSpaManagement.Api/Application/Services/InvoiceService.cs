@@ -378,7 +378,8 @@ public class InvoiceService : IInvoiceService
 		if (request.Amount > invoice.BalanceAmount)
 			throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{invoice.BalanceAmount:N2}.");
 
-		if (!Enum.TryParse<PaymentMethod>(request.PaymentMethod, true, out var paymentMethod))
+		var cleanMethod = (request.PaymentMethod ?? "").Trim().Replace(" ", "").Replace("_", "");
+		if (!Enum.TryParse<PaymentMethod>(cleanMethod, true, out var paymentMethod))
 		{
 			if (int.TryParse(request.PaymentMethod, out var intMethod) && Enum.IsDefined(typeof(PaymentMethod), intMethod))
 			{
