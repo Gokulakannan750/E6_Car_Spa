@@ -1,43 +1,74 @@
-import { useState, useMemo } from 'react';
-import { Plus, MoreHorizontal, Phone, Car, Calendar, ArrowUpRight } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Plus, Phone, Car, Calendar, ArrowUpRight, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
-import { mockCustomers } from '../../mock/data/customers';
-import { mockVehicles } from '../../mock/data/vehicles';
-import { mockJobCards } from '../../mock/data/jobCards';
 import { Button } from '../../components/ui/Button';
-import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
+import {
+	getCustomers,
+	getVehiclesByCustomer,
+	getJobCardsByCustomer,
+	getJobCardStatusLabel,
+	type CustomerDto,
+	type VehicleDto,
+	type JobCardListDto,
+} from '../../lib/api';
 
 export function CustomersPage() {
+	const navigate = useNavigate();
 	const globalSearch = useAppStore((s) => s.globalSearch);
-	const [statusFilter, setStatusFilter] = useState('all');
-	const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
-	const filtered = useMemo(() => {
-		const q = globalSearch.trim().toLowerCase();
-		return mockCustomers.filter((c) => {
-			if (q) {
-				const matchesName = c.name.toLowerCase().includes(q);
-				const matchesPhone = c.phone.includes(q);
-				const matchesReg = mockVehicles.some(
-					(v) => v.customerId === c.id && v.registrationNumber.toLowerCase().includes(q),
-				);
-				if (!matchesName && !matchesPhone && !matchesReg) return false;
-			}
-			if (statusFilter !== 'all' && c.status !== statusFilter) return false;
-			return true;
-		});
-	}, [globalSearch, statusFilter]);
+	// Fetch real customers from API
+	const {
+		data: customersData,
+		isLoading: isLoadingCustomers,
+		isError: isCustomersError,
+		error: customersError,
+		refetch: refetchCustomers,
+	} = useQuery({
+		queryKey: ['customers', globalSearch],
+		queryFn: () => getCustomers({ page: 1, pageSize: 100, search: globalSearch.trim() || undefined }),
+	});
 
-	const getVehicles = (cid: string) => mockVehicles.filter((v) => v.customerId === cid);
-	const selected = selectedCustomer ? mockCustomers.find((c) => c.id === selectedCustomer) : null;
+	const customers: CustomerDto[] = customersData?.items ?? [];
+	const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || null;
+
+	// Fetch real customer vehicles when selected
+	const { data: customerVehiclesData, isLoading: isLoadingVehicles } = useQuery({
+		queryKey: ['vehicles-by-customer', selectedCustomerId],
+		queryFn: () => getVehiclesByCustomer(selectedCustomerId!),
+		enabled: !!selectedCustomerId,
+	});
+	const customerVehicles: VehicleDto[] = customerVehiclesData ?? [];
+
+	// Fetch real customer job cards when selected
+	const {
+		data: customerJobCardsData,
+		isLoading: isLoadingJobCards,
+		error: jobCardsError,
+	} = useQuery({
+		queryKey: ['job-cards-by-customer', selectedCustomerId],
+		queryFn: () => getJobCardsByCustomer(selectedCustomerId!),
+		enabled: !!selectedCustomerId,
+	});
+	const customerJobCards: JobCardListDto[] = customerJobCardsData?.items ?? [];
 
 	const footerButtons = (
 		<>
-			<Button variant="secondary" onClick={() => setSelectedCustomer(null)}>
+			<Button variant="secondary" onClick={() => setSelectedCustomerId(null)}>
 				Close
 			</Button>
-			<Button icon={<Plus className="w-4 h-4" />}>New Job Card</Button>
+			<Button
+				icon={<Plus className="w-4 h-4" />}
+				onClick={() => {
+					setSelectedCustomerId(null);
+					navigate('/job-cards/new');
+				}}
+			>
+				New Job Card
+			</Button>
 		</>
 	);
 
@@ -47,214 +78,227 @@ export function CustomersPage() {
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-semibold text-on-surface tracking-tight">Customers</h1>
-					<p className="text-sm text-on-surface-variant mt-1">Manage your customer database and vehicle records</p>
+					<p className="text-sm text-on-surface-variant mt-1">View customer directory and service histories</p>
 				</div>
-				<Button icon={<Plus className="w-4 h-4" />}>Add Customer</Button>
 			</div>
 
-			{/* Filters Bar */}
+			{/* Filters & Search Info Bar */}
 			<div className="app-card p-4">
-				<div className="flex items-center gap-3">
+				<div className="flex items-center justify-between gap-3">
 					<div className="flex-1 max-w-md">
-						{/* Global search from header is synced; show active query indicator */}
-						{globalSearch && (
+						{globalSearch ? (
 							<div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
 								<span className="text-sm text-blue-700 truncate">
 									Searching: <strong>"{globalSearch}"</strong>
 								</span>
 							</div>
+						) : (
+							<span className="text-sm text-on-surface-variant">Real PostgreSQL customer records</span>
 						)}
 					</div>
-					<div className="flex items-center gap-1">
-						{['all', 'active', 'inactive'].map((s) => (
-							<button
-								key={s}
-								onClick={() => setStatusFilter(s)}
-								className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-									statusFilter === s ? 'bg-secondary text-white' : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container'
-								}`}
-							>
-								{s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-							</button>
-						))}
-					</div>
-					<div className="ml-auto text-sm text-on-surface-variant">
-						{filtered.length} customer{filtered.length !== 1 ? 's' : ''}
+					<div className="text-sm text-on-surface-variant">
+						{customers.length} customer{customers.length !== 1 ? 's' : ''}
 					</div>
 				</div>
 			</div>
 
-			{/* Customer Table */}
+			{/* Customer Table / Empty State / Error State */}
 			<div className="app-card overflow-hidden">
-				<div className="overflow-x-auto">
-					<table className="app-table">
-						<thead>
-							<tr>
-								<th>Customer</th>
-								<th>Phone</th>
-								<th>Vehicles</th>
-								<th>Total Visits</th>
-								<th>Outstanding</th>
-								<th>Last Visit</th>
-								<th>Status</th>
-								<th className="w-10"></th>
-							</tr>
-						</thead>
-						<tbody>
-							{filtered.map((c) => {
-								const vehicles = getVehicles(c.id);
-								return (
-									<tr key={c.id} className="cursor-pointer" onClick={() => setSelectedCustomer(c.id)}>
+				{isLoadingCustomers ? (
+					<div className="py-16 text-center text-on-surface-variant">
+						<RefreshCw className="w-6 h-6 animate-spin mx-auto text-secondary mb-2" />
+						<p className="text-sm font-medium">Loading customers...</p>
+					</div>
+				) : isCustomersError ? (
+					<div className="py-12 text-center text-error space-y-3">
+						<AlertCircle className="w-8 h-8 mx-auto text-error" />
+						<p className="text-sm font-medium">
+							{(customersError as Error)?.message || 'Failed to load customers from backend.'}
+						</p>
+						<Button variant="secondary" onClick={() => refetchCustomers()}>
+							Retry
+						</Button>
+					</div>
+				) : customers.length === 0 ? (
+					<div className="py-16 text-center">
+						<div className="w-12 h-12 rounded-full bg-secondary/10 text-secondary flex items-center justify-center mx-auto mb-3">
+							<Car className="w-6 h-6" />
+						</div>
+						<h3 className="text-base font-semibold text-on-surface">No customers found</h3>
+						<p className="text-sm text-on-surface-variant mt-1 max-w-sm mx-auto">
+							{globalSearch
+								? `No customer records matching "${globalSearch}".`
+								: 'Customers are automatically registered when creating a job card.'}
+						</p>
+					</div>
+				) : (
+					<div className="overflow-x-auto">
+						<table className="app-table">
+							<thead>
+								<tr>
+									<th>Customer</th>
+									<th>Phone</th>
+									<th>Email</th>
+									<th>Address</th>
+									<th>Created Date</th>
+								</tr>
+							</thead>
+							<tbody>
+								{customers.map((c) => (
+									<tr
+										key={c.id}
+										className="cursor-pointer hover:bg-surface-container/50 transition-colors"
+										onClick={() => setSelectedCustomerId(c.id)}
+									>
 										<td>
 											<div className="flex items-center gap-3">
 												<div className="w-9 h-9 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-xs font-semibold">
-													{c.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+													{c.name
+														.split(' ')
+														.map((n) => n[0])
+														.join('')
+														.slice(0, 2)
+														.toUpperCase()}
 												</div>
 												<div>
 													<p className="font-medium text-on-surface">{c.name}</p>
-													<p className="text-sm text-on-surface-variant truncate max-w-[200px]">{c.address}</p>
 												</div>
 											</div>
 										</td>
 										<td>
-											<span className="font-mono text-sm">{c.phone}</span>
+											<span className="font-mono text-sm">{c.phoneNumber}</span>
 										</td>
-										<td>
-											<div className="flex items-center gap-1 text-sm text-on-surface-variant">
-												<Car className="w-3.5 h-3.5" />
-												{vehicles.map((v) => (
-													<span key={v.id} className="bg-surface-container px-1.5 py-0.5 rounded text-xs font-medium">
-														{v.registrationNumber}
-													</span>
-												))}
-											</div>
-										</td>
-										<td className="text-sm">{c.totalVisits}</td>
-										<td>
-											<span className={c.outstandingBalance > 0 ? 'text-error font-medium' : 'text-success font-medium'}>
-												{c.outstandingBalance > 0 ? `₹${c.outstandingBalance.toLocaleString()}` : '—'}
-											</span>
+										<td className="text-sm text-on-surface-variant">{c.email || '—'}</td>
+										<td className="text-sm text-on-surface-variant truncate max-w-[200px]">
+											{c.address || '—'}
 										</td>
 										<td className="text-sm text-on-surface-variant">
 											<div className="flex items-center gap-1">
 												<Calendar className="w-3.5 h-3.5" />
-												{new Date(c.lastVisit).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+												{new Date(c.createdAt).toLocaleDateString('en-IN', {
+													day: 'numeric',
+													month: 'short',
+													year: 'numeric',
+												})}
 											</div>
 										</td>
-										<td>
-											<StatusBadge status={c.status} />
-										</td>
-										<td onClick={(e) => e.stopPropagation()}>
-											<button className="p-1.5 rounded-md hover:bg-surface-container transition-colors">
-												<MoreHorizontal className="w-4 h-4 text-on-surface-variant" />
-											</button>
-										</td>
 									</tr>
-								);
-							})}
-						</tbody>
-					</table>
-				</div>
-				{filtered.length === 0 && (
-					<div className="py-12 text-center">
-						<p className="text-sm text-on-surface-variant">No customers found matching your search.</p>
+								))}
+							</tbody>
+						</table>
 					</div>
 				)}
 			</div>
 
 			{/* Customer Detail Dialog */}
 			<Dialog
-				open={!!selectedCustomer}
-				onOpenChange={(open) => !open && setSelectedCustomer(null)}
-				title={selected?.name || ''}
-				description="Customer details and vehicle information"
+				open={!!selectedCustomerId}
+				onOpenChange={(open) => !open && setSelectedCustomerId(null)}
+				title={selectedCustomer?.name || 'Customer Details'}
+				description="Customer details, vehicles, and recent job cards"
 				size="lg"
 				footer={footerButtons}
 			>
-				{selected && (
+				{selectedCustomer && (
 					<div className="space-y-5">
 						<div className="grid grid-cols-2 gap-4">
 							<div>
 								<p className="text-sm text-on-surface-variant mb-1">Phone</p>
 								<p className="font-medium text-on-surface flex items-center gap-1.5">
 									<Phone className="w-4 h-4 text-secondary" />
-									{selected.phone}
+									{selectedCustomer.phoneNumber}
 								</p>
 							</div>
 							<div>
 								<p className="text-sm text-on-surface-variant mb-1">Email</p>
-								<p className="font-medium text-on-surface">{selected.email}</p>
+								<p className="font-medium text-on-surface">{selectedCustomer.email || '—'}</p>
 							</div>
 							<div className="col-span-2">
 								<p className="text-sm text-on-surface-variant mb-1">Address</p>
-								<p className="text-sm text-on-surface">{selected.address}</p>
-							</div>
-							<div>
-								<p className="text-sm text-on-surface-variant mb-1">Total Visits</p>
-								<p className="font-medium text-on-surface">{selected.totalVisits}</p>
-							</div>
-							<div>
-								<p className="text-sm text-on-surface-variant mb-1">Outstanding Balance</p>
-								<p className={`font-medium ${selected.outstandingBalance > 0 ? 'text-error' : 'text-success'}`}>
-									{selected.outstandingBalance > 0 ? `₹${selected.outstandingBalance.toLocaleString()}` : 'No balance'}
-								</p>
+								<p className="text-sm text-on-surface">{selectedCustomer.address || '—'}</p>
 							</div>
 						</div>
 
 						<div>
-							<h3 className="text-lg font-semibold text-on-surface mb-3">Vehicles ({getVehicles(selected.id).length})</h3>
-							<div className="space-y-2">
-								{getVehicles(selected.id).map((v) => (
-									<div
-										key={v.id}
-										className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-outline-variant"
-									>
-										<div className="flex items-center gap-3">
-											<div className="w-8 h-8 rounded-md bg-secondary/10 flex items-center justify-center">
-												<Car className="w-4 h-4 text-secondary" />
-											</div>
-											<div>
-												<p className="font-medium text-on-surface">{v.registrationNumber}</p>
-												<p className="text-sm text-on-surface-variant">
-													{v.make} {v.model} {v.color ? '· ' + v.color : ''}
-												</p>
+							<h3 className="text-lg font-semibold text-on-surface mb-3">
+								Vehicles ({customerVehicles.length})
+							</h3>
+							{isLoadingVehicles ? (
+								<div className="py-4 text-center text-on-surface-variant">
+									<RefreshCw className="w-4 h-4 animate-spin mx-auto text-secondary mb-1" />
+									<p className="text-xs">Loading vehicles...</p>
+								</div>
+							) : customerVehicles.length > 0 ? (
+								<div className="space-y-2">
+									{customerVehicles.map((v) => (
+										<div
+											key={v.id}
+											className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-outline-variant"
+										>
+											<div className="flex items-center gap-3">
+												<div className="w-8 h-8 rounded-md bg-secondary/10 flex items-center justify-center">
+													<Car className="w-4 h-4 text-secondary" />
+												</div>
+												<div>
+													<p className="font-medium text-on-surface font-mono">{v.registrationNumber}</p>
+													<p className="text-sm text-on-surface-variant">
+														{v.make} {v.model} {v.color ? '· ' + v.color : ''}
+													</p>
+												</div>
 											</div>
 										</div>
-										<button className="text-sm text-secondary hover:underline flex items-center gap-0.5">
-											View <ArrowUpRight className="w-3 h-3" />
-										</button>
-									</div>
-								))}
-								{getVehicles(selected.id).length === 0 && (
-									<p className="text-sm text-on-surface-variant py-3">No vehicles registered yet.</p>
-								)}
-							</div>
+									))}
+								</div>
+							) : (
+								<p className="text-sm text-on-surface-variant py-3">No vehicles registered yet.</p>
+							)}
 						</div>
 
 						<div>
 							<h3 className="text-lg font-semibold text-on-surface mb-3">Recent Activity</h3>
-							<div className="space-y-2">
-								{mockJobCards.filter((jc) => jc.customerId === selected.id).slice(0, 3).map((jc) => (
-									<div
-										key={jc.id}
-										className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-outline-variant"
-									>
-										<div>
-											<p className="font-medium text-on-surface">{jc.jobCardNumber}</p>
-											<p className="text-sm text-on-surface-variant">
-												{new Date(jc.createdAt).toLocaleDateString('en-IN')} · {jc.services.length} service(s)
-											</p>
+							{isLoadingJobCards ? (
+								<div className="py-4 text-center text-on-surface-variant">
+									<RefreshCw className="w-5 h-5 animate-spin mx-auto text-secondary mb-1" />
+									<p className="text-xs">Loading job cards...</p>
+								</div>
+							) : jobCardsError ? (
+								<p className="text-sm text-error py-2">Unable to load job cards.</p>
+							) : customerJobCards.length > 0 ? (
+								<div className="space-y-2">
+									{customerJobCards.slice(0, 5).map((jc) => (
+										<div
+											key={jc.id}
+											className="flex items-center justify-between p-3 bg-surface-container-low rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container transition-colors"
+											onClick={() => {
+												setSelectedCustomerId(null);
+												navigate(`/job-cards/${jc.id}`);
+											}}
+										>
+											<div>
+												<p className="font-medium text-secondary font-mono">{jc.jobCardNumber}</p>
+												<p className="text-sm text-on-surface-variant">
+													{new Date(jc.createdAt).toLocaleDateString('en-IN', {
+														day: 'numeric',
+														month: 'short',
+														year: 'numeric',
+													})}
+													{jc.registrationNumber ? ` · ${jc.registrationNumber}` : ''}
+												</p>
+											</div>
+											<div className="text-right">
+												<p className="text-sm font-medium text-on-surface">
+													₹{jc.totalAmount.toLocaleString('en-IN')}
+												</p>
+												<span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">
+													{getJobCardStatusLabel(jc.status)}
+												</span>
+											</div>
 										</div>
-										<div className="text-right">
-											<p className="text-sm font-medium text-on-surface">₹{jc.totalAmount.toLocaleString()}</p>
-											<StatusBadge status={jc.status} />
-										</div>
-									</div>
-								))}
-								{mockJobCards.filter((jc) => jc.customerId === selected.id).length === 0 && (
-									<p className="text-sm text-on-surface-variant py-3">No job cards yet.</p>
-								)}
-							</div>
+									))}
+								</div>
+							) : (
+								<p className="text-sm text-on-surface-variant py-3">No job cards yet.</p>
+							)}
 						</div>
 					</div>
 				)}

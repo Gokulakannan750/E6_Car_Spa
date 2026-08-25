@@ -414,6 +414,75 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("InvoiceItems", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoicePublicLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AccessCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsRevoked")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastAccessedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RevokedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_InvoicePublicLinks_InvoiceId");
+
+                    b.HasIndex("IsRevoked")
+                        .HasDatabaseName("IX_InvoicePublicLinks_IsRevoked");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InvoicePublicLinks_TokenHash");
+
+                    b.ToTable("InvoicePublicLinks", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1178,6 +1247,179 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("Vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccessTokenEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BusinessAccountId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GraphApiVersion")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("v25.0");
+
+                    b.Property<bool>("InvoiceNotificationsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("InvoiceTemplateLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("en_US");
+
+                    b.Property<string>("InvoiceTemplateName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("e6_carspa_invoice_generated");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("PaymentCompletedNotificationsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("PaymentCompletedTemplateLanguage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("en_US");
+
+                    b.Property<string>("PaymentCompletedTemplateName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("e6_carspa_payment_completed");
+
+                    b.Property<string>("PhoneNumberId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SingletonKey")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SingletonKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WhatsAppConfigurations_Singleton");
+
+                    b.ToTable("WhatsAppConfigurations", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("FailedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MessageType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MetaMessageId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("NextAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RecipientPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("SentAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TemplateParametersJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("NextAttemptAtUtc")
+                        .HasDatabaseName("IX_WhatsAppMessages_NextAttemptAtUtc");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_WhatsAppMessages_Status");
+
+                    b.HasIndex("InvoiceId", "MessageType")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WhatsAppMessages_Invoice_MessageType")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("WhatsAppMessages", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
@@ -1221,6 +1463,17 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Invoice");
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoicePublicLink", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("PublicLinks")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
@@ -1386,6 +1639,25 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppMessage", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Invoice", "Invoice")
+                        .WithMany("WhatsAppMessages")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Invoice");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("JobCards");
@@ -1398,6 +1670,10 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("InvoiceItems");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("PublicLinks");
+
+                    b.Navigation("WhatsAppMessages");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>

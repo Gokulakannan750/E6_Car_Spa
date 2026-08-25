@@ -250,11 +250,19 @@ def run_tests():
     print("[PASS] TEST G (4): Logo removed via DELETE /api/settings/business/logo")
 
     # ── TEST H, I, J, K: Existing Invoice & Payment System Intact ───────────
-    print("\n--- TEST H, I, J, K: Existing Invoice & Payment Integrity ---")
     # Fetch existing services
     r_services = requests.get(f"{BASE_URL}/services?isActive=true", headers=headers)
     svc_list = r_services.json().get("items", r_services.json()) if isinstance(r_services.json(), dict) else r_services.json()
-    svc = svc_list[0]
+    svc = next((s for s in svc_list if s.get("price") == 500.0), None)
+    if not svc:
+        r_new_svc = requests.post(f"{BASE_URL}/services", json={
+            "name": "Step 15 Basic Wash",
+            "price": 500.0,
+            "category": "Washing",
+            "taxPercentage": 18.0,
+            "durationMinutes": 30
+        }, headers=headers)
+        svc = r_new_svc.json()
     
     # Fetch existing customer & vehicle
     r_cust = requests.get(f"{BASE_URL}/customers", headers=headers)

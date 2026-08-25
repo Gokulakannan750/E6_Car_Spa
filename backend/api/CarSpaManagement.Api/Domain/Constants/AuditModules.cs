@@ -13,4 +13,5 @@ public static class AuditModules
     public const string StaffAdvances = "StaffAdvances";
     public const string Settings = "Settings";
     public const string Reports = "Reports";
+    public const string WhatsApp = "WhatsApp";
 }

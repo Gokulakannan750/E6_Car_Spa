@@ -10,13 +10,13 @@ import {
 	createService,
 	createJobCard,
 	getServiceById,
+	getCustomerById,
+	getJobCardById,
 	type CustomerDto,
 	type VehicleDto,
 	type ServiceDto,
+	type JobCardDto,
 } from '../../lib/api';
-import { mockCustomers } from '../../mock/data/customers';
-import { mockVehicles } from '../../mock/data/vehicles';
-import { mockServices } from '../../mock/data/services';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import {
@@ -33,7 +33,10 @@ import {
 	ArrowLeft,
 	UserPlus,
 	CarFront,
+	Printer,
+	Download,
 } from 'lucide-react';
+import { JobCardPrintDocument } from './JobCardDetails';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -129,6 +132,14 @@ export default function NewJobCard() {
 	const [isCreatingJobCard, setIsCreatingJobCard] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<{ id: string; number: string; customerName: string; vehicleLabel: string; total: number } | null>(null);
+	const [createdJobCard, setCreatedJobCard] = useState<JobCardDto | null>(null);
+	const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+	useEffect(() => {
+		if (success?.id && !createdJobCard) {
+			getJobCardById(success.id).then(setCreatedJobCard).catch(console.error);
+		}
+	}, [success?.id, createdJobCard]);
 
 	// ── Derived ───────────────────────────────────────────────────────────────
 	const calcSubtotal = services.reduce((s, svc) => s + svc.unitPrice * svc.quantity, 0);
@@ -153,32 +164,12 @@ export default function NewJobCard() {
 				if (list.length === 1) setSelectedVehicle(list[0]);
 				return;
 			}
-		} catch {
-			// Backend offline or error -> check mock vehicles
+		} catch (err) {
+			console.warn('Failed to load vehicles for customer:', err);
 		}
 
-		// Fallback check in mock vehicles
-		const mockVehs = mockVehicles
-			.filter((v) => v.customerId === cust.id || cust.id.includes(v.customerId))
-			.map((v) => ({
-				id: v.id,
-				registrationNumber: v.registrationNumber,
-				make: v.make,
-				model: v.model,
-				variant: v.variant || null,
-				color: v.color || null,
-				customerId: cust.id,
-				customerName: cust.name,
-				createdAt: v.createdAt,
-			}));
-
-		if (mockVehs.length > 0) {
-			setVehicles(mockVehs);
-			if (mockVehs.length === 1) setSelectedVehicle(mockVehs[0]);
-		} else {
-			// No vehicles registered yet -> prompt user to add vehicle
-			setShowNewVehicle(true);
-		}
+		// No vehicles registered yet -> prompt user to add vehicle
+		setShowNewVehicle(true);
 	}, []);
 
 	// ── Phone lookup ──────────────────────────────────────────────────────────
@@ -190,9 +181,7 @@ export default function NewJobCard() {
 		setInfoMessage(null);
 		setShowNewCustomer(false);
 
-		const cleanPhone = rawPhone.replace(/\D/g, '');
-
-		// 1. Try Live Backend API
+		// Try Live Backend API
 		try {
 			const result = await getCustomerByPhone(rawPhone);
 			if (result && result.name) {
@@ -204,26 +193,7 @@ export default function NewJobCard() {
 			// API not reachable or 404
 		}
 
-		// 2. Check Mock Customer List
-		const foundMock = mockCustomers.find(
-			(c) => c.phone.replace(/\D/g, '') === cleanPhone || c.phone.includes(rawPhone) || rawPhone.includes(c.phone)
-		);
-
-		if (foundMock) {
-			const custDto: CustomerDto = {
-				id: foundMock.id,
-				name: foundMock.name,
-				phoneNumber: foundMock.phone,
-				email: foundMock.email || null,
-				address: foundMock.address || null,
-				createdAt: foundMock.createdAt,
-			};
-			await loadCustomerAndVehicles(custDto);
-			setIsSearching(false);
-			return;
-		}
-
-		// 3. Customer Not Found -> Prompt to Create Customer
+		// Customer Not Found -> Prompt to Create Customer
 		setIsSearching(false);
 		setInfoMessage(`No customer found with phone "${rawPhone}". Please enter customer details below to create a new profile.`);
 		setNewCustomer({ name: '', phone: rawPhone, email: '', address: '' });
@@ -239,20 +209,23 @@ export default function NewJobCard() {
 		setInfoMessage(null);
 		setShowNewCustomer(false);
 
-		const cleanReg = rawReg.replace(/\s+/g, '');
-
-		// 1. Try Live Backend API
+		// Try Live Backend API
 		try {
 			const result = await getVehicleByRegistration(rawReg);
 			if (result) {
-				const custDto: CustomerDto = {
-					id: result.customerId,
-					name: result.customerName || 'Customer',
-					phoneNumber: phone.trim() || '',
-					email: null,
-					address: null,
-					createdAt: result.createdAt,
-				};
+				let custDto: CustomerDto | null = null;
+				try {
+					custDto = await getCustomerById(result.customerId);
+				} catch {
+					custDto = {
+						id: result.customerId,
+						name: result.customerName || 'Customer',
+						phoneNumber: phone.trim() || '',
+						email: null,
+						address: null,
+						createdAt: result.createdAt,
+					};
+				}
 				await loadCustomerAndVehicles(custDto);
 				setSelectedVehicle(result);
 				setIsSearching(false);
@@ -262,39 +235,7 @@ export default function NewJobCard() {
 			// API not reachable or 404
 		}
 
-		// 2. Check Mock Vehicles
-		const foundMockVeh = mockVehicles.find(
-			(v) => v.registrationNumber.replace(/\s+/g, '').toUpperCase() === cleanReg
-		);
-
-		if (foundMockVeh) {
-			const foundCust = mockCustomers.find((c) => c.id === foundMockVeh.customerId);
-			const custDto: CustomerDto = {
-				id: foundCust?.id || foundMockVeh.customerId,
-				name: foundCust?.name || 'Customer',
-				phoneNumber: foundCust?.phone || phone.trim() || '9876543210',
-				email: foundCust?.email || null,
-				address: foundCust?.address || null,
-				createdAt: foundMockVeh.createdAt,
-			};
-			await loadCustomerAndVehicles(custDto);
-			const vehDto: VehicleDto = {
-				id: foundMockVeh.id,
-				registrationNumber: foundMockVeh.registrationNumber,
-				make: foundMockVeh.make,
-				model: foundMockVeh.model,
-				variant: foundMockVeh.variant || null,
-				color: foundMockVeh.color || null,
-				customerId: custDto.id,
-				customerName: custDto.name,
-				createdAt: foundMockVeh.createdAt,
-			};
-			setSelectedVehicle(vehDto);
-			setIsSearching(false);
-			return;
-		}
-
-		// 3. Vehicle Not Found -> Prompt to Create Customer & Vehicle
+		// Vehicle Not Found -> Prompt to Create Customer & Vehicle
 		setIsSearching(false);
 		setInfoMessage(`No vehicle found with registration "${rawReg}". Please create a customer and vehicle record below.`);
 		setNewVehicle((prev) => ({ ...prev, registrationNumber: rawReg }));
@@ -327,20 +268,12 @@ export default function NewJobCard() {
 			await loadCustomerAndVehicles(created);
 			setShowNewCustomer(false);
 			setShowNewVehicle(true);
-		} catch {
-			// Backend offline fallback -> create in-memory customer
-			const localCustomer: CustomerDto = {
-				id: 'cust-' + Date.now(),
-				name: newCustomer.name.trim(),
-				phoneNumber: newCustomer.phone.trim(),
-				email: newCustomer.email || null,
-				address: newCustomer.address || null,
-				createdAt: new Date().toISOString(),
-			};
-			setCustomer(localCustomer);
-			setShowNewCustomer(false);
-			setShowNewVehicle(true);
-			setVehicles([]);
+		} catch (err: unknown) {
+			console.error('Failed to create customer:', err);
+			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
+				? err.message
+				: 'Failed to create customer. Please check the details and try again.';
+			setCustomerError(msg);
 		} finally {
 			setIsCreatingCustomer(false);
 		}
@@ -370,22 +303,12 @@ export default function NewJobCard() {
 			setVehicles((prev) => [...prev, created]);
 			setSelectedVehicle(created);
 			setShowNewVehicle(false);
-		} catch {
-			// Backend offline fallback -> create in-memory vehicle
-			const localVehicle: VehicleDto = {
-				id: 'veh-' + Date.now(),
-				registrationNumber: regUpper,
-				make: newVehicle.make.trim(),
-				model: newVehicle.model.trim(),
-				variant: newVehicle.variant || null,
-				color: null,
-				customerId: customer.id,
-				customerName: customer.name,
-				createdAt: new Date().toISOString(),
-			};
-			setVehicles((prev) => [...prev, localVehicle]);
-			setSelectedVehicle(localVehicle);
-			setShowNewVehicle(false);
+		} catch (err: unknown) {
+			console.error('Failed to create vehicle:', err);
+			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
+				? err.message
+				: 'Failed to create vehicle. Please check the details and try again.';
+			setCustomerError(msg);
 		} finally {
 			setIsCreatingVehicle(false);
 		}
@@ -399,32 +322,16 @@ export default function NewJobCard() {
 			return;
 		}
 		searchTimerRef.current = setTimeout(async () => {
-			const q = serviceSearch.trim().toLowerCase();
 			try {
 				const result = await getServices({ page: 1, pageSize: 50, search: serviceSearch.trim() });
-				if (result && result.items && result.items.length > 0) {
-					setSearchResults(result.items);
+				if (result && result.items) {
+					setSearchResults(result.items.filter((s) => s.isActive));
 					return;
 				}
-			} catch {
-				// Backend offline -> search mock services
+			} catch (err) {
+				console.warn('Failed to search services:', err);
 			}
-			const fallback = mockServices.filter(
-				(s) => s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
-			);
-			setSearchResults(
-				fallback.map((m) => ({
-					id: m.id,
-					name: m.name,
-					description: m.description,
-					category: m.category,
-					price: m.basePrice,
-					taxPercentage: 18,
-					durationMinutes: m.durationMinutes,
-					isActive: m.status === 'active',
-					createdAt: '2026-08-20T00:00:00Z',
-				}))
-			);
+			setSearchResults([]);
 		}, 200);
 		return () => {
 			if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
@@ -446,54 +353,13 @@ export default function NewJobCard() {
 		let cancelled = false;
 		(async () => {
 			try {
-				let svc: ServiceDto | null = null;
-				try {
-					svc = await getServiceById(preselectedServiceId);
-				} catch {
-					const mockSvc = mockServices.find((m) => m.id === preselectedServiceId);
-					if (mockSvc) {
-						svc = {
-							id: mockSvc.id,
-							name: mockSvc.name,
-							description: mockSvc.description,
-							category: mockSvc.category,
-							price: mockSvc.basePrice,
-							taxPercentage: 18,
-							durationMinutes: mockSvc.durationMinutes,
-							isActive: mockSvc.status === 'active',
-							createdAt: '2026-08-20T00:00:00Z',
-						};
-					}
-				}
+				const svc = await getServiceById(preselectedServiceId);
 				if (!cancelled && svc) {
-					setServices((prev) => {
-						const existing = prev.find((s) => s.serviceId === svc!.id);
-						if (existing) {
-							return prev.map((s) =>
-								s.serviceId === svc!.id
-									? { ...s, quantity: s.quantity + 1, lineTotal: s.unitPrice * (s.quantity + 1) - s.discountAmount }
-									: s
-							);
-						}
-						return [
-							...prev,
-							{
-								id: crypto.randomUUID(),
-								serviceId: svc!.id,
-								name: svc!.name,
-								category: svc!.category,
-								unitPrice: svc!.price,
-								quantity: 1,
-								taxPercentage: svc!.taxPercentage,
-								discountAmount: 0,
-								lineTotal: svc!.price,
-							},
-						];
-					});
+					handleAddService(svc);
 					navigate('/job-cards/new', { replace: true, state: {} });
 				}
 			} catch {
-				// Ignore
+				// Ignore if not found
 			}
 		})();
 		return () => {
@@ -537,6 +403,7 @@ export default function NewJobCard() {
 	const handleCreateService = async () => {
 		if (!newService.name.trim() || !newService.price) return;
 		setIsCreatingService(true);
+		setCustomerError(null);
 		try {
 			const created = await createService({
 				name: newService.name.trim(),
@@ -547,22 +414,15 @@ export default function NewJobCard() {
 				isActive: newService.isActive,
 			});
 			handleAddService(created);
-		} catch {
-			const localSvc: ServiceDto = {
-				id: 'svc-' + Date.now(),
-				name: newService.name.trim(),
-				category: newService.category || 'Exterior Detailing',
-				description: newService.description || null,
-				price: parseFloat(newService.price),
-				taxPercentage: 18,
-				durationMinutes: parseInt(newService.durationMinutes) || 60,
-				isActive: true,
-				createdAt: new Date().toISOString(),
-			};
-			handleAddService(localSvc);
-		} finally {
 			setShowNewService(false);
 			setNewService({ name: '', category: '', description: '', durationMinutes: '', price: '', isActive: true });
+		} catch (err: unknown) {
+			console.error('Failed to create service:', err);
+			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
+				? err.message
+				: 'Failed to create service. Please try again.';
+			setCustomerError(msg);
+		} finally {
 			setIsCreatingService(false);
 		}
 	};
@@ -595,6 +455,7 @@ export default function NewJobCard() {
 				notes: undefined,
 				isGstEnabled: true,
 			});
+			setCreatedJobCard(result);
 			setSuccess({
 				id: result.id,
 				number: result.jobCardNumber,
@@ -602,16 +463,19 @@ export default function NewJobCard() {
 				vehicleLabel: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`,
 				total: result.totalAmount,
 			});
-		} catch (err) {
-			console.warn('Backend unavailable, creating job card locally:', err);
-			const localJobCardNumber = `JC-${new Date().getFullYear()}-${String(Math.floor(100000 + Math.random() * 900000))}`;
-			setSuccess({
-				id: 'jc-' + Date.now(),
-				number: localJobCardNumber,
-				customerName: customer.name,
-				vehicleLabel: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`,
-				total: calcTotal,
-			});
+		} catch (err: unknown) {
+			console.error('Failed to create Job Card on backend:', err);
+			let userMsg = 'Unable to create the Job Card. Please check the details and try again.';
+			if (err instanceof Error) {
+				if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
+					userMsg = 'Your session has expired. Please log in again.';
+				} else if (err.message.includes('403') || err.message.toLowerCase().includes('forbidden')) {
+					userMsg = 'You do not have permission to create Job Cards.';
+				} else if (err.message && !err.message.startsWith('HTTP ') && !err.message.includes('Exception')) {
+					userMsg = err.message;
+				}
+			}
+			setSubmitError(userMsg);
 		} finally {
 			setIsCreatingJobCard(false);
 		}
@@ -638,6 +502,8 @@ export default function NewJobCard() {
 		setInfoMessage(null);
 		setSubmitError(null);
 		setSuccess(null);
+		setCreatedJobCard(null);
+		setShowPrintPreview(false);
 	};
 
 	// ── Step validation ───────────────────────────────────────────────────────
@@ -665,50 +531,125 @@ export default function NewJobCard() {
 	// ════════════════════════════════════════════════════════════════════════════
 	if (success) {
 		return (
-			<div className="flex flex-col h-full animate-fade-in">
-				<div className="px-6 py-4 border-b border-outline-variant">
-					<h1 className="text-xl font-semibold text-on-surface">New Job Card</h1>
-				</div>
-				<div className="flex-1 flex items-center justify-center p-6">
-					<div className="text-center max-w-md w-full app-card p-6 shadow-elevation-2">
-						<div className="w-16 h-16 rounded-full bg-success-container flex items-center justify-center mx-auto mb-4">
-							<CheckCircle2 className="w-8 h-8 text-success" />
-						</div>
-						<h2 className="text-xl font-bold text-on-surface mb-1">Job Card Created!</h2>
-						<p className="text-sm text-on-surface-variant mb-5">
-							Job Card <span className="font-semibold text-secondary font-mono">{success.number}</span> has been generated successfully.
-						</p>
-						<div className="bg-surface-container-low border border-outline-variant rounded-lg p-4 mb-6 text-left space-y-2 text-sm">
-							<div className="flex justify-between">
-								<span className="text-on-surface-variant">Customer</span>
-								<span className="font-medium text-on-surface">{success.customerName}</span>
+			<>
+				{/* ── Interactive Screen View (Hidden during print) ──────────────── */}
+				<div className="flex flex-col h-full animate-fade-in no-print">
+					<div className="px-6 py-4 border-b border-outline-variant">
+						<h1 className="text-xl font-semibold text-on-surface">New Job Card</h1>
+					</div>
+					<div className="flex-1 flex items-center justify-center p-6">
+						<div className="text-center max-w-md w-full app-card p-6 shadow-elevation-2">
+							<div className="w-16 h-16 rounded-full bg-success-container flex items-center justify-center mx-auto mb-4">
+								<CheckCircle2 className="w-8 h-8 text-success" />
 							</div>
-							<div className="flex justify-between">
-								<span className="text-on-surface-variant">Vehicle</span>
-								<span className="font-medium text-on-surface">{success.vehicleLabel}</span>
+							<h2 className="text-xl font-bold text-on-surface mb-1">Job Card Created!</h2>
+							<p className="text-sm text-on-surface-variant mb-5">
+								Job Card <span className="font-semibold text-secondary font-mono">{success.number}</span> has been generated successfully.
+							</p>
+							<div className="bg-surface-container-low border border-outline-variant rounded-lg p-4 mb-6 text-left space-y-2 text-sm">
+								<div className="flex justify-between">
+									<span className="text-on-surface-variant">Customer</span>
+									<span className="font-medium text-on-surface">{success.customerName}</span>
+								</div>
+								<div className="flex justify-between">
+									<span className="text-on-surface-variant">Vehicle</span>
+									<span className="font-medium text-on-surface">{success.vehicleLabel}</span>
+								</div>
+								<div className="flex justify-between pt-2 border-t border-outline-variant/60">
+									<span className="text-on-surface-variant font-medium">Total Amount</span>
+									<span className="font-bold text-secondary text-base">{formatCurrency(success.total)}</span>
+								</div>
 							</div>
-							<div className="flex justify-between pt-2 border-t border-outline-variant/60">
-								<span className="text-on-surface-variant font-medium">Total Amount</span>
-								<span className="font-bold text-secondary text-base">{formatCurrency(success.total)}</span>
+							<div className="flex gap-3">
+								<Button
+									variant="secondary"
+									onClick={() => window.print()}
+									icon={<Printer className="w-4 h-4" />}
+									className="flex-1"
+								>
+									Print
+								</Button>
+								<Button onClick={() => navigate('/job-cards')} className="flex-1">
+									View All Job Cards
+								</Button>
+							</div>
+							<div className="mt-4 flex items-center justify-center gap-3 text-xs">
+								<button
+									onClick={() => setShowPrintPreview(true)}
+									className="text-secondary hover:underline font-medium"
+								>
+									Preview Print Layout
+								</button>
+								<span className="text-outline-variant">·</span>
+								<button
+									onClick={handleReset}
+									className="text-on-surface-variant hover:text-on-surface font-medium"
+								>
+									Create Another Job Card
+								</button>
 							</div>
 						</div>
-						<div className="flex gap-3">
-							<Button variant="secondary" onClick={() => window.print()} className="flex-1">
-								Print
-							</Button>
-							<Button onClick={() => navigate('/job-cards')} className="flex-1">
-								View All Job Cards
-							</Button>
-						</div>
-						<button
-							onClick={handleReset}
-							className="mt-4 text-sm text-secondary hover:underline font-medium block mx-auto"
-						>
-							Create Another Job Card
-						</button>
 					</div>
 				</div>
-			</div>
+
+				{/* ── In-App A4 Print Preview Modal (Hidden during print) ─────────── */}
+				{showPrintPreview && createdJobCard && (
+					<div className="fixed inset-0 z-50 flex flex-col bg-slate-950/85 backdrop-blur-xs animate-fade-in no-print">
+						{/* Preview Toolbar */}
+						<div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800 text-white">
+							<div className="flex items-center gap-3">
+								<Printer className="w-5 h-5 text-secondary" />
+								<div>
+									<h3 className="font-semibold text-sm">Job Card Print Preview</h3>
+									<p className="text-xs text-slate-400">A4 Standard Format · {createdJobCard.jobCardNumber}</p>
+								</div>
+							</div>
+
+							<div className="flex items-center gap-2">
+								<Button
+									onClick={() => window.print()}
+									icon={<Printer className="w-4 h-4" />}
+									className="bg-secondary hover:bg-secondary/90 text-white"
+								>
+									Print
+								</Button>
+
+								<Button
+									variant="secondary"
+									onClick={() => window.print()}
+									icon={<Download className="w-4 h-4" />}
+									className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+								>
+									Save PDF
+								</Button>
+
+								<Button
+									variant="secondary"
+									onClick={() => setShowPrintPreview(false)}
+									icon={<X className="w-4 h-4" />}
+									className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+								>
+									Close
+								</Button>
+							</div>
+						</div>
+
+						{/* Centered A4 Document Canvas */}
+						<div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center items-start bg-slate-950/60">
+							<div className="shadow-2xl ring-1 ring-black/20 rounded-xs">
+								<JobCardPrintDocument jobCard={createdJobCard} />
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* ── Dedicated Print DOM (Rendered ONLY during physical print) ──── */}
+				{createdJobCard && (
+					<div className="print-only">
+						<JobCardPrintDocument jobCard={createdJobCard} />
+					</div>
+				)}
+			</>
 		);
 	}
 

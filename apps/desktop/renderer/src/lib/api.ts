@@ -350,6 +350,70 @@ export interface UpdateInvoiceInput {
   isGstEnabled?: boolean | null;
 }
 
+export interface InvoicePublicLinkResponse {
+  url: string;
+  createdAtUtc: string;
+  isActive: boolean;
+}
+
+export interface InvoicePublicLinkStatusResponse {
+  hasActiveLink: boolean;
+  createdAtUtc?: string | null;
+  accessCount: number;
+  lastAccessedAtUtc?: string | null;
+}
+
+export interface PublicBusinessDto {
+  businessName: string;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  gstin?: string | null;
+  logoUrl?: string | null;
+}
+
+export interface PublicCustomerDto {
+  customerName: string;
+  vehicleName: string;
+  registrationNumber: string;
+}
+
+export interface PublicInvoiceItemDto {
+  description: string;
+  quantity: number;
+  rate: number;
+  amount: number;
+  hsnSac?: string | null;
+}
+
+export interface PublicFinancialsDto {
+  subtotal: number;
+  discount: number;
+  taxableValue?: number | null;
+  cgst?: number | null;
+  sgst?: number | null;
+  totalAmount: number;
+  paidAmount: number;
+  balanceAmount: number;
+}
+
+export interface PublicInvoiceDto {
+  invoiceNumber: string;
+  invoiceDate: string;
+  status: string;
+  isGstEnabled: boolean;
+  business: PublicBusinessDto;
+  customer: PublicCustomerDto;
+  items: PublicInvoiceItemDto[];
+  financials: PublicFinancialsDto;
+  notes?: string | null;
+  termsAndConditions?: string | null;
+}
+
 export interface CatalogueServiceDto {
  id: string;
  name: string;
@@ -385,17 +449,17 @@ export interface HealthResponse {
 // Customers
 // ============================================================================
 
-export async function getCustomers(params: { page: number; pageSize: number; search: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.search) qs.set('search', params.search);
- const suffix = '?' + qs.toString();
- return request<CustomerListResponse>('/api/customers' + suffix);
+export async function getCustomers(params?: { page?: number; pageSize?: number; search?: string }) {
+	const qs = new URLSearchParams();
+	if (params?.page) qs.set('page', String(params.page));
+	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+	if (params?.search) qs.set('search', params.search);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<CustomerListResponse>('/api/customers' + suffix);
 }
 
 export async function getCustomerById(id: string) {
- return request<CustomerDto>(`/api/customers/${encodeURIComponent(id)}`);
+	return request<CustomerDto>(`/api/customers/${encodeURIComponent(id)}`);
 }
 
 export async function getCustomerByPhone(phone: string) {
@@ -446,12 +510,20 @@ export async function createVehicle(data: CreateVehicleInput) {
 // ============================================================================
 
 export async function getJobCards(params: { page: number; pageSize: number; status?: string; search?: string }) {
- const qs = new URLSearchParams();
- qs.set('page', String(params.page));
- qs.set('pageSize', String(params.pageSize));
- if (params.status) qs.set('status', params.status);
- if (params.search) qs.set('search', params.search);
- return request<{ items: JobCardListDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
+	const qs = new URLSearchParams();
+	qs.set('page', String(params.page));
+	qs.set('pageSize', String(params.pageSize));
+	if (params.status) qs.set('status', params.status);
+	if (params.search) qs.set('search', params.search);
+	return request<{ items: JobCardListDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
+}
+
+export async function getJobCardsByCustomer(customerId: string, params?: { page?: number; pageSize?: number }) {
+	const qs = new URLSearchParams();
+	if (params?.page) qs.set('page', String(params.page));
+	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<JobCardListResponse>(`/api/job-cards/by-customer/${encodeURIComponent(customerId)}${suffix}`);
 }
 
 export async function getJobCardById(id: string) {
@@ -536,6 +608,38 @@ export async function recordPayment(invoiceId: string, data: RecordPaymentInput)
     method: 'POST',
     body: JSON.stringify(cleanPayload(data)),
   });
+}
+
+export async function createPublicInvoiceLink(invoiceId: string) {
+  return request<InvoicePublicLinkResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link`, {
+    method: 'POST',
+  });
+}
+
+export async function getPublicInvoiceLinkStatus(invoiceId: string) {
+  return request<InvoicePublicLinkStatusResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link/status`);
+}
+
+export async function revokePublicInvoiceLink(invoiceId: string) {
+  return request<{ success: boolean; message: string }>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link`, {
+    method: 'DELETE',
+  });
+}
+
+export async function rotatePublicInvoiceLink(invoiceId: string) {
+  return request<InvoicePublicLinkResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link/rotate`, {
+    method: 'POST',
+  });
+}
+
+export async function getPublicInvoice(token: string) {
+  const res = await fetch(`${API_BASE}/api/public/invoices/${encodeURIComponent(token)}`, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) {
+    throw new ApiError(`Invoice not found or link expired`, res.status, null);
+  }
+  return (await res.json()) as PublicInvoiceDto;
 }
 
 // ============================================================================
@@ -1357,4 +1461,146 @@ export async function getAuditLogs(params: AuditLogQueryParams = {}) {
 	const qs = query.toString();
 	return request<PagedAuditLogResult>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
 }
+
+// ============================================================================
+// WhatsApp Integration
+// ============================================================================
+
+export interface WhatsAppConfigDto {
+	isEnabled: boolean;
+	phoneNumberId: string;
+	businessAccountId: string;
+	graphApiVersion: string;
+	hasAccessToken: boolean;
+	invoiceNotificationsEnabled: boolean;
+	paymentCompletedNotificationsEnabled: boolean;
+	invoiceTemplateName: string;
+	invoiceTemplateLanguage: string;
+	paymentCompletedTemplateName: string;
+	paymentCompletedTemplateLanguage: string;
+	updatedAt?: string | null;
+}
+
+export interface UpdateWhatsAppConfigRequest {
+	isEnabled: boolean;
+	phoneNumberId: string;
+	businessAccountId: string;
+	graphApiVersion?: string;
+	accessToken?: string;
+	invoiceNotificationsEnabled: boolean;
+	paymentCompletedNotificationsEnabled: boolean;
+	invoiceTemplateName?: string;
+	invoiceTemplateLanguage?: string;
+	paymentCompletedTemplateName?: string;
+	paymentCompletedTemplateLanguage?: string;
+}
+
+export interface TestWhatsAppConnectionRequest {
+	phoneNumberId?: string;
+	businessAccountId?: string;
+	graphApiVersion?: string;
+	accessToken?: string;
+}
+
+export interface TestWhatsAppConnectionResponse {
+	isSuccess: boolean;
+	message: string;
+	details?: string | null;
+}
+
+export interface InvoiceWhatsAppStatusDto {
+	messageType: string;
+	status: string;
+	metaMessageId?: string | null;
+	sentAtUtc?: string | null;
+	failedAtUtc?: string | null;
+	errorMessage?: string | null;
+	attemptCount: number;
+}
+
+export async function getWhatsAppConfig() {
+	return request<WhatsAppConfigDto>('/api/settings/whatsapp');
+}
+
+export async function updateWhatsAppConfig(data: UpdateWhatsAppConfigRequest) {
+	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function testWhatsAppConnection(data?: TestWhatsAppConnectionRequest) {
+	return request<TestWhatsAppConnectionResponse>('/api/settings/whatsapp/test', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data ?? {})),
+	});
+}
+
+export async function getInvoiceWhatsAppStatus(invoiceId: string) {
+	return request<InvoiceWhatsAppStatusDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/whatsapp-status`);
+}
+
+// ============================================================================
+// Reports & Dashboard
+// ============================================================================
+
+export interface DashboardSummaryDto {
+	dateRange: { fromDate: string; toDate: string };
+	jobCardKpis: {
+		totalJobCards: number;
+		newJobCards: number;
+		inProgressJobCards: number;
+		completedJobCards: number;
+		cancelledJobCards: number;
+		invoicedJobCards: number;
+	};
+	vehicleActivity: {
+		vehiclesServiced: number;
+		totalServicesCompleted: number;
+		uniqueVehiclesServiced: number;
+	};
+	invoiceKpis: {
+		draftCount: number;
+		generatedCount: number;
+		partiallyPaidCount: number;
+		paidCount: number;
+		cancelledCount: number;
+		totalInvoicedAmount: number;
+		totalPaidAmount: number;
+		totalOutstandingAmount: number;
+	};
+	sales: {
+		grossSubtotal: number;
+		totalDiscount: number;
+		gstAmount: number;
+		netSales: number;
+		paymentCollection: number;
+		outstanding: number;
+	};
+	paymentCollection: {
+		totalCollected: number;
+		cash: number;
+		upi: number;
+		card: number;
+		bankTransfer: number;
+	};
+	recentActivity: {
+		activityType: string;
+		title: string;
+		description: string;
+		amount: number | null;
+		timestamp: string;
+		referenceId: string | null;
+		status: string | null;
+	}[];
+}
+
+export async function getDashboardSummary(params?: { fromDate?: string; toDate?: string }) {
+	const qs = new URLSearchParams();
+	if (params?.fromDate) qs.set('fromDate', params.fromDate);
+	if (params?.toDate) qs.set('toDate', params.toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix);
+}
+
 

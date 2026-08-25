@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getJobCards, getVehiclesByCustomer, type VehicleDto } from '../lib/api';
+import { getJobCardsByCustomer, getVehiclesByCustomer, type VehicleDto } from '../lib/api';
 
 const STATUS_MAP: Record<number, { bg: string; text: string; border: string }> = {
 	0: { bg: '#fef3c7', text: '#92400e', border: '#fde047' },
@@ -28,7 +28,7 @@ export function CustomerHistoryDialog({ customerId, customerName, open, onClose 
 	const { data: jobCardsData } = useQuery({
 		queryKey: ['job-cards-by-customer', customerId],
 		queryFn: async () => {
-			const result = await getJobCards({ page: 1, pageSize: 100, search: customerName });
+			const result = await getJobCardsByCustomer(customerId, { page: 1, pageSize: 100 });
 			return result.items ?? [];
 		},
 		enabled: open,

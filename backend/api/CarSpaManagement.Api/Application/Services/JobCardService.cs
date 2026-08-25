@@ -154,6 +154,8 @@ public class JobCardService : IJobCardService
 	public async Task<IReadOnlyList<JobCardListDto>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default)
 	{
 		var paged = await _db.JobCards
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
 			.Where(j => j.CustomerId == customerId)
 			.OrderByDescending(j => j.CreatedAt)
 			.Skip((page - 1) * pageSize)
@@ -183,6 +185,8 @@ public class JobCardService : IJobCardService
 	public async Task<IReadOnlyList<JobCardListDto>> GetByVehicleIdAsync(Guid vehicleId, int page, int pageSize, CancellationToken cancellationToken = default)
 	{
 		var paged = await _db.JobCards
+			.Include(j => j.Customer)
+			.Include(j => j.Vehicle)
 			.Where(j => j.VehicleId == vehicleId)
 			.OrderByDescending(j => j.CreatedAt)
 			.Skip((page - 1) * pageSize)

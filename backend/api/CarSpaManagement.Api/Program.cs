@@ -13,6 +13,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
+using CarSpaManagement.Api.Infrastructure.Security;
+using CarSpaManagement.Api.Infrastructure.BackgroundJobs;
+
 // Alias to avoid ambiguity with CarSpaManagement.Api.JobCardService
 using JobCardSvc = CarSpaManagement.Api.Application.Services.JobCardService;
 
@@ -64,6 +67,11 @@ builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 
+// WhatsApp Integration
+builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
+builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
+builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
+
 // Security & Authentication Services
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
@@ -91,7 +99,7 @@ builder.Services.AddAuthentication(options =>
  ValidateIssuer = true,
  ValidIssuer = jwtIssuer,
  ValidateAudience = true,
- ValidAudience = jwtAudience,
+ ValidAudiences = new[] { jwtAudience, "E6CarSpaMobile", "E6CarSpa" },
  ValidateLifetime = true,
  ClockSkew = TimeSpan.Zero
  };
@@ -139,6 +147,38 @@ var app = builder.Build();
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.UseSerilogRequestLogging();
+
+// Global Exception Handler must wrap all downstream middleware & endpoints
+app.Use(async (context, next) =>
+{
+ try
+ {
+ await next();
+ }
+ catch (Exception ex)
+ {
+ Log.Error(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+ if (!context.Response.HasStarted)
+ {
+ context.Response.StatusCode = ex switch
+ {
+ KeyNotFoundException => 404,
+ ArgumentException or InvalidOperationException => 400,
+ UnauthorizedAccessException => 403,
+ _ => 500
+ };
+ context.Response.ContentType = "application/json";
+ await context.Response.WriteAsJsonAsync(new
+ {
+ error = ex is KeyNotFoundException or ArgumentException or InvalidOperationException or UnauthorizedAccessException
+ ? ex.Message
+ : "An unexpected error occurred.",
+ detail = app.Environment.IsDevelopment() ? ex.Message : null
+ });
+ }
+ }
+});
+
 app.UseHttpsRedirection();
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -163,26 +203,6 @@ app.UseAuthorization();
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.MapHealthChecks("/api/health");
 app.MapControllers();
-
-// ── Global Exception Handler ─────────────────────────────────────────────────
-app.Use(async (context, next) =>
-{
- try
- {
- await next();
- }
- catch (Exception ex)
- {
- Log.Error(ex, "Unhandled exception");
- context.Response.StatusCode = 500;
- context.Response.ContentType = "application/json";
- await context.Response.WriteAsJsonAsync(new
- {
- error = "An unexpected error occurred.",
- detail = app.Environment.IsDevelopment() ? ex.Message : null
- });
- }
-});
 
 Log.Information("Starting Car Spa Management API");
 
@@ -253,75 +273,7 @@ using (var scope = app.Services.CreateScope())
 			Log.Information("Seeded verified default E6 Car Spa business profile");
 		}
 
- if (!await db.Customers.AnyAsync())
- {
- var c1 = new Customer
- {
- Id = Guid.NewGuid(),
- Name = "Rahul Sharma",
- PhoneNumber = "+919876543210",
- Email = "rahul.sharma@email.com",
- Address = "MG Road, Indiranagar, Bangalore",
- CreatedAt = new DateTime(2024, 01, 15, 10, 0, 0, DateTimeKind.Utc)
- };
- var c2 = new Customer
- {
- Id = Guid.NewGuid(),
- Name = "Priya Patel",
- PhoneNumber = "+919876543211",
- Email = "priya.patel@email.com",
- Address = "Koramangala 5th Block, Bangalore",
- CreatedAt = new DateTime(2024, 02, 20, 14, 30, 0, DateTimeKind.Utc)
- };
- var c3 = new Customer
- {
- Id = Guid.NewGuid(),
- Name = "Arun Kumar",
- PhoneNumber = "+919876543212",
- Email = "arun.k@email.com",
- Address = "Whitefield, Bangalore",
- CreatedAt = new DateTime(2024, 03, 10, 9, 0, 0, DateTimeKind.Utc)
- };
- var c4 = new Customer
- {
- Id = Guid.NewGuid(),
- Name = "Sneha Reddy",
- PhoneNumber = "+919876543213",
- Email = "sneha.r@email.com",
- Address = "HSR Layout, Bangalore",
- CreatedAt = new DateTime(2024, 06, 5, 11, 0, 0, DateTimeKind.Utc)
- };
- var c5 = new Customer
- {
- Id = Guid.NewGuid(),
- Name = "Vikram Singh",
- PhoneNumber = "+919876543214",
- Email = "vikram.s@email.com",
- Address = "Jayanagar 4th Block, Bangalore",
- CreatedAt = new DateTime(2024, 08, 12, 16, 0, 0, DateTimeKind.Utc)
- };
-
- var v1 = new Vehicle { Id = Guid.NewGuid(), CustomerId = c1.Id, RegistrationNumber = "KA01AB1234", Make = "Maruti Suzuki", Model = "Swift", Variant = "VXi", Color = "Red" };
- var v2 = new Vehicle { Id = Guid.NewGuid(), CustomerId = c2.Id, RegistrationNumber = "KA02CD5678", Make = "Hyundai", Model = "Creta", Variant = "SX", Color = "White" };
- var v3 = new Vehicle { Id = Guid.NewGuid(), CustomerId = c1.Id, RegistrationNumber = "KA01EF9012", Make = "Honda", Model = "City", Variant = "ZX", Color = "Black" };
- var v4 = new Vehicle { Id = Guid.NewGuid(), CustomerId = c3.Id, RegistrationNumber = "KA03GH3456", Make = "Tata", Model = "Nexon", Variant = "XZ+", Color = "Blue" };
- var v5 = new Vehicle { Id = Guid.NewGuid(), CustomerId = c4.Id, RegistrationNumber = "KA04IJ7890", Make = "Toyota", Model = "Innova", Variant = "GX", Color = "Silver" };
-
- var jc1 = new JobCard { Id = Guid.NewGuid(), CustomerId = c1.Id, VehicleId = v1.Id, JobCardNumber = "JC-2024-001", Subtotal = 4500m, TaxAmount = 810m, DiscountAmount = 0m, TotalAmount = 5310m, Status = JobCardStatus.Delivered, CreatedAt = new DateTime(2024, 08, 1, 9, 0, 0, DateTimeKind.Utc) };
- var jc2 = new JobCard { Id = Guid.NewGuid(), CustomerId = c2.Id, VehicleId = v2.Id, JobCardNumber = "JC-2024-002", Subtotal = 2800m, TaxAmount = 504m, DiscountAmount = 200m, TotalAmount = 3104m, Status = JobCardStatus.Delivered, CreatedAt = new DateTime(2024, 08, 5, 10, 30, 0, DateTimeKind.Utc) };
- var jc3 = new JobCard { Id = Guid.NewGuid(), CustomerId = c1.Id, VehicleId = v3.Id, JobCardNumber = "JC-2024-003", Subtotal = 6500m, TaxAmount = 1170m, DiscountAmount = 500m, TotalAmount = 7170m, Status = JobCardStatus.InProgress, CreatedAt = new DateTime(2024, 08, 10, 11, 0, 0, DateTimeKind.Utc) };
- var jc4 = new JobCard { Id = Guid.NewGuid(), CustomerId = c3.Id, VehicleId = v4.Id, JobCardNumber = "JC-2024-004", Subtotal = 3200m, TaxAmount = 576m, DiscountAmount = 0m, TotalAmount = 3776m, Status = JobCardStatus.Draft, CreatedAt = new DateTime(2024, 08, 12, 14, 0, 0, DateTimeKind.Utc) };
- var jc5 = new JobCard { Id = Guid.NewGuid(), CustomerId = c4.Id, VehicleId = v5.Id, JobCardNumber = "JC-2024-005", Subtotal = 5100m, TaxAmount = 918m, DiscountAmount = 300m, TotalAmount = 5718m, Status = JobCardStatus.Delivered, CreatedAt = new DateTime(2024, 08, 15, 8, 30, 0, DateTimeKind.Utc) };
-
- db.Customers.AddRange(c1, c2, c3, c4, c5);
- db.Vehicles.AddRange(v1, v2, v3, v4, v5);
- db.JobCards.AddRange(jc1, jc2, jc3, jc4, jc5);
- await db.SaveChangesAsync();
-
- Log.Information("Seeded {Customers} customers, {Vehicles} vehicles, {JobCards} job cards", 5, 5, 5);
- }
-
- if (!await db.Services.AnyAsync())
+		if (!await db.Services.AnyAsync())
  {
  var s1 = new Service { Id = Guid.NewGuid(), Name = "Level 3 Paint Correction", Category = "Exterior Detailing", Description = "Multi-stage machine compounding and polishing to remove 85-95% of deep scratches, swirl marks, and oxidation. Restores showroom clarity to heavily damaged clear coats.", Price = 5000m, TaxPercentage = 18m, DurationMinutes = 180, IsActive = true };
  var s2 = new Service { Id = Guid.NewGuid(), Name = "Wheels-Off Decontamination", Category = "Exterior Detailing", Description = "Complete removal of wheels for deep cleaning of inner barrels, brake calipers, and suspension components with iron fallout remover and wheel sealant.", Price = 1500m, TaxPercentage = 18m, DurationMinutes = 60, IsActive = true };

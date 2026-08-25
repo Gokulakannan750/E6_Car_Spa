@@ -19,6 +19,7 @@ const loadShowroom = () => import('../features/showroom/ShowroomPage');
 const loadSettings = () => import('../features/settings/SettingsPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
+const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
 
 export const router = createBrowserRouter([
 	{
@@ -28,6 +29,15 @@ export const router = createBrowserRouter([
 	{
 		path: '/setup',
 		element: <FirstTimeSetup />,
+	},
+	{
+		path: '/i/:token',
+		lazy: async () => {
+			const m = await loadPublicInvoice();
+			return {
+				Component: m.PublicInvoicePage,
+			};
+		},
 	},
 	{
 		path: '/',
