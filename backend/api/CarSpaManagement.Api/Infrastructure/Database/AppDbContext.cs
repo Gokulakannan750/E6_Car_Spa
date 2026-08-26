@@ -26,6 +26,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
  public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
  public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
  public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+ public DbSet<InvoicePublicLink> InvoicePublicLinks => Set<InvoicePublicLink>();
+ public DbSet<WhatsAppConfiguration> WhatsAppConfigurations => Set<WhatsAppConfiguration>();
+ public DbSet<WhatsAppMessage> WhatsAppMessages => Set<WhatsAppMessage>();
 
  protected override void OnModelCreating(ModelBuilder modelBuilder)
  {

@@ -53,4 +53,7 @@ public class Invoice : BaseEntity
 	public List<InvoiceItem> InvoiceItems { get; set; } = new();
 
 	public List<Payment> Payments { get; set; } = new();
+
+	public List<InvoicePublicLink> PublicLinks { get; set; } = new();
+	public List<WhatsAppMessage> WhatsAppMessages { get; set; } = new();
 }

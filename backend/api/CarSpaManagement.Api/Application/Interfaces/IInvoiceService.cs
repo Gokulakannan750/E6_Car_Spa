@@ -14,4 +14,9 @@ public interface IInvoiceService
  Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default);
  Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default);
  Task<IReadOnlyList<PaymentDto>> GetPaymentsByInvoiceIdAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+ Task<InvoicePublicLinkResponse> CreatePublicLinkAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+ Task<InvoicePublicLinkStatusResponse> GetPublicLinkStatusAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+ Task<bool> RevokePublicLinkAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+ Task<InvoicePublicLinkResponse> RotatePublicLinkAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+ Task<PublicInvoiceDto?> GetPublicInvoiceByTokenAsync(string token, CancellationToken cancellationToken = default);
 }

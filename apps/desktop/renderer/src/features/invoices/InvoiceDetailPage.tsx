@@ -32,11 +32,14 @@ import {
 	generateInvoice,
 	recordPayment,
 	getBusinessProfile,
+	getInvoiceWhatsAppStatus,
 	type InvoiceDto,
 	type InvoiceStatus,
 	type BusinessProfileDto,
+	type InvoiceWhatsAppStatusDto,
 } from '../../lib/api';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
+import { ShareInvoiceModal } from './ShareInvoiceModal';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
@@ -109,6 +112,8 @@ export function InvoiceDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
+	const [showShareModal, setShowShareModal] = useState(false);
+	const [whatsAppStatuses, setWhatsAppStatuses] = useState<InvoiceWhatsAppStatusDto[]>([]);
 
 	// Editable fields (Draft only)
 	const [discount, setDiscount] = useState<string>('0');
@@ -146,13 +151,17 @@ export function InvoiceDetailPage() {
 		setLoading(true);
 		setError(null);
 		try {
-			const [data, profileData] = await Promise.all([
+			const [data, profileData, waData] = await Promise.all([
 				getInvoiceById(id),
 				getBusinessProfile().catch(() => null),
+				getInvoiceWhatsAppStatus(id).catch(() => [] as InvoiceWhatsAppStatusDto[]),
 			]);
 			setInvoice(data);
 			if (profileData) {
 				setBusinessProfile(profileData);
+			}
+			if (waData) {
+				setWhatsAppStatuses(waData);
 			}
 			setDiscount(String(data.discount ?? 0));
 			setNotes(data.notes ?? '');
@@ -549,6 +558,13 @@ export function InvoiceDetailPage() {
 								Cancel Bill
 							</Button>
 							<Button
+								variant="secondary"
+								onClick={() => setShowShareModal(true)}
+								icon={<QrCode className="w-4 h-4" />}
+							>
+								Share Invoice
+							</Button>
+							<Button
 								onClick={handleOpenPrintPreview}
 								icon={<Printer className="w-4 h-4" />}
 							>
@@ -571,11 +587,46 @@ export function InvoiceDetailPage() {
 
 			{/* ── Lock Banner for Finalized Invoices (Hidden on Print) ───────── */}
 			{isFinalized && (
-				<div className="no-print p-3 bg-info-container/20 border border-info/20 rounded-xl flex items-center gap-3 text-xs text-info">
-					<Lock className="w-4 h-4 shrink-0" />
-					<p className="font-medium">
-						<strong>Invoice Finalized:</strong> This invoice can no longer be edited. Official invoice number <strong>{invoice.invoiceNumber}</strong> has been issued.
-					</p>
+				<div className="no-print p-3 bg-info-container/20 border border-info/20 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-info">
+					<div className="flex items-center gap-3">
+						<Lock className="w-4 h-4 shrink-0" />
+						<p className="font-medium">
+							<strong>Invoice Finalized:</strong> This invoice can no longer be edited. Official invoice number <strong>{invoice.invoiceNumber}</strong> has been issued.
+						</p>
+					</div>
+
+					{/* WhatsApp Read-Only Status Badges */}
+					{whatsAppStatuses.length > 0 && (
+						<div className="flex items-center gap-2 flex-wrap shrink-0">
+							{whatsAppStatuses.map((st, idx) => (
+								<span
+									key={idx}
+									className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
+										st.status === 'Sent'
+											? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+											: st.status === 'Pending' || st.status === 'Processing'
+											? 'bg-amber-50 text-amber-700 border border-amber-200'
+											: st.status === 'Skipped'
+											? 'bg-slate-100 text-slate-600 border border-slate-200'
+											: 'bg-rose-50 text-rose-700 border border-rose-200'
+									}`}
+								>
+									<span
+										className={`w-1.5 h-1.5 rounded-full ${
+											st.status === 'Sent'
+												? 'bg-emerald-500'
+												: st.status === 'Pending' || st.status === 'Processing'
+												? 'bg-amber-500 animate-pulse'
+												: st.status === 'Skipped'
+												? 'bg-slate-400'
+												: 'bg-rose-500'
+										}`}
+									/>
+									WhatsApp {st.messageType === 'InvoiceFinalized' ? 'Invoice' : 'Payment'}: {st.status}
+								</span>
+							))}
+						</div>
+					)}
 				</div>
 			)}
 
@@ -1294,6 +1345,16 @@ export function InvoiceDetailPage() {
 					</div>
 				</div>
 			)}
+
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{/* ── SHARE INVOICE MODAL ────────────────────────────────────────── */}
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			<ShareInvoiceModal
+				isOpen={showShareModal}
+				onClose={() => setShowShareModal(false)}
+				invoiceId={invoice.id}
+				invoiceNumber={invoice.invoiceNumber}
+			/>
 
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			{/* ── DEDICATED PRINT DOM (Rendered ONLY during physical print) ──── */}

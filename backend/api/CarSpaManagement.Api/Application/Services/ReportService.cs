@@ -22,8 +22,8 @@ public class ReportService : IReportService
     // ── 1. Dashboard Summary ────────────────────────────────────────────────
     public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default)
     {
-        var startUtc = fromDate.HasValue ? fromDate.Value.Date : DateTime.UtcNow.Date;
-        var endUtc = toDate.HasValue ? toDate.Value.Date : DateTime.UtcNow.Date;
+        var startUtc = ToUtcDate(fromDate ?? DateTime.UtcNow);
+        var endUtc = ToUtcDate(toDate ?? DateTime.UtcNow);
 
         if (startUtc > endUtc)
         {
@@ -31,8 +31,8 @@ public class ReportService : IReportService
         }
 
         var endOfDayExclusive = endUtc.AddDays(1);
-        var showroomStart = ToUtcDate(startUtc);
-        var showroomEnd = ToUtcDate(endUtc);
+        var showroomStart = startUtc;
+        var showroomEnd = endUtc;
 
         // 1. Job Card KPIs
         var jobCardsQuery = _db.JobCards.AsNoTracking().Where(j => !j.IsDeleted && j.CreatedAt >= startUtc && j.CreatedAt < endOfDayExclusive);
@@ -362,13 +362,13 @@ public class ReportService : IReportService
 
         if (fromDate.HasValue)
         {
-            var from = fromDate.Value.Date;
+            var from = ToUtcDate(fromDate.Value);
             query = query.Where(p => p.PaymentDate >= from);
         }
 
         if (toDate.HasValue)
         {
-            var toExclusive = toDate.Value.Date.AddDays(1);
+            var toExclusive = ToUtcDate(toDate.Value).AddDays(1);
             query = query.Where(p => p.PaymentDate < toExclusive);
         }
 
@@ -602,13 +602,13 @@ public class ReportService : IReportService
 
         if (fromDate.HasValue)
         {
-            var from = fromDate.Value.Date;
+            var from = ToUtcDate(fromDate.Value);
             query = query.Where(j => j.CreatedAt >= from);
         }
 
         if (toDate.HasValue)
         {
-            var toExclusive = toDate.Value.Date.AddDays(1);
+            var toExclusive = ToUtcDate(toDate.Value).AddDays(1);
             query = query.Where(j => j.CreatedAt < toExclusive);
         }
 
@@ -900,13 +900,13 @@ public class ReportService : IReportService
 
         if (fromDate.HasValue)
         {
-            var from = fromDate.Value.Date;
+            var from = ToUtcDate(fromDate.Value);
             baseQuery = baseQuery.Where(a => a.AdvanceDate >= from);
         }
 
         if (toDate.HasValue)
         {
-            var to = toDate.Value.Date;
+            var to = ToUtcDate(toDate.Value);
             baseQuery = baseQuery.Where(a => a.AdvanceDate <= to);
         }
 

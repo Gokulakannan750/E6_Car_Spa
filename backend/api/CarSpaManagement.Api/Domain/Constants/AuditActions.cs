@@ -40,4 +40,13 @@ public static class AuditActions
     public const string LogoRemoved = "LOGO_REMOVED";
 
     public const string StatusChanged = "STATUS_CHANGED";
+    
+    public const string PublicInvoiceLinkCreated = "PUBLIC_INVOICE_LINK_CREATED";
+    public const string PublicInvoiceLinkRevoked = "PUBLIC_INVOICE_LINK_REVOKED";
+    public const string PublicInvoiceLinkRotated = "PUBLIC_INVOICE_LINK_ROTATED";
+
+    public const string WhatsAppInvoiceSent = "WHATSAPP_INVOICE_SENT";
+    public const string WhatsAppPaymentCompletedSent = "WHATSAPP_PAYMENT_COMPLETED_SENT";
+    public const string WhatsAppNotificationFailed = "WHATSAPP_NOTIFICATION_FAILED";
+    public const string WhatsAppConfigUpdated = "WHATSAPP_CONFIG_UPDATED";
 }

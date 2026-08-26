@@ -14,23 +14,6 @@ import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
 import { getJobCards, createInvoiceFromJobCard } from '../../lib/api';
 import type { JobCardListDto } from '../../lib/api';
-import { mockJobCards } from '../../mock/data/jobCards';
-
-const mockFallbackList: JobCardListDto[] = mockJobCards.map((m) => ({
-	id: m.id,
-	jobCardNumber: m.jobCardNumber,
-	customerName: m.customerName,
-	customerPhone: m.customerPhone,
-	registrationNumber: m.registrationNumber,
-	make: m.make,
-	model: m.model,
-	status: m.status === 'draft' ? 0 : m.status === 'in-progress' ? 1 : m.status === 'ready-for-delivery' ? 3 : 6,
-	totalAmount: m.totalAmount,
-	invoiceId: null,
-	invoiceNumber: null,
-	invoiceStatus: null,
-	createdAt: m.createdAt,
-}));
 
 export function JobCardsPage() {
 	const navigate = useNavigate();
@@ -56,27 +39,23 @@ export function JobCardsPage() {
 				pageSize,
 				search: effectiveSearch || undefined,
 			});
-			setItems(response.items);
-			setTotalCount(response.totalCount);
-		} catch (err) {
-			console.warn('Backend API unavailable, falling back to mock data:', err);
-			// Graceful fallback to mock data when backend is not running
-			let fallback = mockFallbackList;
-			if (effectiveSearch) {
-				const q = effectiveSearch.toLowerCase();
-				fallback = fallback.filter(
-					(jc) =>
-						jc.jobCardNumber.toLowerCase().includes(q) ||
-						jc.customerName.toLowerCase().includes(q) ||
-						jc.customerPhone.toLowerCase().includes(q) ||
-						jc.registrationNumber.toLowerCase().includes(q) ||
-						jc.make.toLowerCase().includes(q) ||
-						jc.model.toLowerCase().includes(q)
-				);
+			setItems(response.items || []);
+			setTotalCount(response.totalCount || 0);
+		} catch (err: unknown) {
+			console.error('Failed to load job cards from backend:', err);
+			setItems([]);
+			setTotalCount(0);
+			let userMsg = 'Unable to load Job Cards. Please try again.';
+			if (err instanceof Error) {
+				if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
+					userMsg = 'Your session has expired. Please log in again.';
+				} else if (err.message.includes('403') || err.message.toLowerCase().includes('forbidden')) {
+					userMsg = 'You do not have permission to view Job Cards.';
+				} else if (err.message && !err.message.startsWith('HTTP ') && !err.message.includes('Exception')) {
+					userMsg = err.message;
+				}
 			}
-			const startIndex = (page - 1) * pageSize;
-			setItems(fallback.slice(startIndex, startIndex + pageSize));
-			setTotalCount(fallback.length);
+			setError(userMsg);
 		} finally {
 			setLoading(false);
 		}

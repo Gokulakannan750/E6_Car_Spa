@@ -7,7 +7,13 @@ import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
-import { mockServices, CATALOGUE_CATEGORIES } from '../../mock/data/services';
+
+export const CATALOGUE_CATEGORIES = [
+	'Exterior Detailing',
+	'Interior Care',
+	'Protection Packages',
+	'Others',
+] as const;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,18 +45,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'price-desc', label: 'Price: High to Low' },
 	{ value: 'duration-asc', label: 'Duration: Shortest First' },
 ];
-
-const mockServiceDtos: ServiceDto[] = mockServices.map((m) => ({
-	id: m.id,
-	name: m.name,
-	description: m.description,
-	category: m.category,
-	price: m.basePrice,
-	taxPercentage: 18,
-	durationMinutes: m.durationMinutes,
-	isActive: m.status === 'active',
-	createdAt: '2026-08-20T00:00:00Z',
-}));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -86,19 +80,17 @@ export function CataloguePage() {
 	const [showSortDropdown, setShowSortDropdown] = useState(false);
 
 	// ── Queries ────────────────────────────────────────────────────────────────
-	const { data: servicesData, isLoading: servicesLoading, error: servicesError, refetch: refetchServices } = useQuery({
+	const {
+		data: servicesData,
+		isLoading: servicesLoading,
+		error: servicesError,
+		refetch: refetchServices,
+	} = useQuery({
 		queryKey: ['services', 'catalogue'],
-		queryFn: async () => {
-			try {
-				const res = await getServices({ page: 1, pageSize: 200 });
-				return res && res.items && res.items.length > 0 ? res : { items: mockServiceDtos, totalCount: mockServiceDtos.length, page: 1, pageSize: 200 };
-			} catch {
-				return { items: mockServiceDtos, totalCount: mockServiceDtos.length, page: 1, pageSize: 200 };
-			}
-		},
+		queryFn: () => getServices({ page: 1, pageSize: 200 }),
 	});
 
-	const services = servicesData?.items ?? mockServiceDtos;
+	const services = servicesData?.items ?? [];
 
 	// ── Mutations ──────────────────────────────────────────────────────────────
 	const createMutation = useApiMutation<ServiceDto, CreateServiceInput>(

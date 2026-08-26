@@ -175,4 +175,88 @@ public class InvoicesController : ControllerBase
 			return NotFound(new { error = ex.Message });
 		}
 	}
+
+	[HttpPost("{id:guid}/public-link")]
+	[RequirePermission("invoices.view")]
+	public async Task<IActionResult> CreatePublicLink(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			var response = await _service.CreatePublicLinkAsync(id, ct);
+			return Ok(response);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			if (ex.Message.Contains("active public link already exists"))
+			{
+				return Conflict(new { error = ex.Message });
+			}
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+		}
+	}
+
+	[HttpGet("{id:guid}/public-link/status")]
+	[RequirePermission("invoices.view")]
+	public async Task<IActionResult> GetPublicLinkStatus(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			var status = await _service.GetPublicLinkStatusAsync(id, ct);
+			return Ok(status);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+	}
+
+	[HttpDelete("{id:guid}/public-link")]
+	[RequirePermission("invoices.view")]
+	public async Task<IActionResult> RevokePublicLink(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			await _service.RevokePublicLinkAsync(id, ct);
+			return Ok(new { success = true, message = "Public invoice link revoked." });
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+		}
+	}
+
+	[HttpPost("{id:guid}/public-link/rotate")]
+	[RequirePermission("invoices.view")]
+	public async Task<IActionResult> RotatePublicLink(Guid id, CancellationToken ct)
+	{
+		try
+		{
+			var response = await _service.RotatePublicLinkAsync(id, ct);
+			return Ok(response);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+		}
+	}
 }

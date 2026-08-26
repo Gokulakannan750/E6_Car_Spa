@@ -27,6 +27,8 @@ obj/
 *.rsuser
 *.suo
 *.cache
-*.publishsettings
 __pycache__/
 *.pyc
+backups/
+*.zip
+*.sql
