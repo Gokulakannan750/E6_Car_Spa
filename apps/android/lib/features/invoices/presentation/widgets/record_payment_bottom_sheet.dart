@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_modal_header.dart';
 import '../../models/invoice_model.dart';
 import '../../models/invoice_request_models.dart';
 
 class RecordPaymentBottomSheet extends StatefulWidget {
   final double balanceAmount;
-  final Future<bool> Function(RecordPaymentRequest request) onRecordPayment;
+  final Future<String?> Function(RecordPaymentRequest request) onRecordPayment;
 
   const RecordPaymentBottomSheet({
     super.key,
@@ -17,7 +18,7 @@ class RecordPaymentBottomSheet extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required double balanceAmount,
-    required Future<bool> Function(RecordPaymentRequest request) onRecordPayment,
+    required Future<String?> Function(RecordPaymentRequest request) onRecordPayment,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -68,13 +69,15 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isLoading) return;
+
     final rawAmount = double.tryParse(_amountController.text.trim());
     if (rawAmount == null || rawAmount <= 0) {
       setState(() => _errorMessage = 'Please enter a valid payment amount greater than ₹0.');
       return;
     }
 
-    if (rawAmount > widget.balanceAmount + 0.01) {
+    if (rawAmount > widget.balanceAmount) {
       setState(() => _errorMessage = 'Payment amount cannot exceed the balance of ₹${widget.balanceAmount.toStringAsFixed(2)}.');
       return;
     }
@@ -90,15 +93,16 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
       reference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
     );
 
-    final success = await widget.onRecordPayment(request);
+    final errorMsg = await widget.onRecordPayment(request);
 
     if (!mounted) return;
 
-    if (success) {
+    if (errorMsg == null) {
       Navigator.of(context).pop(true);
     } else {
       setState(() {
         _isLoading = false;
+        _errorMessage = errorMsg;
       });
     }
   }
@@ -113,73 +117,27 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Handle Bar ──────────────────────────────────────────────────
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Pinned Fixed Header ─────────────────────────────────────────
+          AppModalHeader(
+            title: 'Record Payment',
+            subtitle: 'Balance Due: ₹${widget.balanceAmount.toStringAsFixed(2)}',
+            icon: Icons.payments_rounded,
+            iconBgColor: AppColors.primaryContainer,
+            iconColor: AppColors.textOnPrimary,
+            showDragHandle: true,
+          ),
+          const SizedBox(height: 14),
 
-            // ── Header Row ──────────────────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.payments_rounded,
-                        color: AppColors.textOnPrimary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Record Payment',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Balance Due: ₹${widget.balanceAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Divider(height: 24, color: AppColors.borderLight),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
 
             // ── Error Banner (if any) ───────────────────────────────────────
             if (_errorMessage != null) ...[
@@ -335,16 +293,44 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
             ),
             const SizedBox(height: 24),
 
-            // ── Submit Button ───────────────────────────────────────────────
-            AppButton(
-              label: 'Record Payment',
-              icon: Icons.check_circle_outline,
-              isLoading: _isLoading,
-              onPressed: _submit,
+            // ── Action Buttons (Cancel + Record Payment) ─────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('modal_cancel_button'),
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            Navigator.of(context).pop();
+                          },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.borderDark),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: AppButton(
+                    label: 'Record Payment',
+                    icon: Icons.check_circle_outline,
+                    isLoading: _isLoading,
+                    onPressed: _submit,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-    );
+    ),
+  ],
+),
+);
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../catalogue/data/service_repository.dart';
 import '../../../catalogue/models/service_model.dart';
@@ -102,44 +103,33 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
+        top: 16,
         bottom: 24 + bottomInset,
       ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentPill,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.add_task_rounded, color: AppColors.primary, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Add Custom Service',
-                        style: AppTextStyles.headingLarge,
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (_errorMessage != null) ...[
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Pinned Fixed Header
+          const AppModalHeader(
+            title: 'Add Custom Service',
+            subtitle: 'Create a permanent detailing service for this job',
+            icon: Icons.add_task_rounded,
+            iconBgColor: AppColors.accentPill,
+            iconColor: AppColors.primary,
+            showDragHandle: true,
+          ),
+          const SizedBox(height: 14),
+
+          Flexible(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -201,15 +191,44 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                 maxLines: 2,
               ),
               const SizedBox(height: 24),
-              AppButton(
-                label: 'Add to Job Card',
-                isLoading: _isSubmitting,
-                onPressed: _submit,
+              // Action Buttons (Cancel + Add to Job Card)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const Key('modal_cancel_button'),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () {
+                              FocusScope.of(context).unfocus();
+                              Navigator.of(context).pop();
+                            },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.borderDark),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: AppButton(
+                      label: 'Add to Job Card',
+                      isLoading: _isSubmitting,
+                      onPressed: _submit,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
-    );
+    ),
+  ],
+),
+);
   }
 }

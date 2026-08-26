@@ -70,6 +70,20 @@ class ApiException implements Exception {
               message = data['error'].toString();
             } else if (data.containsKey('message') && data['message'] != null) {
               message = data['message'].toString();
+            } else if (data.containsKey('errors') && data['errors'] is Map) {
+              final errorsMap = data['errors'] as Map;
+              for (final val in errorsMap.values) {
+                if (val is List && val.isNotEmpty) {
+                  message = val.first.toString();
+                  break;
+                } else if (val is String && val.isNotEmpty) {
+                  message = val;
+                  break;
+                }
+              }
+              if (message == 'An unexpected error occurred.' && data.containsKey('title') && data['title'] != null) {
+                message = data['title'].toString();
+              }
             } else if (data.containsKey('title') && data['title'] != null) {
               message = data['title'].toString();
             }

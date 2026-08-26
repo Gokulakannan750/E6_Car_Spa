@@ -12,6 +12,7 @@ import '../../../invoices/data/invoice_repository.dart';
 import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
+import '../widgets/job_card_print_preview_dialog.dart';
 
 class JobCardDetailsScreen extends ConsumerStatefulWidget {
   final String jobCardId;
@@ -29,6 +30,8 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
   bool _isConverting = false;
 
   Future<void> _handleConvertToInvoice(JobCard jc) async {
+    if (_isConverting) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -137,13 +140,20 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
           onPressed: () => context.go('/job-cards'),
         ),
         actions: [
-          if (state.jobCard != null)
+          if (state.jobCard != null) ...[
+            IconButton(
+              key: const Key('job_card_preview_button'),
+              icon: const Icon(Icons.print_outlined),
+              tooltip: 'Print / Preview Job Card',
+              onPressed: () => JobCardPrintPreviewDialog.show(context, state.jobCard!),
+            ),
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: StatusBadge.fromLabel(state.jobCard!.status.label),
               ),
             ),
+          ],
         ],
       ),
       body: _buildBody(context, state, notifier),

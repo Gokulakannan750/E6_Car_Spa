@@ -77,46 +77,58 @@ class AppShell extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 4),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'E6',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
+                    Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'E6',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'More Modules',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'More Modules',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
+                    IconButton(
+                      key: const Key('modal_close_button'),
+                      tooltip: 'Close',
+                      icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
@@ -165,12 +177,46 @@ class AppShell extends ConsumerWidget {
                   ),
                   child: const Icon(Icons.storefront_outlined, color: AppColors.primary, size: 20),
                 ),
-                title: const Text('Showroom', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                subtitle: const Text('Showroom products & accessories', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                title: const Text('Showrooms', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                subtitle: const Text('Showroom master & daily staff assignments', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
                 onTap: () {
                   Navigator.pop(context);
                   context.go(AppRoutes.showroom);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPill,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.manage_accounts_outlined, color: AppColors.primary, size: 20),
+                ),
+                title: const Text('Users & Permissions', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                subtitle: const Text('Staff accounts & granular access control', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go(AppRoutes.users);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentPill,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.history_rounded, color: AppColors.primary, size: 20),
+                ),
+                title: const Text('Audit Trail', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                subtitle: const Text('Security events & system activity history', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.go(AppRoutes.audit);
                 },
               ),
               ListTile(

@@ -614,7 +614,18 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     EditDraftBottomSheet.show(
                       context,
                       invoice: invoice,
-                      onSave: notifier.updateDraft,
+                      onSave: ({discount, notes, isGstEnabled}) async {
+                        final success = await notifier.updateDraft(
+                          discount: discount,
+                          notes: notes,
+                          isGstEnabled: isGstEnabled,
+                        );
+                        if (!success) {
+                          return ref.read(invoiceDetailsProvider(widget.invoiceId)).errorMessage ??
+                              'Failed to update draft invoice.';
+                        }
+                        return null;
+                      },
                     );
                   },
                 ),
@@ -650,7 +661,14 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
               RecordPaymentBottomSheet.show(
                 context,
                 balanceAmount: invoice.balanceAmount,
-                onRecordPayment: notifier.recordPayment,
+                onRecordPayment: (request) async {
+                  final success = await notifier.recordPayment(request);
+                  if (!success) {
+                    return ref.read(invoiceDetailsProvider(widget.invoiceId)).errorMessage ??
+                        'Failed to record payment.';
+                  }
+                  return null;
+                },
               );
             },
           ),
@@ -666,6 +684,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     Invoice invoice,
     InvoiceDetailsNotifier notifier,
   ) async {
+    if (ref.read(invoiceDetailsProvider(widget.invoiceId)).isGenerating) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(

@@ -14,6 +14,20 @@ import '../../features/invoices/presentation/pages/invoices_screen.dart';
 import '../../features/jobcards/presentation/pages/job_cards_screen.dart';
 import '../../features/jobcards/presentation/pages/job_card_details_screen.dart';
 import '../../features/jobcards/presentation/pages/new_job_card_screen.dart';
+import '../../features/reports/presentation/pages/reports_screen.dart';
+import '../../features/reports/presentation/pages/sales_report_screen.dart';
+import '../../features/reports/presentation/pages/payments_report_screen.dart';
+import '../../features/reports/presentation/pages/outstanding_invoices_screen.dart';
+import '../../features/reports/presentation/pages/gst_report_screen.dart';
+import '../../features/reports/presentation/pages/job_card_report_screen.dart';
+import '../../features/reports/presentation/pages/showroom_report_screen.dart';
+import '../../features/reports/presentation/pages/staff_productivity_screen.dart';
+import '../../features/reports/presentation/pages/staff_advances_report_screen.dart';
+import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
+import '../../features/staffadvances/presentation/pages/staff_advances_screen.dart';
+import '../../features/settings/presentation/pages/settings_screen.dart';
+import '../../features/users/presentation/pages/users_screen.dart';
+import '../../features/auditlogs/presentation/pages/audit_logs_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
 class RouterNotifier extends ChangeNotifier {
@@ -152,33 +166,89 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.staffAdvances,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: Scaffold(
-                body: Center(child: Text('Staff Advances')),
-              ),
+              child: StaffAdvancesScreen(),
             ),
           ),
           GoRoute(
             path: AppRoutes.reports,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: Scaffold(
-                body: Center(child: Text('Reports')),
-              ),
+              child: ReportsScreen(),
             ),
+            routes: [
+              GoRoute(
+                path: 'sales',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: SalesReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'payments',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: PaymentsReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'outstanding',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: OutstandingInvoicesScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'gst',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: GstReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'job-cards',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: JobCardReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'showrooms',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: ShowroomReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'staff-productivity',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: StaffProductivityScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'staff-advances',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: StaffAdvancesReportScreen(),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoutes.showroom,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: Scaffold(
-                body: Center(child: Text('Showroom')),
-              ),
+              child: ShowroomListScreen(),
             ),
           ),
           GoRoute(
             path: AppRoutes.settings,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: Scaffold(
-                body: Center(child: Text('Settings')),
+              child: SettingsScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'users',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: UsersScreen(),
+                ),
               ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoutes.audit,
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: AuditLogsScreen(),
             ),
           ),
         ],

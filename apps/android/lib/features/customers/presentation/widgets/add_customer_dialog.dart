@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
@@ -103,31 +104,31 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       padding: EdgeInsets.only(
         left: 24,
         right: 24,
-        top: 24,
+        top: 16,
         bottom: 24 + bottomInset,
       ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Add New Customer',
-                    style: AppTextStyles.headingLarge,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (_errorMessage != null) ...[
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Pinned Fixed Header
+          const AppModalHeader(
+            title: 'Add New Customer',
+            subtitle: 'Register customer contact details',
+            icon: Icons.person_add_outlined,
+            showDragHandle: true,
+          ),
+          const SizedBox(height: 14),
+
+          Flexible(
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_errorMessage != null) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -181,15 +182,44 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                 prefixIcon: const Icon(Icons.location_on_outlined),
               ),
               const SizedBox(height: 24),
-              AppButton(
-                label: 'Create Customer',
-                isLoading: _isSubmitting,
-                onPressed: _submit,
+              // Action Buttons (Cancel + Create Customer)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const Key('modal_cancel_button'),
+                      onPressed: _isSubmitting
+                          ? null
+                          : () {
+                              FocusScope.of(context).unfocus();
+                              Navigator.of(context).pop();
+                            },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.borderDark),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: AppButton(
+                      label: 'Create Customer',
+                      isLoading: _isSubmitting,
+                      onPressed: _submit,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
-    );
+    ),
+  ],
+),
+);
   }
 }

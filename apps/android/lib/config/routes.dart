@@ -15,8 +15,18 @@ class AppRoutes {
   static const String catalogue = '/catalogue';
   static const String staffAdvances = '/staff-advances';
   static const String reports = '/reports';
+  static const String salesReport = '/reports/sales';
+  static const String paymentsReport = '/reports/payments';
+  static const String outstandingInvoices = '/reports/outstanding';
+  static const String gstReport = '/reports/gst';
+  static const String jobCardsReport = '/reports/job-cards';
+  static const String showroomReport = '/reports/showrooms';
+  static const String staffProductivityReport = '/reports/staff-productivity';
+  static const String staffAdvancesReport = '/reports/staff-advances';
   static const String showroom = '/showroom';
   static const String settings = '/settings';
+  static const String users = '/settings/users';
+  static const String audit = '/audit';
 
   static const List<BottomNavigationBarItem> bottomNavItems = [
     BottomNavigationBarItem(
@@ -60,7 +70,8 @@ class AppRoutes {
     if (location.startsWith('/staff-advances') ||
         location.startsWith('/reports') ||
         location.startsWith('/showroom') ||
-        location.startsWith('/settings')) {
+        location.startsWith('/settings') ||
+        location.startsWith('/audit')) {
       return 5;
     }
     return 0;

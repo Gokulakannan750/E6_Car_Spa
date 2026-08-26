@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_modal_header.dart';
 import '../../models/invoice_model.dart';
 
 class EditDraftBottomSheet extends StatefulWidget {
   final Invoice invoice;
-  final Future<bool> Function({double? discount, String? notes, bool? isGstEnabled}) onSave;
+  final Future<String?> Function({double? discount, String? notes, bool? isGstEnabled}) onSave;
 
   const EditDraftBottomSheet({
     super.key,
@@ -16,7 +17,7 @@ class EditDraftBottomSheet extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required Invoice invoice,
-    required Future<bool> Function({double? discount, String? notes, bool? isGstEnabled}) onSave,
+    required Future<String?> Function({double? discount, String? notes, bool? isGstEnabled}) onSave,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -73,6 +74,8 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
   double get _totalAmount => _taxableAmount + _gstAmount;
 
   Future<void> _submit() async {
+    if (_isLoading) return;
+
     final discount = _parsedDiscount;
     if (discount < 0) {
       setState(() => _errorMessage = 'Discount cannot be negative.');
@@ -89,7 +92,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
       _errorMessage = null;
     });
 
-    final success = await widget.onSave(
+    final errorMsg = await widget.onSave(
       discount: discount,
       notes: _notesController.text.trim(),
       isGstEnabled: _isGstEnabled,
@@ -97,11 +100,12 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
 
     if (!mounted) return;
 
-    if (success) {
+    if (errorMsg == null) {
       Navigator.of(context).pop(true);
     } else {
       setState(() {
         _isLoading = false;
+        _errorMessage = errorMsg;
       });
     }
   }
@@ -116,75 +120,29 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Handle Bar ──────────────────────────────────────────────────
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Pinned Fixed Header ─────────────────────────────────────────
+          const AppModalHeader(
+            title: 'Edit Draft Invoice',
+            subtitle: 'Adjust discount, GST, and notes',
+            icon: Icons.edit_note_rounded,
+            iconBgColor: AppColors.primaryContainer,
+            iconColor: AppColors.textOnPrimary,
+            showDragHandle: true,
+          ),
+          const SizedBox(height: 14),
 
-            // ── Header Row ──────────────────────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.edit_note_rounded,
-                        color: AppColors.textOnPrimary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Edit Draft Invoice',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Adjust discount, GST, and notes',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            const Divider(height: 24, color: AppColors.borderLight),
-
-            // ── Error Banner (if any) ───────────────────────────────────────
-            if (_errorMessage != null) ...[
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Error Banner (if any) ───────────────────────────────────────
+                  if (_errorMessage != null) ...[
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -385,16 +343,44 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // ── Save Button ─────────────────────────────────────────────────
-            AppButton(
-              label: 'Save Changes',
-              icon: Icons.save_outlined,
-              isLoading: _isLoading,
-              onPressed: _submit,
+            // ── Save & Cancel Buttons ─────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('modal_cancel_button'),
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            FocusScope.of(context).unfocus();
+                            Navigator.of(context).pop();
+                          },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: const BorderSide(color: AppColors.borderDark),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: AppButton(
+                    label: 'Save Changes',
+                    icon: Icons.save_outlined,
+                    isLoading: _isLoading,
+                    onPressed: _submit,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-    );
+    ),
+  ],
+),
+);
   }
 }
