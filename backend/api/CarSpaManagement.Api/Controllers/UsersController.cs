@@ -11,6 +11,14 @@ namespace CarSpaManagement.Api.Controllers;
 [Route("api/[controller]")]
 public class UsersController(IUserService userService) : ControllerBase
 {
+    private (Guid UserId, bool IsOwner) GetCallerInfo()
+    {
+        var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        Guid.TryParse(currentUserIdStr, out var currentUserId);
+        var isOwner = User.IsInRole("Owner") || string.Equals(User.FindFirstValue("isOwner"), "true", StringComparison.OrdinalIgnoreCase);
+        return (currentUserId, isOwner);
+    }
+
     [HttpGet]
     [RequirePermission("users.view")]
     public async Task<ActionResult<List<UserDto>>> GetUsers(CancellationToken cancellationToken)
@@ -46,10 +54,16 @@ public class UsersController(IUserService userService) : ControllerBase
     [RequirePermission("users.create")]
     public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
+        var (currentUserId, isOwner) = GetCallerInfo();
+
         try
         {
-            var user = await userService.CreateUserAsync(request, cancellationToken);
+            var user = await userService.CreateUserAsync(request, currentUserId, isOwner, cancellationToken);
             return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (ConflictException ex)
         {
@@ -65,10 +79,16 @@ public class UsersController(IUserService userService) : ControllerBase
     [RequirePermission("users.edit")]
     public async Task<ActionResult<UserDto>> UpdateUser(Guid id, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
+        var (currentUserId, isOwner) = GetCallerInfo();
+
         try
         {
-            var user = await userService.UpdateUserAsync(id, request, cancellationToken);
+            var user = await userService.UpdateUserAsync(id, request, currentUserId, isOwner, cancellationToken);
             return Ok(user);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (NotFoundException ex)
         {
@@ -84,13 +104,16 @@ public class UsersController(IUserService userService) : ControllerBase
     [RequirePermission("users.deactivate")]
     public async Task<ActionResult<UserDto>> ToggleUserStatus(Guid id, CancellationToken cancellationToken)
     {
-        var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        Guid.TryParse(currentUserIdStr, out var currentUserId);
+        var (currentUserId, _) = GetCallerInfo();
 
         try
         {
             var user = await userService.ToggleUserStatusAsync(id, currentUserId, cancellationToken);
             return Ok(user);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (NotFoundException ex)
         {
@@ -99,10 +122,6 @@ public class UsersController(IUserService userService) : ControllerBase
         catch (ValidationException ex)
         {
             return BadRequest(new { error = ex.Message });
-        }
-        catch (ForbiddenException ex)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
     }
 }

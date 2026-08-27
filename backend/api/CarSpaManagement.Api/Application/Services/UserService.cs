@@ -41,7 +41,7 @@ public class UserService(
         return MapToUserDto(user);
     }
 
-    public async Task<UserDto> CreateUserAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
+    public async Task<UserDto> CreateUserAsync(CreateUserRequest request, Guid currentUserId, bool isOwner, CancellationToken cancellationToken = default)
     {
         // 1. Role validation - only Manager and Staff can be created here
         if (!Enum.TryParse<UserRole>(request.Role, true, out var role) || role == UserRole.Owner)
@@ -49,7 +49,21 @@ public class UserService(
             throw new ValidationException("Invalid role. Only 'Manager' and 'Staff' accounts can be created.");
         }
 
-        // 2. Validate unique username
+        // 2. Hierarchy validation: Only Owner may assign permissions or create Manager accounts
+        if (!isOwner)
+        {
+            if (role == UserRole.Manager)
+            {
+                throw new ForbiddenException("Only an Owner can create Manager accounts.");
+            }
+
+            if (request.PermissionCodes != null && request.PermissionCodes.Count > 0)
+            {
+                throw new ForbiddenException("Only an Owner can assign permissions to user accounts.");
+            }
+        }
+
+        // 3. Validate unique username
         var normalizedUsername = request.Username.Trim().ToLowerInvariant();
         var existingUser = await db.Users.AnyAsync(u => u.Username.ToLower() == normalizedUsername, cancellationToken);
         if (existingUser)
@@ -57,7 +71,7 @@ public class UserService(
             throw new ConflictException($"A user with username '{request.Username}' already exists.");
         }
 
-        // 3. Validate password policy
+        // 4. Validate password policy
         var (isValid, errorMessage) = PasswordPolicyValidator.Validate(request.Password, request.ConfirmPassword, request.Username);
         if (!isValid)
         {
@@ -77,8 +91,8 @@ public class UserService(
 
         user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
 
-        // 4. Assign permissions
-        if (request.PermissionCodes.Count > 0)
+        // 5. Assign permissions (Only allowed when isOwner == true)
+        if (isOwner && request.PermissionCodes != null && request.PermissionCodes.Count > 0)
         {
             var validPermissions = await db.Permissions
                 .Where(p => request.PermissionCodes.Contains(p.Code))
@@ -115,7 +129,7 @@ public class UserService(
         return await GetUserByIdAsync(user.Id, cancellationToken);
     }
 
-    public async Task<UserDto> UpdateUserAsync(Guid id, UpdateUserRequest request, CancellationToken cancellationToken = default)
+    public async Task<UserDto> UpdateUserAsync(Guid id, UpdateUserRequest request, Guid currentUserId, bool isOwner, CancellationToken cancellationToken = default)
     {
         var user = await db.Users
             .Include(u => u.UserPermissions)
@@ -127,15 +141,48 @@ public class UserService(
             throw new NotFoundException($"User with ID '{id}' was not found.");
         }
 
+        // P0-2: Protect Owner Account from Non-Owners
+        if (user.Role == UserRole.Owner && !isOwner)
+        {
+            throw new ForbiddenException("Only an Owner can modify an Owner account.");
+        }
+
+        // P0-1: Non-Owner cannot change any user's role or permissions (including self)
+        if (!isOwner)
+        {
+            // Verify role is not being modified
+            if (!string.IsNullOrWhiteSpace(request.Role) && !request.Role.Equals(user.Role.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ForbiddenException("Only an Owner can change user roles.");
+            }
+
+            // Verify permissions are not being modified
+            if (request.PermissionCodes != null)
+            {
+                var currentPermissionCodes = user.UserPermissions
+                    .Select(up => up.Permission.Code)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                var requestedPermissionCodes = request.PermissionCodes
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                if (!currentPermissionCodes.SetEquals(requestedPermissionCodes))
+                {
+                    throw new ForbiddenException("Only an Owner can assign or modify user permissions.");
+                }
+            }
+        }
+
         var oldRole = user.Role.ToString();
         var oldFullName = user.FullName;
         var oldPermissions = user.UserPermissions.Select(up => up.Permission?.Code).Where(c => c != null).ToList();
 
+        // Update FullName and Email
         user.FullName = request.FullName.Trim();
         user.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim();
 
-        // Check if role is changing
-        if (!string.IsNullOrWhiteSpace(request.Role))
+        // Role update logic (Only reaches here if caller is Owner, or if non-Owner provided matching role)
+        if (isOwner && !string.IsNullOrWhiteSpace(request.Role))
         {
             if (user.Role == UserRole.Owner)
             {
@@ -155,7 +202,7 @@ public class UserService(
             }
         }
 
-        // Optional password update
+        // Password update
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             var (isValid, errorMessage) = PasswordPolicyValidator.Validate(request.Password, request.ConfirmPassword, user.Username);
@@ -169,8 +216,8 @@ public class UserService(
         }
 
         var isPermissionChange = false;
-        // Permission updates (only for Manager/Staff; Owner permissions are not managed in DB)
-        if (user.Role != UserRole.Owner && request.PermissionCodes != null)
+        // Permission updates (Only allowed for Owner editing Manager/Staff; Owner permissions are not managed in DB)
+        if (isOwner && user.Role != UserRole.Owner && request.PermissionCodes != null)
         {
             isPermissionChange = true;
             // Remove existing permissions
