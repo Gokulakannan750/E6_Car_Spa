@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
 	Copy,
@@ -17,7 +17,6 @@ import {
 	getPublicInvoiceLinkStatus,
 	revokePublicInvoiceLink,
 	rotatePublicInvoiceLink,
-	type InvoicePublicLinkResponse,
 	type InvoicePublicLinkStatusResponse,
 } from '../../lib/api';
 

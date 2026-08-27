@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Phone, Car, Calendar, ArrowUpRight, RefreshCw, AlertCircle } from 'lucide-react';
+import { Plus, Phone, Car, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';

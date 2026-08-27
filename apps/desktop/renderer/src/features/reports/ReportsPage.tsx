@@ -413,15 +413,14 @@ export function ReportsPage() {
 			XLSX.utils.book_append_sheet(wb, wsServices, 'Top Services');
 
 			// ── Sheet 5: Staff Advances
-			const advHeaders = ['Date', 'Employee Name', 'Role', 'Advance Type', 'Amount (INR)', 'Payment Method', 'Status', 'Notes'];
+			const advHeaders = ['Date', 'Employee Name', 'Role', 'Amount (INR)', 'Reason', 'Status', 'Notes'];
 			const advRows = filteredAdvances.map((a) => [
 				new Date(a.advanceDate).toLocaleDateString('en-IN'),
 				a.staffName,
 				a.staffRole || 'Staff',
-				a.advanceType,
 				a.amount,
-				a.paymentMethod || 'Cash',
-				a.status || 'Pending',
+				a.reason || '',
+				a.status || 'Outstanding',
 				a.notes || '',
 			]);
 			const wsAdvances = XLSX.utils.aoa_to_sheet([advHeaders, ...advRows]);
@@ -429,10 +428,9 @@ export function ReportsPage() {
 				{ wch: 14 },
 				{ wch: 22 },
 				{ wch: 18 },
-				{ wch: 18 },
 				{ wch: 16 },
+				{ wch: 25 },
 				{ wch: 16 },
-				{ wch: 14 },
 				{ wch: 25 },
 			];
 			XLSX.utils.book_append_sheet(wb, wsAdvances, 'Staff Advances');
@@ -819,7 +817,7 @@ export function ReportsPage() {
 									<tr>
 										<th>Employee</th>
 										<th>Date</th>
-										<th>Type</th>
+										<th>Reason</th>
 										<th className="text-right">Amount</th>
 									</tr>
 								</thead>
@@ -833,7 +831,7 @@ export function ReportsPage() {
 											<td className="text-on-surface-variant whitespace-nowrap">
 												{new Date(a.advanceDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
 											</td>
-											<td>{a.advanceType}</td>
+											<td>{a.reason}</td>
 											<td className="text-right font-semibold text-on-surface">{formatINR(a.amount)}</td>
 										</tr>
 									))}

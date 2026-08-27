@@ -14,12 +14,9 @@ import {
 	Wallet,
 	DollarSign,
 	Edit2,
-	Trash2,
 	Phone,
 	Mail,
 	MapPin,
-	Info,
-	FileText
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
@@ -34,11 +31,9 @@ import {
 	getStaffAdvanceHistory,
 	createStaffMember,
 	updateStaffMember,
-	deleteStaffMember,
 	type StaffDto,
 	type StaffAdvanceDto,
 	type StaffAdvanceStatus,
-	type StaffAdvanceHistoryDto,
 } from '../../lib/api';
 
 function formatINR(value: number): string {
@@ -1057,8 +1052,8 @@ export function StaffAdvancesPage() {
 			{/* ─────────────────────────────────────────────────────────────────── */}
 			<Dialog
 				open={showCreateModal}
-				onClose={() => {
-					if (!createAdvanceMutation.isPending) setShowCreateModal(false);
+				onOpenChange={(open) => {
+					if (!open && !createAdvanceMutation.isPending) setShowCreateModal(false);
 				}}
 				title="Record Staff Advance"
 				description="Issue an advance to an employee. It will be marked as Outstanding until settled via salary recovery."
@@ -1185,8 +1180,8 @@ export function StaffAdvancesPage() {
 			{/* ─────────────────────────────────────────────────────────────────── */}
 			<Dialog
 				open={!!settlingAdvance}
-				onClose={() => {
-					if (!settleAdvanceMutation.isPending) setSettlingAdvance(null);
+				onOpenChange={(open) => {
+					if (!open && !settleAdvanceMutation.isPending) setSettlingAdvance(null);
 				}}
 				title="Mark Advance as Settled?"
 				description="This confirms that the advance has been recovered from the staff member's salary."
@@ -1250,8 +1245,8 @@ export function StaffAdvancesPage() {
 			{/* ─────────────────────────────────────────────────────────────────── */}
 			<Dialog
 				open={!!obsoletingAdvance}
-				onClose={() => {
-					if (!obsoleteAdvanceMutation.isPending) setObsoletingAdvance(null);
+				onOpenChange={(open) => {
+					if (!open && !obsoleteAdvanceMutation.isPending) setObsoletingAdvance(null);
 				}}
 				title="Mark Advance as Obsolete?"
 				description="This advance will no longer be included in active outstanding advance calculations."
@@ -1340,7 +1335,9 @@ export function StaffAdvancesPage() {
 			{/* ─────────────────────────────────────────────────────────────────── */}
 			<Dialog
 				open={!!viewingHistoryStaffId}
-				onClose={() => setViewingHistoryStaffId(null)}
+				onOpenChange={(open) => {
+					if (!open) setViewingHistoryStaffId(null);
+				}}
 				title={`${staffHistoryData?.staffName || 'Staff'} — Advance History`}
 				description="Complete advance tracking and recovery log for this employee."
 			>
@@ -1441,8 +1438,8 @@ export function StaffAdvancesPage() {
 			{/* ─────────────────────────────────────────────────────────────────── */}
 			<Dialog
 				open={showStaffModal}
-				onClose={() => {
-					if (!staffMutation.isPending) setShowStaffModal(false);
+				onOpenChange={(open) => {
+					if (!open && !staffMutation.isPending) setShowStaffModal(false);
 				}}
 				title={editingStaff ? 'Edit Staff Member' : 'Add Staff Member'}
 				description={

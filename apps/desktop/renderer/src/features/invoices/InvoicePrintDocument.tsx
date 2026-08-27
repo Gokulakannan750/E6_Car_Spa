@@ -1,4 +1,3 @@
-import React from 'react';
 import { type InvoiceDto, type BusinessProfileDto } from '../../lib/api';
 
 interface InvoicePrintDocumentProps {

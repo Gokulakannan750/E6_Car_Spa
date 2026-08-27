@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
 	Printer,
@@ -6,14 +6,6 @@ import {
 	AlertCircle,
 	CheckCircle2,
 	Clock,
-	Receipt,
-	User,
-	Car,
-	Building2,
-	Phone,
-	Mail,
-	MapPin,
-	ShieldCheck,
 } from 'lucide-react';
 import { getPublicInvoice, type PublicInvoiceDto } from '../../lib/api';
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { AppState, AppActions, User } from '../types/app';
+import type { AppState, AppActions } from '../types/app';
 
 type AppStore = AppState & AppActions;
 
