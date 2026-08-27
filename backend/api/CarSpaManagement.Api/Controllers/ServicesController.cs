@@ -19,14 +19,17 @@ public class ServicesController : ControllerBase
  }
 
  [HttpGet("{id:guid}")]
+ [RequirePermission("catalogue.view")]
  public async Task<IActionResult> Get(Guid id, CancellationToken ct)
  => (await _service.GetByIdAsync(id, ct)) is { } dto ? Ok(dto) : NotFound();
 
  [HttpGet("categories")]
+ [RequirePermission("catalogue.view")]
  public async Task<IActionResult> GetCategories(CancellationToken ct)
  => Ok(await _service.GetCategoriesAsync(ct));
 
  [HttpGet]
+ [RequirePermission("catalogue.view")]
  public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null, [FromQuery] string? category = null, CancellationToken ct = default)
  {
  if (page < 1) page = 1;
@@ -38,7 +41,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpPost]
- [RequirePermission("settings.edit")]
+ [RequirePermission("catalogue.create")]
  public async Task<IActionResult> Create([FromBody] CreateServiceRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -48,7 +51,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpPut("{id:guid}")]
- [RequirePermission("settings.edit")]
+ [RequirePermission("catalogue.edit")]
  public async Task<IActionResult> Update(Guid id, [FromBody] UpdateServiceRequest request, CancellationToken ct)
  {
  if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -58,7 +61,7 @@ public class ServicesController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
- [RequirePermission("settings.edit")]
+ [RequirePermission("catalogue.delete")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);

@@ -30,13 +30,27 @@ public static class PermissionSeeder
         ("jobcards.delete", "Delete Job Cards", "Job Cards", "Allows deleting job cards"),
         ("jobcards.print", "Print Job Cards", "Job Cards", "Allows printing job cards"),
 
+        // Catalogue
+        ("catalogue.view", "View Catalogue", "Catalogue", "Allows viewing services and catalogue items"),
+        ("catalogue.create", "Create Catalogue Item", "Catalogue", "Allows adding new services to the catalogue"),
+        ("catalogue.edit", "Edit Catalogue Item", "Catalogue", "Allows updating service details and catalogue pricing"),
+        ("catalogue.delete", "Delete Catalogue Item", "Catalogue", "Allows deleting services from the catalogue"),
+
         // Invoices
         ("invoices.view", "View Invoices", "Invoices", "Allows viewing invoices and payment history"),
         ("invoices.edit_draft", "Edit Draft Invoices", "Invoices", "Allows editing draft invoices"),
         ("invoices.generate", "Generate Invoices", "Invoices", "Allows generating final tax invoices"),
         ("invoices.cancel", "Cancel Invoices", "Invoices", "Allows cancelling invoices"),
+        ("invoices.discount", "Apply Discounts", "Invoices", "Allows applying discounts to invoices and job cards"),
+        ("invoices.price_override", "Override Prices", "Invoices", "Allows overriding standard catalogue prices on billing items"),
         ("invoices.record_payment", "Record Payment", "Invoices", "Allows recording payments against invoices"),
         ("invoices.print", "Print Invoices", "Invoices", "Allows printing generated invoices"),
+
+        // Payments
+        ("payments.view", "View Payments", "Payments", "Allows viewing invoice and customer payment records"),
+        ("payments.record", "Record Payment", "Payments", "Allows recording payments received"),
+        ("payments.edit", "Edit Payment", "Payments", "Allows updating payment transaction details"),
+        ("payments.void", "Void Payment", "Payments", "Allows voiding or reversing payment transactions"),
 
         // Showroom
         ("showroom.view", "View Showroom", "Showroom", "Allows viewing showroom daily activities and dashboard"),
@@ -57,6 +71,8 @@ public static class PermissionSeeder
         ("staff.advances", "Manage Advances", "Staff", "Allows issuing and tracking staff advances"),
         ("staff_advances.view", "View Staff Advances", "Staff Advances", "Allows viewing staff advances and history"),
         ("staff_advances.create", "Create Staff Advance", "Staff Advances", "Allows recording new staff advances"),
+        ("staff_advances.edit", "Edit Staff Advance", "Staff Advances", "Allows editing staff advance details"),
+        ("staff_advances.delete", "Delete Staff Advance", "Staff Advances", "Allows deleting staff advance records"),
         ("staff_advances.settle", "Settle Staff Advance", "Staff Advances", "Allows marking staff advances as settled upon salary recovery"),
         ("staff_advances.obsolete", "Obsolete Staff Advance", "Staff Advances", "Allows marking staff advances as obsolete with mandatory reason"),
 

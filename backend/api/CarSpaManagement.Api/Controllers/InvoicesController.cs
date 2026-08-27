@@ -2,6 +2,7 @@ using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +13,12 @@ namespace CarSpaManagement.Api.Controllers;
 public class InvoicesController : ControllerBase
 {
 	private readonly IInvoiceService _service;
+	private readonly IAuthorizationService _authorizationService;
 
-	public InvoicesController(IInvoiceService service)
+	public InvoicesController(IInvoiceService service, IAuthorizationService authorizationService)
 	{
 		_service = service;
+		_authorizationService = authorizationService;
 	}
 
 	[HttpGet]
@@ -77,6 +80,15 @@ public class InvoicesController : ControllerBase
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
+		if (request.Discount.HasValue && request.Discount.Value > 0)
+		{
+			var authResult = await _authorizationService.AuthorizeAsync(User, "Permission:invoices.discount");
+			if (!authResult.Succeeded)
+			{
+				return Forbid();
+			}
+		}
+
 		try
 		{
 			var dto = await _service.UpdateAsync(id, request, ct);
@@ -129,7 +141,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("{id:guid}/payments")]
-	[RequirePermission("invoices.record_payment")]
+	[RequirePermission("payments.record")]
 	public async Task<IActionResult> RecordPayment(Guid id, [FromBody] RecordPaymentRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -162,7 +174,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpGet("{id:guid}/payments")]
-	[RequirePermission("invoices.view")]
+	[RequirePermission("payments.view")]
 	public async Task<IActionResult> GetPayments(Guid id, CancellationToken ct)
 	{
 		try

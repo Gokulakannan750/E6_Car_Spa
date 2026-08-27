@@ -2,6 +2,7 @@ using CarSpaManagement.Api.Application.DTOs.JobCards;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +13,12 @@ namespace CarSpaManagement.Api.Controllers;
 public class JobCardsController : ControllerBase
 {
 	private readonly IJobCardService _service;
+	private readonly IAuthorizationService _authorizationService;
 
-	public JobCardsController(IJobCardService service)
+	public JobCardsController(IJobCardService service, IAuthorizationService authorizationService)
 	{
 		_service = service;
+		_authorizationService = authorizationService;
 	}
 
 	[HttpGet("{id:guid}")]
@@ -87,6 +90,15 @@ public class JobCardsController : ControllerBase
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
+		if (request.Services.Any(s => s.DiscountAmount > 0))
+		{
+			var authResult = await _authorizationService.AuthorizeAsync(User, "Permission:invoices.discount");
+			if (!authResult.Succeeded)
+			{
+				return Forbid();
+			}
+		}
+
 		try
 		{
 			var dto = await _service.CreateAsync(request, ct);
@@ -103,6 +115,15 @@ public class JobCardsController : ControllerBase
 	public async Task<IActionResult> UpdateServices(Guid id, [FromBody] UpdateJobCardServicesRequest request, CancellationToken ct)
 	{
 		if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+		if (request.Services.Any(s => s.DiscountAmount > 0))
+		{
+			var authResult = await _authorizationService.AuthorizeAsync(User, "Permission:invoices.discount");
+			if (!authResult.Succeeded)
+			{
+				return Forbid();
+			}
+		}
 
 		var dto = await _service.UpdateServicesAsync(id, request, ct);
 		if (dto is null) return NotFound();
