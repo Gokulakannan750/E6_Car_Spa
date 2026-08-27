@@ -148,7 +148,7 @@ public class EndpointAuthorizationHardeningTests
     // ── P1-2: Showroom Payment Deletion Protection ──────────────────────────
 
     [Fact]
-    public void ShowroomPaymentsController_Delete_RequiresShowroomManagePermission()
+    public void ShowroomPaymentsController_Delete_RequiresShowroomDeletePaymentPermission()
     {
         var deleteMethod = typeof(ShowroomPaymentsController).GetMethod(nameof(ShowroomPaymentsController.Delete));
         Assert.NotNull(deleteMethod);
@@ -158,8 +158,8 @@ public class EndpointAuthorizationHardeningTests
             .FirstOrDefault();
 
         Assert.NotNull(requirePermAttr);
-        // Must require showroom.manage, NOT showroom.record_payment
-        Assert.Equal("Permission:showroom.manage", requirePermAttr!.Policy);
+        // Must require showroom.delete_payment, NOT showroom.record_payment
+        Assert.Equal("Permission:showroom.delete_payment", requirePermAttr!.Policy);
     }
 
     [Fact]

@@ -70,7 +70,7 @@ public class VehiclesController : ControllerBase
  }
 
  [HttpDelete("{id:guid}")]
- [RequirePermission("vehicles.edit")]
+ [RequirePermission("vehicles.delete")]
  public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
  {
  var deleted = await _service.DeleteAsync(id, ct);

@@ -18,7 +18,7 @@ public class ShowroomPaymentsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission("showroom.manage")]
+    [RequirePermission("showroom.delete_payment")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var deleted = await _service.DeletePaymentAsync(id, ct);

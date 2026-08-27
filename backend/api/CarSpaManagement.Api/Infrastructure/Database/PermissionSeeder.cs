@@ -21,11 +21,13 @@ public static class PermissionSeeder
         ("vehicles.view", "View Vehicles", "Vehicles", "Allows viewing customer vehicles"),
         ("vehicles.create", "Create Vehicles", "Vehicles", "Allows registering new vehicles"),
         ("vehicles.edit", "Edit Vehicles", "Vehicles", "Allows updating vehicle details"),
+        ("vehicles.delete", "Delete Vehicles", "Vehicles", "Allows deleting customer vehicles"),
 
         // Job Cards
         ("jobcards.view", "View Job Cards", "Job Cards", "Allows viewing job card lists and details"),
         ("jobcards.create", "Create Job Cards", "Job Cards", "Allows creating new job cards"),
         ("jobcards.edit", "Edit Job Cards", "Job Cards", "Allows editing and updating job cards"),
+        ("jobcards.delete", "Delete Job Cards", "Job Cards", "Allows deleting job cards"),
         ("jobcards.print", "Print Job Cards", "Job Cards", "Allows printing job cards"),
 
         // Invoices
@@ -44,12 +46,14 @@ public static class PermissionSeeder
         ("showroom.confirm_attendance", "Confirm Attendance", "Showroom", "Allows confirming showroom daily attendance"),
         ("showroom.manage_billing", "Manage Billing", "Showroom", "Allows setting daily showroom billing amount"),
         ("showroom.record_payment", "Record Payment", "Showroom", "Allows recording payments from showrooms"),
+        ("showroom.delete_payment", "Delete Showroom Payment", "Showroom", "Allows deleting showroom payment transactions"),
         ("showroom.view_history", "View History", "Showroom", "Allows viewing historical records and productivity"),
 
         // Staff & Staff Advances
         ("staff.view", "View Staff", "Staff", "Allows viewing staff members"),
         ("staff.create", "Create Staff", "Staff", "Allows adding new staff members"),
         ("staff.edit", "Edit Staff", "Staff", "Allows updating staff details"),
+        ("staff.delete", "Delete Staff", "Staff", "Allows deleting staff member records"),
         ("staff.advances", "Manage Advances", "Staff", "Allows issuing and tracking staff advances"),
         ("staff_advances.view", "View Staff Advances", "Staff Advances", "Allows viewing staff advances and history"),
         ("staff_advances.create", "Create Staff Advance", "Staff Advances", "Allows recording new staff advances"),

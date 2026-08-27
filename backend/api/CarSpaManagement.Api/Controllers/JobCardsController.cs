@@ -110,7 +110,7 @@ public class JobCardsController : ControllerBase
 	}
 
 	[HttpDelete("{id:guid}")]
-	[RequirePermission("jobcards.edit")]
+	[RequirePermission("jobcards.delete")]
 	public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
 	{
 		var deleted = await _service.DeleteAsync(id, ct);

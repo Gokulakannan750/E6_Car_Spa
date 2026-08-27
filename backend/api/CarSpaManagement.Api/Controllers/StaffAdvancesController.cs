@@ -196,7 +196,7 @@ public class StaffAdvancesController : ControllerBase
     }
 
     [HttpDelete("staff/{staffId:guid}")]
-    [RequirePermission("staff.edit")]
+    [RequirePermission("staff.delete")]
     public async Task<IActionResult> DeleteStaff(Guid staffId, CancellationToken ct)
     {
         var deleted = await _service.DeleteStaffMemberAsync(staffId, ct);
