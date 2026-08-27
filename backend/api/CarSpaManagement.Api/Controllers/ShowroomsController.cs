@@ -1,8 +1,11 @@
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -12,10 +15,12 @@ namespace CarSpaManagement.Api.Controllers;
 public class ShowroomsController : ControllerBase
 {
     private readonly IShowroomService _service;
+    private readonly AppDbContext _db;
 
-    public ShowroomsController(IShowroomService service)
+    public ShowroomsController(IShowroomService service, AppDbContext db)
     {
         _service = service;
+        _db = db;
     }
 
     [HttpGet]
@@ -76,19 +81,22 @@ public class ShowroomsController : ControllerBase
         return NoContent();
     }
 
-    private (Guid UserId, bool IsOwner) GetCallerInfo()
+    private async Task<(Guid UserId, bool IsOwner)> GetCallerInfoAsync(CancellationToken ct)
     {
         var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
             ?? User.FindFirst("sub")?.Value;
-        Guid.TryParse(userIdStr, out var userId);
+        if (!Guid.TryParse(userIdStr, out var userId))
+        {
+            return (Guid.Empty, false);
+        }
 
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-            ?? User.FindFirst("role")?.Value;
-        var isOwnerClaim = User.FindFirst("isOwner")?.Value;
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null || !user.IsActive)
+        {
+            return (userId, false);
+        }
 
-        var isOwner = string.Equals(role, "Owner", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(isOwnerClaim, "true", StringComparison.OrdinalIgnoreCase);
-
+        var isOwner = user.Role == UserRole.Owner;
         return (userId, isOwner);
     }
 
@@ -110,7 +118,7 @@ public class ShowroomsController : ControllerBase
     {
         try
         {
-            var (_, isOwner) = GetCallerInfo();
+            var (_, isOwner) = await GetCallerInfoAsync(ct);
             var assignment = await _service.AssignStaffAsync(id, request, isOwner, ct);
             return Ok(assignment);
         }
@@ -140,7 +148,7 @@ public class ShowroomsController : ControllerBase
         try
         {
             var targetDate = date ?? queryDate ?? DateTime.UtcNow.Date;
-            var (userId, _) = GetCallerInfo();
+            var (userId, _) = await GetCallerInfoAsync(ct);
             var res = await _service.ConfirmAttendanceAsync(id, targetDate, userId, ct);
             return Ok(res);
         }
@@ -159,7 +167,7 @@ public class ShowroomsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
     {
-        var (userId, isOwner) = GetCallerInfo();
+        var (userId, isOwner) = await GetCallerInfoAsync(ct);
         if (!isOwner)
         {
             return StatusCode(403, new { message = "Only the Owner can unlock and correct attendance." });

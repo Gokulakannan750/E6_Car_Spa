@@ -204,6 +204,21 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 				QueueLimit = 0
 			});
 	});
+
+	rateLimiterOptions.AddPolicy("whatsapp-test", httpContext =>
+	{
+		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+		return RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: ipAddress,
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 5,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			});
+	});
 });
 
 // CORS

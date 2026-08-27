@@ -3,8 +3,10 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -14,11 +16,13 @@ public class InvoicesController : ControllerBase
 {
 	private readonly IInvoiceService _service;
 	private readonly IAuthorizationService _authorizationService;
+	private readonly IWebHostEnvironment _environment;
 
-	public InvoicesController(IInvoiceService service, IAuthorizationService authorizationService)
+	public InvoicesController(IInvoiceService service, IAuthorizationService authorizationService, IWebHostEnvironment environment)
 	{
 		_service = service;
 		_authorizationService = authorizationService;
+		_environment = environment;
 	}
 
 	[HttpGet]
@@ -70,7 +74,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -109,7 +113,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -136,7 +140,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -169,7 +173,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -211,7 +215,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -245,7 +249,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 
@@ -268,7 +272,7 @@ public class InvoicesController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 }

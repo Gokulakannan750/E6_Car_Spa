@@ -3,8 +3,10 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -14,11 +16,13 @@ public class JobCardsController : ControllerBase
 {
 	private readonly IJobCardService _service;
 	private readonly IAuthorizationService _authorizationService;
+	private readonly IWebHostEnvironment _environment;
 
-	public JobCardsController(IJobCardService service, IAuthorizationService authorizationService)
+	public JobCardsController(IJobCardService service, IAuthorizationService authorizationService, IWebHostEnvironment environment)
 	{
 		_service = service;
 		_authorizationService = authorizationService;
+		_environment = environment;
 	}
 
 	[HttpGet("{id:guid}")]
@@ -106,7 +110,7 @@ public class JobCardsController : ControllerBase
 		}
 		catch (DbUpdateException ex)
 		{
-			return StatusCode(500, new { error = "Database error", detail = ex.InnerException?.Message ?? ex.Message });
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
 		}
 	}
 

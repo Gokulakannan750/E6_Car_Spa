@@ -28,4 +28,23 @@ public class RateLimitingConfigurationTests
         Assert.NotNull(attribute);
         Assert.Equal("auth-bootstrap", attribute.PolicyName);
     }
+
+    [Fact]
+    public void PublicInvoicesController_HasRateLimitingAttribute()
+    {
+        var attribute = typeof(PublicInvoicesController).GetCustomAttribute<EnableRateLimitingAttribute>();
+        Assert.NotNull(attribute);
+        Assert.Equal("public-invoice", attribute.PolicyName);
+    }
+
+    [Fact]
+    public void WhatsAppSettingsController_TestConnection_HasRateLimitingAttribute()
+    {
+        var method = typeof(WhatsAppSettingsController).GetMethod(nameof(WhatsAppSettingsController.TestConnection));
+        Assert.NotNull(method);
+
+        var attribute = method.GetCustomAttribute<EnableRateLimitingAttribute>();
+        Assert.NotNull(attribute);
+        Assert.Equal("whatsapp-test", attribute.PolicyName);
+    }
 }

@@ -3,6 +3,7 @@ using CarSpaManagement.Api.Application.DTOs.WhatsApp;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -39,6 +40,7 @@ public class WhatsAppSettingsController : ControllerBase
 
 	[HttpPost("test")]
 	[RequirePermission("settings.business")]
+	[EnableRateLimiting("whatsapp-test")]
 	public async Task<IActionResult> TestConnection([FromBody] TestWhatsAppConnectionRequest? request, CancellationToken ct)
 	{
 		var result = await _whatsAppService.TestConnectionAsync(request, ct);
