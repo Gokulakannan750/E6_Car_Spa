@@ -1,4 +1,6 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Application.Services;
 using CarSpaManagement.Api.Domain.Common;
@@ -9,6 +11,7 @@ using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -67,6 +70,23 @@ builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 
+// WhatsApp Options & Startup Validation
+var whatsAppOptions = new WhatsAppOptions();
+builder.Configuration.GetSection(WhatsAppOptions.SectionName).Bind(whatsAppOptions);
+
+var envWhatsAppKey = Environment.GetEnvironmentVariable("WHATSAPP_ENCRYPTION_KEY");
+if (!string.IsNullOrWhiteSpace(envWhatsAppKey))
+{
+	whatsAppOptions.EncryptionKey = envWhatsAppKey;
+}
+
+WhatsAppOptions.Validate(whatsAppOptions, builder.Environment.IsProduction());
+
+builder.Services.Configure<WhatsAppOptions>(options =>
+{
+	options.EncryptionKey = whatsAppOptions.EncryptionKey;
+});
+
 // WhatsApp Integration
 builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
@@ -78,11 +98,27 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Key"] ?? "E6CarSpa_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "E6CarSpa";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "E6CarSpaDesktop";
+// JWT Options & Startup Validation
+var jwtOptions = new JwtOptions();
+builder.Configuration.GetSection(JwtOptions.SectionName).Bind(jwtOptions);
 
+var envJwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
+if (!string.IsNullOrWhiteSpace(envJwtKey))
+{
+	jwtOptions.Key = envJwtKey;
+}
+
+JwtOptions.Validate(jwtOptions, builder.Environment.IsProduction());
+
+builder.Services.Configure<JwtOptions>(options =>
+{
+	options.Key = jwtOptions.Key;
+	options.Issuer = jwtOptions.Issuer;
+	options.Audience = jwtOptions.Audience;
+	options.ExpirationMinutes = jwtOptions.ExpirationMinutes;
+});
+
+// JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
  options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -90,16 +126,16 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
- options.RequireHttpsMetadata = false;
+ options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
  options.SaveToken = true;
  options.TokenValidationParameters = new TokenValidationParameters
  {
  ValidateIssuerSigningKey = true,
- IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+ IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
  ValidateIssuer = true,
- ValidIssuer = jwtIssuer,
+ ValidIssuer = jwtOptions.Issuer,
  ValidateAudience = true,
- ValidAudiences = new[] { jwtAudience, "E6CarSpaMobile", "E6CarSpa" },
+ ValidAudiences = new[] { jwtOptions.Audience, "E6CarSpaMobile", "E6CarSpa" },
  ValidateLifetime = true,
  ClockSkew = TimeSpan.Zero
  };
@@ -109,6 +145,51 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddAuthorization();
+
+// Rate Limiting on Authentication Endpoints
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+	rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+	rateLimiterOptions.OnRejected = async (context, cancellationToken) =>
+	{
+		context.HttpContext.Response.ContentType = "application/json";
+		await context.HttpContext.Response.WriteAsJsonAsync(new
+		{
+			error = "Too many authentication requests from this IP address. Please try again later.",
+			retryAfter = 60
+		}, cancellationToken: cancellationToken);
+	};
+
+	rateLimiterOptions.AddPolicy("auth-login", httpContext =>
+	{
+		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+		return RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: ipAddress,
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 5,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			});
+	});
+
+	rateLimiterOptions.AddPolicy("auth-bootstrap", httpContext =>
+	{
+		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+		return RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: ipAddress,
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 3,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			});
+	});
+});
 
 // CORS
 builder.Services.AddCors(options =>
@@ -163,16 +244,21 @@ app.Use(async (context, next) =>
  context.Response.StatusCode = ex switch
  {
  KeyNotFoundException => 404,
- ArgumentException or InvalidOperationException => 400,
+ ArgumentException => 400,
  UnauthorizedAccessException => 403,
  _ => 500
  };
  context.Response.ContentType = "application/json";
+ var userErrorMessage = ex switch
+ {
+ KeyNotFoundException => ex.Message,
+ ArgumentException => ex.Message,
+ UnauthorizedAccessException => "Access denied.",
+ _ => "An unexpected error occurred."
+ };
  await context.Response.WriteAsJsonAsync(new
  {
- error = ex is KeyNotFoundException or ArgumentException or InvalidOperationException or UnauthorizedAccessException
- ? ex.Message
- : "An unexpected error occurred.",
+ error = userErrorMessage,
  detail = app.Environment.IsDevelopment() ? ex.Message : null
  });
  }
@@ -199,6 +285,7 @@ else
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.MapHealthChecks("/api/health");

@@ -9,13 +9,21 @@ public static class DependencyInjection
  var connectionString = configuration.GetConnectionString("DefaultConnection")
  ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+ var isDevelopment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
+
  services.AddDbContext<AppDbContext>(options =>
- options.UseNpgsql(connectionString, npgsqlOptions =>
  {
- npgsqlOptions.MigrationsAssembly(typeof(DependencyInjection).Assembly.FullName);
- })
- .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
- .EnableSensitiveDataLogging());
+  options.UseNpgsql(connectionString, npgsqlOptions =>
+  {
+  npgsqlOptions.MigrationsAssembly(typeof(DependencyInjection).Assembly.FullName);
+  })
+  .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
+  if (isDevelopment)
+  {
+  options.EnableSensitiveDataLogging();
+  }
+ });
 
  return services;
  }

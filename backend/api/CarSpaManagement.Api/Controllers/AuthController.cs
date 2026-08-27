@@ -4,6 +4,7 @@ using CarSpaManagement.Api.Application.DTOs;
 using CarSpaManagement.Api.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -21,6 +22,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 
     [HttpPost("bootstrap")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-bootstrap")]
     public async Task<ActionResult<AuthUserDto>> BootstrapOwner([FromBody] BootstrapOwnerRequest request, CancellationToken cancellationToken)
     {
         try
@@ -40,6 +42,7 @@ public class AuthController(IAuthService authService) : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-login")]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         try
