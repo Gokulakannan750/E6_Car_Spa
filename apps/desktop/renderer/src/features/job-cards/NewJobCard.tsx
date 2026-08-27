@@ -174,12 +174,13 @@ export default function NewJobCard() {
 
 	// ── Phone lookup ──────────────────────────────────────────────────────────
 	const handlePhoneSearch = useCallback(async () => {
-		const rawPhone = phone.trim();
+		const rawPhone = phone.trim().replace(/\D/g, '').slice(0, 10);
 		if (!rawPhone) return;
 		setIsSearching(true);
 		setCustomerError(null);
 		setInfoMessage(null);
 		setShowNewCustomer(false);
+		setShowNewVehicle(false);
 
 		// Try Live Backend API
 		try {
@@ -193,7 +194,10 @@ export default function NewJobCard() {
 			// API not reachable or 404
 		}
 
-		// Customer Not Found -> Prompt to Create Customer
+		// Customer Not Found -> Clear previous customer and prompt to Create Customer
+		setCustomer(null);
+		setSelectedVehicle(null);
+		setVehicles([]);
 		setIsSearching(false);
 		setInfoMessage(`No customer found with phone "${rawPhone}". Please enter customer details below to create a new profile.`);
 		setNewCustomer({ name: '', phone: rawPhone, email: '', address: '' });
@@ -208,6 +212,7 @@ export default function NewJobCard() {
 		setCustomerError(null);
 		setInfoMessage(null);
 		setShowNewCustomer(false);
+		setShowNewVehicle(false);
 
 		// Try Live Backend API
 		try {
@@ -220,7 +225,7 @@ export default function NewJobCard() {
 					custDto = {
 						id: result.customerId,
 						name: result.customerName || 'Customer',
-						phoneNumber: phone.trim() || '',
+						phoneNumber: phone.trim().replace(/\D/g, '').slice(0, 10) || '',
 						email: null,
 						address: null,
 						createdAt: result.createdAt,
@@ -235,23 +240,27 @@ export default function NewJobCard() {
 			// API not reachable or 404
 		}
 
-		// Vehicle Not Found -> Prompt to Create Customer & Vehicle
+		// Vehicle Not Found -> Clear previous customer and prompt to Create Customer & Vehicle
+		setCustomer(null);
+		setSelectedVehicle(null);
+		setVehicles([]);
 		setIsSearching(false);
 		setInfoMessage(`No vehicle found with registration "${rawReg}". Please create a customer and vehicle record below.`);
 		setNewVehicle((prev) => ({ ...prev, registrationNumber: rawReg }));
-		if (!customer) {
-			setNewCustomer({ name: '', phone: phone.trim(), email: '', address: '' });
-			setShowNewCustomer(true);
-		} else {
-			setShowNewVehicle(true);
-		}
-	}, [regNumber, phone, customer, loadCustomerAndVehicles]);
+		setNewCustomer({ name: '', phone: phone.trim().replace(/\D/g, '').slice(0, 10), email: '', address: '' });
+		setShowNewCustomer(true);
+	}, [regNumber, phone, loadCustomerAndVehicles]);
 
 	// ── Create customer ───────────────────────────────────────────────────────
 	const handleCreateCustomer = async (e?: React.FormEvent) => {
 		if (e) e.preventDefault();
-		if (!newCustomer.name.trim() || !newCustomer.phone.trim()) {
+		const phoneClean = newCustomer.phone.trim().replace(/\D/g, '').slice(0, 10);
+		if (!newCustomer.name.trim() || !phoneClean) {
 			setCustomerError('Customer name and phone number are required.');
+			return;
+		}
+		if (phoneClean.length !== 10) {
+			setCustomerError('Phone number must be exactly 10 digits without country code.');
 			return;
 		}
 		setIsCreatingCustomer(true);
@@ -261,7 +270,7 @@ export default function NewJobCard() {
 		try {
 			const created = await createCustomer({
 				name: newCustomer.name.trim(),
-				phoneNumber: newCustomer.phone.trim(),
+				phoneNumber: phoneClean,
 				email: newCustomer.email || undefined,
 				address: newCustomer.address || undefined,
 			});
@@ -455,6 +464,19 @@ export default function NewJobCard() {
 				notes: undefined,
 				isGstEnabled: true,
 			});
+			if (result && customer) {
+				if (!result.customer) {
+					result.customer = {
+						id: customer.id,
+						name: customer.name,
+						phoneNumber: customer.phoneNumber,
+						phone: customer.phoneNumber,
+					};
+				} else {
+					result.customer.phoneNumber = result.customer.phoneNumber || customer.phoneNumber;
+					result.customer.phone = result.customer.phone || customer.phoneNumber;
+				}
+			}
 			setCreatedJobCard(result);
 			setSuccess({
 				id: result.id,
@@ -563,11 +585,11 @@ export default function NewJobCard() {
 							<div className="flex gap-3">
 								<Button
 									variant="secondary"
-									onClick={() => window.print()}
+									onClick={() => setShowPrintPreview(true)}
 									icon={<Printer className="w-4 h-4" />}
 									className="flex-1"
 								>
-									Print
+									Print Job Card
 								</Button>
 								<Button onClick={() => navigate('/job-cards')} className="flex-1">
 									View All Job Cards
@@ -575,15 +597,8 @@ export default function NewJobCard() {
 							</div>
 							<div className="mt-4 flex items-center justify-center gap-3 text-xs">
 								<button
-									onClick={() => setShowPrintPreview(true)}
-									className="text-secondary hover:underline font-medium"
-								>
-									Preview Print Layout
-								</button>
-								<span className="text-outline-variant">·</span>
-								<button
 									onClick={handleReset}
-									className="text-on-surface-variant hover:text-on-surface font-medium"
+									className="text-secondary hover:underline font-medium"
 								>
 									Create Another Job Card
 								</button>
@@ -757,10 +772,12 @@ export default function NewJobCard() {
 											<User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
 											<input
 												type="tel"
+												inputMode="numeric"
+												maxLength={10}
 												value={phone}
-												onChange={(e) => setPhone(e.target.value)}
+												onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
 												onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handlePhoneSearch())}
-												placeholder="e.g., 9876543210"
+												placeholder="e.g. 9876543210"
 												className="form-input pl-9 w-full"
 											/>
 										</div>
@@ -825,7 +842,7 @@ export default function NewJobCard() {
 							)}
 
 							{/* ── Customer Found / Selected Card ────────────────────────── */}
-							{customer && (
+							{customer && !showNewCustomer && (
 								<div className="bg-surface-container-low rounded-lg border border-outline-variant p-4">
 									<div className="flex items-start justify-between">
 										<div className="flex items-center gap-3">
@@ -850,6 +867,10 @@ export default function NewJobCard() {
 												setCustomer(null);
 												setSelectedVehicle(null);
 												setVehicles([]);
+												setShowNewCustomer(false);
+												setShowNewVehicle(false);
+												setInfoMessage(null);
+												setCustomerError(null);
 											}}
 											className="text-xs text-secondary hover:underline font-medium"
 										>
@@ -894,10 +915,13 @@ export default function NewJobCard() {
 												Phone Number <span className="text-error">*</span>
 											</label>
 											<input
+												type="tel"
+												inputMode="numeric"
+												maxLength={10}
 												required
 												value={newCustomer.phone}
-												onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value }))}
-												className="form-input w-full"
+												onChange={(e) => setNewCustomer((p) => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+												className="form-input w-full font-mono"
 												placeholder="e.g. 9876543210"
 											/>
 										</div>
@@ -939,7 +963,7 @@ export default function NewJobCard() {
 							)}
 
 							{/* ── Vehicle Selection ─────────────────────────────────────── */}
-							{customer && (
+							{customer && !showNewCustomer && (
 								<div className="space-y-3 pt-2">
 									<div className="flex items-center justify-between">
 										<label className="block text-sm font-semibold text-on-surface">

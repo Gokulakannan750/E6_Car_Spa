@@ -150,7 +150,7 @@ export function JobCardPrintDocument({ jobCard }: { jobCard: JobCardDto }) {
 							Phone
 						</td>
 						<td className="p-2 border-r border-slate-400 font-medium text-slate-900">
-							{jobCard.customer.phone || '—'}
+							{jobCard.customer.phoneNumber || jobCard.customer.phone || '—'}
 						</td>
 						<td className="bg-[#ebebeb] font-bold text-slate-800 p-2 border-r border-slate-400 w-24">
 							Vehicle No
@@ -595,10 +595,12 @@ export default function JobCardDetails() {
 										<span className="text-sm text-on-surface-variant font-mono">{jobCard.vehicle.registrationNumber}</span>
 									</div>
 								)}
-								{jobCard.customer.phone && (
+								{(jobCard.customer.phoneNumber || jobCard.customer.phone) && (
 									<div className="flex items-center gap-2">
 										<span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>phone</span>
-										<span className="text-sm text-on-surface-variant">{jobCard.customer.phone}</span>
+										<span className="text-sm text-on-surface-variant">
+											{jobCard.customer.phoneNumber || jobCard.customer.phone}
+										</span>
 									</div>
 								)}
 							</div>

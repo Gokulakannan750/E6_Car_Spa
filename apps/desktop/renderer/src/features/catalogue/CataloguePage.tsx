@@ -9,13 +9,6 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { useAuth } from '../auth/auth-context';
 
-export const CATALOGUE_CATEGORIES = [
-	'Exterior Detailing',
-	'Interior Care',
-	'Protection Packages',
-	'Others',
-] as const;
-
 // ── Types ────────────────────────────────────────────────────────────────────
 
 interface ServiceFormData {
@@ -30,13 +23,14 @@ interface ServiceFormData {
 
 const emptyForm: ServiceFormData = {
 	name: '',
-	category: 'Exterior Detailing',
+	category: '',
 	description: '',
 	price: '',
 	durationMinutes: '60',
 	taxPercentage: '18',
 	isActive: true,
 };
+
 
 type SortOption = 'recommended' | 'price-asc' | 'price-desc' | 'duration-asc';
 
@@ -96,6 +90,15 @@ export function CataloguePage() {
 	});
 
 	const services = servicesData?.items ?? [];
+
+	// ── Dynamic Categories from real API services ──────────────────────────────
+	const dynamicCategories = useMemo(() => {
+		const set = new Set<string>();
+		services.forEach((s) => {
+			if (s.category && s.category.trim()) set.add(s.category.trim());
+		});
+		return Array.from(set);
+	}, [services]);
 
 	// ── Mutations ──────────────────────────────────────────────────────────────
 	const createMutation = useApiMutation<ServiceDto, CreateServiceInput>(
@@ -164,7 +167,7 @@ export function CataloguePage() {
 		setEditingService(svc);
 		setForm({
 			name: svc.name,
-			category: svc.category || 'Exterior Detailing',
+			category: svc.category || '',
 			description: svc.description || '',
 			price: String(svc.price),
 			durationMinutes: String(svc.durationMinutes ?? '60'),
@@ -179,7 +182,7 @@ export function CataloguePage() {
 		createMutation.mutate(
 			{
 				name: form.name.trim(),
-				category: form.category.trim() || 'Exterior Detailing',
+				category: form.category.trim() || 'General',
 				description: form.description.trim() || undefined,
 				price: parseFloat(form.price) || 0,
 				taxPercentage: parseFloat(form.taxPercentage) || 18,
@@ -203,7 +206,7 @@ export function CataloguePage() {
 				id: editingService.id,
 				data: {
 					name: form.name.trim(),
-					category: form.category.trim() || 'Exterior Detailing',
+					category: form.category.trim() || 'General',
 					description: form.description.trim() || undefined,
 					price: parseFloat(form.price) || 0,
 					taxPercentage: parseFloat(form.taxPercentage) || 18,
@@ -297,32 +300,34 @@ export function CataloguePage() {
 				</div>
 			</div>
 
-			{/* ── Category Tabs (Exterior Detailing, Interior Care, Protection Packages, Others) ── */}
-			<div className="border-b border-outline-variant flex overflow-x-auto gap-1">
-				<button
-					onClick={() => setActiveCategory('all')}
-					className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 ${
-						activeCategory === 'all'
-							? 'border-secondary text-secondary'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface'
-					}`}
-				>
-					All Services
-				</button>
-				{CATALOGUE_CATEGORIES.map((cat) => (
+			{/* ── Category Tabs ── */}
+			{dynamicCategories.length > 0 && (
+				<div className="border-b border-outline-variant flex overflow-x-auto gap-1">
 					<button
-						key={cat}
-						onClick={() => setActiveCategory(cat)}
+						onClick={() => setActiveCategory('all')}
 						className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 ${
-							activeCategory === cat
+							activeCategory === 'all'
 								? 'border-secondary text-secondary'
 								: 'border-transparent text-on-surface-variant hover:text-on-surface'
 						}`}
 					>
-						{cat}
+						All Services ({services.length})
 					</button>
-				))}
-			</div>
+					{dynamicCategories.map((cat) => (
+						<button
+							key={cat}
+							onClick={() => setActiveCategory(cat)}
+							className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition-colors border-b-2 ${
+								activeCategory === cat
+									? 'border-secondary text-secondary'
+									: 'border-transparent text-on-surface-variant hover:text-on-surface'
+							}`}
+						>
+							{cat} ({services.filter((s) => s.category === cat).length})
+						</button>
+					))}
+				</div>
+			)}
 
 			{/* ── Service Grid (Bento/Card Layout without images) ─────────────── */}
 			{servicesLoading ? (
@@ -488,17 +493,20 @@ export function CataloguePage() {
 						<div className="grid grid-cols-2 gap-4">
 							<div>
 								<label className="block text-sm font-medium text-on-surface mb-1">Category <span className="text-error">*</span></label>
-								<select
+								<input
+									type="text"
+									list="category-options"
+									required
 									value={form.category}
 									onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
 									className="form-input w-full"
-								>
-									{CATALOGUE_CATEGORIES.map((cat) => (
-										<option key={cat} value={cat}>
-											{cat}
-										</option>
+									placeholder="e.g. Exterior Detailing, Protection"
+								/>
+								<datalist id="category-options">
+									{dynamicCategories.map((cat) => (
+										<option key={cat} value={cat} />
 									))}
-								</select>
+								</datalist>
 							</div>
 							<div>
 								<label className="block text-sm font-medium text-on-surface mb-1">

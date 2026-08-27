@@ -46,7 +46,7 @@ export default function SettingsPage() {
 	const [city, setCity] = useState('Erode');
 	const [state, setState] = useState('Tamil Nadu');
 	const [postalCode, setPostalCode] = useState('638011');
-	const [phone, setPhone] = useState('+91 9578749449');
+	const [phone, setPhone] = useState('9578749449');
 	const [email, setEmail] = useState('e6carspaerd@gmail.com');
 	const [gstin, setGstin] = useState('');
 	const [invoicePrefix, setInvoicePrefix] = useState('INV');
@@ -69,7 +69,7 @@ export default function SettingsPage() {
 			setCity(data.city || 'Erode');
 			setState(data.state || 'Tamil Nadu');
 			setPostalCode(data.postalCode || '638011');
-			setPhone(data.phone || '+91 9578749449');
+			setPhone(data.phone || '9578749449');
 			setEmail(data.email || 'e6carspaerd@gmail.com');
 			setGstin(data.gstin || '');
 			setInvoicePrefix(data.invoicePrefix || 'INV');
@@ -98,8 +98,13 @@ export default function SettingsPage() {
 			setErrorMsg('City, State, and PIN code are required.');
 			return;
 		}
-		if (!phone.trim()) {
+		const cleanPhone = phone.replace(/\D/g, '').slice(0, 10);
+		if (!cleanPhone) {
 			setErrorMsg('Phone number is required.');
+			return;
+		}
+		if (cleanPhone.length !== 10) {
+			setErrorMsg('Phone number must be exactly 10 digits without country code.');
 			return;
 		}
 		if (!email.trim()) {
@@ -125,7 +130,7 @@ export default function SettingsPage() {
 				city: city.trim(),
 				state: state.trim(),
 				postalCode: postalCode.trim(),
-				phone: phone.trim(),
+				phone: cleanPhone,
 				email: email.trim(),
 				gstin: trimmedGstin || null,
 				invoicePrefix: invoicePrefix.trim().toUpperCase() || 'INV',
@@ -447,11 +452,13 @@ export default function SettingsPage() {
 										</label>
 										<input
 											type="tel"
+											inputMode="numeric"
+											maxLength={10}
 											value={phone}
 											disabled={!canManageBusiness}
-											onChange={(e) => setPhone(e.target.value)}
-											placeholder="e.g. +91 9578749449"
-											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+											onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+											placeholder="e.g. 9578749449"
+											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
 									<div>

@@ -2,12 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Application.DTOs.Customers;
 
-public record CustomerDto(Guid Id, string Name, string PhoneNumber, string? Email, string? Address, DateTime CreatedAt, int VehicleCount, int JobCardCount, decimal TotalRevenue);
+public record CustomerDto(Guid Id, string Name, string PhoneNumber, string? Email, string? Address, DateTime CreatedAt, int VehicleCount, int JobCardCount, decimal TotalRevenue, IReadOnlyList<string>? VehicleRegistrationNumbers = null);
 
 public record CreateCustomerRequest
 {
  [Required, MaxLength(100)] public string Name { get; init; } = string.Empty;
- [Required, MaxLength(20)] public string PhoneNumber { get; init; } = string.Empty;
+ [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string PhoneNumber { get; init; } = string.Empty;
  [EmailAddress, MaxLength(100)] public string? Email { get; init; }
  [MaxLength(500)] public string? Address { get; init; }
 }
@@ -15,7 +15,7 @@ public record CreateCustomerRequest
 public record UpdateCustomerRequest
 {
  [Required, MaxLength(100)] public string Name { get; init; } = string.Empty;
- [Required, MaxLength(20)] public string PhoneNumber { get; init; } = string.Empty;
+ [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string PhoneNumber { get; init; } = string.Empty;
  [EmailAddress, MaxLength(100)] public string? Email { get; init; }
  [MaxLength(500)] public string? Address { get; init; }
 }

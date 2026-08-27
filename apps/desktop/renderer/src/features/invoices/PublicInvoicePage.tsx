@@ -85,7 +85,7 @@ export function PublicInvoicePage() {
 					</div>
 					<div className="pt-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
 						<p className="font-semibold text-slate-400">E6 Car Spa &bull; Support</p>
-						<p>Phone: +91 9578749449 | Email: e6carspaerd@gmail.com</p>
+						<p>Phone: 9578749449 | Email: e6carspaerd@gmail.com</p>
 					</div>
 				</div>
 			</div>

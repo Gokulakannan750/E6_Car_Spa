@@ -98,12 +98,16 @@ async function request<T>(
 // ============================================================================
 
 export interface CustomerDto {
- id: string;
- name: string;
- phoneNumber: string;
- email: string | null;
- address: string | null;
- createdAt: string;
+	id: string;
+	name: string;
+	phoneNumber: string;
+	email: string | null;
+	address: string | null;
+	createdAt: string;
+	vehicleRegistrationNumbers?: string[];
+	vehicleCount?: number;
+	jobCardCount?: number;
+	totalRevenue?: number;
 }
 
 export interface CustomerListResponse {
@@ -145,13 +149,22 @@ export interface CreateVehicleInput {
  color?: string | null;
 }
 
+export interface UpdateVehicleInput {
+	registrationNumber: string;
+	make: string;
+	model: string;
+	variant?: string | null;
+	color?: string | null;
+}
+
 export interface JobCardDto {
  id: string;
  jobCardNumber: string;
  customer: {
  id: string;
  name: string;
- phone: string;
+ phoneNumber?: string;
+ phone?: string;
  };
  vehicle: {
  id: string;
@@ -499,10 +512,17 @@ export async function getVehiclesByCustomer(customerId: string) {
 }
 
 export async function createVehicle(data: CreateVehicleInput) {
- return request<VehicleDto>('/api/vehicles', {
- method: 'POST',
- body: JSON.stringify(cleanPayload(data)),
- });
+	return request<VehicleDto>('/api/vehicles', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	});
+}
+
+export async function updateVehicle(id: string, data: UpdateVehicleInput) {
+	return request<VehicleDto>(`/api/vehicles/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	});
 }
 
 // ============================================================================

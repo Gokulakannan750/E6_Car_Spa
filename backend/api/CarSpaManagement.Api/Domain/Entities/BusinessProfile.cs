@@ -34,8 +34,8 @@ public class BusinessProfile : BaseEntity
     public string PostalCode { get; set; } = "638011";
 
     [Required]
-    [MaxLength(30)]
-    public string Phone { get; set; } = "+91 9578749449";
+    [MaxLength(10)]
+    public string Phone { get; set; } = "9578749449";
 
     [Required]
     [MaxLength(150)]

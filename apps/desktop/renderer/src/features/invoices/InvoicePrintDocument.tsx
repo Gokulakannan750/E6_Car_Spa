@@ -34,7 +34,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 		businessProfile?.city || 'Erode',
 		businessProfile?.state || 'Tamil Nadu',
 	].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : ' - 638011');
-	const phone = businessProfile?.phone || '+91 9578749449';
+	const phone = businessProfile?.phone || '9578749449';
 	const email = businessProfile?.email || 'e6carspaerd@gmail.com';
 	const gstin = businessProfile?.gstin?.trim() || null;
 

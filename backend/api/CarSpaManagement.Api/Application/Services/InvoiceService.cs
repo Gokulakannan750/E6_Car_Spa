@@ -315,13 +315,14 @@ public class InvoiceService : IInvoiceService
 		invoice.TotalAmount = gstBase + invoice.GstAmount;
 		invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
 
-		// Transactional invoice number generation and status finalization
+		// 1. Generate unique sequential invoice number before opening transaction
+		var invoiceNumber = await GenerateInvoiceNumberAsync(cancellationToken);
+		invoice.InvoiceNumber = invoiceNumber;
+
+		// 2. Transactional status finalization and audit logging
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 		try
 		{
-			var invoiceNumber = await GenerateInvoiceNumberAsync(cancellationToken);
-			invoice.InvoiceNumber = invoiceNumber;
-
 			if (invoice.BalanceAmount <= 0 && invoice.PaidAmount >= invoice.TotalAmount && invoice.TotalAmount > 0)
 			{
 				invoice.Status = InvoiceStatus.Paid;
@@ -418,25 +419,29 @@ public class InvoiceService : IInvoiceService
 		try
 		{
 			using var cmd = conn.CreateCommand();
-			var currentTransaction = _db.Database.CurrentTransaction?.GetDbTransaction();
-			if (currentTransaction != null)
-			{
-				cmd.Transaction = currentTransaction;
-			}
 
-			cmd.CommandText = "SELECT nextval('invoice_number_seq')";
-			try
+			while (true)
 			{
-				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt64(result);
-				return string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
-			}
-			catch
-			{
-				cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('invoice_number_seq');";
-				var result = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt64(result);
-				return string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				cmd.CommandText = "SELECT nextval('invoice_number_seq')";
+				long nextNumber;
+				try
+				{
+					var result = await cmd.ExecuteScalarAsync(cancellationToken);
+					nextNumber = Convert.ToInt64(result);
+				}
+				catch
+				{
+					cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('invoice_number_seq');";
+					var result = await cmd.ExecuteScalarAsync(cancellationToken);
+					nextNumber = Convert.ToInt64(result);
+				}
+
+				var candidate = string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				var exists = await _db.Invoices.AnyAsync(i => i.InvoiceNumber == candidate, cancellationToken);
+				if (!exists)
+				{
+					return candidate;
+				}
 			}
 		}
 		finally
@@ -924,7 +929,7 @@ public class InvoiceService : IInvoiceService
 			City: profile?.City ?? "Erode",
 			State: profile?.State ?? "Tamil Nadu",
 			PostalCode: profile?.PostalCode ?? "638011",
-			Phone: profile?.Phone ?? "+91 9578749449",
+			Phone: profile?.Phone ?? "9578749449",
 			Email: profile?.Email ?? "e6carspaerd@gmail.com",
 			Gstin: isGst && !string.IsNullOrWhiteSpace(profile?.Gstin) ? profile.Gstin.Trim() : null,
 			LogoUrl: profile?.LogoPath ?? "/uploads/logos/e6-logo.png"

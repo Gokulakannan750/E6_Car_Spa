@@ -22,7 +22,7 @@ public class CustomerService : ICustomerService
  {
  var c = await _db.Customers
  .Where(x => x.Id == id)
- .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount)))
+ .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
  .FirstOrDefaultAsync(cancellationToken);
  return c;
  }
@@ -36,14 +36,14 @@ public class CustomerService : ICustomerService
 
  var c = await _db.Customers
  .Where(x => x.PhoneNumber == phoneNumber.Trim())
- .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount)))
+ .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
  .FirstOrDefaultAsync(cancellationToken);
 
  if (c is not null) return c;
 
  c = await _db.Customers
  .Where(x => x.PhoneNumber.Contains(digits))
- .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount)))
+ .Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
  .FirstOrDefaultAsync(cancellationToken);
 
  return c;
@@ -66,7 +66,8 @@ public class CustomerService : ICustomerService
  v.Customer.CreatedAt,
  v.Customer.Vehicles.Count,
  v.Customer.JobCards.Count,
- v.Customer.JobCards.Sum(j => j.TotalAmount)
+ v.Customer.JobCards.Sum(j => j.TotalAmount),
+ v.Customer.Vehicles.Select(x => x.RegistrationNumber).ToList()
  ))
  .FirstOrDefaultAsync(cancellationToken);
  }
@@ -78,7 +79,7 @@ public class CustomerService : ICustomerService
  if (!string.IsNullOrWhiteSpace(search))
  {
  search = search.Trim().ToLower();
- query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)));
+ query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)) || c.Vehicles.Any(v => v.RegistrationNumber.ToLower().Contains(search)));
  }
 
  return await query
@@ -94,7 +95,8 @@ public class CustomerService : ICustomerService
  c.CreatedAt,
  c.Vehicles.Count,
  c.JobCards.Count,
- c.JobCards.Sum(j => j.TotalAmount)
+ c.JobCards.Sum(j => j.TotalAmount),
+ c.Vehicles.Select(v => v.RegistrationNumber).ToList()
  ))
  .ToListAsync(cancellationToken);
  }
@@ -105,7 +107,7 @@ public class CustomerService : ICustomerService
  if (!string.IsNullOrWhiteSpace(search))
  {
  search = search.Trim().ToLower();
- query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)));
+ query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)) || c.Vehicles.Any(v => v.RegistrationNumber.ToLower().Contains(search)));
  }
  return await query.CountAsync(cancellationToken);
  }

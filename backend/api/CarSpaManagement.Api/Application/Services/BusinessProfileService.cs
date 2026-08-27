@@ -212,7 +212,7 @@ public partial class BusinessProfileService : IBusinessProfileService
             City = "Erode",
             State = "Tamil Nadu",
             PostalCode = "638011",
-            Phone = "+91 9578749449",
+            Phone = "9578749449",
             Email = "e6carspaerd@gmail.com",
             Gstin = null,
             LogoPath = "/uploads/logos/e6-logo.png",

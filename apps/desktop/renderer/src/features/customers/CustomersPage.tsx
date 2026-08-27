@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Plus, Phone, Car, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Phone, Car, Calendar, RefreshCw, AlertCircle, UserPlus, Search, Edit3 } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
+import { CreateCustomerModal } from './CreateCustomerModal';
+import { EditCustomerModal } from './EditCustomerModal';
 import {
 	getCustomers,
 	getVehiclesByCustomer,
@@ -15,10 +17,48 @@ import {
 	type JobCardListDto,
 } from '../../lib/api';
 
+function CustomerVehiclesCell({ customerId, initialVehicles }: { customerId: string; initialVehicles?: string[] }) {
+	const { data: vehicles } = useQuery({
+		queryKey: ['vehicles-by-customer', customerId],
+		queryFn: () => getVehiclesByCustomer(customerId),
+		enabled: !initialVehicles || initialVehicles.length === 0,
+		staleTime: 60_000,
+	});
+
+	const regNumbers =
+		initialVehicles && initialVehicles.length > 0
+			? initialVehicles
+			: vehicles?.map((v) => v.registrationNumber) || [];
+
+	if (regNumbers.length === 0) {
+		return <span className="text-sm text-on-surface-variant">—</span>;
+	}
+
+	return (
+		<div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
+			{regNumbers.map((reg, idx) => (
+				<span
+					key={idx}
+					className="inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-0.5 rounded bg-surface-container-high text-on-surface border border-outline-variant/60 uppercase"
+				>
+					<Car className="w-3 h-3 text-secondary shrink-0" />
+					{reg}
+				</span>
+			))}
+		</div>
+	);
+}
+
 export function CustomersPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const globalSearch = useAppStore((s) => s.globalSearch);
+	const [localSearch, setLocalSearch] = useState('');
 	const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+	const [editingCustomer, setEditingCustomer] = useState<CustomerDto | null>(null);
+
+	const activeSearch = (localSearch || globalSearch).trim();
 
 	// Fetch real customers from API
 	const {
@@ -28,8 +68,8 @@ export function CustomersPage() {
 		error: customersError,
 		refetch: refetchCustomers,
 	} = useQuery({
-		queryKey: ['customers', globalSearch],
-		queryFn: () => getCustomers({ page: 1, pageSize: 100, search: globalSearch.trim() || undefined }),
+		queryKey: ['customers', activeSearch],
+		queryFn: () => getCustomers({ page: 1, pageSize: 100, search: activeSearch || undefined }),
 	});
 
 	const customers: CustomerDto[] = customersData?.items ?? [];
@@ -61,6 +101,17 @@ export function CustomersPage() {
 				Close
 			</Button>
 			<Button
+				variant="secondary"
+				icon={<Edit3 className="w-4 h-4" />}
+				onClick={() => {
+					if (selectedCustomer) {
+						setEditingCustomer(selectedCustomer);
+					}
+				}}
+			>
+				Edit Details
+			</Button>
+			<Button
 				icon={<Plus className="w-4 h-4" />}
 				onClick={() => {
 					setSelectedCustomerId(null);
@@ -80,23 +131,28 @@ export function CustomersPage() {
 					<h1 className="text-2xl font-semibold text-on-surface tracking-tight">Customers</h1>
 					<p className="text-sm text-on-surface-variant mt-1">View customer directory and service histories</p>
 				</div>
+				<Button
+					icon={<UserPlus className="w-4 h-4" />}
+					onClick={() => setIsCreateModalOpen(true)}
+				>
+					Create Customer
+				</Button>
 			</div>
 
-			{/* Filters & Search Info Bar */}
+			{/* Search & Filter Bar */}
 			<div className="app-card p-4">
-				<div className="flex items-center justify-between gap-3">
-					<div className="flex-1 max-w-md">
-						{globalSearch ? (
-							<div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
-								<span className="text-sm text-blue-700 truncate">
-									Searching: <strong>"{globalSearch}"</strong>
-								</span>
-							</div>
-						) : (
-							<span className="text-sm text-on-surface-variant">Real PostgreSQL customer records</span>
-						)}
+				<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+					<div className="relative flex-1 max-w-md">
+						<Search className="w-4 h-4 text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2" />
+						<input
+							type="text"
+							value={localSearch}
+							onChange={(e) => setLocalSearch(e.target.value)}
+							placeholder="Search customers by name, phone, vehicle no, email..."
+							className="form-input w-full pl-9 pr-3 py-1.5 text-sm"
+						/>
 					</div>
-					<div className="text-sm text-on-surface-variant">
+					<div className="text-sm font-medium text-on-surface-variant bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/50 self-start sm:self-auto">
 						{customers.length} customer{customers.length !== 1 ? 's' : ''}
 					</div>
 				</div>
@@ -126,10 +182,18 @@ export function CustomersPage() {
 						</div>
 						<h3 className="text-base font-semibold text-on-surface">No customers found</h3>
 						<p className="text-sm text-on-surface-variant mt-1 max-w-sm mx-auto">
-							{globalSearch
-								? `No customer records matching "${globalSearch}".`
-								: 'Customers are automatically registered when creating a job card.'}
+							{activeSearch
+								? `No customer records matching "${activeSearch}".`
+								: 'No customer profiles have been added yet. Click below to add your first customer.'}
 						</p>
+						<div className="mt-4">
+							<Button
+								icon={<UserPlus className="w-4 h-4" />}
+								onClick={() => setIsCreateModalOpen(true)}
+							>
+								Create Customer
+							</Button>
+						</div>
 					</div>
 				) : (
 					<div className="overflow-x-auto">
@@ -139,8 +203,9 @@ export function CustomersPage() {
 									<th>Customer</th>
 									<th>Phone</th>
 									<th>Email</th>
-									<th>Address</th>
+									<th>Car Registration No.</th>
 									<th>Created Date</th>
+									<th className="text-right">Action</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -169,8 +234,8 @@ export function CustomersPage() {
 											<span className="font-mono text-sm">{c.phoneNumber}</span>
 										</td>
 										<td className="text-sm text-on-surface-variant">{c.email || '—'}</td>
-										<td className="text-sm text-on-surface-variant truncate max-w-[200px]">
-											{c.address || '—'}
+										<td>
+											<CustomerVehiclesCell customerId={c.id} initialVehicles={c.vehicleRegistrationNumbers} />
 										</td>
 										<td className="text-sm text-on-surface-variant">
 											<div className="flex items-center gap-1">
@@ -181,6 +246,17 @@ export function CustomersPage() {
 													year: 'numeric',
 												})}
 											</div>
+										</td>
+										<td className="text-right" onClick={(e) => e.stopPropagation()}>
+											<button
+												type="button"
+												onClick={() => setEditingCustomer(c)}
+												className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md text-on-surface-variant hover:text-secondary hover:bg-secondary/10 transition-colors cursor-pointer"
+												title="Edit Customer"
+											>
+												<Edit3 className="w-3.5 h-3.5" />
+												<span>Edit</span>
+											</button>
 										</td>
 									</tr>
 								))}
@@ -220,9 +296,21 @@ export function CustomersPage() {
 						</div>
 
 						<div>
-							<h3 className="text-lg font-semibold text-on-surface mb-3">
-								Vehicles ({customerVehicles.length})
-							</h3>
+							<div className="flex items-center justify-between mb-3">
+								<h3 className="text-lg font-semibold text-on-surface">
+									Vehicles ({customerVehicles.length})
+								</h3>
+								<Button
+									variant="secondary"
+									size="sm"
+									icon={<Edit3 className="w-3.5 h-3.5" />}
+									onClick={() => {
+										if (selectedCustomer) setEditingCustomer(selectedCustomer);
+									}}
+								>
+									Edit Vehicles
+								</Button>
+							</div>
 							{isLoadingVehicles ? (
 								<div className="py-4 text-center text-on-surface-variant">
 									<RefreshCw className="w-4 h-4 animate-spin mx-auto text-secondary mb-1" />
@@ -242,10 +330,20 @@ export function CustomersPage() {
 												<div>
 													<p className="font-medium text-on-surface font-mono">{v.registrationNumber}</p>
 													<p className="text-sm text-on-surface-variant">
-														{v.make} {v.model} {v.color ? '· ' + v.color : ''}
+														{v.make} {v.model} {v.variant ? `(${v.variant})` : ''}
 													</p>
 												</div>
 											</div>
+											<button
+												type="button"
+												onClick={() => {
+													if (selectedCustomer) setEditingCustomer(selectedCustomer);
+												}}
+												className="p-1.5 text-on-surface-variant hover:text-secondary rounded hover:bg-secondary/10 transition-colors"
+												title="Edit vehicle details"
+											>
+												<Edit3 className="w-4 h-4" />
+											</button>
 										</div>
 									))}
 								</div>
@@ -303,6 +401,35 @@ export function CustomersPage() {
 					</div>
 				)}
 			</Dialog>
+
+			{/* Create Customer Dialog */}
+			<CreateCustomerModal
+				open={isCreateModalOpen}
+				onClose={() => setIsCreateModalOpen(false)}
+				onSuccess={(newCustomer) => {
+					setIsCreateModalOpen(false);
+					queryClient.invalidateQueries({ queryKey: ['customers'] });
+					queryClient.invalidateQueries({ queryKey: ['vehicles-by-customer'] });
+					queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+					setSelectedCustomerId(newCustomer.id);
+				}}
+			/>
+
+			{/* Edit Customer Dialog */}
+			<EditCustomerModal
+				open={!!editingCustomer}
+				customer={editingCustomer}
+				onClose={() => setEditingCustomer(null)}
+				onSuccess={(updated) => {
+					setEditingCustomer(null);
+					queryClient.invalidateQueries({ queryKey: ['customers'] });
+					queryClient.invalidateQueries({ queryKey: ['vehicles-by-customer'] });
+					queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+					if (selectedCustomerId === updated.id) {
+						refetchCustomers();
+					}
+				}}
+			/>
 		</div>
 	);
 }

@@ -71,9 +71,10 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
       return;
     }
 
-    if (phone.isEmpty) {
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.isEmpty || cleanPhone.length != 10) {
       setState(() {
-        _errorMessage = 'Please enter a valid phone number.';
+        _errorMessage = 'Phone number must be exactly 10 digits without country code.';
       });
       return;
     }
@@ -88,20 +89,20 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
     if (isEdit) {
       final request = UpdateStaffRequest(
         name: name,
-        phoneNumber: phone,
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        role: _roleController.text.trim().isEmpty ? null : _roleController.text.trim(),
+        phoneNumber: cleanPhone,
+        email: email.isEmpty ? null : email,
+        address: address.isEmpty ? null : address,
+        role: role.isEmpty ? null : role,
         isActive: _isActive,
       );
       error = await widget.onUpdate?.call(widget.staff!.id, request);
     } else {
       final request = CreateStaffRequest(
         name: name,
-        phoneNumber: phone,
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        role: _roleController.text.trim().isEmpty ? null : _roleController.text.trim(),
+        phoneNumber: cleanPhone,
+        email: email.isEmpty ? null : email,
+        address: address.isEmpty ? null : address,
+        role: role.isEmpty ? null : role,
         isActive: _isActive,
       );
       error = await widget.onCreate?.call(request);

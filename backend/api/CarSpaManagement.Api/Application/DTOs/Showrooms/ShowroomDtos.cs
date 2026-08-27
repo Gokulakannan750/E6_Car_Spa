@@ -21,7 +21,7 @@ public record CreateShowroomRequest
     [Required, MaxLength(500)]
     public string Address { get; init; } = string.Empty;
 
-    [MaxLength(20)]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)]
     public string? Phone { get; init; }
 
     public bool IsActive { get; init; } = true;
@@ -35,7 +35,7 @@ public record UpdateShowroomRequest
     [MaxLength(500)]
     public string? Address { get; init; }
 
-    [MaxLength(20)]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)]
     public string? Phone { get; init; }
 
     public bool? IsActive { get; init; }

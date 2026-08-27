@@ -681,7 +681,7 @@ export function InvoiceDetailPage() {
 							{[businessProfile?.addressLine1, businessProfile?.addressLine2, businessProfile?.city, businessProfile?.state].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : '')}
 						</p>
 						<p className="text-xs text-on-surface-variant">
-							Phone: {businessProfile?.phone || '+91 9578749449'}
+							Phone: {businessProfile?.phone || '9578749449'}
 							{businessProfile?.email && <span> &nbsp;|&nbsp; Email: {businessProfile.email}</span>}
 							{isGstEnabled && businessProfile?.gstin && <span> &nbsp;|&nbsp; GSTIN: <strong className="font-mono">{businessProfile.gstin}</strong></span>}
 						</p>

@@ -552,13 +552,19 @@ export function ShowroomPage() {
 			return;
 		}
 
+		const cleanPhone = formPhone.replace(/\D/g, '').slice(0, 10);
+		if (cleanPhone && cleanPhone.length !== 10) {
+			setShowroomFormError('Phone number must be exactly 10 digits without country code.');
+			return;
+		}
+
 		if (editingShowroom) {
 			updateShowroomMutation.mutate({
 				id: editingShowroom.id,
 				data: {
 					name: formName.trim(),
 					address: formAddress.trim(),
-					phone: formPhone.trim() || undefined,
+					phone: cleanPhone || undefined,
 					isActive: formIsActive,
 				},
 			});
@@ -566,7 +572,7 @@ export function ShowroomPage() {
 			createShowroomMutation.mutate({
 				name: formName.trim(),
 				address: formAddress.trim(),
-				phone: formPhone.trim() || undefined,
+				phone: cleanPhone || undefined,
 				isActive: formIsActive,
 			});
 		}
@@ -1088,9 +1094,11 @@ export function ShowroomPage() {
 								<label className="text-xs font-medium text-on-surface">Contact Phone (Optional)</label>
 								<input
 									type="tel"
-									placeholder="e.g. +91 98765 43210"
+									inputMode="numeric"
+									maxLength={10}
+									placeholder="e.g. 9876543210"
 									value={formPhone}
-									onChange={(e) => setFormPhone(e.target.value)}
+									onChange={(e) => setFormPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
 									className="form-input w-full text-xs font-mono"
 								/>
 							</div>

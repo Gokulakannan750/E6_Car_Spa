@@ -17,6 +17,7 @@ import {
 	Phone,
 	Mail,
 	MapPin,
+	RotateCcw,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
@@ -239,6 +240,17 @@ export function StaffAdvancesPage() {
 	});
 
 	// ── Form Resets & Handlers ──────────────────────────────────────────────
+	const hasActiveFilters = Boolean(search || staffFilter || statusFilter !== 'active' || fromDate || toDate);
+
+	const resetFilters = () => {
+		setSearch('');
+		setStaffFilter('');
+		setStatusFilter('active');
+		setFromDate('');
+		setToDate('');
+		setPage(1);
+	};
+
 	const resetCreateForm = () => {
 		setCreateStaffId('');
 		setCreateAmount('');
@@ -319,14 +331,19 @@ export function StaffAdvancesPage() {
 			setStaffFormError('Staff name is required.');
 			return;
 		}
-		if (!staffFormPhone.trim()) {
+		const cleanPhone = staffFormPhone.replace(/\D/g, '').slice(0, 10);
+		if (!cleanPhone) {
 			setStaffFormError('Phone number is required.');
+			return;
+		}
+		if (cleanPhone.length !== 10) {
+			setStaffFormError('Phone number must be exactly 10 digits without country code.');
 			return;
 		}
 
 		staffMutation.mutate({
 			name: staffFormName.trim(),
-			phoneNumber: staffFormPhone.trim(),
+			phoneNumber: cleanPhone,
 			email: staffFormEmail.trim() || null,
 			address: staffFormAddress.trim() || null,
 			role: staffFormRole.trim() || null,
@@ -638,6 +655,19 @@ export function StaffAdvancesPage() {
 								)}
 							</div>
 
+							{/* Reset Filters Button */}
+							{hasActiveFilters && (
+								<button
+									type="button"
+									onClick={resetFilters}
+									className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg transition-colors cursor-pointer shadow-2xs"
+									title="Reset all filters to default"
+								>
+									<RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+									<span>Reset Filters</span>
+								</button>
+							)}
+
 							<div className="ml-auto text-xs text-on-surface-variant font-medium">
 								{advancesData?.totalCount ?? 0} {advancesData?.totalCount === 1 ? 'record' : 'records'}
 							</div>
@@ -828,18 +858,28 @@ export function StaffAdvancesPage() {
 														? 'No obsolete advance records match the current filters.'
 														: 'No active staff advances found matching your filter criteria.'}
 												</p>
-												{canCreate && statusFilter !== 'Obsolete' && (
-													<Button
-														variant="secondary"
-														className="mt-4"
-														onClick={() => {
-															resetCreateForm();
-															setShowCreateModal(true);
-														}}
-													>
-														Record First Advance
-													</Button>
-												)}
+												<div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+													{hasActiveFilters && (
+														<Button
+															variant="secondary"
+															icon={<RotateCcw className="w-3.5 h-3.5" />}
+															onClick={resetFilters}
+														>
+															Reset Filters
+														</Button>
+													)}
+													{canCreate && statusFilter !== 'Obsolete' && (
+														<Button
+															variant={hasActiveFilters ? 'primary' : 'secondary'}
+															onClick={() => {
+																resetCreateForm();
+																setShowCreateModal(true);
+															}}
+														>
+															Record First Advance
+														</Button>
+													)}
+												</div>
 											</td>
 										</tr>
 									)}
@@ -1476,12 +1516,14 @@ export function StaffAdvancesPage() {
 								Phone Number *
 							</label>
 							<input
-								type="text"
+								type="tel"
+								inputMode="numeric"
+								maxLength={10}
 								value={staffFormPhone}
-								onChange={(e) => setStaffFormPhone(e.target.value)}
+								onChange={(e) => setStaffFormPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
 								placeholder="e.g. 9876543210"
 								required
-								className="form-input w-full text-xs bg-white"
+								className="form-input w-full text-xs bg-white font-mono"
 							/>
 						</div>
 

@@ -46,7 +46,8 @@ public class UpdateBusinessProfileRequest
     public string PostalCode { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Phone number is required.")]
-    [MaxLength(30, ErrorMessage = "Phone number cannot exceed 30 characters.")]
+    [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code.")]
+    [MaxLength(10, ErrorMessage = "Phone number cannot exceed 10 characters.")]
     public string Phone { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Email address is required.")]

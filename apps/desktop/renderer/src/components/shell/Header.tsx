@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Bell, ChevronRight, X, LogOut, Shield, KeyRound, User as UserIcon } from 'lucide-react';
+import { ChevronRight, X, LogOut, Shield, KeyRound, User as UserIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import type { User } from '../../types/app';
 import { useAuth } from '../../features/auth/auth-context';
@@ -117,18 +117,6 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 				</div>
 
 				{actions && <div className="flex items-center gap-2">{actions}</div>}
-
-				{/* Notifications */}
-				<button
-					className={cn(
-						'sidebar-transition h-9 w-9 flex items-center justify-center rounded-lg',
-						'text-slate-400 hover:text-slate-600 hover:bg-slate-100 relative',
-					)}
-					title="Notifications"
-				>
-					<Bell className="h-4.5 w-4.5" />
-					<span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-				</button>
 
 				{/* User Profile & Logout */}
 				{currentUser && (

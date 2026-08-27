@@ -207,8 +207,9 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
                 keyboardType: TextInputType.phone,
                 validator: (val) {
                   if (val != null && val.trim().isNotEmpty) {
-                    if (val.trim().length > 20) {
-                      return 'Phone number cannot exceed 20 digits';
+                    final clean = val.replaceAll(RegExp(r'\D'), '');
+                    if (clean.length != 10) {
+                      return 'Phone number must be exactly 10 digits without country code';
                     }
                   }
                   return null;
