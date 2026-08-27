@@ -162,7 +162,7 @@ export const router = createBrowserRouter([
 					const m = await loadCatalogue();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="jobcards.view">
+							<RouteGuard requiredPermission="catalogue.view">
 								<m.CataloguePage />
 							</RouteGuard>
 						),
@@ -175,7 +175,7 @@ export const router = createBrowserRouter([
 					const m = await loadStaffAdvances();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="staff.advances">
+							<RouteGuard requiredPermission="staff_advances.view">
 								<m.StaffAdvancesPage />
 							</RouteGuard>
 						),

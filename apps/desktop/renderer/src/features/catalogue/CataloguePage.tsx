@@ -7,6 +7,7 @@ import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
+import { useAuth } from '../auth/auth-context';
 
 export const CATALOGUE_CATEGORIES = [
 	'Exterior Detailing',
@@ -65,6 +66,10 @@ function formatPrice(price: number): string {
 export function CataloguePage() {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { hasPermission } = useAuth();
+
+	const canCreate = hasPermission('catalogue.create');
+	const canEdit = hasPermission('catalogue.edit');
 
 	// ── Pre-selected service from navigation ───────────────────────────────────
 	const preselectedServiceId = (location.state as { preselectedServiceId?: string } | null)?.preselectedServiceId;
@@ -270,9 +275,11 @@ export function CataloguePage() {
 						)}
 					</div>
 
-					<Button icon={<Plus className="w-4 h-4" />} onClick={openCreateDialog}>
-						Create Service
-					</Button>
+					{canCreate && (
+						<Button icon={<Plus className="w-4 h-4" />} onClick={openCreateDialog}>
+							Create Service
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -337,9 +344,11 @@ export function CataloguePage() {
 					<Wrench className="w-12 h-12 text-on-surface-variant/40 mx-auto mb-3" />
 					<p className="text-base font-medium text-on-surface mb-1">No services found.</p>
 					<p className="text-sm text-on-surface-variant">Try a different search query or category filter.</p>
-					<Button variant="secondary" onClick={openCreateDialog} className="mt-4">
-						Create Service
-					</Button>
+					{canCreate && (
+						<Button variant="secondary" onClick={openCreateDialog} className="mt-4">
+							Create Service
+						</Button>
+					)}
 				</div>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -408,13 +417,15 @@ export function CataloguePage() {
 								>
 									<Info className="w-5 h-5" />
 								</button>
-								<button
-									className="p-2 border border-outline-variant rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
-									title="Edit Service"
-									onClick={() => openEditDialog(svc)}
-								>
-									<Edit3 className="w-4 h-4" />
-								</button>
+								{canEdit && (
+									<button
+										className="p-2 border border-outline-variant rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+										title="Edit Service"
+										onClick={() => openEditDialog(svc)}
+									>
+										<Edit3 className="w-4 h-4" />
+									</button>
+								)}
 							</div>
 						</div>
 					))}

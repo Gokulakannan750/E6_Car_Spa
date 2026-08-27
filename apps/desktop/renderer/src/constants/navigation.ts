@@ -43,13 +43,13 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 		label: 'Catalogue',
 		path: '/catalogue',
 		icon: 'Wrench',
-		requiresPermission: 'jobcards.view',
+		requiresPermission: 'catalogue.view',
 	},
 	{
 		label: 'Staff Advances',
 		path: '/staff-advances',
 		icon: 'Wallet',
-		requiresPermission: 'staff.advances',
+		requiresPermission: 'staff_advances.view',
 	},
 	{
 		label: 'Reports',

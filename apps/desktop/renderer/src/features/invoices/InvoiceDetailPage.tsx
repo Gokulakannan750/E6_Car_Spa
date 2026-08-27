@@ -40,6 +40,7 @@ import {
 } from '../../lib/api';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
+import { useAuth } from '../auth/auth-context';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
@@ -105,6 +106,10 @@ function formatDate(iso: string) {
 export function InvoiceDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const { hasPermission } = useAuth();
+
+	const canDiscount = hasPermission('invoices.discount');
+	const canRecordPayment = hasPermission('payments.record');
 
 	// State
 	const [invoice, setInvoice] = useState<InvoiceDto | null>(null);
@@ -846,12 +851,21 @@ export function InvoiceDetailPage() {
 										step="0.01"
 										max={calculations.subtotal}
 										value={discount}
+										disabled={!canDiscount}
+										title={!canDiscount ? "You don't have permission to apply discounts." : undefined}
 										onChange={(e) => setDiscount(e.target.value)}
 										className={`form-input py-1 px-2 text-right font-mono text-xs ${
+											!canDiscount ? 'bg-slate-100 cursor-not-allowed opacity-75 ' : ''
+										}${
 											!calculations.isValidDiscount ? 'border-error ring-1 ring-error' : ''
 										}`}
 										placeholder="0.00"
 									/>
+									{!canDiscount && (
+										<span className="text-[10px] text-amber-600 block mt-0.5 text-right">
+											No discount permission
+										</span>
+									)}
 								</div>
 							) : (
 								<span className="font-mono font-medium text-on-surface">
@@ -987,7 +1001,8 @@ export function InvoiceDetailPage() {
 					)}
 
 					{!isPaid ? (
-						<form onSubmit={handleRecordPayment} className="space-y-4 pt-1">
+						canRecordPayment ? (
+							<form onSubmit={handleRecordPayment} className="space-y-4 pt-1">
 							{/* Payment Method Quick Chips */}
 							<div className="flex flex-wrap gap-2">
 								{(
@@ -1096,6 +1111,11 @@ export function InvoiceDetailPage() {
 								</Button>
 							</div>
 						</form>
+						) : (
+							<div className="py-6 text-center text-xs text-on-surface-variant border border-dashed border-outline-variant rounded-lg bg-surface-container-low/30">
+								You don't have permission to record payments.
+							</div>
+						)
 					) : (
 						<div className="p-4 bg-success-container/20 border border-success/20 rounded-lg text-center space-y-1">
 							<p className="text-sm font-bold text-success">Invoice Paid</p>
