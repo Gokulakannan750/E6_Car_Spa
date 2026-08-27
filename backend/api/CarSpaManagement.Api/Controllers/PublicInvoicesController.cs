@@ -1,12 +1,14 @@
 using CarSpaManagement.Api.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/public/invoices")]
 [AllowAnonymous]
+[EnableRateLimiting("public-invoice")]
 public class PublicInvoicesController : ControllerBase
 {
     private readonly IInvoiceService _service;

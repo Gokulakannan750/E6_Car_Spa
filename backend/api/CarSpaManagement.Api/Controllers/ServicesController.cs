@@ -1,12 +1,14 @@
 using CarSpaManagement.Api.Application.DTOs.Services;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ServicesController : ControllerBase
 {
  private readonly IServiceService _service;

@@ -1,11 +1,13 @@
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/showroom-payments")]
+[Authorize]
 public class ShowroomPaymentsController : ControllerBase
 {
     private readonly IShowroomService _service;
@@ -16,7 +18,7 @@ public class ShowroomPaymentsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission("showroom.record_payment")]
+    [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var deleted = await _service.DeletePaymentAsync(id, ct);

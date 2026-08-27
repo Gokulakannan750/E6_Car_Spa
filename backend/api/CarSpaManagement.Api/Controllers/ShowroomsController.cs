@@ -1,12 +1,14 @@
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ShowroomsController : ControllerBase
 {
     private readonly IShowroomService _service;
@@ -154,6 +156,7 @@ public class ShowroomsController : ControllerBase
 
     [HttpPost("{id:guid}/daily-staff/{date:datetime}/unlock")]
     [HttpPost("{id:guid}/daily-staff/unlock")]
+    [Authorize]
     public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
     {
         var (userId, isOwner) = GetCallerInfo();

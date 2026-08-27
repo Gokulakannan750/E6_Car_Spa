@@ -177,7 +177,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("{id:guid}/public-link")]
-	[RequirePermission("invoices.view")]
+	[RequirePermission("invoices.generate")]
 	public async Task<IActionResult> CreatePublicLink(Guid id, CancellationToken ct)
 	{
 		try
@@ -219,7 +219,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpDelete("{id:guid}/public-link")]
-	[RequirePermission("invoices.view")]
+	[RequirePermission("invoices.generate")]
 	public async Task<IActionResult> RevokePublicLink(Guid id, CancellationToken ct)
 	{
 		try
@@ -238,7 +238,7 @@ public class InvoicesController : ControllerBase
 	}
 
 	[HttpPost("{id:guid}/public-link/rotate")]
-	[RequirePermission("invoices.view")]
+	[RequirePermission("invoices.generate")]
 	public async Task<IActionResult> RotatePublicLink(Guid id, CancellationToken ct)
 	{
 		try

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -17,15 +18,6 @@ public class PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
             return;
         }
 
-        // 1. OWNER RULE: Owner bypasses all permission checks automatically
-        if (context.User.IsInRole("Owner") ||
-            context.User.HasClaim(c => c.Type == "isOwner" && c.Value.Equals("true", StringComparison.OrdinalIgnoreCase)))
-        {
-            context.Succeed(requirement);
-            return;
-        }
-
-        // 2. Manager / Staff: check if assigned permission exists in database
         var userIdStr = context.User.FindFirstValue(ClaimTypes.NameIdentifier)
                      ?? context.User.FindFirstValue("sub");
 
@@ -40,9 +32,19 @@ public class PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null || !user.IsActive)
         {
+            return; // Inactive or deleted user denied immediately
+        }
+
+        // 1. OWNER RULE: Active Owner bypasses all permission checks automatically
+        if (user.Role == UserRole.Owner ||
+            context.User.IsInRole("Owner") ||
+            context.User.HasClaim(c => c.Type == "isOwner" && c.Value.Equals("true", StringComparison.OrdinalIgnoreCase)))
+        {
+            context.Succeed(requirement);
             return;
         }
 
+        // 2. Manager / Staff: check if assigned permission exists in database
         var hasPermission = await db.UserPermissions
             .AsNoTracking()
             .AnyAsync(up => up.UserId == userId && up.Permission.Code == requirement.Permission);
