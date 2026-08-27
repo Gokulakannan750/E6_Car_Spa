@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
  <PropertyGroup>
  <TargetFramework>net10.0</TargetFramework>
  <Nullable>enable</Nullable>
  <ImplicitUsings>enable</ImplicitUsings>
- </PropertyGroup>
+   <UserSecretsId>4f422417-24c1-4576-b024-63f64069ff52</UserSecretsId>
+  </PropertyGroup>
 
  <ItemGroup>
  <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />

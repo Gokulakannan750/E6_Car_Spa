@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
     "http": {
@@ -7,7 +7,9 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5298",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_KEY": "e6_car_spa_development_super_secret_jwt_key_at_least_32_characters_long",
+        "WHATSAPP_ENCRYPTION_KEY": "e6_car_spa_development_whatsapp_secret_encryption_key_32_bytes"
       }
     },
     "https": {
@@ -16,7 +18,9 @@
       "launchBrowser": false,
       "applicationUrl": "https://localhost:7012;http://localhost:5298",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_KEY": "e6_car_spa_development_super_secret_jwt_key_at_least_32_characters_long",
+        "WHATSAPP_ENCRYPTION_KEY": "e6_car_spa_development_whatsapp_secret_encryption_key_32_bytes"
       }
     }
   }

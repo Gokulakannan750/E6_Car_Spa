@@ -8,101 +8,136 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class VehicleService : IVehicleService
 {
- private readonly AppDbContext _db;
+	private readonly AppDbContext _db;
+	private readonly IAuditLogService _auditLogService;
 
- public VehicleService(AppDbContext db)
- {
- _db = db;
- }
+	public VehicleService(AppDbContext db, IAuditLogService auditLogService)
+	{
+		_db = db;
+		_auditLogService = auditLogService;
+	}
 
- public async Task<VehicleDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
- {
- var v = await _db.Vehicles
- .Include(v => v.Customer)
- .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
- return v is null ? null : ToDto(v);
- }
+	public async Task<VehicleDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+	{
+		var v = await _db.Vehicles
+			.Include(v => v.Customer)
+			.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+		return v is null ? null : ToDto(v);
+	}
 
- public async Task<IReadOnlyList<VehicleDto>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)
- {
- return await _db.Vehicles
- .Where(v => v.CustomerId == customerId)
- .OrderByDescending(v => v.CreatedAt)
- .Include(v => v.Customer)
- .Select(v => ToDto(v))
- .ToListAsync(cancellationToken);
- }
+	public async Task<IReadOnlyList<VehicleDto>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken = default)
+	{
+		return await _db.Vehicles
+			.Where(v => v.CustomerId == customerId)
+			.OrderByDescending(v => v.CreatedAt)
+			.Include(v => v.Customer)
+			.Select(v => ToDto(v))
+			.ToListAsync(cancellationToken);
+	}
 
- public async Task<IReadOnlyList<VehicleDto>> GetAllAsync(int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
- {
- var query = _db.Vehicles.AsQueryable();
+	public async Task<IReadOnlyList<VehicleDto>> GetAllAsync(int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
+	{
+		var query = _db.Vehicles.AsQueryable();
 
- if (!string.IsNullOrWhiteSpace(search))
- {
- search = search.Trim().ToLower();
- query = query.Where(v => EF.Functions.Like(v.RegistrationNumber.ToLower(), $"%{search}%") || EF.Functions.Like(v.Make.ToLower(), $"%{search}%") || EF.Functions.Like(v.Model.ToLower(), $"%{search}%"));
- }
+		if (!string.IsNullOrWhiteSpace(search))
+		{
+			search = search.Trim().ToLower();
+			query = query.Where(v => EF.Functions.Like(v.RegistrationNumber.ToLower(), $"%{search}%") || EF.Functions.Like(v.Make.ToLower(), $"%{search}%") || EF.Functions.Like(v.Model.ToLower(), $"%{search}%"));
+		}
 
- return await query.OrderByDescending(v => v.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).Include(v => v.Customer).Select(v => ToDto(v)).ToListAsync(cancellationToken);
- }
+		return await query.OrderByDescending(v => v.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).Include(v => v.Customer).Select(v => ToDto(v)).ToListAsync(cancellationToken);
+	}
 
- public async Task<int> GetTotalCountAsync(string? search = null, CancellationToken cancellationToken = default)
- {
- var query = _db.Vehicles.AsQueryable();
- if (!string.IsNullOrWhiteSpace(search))
- {
- search = search.Trim().ToLower();
- query = query.Where(v => v.RegistrationNumber.ToLower().Contains(search) || v.Make.ToLower().Contains(search) || v.Model.ToLower().Contains(search));
- }
- return await query.CountAsync(cancellationToken);
- }
+	public async Task<int> GetTotalCountAsync(string? search = null, CancellationToken cancellationToken = default)
+	{
+		var query = _db.Vehicles.AsQueryable();
+		if (!string.IsNullOrWhiteSpace(search))
+		{
+			search = search.Trim().ToLower();
+			query = query.Where(v => v.RegistrationNumber.ToLower().Contains(search) || v.Make.ToLower().Contains(search) || v.Model.ToLower().Contains(search));
+		}
+		return await query.CountAsync(cancellationToken);
+	}
 
- public async Task<VehicleDto> CreateAsync(CreateVehicleRequest request, CancellationToken cancellationToken = default)
- {
- var vehicle = new Vehicle
- {
- RegistrationNumber = request.RegistrationNumber.Trim().ToUpper(),
- Make = request.Make.Trim(),
- Model = request.Model.Trim(),
- Variant = request.Variant?.Trim(),
- Color = request.Color?.Trim(),
- CustomerId = request.CustomerId
- };
+	public async Task<VehicleDto> CreateAsync(CreateVehicleRequest request, CancellationToken cancellationToken = default)
+	{
+		var vehicle = new Vehicle
+		{
+			RegistrationNumber = request.RegistrationNumber.Trim().ToUpper(),
+			Make = request.Make.Trim(),
+			Model = request.Model.Trim(),
+			Variant = request.Variant?.Trim(),
+			Color = request.Color?.Trim(),
+			CustomerId = request.CustomerId
+		};
 
- await _db.Vehicles.AddAsync(vehicle, cancellationToken);
- await _db.SaveChangesAsync(cancellationToken);
+		await _db.Vehicles.AddAsync(vehicle, cancellationToken);
+		await _db.SaveChangesAsync(cancellationToken);
 
- // Load customer for DTO
- await _db.Entry(vehicle).Reference(v => v.Customer).LoadAsync(cancellationToken);
- return ToDto(vehicle);
- }
+		// Load customer for DTO
+		await _db.Entry(vehicle).Reference(v => v.Customer).LoadAsync(cancellationToken);
 
- public async Task<VehicleDto?> UpdateAsync(Guid id, UpdateVehicleRequest request, CancellationToken cancellationToken = default)
- {
- var vehicle = await _db.Vehicles.FindAsync([id], cancellationToken);
- if (vehicle is null) return null;
+		await _auditLogService.RecordAsync(
+			action: "vehicles.create",
+			module: "Vehicles",
+			description: $"Vehicle '{vehicle.RegistrationNumber}' ({vehicle.Make} {vehicle.Model}) registered for customer '{vehicle.Customer?.Name}'.",
+			entityType: "Vehicle",
+			entityId: vehicle.Id,
+			entityReference: vehicle.RegistrationNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
 
- vehicle.RegistrationNumber = request.RegistrationNumber.Trim().ToUpper();
- vehicle.Make = request.Make.Trim();
- vehicle.Model = request.Model.Trim();
- vehicle.Variant = request.Variant?.Trim();
- vehicle.Color = request.Color?.Trim();
- vehicle.UpdatedAt = DateTime.UtcNow;
+		return ToDto(vehicle);
+	}
 
- await _db.SaveChangesAsync(cancellationToken);
- return ToDto(vehicle);
- }
+	public async Task<VehicleDto?> UpdateAsync(Guid id, UpdateVehicleRequest request, CancellationToken cancellationToken = default)
+	{
+		var vehicle = await _db.Vehicles.Include(v => v.Customer).FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+		if (vehicle is null) return null;
 
- public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
- {
- var vehicle = await _db.Vehicles.FindAsync([id], cancellationToken);
- if (vehicle is null) return false;
+		vehicle.RegistrationNumber = request.RegistrationNumber.Trim().ToUpper();
+		vehicle.Make = request.Make.Trim();
+		vehicle.Model = request.Model.Trim();
+		vehicle.Variant = request.Variant?.Trim();
+		vehicle.Color = request.Color?.Trim();
+		vehicle.UpdatedAt = DateTime.UtcNow;
 
- vehicle.IsDeleted = true;
- vehicle.UpdatedAt = DateTime.UtcNow;
- await _db.SaveChangesAsync(cancellationToken);
- return true;
- }
+		await _db.SaveChangesAsync(cancellationToken);
+
+		await _auditLogService.RecordAsync(
+			action: "vehicles.edit",
+			module: "Vehicles",
+			description: $"Vehicle '{vehicle.RegistrationNumber}' updated.",
+			entityType: "Vehicle",
+			entityId: vehicle.Id,
+			entityReference: vehicle.RegistrationNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return ToDto(vehicle);
+	}
+
+	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+	{
+		var vehicle = await _db.Vehicles.FindAsync([id], cancellationToken);
+		if (vehicle is null) return false;
+
+		vehicle.IsDeleted = true;
+		vehicle.UpdatedAt = DateTime.UtcNow;
+		await _db.SaveChangesAsync(cancellationToken);
+
+		await _auditLogService.RecordAsync(
+			action: "vehicles.delete",
+			module: "Vehicles",
+			description: $"Vehicle '{vehicle.RegistrationNumber}' deleted.",
+			entityType: "Vehicle",
+			entityId: vehicle.Id,
+			entityReference: vehicle.RegistrationNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return true;
+	}
 
  public async Task<bool> RegistrationNumberExistsAsync(string registrationNumber, Guid? excludeId = null, CancellationToken cancellationToken = default)
  {

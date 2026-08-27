@@ -9,12 +9,14 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class CustomerService : ICustomerService
 {
- private readonly AppDbContext _db;
+	private readonly AppDbContext _db;
+	private readonly IAuditLogService _auditLogService;
 
- public CustomerService(AppDbContext db)
- {
- _db = db;
- }
+	public CustomerService(AppDbContext db, IAuditLogService auditLogService)
+	{
+		_db = db;
+		_auditLogService = auditLogService;
+	}
 
  public async Task<CustomerDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
  {
@@ -108,47 +110,79 @@ public class CustomerService : ICustomerService
  return await query.CountAsync(cancellationToken);
  }
 
- public async Task<CustomerDto> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
- {
- var customer = new Customer
- {
- Name = request.Name.Trim(),
- PhoneNumber = request.PhoneNumber.Trim(),
- Email = request.Email?.Trim(),
- Address = request.Address?.Trim()
- };
+	public async Task<CustomerDto> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
+	{
+		var customer = new Customer
+		{
+			Name = request.Name.Trim(),
+			PhoneNumber = request.PhoneNumber.Trim(),
+			Email = request.Email?.Trim(),
+			Address = request.Address?.Trim()
+		};
 
- await _db.Customers.AddAsync(customer, cancellationToken);
- await _db.SaveChangesAsync(cancellationToken);
+		await _db.Customers.AddAsync(customer, cancellationToken);
+		await _db.SaveChangesAsync(cancellationToken);
 
- return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
- }
+		await _auditLogService.RecordAsync(
+			action: "customers.create",
+			module: "Customers",
+			description: $"Customer '{customer.Name}' created with phone '{customer.PhoneNumber}'.",
+			entityType: "Customer",
+			entityId: customer.Id,
+			entityReference: customer.Name,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
 
- public async Task<CustomerDto?> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
- {
- var customer = await _db.Customers.FindAsync([id], cancellationToken);
- if (customer is null) return null;
+		return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
+	}
 
- customer.Name = request.Name.Trim();
- customer.PhoneNumber = request.PhoneNumber.Trim();
- customer.Email = request.Email?.Trim();
- customer.Address = request.Address?.Trim();
- customer.UpdatedAt = DateTime.UtcNow;
+	public async Task<CustomerDto?> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
+	{
+		var customer = await _db.Customers.FindAsync([id], cancellationToken);
+		if (customer is null) return null;
 
- await _db.SaveChangesAsync(cancellationToken);
- return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
- }
+		customer.Name = request.Name.Trim();
+		customer.PhoneNumber = request.PhoneNumber.Trim();
+		customer.Email = request.Email?.Trim();
+		customer.Address = request.Address?.Trim();
+		customer.UpdatedAt = DateTime.UtcNow;
 
- public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
- {
- var customer = await _db.Customers.FindAsync([id], cancellationToken);
- if (customer is null) return false;
+		await _db.SaveChangesAsync(cancellationToken);
 
- customer.IsDeleted = true;
- customer.UpdatedAt = DateTime.UtcNow;
- await _db.SaveChangesAsync(cancellationToken);
- return true;
- }
+		await _auditLogService.RecordAsync(
+			action: "customers.edit",
+			module: "Customers",
+			description: $"Customer '{customer.Name}' updated.",
+			entityType: "Customer",
+			entityId: customer.Id,
+			entityReference: customer.Name,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
+	}
+
+	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+	{
+		var customer = await _db.Customers.FindAsync([id], cancellationToken);
+		if (customer is null) return false;
+
+		customer.IsDeleted = true;
+		customer.UpdatedAt = DateTime.UtcNow;
+		await _db.SaveChangesAsync(cancellationToken);
+
+		await _auditLogService.RecordAsync(
+			action: "customers.delete",
+			module: "Customers",
+			description: $"Customer '{customer.Name}' deleted.",
+			entityType: "Customer",
+			entityId: customer.Id,
+			entityReference: customer.Name,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return true;
+	}
 
  public async Task<bool> PhoneExistsAsync(string phoneNumber, Guid? excludeId = null, CancellationToken cancellationToken = default)
  {

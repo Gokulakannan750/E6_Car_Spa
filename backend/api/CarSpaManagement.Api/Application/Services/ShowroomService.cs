@@ -640,18 +640,43 @@ public class ShowroomService : IShowroomService
         bill.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: "showroom.record_payment",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Showroom payment of ₹{payment.Amount:F2} ({payment.PaymentMethod}) recorded for {showroom.Name} ({targetDate:dd-MMM-yyyy}).",
+            entityType: "ShowroomPayment",
+            entityId: payment.Id,
+            entityReference: showroom.Name,
+            outcome: "Success",
+            cancellationToken: ct);
+
         return ToBillDto(bill, showroom.Name);
     }
 
     public async Task<bool> DeletePaymentAsync(Guid paymentId, CancellationToken ct = default)
     {
-        var payment = await _db.ShowroomPayments.FirstOrDefaultAsync(p => p.Id == paymentId, ct);
+        var payment = await _db.ShowroomPayments
+            .Include(p => p.ShowroomDailyBill)
+            .ThenInclude(b => b.Showroom)
+            .FirstOrDefaultAsync(p => p.Id == paymentId, ct);
         if (payment == null) return false;
 
         payment.IsDeleted = true;
         payment.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: "showroom.delete_payment",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Showroom payment of ₹{payment.Amount:F2} for {payment.ShowroomDailyBill?.Showroom?.Name ?? "Showroom"} deleted.",
+            entityType: "ShowroomPayment",
+            entityId: payment.Id,
+            entityReference: payment.ShowroomDailyBill?.Showroom?.Name,
+            outcome: "Success",
+            cancellationToken: ct);
+
         return true;
     }
 

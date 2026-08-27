@@ -8,6 +8,7 @@ namespace CarSpaManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/audit-logs")]
+[Route("api/audit")]
 [Authorize]
 public class AuditLogsController(IAuditLogService auditLogService) : ControllerBase
 {

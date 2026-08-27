@@ -125,7 +125,7 @@ public class EndpointAuthorizationHardeningTests
     public async Task ServicesController_GetAll_ReturnsServicesForAuthenticatedUser()
     {
         var (db, _, _) = CreateTestEnvironment();
-        var serviceService = new ServiceService(db);
+        var serviceService = new ServiceService(db, new DummyAuditLogService());
         var controller = new ServicesController(serviceService);
 
         db.Services.Add(new Service

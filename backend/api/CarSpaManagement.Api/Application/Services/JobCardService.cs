@@ -13,10 +13,12 @@ namespace CarSpaManagement.Api.Application.Services;
 public class JobCardService : IJobCardService
 {
 	private readonly AppDbContext _db;
+	private readonly IAuditLogService _auditLogService;
 
-	public JobCardService(AppDbContext db)
+	public JobCardService(AppDbContext db, IAuditLogService auditLogService)
 	{
 		_db = db;
+		_auditLogService = auditLogService;
 	}
 
 	public async Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -322,6 +324,16 @@ public class JobCardService : IJobCardService
 		await _db.Entry(jobCard).Reference(j => j.Customer).LoadAsync(cancellationToken);
 		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
 
+		await _auditLogService.RecordAsync(
+			action: "jobcards.create",
+			module: "JobCards",
+			description: $"Job card '{jobCard.JobCardNumber}' created for vehicle '{jobCard.Vehicle?.RegistrationNumber}'. Total: ₹{jobCard.TotalAmount:F2}.",
+			entityType: "JobCard",
+			entityId: jobCard.Id,
+			entityReference: jobCard.JobCardNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
 		return ToDetailDto(jobCard);
 	}
 
@@ -417,6 +429,16 @@ public class JobCardService : IJobCardService
 		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
 		await _db.Entry(jobCard).Collection(j => j.JobCardServices).LoadAsync(cancellationToken);
 
+		await _auditLogService.RecordAsync(
+			action: "jobcards.edit",
+			module: "JobCards",
+			description: $"Job card '{jobCard.JobCardNumber}' services updated. Total: ₹{jobCard.TotalAmount:F2}.",
+			entityType: "JobCard",
+			entityId: jobCard.Id,
+			entityReference: jobCard.JobCardNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
 		var invoice = await _db.Invoices
 			.Where(i => i.JobCardId == jobCard.Id && !i.IsDeleted)
 			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
@@ -433,12 +455,30 @@ public class JobCardService : IJobCardService
 		jobCard.IsDeleted = true;
 		jobCard.UpdatedAt = DateTime.UtcNow;
 		await _db.SaveChangesAsync(cancellationToken);
+
+		await _auditLogService.RecordAsync(
+			action: "jobcards.delete",
+			module: "JobCards",
+			description: $"Job card '{jobCard.JobCardNumber}' deleted.",
+			entityType: "JobCard",
+			entityId: jobCard.Id,
+			entityReference: jobCard.JobCardNumber,
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
 		return true;
 	}
 
 	private async Task<string> GenerateJobCardNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;
+
+		if (!_db.Database.IsRelational())
+		{
+			var count = await _db.JobCards.CountAsync(cancellationToken) + 1;
+			return $"JC-{currentYear}-{count:D6}";
+		}
+
 		var conn = _db.Database.GetDbConnection();
 		var openedLocally = false;
 		if (conn.State != System.Data.ConnectionState.Open)

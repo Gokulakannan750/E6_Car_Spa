@@ -428,6 +428,16 @@ public class StaffAdvanceService : IStaffAdvanceService
         await _db.Staff.AddAsync(staff, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _auditLogService.RecordAsync(
+            action: "staff.create",
+            module: "Staff",
+            description: $"Staff member '{staff.Name}' created with role '{staff.Role}'.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
         return new StaffDto(
             staff.Id,
             staff.Name,
@@ -455,6 +465,16 @@ public class StaffAdvanceService : IStaffAdvanceService
         staff.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
+        await _auditLogService.RecordAsync(
+            action: "staff.edit",
+            module: "Staff",
+            description: $"Staff member '{staff.Name}' updated.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
@@ -479,6 +499,17 @@ public class StaffAdvanceService : IStaffAdvanceService
         staff.IsDeleted = true;
         staff.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "staff.delete",
+            module: "Staff",
+            description: $"Staff member '{staff.Name}' deleted.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
         return true;
     }
 
