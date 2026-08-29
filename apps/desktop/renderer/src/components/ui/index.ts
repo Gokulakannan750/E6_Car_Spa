@@ -6,3 +6,4 @@ export { Button } from './Button';
 export { Checkbox, Switch } from './Checkbox';
 export { StatusBadge } from './Badge';
 export { Dialog } from './Dialog';
+export { Combobox } from './Combobox';

@@ -1265,51 +1265,6 @@ export function ShowroomPage() {
 			══════════════════════════════════════════════════════════════════════ */}
 			{activeDetailTab === 'daily' && (
 				<div className="space-y-6">
-					{/* Interactive Date Selector Bar */}
-					<div className="flex items-center justify-between bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/60">
-						<span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-							Active Date: <strong className="text-on-surface text-sm normal-case">{formatDateHeading(selectedDate)}</strong>
-						</span>
-
-						<div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-outline-variant/80 shadow-2xs">
-							<button
-								type="button"
-								onClick={() => shiftDate(-1)}
-								className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-								title="Previous day (1 day before)"
-							>
-								<ChevronLeft className="w-4 h-4" />
-							</button>
-
-							<div className="flex items-center gap-1.5 px-2">
-								<Calendar className="w-3.5 h-3.5 text-secondary shrink-0" />
-								<input
-									type="date"
-									value={selectedDate}
-									onChange={(e) => setSelectedDate(e.target.value)}
-									className="text-xs font-semibold text-on-surface bg-transparent border-0 outline-hidden cursor-pointer"
-								/>
-							</div>
-
-							<button
-								type="button"
-								onClick={() => shiftDate(1)}
-								className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
-								title="Next day (1 day after)"
-							>
-								<ChevronRight className="w-4 h-4" />
-							</button>
-
-							<button
-								type="button"
-								onClick={() => setSelectedDate(getTodayStr())}
-								className="ml-1 text-[11px] font-semibold text-secondary hover:underline px-2 py-0.5 rounded hover:bg-secondary/10 transition-colors cursor-pointer"
-							>
-								Today
-							</button>
-						</div>
-					</div>
-
 					{/* Top Daily Metric Cards (Staff + Financial Summary Banner) */}
 					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
 						{/* 1: Staff Count */}
@@ -1391,6 +1346,51 @@ export function ShowroomPage() {
 								Payment Status
 							</p>
 							<div>{getPaymentStatusBadge(dailyBillData?.status ?? 'Unpaid')}</div>
+						</div>
+					</div>
+
+					{/* Interactive Date Selector Bar */}
+					<div className="flex items-center justify-between bg-surface-container-low/60 p-3 rounded-xl border border-outline-variant/60">
+						<span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+							Active Date: <strong className="text-on-surface text-sm normal-case">{formatDateHeading(selectedDate)}</strong>
+						</span>
+
+						<div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-outline-variant/80 shadow-2xs">
+							<button
+								type="button"
+								onClick={() => shiftDate(-1)}
+								className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+								title="Previous day (1 day before)"
+							>
+								<ChevronLeft className="w-4 h-4" />
+							</button>
+
+							<div className="flex items-center gap-1.5 px-2">
+								<Calendar className="w-3.5 h-3.5 text-secondary shrink-0" />
+								<input
+									type="date"
+									value={selectedDate}
+									onChange={(e) => setSelectedDate(e.target.value)}
+									className="text-xs font-semibold text-on-surface bg-transparent border-0 outline-hidden cursor-pointer"
+								/>
+							</div>
+
+							<button
+								type="button"
+								onClick={() => shiftDate(1)}
+								className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+								title="Next day (1 day after)"
+							>
+								<ChevronRight className="w-4 h-4" />
+							</button>
+
+							<button
+								type="button"
+								onClick={() => setSelectedDate(getTodayStr())}
+								className="ml-1 text-[11px] font-semibold text-secondary hover:underline px-2 py-0.5 rounded hover:bg-secondary/10 transition-colors cursor-pointer"
+							>
+								Today
+							</button>
 						</div>
 					</div>
 

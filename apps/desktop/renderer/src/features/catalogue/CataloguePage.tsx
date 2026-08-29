@@ -7,6 +7,7 @@ import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
+import { Combobox } from '../../components/ui/Combobox';
 import { useAuth } from '../auth/auth-context';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,17 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'price-asc', label: 'Price: Low to High' },
 	{ value: 'price-desc', label: 'Price: High to Low' },
 	{ value: 'duration-asc', label: 'Duration: Shortest First' },
+];
+
+const DEFAULT_CATEGORIES = [
+	'Exterior Detailing',
+	'Interior Care',
+	'Protection Packages',
+	'Ceramic & Graphene Coating',
+	'Paint Protection Film (PPF)',
+	'Washing & Maintenance',
+	'Windshield & Glass Care',
+	'Others',
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,6 +106,15 @@ export function CataloguePage() {
 	// ── Dynamic Categories from real API services ──────────────────────────────
 	const dynamicCategories = useMemo(() => {
 		const set = new Set<string>();
+		services.forEach((s) => {
+			if (s.category && s.category.trim()) set.add(s.category.trim());
+		});
+		return Array.from(set);
+	}, [services]);
+
+	// ── Available Categories for Combobox (Presets + Dynamic) ─────────────────
+	const categoryOptions = useMemo(() => {
+		const set = new Set<string>(DEFAULT_CATEGORIES);
 		services.forEach((s) => {
 			if (s.category && s.category.trim()) set.add(s.category.trim());
 		});
@@ -491,23 +512,14 @@ export function CataloguePage() {
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1">Category <span className="text-error">*</span></label>
-								<input
-									type="text"
-									list="category-options"
-									required
-									value={form.category}
-									onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-									className="form-input w-full"
-									placeholder="e.g. Exterior Detailing, Protection"
-								/>
-								<datalist id="category-options">
-									{dynamicCategories.map((cat) => (
-										<option key={cat} value={cat} />
-									))}
-								</datalist>
-							</div>
+							<Combobox
+								label="Category"
+								required
+								value={form.category}
+								onChange={(val) => setForm((p) => ({ ...p, category: val }))}
+								options={categoryOptions}
+								placeholder="e.g. Exterior Detailing, Protection"
+							/>
 							<div>
 								<label className="block text-sm font-medium text-on-surface mb-1">
 									Price (INR) <span className="text-error">*</span>
