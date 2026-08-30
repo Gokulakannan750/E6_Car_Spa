@@ -76,9 +76,12 @@ export function PermissionSelector({ groups, selected, onChange, disabled = fals
 							{group.permissions.map((perm) => {
 								const isChecked = selected.includes(perm.code);
 								return (
-									<label
+									<button
+										type="button"
 										key={perm.code}
-										className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-all ${
+										onClick={() => handleTogglePermission(perm.code)}
+										disabled={disabled}
+										className={`flex items-start text-left w-full gap-2.5 p-2 rounded-lg transition-all cursor-pointer ${
 											isChecked
 												? 'bg-blue-50/80 border border-blue-200 text-blue-900'
 												: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100/70'
@@ -91,13 +94,6 @@ export function PermissionSelector({ groups, selected, onChange, disabled = fals
 												<Square className="w-4 h-4 text-slate-400" />
 											)}
 										</div>
-										<input
-											type="checkbox"
-											className="sr-only"
-											checked={isChecked}
-											disabled={disabled}
-											onChange={() => handleTogglePermission(perm.code)}
-										/>
 										<div className="min-w-0 flex-1">
 											<p className="text-xs font-semibold leading-tight">{perm.name}</p>
 											{perm.description && (
@@ -106,7 +102,7 @@ export function PermissionSelector({ groups, selected, onChange, disabled = fals
 												</p>
 											)}
 										</div>
-									</label>
+									</button>
 								);
 							})}
 						</div>

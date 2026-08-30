@@ -114,8 +114,21 @@ export function CustomersPage() {
 			<Button
 				icon={<Plus className="w-4 h-4" />}
 				onClick={() => {
-					setSelectedCustomerId(null);
-					navigate('/job-cards/new');
+					if (selectedCustomer) {
+						const primaryVehicle = customerVehicles.length > 0 ? customerVehicles[0] : null;
+						setSelectedCustomerId(null);
+						navigate('/job-cards/new', {
+							state: {
+								customer: selectedCustomer,
+								vehicles: customerVehicles,
+								selectedVehicle: primaryVehicle,
+								step: primaryVehicle ? 1 : 0,
+							},
+						});
+					} else {
+						setSelectedCustomerId(null);
+						navigate('/job-cards/new');
+					}
 				}}
 			>
 				New Job Card
@@ -334,16 +347,38 @@ export function CustomersPage() {
 													</p>
 												</div>
 											</div>
-											<button
-												type="button"
-												onClick={() => {
-													if (selectedCustomer) setEditingCustomer(selectedCustomer);
-												}}
-												className="p-1.5 text-on-surface-variant hover:text-secondary rounded hover:bg-secondary/10 transition-colors"
-												title="Edit vehicle details"
-											>
-												<Edit3 className="w-4 h-4" />
-											</button>
+											<div className="flex items-center gap-1.5">
+												<Button
+													size="sm"
+													variant="secondary"
+													icon={<Plus className="w-3.5 h-3.5" />}
+													onClick={() => {
+														if (selectedCustomer) {
+															setSelectedCustomerId(null);
+															navigate('/job-cards/new', {
+																state: {
+																	customer: selectedCustomer,
+																	vehicles: customerVehicles,
+																	selectedVehicle: v,
+																	step: 1,
+																},
+															});
+														}
+													}}
+												>
+													Job Card
+												</Button>
+												<button
+													type="button"
+													onClick={() => {
+														if (selectedCustomer) setEditingCustomer(selectedCustomer);
+													}}
+													className="p-1.5 text-on-surface-variant hover:text-secondary rounded hover:bg-secondary/10 transition-colors cursor-pointer"
+													title="Edit vehicle details"
+												>
+													<Edit3 className="w-4 h-4" />
+												</button>
+											</div>
 										</div>
 									))}
 								</div>

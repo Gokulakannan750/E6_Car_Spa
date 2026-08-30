@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
 	type UserItemDto,
 	type PermissionGroupDetailDto,
@@ -19,6 +19,14 @@ interface UserFormProps {
 export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFormProps) {
 	const isEdit = !!user;
 	const isOwner = user?.role === 'Owner';
+
+	useEffect(() => {
+		const originalOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = originalOverflow;
+		};
+	}, []);
 
 	const [fullName, setFullName] = useState(user?.fullName || '');
 	const [username, setUsername] = useState(user?.username || '');
@@ -103,8 +111,11 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 	};
 
 	return (
-		<div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-			<div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+		<div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+			<div
+				className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+				onClick={(e) => e.stopPropagation()}
+			>
 				{/* Modal Header */}
 				<div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
 					<div>

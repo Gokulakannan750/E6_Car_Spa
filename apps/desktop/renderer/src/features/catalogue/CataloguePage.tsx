@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Edit3, ChevronDown, Clock, PlusCircle, Info, Wrench } from 'lucide-react';
-import { getServices, createService, updateService, type ServiceDto, type CreateServiceInput } from '../../lib/api';
+import { getServices, getServiceCategories, createService, updateService, type ServiceDto, type CreateServiceInput } from '../../lib/api';
 import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -40,17 +40,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'price-asc', label: 'Price: Low to High' },
 	{ value: 'price-desc', label: 'Price: High to Low' },
 	{ value: 'duration-asc', label: 'Duration: Shortest First' },
-];
-
-const DEFAULT_CATEGORIES = [
-	'Exterior Detailing',
-	'Interior Care',
-	'Protection Packages',
-	'Ceramic & Graphene Coating',
-	'Paint Protection Film (PPF)',
-	'Washing & Maintenance',
-	'Windshield & Glass Care',
-	'Others',
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -101,35 +90,34 @@ export function CataloguePage() {
 		queryFn: () => getServices({ page: 1, pageSize: 200 }),
 	});
 
+	const { data: backendCategories = [] } = useQuery({
+		queryKey: ['services', 'categories'],
+		queryFn: () => getServiceCategories(),
+	});
+
 	const services = servicesData?.items ?? [];
 
-	// ── Dynamic Categories from real API services ──────────────────────────────
+	// ── Authoritative Categories from backend GET /api/services/categories + loaded services ──
 	const dynamicCategories = useMemo(() => {
-		const set = new Set<string>();
+		const set = new Set<string>(backendCategories);
 		services.forEach((s) => {
 			if (s.category && s.category.trim()) set.add(s.category.trim());
 		});
-		return Array.from(set);
-	}, [services]);
+		return Array.from(set).sort();
+	}, [backendCategories, services]);
 
-	// ── Available Categories for Combobox (Presets + Dynamic) ─────────────────
-	const categoryOptions = useMemo(() => {
-		const set = new Set<string>(DEFAULT_CATEGORIES);
-		services.forEach((s) => {
-			if (s.category && s.category.trim()) set.add(s.category.trim());
-		});
-		return Array.from(set);
-	}, [services]);
+	// ── Available Categories for Combobox (uses same authoritative source) ────
+	const categoryOptions = dynamicCategories;
 
 	// ── Mutations ──────────────────────────────────────────────────────────────
 	const createMutation = useApiMutation<ServiceDto, CreateServiceInput>(
 		(data) => createService(data),
-		{ invalidateKey: ['services', 'catalogue'] }
+		{ invalidateKey: ['services'] }
 	);
 
 	const updateMutation = useApiMutation<ServiceDto, { id: string; data: CreateServiceInput }>(
 		({ id, data }) => updateService(id, data),
-		{ invalidateKey: ['services', 'catalogue'] }
+		{ invalidateKey: ['services'] }
 	);
 
 	// ── Preselect from navigation ──────────────────────────────────────────────
@@ -154,8 +142,8 @@ export function CataloguePage() {
 			result = result.filter(
 				(s) =>
 					s.name.toLowerCase().includes(q) ||
-					(s.description && s.description.toLowerCase().includes(q)) ||
-					(s.category && s.category.toLowerCase().includes(q))
+					(s.category && s.category.toLowerCase().includes(q)) ||
+					(q.length >= 3 && s.description && s.description.toLowerCase().includes(q))
 			);
 		}
 
@@ -495,23 +483,23 @@ export function CataloguePage() {
 							</Button>
 						</>
 					}
-					size="lg"
+					size="md"
 				>
-					<form onSubmit={editingService ? handleUpdateSubmit : handleCreateSubmit} className="space-y-4">
+					<form onSubmit={editingService ? handleUpdateSubmit : handleCreateSubmit} className="space-y-3">
 						<div>
-							<label className="block text-sm font-medium text-on-surface mb-1">
+							<label className="block text-xs font-semibold text-on-surface mb-1">
 								Service Name <span className="text-error">*</span>
 							</label>
 							<input
 								required
 								value={form.name}
 								onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-								className="form-input w-full"
+								className="form-input w-full text-sm py-1.5"
 								placeholder="e.g. Level 3 Paint Correction"
 							/>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-2 gap-3">
 							<Combobox
 								label="Category"
 								required
@@ -521,7 +509,7 @@ export function CataloguePage() {
 								placeholder="e.g. Exterior Detailing, Protection"
 							/>
 							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1">
+								<label className="block text-xs font-semibold text-on-surface mb-1">
 									Price (INR) <span className="text-error">*</span>
 								</label>
 								<input
@@ -531,26 +519,26 @@ export function CataloguePage() {
 									min="0"
 									value={form.price}
 									onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-									className="form-input w-full"
+									className="form-input w-full text-sm py-1.5"
 									placeholder="0.00"
 								/>
 							</div>
 						</div>
 
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-2 gap-3">
 							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1">Duration (Minutes)</label>
+								<label className="block text-xs font-semibold text-on-surface mb-1">Duration (Minutes)</label>
 								<input
 									type="number"
 									min="0"
 									value={form.durationMinutes}
 									onChange={(e) => setForm((p) => ({ ...p, durationMinutes: e.target.value }))}
-									className="form-input w-full"
+									className="form-input w-full text-sm py-1.5"
 									placeholder="60"
 								/>
 							</div>
 							<div>
-								<label className="block text-sm font-medium text-on-surface mb-1">Tax Percentage (%)</label>
+								<label className="block text-xs font-semibold text-on-surface mb-1">Tax Percentage (%)</label>
 								<input
 									type="number"
 									step="0.01"
@@ -558,32 +546,32 @@ export function CataloguePage() {
 									max="100"
 									value={form.taxPercentage}
 									onChange={(e) => setForm((p) => ({ ...p, taxPercentage: e.target.value }))}
-									className="form-input w-full"
+									className="form-input w-full text-sm py-1.5"
 									placeholder="18"
 								/>
 							</div>
 						</div>
 
 						<div>
-							<label className="block text-sm font-medium text-on-surface mb-1">Description</label>
+							<label className="block text-xs font-semibold text-on-surface mb-1">Description</label>
 							<textarea
 								value={form.description}
 								onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-								rows={3}
-								className="form-input w-full resize-none"
+								rows={2}
+								className="form-input w-full text-sm py-1.5 resize-none"
 								placeholder="Detailed description of the service process, materials used, and warranty..."
 							/>
 						</div>
 
-						<div className="flex items-center gap-2 pt-1">
+						<div className="flex items-center gap-2 pt-0.5">
 							<input
 								type="checkbox"
 								id="is-active"
 								checked={form.isActive}
 								onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-								className="w-4 h-4 accent-secondary rounded"
+								className="w-4 h-4 accent-secondary rounded cursor-pointer"
 							/>
-							<label htmlFor="is-active" className="text-sm font-medium text-on-surface cursor-pointer">
+							<label htmlFor="is-active" className="text-xs font-medium text-on-surface cursor-pointer select-none">
 								Active — available in catalogue and job card selection
 							</label>
 						</div>

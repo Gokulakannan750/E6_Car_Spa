@@ -5,6 +5,7 @@ import { cn } from '../../utils/cn';
 export interface ComboboxProps {
 	id?: string;
 	label?: string;
+	labelClassName?: string;
 	required?: boolean;
 	value: string;
 	onChange: (value: string) => void;
@@ -19,6 +20,7 @@ export interface ComboboxProps {
 export function Combobox({
 	id: externalId,
 	label,
+	labelClassName,
 	required,
 	value,
 	onChange,
@@ -116,7 +118,7 @@ export function Combobox({
 	return (
 		<div className="form-field relative" ref={containerRef}>
 			{label && (
-				<label htmlFor={id} className="block text-sm font-medium text-on-surface mb-1">
+				<label htmlFor={id} className={cn('block text-xs font-semibold text-on-surface mb-1', labelClassName)}>
 					{label}
 					{required && <span className="text-error ml-0.5">*</span>}
 				</label>
@@ -139,7 +141,7 @@ export function Combobox({
 					placeholder={placeholder}
 					autoComplete="off"
 					className={cn(
-						'form-input w-full pr-14',
+						'form-input w-full pr-14 text-sm py-1.5',
 						error && 'border-error focus:border-error focus:ring-error/20',
 						className
 					)}

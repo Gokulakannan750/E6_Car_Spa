@@ -30,8 +30,15 @@ public class ServiceService : IServiceService
 		if (isActive.HasValue) query = query.Where(s => s.IsActive == isActive.Value);
 		if (!string.IsNullOrWhiteSpace(search))
 		{
-			search = search.Trim().ToLower();
-			query = query.Where(s => s.Name.ToLower().Contains(search) || (s.Description != null && s.Description.ToLower().Contains(search)));
+			var term = search.Trim().ToLower();
+			if (term.Length < 3)
+			{
+				query = query.Where(s => s.Name.ToLower().Contains(term) || (s.Category != null && s.Category.ToLower().Contains(term)));
+			}
+			else
+			{
+				query = query.Where(s => s.Name.ToLower().Contains(term) || (s.Category != null && s.Category.ToLower().Contains(term)) || (s.Description != null && s.Description.ToLower().Contains(term)));
+			}
 		}
 		if (!string.IsNullOrWhiteSpace(category))
 		{
@@ -39,7 +46,17 @@ public class ServiceService : IServiceService
 			query = query.Where(s => s.Category == category);
 		}
 
-		return await query.OrderBy(s => s.Name).Skip((page - 1) * pageSize).Take(pageSize).Select(s => ToDto(s)).ToListAsync(cancellationToken);
+		if (!string.IsNullOrWhiteSpace(search))
+		{
+			var term = search.Trim().ToLower();
+			query = query.OrderBy(s => s.Name.ToLower().StartsWith(term) ? 1 : s.Name.ToLower().Contains(term) ? 2 : 3).ThenBy(s => s.Name);
+		}
+		else
+		{
+			query = query.OrderBy(s => s.Name);
+		}
+
+		return await query.Skip((page - 1) * pageSize).Take(pageSize).Select(s => ToDto(s)).ToListAsync(cancellationToken);
 	}
 
 	public async Task<int> GetTotalCountAsync(bool? isActive = null, string? search = null, string? category = null, CancellationToken cancellationToken = default)
@@ -48,8 +65,15 @@ public class ServiceService : IServiceService
 		if (isActive.HasValue) query = query.Where(s => s.IsActive == isActive.Value);
 		if (!string.IsNullOrWhiteSpace(search))
 		{
-			search = search.Trim().ToLower();
-			query = query.Where(s => s.Name.ToLower().Contains(search) || (s.Description != null && s.Description.ToLower().Contains(search)));
+			var term = search.Trim().ToLower();
+			if (term.Length < 3)
+			{
+				query = query.Where(s => s.Name.ToLower().Contains(term) || (s.Category != null && s.Category.ToLower().Contains(term)));
+			}
+			else
+			{
+				query = query.Where(s => s.Name.ToLower().Contains(term) || (s.Category != null && s.Category.ToLower().Contains(term)) || (s.Description != null && s.Description.ToLower().Contains(term)));
+			}
 		}
 		if (!string.IsNullOrWhiteSpace(category))
 		{

@@ -91,20 +91,45 @@ const STEPS = ['Customer & Vehicle', 'Services', 'Review'] as const;
 // Component
 // ---------------------------------------------------------------------------
 
+interface NavigationState {
+	preselectedServiceId?: string;
+	customer?: CustomerDto;
+	vehicles?: VehicleDto[];
+	selectedVehicle?: VehicleDto;
+	step?: number;
+}
+
 export default function NewJobCard() {
 	const navigate = useNavigate();
 	const location = useLocation();
-	const preselectedServiceId = (location.state as { preselectedServiceId?: string } | null)?.preselectedServiceId;
+	const navState = (location.state as NavigationState | null) || null;
+	const preselectedServiceId = navState?.preselectedServiceId;
+
+	const initialCustomer = navState?.customer || null;
+	const initialVehicles = navState?.vehicles || [];
+	const initialSelectedVehicle =
+		navState?.selectedVehicle ||
+		(initialVehicles.length === 1
+			? initialVehicles[0]
+			: initialVehicles.length > 0
+			? initialVehicles[0]
+			: null);
+	const initialStep =
+		navState?.step !== undefined
+			? navState.step
+			: initialCustomer && initialSelectedVehicle
+			? 1
+			: 0;
 
 	// ── Step tracking ─────────────────────────────────────────────────────────
-	const [step, setStep] = useState(0);
+	const [step, setStep] = useState(initialStep);
 
 	// ── Customer lookup ───────────────────────────────────────────────────────
-	const [phone, setPhone] = useState('');
-	const [regNumber, setRegNumber] = useState('');
-	const [customer, setCustomer] = useState<CustomerDto | null>(null);
-	const [vehicles, setVehicles] = useState<VehicleDto[]>([]);
-	const [selectedVehicle, setSelectedVehicle] = useState<VehicleDto | null>(null);
+	const [phone, setPhone] = useState(initialCustomer?.phoneNumber || '');
+	const [regNumber, setRegNumber] = useState(initialSelectedVehicle?.registrationNumber || '');
+	const [customer, setCustomer] = useState<CustomerDto | null>(initialCustomer);
+	const [vehicles, setVehicles] = useState<VehicleDto[]>(initialVehicles);
+	const [selectedVehicle, setSelectedVehicle] = useState<VehicleDto | null>(initialSelectedVehicle);
 	const [isSearching, setIsSearching] = useState(false);
 	const [customerError, setCustomerError] = useState<string | null>(null);
 	const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -134,6 +159,46 @@ export default function NewJobCard() {
 	const [success, setSuccess] = useState<{ id: string; number: string; customerName: string; vehicleLabel: string; total: number } | null>(null);
 	const [createdJobCard, setCreatedJobCard] = useState<JobCardDto | null>(null);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
+
+	// ── Sync from Navigation State ────────────────────────────────────────────
+	useEffect(() => {
+		if (navState?.customer) {
+			setCustomer(navState.customer);
+			setPhone(navState.customer.phoneNumber);
+			if (navState.vehicles && navState.vehicles.length > 0) {
+				setVehicles(navState.vehicles);
+				const sel = navState.selectedVehicle || navState.vehicles[0];
+				setSelectedVehicle(sel);
+				setRegNumber(sel.registrationNumber);
+				setStep(navState.step !== undefined ? navState.step : 1);
+			} else {
+				getVehiclesByCustomer(navState.customer.id)
+					.then((list) => {
+						if (list && list.length > 0) {
+							setVehicles(list);
+							const sel = navState.selectedVehicle || list[0];
+							setSelectedVehicle(sel);
+							setRegNumber(sel.registrationNumber);
+							setStep(navState.step !== undefined ? navState.step : 1);
+						} else {
+							setShowNewVehicle(true);
+							setStep(0);
+						}
+					})
+					.catch((err) => console.warn('Failed to load customer vehicles:', err));
+			}
+		}
+	}, [navState]);
+
+	// ── Autofocus service search on step 1 ────────────────────────────────────
+	useEffect(() => {
+		if (step === 1) {
+			const t = setTimeout(() => {
+				searchInputRef.current?.focus();
+			}, 150);
+			return () => clearTimeout(t);
+		}
+	}, [step]);
 
 	useEffect(() => {
 		if (success?.id && !createdJobCard) {
@@ -326,22 +391,49 @@ export default function NewJobCard() {
 	// ── Service search (debounced) ────────────────────────────────────────────
 	useEffect(() => {
 		if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-		if (!serviceSearch.trim()) {
+		const query = serviceSearch.trim().toLowerCase();
+		if (!query) {
 			setSearchResults([]);
 			return;
 		}
 		searchTimerRef.current = setTimeout(async () => {
 			try {
-				const result = await getServices({ page: 1, pageSize: 50, search: serviceSearch.trim() });
+				const result = await getServices({ page: 1, pageSize: 50, search: query });
 				if (result && result.items) {
-					setSearchResults(result.items.filter((s) => s.isActive));
+					const activeItems = result.items.filter((s) => s.isActive);
+					const scored = activeItems
+						.map((s) => {
+							const name = s.name.toLowerCase();
+							const category = (s.category || '').toLowerCase();
+							let score = 999;
+
+							if (name.startsWith(query)) {
+								score = 1;
+							} else if (name.split(/\s+/).some((word) => word.startsWith(query))) {
+								score = 2;
+							} else if (name.includes(query)) {
+								score = 3;
+							} else if (category.startsWith(query)) {
+								score = 4;
+							} else if (category.includes(query)) {
+								score = 5;
+							} else if (query.length >= 3 && s.description && s.description.toLowerCase().includes(query)) {
+								score = 6;
+							}
+
+							return { service: s, score };
+						})
+						.filter((item) => item.score < 999)
+						.sort((a, b) => a.score - b.score || a.service.name.localeCompare(b.service.name));
+
+					setSearchResults(scored.map((item) => item.service));
 					return;
 				}
 			} catch (err) {
 				console.warn('Failed to search services:', err);
 			}
 			setSearchResults([]);
-		}, 200);
+		}, 150);
 		return () => {
 			if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 		};
@@ -365,7 +457,7 @@ export default function NewJobCard() {
 				const svc = await getServiceById(preselectedServiceId);
 				if (!cancelled && svc) {
 					handleAddService(svc);
-					navigate('/job-cards/new', { replace: true, state: {} });
+					navigate('/job-cards/new', { replace: true, state: { ...navState, preselectedServiceId: undefined } });
 				}
 			} catch {
 				// Ignore if not found
