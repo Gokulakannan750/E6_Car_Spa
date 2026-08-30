@@ -234,6 +234,50 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (jc.isLocked) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.lock_rounded, size: 20, color: Color(0xFFD97706)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Job Card is Locked',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF92400E),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            jc.invoiceNumber != null && jc.invoiceNumber!.isNotEmpty
+                                ? 'This job card cannot be modified because invoice ${jc.invoiceNumber} has already been generated.'
+                                : 'This job card is locked because its invoice has already been generated.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFB45309),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // ── Customer & Vehicle Card ─────────────────────────────────────
             Card(
               elevation: 0,

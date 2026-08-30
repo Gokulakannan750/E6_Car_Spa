@@ -266,33 +266,43 @@ app.Use(async (context, next) =>
  {
  await next();
  }
- catch (Exception ex)
- {
- Log.Error(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
- if (!context.Response.HasStarted)
- {
- context.Response.StatusCode = ex switch
- {
- KeyNotFoundException => 404,
- ArgumentException => 400,
- UnauthorizedAccessException => 403,
- _ => 500
- };
- context.Response.ContentType = "application/json";
- var userErrorMessage = ex switch
- {
- KeyNotFoundException => ex.Message,
- ArgumentException => ex.Message,
- UnauthorizedAccessException => "Access denied.",
- _ => "An unexpected error occurred."
- };
- await context.Response.WriteAsJsonAsync(new
- {
- error = userErrorMessage,
- detail = app.Environment.IsDevelopment() ? ex.Message : null
- });
- }
- }
+	catch (Exception ex)
+	{
+		Log.Error(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+		if (!context.Response.HasStarted)
+		{
+			context.Response.StatusCode = ex switch
+			{
+				KeyNotFoundException => 404,
+				CarSpaManagement.Api.Application.Common.NotFoundException => 404,
+				ArgumentException => 400,
+				CarSpaManagement.Api.Application.Common.ValidationException => 400,
+				UnauthorizedAccessException => 403,
+				CarSpaManagement.Api.Application.Common.UnauthorizedException => 401,
+				CarSpaManagement.Api.Application.Common.ForbiddenException => 403,
+				CarSpaManagement.Api.Application.Common.ConflictException => 409,
+				_ => 500
+			};
+			context.Response.ContentType = "application/json";
+			var userErrorMessage = ex switch
+			{
+				KeyNotFoundException => ex.Message,
+				CarSpaManagement.Api.Application.Common.NotFoundException => ex.Message,
+				ArgumentException => ex.Message,
+				CarSpaManagement.Api.Application.Common.ValidationException => ex.Message,
+				UnauthorizedAccessException => "Access denied.",
+				CarSpaManagement.Api.Application.Common.UnauthorizedException => ex.Message,
+				CarSpaManagement.Api.Application.Common.ForbiddenException => ex.Message,
+				CarSpaManagement.Api.Application.Common.ConflictException => ex.Message,
+				_ => "An unexpected error occurred."
+			};
+			await context.Response.WriteAsJsonAsync(new
+			{
+				error = userErrorMessage,
+				detail = app.Environment.IsDevelopment() ? ex.Message : null
+			});
+		}
+	}
 });
 
 app.UseHttpsRedirection();

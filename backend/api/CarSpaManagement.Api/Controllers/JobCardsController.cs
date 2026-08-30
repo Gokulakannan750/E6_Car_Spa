@@ -129,16 +129,30 @@ public class JobCardsController : ControllerBase
 			}
 		}
 
-		var dto = await _service.UpdateServicesAsync(id, request, ct);
-		if (dto is null) return NotFound();
-		return Ok(dto);
+		try
+		{
+			var dto = await _service.UpdateServicesAsync(id, request, ct);
+			if (dto is null) return NotFound();
+			return Ok(dto);
+		}
+		catch (CarSpaManagement.Api.Application.Common.ConflictException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
 	}
 
 	[HttpDelete("{id:guid}")]
 	[RequirePermission("jobcards.delete")]
 	public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
 	{
-		var deleted = await _service.DeleteAsync(id, ct);
-		return deleted ? NoContent() : NotFound();
+		try
+		{
+			var deleted = await _service.DeleteAsync(id, ct);
+			return deleted ? NoContent() : NotFound();
+		}
+		catch (CarSpaManagement.Api.Application.Common.ConflictException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
 	}
 }

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.JobCards;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
@@ -345,6 +346,8 @@ public class JobCardService : IJobCardService
 
 		if (jobCard is null) return null;
 
+		await EnsureJobCardNotLockedAsync(id, jobCard, cancellationToken);
+
 		if (request.Services == null || !request.Services.Any())
 			throw new ArgumentException("At least one service is required.", nameof(request.Services));
 
@@ -452,6 +455,8 @@ public class JobCardService : IJobCardService
 		var jobCard = await _db.JobCards.FindAsync([id], cancellationToken);
 		if (jobCard is null) return false;
 
+		await EnsureJobCardNotLockedAsync(id, jobCard, cancellationToken);
+
 		jobCard.IsDeleted = true;
 		jobCard.UpdatedAt = DateTime.UtcNow;
 		await _db.SaveChangesAsync(cancellationToken);
@@ -467,6 +472,27 @@ public class JobCardService : IJobCardService
 			cancellationToken: cancellationToken);
 
 		return true;
+	}
+
+	private async Task EnsureJobCardNotLockedAsync(Guid jobCardId, JCard? existingJobCard = null, CancellationToken cancellationToken = default)
+	{
+		if (existingJobCard != null && (existingJobCard.Status == JobCardStatus.Invoiced ||
+		                                existingJobCard.Status == JobCardStatus.Paid ||
+		                                existingJobCard.Status == JobCardStatus.Delivered))
+		{
+			throw new ConflictException("This job card is locked because its invoice has already been generated.");
+		}
+
+		var isLocked = await _db.Invoices.AnyAsync(
+			i => i.JobCardId == jobCardId &&
+			     !i.IsDeleted &&
+			     (!string.IsNullOrEmpty(i.InvoiceNumber) || i.Status != InvoiceStatus.Draft),
+			cancellationToken);
+
+		if (isLocked)
+		{
+			throw new ConflictException("This job card is locked because its invoice has already been generated.");
+		}
 	}
 
 	private async Task<string> GenerateJobCardNumberAsync(CancellationToken cancellationToken)

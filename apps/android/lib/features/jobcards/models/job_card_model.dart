@@ -195,6 +195,24 @@ class JobCard {
     this.updatedAt,
   });
 
+  bool get isLocked {
+    if (status == JobCardStatus.invoiced ||
+        status == JobCardStatus.paid ||
+        status == JobCardStatus.delivered) {
+      return true;
+    }
+    if (invoiceNumber != null && invoiceNumber!.trim().isNotEmpty) {
+      return true;
+    }
+    if (invoiceId != null && invoiceId!.trim().isNotEmpty) {
+      final invStatus = (invoiceStatus ?? '').trim().toLowerCase();
+      if (invStatus.isNotEmpty && invStatus != 'draft' && invStatus != '0') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   factory JobCard.fromJson(Map<String, dynamic> json) {
     final rawServices = json['services'] as List<dynamic>? ?? json['Services'] as List<dynamic>? ?? [];
     final statusRaw = json['status'] ?? json['Status'] ?? 0;
@@ -264,6 +282,24 @@ class JobCardListItem {
   String get vehicleDisplayName =>
       _vehicleDisplayName ??
       ('$make $model'.trim().isNotEmpty ? '$make $model'.trim() : 'Vehicle');
+
+  bool get isLocked {
+    if (status == JobCardStatus.invoiced ||
+        status == JobCardStatus.paid ||
+        status == JobCardStatus.delivered) {
+      return true;
+    }
+    if (invoiceNumber != null && invoiceNumber!.trim().isNotEmpty) {
+      return true;
+    }
+    if (invoiceId != null && invoiceId!.trim().isNotEmpty) {
+      final invStatus = (invoiceStatus ?? '').trim().toLowerCase();
+      if (invStatus.isNotEmpty && invStatus != 'draft' && invStatus != '0') {
+        return true;
+      }
+    }
+    return false;
+  }
 
   factory JobCardListItem.fromJson(Map<String, dynamic> json) {
     final statusRaw = json['status'] ?? json['Status'] ?? 0;

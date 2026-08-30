@@ -565,9 +565,38 @@ export async function updateJobCardServices(id: string, services: { serviceId: s
 }
 
 export async function deleteJobCard(id: string) {
- return request<void>(`/api/job-cards/${encodeURIComponent(id)}`, {
- method: 'DELETE',
- });
+	return request<void>(`/api/job-cards/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	});
+}
+
+export function isJobCardLocked(jc: {
+	status?: number | string;
+	invoiceId?: string | null;
+	invoiceNumber?: string | null;
+	invoiceStatus?: string | null;
+	isLocked?: boolean;
+}): boolean {
+	if (jc.isLocked) return true;
+	if (jc.status === 4 || jc.status === 5 || jc.status === 6) {
+		return true;
+	}
+	const statusStr = typeof jc.status === 'string' ? jc.status.toLowerCase() : '';
+	if (
+		statusStr === 'invoiced' ||
+		statusStr === 'paid' ||
+		statusStr === 'delivered'
+	) {
+		return true;
+	}
+	if (jc.invoiceNumber && jc.invoiceNumber.trim() !== '') {
+		return true;
+	}
+	const invStatusStr = typeof jc.invoiceStatus === 'string' ? jc.invoiceStatus.toLowerCase() : '';
+	if (jc.invoiceId && invStatusStr && invStatusStr !== 'draft' && invStatusStr !== '0') {
+		return true;
+	}
+	return false;
 }
 
 // ============================================================================
