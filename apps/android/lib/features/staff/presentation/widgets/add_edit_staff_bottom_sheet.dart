@@ -79,6 +79,10 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
       return;
     }
 
+    final email = _emailController.text.trim();
+    final address = _addressController.text.trim();
+    final role = _roleController.text.trim();
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;

@@ -344,9 +344,7 @@ export default function NewJobCard() {
 			setShowNewVehicle(true);
 		} catch (err: unknown) {
 			console.error('Failed to create customer:', err);
-			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
-				? err.message
-				: 'Failed to create customer. Please check the details and try again.';
+			const msg = err instanceof Error ? err.message : 'Failed to create customer. Please check the details and try again.';
 			setCustomerError(msg);
 		} finally {
 			setIsCreatingCustomer(false);
@@ -379,9 +377,7 @@ export default function NewJobCard() {
 			setShowNewVehicle(false);
 		} catch (err: unknown) {
 			console.error('Failed to create vehicle:', err);
-			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
-				? err.message
-				: 'Failed to create vehicle. Please check the details and try again.';
+			const msg = err instanceof Error ? err.message : 'Failed to create vehicle. Please check the details and try again.';
 			setCustomerError(msg);
 		} finally {
 			setIsCreatingVehicle(false);
@@ -579,16 +575,7 @@ export default function NewJobCard() {
 			});
 		} catch (err: unknown) {
 			console.error('Failed to create Job Card on backend:', err);
-			let userMsg = 'Unable to create the Job Card. Please check the details and try again.';
-			if (err instanceof Error) {
-				if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
-					userMsg = 'Your session has expired. Please log in again.';
-				} else if (err.message.includes('403') || err.message.toLowerCase().includes('forbidden')) {
-					userMsg = 'You do not have permission to create Job Cards.';
-				} else if (err.message && !err.message.startsWith('HTTP ') && !err.message.includes('Exception')) {
-					userMsg = err.message;
-				}
-			}
+			const userMsg = err instanceof Error ? err.message : 'Unable to create the Job Card. Please check the details and try again.';
 			setSubmitError(userMsg);
 		} finally {
 			setIsCreatingJobCard(false);

@@ -27,20 +27,36 @@ export function setAuthToken(token: string | null) {
 	}
 }
 
+export type ApiErrorCode =
+	| 'PERMISSION_DENIED'
+	| 'UNAUTHORIZED'
+	| 'CONFLICT'
+	| 'VALIDATION_ERROR'
+	| 'NOT_FOUND'
+	| 'RATE_LIMITED'
+	| 'SERVER_ERROR'
+	| 'NETWORK_ERROR'
+	| 'UNKNOWN';
+
 export class ApiError extends Error {
+	public isPermissionDenied: boolean;
 	constructor(
 		message: string,
 		public status: number,
 		public body: unknown,
+		public code: ApiErrorCode = 'UNKNOWN',
+		public action?: string,
 	) {
 		super(message);
 		this.name = 'ApiError';
+		this.isPermissionDenied = status === 403 || code === 'PERMISSION_DENIED';
 	}
 }
 
-async function request<T>(
+export async function request<T>(
 	path: string,
 	options: RequestInit = {},
+	action?: string,
 ): Promise<T> {
 	const token = getAuthToken();
 	const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
@@ -50,36 +66,127 @@ async function request<T>(
 		...((options.headers as Record<string, string>) || {}),
 	};
 
-	const res = await fetch(`${API_BASE}${path}`, {
-		...options,
-		headers,
-	});
+	let res: Response;
+	try {
+		res = await fetch(`${API_BASE}${path}`, {
+			...options,
+			headers,
+		});
+	} catch {
+		// Network failure / server unreachable / fetch error
+		throw new ApiError(
+			'Unable to connect to the server. Please check that the E6 Car Spa server is running and try again.',
+			0,
+			null,
+			'NETWORK_ERROR',
+			action,
+		);
+	}
 
 	if (res.status === 204) return undefined as T;
 
 	if (res.status === 401 && !path.includes('/api/auth/login')) {
 		setAuthToken(null);
-		localStorage.removeItem(USER_STORAGE_KEY);
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem(USER_STORAGE_KEY);
+		}
 		if (typeof window !== 'undefined') {
 			window.dispatchEvent(new CustomEvent('auth:unauthorized'));
 		}
 	}
 
 	if (!res.ok) {
-		let errorMessage = `HTTP ${res.status} ${res.statusText}`;
+		let rawDetail: string | null = null;
+		let rawBody: unknown = null;
 		try {
-			const errBody = await res.clone().json();
+			const resClone = typeof res.clone === 'function' ? res.clone() : res;
+			const errBody = await resClone.json();
+			rawBody = errBody;
 			if (errBody && typeof errBody === 'object') {
 				const rec = errBody as Record<string, unknown>;
-				if (typeof rec.detail === 'string' && rec.detail.trim()) errorMessage = rec.detail;
-				else if (typeof rec.error === 'string' && rec.error.trim()) errorMessage = rec.error;
-				else if (typeof rec.title === 'string' && rec.title.trim()) errorMessage = rec.title;
-				else if (typeof rec.message === 'string' && rec.message.trim()) errorMessage = rec.message;
+				if (typeof rec.detail === 'string' && rec.detail.trim()) rawDetail = rec.detail.trim();
+				else if (typeof rec.error === 'string' && rec.error.trim()) rawDetail = rec.error.trim();
+				else if (typeof rec.title === 'string' && rec.title.trim()) rawDetail = rec.title.trim();
+				else if (typeof rec.message === 'string' && rec.message.trim()) rawDetail = rec.message.trim();
 			}
 		} catch {
-			// Non-JSON error response
+			try {
+				const resClone = typeof res.clone === 'function' ? res.clone() : res;
+				const text = await resClone.text();
+				if (text && typeof text === 'string' && text.trim()) {
+					rawDetail = text.trim();
+				}
+			} catch {
+				// Non-JSON and non-text error response
+			}
 		}
-		throw new ApiError(errorMessage, res.status, null);
+
+		const isTechnicalError = (msg: string) => {
+			return (
+				/^HTTP \d+/i.test(msg) ||
+				/Exception/i.test(msg) ||
+				/Stack trace/i.test(msg) ||
+				/SqlException|Npgsql|Postgres|at CarSpaManagement/i.test(msg) ||
+				msg === 'Forbidden' ||
+				msg === 'Unauthorized' ||
+				msg === 'Bad Request' ||
+				msg === 'Internal Server Error'
+			);
+		};
+
+		let code: ApiErrorCode = 'UNKNOWN';
+		let friendlyMessage = `HTTP ${res.status} ${res.statusText}`;
+
+		switch (res.status) {
+			case 401:
+				code = 'UNAUTHORIZED';
+				friendlyMessage = rawDetail && !isTechnicalError(rawDetail) && path.includes('/api/auth/login')
+					? rawDetail
+					: 'Your session has expired. Please sign in again.';
+				break;
+			case 403:
+				code = 'PERMISSION_DENIED';
+				if (rawDetail && !isTechnicalError(rawDetail) && !rawDetail.toLowerCase().includes('http')) {
+					friendlyMessage = rawDetail;
+				} else if (action) {
+					friendlyMessage = `You don't have permission to ${action}.`;
+				} else {
+					friendlyMessage = "You don't have permission to perform this action.";
+				}
+				break;
+			case 409:
+				code = 'CONFLICT';
+				friendlyMessage = rawDetail && !isTechnicalError(rawDetail)
+					? rawDetail
+					: 'This record has a conflict or has already been modified.';
+				break;
+			case 400:
+				code = 'VALIDATION_ERROR';
+				friendlyMessage = rawDetail && !isTechnicalError(rawDetail)
+					? rawDetail
+					: 'Invalid request. Please check the entered data.';
+				break;
+			case 404:
+				code = 'NOT_FOUND';
+				friendlyMessage = rawDetail && !isTechnicalError(rawDetail)
+					? rawDetail
+					: 'The requested record could not be found.';
+				break;
+			case 429:
+				code = 'RATE_LIMITED';
+				friendlyMessage = 'Too many requests. Please try again shortly.';
+				break;
+			default:
+				if (res.status >= 500) {
+					code = 'SERVER_ERROR';
+					friendlyMessage = 'Something went wrong. Please try again.';
+				} else {
+					friendlyMessage = rawDetail && !isTechnicalError(rawDetail) ? rawDetail : `Request failed (status ${res.status}).`;
+				}
+				break;
+		}
+
+		throw new ApiError(friendlyMessage, res.status, rawBody, code, action);
 	}
 
 	const body = (() => {
@@ -468,39 +575,39 @@ export async function getCustomers(params?: { page?: number; pageSize?: number; 
 	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
 	if (params?.search) qs.set('search', params.search);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<CustomerListResponse>('/api/customers' + suffix);
+	return request<CustomerListResponse>('/api/customers' + suffix, {}, 'view customers');
 }
 
 export async function getCustomerById(id: string) {
-	return request<CustomerDto>(`/api/customers/${encodeURIComponent(id)}`);
+	return request<CustomerDto>(`/api/customers/${encodeURIComponent(id)}`, {}, 'view customers');
 }
 
 export async function getCustomerByPhone(phone: string) {
- return request<CustomerDto>(`/api/customers/by-phone/${encodeURIComponent(phone)}`);
+ return request<CustomerDto>(`/api/customers/by-phone/${encodeURIComponent(phone)}`, {}, 'view customers');
 }
 
 export async function getVehicleByRegistration(registrationNumber: string) {
- return request<VehicleDto>(`/api/vehicles/by-registration/${encodeURIComponent(registrationNumber)}`);
+ return request<VehicleDto>(`/api/vehicles/by-registration/${encodeURIComponent(registrationNumber)}`, {}, 'view vehicles');
 }
 
 export async function createCustomer(data: CreateCustomerInput) {
  return request<CustomerDto>('/api/customers', {
  method: 'POST',
  body: JSON.stringify(cleanPayload(data)),
- });
+ }, 'create customers');
 }
 
 export async function updateCustomer(data: UpdateCustomerInput) {
  return request<CustomerDto>(`/api/customers/${encodeURIComponent(data.id)}`, {
  method: 'PUT',
  body: JSON.stringify(cleanPayload(data)),
- });
+ }, 'edit customers');
 }
 
 export async function deleteCustomer(id: string) {
  return request<void>(`/api/customers/${encodeURIComponent(id)}`, {
  method: 'DELETE',
- });
+ }, 'delete customers');
 }
 
 // ============================================================================
@@ -508,21 +615,21 @@ export async function deleteCustomer(id: string) {
 // ============================================================================
 
 export async function getVehiclesByCustomer(customerId: string) {
- return request<VehicleDto[]>(`/api/vehicles/by-customer/${encodeURIComponent(customerId)}`);
+ return request<VehicleDto[]>(`/api/vehicles/by-customer/${encodeURIComponent(customerId)}`, {}, 'view vehicles');
 }
 
 export async function createVehicle(data: CreateVehicleInput) {
 	return request<VehicleDto>('/api/vehicles', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'create vehicles');
 }
 
 export async function updateVehicle(id: string, data: UpdateVehicleInput) {
 	return request<VehicleDto>(`/api/vehicles/${encodeURIComponent(id)}`, {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'edit vehicles');
 }
 
 // ============================================================================
@@ -535,7 +642,7 @@ export async function getJobCards(params: { page: number; pageSize: number; stat
 	qs.set('pageSize', String(params.pageSize));
 	if (params.status) qs.set('status', params.status);
 	if (params.search) qs.set('search', params.search);
-	return request<{ items: JobCardListDto[]; totalCount: number }>('/api/job-cards?' + qs.toString());
+	return request<{ items: JobCardListDto[]; totalCount: number }>('/api/job-cards?' + qs.toString(), {}, 'view job cards');
 }
 
 export async function getJobCardsByCustomer(customerId: string, params?: { page?: number; pageSize?: number }) {
@@ -543,31 +650,31 @@ export async function getJobCardsByCustomer(customerId: string, params?: { page?
 	if (params?.page) qs.set('page', String(params.page));
 	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<JobCardListResponse>(`/api/job-cards/by-customer/${encodeURIComponent(customerId)}${suffix}`);
+	return request<JobCardListResponse>(`/api/job-cards/by-customer/${encodeURIComponent(customerId)}${suffix}`, {}, 'view job cards');
 }
 
 export async function getJobCardById(id: string) {
- return request<JobCardDto>(`/api/job-cards/${encodeURIComponent(id)}`);
+ return request<JobCardDto>(`/api/job-cards/${encodeURIComponent(id)}`, {}, 'view job cards');
 }
 
 export async function createJobCard(data: CreateJobCardInput) {
  return request<JobCardDto>('/api/job-cards', {
  method: 'POST',
  body: JSON.stringify(data),
- });
+ }, 'create job cards');
 }
 
 export async function updateJobCardServices(id: string, services: { serviceId: string; quantity: number; discountAmount: number }[]) {
  return request<JobCardDto>(`/api/job-cards/${encodeURIComponent(id)}/services`, {
  method: 'PUT',
  body: JSON.stringify({ services }),
- });
+ }, 'edit job cards');
 }
 
 export async function deleteJobCard(id: string) {
 	return request<void>(`/api/job-cards/${encodeURIComponent(id)}`, {
 		method: 'DELETE',
-	});
+	}, 'delete job cards');
 }
 
 export function isJobCardLocked(jc: {
@@ -618,67 +725,67 @@ export async function getInvoices(params: {
   if (params.status !== undefined) qs.set('status', String(params.status));
   if (params.fromDate) qs.set('fromDate', params.fromDate);
   if (params.toDate) qs.set('toDate', params.toDate);
-  return request<InvoiceListResponse>('/api/invoices?' + qs.toString());
+  return request<InvoiceListResponse>('/api/invoices?' + qs.toString(), {}, 'view invoices');
 }
 
 export async function getInvoiceById(id: string) {
-  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`);
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`, {}, 'view invoices');
 }
 
 export async function getInvoiceByNumber(invoiceNumber: string) {
-  return request<InvoiceDto>(`/api/invoices/by-number/${encodeURIComponent(invoiceNumber)}`);
+  return request<InvoiceDto>(`/api/invoices/by-number/${encodeURIComponent(invoiceNumber)}`, {}, 'view invoices');
 }
 
 export async function createInvoiceFromJobCard(jobCardId: string) {
   return request<InvoiceDto>(`/api/invoices/from-job-card/${encodeURIComponent(jobCardId)}`, {
     method: 'POST',
-  });
+  }, 'generate invoices');
 }
 
 export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}`, {
     method: 'PUT',
     body: JSON.stringify(cleanPayload(data)),
-  });
+  }, 'edit invoices');
 }
 
 export async function generateInvoice(id: string) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
     method: 'POST',
-  });
+  }, 'generate invoices');
 }
 
 export async function getInvoicePayments(invoiceId: string) {
-  return request<PaymentDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`);
+  return request<PaymentDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`, {}, 'view payments');
 }
 
 export async function recordPayment(invoiceId: string, data: RecordPaymentInput) {
   return request<PaymentDto>(`/api/invoices/${encodeURIComponent(invoiceId)}/payments`, {
     method: 'POST',
     body: JSON.stringify(cleanPayload(data)),
-  });
+  }, 'record payments');
 }
 
 export async function createPublicInvoiceLink(invoiceId: string) {
   return request<InvoicePublicLinkResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link`, {
     method: 'POST',
-  });
+  }, 'share invoices');
 }
 
 export async function getPublicInvoiceLinkStatus(invoiceId: string) {
-  return request<InvoicePublicLinkStatusResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link/status`);
+  return request<InvoicePublicLinkStatusResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link/status`, {}, 'view invoices');
 }
 
 export async function revokePublicInvoiceLink(invoiceId: string) {
   return request<{ success: boolean; message: string }>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link`, {
     method: 'DELETE',
-  });
+  }, 'share invoices');
 }
 
 export async function rotatePublicInvoiceLink(invoiceId: string) {
   return request<InvoicePublicLinkResponse>(`/api/invoices/${encodeURIComponent(invoiceId)}/public-link/rotate`, {
     method: 'POST',
-  });
+  }, 'share invoices');
 }
 
 export async function getPublicInvoice(token: string) {
@@ -686,7 +793,7 @@ export async function getPublicInvoice(token: string) {
     headers: { 'Content-Type': 'application/json' },
   });
   if (!res.ok) {
-    throw new ApiError(`Invoice not found or link expired`, res.status, null);
+    throw new ApiError('Invoice not found or link expired', res.status, null, 'NOT_FOUND');
   }
   return (await res.json()) as PublicInvoiceDto;
 }
@@ -703,29 +810,29 @@ export async function getServices(params: { page: number; pageSize: number; isAc
  if (params.search) qs.set('search', params.search);
  if (params.category) qs.set('category', params.category);
  const suffix = '?' + qs.toString();
- return request<{ items: ServiceDto[]; totalCount: number }>('/api/services' + suffix);
+ return request<{ items: ServiceDto[]; totalCount: number }>('/api/services' + suffix, {}, 'view catalogue');
 }
 
 export async function getServiceById(id: string) {
- return request<ServiceDto>(`/api/services/${encodeURIComponent(id)}`);
+ return request<ServiceDto>(`/api/services/${encodeURIComponent(id)}`, {}, 'view catalogue');
 }
 
 export async function createService(data: CreateServiceInput) {
  return request<ServiceDto>('/api/services', {
  method: 'POST',
  body: JSON.stringify(cleanPayload(data)),
- });
+ }, 'create services');
 }
 
 export async function updateService(id: string, data: CreateServiceInput) {
  return request<ServiceDto>(`/api/services/${encodeURIComponent(id)}`, {
  method: 'PUT',
  body: JSON.stringify(cleanPayload(data)),
- });
+ }, 'edit services');
 }
 
 export async function getServiceCategories() {
- return request<string[]>('/api/services/categories');
+ return request<string[]>('/api/services/categories', {}, 'view catalogue');
 }
 
 export async function getCatalogueServices(params?: { category?: string; search?: string }) {
@@ -733,27 +840,27 @@ export async function getCatalogueServices(params?: { category?: string; search?
  if (params?.category) qs.set('category', params.category);
  if (params?.search) qs.set('search', params.search);
  const suffix = qs.toString() ? '?' + qs.toString() : '';
- return request<CatalogueServiceDto[]>('/api/catalogue' + suffix);
+ return request<CatalogueServiceDto[]>('/api/catalogue' + suffix, {}, 'view catalogue');
 }
 
 export async function createCatalogueService(data: CreateCatalogueServiceInput) {
  return request<CatalogueServiceDto>('/api/catalogue', {
  method: 'POST',
  body: JSON.stringify(data),
- });
+ }, 'create catalogue items');
 }
 
 export async function updateCatalogueService(id: string, data: Partial<CreateCatalogueServiceInput>) {
  return request<CatalogueServiceDto>(`/api/catalogue/${encodeURIComponent(id)}`, {
  method: 'PUT',
  body: JSON.stringify(data),
- });
+ }, 'edit catalogue items');
 }
 
 export async function deleteCatalogueService(id: string) {
  return request<void>(`/api/catalogue/${encodeURIComponent(id)}`, {
  method: 'DELETE',
- });
+ }, 'delete catalogue items');
 }
 
 // ============================================================================
@@ -845,39 +952,39 @@ export async function getStaffAdvances(params: { page: number; pageSize: number;
 	if (params.fromDate) qs.set('fromDate', params.fromDate);
 	if (params.toDate) qs.set('toDate', params.toDate);
 	if (params.search) qs.set('search', params.search);
-	return request<StaffAdvanceListResponse>('/api/staff-advances?' + qs.toString());
+	return request<StaffAdvanceListResponse>('/api/staff-advances?' + qs.toString(), {}, 'view staff advances');
 }
 
 export async function getStaffAdvanceById(id: string) {
-	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`);
+	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}`, {}, 'view staff advances');
 }
 
 export async function createStaffAdvance(data: CreateStaffAdvanceInput) {
 	return request<StaffAdvanceDto>('/api/staff-advances', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'create staff advances');
 }
 
 export async function settleStaffAdvance(id: string) {
 	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}/settle`, {
 		method: 'POST',
-	});
+	}, 'settle staff advances');
 }
 
 export async function obsoleteStaffAdvance(id: string, data: ObsoleteStaffAdvanceInput) {
 	return request<StaffAdvanceDto>(`/api/staff-advances/${encodeURIComponent(id)}/obsolete`, {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'obsolete staff advances');
 }
 
 export async function getStaffAdvanceHistory(staffId: string) {
-	return request<StaffAdvanceHistoryDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/history`);
+	return request<StaffAdvanceHistoryDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/history`, {}, 'view staff advances');
 }
 
 export async function getStaffList() {
- return request<StaffDto[]>('/api/staff-advances/staff');
+ return request<StaffDto[]>('/api/staff-advances/staff', {}, 'view staff');
 }
 
 export interface CreateStaffInput {
@@ -902,28 +1009,28 @@ export async function createStaffMember(data: CreateStaffInput) {
 	return request<StaffDto>('/api/staff-advances/staff', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'manage staff');
 }
 
 export async function updateStaffMember(id: string, data: UpdateStaffInput) {
 	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'manage staff');
 }
 
 export async function deleteStaffMember(id: string) {
 	return request<void>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
 		method: 'DELETE',
-	});
+	}, 'delete staff');
 }
 
 export async function getStaffById(id: string) {
- return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`);
+ return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {}, 'view staff');
 }
 
 export async function getStaffAdvancesByStaffId(staffId: string) {
- return request<StaffAdvanceDto[]>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/advances`);
+ return request<StaffAdvanceDto[]>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/advances`, {}, 'view staff advances');
 }
 
 // ============================================================================
@@ -931,7 +1038,7 @@ export async function getStaffAdvancesByStaffId(staffId: string) {
 // ============================================================================
 
 export async function getDashboardStats() {
- return request<DashboardStats>('/api/dashboard/stats');
+ return request<DashboardStats>('/api/dashboard/stats', {}, 'view dashboard stats');
 }
 
 // ============================================================================
@@ -939,7 +1046,7 @@ export async function getDashboardStats() {
 // ============================================================================
 
 export async function getHealth() {
-	return request<HealthResponse>('/api/health');
+	return request<HealthResponse>('/api/health', {}, 'check system health');
 }
 
 // ============================================================================
@@ -1008,76 +1115,76 @@ export async function getShowrooms(params?: { search?: string; isActive?: boolea
 	if (params?.search) qs.set('search', params.search);
 	if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<ShowroomDto[]>('/api/showrooms' + suffix);
+	return request<ShowroomDto[]>('/api/showrooms' + suffix, {}, 'view showrooms');
 }
 
 export async function getShowroomById(id: string) {
-	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`);
+	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`, {}, 'view showrooms');
 }
 
 export async function createShowroom(data: CreateShowroomInput) {
 	return request<ShowroomDto>('/api/showrooms', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'create showrooms');
 }
 
 export async function updateShowroom(id: string, data: UpdateShowroomInput) {
 	return request<ShowroomDto>(`/api/showrooms/${encodeURIComponent(id)}`, {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'edit showrooms');
 }
 
 export async function deleteShowroom(id: string) {
 	return request<void>(`/api/showrooms/${encodeURIComponent(id)}`, {
 		method: 'DELETE',
-	});
+	}, 'delete showrooms');
 }
 
 export async function toggleShowroomActive(id: string) {
 	return request<void>(`/api/showrooms/${encodeURIComponent(id)}/toggle-active`, {
 		method: 'PATCH',
-	});
+	}, 'manage showrooms');
 }
 
 export async function getDailyStaff(showroomId: string, date: string) {
 	const qs = new URLSearchParams({ date });
-	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff?` + qs.toString());
+	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff?` + qs.toString(), {}, 'view showroom staff');
 }
 
 export async function confirmDailyStaffAttendance(showroomId: string, date: string) {
 	const qs = new URLSearchParams({ date });
 	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff/confirm?` + qs.toString(), {
 		method: 'POST',
-	});
+	}, 'confirm attendance');
 }
 
 export async function unlockDailyStaffAttendance(showroomId: string, date: string) {
 	const qs = new URLSearchParams({ date });
 	return request<DailyStaffResponse>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff/unlock?` + qs.toString(), {
 		method: 'POST',
-	});
+	}, 'unlock attendance');
 }
 
 export async function assignDailyStaff(showroomId: string, data: CreateDailyStaffAssignmentInput) {
 	return request<DailyStaffAssignmentDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-staff`, {
 		method: 'POST',
 		body: JSON.stringify(data),
-	});
+	}, 'assign showroom staff');
 }
 
 export async function updateDailyStaffVehicles(assignmentId: string, vehiclesAttended: number) {
 	return request<DailyStaffAssignmentDto>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
 		method: 'PUT',
 		body: JSON.stringify({ vehiclesAttended }),
-	});
+	}, 'update showroom staff attendance');
 }
 
 export async function removeDailyStaff(assignmentId: string) {
 	return request<void>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
 		method: 'DELETE',
-	});
+	}, 'remove showroom staff');
 }
 
 export interface ShowroomPaymentDto {
@@ -1121,7 +1228,7 @@ export interface RecordShowroomPaymentInput {
 
 export async function getShowroomDailyBill(showroomId: string, date: string) {
 	const qs = new URLSearchParams({ date });
-	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString());
+	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString(), {}, 'view showroom bills');
 }
 
 export async function setShowroomDailyBill(showroomId: string, date: string, data: SetShowroomDailyBillInput) {
@@ -1129,7 +1236,7 @@ export async function setShowroomDailyBill(showroomId: string, date: string, dat
 	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill?` + qs.toString(), {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'set showroom bills');
 }
 
 export async function recordShowroomPayment(showroomId: string, date: string, data: RecordShowroomPaymentInput) {
@@ -1137,13 +1244,13 @@ export async function recordShowroomPayment(showroomId: string, date: string, da
 	return request<ShowroomDailyBillDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/daily-bill/payments?` + qs.toString(), {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'record showroom payments');
 }
 
 export async function deleteShowroomPayment(paymentId: string) {
 	return request<void>(`/api/showroom-payments/${encodeURIComponent(paymentId)}`, {
 		method: 'DELETE',
-	});
+	}, 'delete showroom payments');
 }
 
 export interface ShowroomDailyHistoryRowDto {
@@ -1203,7 +1310,7 @@ export async function getShowroomSummary(showroomId: string, fromDate?: string, 
 	if (fromDate) qs.set('fromDate', fromDate);
 	if (toDate) qs.set('toDate', toDate);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<ShowroomSummaryDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/summary` + suffix);
+	return request<ShowroomSummaryDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/summary` + suffix, {}, 'view showroom summary');
 }
 
 export async function getShowroomsOutstanding(fromDate?: string, toDate?: string) {
@@ -1211,7 +1318,7 @@ export async function getShowroomsOutstanding(fromDate?: string, toDate?: string
 	if (fromDate) qs.set('fromDate', fromDate);
 	if (toDate) qs.set('toDate', toDate);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<ShowroomOutstandingOverviewDto[]>('/api/showrooms/outstanding' + suffix);
+	return request<ShowroomOutstandingOverviewDto[]>('/api/showrooms/outstanding' + suffix, {}, 'view showroom outstanding');
 }
 
 // ============================================================================
@@ -1330,57 +1437,57 @@ export interface PermissionGroupDetailDto {
 }
 
 export async function getAuthStatus() {
-	return request<AuthStatusResponse>('/api/auth/status');
+	return request<AuthStatusResponse>('/api/auth/status', {}, 'check authentication status');
 }
 
 export async function bootstrapOwner(data: BootstrapOwnerInput) {
 	return request<AuthUserResponse>('/api/auth/bootstrap', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'initialize owner account');
 }
 
 export async function loginApi(data: LoginInput) {
 	return request<LoginResponse>('/api/auth/login', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'sign in');
 }
 
 export async function getMe() {
-	return request<AuthUserResponse>('/api/auth/me');
+	return request<AuthUserResponse>('/api/auth/me', {}, 'view user profile');
 }
 
 export async function getUsers() {
-	return request<UserItemDto[]>('/api/users');
+	return request<UserItemDto[]>('/api/users', {}, 'view users');
 }
 
 export async function getUserById(id: string) {
-	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}`);
+	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}`, {}, 'view users');
 }
 
 export async function createUser(data: CreateUserInput) {
 	return request<UserItemDto>('/api/users', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'create users');
 }
 
 export async function updateUser(id: string, data: UpdateUserInput) {
 	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}`, {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'edit users');
 }
 
 export async function toggleUserStatus(id: string) {
 	return request<UserItemDto>(`/api/users/${encodeURIComponent(id)}/toggle-status`, {
 		method: 'PATCH',
-	});
+	}, 'edit users');
 }
 
 export async function getAvailablePermissions() {
-	return request<PermissionGroupDetailDto[]>('/api/users/permissions');
+	return request<PermissionGroupDetailDto[]>('/api/users/permissions', {}, 'view permissions');
 }
 
 // ── Business Profile & Settings ─────────────────────────────────────────────
@@ -1424,14 +1531,14 @@ export interface LogoUploadResponse {
 }
 
 export async function getBusinessProfile() {
-	return request<BusinessProfileDto>('/api/settings/business');
+	return request<BusinessProfileDto>('/api/settings/business', {}, 'view business profile');
 }
 
 export async function updateBusinessProfile(data: UpdateBusinessProfileInput) {
 	return request<BusinessProfileDto>('/api/settings/business', {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'change business settings');
 }
 
 export async function uploadBusinessLogo(file: File) {
@@ -1440,13 +1547,13 @@ export async function uploadBusinessLogo(file: File) {
 	return request<LogoUploadResponse>('/api/settings/business/logo', {
 		method: 'POST',
 		body: formData,
-	});
+	}, 'change business settings');
 }
 
 export async function removeBusinessLogo() {
 	return request<BusinessProfileDto>('/api/settings/business/logo', {
 		method: 'DELETE',
-	});
+	}, 'change business settings');
 }
 
 // ── Audit Logs ──────────────────────────────────────────────────────────────
@@ -1508,7 +1615,7 @@ export async function getAuditLogs(params: AuditLogQueryParams = {}) {
 	if (params.search) query.set('search', params.search);
 
 	const qs = query.toString();
-	return request<PagedAuditLogResult>(`/api/audit-logs${qs ? `?${qs}` : ''}`);
+	return request<PagedAuditLogResult>(`/api/audit-logs${qs ? `?${qs}` : ''}`, {}, 'view audit logs');
 }
 
 // ============================================================================
@@ -1568,25 +1675,25 @@ export interface InvoiceWhatsAppStatusDto {
 }
 
 export async function getWhatsAppConfig() {
-	return request<WhatsAppConfigDto>('/api/settings/whatsapp');
+	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {}, 'view WhatsApp settings');
 }
 
 export async function updateWhatsAppConfig(data: UpdateWhatsAppConfigRequest) {
 	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
-	});
+	}, 'change business settings');
 }
 
 export async function testWhatsAppConnection(data?: TestWhatsAppConnectionRequest) {
 	return request<TestWhatsAppConnectionResponse>('/api/settings/whatsapp/test', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data ?? {})),
-	});
+	}, 'test WhatsApp connection');
 }
 
 export async function getInvoiceWhatsAppStatus(invoiceId: string) {
-	return request<InvoiceWhatsAppStatusDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/whatsapp-status`);
+	return request<InvoiceWhatsAppStatusDto[]>(`/api/invoices/${encodeURIComponent(invoiceId)}/whatsapp-status`, {}, 'view WhatsApp delivery status');
 }
 
 // ============================================================================
@@ -1649,7 +1756,7 @@ export async function getDashboardSummary(params?: { fromDate?: string; toDate?:
 	if (params?.fromDate) qs.set('fromDate', params.fromDate);
 	if (params?.toDate) qs.set('toDate', params.toDate);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
-	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix);
+	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix, {}, 'view reports');
 }
 
 

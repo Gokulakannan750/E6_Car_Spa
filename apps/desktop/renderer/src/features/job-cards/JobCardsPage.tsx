@@ -45,16 +45,7 @@ export function JobCardsPage() {
 			console.error('Failed to load job cards from backend:', err);
 			setItems([]);
 			setTotalCount(0);
-			let userMsg = 'Unable to load Job Cards. Please try again.';
-			if (err instanceof Error) {
-				if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
-					userMsg = 'Your session has expired. Please log in again.';
-				} else if (err.message.includes('403') || err.message.toLowerCase().includes('forbidden')) {
-					userMsg = 'You do not have permission to view Job Cards.';
-				} else if (err.message && !err.message.startsWith('HTTP ') && !err.message.includes('Exception')) {
-					userMsg = err.message;
-				}
-			}
+			const userMsg = err instanceof Error ? err.message : 'Unable to load Job Cards. Please try again.';
 			setError(userMsg);
 		} finally {
 			setLoading(false);
