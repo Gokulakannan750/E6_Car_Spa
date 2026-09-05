@@ -14,12 +14,15 @@ import {
 	Loader2,
 	Image as ImageIcon,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/auth-context';
 import {
 	getBusinessProfile,
 	updateBusinessProfile,
 	uploadBusinessLogo,
 	removeBusinessLogo,
+	resolveLogoUrl,
+	setCachedBusinessProfile,
 	BusinessProfileDto,
 } from '../../lib/api';
 import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
@@ -28,6 +31,7 @@ const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i
 
 export default function SettingsPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { user, hasPermission } = useAuth();
 	const canViewUsers = hasPermission('users.view');
 	const canManageBusiness = Boolean(user?.isOwner || hasPermission('settings.business'));
@@ -63,6 +67,7 @@ export default function SettingsPage() {
 			setErrorMsg(null);
 			const data = await getBusinessProfile();
 			setProfile(data);
+			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, data);
 			setBusinessName(data.businessName || 'E6 Car Spa');
 			setAddressLine1(data.addressLine1 || '36, Geetha Nagar Main Road');
 			setAddressLine2(data.addressLine2 || 'Behind Sakthi Mahal, Perundurai Road');
@@ -138,6 +143,8 @@ export default function SettingsPage() {
 			});
 
 			setProfile(updated);
+			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, updated);
+			setCachedBusinessProfile(updated);
 			setGstin(updated.gstin || '');
 			setSuccessMsg('Business profile and invoice settings saved successfully.');
 			setTimeout(() => setSuccessMsg(null), 4000);
@@ -166,6 +173,8 @@ export default function SettingsPage() {
 			setSuccessMsg(null);
 			const res = await uploadBusinessLogo(file);
 			setProfile(res.profile);
+			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, res.profile);
+			setCachedBusinessProfile(res.profile);
 			setSuccessMsg('Logo updated successfully.');
 			setTimeout(() => setSuccessMsg(null), 4000);
 		} catch (err: unknown) {
@@ -187,6 +196,8 @@ export default function SettingsPage() {
 			setSuccessMsg(null);
 			const updated = await removeBusinessLogo();
 			setProfile(updated);
+			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, updated);
+			setCachedBusinessProfile(updated);
 			setSuccessMsg('Logo removed successfully.');
 			setTimeout(() => setSuccessMsg(null), 4000);
 		} catch (err: unknown) {
@@ -197,13 +208,7 @@ export default function SettingsPage() {
 		}
 	}
 
-	const logoUrl = profile?.logoPath
-		? profile.logoPath.startsWith('http')
-			? profile.logoPath
-			: profile.logoPath.startsWith('/uploads')
-				? `http://localhost:5298${profile.logoPath}`
-				: profile.logoPath
-		: '/e6-logo.png';
+	const logoUrl = resolveLogoUrl(profile?.logoPath, profile?.updatedAt);
 
 	if (loading) {
 		return (
@@ -286,12 +291,12 @@ export default function SettingsPage() {
 
 							<div className="flex flex-col sm:flex-row items-center gap-6">
 								{/* Logo Preview */}
-								<div className="w-32 h-32 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center p-2 relative overflow-hidden shrink-0 group">
+								<div className="min-w-32 min-h-32 max-w-64 max-h-36 w-auto h-auto rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center p-2 relative overflow-hidden shrink-0 group">
 									{profile?.logoPath ? (
 										<img
 											src={logoUrl}
 											alt="Business Logo"
-											className="w-full h-full object-contain"
+											className="max-h-28 max-w-56 w-auto h-auto object-contain block"
 											onError={(e) => {
 												(e.target as HTMLImageElement).src = '/e6-logo.png';
 											}}

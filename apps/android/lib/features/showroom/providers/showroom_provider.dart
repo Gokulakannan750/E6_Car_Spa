@@ -76,8 +76,10 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
     loadShowrooms();
   }
 
-  Future<void> loadShowrooms() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  Future<void> loadShowrooms({bool silent = false}) async {
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
     try {
       final list = await _repository.getShowrooms();
       state = state.copyWith(
@@ -86,15 +88,19 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
         clearError: true,
       );
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: e.message,
+        );
+      }
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'An unexpected error occurred while loading showrooms.',
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'An unexpected error occurred while loading showrooms.',
+        );
+      }
     }
   }
 

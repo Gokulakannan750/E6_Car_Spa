@@ -88,9 +88,42 @@ class ShowroomRepository {
     }
   }
 
+  Future<DailyStaffAssignment> updateDailyStaffVehicles(
+    String assignmentId,
+    UpdateDailyStaffAssignmentRequest request,
+  ) async {
+    try {
+      return await _api.updateDailyStaffVehicles(assignmentId, request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<void> removeDailyStaff(String assignmentId) async {
     try {
       await _api.removeDailyStaff(assignmentId);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<DailyStaffResponse> confirmDailyStaffAttendance(
+    String showroomId,
+    DateTime date,
+  ) async {
+    try {
+      return await _api.confirmDailyStaffAttendance(showroomId, date);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<DailyStaffResponse> unlockDailyStaffAttendance(
+    String showroomId,
+    DateTime date,
+  ) async {
+    try {
+      return await _api.unlockDailyStaffAttendance(showroomId, date);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

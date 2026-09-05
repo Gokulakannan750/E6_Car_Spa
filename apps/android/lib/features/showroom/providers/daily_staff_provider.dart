@@ -13,6 +13,8 @@ class DailyStaffState {
   final bool isLoading;
   final bool isAssigning;
   final bool isRemoving;
+  final bool isConfirming;
+  final bool isUnlocking;
   final String? errorMessage;
 
   const DailyStaffState({
@@ -22,6 +24,8 @@ class DailyStaffState {
     this.isLoading = false,
     this.isAssigning = false,
     this.isRemoving = false,
+    this.isConfirming = false,
+    this.isUnlocking = false,
     this.errorMessage,
   });
 
@@ -31,6 +35,9 @@ class DailyStaffState {
   int get totalStaffCount => staffAssignments.length;
   int get totalVehiclesAttended => dailyStaffResponse?.totalVehiclesAttended ?? 0;
   bool get isAttendanceConfirmed => dailyStaffResponse?.isAttendanceConfirmed ?? false;
+  DateTime? get attendanceConfirmedAt => dailyStaffResponse?.attendanceConfirmedAt;
+  String? get attendanceConfirmedByName => dailyStaffResponse?.attendanceConfirmedByName;
+  String? get attendanceConfirmedByUserId => dailyStaffResponse?.attendanceConfirmedByUserId;
 
   DailyStaffState copyWith({
     String? showroomId,
@@ -39,6 +46,8 @@ class DailyStaffState {
     bool? isLoading,
     bool? isAssigning,
     bool? isRemoving,
+    bool? isConfirming,
+    bool? isUnlocking,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -49,6 +58,8 @@ class DailyStaffState {
       isLoading: isLoading ?? this.isLoading,
       isAssigning: isAssigning ?? this.isAssigning,
       isRemoving: isRemoving ?? this.isRemoving,
+      isConfirming: isConfirming ?? this.isConfirming,
+      isUnlocking: isUnlocking ?? this.isUnlocking,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -131,7 +142,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       await loadDailyStaff(date: state.selectedDate);
 
       // Invalidate master showrooms list so today counts update
-      _ref.read(showroomsProvider.notifier).loadShowrooms();
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       state = state.copyWith(isAssigning: false, clearError: true);
       return assignment;
@@ -150,6 +161,73 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
     }
   }
 
+  Future<void> assignMultipleStaff({
+    required List<String> staffIds,
+    int vehiclesAttended = 0,
+  }) async {
+    if (staffIds.isEmpty) return;
+    state = state.copyWith(isAssigning: true, clearError: true);
+    try {
+      for (final staffId in staffIds) {
+        final request = CreateDailyStaffAssignmentRequest(
+          staffId: staffId,
+          date: state.selectedDate,
+          vehiclesAttended: vehiclesAttended,
+        );
+        await _repository.assignDailyStaff(state.showroomId, request);
+      }
+
+      await loadDailyStaff(date: state.selectedDate);
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      state = state.copyWith(isAssigning: false, clearError: true);
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isAssigning: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(
+        isAssigning: false,
+        errorMessage: 'Failed to assign staff members.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<DailyStaffAssignment?> updateVehicles({
+    required String assignmentId,
+    required int vehiclesAttended,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final request = UpdateDailyStaffAssignmentRequest(
+        vehiclesAttended: vehiclesAttended,
+      );
+      final updated = await _repository.updateDailyStaffVehicles(
+        assignmentId,
+        request,
+      );
+
+      await loadDailyStaff(date: state.selectedDate);
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      state = state.copyWith(isLoading: false, clearError: true);
+      return updated;
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to update vehicles attended.',
+      );
+      rethrow;
+    }
+  }
+
   Future<void> removeAssignment(String assignmentId) async {
     state = state.copyWith(isRemoving: true, clearError: true);
     try {
@@ -159,19 +237,89 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       await loadDailyStaff(date: state.selectedDate);
 
       // Invalidate master showrooms list so counts update
-      _ref.read(showroomsProvider.notifier).loadShowrooms();
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       state = state.copyWith(isRemoving: false, clearError: true);
     } on ApiException catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isRemoving: false,
         errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isRemoving: false,
         errorMessage: 'Failed to remove staff assignment.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<DailyStaffResponse?> confirmAttendance() async {
+    state = state.copyWith(isConfirming: true, clearError: true);
+    try {
+      final response = await _repository.confirmDailyStaffAttendance(
+        state.showroomId,
+        state.selectedDate,
+      );
+
+      if (!mounted) return response;
+      state = state.copyWith(
+        dailyStaffResponse: response,
+        isConfirming: false,
+        clearError: true,
+      );
+
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      return response;
+    } on ApiException catch (e) {
+      if (!mounted) return null;
+      state = state.copyWith(
+        isConfirming: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      if (!mounted) return null;
+      state = state.copyWith(
+        isConfirming: false,
+        errorMessage: 'Failed to confirm attendance.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<DailyStaffResponse?> unlockAttendance() async {
+    state = state.copyWith(isUnlocking: true, clearError: true);
+    try {
+      final response = await _repository.unlockDailyStaffAttendance(
+        state.showroomId,
+        state.selectedDate,
+      );
+
+      if (!mounted) return response;
+      state = state.copyWith(
+        dailyStaffResponse: response,
+        isUnlocking: false,
+        clearError: true,
+      );
+
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      return response;
+    } on ApiException catch (e) {
+      if (!mounted) return null;
+      state = state.copyWith(
+        isUnlocking: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      if (!mounted) return null;
+      state = state.copyWith(
+        isUnlocking: false,
+        errorMessage: 'Failed to unlock attendance.',
       );
       rethrow;
     }

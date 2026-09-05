@@ -1,94 +1,94 @@
 @import 'tailwindcss';
 
 @theme {
- --color-primary: #000101;
- --color-primary-container: #1a1c1e;
- --color-on-primary: #ffffff;
- --color-secondary: #0453cd;
- --color-secondary-container: #356ee7;
- --color-on-secondary: #ffffff;
- --color-background: #f8f9fa;
- --color-background-dim: #d9dadb;
- --color-surface: #f8f9fa;
- --color-surface-container-lowest: #ffffff;
- --color-surface-container-low: #f3f4f5;
- --color-surface-container: #edeeef;
- --color-surface-container-high: #e7e8e9;
- --color-surface-container-highest: #e1e3e4;
- --color-surface-variant: #e1e3e4;
- --color-on-surface: #191c1d;
- --color-on-surface-variant: #44474a;
- --color-inverse-surface: #2e3132;
- --color-outline: #75777a;
- --color-outline-variant: #c5c6ca;
- --color-success: #2e7d32;
- --color-success-container: #e8f5e9;
- --color-on-success: #ffffff;
- --color-warning: #f57c00;
- --color-warning-container: #fff3e0;
- --color-on-warning: #ffffff;
- --color-error: #ba1a1a;
- --color-error-container: #ffdad6;
- --color-on-error: #ffffff;
- --color-info: #1976d2;
- --color-info-container: #e3f2fd;
- --color-on-info: #ffffff;
- --font-display-lg: 'Inter', sans-serif;
- --font-headline-lg: 'Inter', sans-serif;
- --font-headline-md: 'Inter', sans-serif;
- --font-headline-sm: 'Inter', sans-serif;
- --font-body-lg: 'Inter', sans-serif;
- --font-body-md: 'Inter', sans-serif;
- --font-body-sm: 'Inter', sans-serif;
- --font-label-md: 'Inter', sans-serif;
- --shadow-elevation-1: 0px 4px 12px rgba(0, 0, 0, 0.05);
- --shadow-elevation-2: 0px 12px 24px rgba(0, 0, 0, 0.1);
- --animate-fade-in: fade-in 0.2s ease-out;
- --animate-slide-in: slide-in 0.2s ease-out;
- --animate-scale-in: scale-in 0.15s ease-out;
+	--color-primary: #000101;
+	--color-primary-container: #1a1c1e;
+	--color-on-primary: #ffffff;
+	--color-secondary: #0453cd;
+	--color-secondary-container: #356ee7;
+	--color-on-secondary: #ffffff;
+	--color-background: #f8f9fa;
+	--color-background-dim: #d9dadb;
+	--color-surface: #f8f9fa;
+	--color-surface-container-lowest: #ffffff;
+	--color-surface-container-low: #f3f4f5;
+	--color-surface-container: #edeeef;
+	--color-surface-container-high: #e7e8e9;
+	--color-surface-container-highest: #e1e3e4;
+	--color-surface-variant: #e1e3e4;
+	--color-on-surface: #191c1d;
+	--color-on-surface-variant: #44474a;
+	--color-inverse-surface: #2e3132;
+	--color-outline: #75777a;
+	--color-outline-variant: #c5c6ca;
+	--color-success: #2e7d32;
+	--color-success-container: #e8f5e9;
+	--color-on-success: #ffffff;
+	--color-warning: #f57c00;
+	--color-warning-container: #fff3e0;
+	--color-on-warning: #ffffff;
+	--color-error: #ba1a1a;
+	--color-error-container: #ffdad6;
+	--color-on-error: #ffffff;
+	--color-info: #1976d2;
+	--color-info-container: #e3f2fd;
+	--color-on-info: #ffffff;
+	--font-display-lg: 'Inter', sans-serif;
+	--font-headline-lg: 'Inter', sans-serif;
+	--font-headline-md: 'Inter', sans-serif;
+	--font-headline-sm: 'Inter', sans-serif;
+	--font-body-lg: 'Inter', sans-serif;
+	--font-body-md: 'Inter', sans-serif;
+	--font-body-sm: 'Inter', sans-serif;
+	--font-label-md: 'Inter', sans-serif;
+	--shadow-elevation-1: 0px 4px 12px rgba(0, 0, 0, 0.05);
+	--shadow-elevation-2: 0px 12px 24px rgba(0, 0, 0, 0.1);
+	--animate-fade-in: fade-in 0.2s ease-out;
+	--animate-slide-in: slide-in 0.2s ease-out;
+	--animate-scale-in: scale-in 0.15s ease-out;
 }
 
 @keyframes fade-in {
- from { opacity: 0; }
- to { opacity: 1; }
+	from { opacity: 0; }
+	to { opacity: 1; }
 }
 
 @keyframes slide-in {
- from { opacity: 0; transform: translateY(8px); }
- to { opacity: 1; transform: translateY(0); }
+	from { opacity: 0; transform: translateY(8px); }
+	to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scale-in {
- from { opacity: 0; transform: scale(0.97); }
- to { opacity: 1; transform: scale(1); }
+	from { opacity: 0; scale: 0.97; }
+	to { opacity: 1; scale: 1; }
 }
 
 @layer base {
- * { margin: 0; padding: 0; box-sizing: border-box; }
+	* { margin: 0; padding: 0; box-sizing: border-box; }
 
- html, body, #root {
- height: 100%;
- width: 100%;
- overflow: hidden;
- }
+	html, body, #root {
+		height: 100%;
+		width: 100%;
+		overflow: hidden;
+	}
 
- body {
- font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
- background-color: #f8f9fa;
- color: #191c1d;
- -webkit-font-smoothing: antialiased;
- -moz-osx-font-smoothing: grayscale;
- }
+	body {
+		font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		background-color: #f8f9fa;
+		color: #191c1d;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
 
- ::-webkit-scrollbar { width: 6px; height: 6px; }
- ::-webkit-scrollbar-track { background: transparent; }
- ::-webkit-scrollbar-thumb { background: #c5c6ca; border-radius: 3px; }
- ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+	::-webkit-scrollbar { width: 6px; height: 6px; }
+	::-webkit-scrollbar-track { background: transparent; }
+	::-webkit-scrollbar-thumb { background: #c5c6ca; border-radius: 3px; }
+	::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
- .electron-drag { -webkit-app-region: drag; }
- .electron-no-drag { -webkit-app-region: no-drag; }
+	.electron-drag { -webkit-app-region: drag; }
+	.electron-no-drag { -webkit-app-region: no-drag; }
 
- 	@media print {
+	@media print {
 		@page {
 			size: A4 portrait;
 			margin: 15mm;
@@ -132,52 +132,52 @@
 }
 
 @layer components {
- .app-card {
- @apply bg-white rounded-lg border border-outline-variant shadow-elevation-1;
- }
+	.app-card {
+		@apply bg-white rounded-lg border border-outline-variant shadow-elevation-1;
+	}
 
- .app-table {
- @apply w-full text-left text-sm;
- }
- .app-table thead th {
- @apply px-4 py-3 text-xs font-semibold uppercase tracking-wider text-on-surface-variant bg-surface-container-low border-b border-outline-variant;
- }
- .app-table tbody td {
- @apply px-4 py-3 border-b border-outline-variant/50 text-sm text-on-surface;
- }
- .app-table tbody tr:hover { @apply bg-surface-container-low/50; }
- .app-table tbody tr:last-child td { @apply border-b-0; }
+	.app-table {
+		@apply w-full text-left text-sm;
+	}
+	.app-table thead th {
+		@apply px-4 py-3 text-xs font-semibold uppercase tracking-wider text-on-surface-variant bg-surface-container-low border-b border-outline-variant;
+	}
+	.app-table tbody td {
+		@apply px-4 py-3 border-b border-outline-variant/50 text-sm text-on-surface;
+	}
+	.app-table tbody tr:hover { @apply bg-surface-container-low/50; }
+	.app-table tbody tr:last-child td { @apply border-b-0; }
 
- .status-badge {
- @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium;
- }
+	.status-badge {
+		@apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium;
+	}
 
- .form-field {
- @apply space-y-1.5;
- }
- .form-field label {
- @apply block text-sm font-medium text-on-surface;
- }
- .form-field .hint {
- @apply text-sm text-on-surface-variant;
- }
- .form-field .error {
- @apply text-sm text-error;
- }
+	.form-field {
+		@apply space-y-1.5;
+	}
+	.form-field label {
+		@apply block text-sm font-medium text-on-surface;
+	}
+	.form-field .hint {
+		@apply text-sm text-on-surface-variant;
+	}
+	.form-field .error {
+		@apply text-sm text-error;
+	}
 
- .form-input {
- @apply w-full px-3 py-2 bg-white border border-outline rounded-md text-sm text-on-surface placeholder:text-on-surface-variant/60;
- @apply focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20;
- @apply transition-colors;
- }
+	.form-input {
+		@apply w-full px-3 py-2 bg-white border border-outline rounded-md text-sm text-on-surface placeholder:text-on-surface-variant/60;
+		@apply focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20;
+		@apply transition-colors;
+	}
 
- .animate-fade-in { animation: fade-in 0.2s ease-out; }
- .animate-slide-in { animation: slide-in 0.2s ease-out; }
- .animate-scale-in { animation: scale-in 0.15s ease-out; }
- .sidebar-transition { transition: all 0.2s ease-in-out; }
+	.animate-fade-in { animation: fade-in 0.2s ease-out; }
+	.animate-slide-in { animation: slide-in 0.2s ease-out; }
+	.animate-scale-in { animation: scale-in 0.15s ease-out; }
+	.sidebar-transition { transition: all 0.2s ease-in-out; }
 }
 
 @layer utilities {
- .text-balance { text-wrap: balance; }
- .scrollbar-thin { scrollbar-width: thin; }
+	.text-balance { text-wrap: balance; }
+	.scrollbar-thin { scrollbar-width: thin; }
 }

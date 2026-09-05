@@ -67,15 +67,18 @@ class InvoiceListNotifier extends StateNotifier<InvoiceListState> {
 
   Future<void> loadInvoices({
     bool refresh = false,
+    bool silent = false,
     String? search,
     InvoiceStatus? status,
     bool clearStatus = false,
   }) async {
     if (!mounted) return;
-    if (refresh) {
-      state = state.copyWith(isRefreshing: true, clearError: true);
-    } else {
-      state = state.copyWith(isLoading: true, clearError: true);
+    if (!silent) {
+      if (refresh) {
+        state = state.copyWith(isRefreshing: true, clearError: true);
+      } else {
+        state = state.copyWith(isLoading: true, clearError: true);
+      }
     }
 
     try {
@@ -102,18 +105,22 @@ class InvoiceListNotifier extends StateNotifier<InvoiceListState> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        isRefreshing: false,
-        errorMessage: e.message,
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          isRefreshing: false,
+          errorMessage: e.message,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        isRefreshing: false,
-        errorMessage: 'Failed to load invoices. Please try again.',
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          isRefreshing: false,
+          errorMessage: 'Failed to load invoices. Please try again.',
+        );
+      }
     }
   }
 

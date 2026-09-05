@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
 	Plus,
 	Search,
@@ -17,44 +18,34 @@ import type { JobCardListDto } from '../../lib/api';
 
 export function JobCardsPage() {
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const globalSearch = useAppStore((s) => s.globalSearch);
 	const [search, setSearch] = useState('');
-	const [items, setItems] = useState<JobCardListDto[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
 	const [page, setPage] = useState(1);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const [convertingId, setConvertingId] = useState<string | null>(null);
 	const [convertError, setConvertError] = useState<string | null>(null);
 	const pageSize = 10;
 
 	const effectiveSearch = search.trim() || globalSearch.trim();
 
-	const loadJobCards = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const response = await getJobCards({
+	const {
+		data: jobCardsData,
+		isLoading: loading,
+		error: queryError,
+		refetch: loadJobCards,
+	} = useQuery({
+		queryKey: ['jobCards', page, pageSize, effectiveSearch],
+		queryFn: () =>
+			getJobCards({
 				page,
 				pageSize,
 				search: effectiveSearch || undefined,
-			});
-			setItems(response.items || []);
-			setTotalCount(response.totalCount || 0);
-		} catch (err: unknown) {
-			console.error('Failed to load job cards from backend:', err);
-			setItems([]);
-			setTotalCount(0);
-			const userMsg = err instanceof Error ? err.message : 'Unable to load Job Cards. Please try again.';
-			setError(userMsg);
-		} finally {
-			setLoading(false);
-		}
-	}, [page, pageSize, effectiveSearch]);
+			}),
+	});
 
-	useEffect(() => {
-		loadJobCards();
-	}, [loadJobCards]);
+	const items: JobCardListDto[] = jobCardsData?.items || [];
+	const totalCount = jobCardsData?.totalCount || 0;
+	const error = queryError instanceof Error ? queryError.message : queryError ? 'Unable to load Job Cards. Please try again.' : null;
 
 	const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -76,6 +67,8 @@ export function JobCardsPage() {
 		setConvertError(null);
 		try {
 			const invoice = await createInvoiceFromJobCard(jobCard.id);
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
 			if (invoice && invoice.id) {
 				navigate(`/invoices/${invoice.id}`);
 			}
@@ -85,7 +78,7 @@ export function JobCardsPage() {
 			setConvertError(msg);
 			// Duplicate invoice protection: if an invoice already exists, refresh job cards to get current invoice state
 			if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('conflict')) {
-				loadJobCards();
+				queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 			}
 		} finally {
 			setConvertingId(null);

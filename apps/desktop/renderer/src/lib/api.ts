@@ -1525,13 +1525,50 @@ export interface UpdateBusinessProfileInput {
 	termsAndConditions?: string | null;
 }
 
-export interface LogoUploadResponse {
-	logoUrl: string;
-	profile: BusinessProfileDto;
+export const BUSINESS_PROFILE_STORAGE_KEY = 'car_spa_business_profile';
+
+export function getCachedBusinessProfile(): BusinessProfileDto | null {
+	if (typeof localStorage === 'undefined') return null;
+	try {
+		const raw = localStorage.getItem(BUSINESS_PROFILE_STORAGE_KEY);
+		return raw ? JSON.parse(raw) : null;
+	} catch {
+		return null;
+	}
+}
+
+export function setCachedBusinessProfile(profile: BusinessProfileDto | null): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		if (profile) {
+			localStorage.setItem(BUSINESS_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+		} else {
+			localStorage.removeItem(BUSINESS_PROFILE_STORAGE_KEY);
+		}
+	} catch {
+		// Ignore storage write errors
+	}
+}
+
+export function resolveLogoUrl(logoPath?: string | null, updatedAt?: string | null): string {
+	if (!logoPath || !logoPath.trim()) {
+		return '/e6-logo.png';
+	}
+	const trimmed = logoPath.trim();
+	const versionParam = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : '';
+	if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+		return trimmed.includes('?') ? trimmed : `${trimmed}${versionParam}`;
+	}
+	const base = API_BASE.replace(/\/api\/?$/, '').replace(/\/$/, '');
+	const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+	const fullUrl = `${base}${pathWithSlash}`;
+	return fullUrl.includes('?') ? fullUrl : `${fullUrl}${versionParam}`;
 }
 
 export async function getBusinessProfile() {
-	return request<BusinessProfileDto>('/api/settings/business', {}, 'view business profile');
+	const res = await request<BusinessProfileDto>('/api/settings/business', {}, 'view business profile');
+	setCachedBusinessProfile(res);
+	return res;
 }
 
 export async function updateBusinessProfile(data: UpdateBusinessProfileInput) {

@@ -17,7 +17,6 @@ import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/edit_job_card_sheet.dart';
-import '../widgets/job_card_print_preview_dialog.dart';
 
 class JobCardDetailsScreen extends ConsumerStatefulWidget {
   final String jobCardId;
@@ -193,12 +192,6 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                 tooltip: 'Edit Job Card',
                 onPressed: () => _handleEditJobCard(state.jobCard!),
               ),
-            IconButton(
-              key: const Key('job_card_preview_button'),
-              icon: const Icon(Icons.print_outlined),
-              tooltip: 'Print / Preview Job Card',
-              onPressed: () => JobCardPrintPreviewDialog.show(context, state.jobCard!),
-            ),
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(

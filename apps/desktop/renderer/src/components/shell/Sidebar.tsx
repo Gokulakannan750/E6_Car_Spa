@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../../utils/cn';
@@ -10,10 +11,20 @@ import {
 } from '../../constants/navigation';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../../features/auth/auth-context';
+import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
 
 export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 	const { toggleSidebar } = useAppStore();
 	const { user: authUser, hasPermission } = useAuth();
+	const { profile, logoUrl, hasCustomLogo } = useBusinessProfile();
+	const [imgError, setImgError] = useState(false);
+
+	useEffect(() => {
+		setImgError(false);
+	}, [logoUrl]);
+
+	const businessName = profile?.businessName || 'E6 Car Spa';
+	const showImage = hasCustomLogo && !imgError;
 
 	const renderNavItem = (item: (typeof NAVIGATION_ITEMS)[number]) => {
 		// Filter based on user permissions (Owner has unrestricted access to all)
@@ -101,19 +112,37 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 			{/* Logo / Brand */}
 			<div className={cn('flex items-center h-16 border-b border-white/8', collapsed ? 'justify-center' : 'px-4')}>
 				{!collapsed ? (
-					<div className="flex items-center gap-2.5 min-w-0">
-						<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-							<span className="text-white font-bold text-xs">E6</span>
-						</div>
-						<div className="sidebar-transition overflow-hidden whitespace-nowrap">
-							<span className="text-white font-semibold text-sm">E6 Car Spa</span>
-							<span className="text-slate-400 text-xs block -mt-0.5">Management Suite</span>
+					<div className="flex items-center gap-3 min-w-0 flex-1">
+						{showImage ? (
+							<img
+								src={logoUrl}
+								alt={businessName}
+								className="h-8 max-h-8 w-auto max-w-[120px] object-contain flex-shrink-0"
+								onError={() => setImgError(true)}
+							/>
+						) : (
+							<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+								<span className="text-white font-bold text-xs">E6</span>
+							</div>
+						)}
+						<div className="sidebar-transition overflow-hidden whitespace-nowrap min-w-0 flex-1">
+							<span className="text-white font-semibold text-sm truncate block leading-tight">{businessName}</span>
+							<span className="text-slate-400 text-xs block mt-0.5">Management Suite</span>
 						</div>
 					</div>
 				) : (
-					<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-						<span className="text-white font-bold text-xs">E6</span>
-					</div>
+					showImage ? (
+						<img
+							src={logoUrl}
+							alt={businessName}
+							className="h-8 max-h-8 w-auto max-w-[56px] object-contain flex-shrink-0"
+							onError={() => setImgError(true)}
+						/>
+					) : (
+						<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+							<span className="text-white font-bold text-xs">E6</span>
+						</div>
+					)
 				)}
 			</div>
 

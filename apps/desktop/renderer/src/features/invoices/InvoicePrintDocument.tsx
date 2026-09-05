@@ -1,4 +1,4 @@
-import { type InvoiceDto, type BusinessProfileDto } from '../../lib/api';
+import { type InvoiceDto, type BusinessProfileDto, resolveLogoUrl } from '../../lib/api';
 
 interface InvoicePrintDocumentProps {
 	invoice: InvoiceDto;
@@ -37,14 +37,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 	const phone = businessProfile?.phone || '9578749449';
 	const email = businessProfile?.email || 'e6carspaerd@gmail.com';
 	const gstin = businessProfile?.gstin?.trim() || null;
-
-	const logoUrl = businessProfile?.logoPath
-		? businessProfile.logoPath.startsWith('http')
-			? businessProfile.logoPath
-			: businessProfile.logoPath.startsWith('/uploads')
-				? `http://localhost:5298${businessProfile.logoPath}`
-				: businessProfile.logoPath
-		: '/e6-logo.png';
+	const logoUrl = resolveLogoUrl(businessProfile?.logoPath, businessProfile?.updatedAt);
 
 	// Header Title
 	const documentTitle = isDraft ? 'DRAFT INVOICE' : isGst ? 'TAX INVOICE' : 'INVOICE';

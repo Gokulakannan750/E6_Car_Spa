@@ -151,3 +151,16 @@ class CreateDailyStaffAssignmentRequest {
     'vehiclesAttended': vehiclesAttended,
   };
 }
+
+@immutable
+class UpdateDailyStaffAssignmentRequest {
+  final int vehiclesAttended;
+
+  const UpdateDailyStaffAssignmentRequest({
+    required this.vehiclesAttended,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'vehiclesAttended': vehiclesAttended,
+  };
+}

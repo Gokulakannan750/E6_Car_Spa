@@ -37,6 +37,7 @@ import {
 	Download,
 } from 'lucide-react';
 import { JobCardPrintDocument } from './JobCardDetails';
+import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -102,6 +103,7 @@ interface NavigationState {
 export default function NewJobCard() {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { profile, logoUrl } = useBusinessProfile();
 	const navState = (location.state as NavigationState | null) || null;
 	const preselectedServiceId = navState?.preselectedServiceId;
 
@@ -731,7 +733,11 @@ export default function NewJobCard() {
 						{/* Centered A4 Document Canvas */}
 						<div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center items-start bg-slate-950/60">
 							<div className="shadow-2xl ring-1 ring-black/20 rounded-xs">
-								<JobCardPrintDocument jobCard={createdJobCard} />
+								<JobCardPrintDocument
+									jobCard={createdJobCard}
+									logoUrl={logoUrl}
+									businessName={profile?.businessName}
+								/>
 							</div>
 						</div>
 					</div>
@@ -740,7 +746,11 @@ export default function NewJobCard() {
 				{/* ── Dedicated Print DOM (Rendered ONLY during physical print) ──── */}
 				{createdJobCard && (
 					<div className="print-only">
-						<JobCardPrintDocument jobCard={createdJobCard} />
+						<JobCardPrintDocument
+							jobCard={createdJobCard}
+							logoUrl={logoUrl}
+							businessName={profile?.businessName}
+						/>
 					</div>
 				)}
 			</>

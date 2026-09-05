@@ -124,8 +124,10 @@ class BusinessLogoCard extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 80,
                     height: 80,
+                    width: hasLogo ? null : 80,
+                    constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
+                    padding: hasLogo ? const EdgeInsets.all(4) : EdgeInsets.zero,
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
@@ -135,7 +137,8 @@ class BusinessLogoCard extends StatelessWidget {
                     child: hasLogo
                         ? Image.network(
                             fullUrl,
-                            fit: BoxFit.cover,
+                            height: 72,
+                            fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Center(
                               child: Icon(
@@ -169,21 +172,22 @@ class BusinessLogoCard extends StatelessWidget {
                           ),
                   ),
                   if (isUploading)
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black38,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -39,7 +39,6 @@ class ShowroomDateSelector extends StatelessWidget {
         );
       },
     );
-
     if (picked != null) {
       onDateSelected(picked);
     }
@@ -78,34 +77,41 @@ class ShowroomDateSelector extends StatelessWidget {
           ),
 
           // Date Display (Tappable for DatePicker)
-          InkWell(
-            onTap: () => _pickDate(context),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.calendar_today_outlined,
-                    size: 16,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    formattedDate,
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+          Flexible(
+            child: InkWell(
+              onTap: () => _pickDate(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 15,
+                      color: AppColors.primary,
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_drop_down,
-                    size: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        formattedDate,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

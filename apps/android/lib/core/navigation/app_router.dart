@@ -27,7 +27,6 @@ import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
 import '../../features/staffadvances/presentation/pages/staff_advances_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
 import '../../features/users/presentation/pages/users_screen.dart';
-import '../../features/auditlogs/presentation/pages/audit_logs_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
 class RouterNotifier extends ChangeNotifier {
@@ -244,12 +243,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
-          ),
-          GoRoute(
-            path: AppRoutes.audit,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AuditLogsScreen(),
-            ),
           ),
         ],
       ),

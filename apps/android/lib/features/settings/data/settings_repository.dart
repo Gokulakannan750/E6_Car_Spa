@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../models/business_profile_model.dart';
@@ -19,13 +21,39 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 
 class SettingsRepository {
   final SettingsApi _api;
+  final FlutterSecureStorage _storage;
 
-  SettingsRepository(this._api);
+  static const String _cachedProfileKey = 'e6_cached_business_profile';
+
+  SettingsRepository(this._api, [FlutterSecureStorage? storage])
+      : _storage = storage ?? const FlutterSecureStorage();
+
+  Future<BusinessProfileModel?> getCachedBusinessProfile() async {
+    try {
+      final jsonStr = await _storage.read(key: _cachedProfileKey);
+      if (jsonStr == null || jsonStr.isEmpty) return null;
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      return BusinessProfileModel.fromJson(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveCachedProfile(BusinessProfileModel profile) async {
+    try {
+      final jsonStr = jsonEncode(profile.toJson());
+      await _storage.write(key: _cachedProfileKey, value: jsonStr);
+    } catch (_) {}
+  }
 
   Future<BusinessProfileModel> getBusinessProfile() async {
     try {
-      return await _api.getBusinessProfile();
+      final profile = await _api.getBusinessProfile();
+      await _saveCachedProfile(profile);
+      return profile;
     } on DioException catch (e) {
+      final cached = await getCachedBusinessProfile();
+      if (cached != null) return cached;
       throw ApiException.fromDio(e);
     }
   }
@@ -34,7 +62,9 @@ class SettingsRepository {
     UpdateBusinessProfileRequest request,
   ) async {
     try {
-      return await _api.updateBusinessProfile(request);
+      final profile = await _api.updateBusinessProfile(request);
+      await _saveCachedProfile(profile);
+      return profile;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -45,7 +75,9 @@ class SettingsRepository {
     required String filename,
   }) async {
     try {
-      return await _api.uploadLogo(bytes: bytes, filename: filename);
+      final res = await _api.uploadLogo(bytes: bytes, filename: filename);
+      await _saveCachedProfile(res.profile);
+      return res;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -53,7 +85,9 @@ class SettingsRepository {
 
   Future<BusinessProfileModel> removeLogo() async {
     try {
-      return await _api.removeLogo();
+      final profile = await _api.removeLogo();
+      await _saveCachedProfile(profile);
+      return profile;
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

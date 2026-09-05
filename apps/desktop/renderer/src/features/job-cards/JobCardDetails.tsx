@@ -89,10 +89,22 @@ function emptyServiceRow(svc: ServiceDto): ServiceRow {
 	};
 }
 
+import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
+
 // ═════════════════════════════════════════════════════════════════════════════
 // ── SINGLE REUSABLE PRINTABLE JOB CARD DOCUMENT COMPONENT ───────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-export function JobCardPrintDocument({ jobCard }: { jobCard: JobCardDto }) {
+export interface JobCardPrintDocumentProps {
+	jobCard: JobCardDto;
+	logoUrl?: string;
+	businessName?: string;
+}
+
+export function JobCardPrintDocument({
+	jobCard,
+	logoUrl = '/e6-logo.png',
+	businessName = 'E6 Car Spa',
+}: JobCardPrintDocumentProps) {
 	return (
 		<div className="bg-white text-slate-900 font-sans p-8 w-[210mm] min-h-[297mm] mx-auto box-border">
 			{/* ── Header: Logo Banner & Titles ─────────────────────────────── */}
@@ -100,15 +112,15 @@ export function JobCardPrintDocument({ jobCard }: { jobCard: JobCardDto }) {
 				{/* Left: Brand Logo & Title */}
 				<div className="space-y-1">
 					<img
-						src="/e6-logo.png"
-						alt="E6 Car Spa"
+						src={logoUrl}
+						alt={businessName}
 						className="h-10 w-auto object-contain rounded-xs"
 						onError={(e) => {
 							(e.target as HTMLElement).style.display = 'none';
 						}}
 					/>
 					<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight leading-tight">
-						E6 Car Spa
+						{businessName}
 					</h1>
 				</div>
 
@@ -271,6 +283,7 @@ export default function JobCardDetails() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
+	const { profile, logoUrl } = useBusinessProfile();
 
 	// State
 	const [isEditing, setIsEditing] = useState(false);
@@ -764,7 +777,11 @@ export default function JobCardDetails() {
 					{/* Centered A4 Document Canvas */}
 					<div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center items-start bg-slate-950/60">
 						<div className="shadow-2xl ring-1 ring-black/20 rounded-xs">
-							<JobCardPrintDocument jobCard={jobCard} />
+							<JobCardPrintDocument
+								jobCard={jobCard}
+								logoUrl={logoUrl}
+								businessName={profile?.businessName}
+							/>
 						</div>
 					</div>
 				</div>
@@ -774,7 +791,11 @@ export default function JobCardDetails() {
 			{/* ── DEDICATED PRINT DOM (Rendered ONLY during physical print) ──── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			<div className="print-only">
-				<JobCardPrintDocument jobCard={jobCard} />
+				<JobCardPrintDocument
+					jobCard={jobCard}
+					logoUrl={logoUrl}
+					businessName={profile?.businessName}
+				/>
 			</div>
 		</>
 	);

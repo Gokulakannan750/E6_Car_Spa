@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../data/settings_repository.dart';
+import '../models/business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import 'settings_state.dart';
 
@@ -8,6 +9,12 @@ final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
   final repository = ref.watch(settingsRepositoryProvider);
   return SettingsNotifier(repository);
+});
+
+final businessProfileProvider = Provider<BusinessProfileModel?>((ref) {
+  final state = ref.watch(settingsNotifierProvider);
+  if (state is SettingsLoaded) return state.profile;
+  return null;
 });
 
 class SettingsNotifier extends StateNotifier<SettingsState> {
@@ -18,15 +25,24 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   }
 
   Future<void> loadProfile() async {
-    state = const SettingsLoading();
+    // Check if we have a cached profile for immediate zero-flicker display
+    final cached = await _repository.getCachedBusinessProfile();
+    if (cached != null && state is! SettingsLoaded) {
+      state = SettingsLoaded(profile: cached);
+    } else if (state is! SettingsLoaded) {
+      state = const SettingsLoading();
+    }
+
     try {
       final profile = await _repository.getBusinessProfile();
       state = SettingsLoaded(profile: profile);
     } catch (e) {
-      final message = e is ApiException
-          ? e.message
-          : 'Failed to load business profile. Please check connection.';
-      state = SettingsError(message);
+      if (state is! SettingsLoaded) {
+        final message = e is ApiException
+            ? e.message
+            : 'Failed to load business profile. Please check connection.';
+        state = SettingsError(message);
+      }
     }
   }
 

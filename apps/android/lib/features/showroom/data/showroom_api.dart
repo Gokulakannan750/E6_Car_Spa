@@ -74,7 +74,42 @@ class ShowroomApi {
     return DailyStaffAssignment.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<DailyStaffAssignment> updateDailyStaffVehicles(
+    String assignmentId,
+    UpdateDailyStaffAssignmentRequest request,
+  ) async {
+    final response = await _dio.put(
+      '/showroom-staff-assignments/$assignmentId',
+      data: request.toJson(),
+    );
+    return DailyStaffAssignment.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<void> removeDailyStaff(String assignmentId) async {
     await _dio.delete('/showroom-staff-assignments/$assignmentId');
+  }
+
+  Future<DailyStaffResponse> confirmDailyStaffAttendance(
+    String showroomId,
+    DateTime date,
+  ) async {
+    final dateStr = date.toIso8601String().split('T').first;
+    final response = await _dio.post(
+      '/showrooms/$showroomId/daily-staff/confirm',
+      queryParameters: {'date': dateStr},
+    );
+    return DailyStaffResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<DailyStaffResponse> unlockDailyStaffAttendance(
+    String showroomId,
+    DateTime date,
+  ) async {
+    final dateStr = date.toIso8601String().split('T').first;
+    final response = await _dio.post(
+      '/showrooms/$showroomId/daily-staff/unlock',
+      queryParameters: {'date': dateStr},
+    );
+    return DailyStaffResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }

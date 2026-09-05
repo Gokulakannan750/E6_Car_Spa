@@ -233,12 +233,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               // Header description
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Business Profile',
                           style: TextStyle(
                             fontSize: 20,
@@ -246,8 +246,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'Manage company identity, contact details, and invoice configuration.',
                           style: TextStyle(
                             fontSize: 13,
@@ -267,12 +267,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.accentPill,
+                    color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: const Row(
-                    children: [
+                  child: Row(
+                    children: const [
                       Icon(Icons.visibility_outlined,
                           color: AppColors.primary, size: 20),
                       SizedBox(width: 10),
@@ -404,8 +404,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Row(
-                      children: [
+                    Row(
+                      children: const [
                         Icon(Icons.info_outline,
                             color: AppColors.textSecondary, size: 18),
                         SizedBox(width: 8),
@@ -458,9 +458,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Row(
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+                      children: const [
                         Text(
                           'Environment',
                           style: TextStyle(

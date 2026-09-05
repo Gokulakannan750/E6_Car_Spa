@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ChevronRight, X, LogOut, Shield, KeyRound, User as UserIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import type { User } from '../../types/app';
 import { useAuth } from '../../features/auth/auth-context';
+import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
 
 interface HeaderProps {
 	pageTitle: string;
@@ -15,7 +16,16 @@ interface HeaderProps {
 
 export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = '', onSearchChange }: HeaderProps) {
 	const { user: authUser, logout } = useAuth();
+	const { profile, logoUrl, hasCustomLogo } = useBusinessProfile();
+	const [imgError, setImgError] = useState(false);
 	const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+	useEffect(() => {
+		setImgError(false);
+	}, [logoUrl]);
+
+	const businessName = profile?.businessName || 'E6 Car Spa';
+	const showImage = hasCustomLogo && !imgError;
 
 	const handleClear = useCallback(() => {
 		onSearchChange?.('');
@@ -56,11 +66,20 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 			{/* Left: Company Branding & Title + Breadcrumbs */}
 			<div className="flex items-center gap-3.5 min-w-0">
 				<div className="flex items-center gap-2.5 pr-3.5 border-r border-slate-200">
-					<div className="h-8 w-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center font-bold text-xs shadow-xs">
-						E6
-					</div>
+					{showImage ? (
+						<img
+							src={logoUrl}
+							alt={businessName}
+							className="h-8 max-h-8 w-auto max-w-[130px] object-contain flex-shrink-0"
+							onError={() => setImgError(true)}
+						/>
+					) : (
+						<div className="h-8 w-8 rounded-lg bg-blue-600/10 text-blue-600 border border-blue-200/50 flex items-center justify-center font-bold text-xs shadow-2xs flex-shrink-0">
+							E6
+						</div>
+					)}
 					<span className="font-bold text-sm text-slate-900 tracking-tight whitespace-nowrap">
-						E6 Car Spa
+						{businessName}
 					</span>
 				</div>
 

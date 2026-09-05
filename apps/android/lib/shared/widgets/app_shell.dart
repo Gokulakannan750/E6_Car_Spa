@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/routes.dart';
 import '../../core/constants/app_colors.dart';
+import 'app_business_logo.dart';
 
 class AppShell extends ConsumerWidget {
   final Widget child;
@@ -32,7 +33,7 @@ class AppShell extends ConsumerWidget {
           currentIndex: selectedIndex,
           type: BottomNavigationBarType.fixed,
           backgroundColor: AppColors.bottomNavBg,
-          selectedItemColor: AppColors.primary, // E6 Blue active state
+          selectedItemColor: AppColors.bottomNavActive,
           unselectedItemColor: AppColors.bottomNavInactive,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
@@ -94,27 +95,14 @@ class AppShell extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'E6',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
+                      children: const [
+                        AppBusinessLogo(
+                          height: 32,
+                          maxWidth: 110,
+                          borderRadius: 8,
                         ),
-                        const SizedBox(width: 10),
-                        const Text(
+                        SizedBox(width: 10),
+                        Text(
                           'More Modules',
                           style: TextStyle(
                             fontSize: 16,
@@ -200,23 +188,6 @@ class AppShell extends ConsumerWidget {
                 onTap: () {
                   Navigator.pop(context);
                   context.go(AppRoutes.users);
-                },
-              ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentPill,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.history_rounded, color: AppColors.primary, size: 20),
-                ),
-                title: const Text('Audit Trail', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                subtitle: const Text('Security events & system activity history', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.go(AppRoutes.audit);
                 },
               ),
               ListTile(

@@ -5,6 +5,8 @@ import '../data/staff_advances_repository.dart';
 import '../models/staff_advance_model.dart';
 import '../models/staff_advance_request_models.dart';
 
+import '../../staff/providers/staff_provider.dart';
+
 @immutable
 class StaffAdvancesState {
   final bool isLoading;
@@ -66,23 +68,26 @@ class StaffAdvancesState {
 
 class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
   final StaffAdvancesRepository _repository;
+  final Ref? _ref;
 
-  StaffAdvancesNotifier(this._repository) : super(const StaffAdvancesState()) {
+  StaffAdvancesNotifier(this._repository, [this._ref]) : super(const StaffAdvancesState()) {
     loadAdvances();
   }
 
-  Future<void> loadAdvances({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+  Future<void> loadAdvances({bool refresh = false, bool silent = false}) async {
+    if (state.isLoading && !refresh && !silent) return;
 
-    state = state.copyWith(
-      isLoading: true,
-      clearError: true,
-      page: refresh ? 1 : state.page,
-    );
+    if (!silent) {
+      state = state.copyWith(
+        isLoading: true,
+        clearError: true,
+        page: refresh ? 1 : state.page,
+      );
+    }
 
     try {
       final response = await _repository.getStaffAdvances(
-        page: state.page,
+        page: silent ? state.page : (refresh ? 1 : state.page),
         pageSize: state.pageSize,
         staffId: state.selectedStaffId,
         status: state.selectedStatus,
@@ -97,11 +102,13 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
         clearError: true,
       );
     } catch (e) {
-      final message = e is ApiException ? e.message : e.toString();
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: message,
-      );
+      if (!silent) {
+        final message = e is ApiException ? e.message : e.toString();
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: message,
+        );
+      }
     }
   }
 
@@ -135,6 +142,7 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
       await _repository.createStaffAdvance(request);
       state = state.copyWith(isSubmitting: false);
       await loadAdvances(refresh: true);
+      _ref?.read(staffProvider.notifier).loadStaff(silent: true);
       return null;
     } catch (e) {
       final message = e is ApiException ? e.message : e.toString();
@@ -151,6 +159,7 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
       await _repository.settleStaffAdvance(id);
       state = state.copyWith(isSubmitting: false);
       await loadAdvances(refresh: true);
+      _ref?.read(staffProvider.notifier).loadStaff(silent: true);
       return null;
     } catch (e) {
       final message = e is ApiException ? e.message : e.toString();
@@ -167,6 +176,7 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
       await _repository.obsoleteStaffAdvance(id, ObsoleteStaffAdvanceRequest(reason: reason));
       state = state.copyWith(isSubmitting: false);
       await loadAdvances(refresh: true);
+      _ref?.read(staffProvider.notifier).loadStaff(silent: true);
       return null;
     } catch (e) {
       final message = e is ApiException ? e.message : e.toString();
@@ -179,5 +189,5 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
 final staffAdvancesProvider =
     StateNotifierProvider<StaffAdvancesNotifier, StaffAdvancesState>((ref) {
   final repository = ref.watch(staffAdvancesRepositoryProvider);
-  return StaffAdvancesNotifier(repository);
+  return StaffAdvancesNotifier(repository, ref);
 });

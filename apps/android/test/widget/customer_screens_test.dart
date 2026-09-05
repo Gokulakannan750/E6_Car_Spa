@@ -131,7 +131,11 @@ class _StubCustomerListNotifier extends CustomerListNotifier {
   }
 
   @override
-  Future<void> loadCustomers({bool refresh = false, String? search}) async {
+  Future<void> loadCustomers({
+    bool refresh = false,
+    bool silent = false,
+    String? search,
+  }) async {
     // Stubbed
   }
 }

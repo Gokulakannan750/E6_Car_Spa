@@ -138,5 +138,25 @@ void main() {
 
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     });
+
+    testWidgets('renders custom business profile name and logo widget when available', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authRepositoryProvider.overrideWithValue(StubAuthRepo()),
+            authNotifierProvider.overrideWith(
+              (ref) => TestLoginNotifier(StubAuthRepo(), const Unauthenticated()),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const LoginScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Management Suite'), findsOneWidget);
+    });
   });
 }

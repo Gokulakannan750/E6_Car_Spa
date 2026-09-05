@@ -56,17 +56,22 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
         showroomName: _currentShowroom.name,
         selectedDate: dailyState.selectedDate,
         alreadyAssignedStaffIds: assignedStaffIds,
-        onAssign: (staffId, initialVehicles) async {
+        onAssign: (staffIds, initialVehicles) async {
           await ref
               .read(dailyStaffProvider(_currentShowroom.id).notifier)
-              .assignStaff(
-                staffId: staffId,
+              .assignMultipleStaff(
+                staffIds: staffIds,
                 vehiclesAttended: initialVehicles,
               );
           if (mounted) {
+            final count = staffIds.length;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Staff member assigned successfully!'),
+              SnackBar(
+                content: Text(
+                  count > 1
+                      ? '$count staff members assigned successfully!'
+                      : 'Staff member assigned successfully!',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -74,6 +79,37 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _handleUpdateVehicles(
+    DailyStaffAssignment assignment,
+    int newVehicles,
+  ) async {
+    try {
+      await ref
+          .read(dailyStaffProvider(_currentShowroom.id).notifier)
+          .updateVehicles(
+            assignmentId: assignment.id,
+            vehiclesAttended: newVehicles,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vehicles attended updated successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update vehicles attended: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _openEditShowroomSheet() {
@@ -128,11 +164,129 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
     }
   }
 
+  Future<void> _confirmSubmitAttendance() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Confirm Attendance?',
+          style: AppTextStyles.headingSmall.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          'Once attendance is confirmed, staff assignments and vehicle counts for this day cannot be edited.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          FilledButton(
+            key: const Key('confirm_dialog_confirm_button'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirm Attendance'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref
+            .read(dailyStaffProvider(_currentShowroom.id).notifier)
+            .confirmAttendance();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Attendance confirmed successfully!'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to confirm attendance: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmUnlockAttendance() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Unlock Attendance for Correction?',
+          style: AppTextStyles.headingSmall.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: const Text(
+          'Unlocking will reopen attendance and vehicle counts for editing. You will need to confirm attendance again when finished.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          FilledButton(
+            key: const Key('unlock_dialog_confirm_button'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Unlock Attendance'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref
+            .read(dailyStaffProvider(_currentShowroom.id).notifier)
+            .unlockAttendance();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Attendance unlocked for correction.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to unlock attendance: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dailyState = ref.watch(dailyStaffProvider(_currentShowroom.id));
     final canAssignStaff = _hasPermission('showroom.assign_staff');
+    final canConfirmAttendance = _hasPermission('showroom.confirm_attendance');
     final canManage = _hasPermission('showroom.manage');
+    final user = ref.watch(currentUserProvider);
+    final isOwner = user?.isOwner ?? false;
+    final isLocked = dailyState.isAttendanceConfirmed;
 
     final dateHeading = DateFormat('dd MMM yyyy').format(dailyState.selectedDate);
 
@@ -161,7 +315,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
           const AppLogoutAction(),
         ],
       ),
-      floatingActionButton: canAssignStaff
+      floatingActionButton: (canAssignStaff && !isLocked)
           ? FloatingActionButton.extended(
               onPressed: () => _openAssignStaffSheet(dailyState),
               backgroundColor: AppColors.primary,
@@ -209,7 +363,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
                           radius: 20,
                           backgroundColor: _currentShowroom.isActive
                               ? AppColors.primary.withAlpha(25)
-                              : AppColors.surface,
+                              : AppColors.surfaceAlt,
                           child: Text(
                             _currentShowroom.initials,
                             style: AppTextStyles.headingSmall.copyWith(
@@ -338,40 +492,57 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
               ),
             ),
 
-            // 4. Section Heading: "Staff on Duty"
+            // 4. Attendance Confirmation Status Banner
+            SliverToBoxAdapter(
+              child: _buildAttendanceBanner(
+                dailyState: dailyState,
+                canConfirm: canConfirmAttendance,
+                isOwner: isOwner,
+              ),
+            ),
+
+            // 5. Section Heading: "Staff on Duty"
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Staff on Duty',
-                          style: AppTextStyles.headingSmall.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withAlpha(25),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${dailyState.totalStaffCount}',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Staff on Duty',
+                              style: AppTextStyles.headingSmall.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withAlpha(25),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${dailyState.totalStaffCount}',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       dateHeading,
                       style: AppTextStyles.bodySmall.copyWith(
@@ -384,7 +555,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
               ),
             ),
 
-            // 5. Daily Staff Assignments List / States
+            // 6. Daily Staff Assignments List / States
             if (dailyState.isLoading)
               const SliverFillRemaining(
                 hasScrollBody: false,
@@ -431,11 +602,12 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: AppEmptyState(
                     title: 'No staff assigned for $dateHeading',
-                    message:
-                        'Tap "+ Assign Staff" below to schedule staff members to this showroom for this date.',
+                    message: isLocked
+                        ? 'Attendance is confirmed and locked for this date.'
+                        : 'Tap "+ Assign Staff" below to schedule staff members to this showroom for this date.',
                     icon: Icons.people_outline,
-                    actionLabel: canAssignStaff ? 'Assign Staff' : null,
-                    onAction: canAssignStaff
+                    actionLabel: (canAssignStaff && !isLocked) ? 'Assign Staff' : null,
+                    onAction: (canAssignStaff && !isLocked)
                         ? () => _openAssignStaffSheet(dailyState)
                         : null,
                   ),
@@ -451,7 +623,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
                       return DailyStaffAssignmentCard(
                         assignment: assignment,
                         canManage: canAssignStaff,
+                        isLocked: isLocked,
                         onRemove: () => _handleRemoveAssignment(assignment),
+                        onEditVehicles: (newVehicles) =>
+                            _handleUpdateVehicles(assignment, newVehicles),
                       );
                     },
                     childCount: dailyState.staffAssignments.length,
@@ -460,6 +635,231 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAttendanceBanner({
+    required DailyStaffState dailyState,
+    required bool canConfirm,
+    required bool isOwner,
+  }) {
+    final isConfirmed = dailyState.isAttendanceConfirmed;
+
+    if (isConfirmed) {
+      final confirmedByName = dailyState.attendanceConfirmedByName ?? 'Authorized User';
+      final confirmedAtStr = dailyState.attendanceConfirmedAt != null
+          ? DateFormat('dd MMM yyyy, hh:mm a').format(dailyState.attendanceConfirmedAt!.toLocal())
+          : null;
+
+      return Container(
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.readyBg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.readyBorder),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.readyBorder.withAlpha(60),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                size: 20,
+                color: AppColors.readyText,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Attendance Confirmed',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.readyText,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.readyBorder.withAlpha(60),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.lock_outline, size: 10, color: AppColors.readyText),
+                            const SizedBox(width: 2),
+                            Text(
+                              'Locked',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.readyText,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    confirmedAtStr != null
+                        ? 'Confirmed by $confirmedByName • $confirmedAtStr'
+                        : 'Confirmed by $confirmedByName',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.readyText,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isOwner) ...[
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                key: const Key('unlock_attendance_button'),
+                onPressed: dailyState.isUnlocking ? null : () => _confirmUnlockAttendance(),
+                icon: dailyState.isUnlocking
+                    ? const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.lock_open_outlined, size: 14),
+                label: const Text('Correct', style: TextStyle(fontSize: 11)),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  side: const BorderSide(color: AppColors.readyBorder),
+                  foregroundColor: AppColors.readyText,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // Unconfirmed state
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.qualityCheckBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.qualityCheckBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.qualityCheckBorder.withAlpha(60),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.schedule_rounded,
+                  size: 20,
+                  color: AppColors.qualityCheckText,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Attendance Not Confirmed',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.qualityCheckText,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.qualityCheckBorder.withAlpha(60),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Open for edits',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.qualityCheckText,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Attendance and vehicle counts can still be edited.',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.warningDark,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (canConfirm) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                key: const Key('confirm_attendance_button'),
+                onPressed: dailyState.isConfirming ? null : () => _confirmSubmitAttendance(),
+                icon: dailyState.isConfirming
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_circle_outline_rounded, size: 14),
+                label: const Text(
+                  'Confirm Attendance',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

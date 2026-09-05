@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
 	Receipt,
 	Eye,
@@ -58,77 +59,85 @@ const STATUS_ENUM_MAP: Record<number, InvoiceDisplayStatus> = {
 	2: 'Paid',
 	3: 'PartiallyPaid',
 	4: 'Cancelled',
-	5: 'Generated',
-	6: 'Generated',
 };
 
-function normalizeInvoiceStatus(status: unknown): InvoiceDisplayStatus {
-	if (typeof status === 'number') {
-		return STATUS_ENUM_MAP[status] ?? 'Draft';
+export function getInvoiceDisplayStatus(inv: InvoiceListDto): InvoiceDisplayStatus {
+	// If backend gave a numeric status enum, map it
+	if (typeof inv.status === 'number' || (typeof inv.status === 'string' && /^\d+$/.test(inv.status))) {
+		const num = Number(inv.status);
+		return STATUS_ENUM_MAP[num] ?? 'Draft';
 	}
-	if (typeof status === 'string') {
-		const num = Number(status);
-		if (!isNaN(num) && status.trim() !== '') {
-			return STATUS_ENUM_MAP[num] ?? 'Draft';
+	// If string matches standard names
+	if (typeof inv.status === 'string') {
+		const s = inv.status.toLowerCase();
+		if (s === 'paid') return 'Paid';
+		if (s === 'partiallypaid' || s === 'partially paid' || s === 'partial') return 'PartiallyPaid';
+		if (s === 'generated' || s === 'issued') return 'Generated';
+		if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
+		if (s === 'draft') return 'Draft';
+	}
+	// Fallback to paidAmount check if generated
+	if (inv.invoiceNumber) {
+		if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
+			return 'Paid';
 		}
-		const s = status.trim().toLowerCase();
-		if (s === 'draft' || s === '0') return 'Draft';
-		if (s === 'paid' || s === '2') return 'Paid';
-		if (s === 'partiallypaid' || s === 'partially paid' || s === 'partially-paid' || s === '3') return 'PartiallyPaid';
-		if (s === 'cancelled' || s === 'canceled' || s === '4') return 'Cancelled';
-		if (s === 'generated' || s === '6') return 'Generated';
+		if (inv.paidAmount != null && inv.paidAmount > 0) {
+			return 'PartiallyPaid';
+		}
+		return 'Generated';
 	}
 	return 'Draft';
 }
 
-function getInvoiceDisplayStatus(inv: {
-	status: unknown;
-	invoiceNumber?: string | null;
-}): InvoiceDisplayStatus {
-	const normalized = normalizeInvoiceStatus(inv.status);
-
-	if (normalized === 'Cancelled') return 'Cancelled';
-	if (normalized === 'Paid') return 'Paid';
-	if (normalized === 'PartiallyPaid') return 'PartiallyPaid';
-
-	const hasInvoiceNumber = Boolean(inv.invoiceNumber && inv.invoiceNumber.trim() !== '');
-
-	// Condition 1: Draft if status == Draft OR invoiceNumber == null/empty
-	if (normalized === 'Draft' || !hasInvoiceNumber) {
-		return 'Draft';
-	}
-
-	// Condition 2: Generated if status == Generated AND invoiceNumber != null
-	if (normalized === 'Generated' && hasInvoiceNumber) {
-		return 'Generated';
-	}
-
-	return hasInvoiceNumber ? 'Generated' : 'Draft';
-}
-
-function getInvoiceStatusSlug(inv: {
-	status: unknown;
-	invoiceNumber?: string | null;
-}): string {
+export function getInvoiceStatusSlug(inv: InvoiceListDto): string {
 	const displayStatus = getInvoiceDisplayStatus(inv);
 	switch (displayStatus) {
-		case 'Draft': return 'draft';
-		case 'Generated': return 'generated';
-		case 'PartiallyPaid': return 'partially-paid';
-		case 'Paid': return 'paid';
-		case 'Cancelled': return 'cancelled';
-		default: return 'draft';
+		case 'Paid':
+			return 'paid';
+		case 'PartiallyPaid':
+			return 'partially-paid';
+		case 'Generated':
+			return 'generated';
+		case 'Cancelled':
+			return 'cancelled';
+		case 'Draft':
+		default:
+			return 'draft';
 	}
 }
 
-function formatCurrency(value: number) {
-	return '₹' + value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function getBadgeVariant(status: InvoiceDisplayStatus): 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' {
+	switch (status) {
+		case 'Paid':
+			return 'success';
+		case 'PartiallyPaid':
+			return 'warning';
+		case 'Generated':
+			return 'info';
+		case 'Cancelled':
+			return 'error';
+		case 'Draft':
+		default:
+			return 'secondary';
+	}
 }
 
-function formatDate(iso: string) {
-	const d = new Date(iso);
-	if (Number.isNaN(d.getTime())) return iso;
-	return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+function formatCurrency(val?: number): string {
+	if (val == null) return '₹0.00';
+	return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDate(iso?: string): string {
+	if (!iso) return '—';
+	try {
+		return new Date(iso).toLocaleDateString('en-IN', {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric',
+		});
+	} catch {
+		return iso;
+	}
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -139,42 +148,31 @@ export function Invoices() {
 	// State
 	const [search, setSearch] = useState('');
 	const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'All'>('All');
-	const [items, setItems] = useState<InvoiceListDto[]>([]);
-	const [totalCount, setTotalCount] = useState(0);
 	const [page, setPage] = useState(1);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 	const pageSize = 20;
 
 	const effectiveSearch = search.trim() || globalSearch.trim();
 
 	// ─── Data fetching ───────────────────────────────────────────────────────
-	const loadInvoices = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const response: InvoiceListResponse = await getInvoices({
+	const {
+		data: invoicesData,
+		isLoading: loading,
+		error: queryError,
+		refetch: loadInvoices,
+	} = useQuery<InvoiceListResponse>({
+		queryKey: ['invoices', page, pageSize, effectiveSearch, statusFilter],
+		queryFn: () =>
+			getInvoices({
 				page,
 				pageSize,
 				search: effectiveSearch || undefined,
 				status: statusFilter === 'All' ? undefined : statusFilter,
-			});
-			setItems(response.items);
-			setTotalCount(response.totalCount);
-		} catch (err) {
-			const msg = err instanceof Error ? err.message : 'Unknown error';
-			console.warn('Failed to load invoices:', msg);
-			setError(msg);
-			setItems([]);
-			setTotalCount(0);
-		} finally {
-			setLoading(false);
-		}
-	}, [page, pageSize, effectiveSearch, statusFilter]);
+			}),
+	});
 
-	useEffect(() => {
-		loadInvoices();
-	}, [loadInvoices]);
+	const items = invoicesData?.items ?? [];
+	const totalCount = invoicesData?.totalCount ?? 0;
+	const error = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load invoices' : null;
 
 	// ─── Pagination ──────────────────────────────────────────────────────────
 	const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));

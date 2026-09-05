@@ -26,7 +26,6 @@ class AppRoutes {
   static const String showroom = '/showroom';
   static const String settings = '/settings';
   static const String users = '/settings/users';
-  static const String audit = '/audit';
 
   static const List<BottomNavigationBarItem> bottomNavItems = [
     BottomNavigationBarItem(
@@ -70,8 +69,7 @@ class AppRoutes {
     if (location.startsWith('/staff-advances') ||
         location.startsWith('/reports') ||
         location.startsWith('/showroom') ||
-        location.startsWith('/settings') ||
-        location.startsWith('/audit')) {
+        location.startsWith('/settings')) {
       return 5;
     }
     return 0;

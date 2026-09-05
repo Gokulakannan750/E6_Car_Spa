@@ -74,23 +74,29 @@ class StaffNotifier extends StateNotifier<StaffState> {
     loadStaff();
   }
 
-  Future<void> loadStaff({bool refresh = false}) async {
-    if (state.isLoading && !refresh) return;
+  Future<void> loadStaff({bool refresh = false, bool silent = false}) async {
+    if (state.isLoading && !refresh && !silent) return;
 
-    state = state.copyWith(isLoading: true, clearError: true);
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
     try {
       final list = await _repository.getStaff();
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         staffList: list,
         clearError: true,
       );
     } catch (e) {
-      final message = e is ApiException ? e.message : e.toString();
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: message,
-      );
+      if (!mounted) return;
+      if (!silent) {
+        final message = e is ApiException ? e.message : e.toString();
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: message,
+        );
+      }
     }
   }
 

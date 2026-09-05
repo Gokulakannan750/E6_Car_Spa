@@ -198,5 +198,10 @@ class _StubJobCardListNotifier extends JobCardListNotifier {
   }
 
   @override
-  Future<void> loadJobCards({bool refresh = false, String? search, JobCardStatus? status}) async {}
+  Future<void> loadJobCards({
+    bool refresh = false,
+    bool silent = false,
+    String? search,
+    JobCardStatus? status,
+  }) async {}
 }

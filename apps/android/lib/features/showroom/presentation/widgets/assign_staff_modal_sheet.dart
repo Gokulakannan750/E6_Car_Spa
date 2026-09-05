@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -11,7 +12,7 @@ class AssignStaffModalSheet extends ConsumerStatefulWidget {
   final String showroomName;
   final DateTime selectedDate;
   final Set<String> alreadyAssignedStaffIds;
-  final Future<void> Function(String staffId, int initialVehicles) onAssign;
+  final Future<void> Function(List<String> staffIds, int initialVehicles) onAssign;
 
   const AssignStaffModalSheet({
     super.key,
@@ -30,7 +31,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _vehiclesController = TextEditingController(text: '0');
 
-  String? _selectedStaffId;
+  final Set<String> _selectedStaffIds = <String>{};
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -49,18 +50,37 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
     super.dispose();
   }
 
+  void _toggleStaffSelection(String staffId) {
+    setState(() {
+      if (_selectedStaffIds.contains(staffId)) {
+        _selectedStaffIds.remove(staffId);
+      } else {
+        _selectedStaffIds.add(staffId);
+      }
+      _errorMessage = null;
+    });
+  }
+
+  void _removeSelectedStaff(String staffId) {
+    setState(() {
+      _selectedStaffIds.remove(staffId);
+      _errorMessage = null;
+    });
+  }
+
   Future<void> _handleSubmit() async {
-    if (_selectedStaffId == null) {
+    if (_selectedStaffIds.isEmpty) {
       setState(() {
-        _errorMessage = 'Please select a staff member to assign.';
+        _errorMessage = 'Please select at least one staff member to assign.';
       });
       return;
     }
 
-    final vehicles = int.tryParse(_vehiclesController.text.trim()) ?? 0;
-    if (vehicles < 0) {
+    final rawVehicles = _vehiclesController.text.trim();
+    final vehicles = int.tryParse(rawVehicles);
+    if (vehicles == null || vehicles < 0) {
       setState(() {
-        _errorMessage = 'Vehicles count cannot be negative.';
+        _errorMessage = 'Vehicles attended must be a valid non-negative integer (0 or greater).';
       });
       return;
     }
@@ -71,7 +91,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
     });
 
     try {
-      await widget.onAssign(_selectedStaffId!, vehicles);
+      await widget.onAssign(_selectedStaffIds.toList(), vehicles);
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -99,9 +119,12 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
           (s.role != null && s.role!.toLowerCase().contains(searchTerm));
     }).toList();
 
+    // Map of all staff for quick lookup of selected chips
+    final staffMap = {for (var s in staffState.staffList) s.id: s};
+
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       padding: EdgeInsets.only(
         left: 20,
@@ -119,14 +142,14 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
         children: [
           // Header
           AppModalHeader(
-            title: 'Assign Staff Member',
+            title: 'Assign Staff Members',
             subtitle: 'Showroom: ${widget.showroomName}',
             icon: Icons.person_add_alt_1_outlined,
             iconBgColor: AppColors.primary.withAlpha(20),
             iconColor: AppColors.primary,
             showDragHandle: true,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
           // Error Banner
           if (_errorMessage != null) ...[
@@ -153,7 +176,86 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
+          ],
+
+          // Vehicles Attended Field
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  key: const Key('vehicles_attended_input'),
+                  controller: _vehiclesController,
+                  label: 'Vehicles Attended (Initial)',
+                  hintText: '0',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  prefixIcon: const Icon(Icons.directions_car_outlined, size: 20),
+                  onChanged: (_) {
+                    if (_errorMessage != null) {
+                      setState(() => _errorMessage = null);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Selected Staff Chips (if any)
+          if (_selectedStaffIds.isNotEmpty) ...[
+            Text(
+              'Selected Staff (${_selectedStaffIds.length}):',
+              style: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 72),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _selectedStaffIds.map((id) {
+                    final staff = staffMap[id];
+                    final name = staff?.name ?? 'Staff';
+                    return Container(
+                      margin: const EdgeInsets.only(right: 8, bottom: 4),
+                      child: Chip(
+                        avatar: CircleAvatar(
+                          backgroundColor: AppColors.primary,
+                          child: Text(
+                            staff?.initials ?? '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        label: Text(
+                          name,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        deleteIconColor: AppColors.textSecondary,
+                        onDeleted: () => _removeSelectedStaff(id),
+                        backgroundColor: AppColors.primary.withAlpha(20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: AppColors.primary.withAlpha(80)),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
           ],
 
           // Search Field
@@ -163,11 +265,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
             prefixIcon: const Icon(Icons.search),
             onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
           // Staff List Header
           Text(
-            'Select Active Staff Member:',
+            'Select Active Staff Members:',
             style: AppTextStyles.bodySmall.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -197,7 +299,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                           final staff = activeStaffList[index];
                           final isAlreadyAssigned =
                               widget.alreadyAssignedStaffIds.contains(staff.id);
-                          final isSelected = _selectedStaffId == staff.id;
+                          final isSelected = _selectedStaffIds.contains(staff.id);
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 6),
@@ -299,23 +401,14 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         ),
                                       ),
                                     )
-                                  : Icon(
-                                      isSelected
-                                          ? Icons.radio_button_checked
-                                          : Icons.radio_button_unchecked,
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : AppColors.textTertiary,
-                                      size: 20,
+                                  : Checkbox(
+                                      value: isSelected,
+                                      activeColor: AppColors.primary,
+                                      onChanged: (val) => _toggleStaffSelection(staff.id),
                                     ),
                               onTap: isAlreadyAssigned
                                   ? null
-                                  : () {
-                                      setState(() {
-                                        _selectedStaffId = staff.id;
-                                        _errorMessage = null;
-                                      });
-                                    },
+                                  : () => _toggleStaffSelection(staff.id),
                             ),
                           );
                         },
@@ -337,7 +430,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                         },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: const BorderSide(color: AppColors.borderDark),
+                    side: const BorderSide(color: AppColors.border),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
@@ -347,10 +440,13 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
               Expanded(
                 flex: 2,
                 child: AppButton(
-                  label: 'Assign Staff Member',
+                  key: const Key('modal_assign_button'),
+                  label: _selectedStaffIds.length > 1
+                      ? 'Assign (${_selectedStaffIds.length}) Staff'
+                      : 'Assign Staff',
                   icon: Icons.check_rounded,
                   isLoading: _isSubmitting,
-                  onPressed: _selectedStaffId == null ? null : _handleSubmit,
+                  onPressed: _selectedStaffIds.isEmpty ? null : _handleSubmit,
                 ),
               ),
             ],
