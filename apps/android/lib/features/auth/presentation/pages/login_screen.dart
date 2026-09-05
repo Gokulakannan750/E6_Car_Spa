@@ -205,42 +205,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 16),
 
                             // Password Input
-                            Stack(
-                              alignment: Alignment.centerRight,
-                              children: [
-                                AppTextField(
-                                  label: 'Password',
-                                  hintText: 'Enter password',
-                                  controller: _passwordController,
-                                  isPassword: _obscurePassword,
-                                  isEnabled: !isLoading,
-                                  keyboardType: TextInputType.visiblePassword,
-                                  onChanged: (_) {
-                                    if (_localError != null || authState is AuthFailure) {
-                                      setState(() => _localError = null);
-                                      ref.read(authNotifierProvider.notifier).clearError();
-                                    }
-                                  },
+                            AppTextField(
+                              label: 'Password',
+                              hintText: 'Enter password',
+                              controller: _passwordController,
+                              isPassword: _obscurePassword,
+                              isEnabled: !isLoading,
+                              keyboardType: TextInputType.visiblePassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                  color: AppColors.textSecondary,
                                 ),
-                                Positioned(
-                                  right: 4,
-                                  top: 14,
-                                  child: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 20,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ],
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                              onChanged: (_) {
+                                if (_localError != null || authState is AuthFailure) {
+                                  setState(() => _localError = null);
+                                  ref.read(authNotifierProvider.notifier).clearError();
+                                }
+                              },
                             ),
                             const SizedBox(height: 24),
 

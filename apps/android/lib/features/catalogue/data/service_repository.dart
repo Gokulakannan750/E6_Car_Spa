@@ -56,6 +56,14 @@ class ServiceRepository {
     }
   }
 
+  Future<Service> updateService(String id, UpdateServiceRequest request) async {
+    try {
+      return await _api.updateService(id, request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<List<String>> getCategories() async {
     try {
       return await _api.getCategories();

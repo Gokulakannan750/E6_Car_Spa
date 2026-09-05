@@ -84,9 +84,34 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
     }
     loadCatalogue();
   }
+
+  Future<Service> createService(CreateServiceRequest request) async {
+    try {
+      final created = await _repository.createService(request);
+      await loadCatalogue();
+      return created;
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  Future<Service> updateService(String id, UpdateServiceRequest request) async {
+    try {
+      final updated = await _repository.updateService(id, request);
+      await loadCatalogue();
+      return updated;
+    } catch (_) {
+      rethrow;
+    }
+  }
 }
 
 final catalogueProvider = StateNotifierProvider<CatalogueNotifier, CatalogueState>((ref) {
   final repo = ref.watch(serviceRepositoryProvider);
   return CatalogueNotifier(repo);
+});
+
+final serviceCategoriesProvider = FutureProvider<List<String>>((ref) async {
+  final repo = ref.watch(serviceRepositoryProvider);
+  return await repo.getCategories();
 });

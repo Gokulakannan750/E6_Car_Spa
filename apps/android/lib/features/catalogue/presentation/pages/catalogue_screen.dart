@@ -5,8 +5,13 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../../shared/widgets/app_search_field.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/providers/auth_state.dart';
 import '../providers/catalogue_providers.dart';
+import '../widgets/add_service_bottom_sheet.dart';
+import '../widgets/edit_service_bottom_sheet.dart';
 
 class CatalogueScreen extends ConsumerStatefulWidget {
   const CatalogueScreen({super.key});
@@ -26,6 +31,30 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final currentUser = authState is Authenticated ? authState.user : null;
+    final canView = currentUser?.hasPermission('catalogue.view') ?? false;
+    final canEdit = currentUser?.hasPermission('catalogue.edit') ?? false;
+    final canCreate = currentUser?.hasPermission('catalogue.create') ?? false;
+
+    if (!canView) {
+      return const AppScreenScaffold(
+        title: 'Service Catalogue',
+        actions: [AppLogoutAction()],
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: AppEmptyState(
+              icon: Icons.lock_outline_rounded,
+              title: 'Access Restricted',
+              message:
+                  'You do not have permission to view the service catalogue.\nContact your administrator if you require access.',
+            ),
+          ),
+        ),
+      );
+    }
+
     final state = ref.watch(catalogueProvider);
     final notifier = ref.read(catalogueProvider.notifier);
 
@@ -38,6 +67,30 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
           AppLogoutAction(),
         ],
       ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              key: const Key('add_service_fab'),
+              onPressed: () async {
+                final result = await AddServiceBottomSheet.show(context);
+                if (result == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Service created successfully'),
+                      backgroundColor: AppColors.success,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text(
+                'Add Service',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () => notifier.loadCatalogue(),
         color: AppColors.primary,
@@ -118,7 +171,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
 
             // Service Cards List
             Expanded(
-              child: _buildBody(state, notifier),
+              child: _buildBody(state, notifier, canEdit),
             ),
           ],
         ),
@@ -126,7 +179,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
     );
   }
 
-  Widget _buildBody(CatalogueState state, CatalogueNotifier notifier) {
+  Widget _buildBody(CatalogueState state, CatalogueNotifier notifier, bool canEdit) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading service catalogue...');
     }
@@ -210,60 +263,94 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
                       ],
                     ),
                   ),
-                  Text(
-                    '₹${svc.price.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 16,
-                      color: AppColors.primary,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₹${svc.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      if (canEdit) ...[
+                        const SizedBox(height: 6),
+                        InkWell(
+                          key: Key('edit_service_${svc.id}'),
+                          onTap: () async {
+                            final result = await EditServiceBottomSheet.show(
+                              context,
+                              service: svc,
+                            );
+                            if (result == true && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Service "${svc.name}" updated successfully'),
+                                  backgroundColor: AppColors.success,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.edit_outlined, size: 13, color: AppColors.primary),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
               const Divider(height: 18, color: AppColors.border),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceAlt,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Text(
-                          svc.category ?? 'General',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                        ),
-                      ),
-                      if (svc.durationMinutes != null) ...[
-                        const SizedBox(width: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.schedule, size: 12, color: AppColors.textTertiary),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${svc.durationMinutes} min',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.accentPill,
+                      color: AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.border),
                     ),
                     child: Text(
-                      'GST ${svc.taxPercentage.toInt()}%',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                      svc.category ?? 'General',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                     ),
                   ),
+                  if (svc.durationMinutes != null) ...[
+                    const SizedBox(width: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.schedule, size: 12, color: AppColors.textTertiary),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${svc.durationMinutes} min',
+                          style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ],

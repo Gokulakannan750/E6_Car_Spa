@@ -29,6 +29,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     GoogleFonts.config.allowRuntimeFetching = false;
   });
 
@@ -50,7 +51,7 @@ void main() {
       expect(AppColors.info, const Color(0xFF1D4ED8));
     });
 
-    test('AppTheme defines consistent Light Theme', () {
+    testWidgets('AppTheme defines consistent Light Theme', (tester) async {
       final theme = AppTheme.light;
       expect(theme.useMaterial3, true);
       expect(theme.colorScheme.primary, AppColors.primary);
@@ -61,7 +62,7 @@ void main() {
       expect(theme.scaffoldBackgroundColor, AppColors.background);
     });
 
-    test('AppTextStyles provides Inter typography styles', () {
+    testWidgets('AppTextStyles provides Inter typography styles', (tester) async {
       expect(AppTextStyles.displayLarge.fontSize, 30);
       expect(AppTextStyles.headingLarge.fontSize, 18);
       expect(AppTextStyles.bodyMedium.fontSize, 14);

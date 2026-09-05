@@ -206,6 +206,18 @@ class JobCardDetailsNotifier extends StateNotifier<JobCardDetailsState> {
       );
     }
   }
+
+  Future<JobCard> updateServices(UpdateJobCardServicesRequest request) async {
+    try {
+      final updated = await _repository.updateJobCardServices(jobCardId, request);
+      if (mounted) {
+        state = state.copyWith(jobCard: updated, clearError: true);
+      }
+      return updated;
+    } catch (_) {
+      rethrow;
+    }
+  }
 }
 
 final jobCardDetailsProvider =

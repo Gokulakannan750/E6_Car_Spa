@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/phone_validator.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -71,13 +72,14 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
       return;
     }
 
-    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
-    if (cleanPhone.isEmpty || cleanPhone.length != 10) {
+    final phoneError = PhoneValidator.validate(phone, isRequired: true);
+    if (phoneError != null) {
       setState(() {
-        _errorMessage = 'Phone number must be exactly 10 digits without country code.';
+        _errorMessage = phoneError;
       });
       return;
     }
+    final cleanPhone = PhoneValidator.clean(phone);
 
     final email = _emailController.text.trim();
     final address = _addressController.text.trim();
@@ -215,8 +217,11 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
                 controller: _phoneController,
                 hintText: 'e.g. 9840123456',
                 keyboardType: TextInputType.phone,
+                inputFormatters: PhoneValidator.formatters,
+                maxLength: 10,
                 prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.textSecondary),
                 isEnabled: !_isLoading,
+                validator: (val) => PhoneValidator.validate(val, isRequired: true),
               ),
               const SizedBox(height: 12),
 

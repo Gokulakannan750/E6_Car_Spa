@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/constants/app_colors.dart';
 
 class AppTextField extends StatelessWidget {
@@ -20,6 +21,9 @@ class AppTextField extends StatelessWidget {
   final Widget? prefixIcon;
   final Widget? suffixIcon;
   final FormFieldValidator<String>? validator;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+  final InputCounterWidgetBuilder? buildCounter;
 
   const AppTextField({
     super.key,
@@ -41,6 +45,9 @@ class AppTextField extends StatelessWidget {
     this.prefixIcon,
     this.suffixIcon,
     this.validator,
+    this.inputFormatters,
+    this.maxLength,
+    this.buildCounter,
   });
 
   @override
@@ -56,6 +63,9 @@ class AppTextField extends StatelessWidget {
       textCapitalization: textCapitalization,
       obscureText: isPassword,
       maxLines: isPassword ? 1 : maxLines,
+      maxLength: maxLength,
+      inputFormatters: inputFormatters,
+      buildCounter: buildCounter ?? (maxLength != null ? (_, {required currentLength, required isFocused, required maxLength}) => null : null),
       onChanged: onChanged,
       onTap: onTap,
       validator: validator,

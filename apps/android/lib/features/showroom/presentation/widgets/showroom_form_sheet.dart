@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/phone_validator.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -64,11 +65,14 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
     });
 
     try {
+      final phoneText = _phoneController.text.trim();
+      final phone = phoneText.isEmpty ? null : PhoneValidator.clean(phoneText);
+
       if (_isEditing) {
         final request = UpdateShowroomRequest(
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          phone: phone,
           isActive: _isActive,
         );
         await widget.onUpdate!(widget.showroom!.id, request);
@@ -76,7 +80,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
         final request = CreateShowroomRequest(
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+          phone: phone,
           isActive: _isActive,
         );
         await widget.onCreate!(request);
@@ -205,15 +209,9 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
                 hintText: 'e.g. 9840154321',
                 prefixIcon: const Icon(Icons.phone_outlined),
                 keyboardType: TextInputType.phone,
-                validator: (val) {
-                  if (val != null && val.trim().isNotEmpty) {
-                    final clean = val.replaceAll(RegExp(r'\D'), '');
-                    if (clean.length != 10) {
-                      return 'Phone number must be exactly 10 digits without country code';
-                    }
-                  }
-                  return null;
-                },
+                inputFormatters: PhoneValidator.formatters,
+                maxLength: 10,
+                validator: (val) => PhoneValidator.validate(val, isRequired: false, fieldName: 'Contact phone'),
               ),
               const SizedBox(height: 14),
 

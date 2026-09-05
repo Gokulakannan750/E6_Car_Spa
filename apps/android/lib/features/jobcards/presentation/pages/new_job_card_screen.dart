@@ -629,11 +629,6 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'GST ${svc.taxPercentage.toInt()}%',
-                                style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                              ),
                             ],
                           ),
                           const SizedBox(height: 6),

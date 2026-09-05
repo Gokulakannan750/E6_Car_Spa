@@ -5,13 +5,18 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
+import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/providers/auth_state.dart';
 import '../../../invoices/data/invoice_repository.dart';
 import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
+import '../widgets/edit_job_card_sheet.dart';
 import '../widgets/job_card_print_preview_dialog.dart';
 
 class JobCardDetailsScreen extends ConsumerStatefulWidget {
@@ -123,8 +128,48 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
     }
   }
 
+  Future<void> _handleEditJobCard(JobCard jc) async {
+    final result = await EditJobCardSheet.show(
+      context,
+      jobCard: jc,
+    );
+    if (result == true && mounted) {
+      ref.read(jobCardDetailsProvider(widget.jobCardId).notifier).loadDetails();
+      ref.read(jobCardListProvider.notifier).loadJobCards();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Job Card updated successfully.'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
+    final currentUser = authState is Authenticated ? authState.user : null;
+    final canView = currentUser == null || currentUser.hasPermission('jobcards.view');
+    final canEdit = currentUser == null || currentUser.hasPermission('jobcards.edit');
+
+    if (!canView) {
+      return const AppScreenScaffold(
+        title: 'Job Card Details',
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: AppEmptyState(
+              icon: Icons.lock_outline_rounded,
+              title: 'Access Restricted',
+              message:
+                  'You do not have permission to view job cards.\nContact your administrator if you require access.',
+            ),
+          ),
+        ),
+      );
+    }
+
     final state = ref.watch(jobCardDetailsProvider(widget.jobCardId));
     final notifier = ref.read(jobCardDetailsProvider(widget.jobCardId).notifier);
 
@@ -141,6 +186,13 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
         ),
         actions: [
           if (state.jobCard != null) ...[
+            if (canEdit && !state.jobCard!.isLocked)
+              IconButton(
+                key: const Key('edit_job_card_button'),
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Edit Job Card',
+                onPressed: () => _handleEditJobCard(state.jobCard!),
+              ),
             IconButton(
               key: const Key('job_card_preview_button'),
               icon: const Icon(Icons.print_outlined),
@@ -156,7 +208,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
           ],
         ],
       ),
-      body: _buildBody(context, state, notifier),
+      body: _buildBody(context, state, notifier, canEdit),
       bottomNavigationBar: state.jobCard != null ? _buildBottomBar(context, state.jobCard!) : null,
     );
   }
@@ -211,6 +263,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
     BuildContext context,
     JobCardDetailsState state,
     JobCardDetailsNotifier notifier,
+    bool canEdit,
   ) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading Job Card details...');
@@ -361,9 +414,21 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
             const SizedBox(height: 16),
 
             // ── Services Section ────────────────────────────────────────────
-            Text(
-              'Services & Line Items (${jc.services.length})',
-              style: AppTextStyles.headingMedium,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Services & Line Items (${jc.services.length})',
+                  style: AppTextStyles.headingMedium,
+                ),
+                if (canEdit && !jc.isLocked)
+                  TextButton.icon(
+                    key: const Key('edit_services_button'),
+                    onPressed: () => _handleEditJobCard(jc),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit Services', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Card(
@@ -395,8 +460,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                             const SizedBox(height: 2),
                             Text(
                               '₹${svc.unitPrice.toStringAsFixed(2)} × ${svc.quantity}'
-                              '${svc.discountAmount > 0 ? ' · Disc: -₹${svc.discountAmount.toStringAsFixed(2)}' : ''}'
-                              ' · GST: ${svc.taxPercentage.toInt()}%',
+                              '${svc.discountAmount > 0 ? ' · Disc: -₹${svc.discountAmount.toStringAsFixed(2)}' : ''}',
                               style: AppTextStyles.bodySmall,
                             ),
                           ],

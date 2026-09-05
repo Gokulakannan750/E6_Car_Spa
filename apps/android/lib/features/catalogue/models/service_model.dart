@@ -114,3 +114,36 @@ class CreateServiceRequest {
     };
   }
 }
+
+@immutable
+class UpdateServiceRequest {
+  final String name;
+  final String? description;
+  final String? category;
+  final double price;
+  final double taxPercentage;
+  final int? durationMinutes;
+  final bool isActive;
+
+  const UpdateServiceRequest({
+    required this.name,
+    this.description,
+    this.category,
+    required this.price,
+    this.taxPercentage = 18.0,
+    this.durationMinutes,
+    this.isActive = true,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
+      if (category != null && category!.trim().isNotEmpty) 'category': category!.trim(),
+      'price': price,
+      'taxPercentage': taxPercentage,
+      if (durationMinutes != null) 'durationMinutes': durationMinutes,
+      'isActive': isActive,
+    };
+  }
+}

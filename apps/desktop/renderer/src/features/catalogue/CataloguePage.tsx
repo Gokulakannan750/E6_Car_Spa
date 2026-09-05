@@ -18,7 +18,6 @@ interface ServiceFormData {
 	description: string;
 	price: string;
 	durationMinutes: string;
-	taxPercentage: string;
 	isActive: boolean;
 }
 
@@ -28,7 +27,6 @@ const emptyForm: ServiceFormData = {
 	description: '',
 	price: '',
 	durationMinutes: '60',
-	taxPercentage: '18',
 	isActive: true,
 };
 
@@ -180,7 +178,6 @@ export function CataloguePage() {
 			description: svc.description || '',
 			price: String(svc.price),
 			durationMinutes: String(svc.durationMinutes ?? '60'),
-			taxPercentage: String(svc.taxPercentage ?? 18),
 			isActive: svc.isActive,
 		});
 		setShowCreateDialog(true);
@@ -194,7 +191,7 @@ export function CataloguePage() {
 				category: form.category.trim() || 'General',
 				description: form.description.trim() || undefined,
 				price: parseFloat(form.price) || 0,
-				taxPercentage: parseFloat(form.taxPercentage) || 18,
+				taxPercentage: 18,
 				durationMinutes: form.durationMinutes ? parseInt(form.durationMinutes) : undefined,
 				isActive: form.isActive,
 			},
@@ -218,7 +215,7 @@ export function CataloguePage() {
 					category: form.category.trim() || 'General',
 					description: form.description.trim() || undefined,
 					price: parseFloat(form.price) || 0,
-					taxPercentage: parseFloat(form.taxPercentage) || 18,
+					taxPercentage: editingService.taxPercentage ?? 18,
 					durationMinutes: form.durationMinutes ? parseInt(form.durationMinutes) : undefined,
 					isActive: form.isActive,
 				},
@@ -525,31 +522,16 @@ export function CataloguePage() {
 							</div>
 						</div>
 
-						<div className="grid grid-cols-2 gap-3">
-							<div>
-								<label className="block text-xs font-semibold text-on-surface mb-1">Duration (Minutes)</label>
-								<input
-									type="number"
-									min="0"
-									value={form.durationMinutes}
-									onChange={(e) => setForm((p) => ({ ...p, durationMinutes: e.target.value }))}
-									className="form-input w-full text-sm py-1.5"
-									placeholder="60"
-								/>
-							</div>
-							<div>
-								<label className="block text-xs font-semibold text-on-surface mb-1">Tax Percentage (%)</label>
-								<input
-									type="number"
-									step="0.01"
-									min="0"
-									max="100"
-									value={form.taxPercentage}
-									onChange={(e) => setForm((p) => ({ ...p, taxPercentage: e.target.value }))}
-									className="form-input w-full text-sm py-1.5"
-									placeholder="18"
-								/>
-							</div>
+						<div>
+							<label className="block text-xs font-semibold text-on-surface mb-1">Duration (Minutes)</label>
+							<input
+								type="number"
+								min="0"
+								value={form.durationMinutes}
+								onChange={(e) => setForm((p) => ({ ...p, durationMinutes: e.target.value }))}
+								className="form-input w-full text-sm py-1.5"
+								placeholder="60"
+							/>
 						</div>
 
 						<div>
@@ -609,7 +591,7 @@ export function CataloguePage() {
 					<div className="space-y-4 text-sm">
 						<p className="text-on-surface leading-relaxed">{viewingService.description || 'No detailed description available.'}</p>
 
-						<div className="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/60">
+						<div className="grid grid-cols-3 gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/60">
 							<div>
 								<span className="text-xs text-on-surface-variant block uppercase font-semibold">Duration</span>
 								<span className="font-medium text-on-surface flex items-center gap-1.5 mt-0.5">
@@ -621,12 +603,6 @@ export function CataloguePage() {
 								<span className="text-xs text-on-surface-variant block uppercase font-semibold">Starting Price</span>
 								<span className="font-bold text-secondary text-base block mt-0.5">
 									{formatPrice(viewingService.price)}
-								</span>
-							</div>
-							<div>
-								<span className="text-xs text-on-surface-variant block uppercase font-semibold">Tax</span>
-								<span className="text-on-surface font-medium block mt-0.5">
-									{viewingService.taxPercentage ?? 18}% GST
 								</span>
 							</div>
 							<div>

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/phone_validator.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -71,7 +72,7 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
     try {
       final request = CreateCustomerRequest(
         name: _nameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
+        phoneNumber: PhoneValidator.clean(_phoneController.text.trim()),
         email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
         address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
       );
@@ -159,12 +160,10 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                 label: 'Phone Number',
                 hint: 'e.g. 9876543210',
                 keyboardType: TextInputType.phone,
+                inputFormatters: PhoneValidator.formatters,
+                maxLength: 10,
                 prefixIcon: const Icon(Icons.phone_outlined),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Phone number is required';
-                  if (val.trim().length < 10) return 'Enter a valid 10-digit phone number';
-                  return null;
-                },
+                validator: (val) => PhoneValidator.validate(val, isRequired: true),
               ),
               const SizedBox(height: 16),
               AppTextField(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/phone_validator.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 
 class BusinessInfoCard extends StatelessWidget {
@@ -81,20 +82,14 @@ class BusinessInfoCard extends StatelessWidget {
                 child: AppTextField(
                   controller: phoneController,
                   label: 'Phone Number',
-                  hintText: 'e.g. +91 9578749449',
+                  hintText: 'e.g. 9578749449',
                   isRequired: true,
                   isEnabled: isEnabled,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: PhoneValidator.formatters,
+                  maxLength: 10,
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                  validator: (val) {
-                    if (val == null || val.trim().isEmpty) {
-                      return 'Phone number is required';
-                    }
-                    if (val.trim().length > 30) {
-                      return 'Phone cannot exceed 30 chars';
-                    }
-                    return null;
-                  },
+                  validator: (val) => PhoneValidator.validate(val, isRequired: true),
                 ),
               ),
               const SizedBox(width: 12),

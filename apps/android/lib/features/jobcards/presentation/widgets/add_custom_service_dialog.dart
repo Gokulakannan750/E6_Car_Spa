@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../catalogue/data/service_repository.dart';
 import '../../../catalogue/models/service_model.dart';
+import '../../../catalogue/presentation/providers/catalogue_providers.dart';
 
 class AddCustomServiceDialog extends ConsumerStatefulWidget {
   final Function(Service)? onCreated;
@@ -36,23 +37,34 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _categoryController = TextEditingController(text: 'General Detailing');
   final _descriptionController = TextEditingController();
 
+  String? _selectedCategory;
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  static const List<String> _fallbackCategories = [
+    'Exterior Detailing',
+    'Interior Care',
+    'Protection Packages',
+    'Others',
+  ];
 
   @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
-    _categoryController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() => _errorMessage = 'Please select a service category.');
+      return;
+    }
 
     final price = double.tryParse(_priceController.text.trim());
     if (price == null || price < 0) {
@@ -69,7 +81,7 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
       final request = CreateServiceRequest(
         name: _nameController.text.trim(),
         price: price,
-        category: _categoryController.text.trim().isEmpty ? 'General Detailing' : _categoryController.text.trim(),
+        category: _selectedCategory!.trim(),
         description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
         taxPercentage: 18.0,
         isActive: true,
@@ -94,6 +106,17 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final categoriesAsync = ref.watch(serviceCategoriesProvider);
+
+    final Set<String> allCategories = {};
+    categoriesAsync.whenData((cats) => allCategories.addAll(cats));
+    if (allCategories.isEmpty) {
+      allCategories.addAll(_fallbackCategories);
+    }
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      allCategories.add(_selectedCategory!);
+    }
+    final categoryList = allCategories.toList()..sort();
 
     return Container(
       decoration: const BoxDecoration(
@@ -130,66 +153,100 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              AppTextField(
-                controller: _nameController,
-                label: 'Service Name',
-                hint: 'e.g. Custom Scratch Removal & Polish',
-                prefixIcon: const Icon(Icons.build_circle_outlined),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Service name is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      controller: _priceController,
-                      label: 'Price (₹)',
-                      hint: 'e.g. 1500',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      prefixIcon: const Icon(Icons.currency_rupee),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.error),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    AppTextField(
+                      controller: _nameController,
+                      label: 'Service Name',
+                      hint: 'e.g. Custom Scratch Removal & Polish',
+                      prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Price is required';
-                        if (double.tryParse(val.trim()) == null) return 'Enter a number';
+                        if (val == null || val.trim().isEmpty) return 'Service name is required';
                         return null;
                       },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppTextField(
-                      controller: _categoryController,
-                      label: 'Category (Optional)',
-                      hint: 'e.g. Detailing',
-                      prefixIcon: const Icon(Icons.category_outlined),
+                    const SizedBox(height: 14),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: AppTextField(
+                            controller: _priceController,
+                            label: 'Price (₹)',
+                            hint: 'e.g. 1500',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            prefixIcon: const Icon(Icons.currency_rupee),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Price is required';
+                              final parsed = double.tryParse(val.trim());
+                              if (parsed == null || parsed < 0) return 'Enter valid amount';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedCategory != null && categoryList.contains(_selectedCategory)
+                                ? _selectedCategory
+                                : null,
+                            hint: const Text('Select Category', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                            decoration: InputDecoration(
+                              labelText: 'Category *',
+                              prefixIcon: const Icon(Icons.category_outlined, color: AppColors.textSecondary),
+                              border: const OutlineInputBorder(),
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: AppColors.border),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: AppColors.accent, width: 2),
+                              ),
+                              errorBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: AppColors.error),
+                              ),
+                              filled: true,
+                              fillColor: AppColors.card,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            ),
+                            items: categoryList.map((cat) {
+                              return DropdownMenuItem<String>(
+                                value: cat,
+                                child: Text(cat, style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedCategory = val;
+                              });
+                            },
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Category is required';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _descriptionController,
-                label: 'Description / Scope (Optional)',
-                hint: 'e.g. Specific panel polishing and compound work',
-                prefixIcon: const Icon(Icons.notes_rounded),
-                maxLines: 2,
-              ),
+                    const SizedBox(height: 14),
+                    AppTextField(
+                      controller: _descriptionController,
+                      label: 'Description / Scope (Optional)',
+                      hint: 'e.g. Specific panel polishing and compound work',
+                      prefixIcon: const Icon(Icons.notes_rounded),
+                      maxLines: 2,
+                    ),
               const SizedBox(height: 24),
               // Action Buttons (Cancel + Add to Job Card)
               Row(

@@ -48,6 +48,14 @@ class ServiceApi {
     return Service.fromJson(response.data as Map<String, dynamic>);
   }
 
+  Future<Service> updateService(String id, UpdateServiceRequest request) async {
+    final response = await _dio.put(
+      '/services/$id',
+      data: request.toJson(),
+    );
+    return Service.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<List<String>> getCategories() async {
     final response = await _dio.get('/services/categories');
     final list = response.data as List<dynamic>? ?? [];
