@@ -144,6 +144,29 @@ public class InvoicesController : ControllerBase
 		}
 	}
 
+	[HttpPost("{id:guid}/cancel")]
+	[RequirePermission("invoices.cancel")]
+	public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelInvoiceRequest? request, CancellationToken ct)
+	{
+		try
+		{
+			var dto = await _service.CancelInvoiceAsync(id, request?.Reason, ct);
+			return Ok(dto);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+		catch (DbUpdateException ex)
+		{
+			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
+		}
+	}
+
 	[HttpPost("{id:guid}/payments")]
 	[RequirePermission("payments.record")]
 	public async Task<IActionResult> RecordPayment(Guid id, [FromBody] RecordPaymentRequest request, CancellationToken ct)

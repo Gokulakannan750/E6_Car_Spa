@@ -405,6 +405,92 @@ public class InvoiceService : IInvoiceService
 		return ToDto(invoice);
 	}
 
+	public async Task<InvoiceDto> CancelInvoiceAsync(Guid id, string? reason = null, CancellationToken cancellationToken = default)
+	{
+		var invoice = await _db.Invoices
+			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
+			.Include(i => i.JobCard)
+			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+		if (invoice is null || invoice.IsDeleted)
+			throw new KeyNotFoundException("Invoice not found.");
+
+		if (invoice.Status == InvoiceStatus.Cancelled)
+			throw new InvalidOperationException("Invoice is already cancelled.");
+
+		if (invoice.Payments.Any(p => !p.IsDeleted && p.Amount > 0) || invoice.PaidAmount > 0)
+			throw new InvalidOperationException("Cannot cancel an invoice with recorded payments. Void or refund payments first.");
+
+		var previousStatus = invoice.Status;
+
+		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+		try
+		{
+			invoice.Status = InvoiceStatus.Cancelled;
+			if (!string.IsNullOrWhiteSpace(reason))
+			{
+				invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)
+					? $"Cancelled: {reason.Trim()}"
+					: $"{invoice.Notes} | Cancelled: {reason.Trim()}";
+			}
+			invoice.UpdatedAt = DateTime.UtcNow;
+
+			// Revert linked JobCard status from Invoiced back to Ready so it can be re-addressed
+			if (invoice.JobCard != null && invoice.JobCard.Status == JobCardStatus.Invoiced)
+			{
+				invoice.JobCard.Status = JobCardStatus.Ready;
+				invoice.JobCard.UpdatedAt = DateTime.UtcNow;
+			}
+
+			// Revoke any active public links
+			var activeLinks = await _db.InvoicePublicLinks
+				.Where(l => l.InvoiceId == id && !l.IsRevoked && !l.IsDeleted)
+				.ToListAsync(cancellationToken);
+
+			var currentUserId = GetCurrentUserId();
+			var now = DateTime.UtcNow;
+			foreach (var link in activeLinks)
+			{
+				link.IsRevoked = true;
+				link.RevokedAtUtc = now;
+				link.RevokedByUserId = currentUserId;
+				link.UpdatedAt = now;
+			}
+
+			await _db.SaveChangesAsync(cancellationToken);
+
+			await _auditLogService.RecordAsync(
+				action: Domain.Constants.AuditActions.Cancel,
+				module: Domain.Constants.AuditModules.Invoices,
+				description: $"Invoice '{invoice.InvoiceNumber ?? invoice.Id.ToString()}' was cancelled. Reason: {reason ?? "None provided"}.",
+				entityType: "Invoice",
+				entityId: invoice.Id,
+				entityReference: invoice.InvoiceNumber ?? invoice.JobCard?.JobCardNumber,
+				oldValues: System.Text.Json.JsonSerializer.Serialize(new { status = previousStatus.ToString() }),
+				newValues: System.Text.Json.JsonSerializer.Serialize(new { status = invoice.Status.ToString(), cancellationReason = reason }),
+				outcome: "Success",
+				cancellationToken: cancellationToken);
+
+			await transaction.CommitAsync(cancellationToken);
+		}
+		catch
+		{
+			await transaction.RollbackAsync(cancellationToken);
+			throw;
+		}
+
+		await _db.Entry(invoice).Reference(i => i.Customer).LoadAsync(cancellationToken);
+		await _db.Entry(invoice).Reference(i => i.Vehicle).LoadAsync(cancellationToken);
+		if (invoice.JobCard != null)
+		{
+			await _db.Entry(invoice).Reference(i => i.JobCard).LoadAsync(cancellationToken);
+		}
+
+		return ToDto(invoice);
+	}
+
+
 	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;

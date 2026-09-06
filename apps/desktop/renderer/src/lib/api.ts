@@ -13,19 +13,61 @@ const API_BASE = (() => {
 export const TOKEN_STORAGE_KEY = 'car_spa_token';
 export const USER_STORAGE_KEY = 'car_spa_user';
 
+let _inMemoryToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null);
+
 export function getAuthToken(): string | null {
-	if (typeof localStorage === 'undefined') return null;
-	return localStorage.getItem(TOKEN_STORAGE_KEY);
+	return _inMemoryToken;
 }
 
 export function setAuthToken(token: string | null) {
-	if (typeof localStorage === 'undefined') return;
-	if (token) {
-		localStorage.setItem(TOKEN_STORAGE_KEY, token);
-	} else {
-		localStorage.removeItem(TOKEN_STORAGE_KEY);
+	_inMemoryToken = token;
+	if (typeof window !== 'undefined' && window.electronAPI?.setAuthToken) {
+		window.electronAPI.setAuthToken(token).catch(console.error);
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem(TOKEN_STORAGE_KEY);
+		}
+	} else if (typeof localStorage !== 'undefined') {
+		if (token) {
+			localStorage.setItem(TOKEN_STORAGE_KEY, token);
+		} else {
+			localStorage.removeItem(TOKEN_STORAGE_KEY);
+		}
 	}
 }
+
+export async function initAuthToken(): Promise<string | null> {
+	if (typeof window !== 'undefined' && window.electronAPI?.getAuthToken) {
+		try {
+			const safeToken = await window.electronAPI.getAuthToken();
+			if (safeToken) {
+				_inMemoryToken = safeToken;
+				if (typeof localStorage !== 'undefined') {
+					localStorage.removeItem(TOKEN_STORAGE_KEY);
+				}
+				return safeToken;
+			}
+		} catch (err) {
+			console.warn('Failed to read token from safeStorage:', err);
+		}
+
+		// Migrate legacy unencrypted token if present
+		if (typeof localStorage !== 'undefined') {
+			const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+			if (legacyToken) {
+				_inMemoryToken = legacyToken;
+				if (window.electronAPI.setAuthToken) {
+					await window.electronAPI.setAuthToken(legacyToken);
+				}
+				localStorage.removeItem(TOKEN_STORAGE_KEY);
+				return legacyToken;
+			}
+		}
+	} else if (typeof localStorage !== 'undefined') {
+		_inMemoryToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+	}
+	return _inMemoryToken;
+}
+
 
 export type ApiErrorCode =
 	| 'PERMISSION_DENIED'

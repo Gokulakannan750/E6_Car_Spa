@@ -5,9 +5,11 @@ import {
 	loginApi,
 	getAuthToken,
 	setAuthToken,
+	initAuthToken,
 	USER_STORAGE_KEY,
 	type AuthUserResponse
 } from '../../lib/api';
+
 import { useAppStore } from '../../stores/app';
 
 export type AuthUser = AuthUserResponse;
@@ -86,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}, [syncAppStoreUser]);
 
 	const refreshAuth = useCallback(async () => {
-		const storedToken = getAuthToken();
+		const storedToken = await initAuthToken();
 		if (!storedToken) {
 			setUser(null);
 			setTokenState(null);
@@ -115,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			try {
 				const initialized = await checkInitialization();
 				if (initialized) {
-					const existingToken = getAuthToken();
+					const existingToken = await initAuthToken();
 					if (existingToken) {
 						setTokenState(existingToken);
 						try {
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 
 		init();
+
 
 		const handleUnauthorized = () => {
 			if (isMounted) {

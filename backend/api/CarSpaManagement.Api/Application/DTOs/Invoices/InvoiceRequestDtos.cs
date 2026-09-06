@@ -10,3 +10,6 @@ public record UpdateInvoiceRequest(
  string? Notes,
  InvoiceStatus? Status,
  bool? IsGstEnabled = null);
+
+public record CancelInvoiceRequest(
+ string? Reason = null);
