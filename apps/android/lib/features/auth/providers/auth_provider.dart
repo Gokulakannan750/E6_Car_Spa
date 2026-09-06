@@ -66,6 +66,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = await _repository.login(username, password);
       state = Authenticated(user);
       return true;
+    } on AccountLockedException catch (e) {
+      state = AccountLocked(
+        message: e.message,
+        remainingSeconds: e.remainingLockoutSeconds,
+      );
+      return false;
     } on ApiException catch (e) {
       state = AuthFailure(e.message);
       return false;
@@ -86,7 +92,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Clears error message from failure state
   void clearError() {
-    if (state is AuthFailure) {
+    if (state is AuthFailure || state is AccountLocked) {
       state = const Unauthenticated();
     }
   }

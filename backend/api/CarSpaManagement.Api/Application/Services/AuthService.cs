@@ -14,7 +14,8 @@ public class AuthService(
     AppDbContext db,
     IPasswordHasherService passwordHasher,
     IJwtTokenService jwtTokenService,
-    IAuditLogService auditLogService) : IAuthService
+    IAuditLogService auditLogService,
+    IAccountLockoutService accountLockoutService) : IAuthService
 {
     public async Task<AuthStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -109,12 +110,28 @@ public class AuthService(
 
         var normalizedUsername = request.Username.Trim().ToLowerInvariant();
 
+        // 1. Account Lockout Check
+        var (isLocked, remainingSeconds) = accountLockoutService.CheckLockout(normalizedUsername);
+        if (isLocked)
+        {
+            Log.Warning("Login rejected for username '{Username}' (account temporarily locked, {RemainingSeconds}s remaining)", request.Username, remainingSeconds);
+
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.LoginFailed,
+                module: Domain.Constants.AuditModules.Authentication,
+                description: $"Login rejected for locked account. Remaining lockout: {remainingSeconds}s.",
+                outcome: "Failure",
+                cancellationToken: cancellationToken);
+
+            throw new AccountLockedException("Too many failed login attempts. Please try again later.", remainingSeconds);
+        }
+
         var user = await db.Users
             .Include(u => u.UserPermissions)
             .ThenInclude(up => up.Permission)
             .FirstOrDefaultAsync(u => u.Username.ToLower() == normalizedUsername, cancellationToken);
 
-        // Security rule: reject inactive or non-existent user with generic message
+        // Security rule: reject inactive or non-existent user with generic message & track failure
         if (user == null || !user.IsActive)
         {
             Log.Warning("Login failed for username '{Username}' (user missing or inactive)", request.Username);
@@ -125,6 +142,12 @@ public class AuthService(
                 description: "Login attempt failed.",
                 outcome: "Failure",
                 cancellationToken: cancellationToken);
+
+            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(normalizedUsername);
+            if (newlyLocked)
+            {
+                throw new AccountLockedException("Too many failed login attempts. Please try again later.", lockRemaining);
+            }
 
             throw new UnauthorizedException("Invalid username or password.");
         }
@@ -141,8 +164,17 @@ public class AuthService(
                 outcome: "Failure",
                 cancellationToken: cancellationToken);
 
+            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(normalizedUsername);
+            if (newlyLocked)
+            {
+                throw new AccountLockedException("Too many failed login attempts. Please try again later.", lockRemaining);
+            }
+
             throw new UnauthorizedException("Invalid username or password.");
         }
+
+        // Reset failed attempts upon successful login
+        accountLockoutService.RecordSuccessfulLogin(normalizedUsername);
 
         user.LastLoginAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);

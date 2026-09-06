@@ -113,6 +113,27 @@ class ApiException implements Exception {
       return NotFoundException(message: msg, endpoint: endpoint, details: error.response?.data);
     }
 
+    if (statusCode == 423) {
+      final msg = (rawMessage != null && !isTechnical(rawMessage))
+          ? rawMessage
+          : 'Too many failed login attempts. Please try again later.';
+      int remaining = 300;
+      if (error.response?.data is Map) {
+        final map = error.response!.data as Map;
+        if (map['remainingLockoutSeconds'] is int) {
+          remaining = map['remainingLockoutSeconds'] as int;
+        } else if (map['retryAfter'] is int) {
+          remaining = map['retryAfter'] as int;
+        }
+      }
+      return AccountLockedException(
+        message: msg,
+        endpoint: endpoint,
+        details: error.response?.data,
+        remainingLockoutSeconds: remaining,
+      );
+    }
+
     if (statusCode == 429) {
       return RateLimitedException(
         message: 'Too many requests. Please try again shortly.',
@@ -233,6 +254,17 @@ class NotFoundException extends ApiException {
     super.endpoint,
     super.details,
   }) : super(statusCode: 404);
+}
+
+class AccountLockedException extends ApiException {
+  final int remainingLockoutSeconds;
+
+  const AccountLockedException({
+    super.message = 'Too many failed login attempts. Please try again later.',
+    super.endpoint,
+    super.details,
+    this.remainingLockoutSeconds = 300,
+  }) : super(statusCode: 423);
 }
 
 class RateLimitedException extends ApiException {

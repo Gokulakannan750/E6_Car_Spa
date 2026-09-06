@@ -63,8 +63,9 @@ public class AuthServiceSecurityTests
         });
         var jwtService = new JwtTokenService(jwtOptions);
         var auditService = new DummyAuditLogService();
+        var lockoutService = new AccountLockoutService();
 
-        var authService = new AuthService(db, passwordHasher, jwtService, auditService);
+        var authService = new AuthService(db, passwordHasher, jwtService, auditService, lockoutService);
         return (db, authService);
     }
 

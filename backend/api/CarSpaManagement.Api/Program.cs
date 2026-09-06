@@ -93,6 +93,7 @@ builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
 
 // Security & Authentication Services
+builder.Services.AddSingleton<IAccountLockoutService, AccountLockoutService>();
 builder.Services.AddScoped<IPasswordHasherService, PasswordHasherService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

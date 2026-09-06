@@ -30,6 +30,7 @@ export function setAuthToken(token: string | null) {
 export type ApiErrorCode =
 	| 'PERMISSION_DENIED'
 	| 'UNAUTHORIZED'
+	| 'ACCOUNT_LOCKED'
 	| 'CONFLICT'
 	| 'VALIDATION_ERROR'
 	| 'NOT_FOUND'
@@ -40,16 +41,19 @@ export type ApiErrorCode =
 
 export class ApiError extends Error {
 	public isPermissionDenied: boolean;
+	public remainingLockoutSeconds?: number;
 	constructor(
 		message: string,
 		public status: number,
 		public body: unknown,
 		public code: ApiErrorCode = 'UNKNOWN',
 		public action?: string,
+		remainingLockoutSeconds?: number,
 	) {
 		super(message);
 		this.name = 'ApiError';
 		this.isPermissionDenied = status === 403 || code === 'PERMISSION_DENIED';
+		this.remainingLockoutSeconds = remainingLockoutSeconds;
 	}
 }
 
@@ -172,6 +176,19 @@ export async function request<T>(
 					? rawDetail
 					: 'The requested record could not be found.';
 				break;
+			case 423: {
+				code = 'ACCOUNT_LOCKED';
+				friendlyMessage = rawDetail && !isTechnicalError(rawDetail)
+					? rawDetail
+					: 'Too many failed login attempts. Please try again later.';
+				let remainingSeconds = 300;
+				if (rawBody && typeof rawBody === 'object') {
+					const b = rawBody as Record<string, unknown>;
+					if (typeof b.remainingLockoutSeconds === 'number') remainingSeconds = b.remainingLockoutSeconds;
+					else if (typeof b.retryAfter === 'number') remainingSeconds = b.retryAfter;
+				}
+				throw new ApiError(friendlyMessage, 423, rawBody, 'ACCOUNT_LOCKED', action, remainingSeconds);
+			}
 			case 429:
 				code = 'RATE_LIMITED';
 				friendlyMessage = 'Too many requests. Please try again shortly.';

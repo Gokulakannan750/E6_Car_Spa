@@ -50,6 +50,16 @@ public class AuthController(IAuthService authService) : ControllerBase
             var response = await authService.LoginAsync(request, cancellationToken);
             return Ok(response);
         }
+        catch (AccountLockedException ex)
+        {
+            return StatusCode(StatusCodes.Status423Locked, new
+            {
+                error = ex.Message,
+                locked = true,
+                remainingLockoutSeconds = ex.RemainingLockoutSeconds,
+                retryAfter = ex.RemainingLockoutSeconds
+            });
+        }
         catch (UnauthorizedException ex)
         {
             return Unauthorized(new { error = ex.Message });

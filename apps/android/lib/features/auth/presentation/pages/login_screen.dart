@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -20,6 +21,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   late final TextEditingController _passwordController;
   bool _obscurePassword = true;
   String? _localError;
+  Timer? _lockoutTimer;
+  int _remainingLockoutSeconds = 0;
 
   @override
   void initState() {
@@ -30,12 +33,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _lockoutTimer?.cancel();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
+  void _startLockoutTimer(int seconds) {
+    _lockoutTimer?.cancel();
+    setState(() {
+      _remainingLockoutSeconds = seconds;
+    });
+
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_remainingLockoutSeconds <= 1) {
+        timer.cancel();
+        setState(() {
+          _remainingLockoutSeconds = 0;
+        });
+        ref.read(authNotifierProvider.notifier).clearError();
+      } else {
+        setState(() {
+          _remainingLockoutSeconds--;
+        });
+      }
+    });
+  }
+
   Future<void> _handleLogin() async {
+    if (_remainingLockoutSeconds > 0) return;
+
     setState(() => _localError = null);
     ref.read(authNotifierProvider.notifier).clearError();
 
@@ -61,11 +93,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      if (next is AccountLocked) {
+        _startLockoutTimer(next.remainingSeconds);
+      }
+    });
+
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState is Authenticating;
+    final isLocked = _remainingLockoutSeconds > 0 || authState is AccountLocked;
+    final isInputEnabled = !isLoading && !isLocked;
 
     String? errorMessage = _localError;
-    if (authState is AuthFailure) {
+    if (_remainingLockoutSeconds > 0) {
+      final mins = _remainingLockoutSeconds ~/ 60;
+      final secs = _remainingLockoutSeconds % 60;
+      final timeStr = mins > 0 ? '${mins}m ${secs.toString().padLeft(2, '0')}s' : '${secs}s';
+      errorMessage = 'Too many failed login attempts. Please try again in $timeStr.';
+    } else if (authState is AccountLocked) {
+      final mins = authState.remainingSeconds ~/ 60;
+      final secs = authState.remainingSeconds % 60;
+      final timeStr = mins > 0 ? '${mins}m ${secs.toString().padLeft(2, '0')}s' : '${secs}s';
+      errorMessage = '${authState.message} ($timeStr remaining)';
+    } else if (authState is AuthFailure) {
       errorMessage = authState.message;
     } else if (authState is Unauthenticated && authState.message != null) {
       errorMessage = authState.message;
@@ -144,8 +194,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.error_outline_rounded,
+                            Icon(
+                              isLocked ? Icons.lock_clock_outlined : Icons.error_outline_rounded,
                               size: 20,
                               color: AppColors.error,
                             ),
@@ -193,10 +243,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: 'Username',
                               hintText: 'Enter username',
                               controller: _usernameController,
-                              isEnabled: !isLoading,
+                              isEnabled: isInputEnabled,
                               keyboardType: TextInputType.text,
                               onChanged: (_) {
-                                if (_localError != null || authState is AuthFailure) {
+                                if (!isLocked && (_localError != null || authState is AuthFailure)) {
                                   setState(() => _localError = null);
                                   ref.read(authNotifierProvider.notifier).clearError();
                                 }
@@ -210,7 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               hintText: 'Enter password',
                               controller: _passwordController,
                               isPassword: _obscurePassword,
-                              isEnabled: !isLoading,
+                              isEnabled: isInputEnabled,
                               keyboardType: TextInputType.visiblePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -227,7 +277,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 },
                               ),
                               onChanged: (_) {
-                                if (_localError != null || authState is AuthFailure) {
+                                if (!isLocked && (_localError != null || authState is AuthFailure)) {
                                   setState(() => _localError = null);
                                   ref.read(authNotifierProvider.notifier).clearError();
                                 }
@@ -237,8 +287,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                             // Submit Button
                             AppButton(
-                              label: 'Sign In',
-                              onPressed: isLoading ? null : _handleLogin,
+                              label: isLocked
+                                  ? 'Account Locked'
+                                  : 'Sign In',
+                              onPressed: (isLoading || isLocked) ? null : _handleLogin,
                               isLoading: isLoading,
                               fullWidth: true,
                             ),

@@ -61,3 +61,24 @@ class AuthFailure extends AuthState {
   @override
   int get hashCode => message.hashCode;
 }
+
+/// Account is temporarily locked due to brute-force protection
+class AccountLocked extends AuthState {
+  final String message;
+  final int remainingSeconds;
+  const AccountLocked({
+    required this.message,
+    required this.remainingSeconds,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AccountLocked &&
+          runtimeType == other.runtimeType &&
+          message == other.message &&
+          remainingSeconds == other.remainingSeconds;
+
+  @override
+  int get hashCode => Object.hash(message, remainingSeconds);
+}
