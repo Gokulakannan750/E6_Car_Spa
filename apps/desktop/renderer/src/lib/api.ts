@@ -1770,6 +1770,40 @@ export interface InvoiceWhatsAppStatusDto {
 	attemptCount: number;
 }
 
+export interface MetaWhatsAppTemplateButtonDto {
+	type: string;
+	text?: string | null;
+	url?: string | null;
+	phoneNumber?: string | null;
+	example?: string[] | null;
+}
+
+export interface MetaWhatsAppTemplateComponentDto {
+	type: string;
+	format?: string | null;
+	text?: string | null;
+	variables?: string[] | null;
+	examples?: string[] | null;
+	buttons?: MetaWhatsAppTemplateButtonDto[] | null;
+}
+
+export interface MetaWhatsAppTemplateDto {
+	id: string;
+	name: string;
+	status: string;
+	category: string;
+	language: string;
+	components: MetaWhatsAppTemplateComponentDto[];
+}
+
+export interface MetaWhatsAppTemplatesResponse {
+	isSuccess: boolean;
+	message: string;
+	templates: MetaWhatsAppTemplateDto[];
+	totalCount: number;
+	details?: string | null;
+}
+
 export async function getWhatsAppConfig() {
 	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {}, 'view WhatsApp settings');
 }
@@ -1786,6 +1820,31 @@ export async function testWhatsAppConnection(data?: TestWhatsAppConnectionReques
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data ?? {})),
 	}, 'test WhatsApp connection');
+}
+
+export async function getWhatsAppTemplates() {
+	return request<MetaWhatsAppTemplatesResponse>('/api/settings/whatsapp/templates', {}, 'view WhatsApp templates');
+}
+
+export interface SendTestWhatsAppMessageRequest {
+	templateName: string;
+	languageCode: string;
+	recipientPhoneNumber: string;
+	parameters?: string[];
+}
+
+export interface SendTestWhatsAppMessageResponse {
+	isSuccess: boolean;
+	message: string;
+	messageId?: string | null;
+	details?: string | null;
+}
+
+export async function sendTestWhatsAppMessage(data: SendTestWhatsAppMessageRequest) {
+	return request<SendTestWhatsAppMessageResponse>('/api/settings/whatsapp/test-message', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'send test WhatsApp message');
 }
 
 export async function getInvoiceWhatsAppStatus(invoiceId: string) {

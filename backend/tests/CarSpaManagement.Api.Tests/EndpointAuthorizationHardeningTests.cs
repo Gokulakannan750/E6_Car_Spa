@@ -63,6 +63,8 @@ public class EndpointAuthorizationHardeningTests
         public Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<IReadOnlyList<InvoiceWhatsAppStatusDto>> GetInvoiceWhatsAppStatusAsync(Guid invoiceId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<InvoiceWhatsAppStatusDto>>(new List<InvoiceWhatsAppStatusDto>());
+        public Task<MetaWhatsAppTemplatesResponse> GetMetaTemplatesAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public string? NormalizePhoneNumber(string? phone) => phone;
     }
 

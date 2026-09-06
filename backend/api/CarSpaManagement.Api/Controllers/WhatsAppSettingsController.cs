@@ -47,6 +47,23 @@ public class WhatsAppSettingsController : ControllerBase
 		return Ok(result);
 	}
 
+	[HttpGet("templates")]
+	[RequirePermission("settings.view")]
+	public async Task<IActionResult> GetTemplates(CancellationToken ct)
+	{
+		var result = await _whatsAppService.GetMetaTemplatesAsync(ct);
+		return Ok(result);
+	}
+
+	[HttpPost("test-message")]
+	[RequirePermission("settings.business")]
+	[EnableRateLimiting("whatsapp-test")]
+	public async Task<IActionResult> SendTestMessage([FromBody] SendTestWhatsAppMessageRequest request, CancellationToken ct)
+	{
+		var result = await _whatsAppService.SendTestTemplateMessageAsync(request, ct);
+		return Ok(result);
+	}
+
 	[HttpGet("/api/invoices/{id:guid}/whatsapp-status")]
 	[RequirePermission("invoices.view")]
 	public async Task<IActionResult> GetInvoiceWhatsAppStatus(Guid id, CancellationToken ct)

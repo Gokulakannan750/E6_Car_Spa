@@ -13,5 +13,7 @@ public interface IWhatsAppService
 	Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default);
 	Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default);
 	Task<IReadOnlyList<InvoiceWhatsAppStatusDto>> GetInvoiceWhatsAppStatusAsync(Guid invoiceId, CancellationToken cancellationToken = default);
+	Task<MetaWhatsAppTemplatesResponse> GetMetaTemplatesAsync(CancellationToken cancellationToken = default);
+	Task<SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default);
 	string? NormalizePhoneNumber(string? phone);
 }
