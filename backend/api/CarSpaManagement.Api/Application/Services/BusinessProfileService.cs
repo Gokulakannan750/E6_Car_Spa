@@ -130,6 +130,15 @@ public partial class BusinessProfileService : IBusinessProfileService
             throw new ValidationException("Invalid image content type. Please upload a valid PNG, JPEG, or WebP image.");
         }
 
+        // Validate image magic-byte signatures
+        await using (var testStream = file.OpenReadStream())
+        {
+            if (!IsValidImageHeader(testStream, ext))
+            {
+                throw new ValidationException("The uploaded file signature does not match a valid PNG, JPEG, or WebP image.");
+            }
+        }
+
         // Determine server storage root
         var webRoot = _environment.WebRootPath;
         if (string.IsNullOrEmpty(webRoot))
@@ -155,10 +164,14 @@ public partial class BusinessProfileService : IBusinessProfileService
         var relativeUrl = $"/uploads/logos/{safeFileName}";
 
         var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previousLogo = profile.LogoPath;
         profile.LogoPath = relativeUrl;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
+        SafeDeleteOldCustomLogo(previousLogo);
 
         await _auditLogService.RecordAsync(
             action: Domain.Constants.AuditActions.LogoChanged,
@@ -176,10 +189,14 @@ public partial class BusinessProfileService : IBusinessProfileService
     public async Task<BusinessProfileDto> RemoveLogoAsync(CancellationToken ct = default)
     {
         var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previousLogo = profile.LogoPath;
         profile.LogoPath = null;
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
+        SafeDeleteOldCustomLogo(previousLogo);
 
         await _auditLogService.RecordAsync(
             action: Domain.Constants.AuditActions.LogoRemoved,
@@ -192,6 +209,64 @@ public partial class BusinessProfileService : IBusinessProfileService
             cancellationToken: ct);
 
         return ToDto(profile);
+    }
+
+    private static bool IsValidImageHeader(Stream stream, string extension)
+    {
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+
+        var header = new byte[12];
+        var bytesRead = stream.Read(header, 0, header.Length);
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+        }
+
+        if (bytesRead < 3) return false;
+
+        return extension switch
+        {
+            ".png" => bytesRead >= 8
+                && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47
+                && header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A,
+            ".jpg" or ".jpeg" => bytesRead >= 3
+                && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+            ".webp" => bytesRead >= 12
+                && header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46 // RIFF
+                && header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50, // WEBP
+            _ => false
+        };
+    }
+
+    private void SafeDeleteOldCustomLogo(string? oldRelativeUrl)
+    {
+        if (string.IsNullOrWhiteSpace(oldRelativeUrl)) return;
+
+        var normalized = oldRelativeUrl.Trim().Replace('\\', '/');
+        // Only delete custom uploaded files (starting with /uploads/logos/logo_ or containing logo_)
+        // Explicitly protect standard asset files like e6-logo.png
+        if (normalized.Contains("logo_", StringComparison.OrdinalIgnoreCase) &&
+            !normalized.EndsWith("e6-logo.png", StringComparison.OrdinalIgnoreCase))
+        {
+            var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var relativePart = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var physicalPath = Path.Combine(webRoot, relativePart);
+
+            try
+            {
+                if (File.Exists(physicalPath))
+                {
+                    File.Delete(physicalPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Warning(ex, "Failed to clean up old custom logo file: {Path}", physicalPath);
+            }
+        }
     }
 
     private async Task<BusinessProfile> GetOrCreateProfileEntityAsync(CancellationToken ct)

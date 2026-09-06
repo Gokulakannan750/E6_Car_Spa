@@ -2,6 +2,7 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -35,6 +36,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("sales")]
     [RequirePermission("reports.sales")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetSalesReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -52,6 +54,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("payments")]
     [RequirePermission("reports.payments")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetPaymentCollectionReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -71,6 +74,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("invoices/outstanding")]
     [RequirePermission("reports.invoices")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetOutstandingInvoicesReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -88,6 +92,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("gst")]
     [RequirePermission("reports.gst")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetGstReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -102,6 +107,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("job-cards")]
     [RequirePermission("reports.job_cards")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetJobCardReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -120,6 +126,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("showrooms")]
     [RequirePermission("reports.showrooms")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetShowroomReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -137,6 +144,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("staff-productivity")]
     [RequirePermission("reports.staff_productivity")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetStaffProductivityReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
@@ -153,6 +161,7 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("staff-advances")]
     [RequirePermission("reports.staff_advances")]
+    [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetStaffAdvancesReport(
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,

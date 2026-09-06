@@ -3,6 +3,7 @@ using CarSpaManagement.Api.Application.DTOs.Settings;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
@@ -56,6 +57,9 @@ public class BusinessProfileController : ControllerBase
     /// </summary>
     [HttpPost("logo")]
     [RequirePermission("settings.business")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 5 * 1024 * 1024)]
+    [EnableRateLimiting("file-upload")]
     public async Task<IActionResult> UploadLogo([FromForm] IFormFile file, CancellationToken ct)
     {
         try

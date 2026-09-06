@@ -10,6 +10,7 @@ using CarSpaManagement.Api.Infrastructure.Authorization;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,22 @@ using CarSpaManagement.Api.Infrastructure.BackgroundJobs;
 using JobCardSvc = CarSpaManagement.Api.Application.Services.JobCardService;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Kestrel Hardening ────────────────────────────────────────────────────────
+builder.WebHost.ConfigureKestrel(options =>
+{
+	options.AddServerHeader = false;
+	options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB global request size cap
+});
+
+// ── Forwarded Headers (Proxy-Aware IP Resolution) ───────────────────────────
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+	options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+	// By default, ASP.NET Core restricts KnownProxies/KnownNetworks to loopback (127.0.0.1, ::1),
+	// allowing standard reverse proxies (Nginx/Caddy/IIS) to forward genuine client IPs safely
+	// without allowing direct external clients to spoof X-Forwarded-For headers.
+});
 
 // ── Serilog ──────────────────────────────────────────────────────────────────
 Log.Logger = new LoggerConfiguration()
@@ -220,6 +237,36 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 				QueueLimit = 0
 			});
 	});
+
+	rateLimiterOptions.AddPolicy("file-upload", httpContext =>
+	{
+		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+		return RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: ipAddress,
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 10,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			});
+	});
+
+	rateLimiterOptions.AddPolicy("reports-heavy", httpContext =>
+	{
+		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
+		return RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: ipAddress,
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 30,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			});
+	});
 });
 
 // CORS
@@ -258,7 +305,17 @@ builder.Environment.WebRootPath = webRootPath;
 var app = builder.Build();
 
 // ── Middleware ───────────────────────────────────────────────────────────────
+app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
+
+// HTTP Security Headers
+app.Use(async (context, next) =>
+{
+	context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+	context.Response.Headers.Append("X-Frame-Options", "DENY");
+	context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+	await next();
+});
 
 // Global Exception Handler must wrap all downstream middleware & endpoints
 app.Use(async (context, next) =>
