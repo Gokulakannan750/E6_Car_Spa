@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import LoginForm from './LoginForm';
 import { getCachedBusinessProfile, resolveLogoUrl } from '../../lib/api';
+import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 
 export default function LoginPage() {
 	const { isAuthenticated, isInitialized, isLoading } = useAuth();
@@ -62,9 +63,12 @@ export default function LoginPage() {
 					<LoginForm />
 				</div>
 
-				<p className="text-center text-slate-400 text-xs mt-6">
-					© {new Date().getFullYear()} E6 Car Spa Management. All rights reserved.
-				</p>
+				<div className="text-center mt-6 space-y-1.5">
+					<p className="text-slate-400 text-xs">
+						© {new Date().getFullYear()} E6 Car Spa Management. All rights reserved.
+					</p>
+					<PoweredByTrovo />
+				</div>
 			</div>
 		</div>
 	);

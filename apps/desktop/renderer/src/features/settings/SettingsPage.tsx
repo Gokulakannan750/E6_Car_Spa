@@ -26,6 +26,8 @@ import {
 	BusinessProfileDto,
 } from '../../lib/api';
 import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
+import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
+import { BUSINESS_PROFILE_QUERY_KEY } from './hooks/useBusinessProfile';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
 
@@ -578,9 +580,13 @@ export default function SettingsPage() {
 								<span className="text-slate-500">Architecture</span>
 								<span className="text-emerald-600 font-semibold">PostgreSQL Singleton</span>
 							</div>
-							<div className="flex justify-between py-1.5">
+							<div className="flex justify-between py-1.5 border-b border-slate-100">
 								<span className="text-slate-500">Platform</span>
 								<span className="text-slate-800 font-semibold">Desktop (Windows)</span>
+							</div>
+							<div className="flex justify-between py-1.5">
+								<span className="text-slate-500">Attribution</span>
+								<span className="text-slate-700 font-medium text-right">Powered by Trovo Tech Solutions</span>
 							</div>
 						</div>
 					</div>
@@ -594,6 +600,10 @@ export default function SettingsPage() {
 						<p className="text-blue-800/80 leading-relaxed">
 							Business profile details configured here will serve as the single source of truth for print documents in Step 15B.
 						</p>
+					</div>
+
+					<div className="text-center pt-2">
+						<PoweredByTrovo />
 					</div>
 				</div>
 			</div>

@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
+import '../../../../shared/widgets/powered_by_trovo.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
 import '../../models/business_profile_model.dart';
@@ -476,6 +477,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text(
+                          'Attribution',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                        Text(
+                          'Powered by Trovo Tech Solutions',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -490,8 +510,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   fullWidth: true,
                   onPressed: isSaving ? null : () => _handleSave(canManage),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
               ],
+
+              const PoweredByTrovo(),
+              const SizedBox(height: 16),
             ],
           ),
         ),
