@@ -129,6 +129,8 @@ export function InvoiceDetailPage() {
 	const [isSaving, setIsSaving] = useState(false);
 	const [saveSuccess, setSaveSuccess] = useState(false);
 	const [saveError, setSaveError] = useState<string | null>(null);
+	const [isSavingPdf, setIsSavingPdf] = useState(false);
+	const [savePdfFeedback, setSavePdfFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
 	// Generate modal & action state
 	const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
@@ -379,9 +381,46 @@ export function InvoiceDetailPage() {
 		window.print();
 	}, []);
 
-	const handleSavePdf = useCallback(() => {
-		window.print();
-	}, []);
+	const handleSavePdf = useCallback(async () => {
+		if (isSavingPdf) return;
+
+		if (window.electronAPI?.saveInvoicePdf) {
+			const defaultFilename = `${invoice?.invoiceNumber || 'Draft_Invoice'}.pdf`;
+			setIsSavingPdf(true);
+			setSavePdfFeedback(null);
+
+			try {
+				const result = await window.electronAPI.saveInvoicePdf({ defaultFilename });
+				if (result.canceled) {
+					// User canceled dialog - do nothing and do not show error
+					return;
+				}
+
+				if (result.success && result.filePath) {
+					setSavePdfFeedback({
+						type: 'success',
+						message: `PDF saved successfully to ${result.filePath}`,
+					});
+					setTimeout(() => setSavePdfFeedback(null), 6000);
+				} else {
+					setSavePdfFeedback({
+						type: 'error',
+						message: result.error || 'Failed to save PDF. Please try again.',
+					});
+					setTimeout(() => setSavePdfFeedback(null), 6000);
+				}
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : 'Unexpected error saving PDF.';
+				setSavePdfFeedback({ type: 'error', message: msg });
+				setTimeout(() => setSavePdfFeedback(null), 6000);
+			} finally {
+				setIsSavingPdf(false);
+			}
+		} else {
+			// Fallback for browser environment
+			window.print();
+		}
+	}, [invoice, isSavingPdf]);
 
 	// ─── Record Payment ──────────────────────────────────────────────────────
 	const handleRecordPayment = async (e: React.FormEvent) => {
@@ -454,9 +493,13 @@ export function InvoiceDetailPage() {
 	}
 
 	return (
-		<div className="space-y-6 animate-fade-in pb-12">
-			{/* ── Top Bar / Header (Hidden on Print) ─────────────────────────── */}
-			<div className="no-print flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant">
+		<>
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			{/* ── INTERACTIVE SCREEN VIEW (Hidden during print) ──────────────── */}
+			{/* ═════════════════════════════════════════════════════════════════ */}
+			<div className="space-y-6 animate-fade-in pb-12 no-print">
+				{/* ── Top Bar / Header ───────────────────────────────────────────── */}
+				<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-outline-variant">
 				<div>
 					<button
 						type="button"
@@ -1305,6 +1348,7 @@ export function InvoiceDetailPage() {
 					</p>
 				</div>
 			</Dialog>
+			</div>
 
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			{/* ── IN-APP A4 PRINT PREVIEW MODAL (Hidden during print) ─────────── */}
@@ -1327,12 +1371,31 @@ export function InvoiceDetailPage() {
 							</div>
 						</div>
 
+						{/* Notification / Feedback Banner in Print Preview Toolbar */}
+						{savePdfFeedback && (
+							<div
+								className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium max-w-md truncate ${
+									savePdfFeedback.type === 'success'
+										? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+										: 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+								}`}
+							>
+								{savePdfFeedback.type === 'success' ? (
+									<CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+								) : (
+									<AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+								)}
+								<span className="truncate">{savePdfFeedback.message}</span>
+							</div>
+						)}
+
 						{/* Action Buttons: [Print] [Save PDF] [Close] */}
 						<div className="flex items-center gap-2.5">
 							<Button
 								onClick={handleExecutePrint}
 								icon={<Printer className="w-4 h-4" />}
 								className="bg-[#a11a1a] hover:bg-[#851515] text-white border-transparent shadow-sm"
+								disabled={isSavingPdf}
 							>
 								Print
 							</Button>
@@ -1340,10 +1403,12 @@ export function InvoiceDetailPage() {
 							<Button
 								variant="secondary"
 								onClick={handleSavePdf}
+								loading={isSavingPdf}
+								disabled={isSavingPdf}
 								icon={<Download className="w-4 h-4" />}
 								className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
 							>
-								Save PDF
+								{isSavingPdf ? 'Saving PDF...' : 'Save PDF'}
 							</Button>
 
 							<Button
@@ -1351,6 +1416,7 @@ export function InvoiceDetailPage() {
 								onClick={() => setShowPrintPreview(false)}
 								icon={<X className="w-4 h-4" />}
 								className="bg-slate-800 hover:bg-slate-700 text-white border-slate-700"
+								disabled={isSavingPdf}
 							>
 								Close
 							</Button>
@@ -1379,9 +1445,9 @@ export function InvoiceDetailPage() {
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			{/* ── DEDICATED PRINT DOM (Rendered ONLY during physical print) ──── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
-			<div className="print-only">
+			<div id="print-document" className="print-only">
 				<InvoicePrintDocument invoice={invoice} businessProfile={businessProfile} />
 			</div>
-		</div>
+		</>
 	);
 }

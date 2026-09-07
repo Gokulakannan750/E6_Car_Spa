@@ -91,18 +91,28 @@
 	@media print {
 		@page {
 			size: A4 portrait;
-			margin: 15mm;
+			margin: 0;
+		}
+		*, *::before, *::after {
+			-webkit-print-color-adjust: exact !important;
+			print-color-adjust: exact !important;
 		}
 		body, html {
 			background: #ffffff !important;
 			color: #000000 !important;
 			padding: 0 !important;
 			margin: 0 !important;
+			width: 210mm !important;
+			min-height: 297mm !important;
+			height: auto !important;
+			overflow: visible !important;
 		}
 		.no-print,
 		aside,
 		header,
 		nav,
+		button,
+		.btn,
 		.app-header,
 		.app-sidebar {
 			display: none !important;
@@ -110,17 +120,48 @@
 		div[style*="margin-left"] {
 			margin-left: 0 !important;
 		}
+		#root,
+		#root > div,
+		#root > div > div,
 		main {
-			padding: 0 !important;
+			display: block !important;
+			position: static !important;
 			margin: 0 !important;
+			padding: 0 !important;
+			width: 100% !important;
+			max-width: 210mm !important;
+			height: auto !important;
+			min-height: 0 !important;
 			overflow: visible !important;
-			max-width: 100% !important;
+			background: transparent !important;
+			border: none !important;
+			box-shadow: none !important;
 		}
 		.app-card {
 			box-shadow: none !important;
 		}
+		.screen-only {
+			display: none !important;
+		}
 		.print-only {
 			display: block !important;
+		}
+		#print-document,
+		.print-only {
+			display: block !important;
+			width: 210mm !important;
+			margin: 0 auto !important;
+			padding: 0 !important;
+			background: #ffffff !important;
+		}
+		#print-document > div,
+		.print-only > div {
+			box-shadow: none !important;
+			border: none !important;
+			width: 210mm !important;
+			min-height: 296mm !important;
+			margin: 0 auto !important;
+			background: #ffffff !important;
 		}
 	}
 

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, safeStorage } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -64,18 +64,66 @@ ipcMain.handle('app:printJobCard', async (_event, html: string) => {
 });
 
 ipcMain.handle('app:printInvoice', async (_event, html: string) => {
- const printWindow = new BrowserWindow({
- width: 800,
- height: 600,
- show: false,
- webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
- });
- await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
- printWindow.webContents.on('did-finish-load', () => {
- printWindow.webContents.print({ silent: false, printBackground: true }, () => {
- printWindow.close();
- });
- });
+	const printWindow = new BrowserWindow({
+		width: 800,
+		height: 600,
+		show: false,
+		webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false },
+	});
+	await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+	printWindow.webContents.on('did-finish-load', () => {
+		printWindow.webContents.print({ silent: false, printBackground: true }, () => {
+			printWindow.close();
+		});
+	});
+});
+
+ipcMain.handle('app:saveInvoicePdf', async (event, options?: { defaultFilename?: string }) => {
+	const win = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+	if (!win) {
+		return { success: false, error: 'Application window is not available.' };
+	}
+
+	const rawFilename = (options?.defaultFilename && options.defaultFilename.trim())
+		? options.defaultFilename.trim()
+		: 'Invoice.pdf';
+
+	// Sanitize filename to prevent invalid characters in file path
+	const sanitizedFilename = rawFilename.replace(/[\\/:*?"<>|]/g, '_');
+	const defaultFilename = sanitizedFilename.toLowerCase().endsWith('.pdf')
+		? sanitizedFilename
+		: `${sanitizedFilename}.pdf`;
+
+	const { canceled, filePath } = await dialog.showSaveDialog(win, {
+		title: 'Save Invoice PDF',
+		defaultPath: path.join(app.getPath('documents'), defaultFilename),
+		filters: [
+			{ name: 'PDF Documents (*.pdf)', extensions: ['pdf'] },
+			{ name: 'All Files (*.*)', extensions: ['*'] }
+		],
+		properties: ['showOverwriteConfirmation', 'createDirectory']
+	});
+
+	if (canceled || !filePath) {
+		return { success: false, canceled: true };
+	}
+
+	try {
+		const pdfData = await win.webContents.printToPDF({
+			printBackground: true,
+			pageSize: 'A4',
+			landscape: false,
+			preferCSSPageSize: true,
+			margins: { marginType: 'none' }
+		});
+
+		await fs.promises.writeFile(filePath, pdfData);
+		return { success: true, filePath };
+	} catch (err) {
+		console.error('Failed to generate/save PDF:', err);
+		const msg = err instanceof Error ? err.message : String(err);
+		return { success: false, error: msg };
+	}
 });
 
 function getAuthTokenFilePath(): string {
