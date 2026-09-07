@@ -56,7 +56,7 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 
 		builder.Property(c => c.InvoiceTemplateLanguage)
 			.HasMaxLength(20)
-			.HasDefaultValue("en_US")
+			.HasDefaultValue("en")
 			.IsRequired();
 
 		builder.Property(c => c.PaymentCompletedTemplateName)

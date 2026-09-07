@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -481,7 +482,7 @@ public class WhatsAppService : IWhatsAppService
 		}
 	}
 
-	public async Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, string? publicInvoiceUrl = null, CancellationToken cancellationToken = default)
+	public async Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, string? publicInvoiceUrl = null, string? rawInvoiceToken = null, CancellationToken cancellationToken = default)
 	{
 		// Idempotency: Check if an active message already exists for this invoice and type
 		var existing = await _db.WhatsAppMessages
@@ -494,6 +495,7 @@ public class WhatsAppService : IWhatsAppService
 
 		var invoice = await _db.Invoices
 			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
 			.Include(i => i.PublicLinks)
 			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
 
@@ -503,22 +505,122 @@ public class WhatsAppService : IWhatsAppService
 		}
 
 		var config = await GetOrCreateConfigEntityAsync(cancellationToken);
-		var normalizedPhone = NormalizePhoneNumber(invoice.Customer.PhoneNumber);
+		var normalizedPhone = NormalizePhoneNumber(invoice.Customer?.PhoneNumber);
 
-		// Public URL resolution
-		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
-		var publicUrl = !string.IsNullOrWhiteSpace(publicInvoiceUrl)
-			? publicInvoiceUrl
-			: (invoice.PublicLinks.Any(l => !l.IsRevoked)
-				? $"{baseUrl}/invoices/{invoice.Id}"
-				: $"{baseUrl}/invoices");
+		// Resolve or ensure secure InvoicePublicLink to get rawToken and publicUrl
+		var resolvedRawToken = rawInvoiceToken;
+		var resolvedPublicUrl = publicInvoiceUrl;
+
+		if (string.IsNullOrWhiteSpace(resolvedRawToken))
+		{
+			var activeLink = await _db.InvoicePublicLinks
+				.FirstOrDefaultAsync(l => l.InvoiceId == invoiceId && !l.IsRevoked && !l.IsDeleted, cancellationToken);
+
+			if (activeLink == null)
+			{
+				resolvedRawToken = GenerateSecureToken();
+				var tokenHash = ComputeSha256Hash(resolvedRawToken);
+				var now = DateTime.UtcNow;
+
+				var newLink = new InvoicePublicLink
+				{
+					Id = Guid.NewGuid(),
+					InvoiceId = invoice.Id,
+					TokenHash = tokenHash,
+					CreatedAtUtc = now,
+					AccessCount = 0,
+					IsRevoked = false,
+					CreatedAt = now,
+					UpdatedAt = now,
+					IsDeleted = false
+				};
+
+				_db.InvoicePublicLinks.Add(newLink);
+				await _db.SaveChangesAsync(cancellationToken);
+
+				resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
+			}
+			else
+			{
+				// Check if any existing message recorded the raw token
+				var existingMsg = await _db.WhatsAppMessages
+					.Where(m => m.InvoiceId == invoiceId && !string.IsNullOrEmpty(m.TemplateParametersJson))
+					.OrderByDescending(m => m.CreatedAt)
+					.FirstOrDefaultAsync(cancellationToken);
+
+				if (existingMsg != null)
+				{
+					try
+					{
+						using var doc = JsonDocument.Parse(existingMsg.TemplateParametersJson ?? "{}");
+						if (doc.RootElement.TryGetProperty("rawToken", out var rt) && !string.IsNullOrWhiteSpace(rt.GetString()))
+						{
+							resolvedRawToken = rt.GetString();
+							resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken!);
+						}
+					}
+					catch { }
+				}
+
+				if (string.IsNullOrWhiteSpace(resolvedRawToken))
+				{
+					// Rotate to get a fresh valid rawToken
+					activeLink.IsRevoked = true;
+					activeLink.RevokedAtUtc = DateTime.UtcNow;
+					activeLink.UpdatedAt = DateTime.UtcNow;
+
+					resolvedRawToken = GenerateSecureToken();
+					var tokenHash = ComputeSha256Hash(resolvedRawToken);
+					var now = DateTime.UtcNow;
+
+					var rotatedLink = new InvoicePublicLink
+					{
+						Id = Guid.NewGuid(),
+						InvoiceId = invoice.Id,
+						TokenHash = tokenHash,
+						CreatedAtUtc = now,
+						AccessCount = 0,
+						IsRevoked = false,
+						CreatedAt = now,
+						UpdatedAt = now,
+						IsDeleted = false
+					};
+
+					_db.InvoicePublicLinks.Add(rotatedLink);
+					await _db.SaveChangesAsync(cancellationToken);
+
+					resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
+				}
+			}
+		}
+		else if (string.IsNullOrWhiteSpace(resolvedPublicUrl))
+		{
+			resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
+		}
+
+		var customerName = invoice.Customer?.Name ?? "Customer";
+		var invoiceNumber = invoice.InvoiceNumber ?? "INV-DRAFT";
+		var vehicleRegistration = !string.IsNullOrWhiteSpace(invoice.Vehicle?.RegistrationNumber)
+			? invoice.Vehicle.RegistrationNumber
+			: "N/A";
+		var totalAmount = $"{invoice.TotalAmount:N2}";
 
 		var snapshot = new
 		{
-			customerName = invoice.Customer.Name,
-			invoiceNumber = invoice.InvoiceNumber ?? "INV-DRAFT",
-			totalAmount = $"{invoice.TotalAmount:N2}",
-			publicUrl = publicUrl
+			customerName,
+			invoiceNumber,
+			vehicleRegistration,
+			totalAmount,
+			invoiceDate = invoice.InvoiceDate.ToString("dd/MM/yyyy"),
+			publicUrl = resolvedPublicUrl ?? GetPublicInvoiceUrl(resolvedRawToken ?? string.Empty),
+			rawToken = resolvedRawToken ?? string.Empty,
+			parameters = new[]
+			{
+				customerName,
+				invoiceNumber,
+				vehicleRegistration,
+				totalAmount
+			}
 		};
 
 		var message = new WhatsAppMessage
@@ -527,7 +629,7 @@ public class WhatsAppService : IWhatsAppService
 			InvoiceId = invoice.Id,
 			CustomerId = invoice.CustomerId,
 			MessageType = WhatsAppMessageType.InvoiceFinalized,
-			RecipientPhone = normalizedPhone ?? (invoice.Customer.PhoneNumber ?? string.Empty),
+			RecipientPhone = normalizedPhone ?? (invoice.Customer?.PhoneNumber ?? string.Empty),
 			Status = WhatsAppMessageStatus.Pending,
 			TemplateParametersJson = JsonSerializer.Serialize(snapshot),
 			CreatedAt = DateTime.UtcNow
@@ -563,6 +665,8 @@ public class WhatsAppService : IWhatsAppService
 
 		var invoice = await _db.Invoices
 			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
+			.Include(i => i.Payments)
 			.Include(i => i.PublicLinks)
 			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
 
@@ -572,7 +676,7 @@ public class WhatsAppService : IWhatsAppService
 		}
 
 		var config = await GetOrCreateConfigEntityAsync(cancellationToken);
-		var normalizedPhone = NormalizePhoneNumber(invoice.Customer.PhoneNumber);
+		var normalizedPhone = NormalizePhoneNumber(invoice.Customer?.PhoneNumber);
 
 		// Public URL resolution
 		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
@@ -584,11 +688,13 @@ public class WhatsAppService : IWhatsAppService
 
 		var snapshot = new
 		{
-			customerName = invoice.Customer.Name,
+			customerName = invoice.Customer?.Name ?? "Customer",
 			invoiceNumber = invoice.InvoiceNumber ?? "INV",
 			paymentReceived = $"{paymentReceived:N2}",
 			totalPaid = $"{invoice.PaidAmount:N2}",
-			balance = "0.00",
+			balance = $"{invoice.BalanceAmount:N2}",
+			vehicleRegistration = invoice.Vehicle?.RegistrationNumber ?? string.Empty,
+			paymentDate = DateTime.UtcNow.ToString("dd/MM/yyyy"),
 			publicUrl = publicUrl
 		};
 
@@ -598,7 +704,7 @@ public class WhatsAppService : IWhatsAppService
 			InvoiceId = invoice.Id,
 			CustomerId = invoice.CustomerId,
 			MessageType = WhatsAppMessageType.PaymentCompleted,
-			RecipientPhone = normalizedPhone ?? (invoice.Customer.PhoneNumber ?? string.Empty),
+			RecipientPhone = normalizedPhone ?? (invoice.Customer?.PhoneNumber ?? string.Empty),
 			Status = WhatsAppMessageStatus.Pending,
 			TemplateParametersJson = JsonSerializer.Serialize(snapshot),
 			CreatedAt = DateTime.UtcNow
@@ -642,6 +748,33 @@ public class WhatsAppService : IWhatsAppService
 			return true;
 		}
 
+		// Check event-specific toggles
+		if (message.MessageType == WhatsAppMessageType.InvoiceFinalized && !config.InvoiceNotificationsEnabled)
+		{
+			message.Status = WhatsAppMessageStatus.Skipped;
+			message.ErrorMessage = "WhatsApp invoice notifications are disabled in settings.";
+			await _db.SaveChangesAsync(cancellationToken);
+			return true;
+		}
+
+		if (message.MessageType == WhatsAppMessageType.PaymentCompleted && !config.PaymentCompletedNotificationsEnabled)
+		{
+			message.Status = WhatsAppMessageStatus.Skipped;
+			message.ErrorMessage = "WhatsApp payment completed notifications are disabled in settings.";
+			await _db.SaveChangesAsync(cancellationToken);
+			return true;
+		}
+
+		// Recipient Phone validation
+		var normalizedPhone = NormalizePhoneNumber(message.RecipientPhone);
+		if (string.IsNullOrWhiteSpace(normalizedPhone))
+		{
+			message.Status = WhatsAppMessageStatus.Skipped;
+			message.ErrorMessage = "Customer phone number unavailable or invalid.";
+			await _db.SaveChangesAsync(cancellationToken);
+			return true;
+		}
+
 		var token = _encryptionService.Decrypt(config.AccessTokenEncrypted);
 		if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(config.PhoneNumberId))
 		{
@@ -652,131 +785,328 @@ public class WhatsAppService : IWhatsAppService
 			return false;
 		}
 
+		var templateName = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
+			? config.InvoiceTemplateName
+			: config.PaymentCompletedTemplateName)?.Trim();
+
+		var templateLang = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
+			? config.InvoiceTemplateLanguage
+			: config.PaymentCompletedTemplateLanguage)?.Trim();
+
+		if (string.IsNullOrWhiteSpace(templateName))
+		{
+			message.Status = WhatsAppMessageStatus.Failed;
+			message.FailedAtUtc = DateTime.UtcNow;
+			message.ErrorMessage = "WhatsApp template name is not configured.";
+			await _db.SaveChangesAsync(cancellationToken);
+			return false;
+		}
+
+		if (string.IsNullOrWhiteSpace(templateLang))
+		{
+			templateLang = "en";
+		}
+
 		message.AttemptCount++;
 		message.LastAttemptAtUtc = DateTime.UtcNow;
 
 		try
 		{
-			var templateName = message.MessageType == WhatsAppMessageType.InvoiceFinalized
-				? config.InvoiceTemplateName
-				: config.PaymentCompletedTemplateName;
+			// Server-side validation against Meta template discovery
+			var templatesResponse = await GetMetaTemplatesAsync(cancellationToken);
+			if (!templatesResponse.IsSuccess)
+			{
+				var isDiscoveryTransient = templatesResponse.Message.Contains("HTTP 429", StringComparison.OrdinalIgnoreCase) ||
+								  templatesResponse.Message.Contains("HTTP 5", StringComparison.OrdinalIgnoreCase);
 
-			var templateLang = message.MessageType == WhatsAppMessageType.InvoiceFinalized
-				? config.InvoiceTemplateLanguage
-				: config.PaymentCompletedTemplateLanguage;
+				if (isDiscoveryTransient && message.AttemptCount < 3)
+				{
+					message.Status = WhatsAppMessageStatus.Pending;
+					message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
+					message.ErrorMessage = $"Transient error during template validation: {templatesResponse.Message}";
+					await _db.SaveChangesAsync(cancellationToken);
+					return false;
+				}
 
-			var parametersDoc = JsonDocument.Parse(message.TemplateParametersJson ?? "{}");
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"Failed to validate template against Meta: {templatesResponse.Message}";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
+			}
+
+			var targetTemplate = templatesResponse.Templates.FirstOrDefault(t =>
+				string.Equals(t.Name, templateName, StringComparison.OrdinalIgnoreCase));
+
+			if (targetTemplate == null)
+			{
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"Template '{templateName}' was not found in your configured WhatsApp Business Account.";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
+			}
+
+			if (!string.Equals(targetTemplate.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+			{
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"WhatsApp notification failed: Template '{templateName}' is not approved (status: {targetTemplate.Status}).";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
+			}
+
+			if (!string.Equals(targetTemplate.Language, templateLang, StringComparison.OrdinalIgnoreCase))
+			{
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"Template language mismatch: Template '{templateName}' is configured in '{targetTemplate.Language}', but requested language was '{templateLang}'.";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
+			}
+
+			// Validate components
+			var bodyComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "BODY", StringComparison.OrdinalIgnoreCase));
+			var headerComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase));
+			var buttonsComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase));
+
+			if (headerComponent != null)
+			{
+				var headerFormat = (headerComponent.Format ?? "TEXT").ToUpperInvariant();
+				if (headerFormat != "TEXT" || (headerComponent.Variables != null && headerComponent.Variables.Count > 0))
+				{
+					message.Status = WhatsAppMessageStatus.Failed;
+					message.FailedAtUtc = DateTime.UtcNow;
+					message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
+					await _db.SaveChangesAsync(cancellationToken);
+					return false;
+				}
+			}
+
+			var expectedVarCount = bodyComponent?.Variables?.Count ?? 0;
+
+			using var parametersDoc = JsonDocument.Parse(message.TemplateParametersJson ?? "{}");
 			var root = parametersDoc.RootElement;
 
-			var customerName = root.TryGetProperty("customerName", out var cProp) ? cProp.GetString() ?? "Customer" : "Customer";
-			var invoiceNum = root.TryGetProperty("invoiceNumber", out var iProp) ? iProp.GetString() ?? "INV" : "INV";
-			var publicUrl = root.TryGetProperty("publicUrl", out var uProp) ? uProp.GetString() ?? "" : "";
+			var resolvedParams = ResolveBodyParameters(
+				message.MessageType,
+				bodyComponent?.Text,
+				expectedVarCount,
+				root);
 
-			object templatePayload;
-
-			if (string.Equals(templateName, "hello_world", StringComparison.OrdinalIgnoreCase))
+			if (resolvedParams.Count != expectedVarCount)
 			{
-				templatePayload = new
-				{
-					messaging_product = "whatsapp",
-					recipient_type = "individual",
-					to = message.RecipientPhone,
-					type = "template",
-					template = new
-					{
-						name = templateName,
-						language = new { code = templateLang }
-					}
-				};
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"Template '{templateName}' requires {expectedVarCount} BODY variable(s), but {resolvedParams.Count} could be resolved.";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
 			}
-			else if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+
+			var componentsList = new List<object>();
+
+			if (expectedVarCount > 0)
 			{
-				var totalAmount = root.TryGetProperty("totalAmount", out var tProp) ? tProp.GetString() ?? "0.00" : "0.00";
-				templatePayload = new
+				var bodyParams = resolvedParams.Select(p => new { type = "text", text = p ?? string.Empty }).ToArray();
+				componentsList.Add(new
 				{
-					messaging_product = "whatsapp",
-					recipient_type = "individual",
-					to = message.RecipientPhone,
-					type = "template",
-					template = new
+					type = "body",
+					parameters = bodyParams
+				});
+			}
+
+			// Validate and build dynamic Button Components if required
+			if (buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Count > 0)
+			{
+				for (int i = 0; i < buttonsComponent.Buttons.Count; i++)
+				{
+					var btn = buttonsComponent.Buttons[i];
+					var isDynamicUrl = btn.Type.Equals("URL", StringComparison.OrdinalIgnoreCase) &&
+						((btn.Example != null && btn.Example.Count > 0) || (btn.Url != null && btn.Url.Contains("{{")));
+
+					if (isDynamicUrl)
 					{
-						name = templateName,
-						language = new { code = templateLang },
-						components = new object[]
+						string? buttonToken = null;
+						if (root.TryGetProperty("rawToken", out var rtProp) && !string.IsNullOrWhiteSpace(rtProp.GetString()))
 						{
-							new
+							buttonToken = rtProp.GetString();
+						}
+						else if (root.TryGetProperty("publicInvoiceToken", out var pitProp) && !string.IsNullOrWhiteSpace(pitProp.GetString()))
+						{
+							buttonToken = pitProp.GetString();
+						}
+						else if (root.TryGetProperty("publicUrl", out var puProp))
+						{
+							var pu = puProp.GetString();
+							if (!string.IsNullOrWhiteSpace(pu) && pu.Contains("/i/"))
 							{
-								type = "body",
-								parameters = new object[]
-								{
-									new { type = "text", text = customerName },
-									new { type = "text", text = invoiceNum },
-									new { type = "text", text = totalAmount }
-								}
-							},
-							new
-							{
-								type = "button",
-								sub_type = "url",
-								index = "0",
-								parameters = new object[]
-								{
-									new { type = "text", text = publicUrl }
-								}
+								buttonToken = pu.Substring(pu.LastIndexOf('/') + 1).Trim();
 							}
 						}
+
+						if (string.IsNullOrWhiteSpace(buttonToken) && message.InvoiceId != Guid.Empty)
+						{
+							var activeLink = await _db.InvoicePublicLinks
+								.FirstOrDefaultAsync(l => l.InvoiceId == message.InvoiceId && !l.IsRevoked && !l.IsDeleted, cancellationToken);
+
+							if (activeLink != null)
+							{
+								activeLink.IsRevoked = true;
+								activeLink.RevokedAtUtc = DateTime.UtcNow;
+								activeLink.UpdatedAt = DateTime.UtcNow;
+							}
+
+							buttonToken = GenerateSecureToken();
+							var tokenHash = ComputeSha256Hash(buttonToken);
+							var now = DateTime.UtcNow;
+
+							var newLink = new InvoicePublicLink
+							{
+								Id = Guid.NewGuid(),
+								InvoiceId = message.InvoiceId,
+								TokenHash = tokenHash,
+								CreatedAtUtc = now,
+								AccessCount = 0,
+								IsRevoked = false,
+								CreatedAt = now,
+								UpdatedAt = now,
+								IsDeleted = false
+							};
+
+							_db.InvoicePublicLinks.Add(newLink);
+							await _db.SaveChangesAsync(cancellationToken);
+						}
+
+						if (string.IsNullOrWhiteSpace(buttonToken))
+						{
+							message.Status = WhatsAppMessageStatus.Failed;
+							message.FailedAtUtc = DateTime.UtcNow;
+							message.ErrorMessage = $"Template '{templateName}' requires a dynamic URL button parameter, but no valid invoice public token could be resolved.";
+							await _db.SaveChangesAsync(cancellationToken);
+							return false;
+						}
+
+						componentsList.Add(new
+						{
+							type = "button",
+							sub_type = "url",
+							index = i.ToString(),
+							parameters = new object[]
+							{
+								new
+								{
+									type = "text",
+									text = buttonToken
+								}
+							}
+						});
+					}
+					else if (btn.Example != null && btn.Example.Count > 0)
+					{
+						message.Status = WhatsAppMessageStatus.Failed;
+						message.FailedAtUtc = DateTime.UtcNow;
+						message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in buttons.";
+						await _db.SaveChangesAsync(cancellationToken);
+						return false;
+					}
+				}
+			}
+
+			object templatePayload;
+			if (componentsList.Count > 0)
+			{
+				templatePayload = new
+				{
+					messaging_product = "whatsapp",
+					to = normalizedPhone,
+					type = "template",
+					template = new
+					{
+						name = targetTemplate.Name,
+						language = new { code = targetTemplate.Language },
+						components = componentsList.ToArray()
 					}
 				};
 			}
 			else
 			{
-				var paymentReceived = root.TryGetProperty("paymentReceived", out var prProp) ? prProp.GetString() ?? "0.00" : "0.00";
-				var totalPaid = root.TryGetProperty("totalPaid", out var tpProp) ? tpProp.GetString() ?? "0.00" : "0.00";
 				templatePayload = new
 				{
 					messaging_product = "whatsapp",
-					recipient_type = "individual",
-					to = message.RecipientPhone,
+					to = normalizedPhone,
 					type = "template",
 					template = new
 					{
-						name = templateName,
-						language = new { code = templateLang },
-						components = new object[]
-						{
-							new
-							{
-								type = "body",
-								parameters = new object[]
-								{
-									new { type = "text", text = customerName },
-									new { type = "text", text = invoiceNum },
-									new { type = "text", text = paymentReceived },
-									new { type = "text", text = totalPaid }
-								}
-							},
-							new
-							{
-								type = "button",
-								sub_type = "url",
-								index = "0",
-								parameters = new object[]
-								{
-									new { type = "text", text = publicUrl }
-								}
-							}
-						}
+						name = targetTemplate.Name,
+						language = new { code = targetTemplate.Language }
 					}
 				};
 			}
 
-			var requestUrl = $"https://graph.facebook.com/{config.GraphApiVersion}/{config.PhoneNumberId}/messages";
+			var requestUrl = $"https://graph.facebook.com/{config.GraphApiVersion}/{Uri.EscapeDataString(config.PhoneNumberId)}/messages";
 			using var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
 			httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 			httpRequest.Content = new StringContent(JsonSerializer.Serialize(templatePayload), Encoding.UTF8, "application/json");
 
 			var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
 			var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+			var invNum = message.Invoice?.InvoiceNumber ?? "INV";
 
 			if (response.IsSuccessStatusCode)
 			{
@@ -805,15 +1135,16 @@ public class WhatsAppService : IWhatsAppService
 				await _auditLogService.RecordAsync(
 					action: actionName,
 					module: AuditModules.WhatsApp,
-					description: $"WhatsApp {message.MessageType} message sent successfully to {message.RecipientPhone}.",
+					description: $"WhatsApp {message.MessageType} message accepted by Meta for {normalizedPhone}.",
 					entityType: "WhatsAppMessage",
 					entityId: message.Id,
-					entityReference: invoiceNum,
+					entityReference: invNum,
 					newValues: JsonSerializer.Serialize(new
 					{
-						invoiceNumber = invoiceNum,
-						recipientPhone = message.RecipientPhone,
+						invoiceNumber = invNum,
+						recipientPhone = normalizedPhone,
 						metaMessageId = metaId,
+						templateName = targetTemplate.Name,
 						messageType = message.MessageType.ToString()
 					}),
 					outcome: "Success",
@@ -824,13 +1155,14 @@ public class WhatsAppService : IWhatsAppService
 
 			// Handle Failures
 			var statusCode = (int)response.StatusCode;
+			var (errorMsg, errorDetails) = ParseMetaError(responseBody, statusCode, token);
 			var isTransient = statusCode == 429 || statusCode >= 500;
 
 			if (isTransient && message.AttemptCount < 3)
 			{
 				message.Status = WhatsAppMessageStatus.Pending;
 				message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
-				message.ErrorMessage = $"Transient error (HTTP {statusCode}): {responseBody}";
+				message.ErrorMessage = $"Transient error (HTTP {statusCode}): {errorMsg}";
 				await _db.SaveChangesAsync(cancellationToken);
 				return false;
 			}
@@ -838,16 +1170,16 @@ public class WhatsAppService : IWhatsAppService
 			// Permanent failure or retry limit reached
 			message.Status = WhatsAppMessageStatus.Failed;
 			message.FailedAtUtc = DateTime.UtcNow;
-			message.ErrorMessage = $"Meta API error (HTTP {statusCode}): {responseBody}";
+			message.ErrorMessage = errorMsg;
 			await _db.SaveChangesAsync(cancellationToken);
 
 			await _auditLogService.RecordAsync(
 				action: AuditActions.WhatsAppNotificationFailed,
 				module: AuditModules.WhatsApp,
-				description: $"WhatsApp notification failed for Invoice '{invoiceNum}'. Error: {message.ErrorMessage}",
+				description: $"WhatsApp notification failed for Invoice '{invNum}': {errorMsg}",
 				entityType: "WhatsAppMessage",
 				entityId: message.Id,
-				entityReference: invoiceNum,
+				entityReference: invNum,
 				outcome: "Failure",
 				cancellationToken: cancellationToken);
 
@@ -861,21 +1193,21 @@ public class WhatsAppService : IWhatsAppService
 			{
 				message.Status = WhatsAppMessageStatus.Pending;
 				message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
-				message.ErrorMessage = $"Network/System error: {ex.Message}";
+				message.ErrorMessage = $"Network/System error: {SanitizeSecret(ex.Message, token)}";
 				await _db.SaveChangesAsync(cancellationToken);
 				return false;
 			}
 
 			message.Status = WhatsAppMessageStatus.Failed;
 			message.FailedAtUtc = DateTime.UtcNow;
-			message.ErrorMessage = $"Final failure after {message.AttemptCount} attempts: {ex.Message}";
+			message.ErrorMessage = $"Final failure after {message.AttemptCount} attempts: {SanitizeSecret(ex.Message, token)}";
 			await _db.SaveChangesAsync(cancellationToken);
 
 			var invNum = message.Invoice?.InvoiceNumber ?? "INV";
 			await _auditLogService.RecordAsync(
 				action: AuditActions.WhatsAppNotificationFailed,
 				module: AuditModules.WhatsApp,
-				description: $"WhatsApp notification failed for Invoice '{invNum}'. Error: {ex.Message}",
+				description: $"WhatsApp notification failed for Invoice '{invNum}'. Error: {message.ErrorMessage}",
 				entityType: "WhatsAppMessage",
 				entityId: message.Id,
 				entityReference: invNum,
@@ -884,6 +1216,216 @@ public class WhatsAppService : IWhatsAppService
 
 			return false;
 		}
+	}
+
+	public static List<string> ResolveBodyParameters(
+		WhatsAppMessageType messageType,
+		string? bodyText,
+		int expectedVarCount,
+		JsonElement root)
+	{
+		if (expectedVarCount <= 0) return new List<string>();
+
+		var customerName = root.TryGetProperty("customerName", out var c) ? c.GetString() ?? "Customer" : "Customer";
+		var invoiceNum = root.TryGetProperty("invoiceNumber", out var inv) ? inv.GetString() ?? "INV" : "INV";
+		var totalAmount = root.TryGetProperty("totalAmount", out var ta) ? ta.GetString() ?? "0.00" : "0.00";
+		var paymentReceived = root.TryGetProperty("paymentReceived", out var pr) ? pr.GetString() ?? totalAmount : totalAmount;
+		var totalPaid = root.TryGetProperty("totalPaid", out var tp) ? tp.GetString() ?? totalAmount : totalAmount;
+		var balance = root.TryGetProperty("balance", out var b) ? b.GetString() ?? "0.00" : "0.00";
+		var vehicleReg = root.TryGetProperty("vehicleRegistration", out var vr) ? vr.GetString() ?? string.Empty : string.Empty;
+		if (string.IsNullOrWhiteSpace(vehicleReg))
+		{
+			vehicleReg = "N/A";
+		}
+		var dateVal = root.TryGetProperty("invoiceDate", out var idate) ? idate.GetString() ?? string.Empty :
+			(root.TryGetProperty("paymentDate", out var pdate) ? pdate.GetString() ?? string.Empty : string.Empty);
+		var publicUrl = root.TryGetProperty("publicUrl", out var pu) ? pu.GetString() ?? string.Empty : string.Empty;
+
+		// 1. Explicit parameters array (if stored in snapshot matching expectedVarCount)
+		if (root.TryGetProperty("parameters", out var pProp) && pProp.ValueKind == JsonValueKind.Array)
+		{
+			var arrayLength = pProp.GetArrayLength();
+			if (arrayLength >= expectedVarCount && expectedVarCount > 0)
+			{
+				var explicitParams = new List<string>();
+				foreach (var elem in pProp.EnumerateArray())
+				{
+					explicitParams.Add(elem.GetString() ?? string.Empty);
+					if (explicitParams.Count == expectedVarCount) break;
+				}
+				if (explicitParams.Count == expectedVarCount && explicitParams.All(s => !string.IsNullOrEmpty(s)))
+				{
+					return explicitParams;
+				}
+			}
+		}
+
+		// 2. Try contextual parsing if bodyText is present
+		if (!string.IsNullOrWhiteSpace(bodyText) && expectedVarCount > 0)
+		{
+			var pos = new int[expectedVarCount];
+			var allFound = true;
+			for (int i = 1; i <= expectedVarCount; i++)
+			{
+				var token = "{{" + i + "}}";
+				var idx = bodyText.IndexOf(token, StringComparison.Ordinal);
+				if (idx < 0)
+				{
+					allFound = false;
+					break;
+				}
+				pos[i - 1] = idx;
+			}
+
+			if (allFound)
+			{
+				var detected = new string?[expectedVarCount];
+				for (int i = 1; i <= expectedVarCount; i++)
+				{
+					var prevEnd = i == 1 ? 0 : pos[i - 2] + ("{{" + (i - 1) + "}}").Length;
+					var prefix = bodyText.Substring(prevEnd, pos[i - 1] - prevEnd).Trim().ToLowerInvariant();
+
+					var nextStart = pos[i - 1] + ("{{" + i + "}}").Length;
+					var nextEnd = i < expectedVarCount ? pos[i] : bodyText.Length;
+					var suffix = bodyText.Substring(nextStart, nextEnd - nextStart).Trim().ToLowerInvariant();
+
+					var cleanPrefix = prefix
+						.Replace("e6 car spa", "")
+						.Replace("e6 carspa", "")
+						.Replace("car spa", "")
+						.Replace("carspa", "")
+						.Trim();
+					var prefixWords = cleanPrefix.Split(new[] { ' ', ',', '!', '.', ':', ';', '-', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+					var immediateWords = prefixWords.Length <= 3 ? prefixWords : prefixWords.TakeLast(3).ToArray();
+
+					var isGreeting = prefixWords.Any(w => w is "hi" or "hello" or "dear" or "namaste" or "hey" or "customer" or "name")
+						|| cleanPrefix.Contains("thank you") || cleanPrefix.Contains("thanks");
+
+					// Step A: Evaluate prefix first (label immediately preceding {{i}})
+					if (isGreeting || (i == 1 && string.IsNullOrEmpty(cleanPrefix)))
+					{
+						detected[i - 1] = customerName;
+					}
+					else if (cleanPrefix.Contains("₹") || cleanPrefix.Contains("rs") || cleanPrefix.Contains("inr") || immediateWords.Any(w => w is "amount" or "payment" or "paid" or "due" or "price" or "total" or "balance"))
+					{
+						if (messageType == WhatsAppMessageType.InvoiceFinalized)
+						{
+							detected[i - 1] = totalAmount;
+						}
+						else
+						{
+							detected[i - 1] = (immediateWords.Contains("total")) ? totalPaid : paymentReceived;
+						}
+					}
+					else if (prefixWords.Any(w => w is "vehicle" or "car" or "reg" or "registration" or "plate")
+						|| cleanPrefix.Contains("vehicle")
+						|| cleanPrefix.Contains("registration")
+						|| (messageType == WhatsAppMessageType.PaymentCompleted && immediateWords.Contains("for")))
+					{
+						detected[i - 1] = !string.IsNullOrWhiteSpace(vehicleReg) && vehicleReg != "N/A"
+							? vehicleReg
+							: (messageType == WhatsAppMessageType.InvoiceFinalized ? "N/A" : invoiceNum);
+					}
+					else if (prefixWords.Any(w => w is "invoice" or "bill" or "inv" or "order" or "receipt") || cleanPrefix.Contains("invoice") || cleanPrefix.Contains("bill"))
+					{
+						detected[i - 1] = invoiceNum;
+					}
+					else if (prefixWords.Any(w => w is "date" or "dated" or "on") || cleanPrefix.Contains("date"))
+					{
+						detected[i - 1] = !string.IsNullOrEmpty(dateVal) ? dateVal : DateTime.UtcNow.ToString("dd/MM/yyyy");
+					}
+					else if (prefixWords.Any(w => w is "url" or "link" or "http" or "https" or "view" or "download") || cleanPrefix.Contains("url") || cleanPrefix.Contains("link"))
+					{
+						detected[i - 1] = publicUrl;
+					}
+					else
+					{
+						// Step B: Suffix fallback (inspect only immediate words following {{i}})
+						var cleanSuffix = suffix
+							.Replace("e6 car spa", "")
+							.Replace("e6 carspa", "")
+							.Replace("car spa", "")
+							.Replace("carspa", "")
+							.Trim();
+						var suffixWords = cleanSuffix.Split(new[] { ' ', ',', '!', '.', ':', ';', '-', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+						var immediateSuffixWords = suffixWords.Take(3).ToArray();
+						if (immediateSuffixWords.Any(w => w is "₹" or "rs" or "inr" or "amount" or "payment" or "price" or "total"))
+						{
+							detected[i - 1] = messageType == WhatsAppMessageType.InvoiceFinalized ? totalAmount : paymentReceived;
+						}
+						else if (immediateSuffixWords.Any(w => w is "vehicle" or "car" or "reg" or "registration"))
+						{
+							detected[i - 1] = !string.IsNullOrWhiteSpace(vehicleReg) && vehicleReg != "N/A"
+								? vehicleReg
+								: (messageType == WhatsAppMessageType.InvoiceFinalized ? "N/A" : invoiceNum);
+						}
+						else if (immediateSuffixWords.Any(w => w is "invoice" or "bill" or "inv" or "order" or "receipt"))
+						{
+							detected[i - 1] = invoiceNum;
+						}
+						else if (immediateSuffixWords.Any(w => w is "date" or "dated"))
+						{
+							detected[i - 1] = !string.IsNullOrEmpty(dateVal) ? dateVal : DateTime.UtcNow.ToString("dd/MM/yyyy");
+						}
+					}
+				}
+
+				// If all slots were resolved, return them
+				if (detected.All(d => d != null))
+				{
+					return detected.Select(d => d!).ToList();
+				}
+			}
+		}
+
+		// 3. Positional fallback mapping
+		var list = new List<string>();
+		if (messageType == WhatsAppMessageType.InvoiceFinalized)
+		{
+			var pool = new[]
+			{
+				customerName,
+				invoiceNum,
+				!string.IsNullOrWhiteSpace(vehicleReg) ? vehicleReg : "N/A",
+				totalAmount,
+				!string.IsNullOrEmpty(dateVal) ? dateVal : DateTime.UtcNow.ToString("dd/MM/yyyy"),
+				publicUrl
+			};
+
+			for (int i = 0; i < expectedVarCount && i < pool.Length; i++)
+			{
+				list.Add(pool[i]);
+			}
+		}
+		else // PaymentCompleted
+		{
+			string[] pool;
+			if (expectedVarCount == 3 && (!string.IsNullOrEmpty(vehicleReg) || (bodyText != null && (bodyText.Contains("for", StringComparison.OrdinalIgnoreCase) || bodyText.Contains("vehicle", StringComparison.OrdinalIgnoreCase)))))
+			{
+				// Pattern matching e6_car_spa_app: "Thank you {{1}}! Payment of Rs.{{2}} for {{3}} received."
+				pool = new[] { customerName, paymentReceived, !string.IsNullOrEmpty(vehicleReg) ? vehicleReg : invoiceNum };
+			}
+			else
+			{
+				pool = new[]
+				{
+					customerName,
+					invoiceNum,
+					paymentReceived,
+					totalPaid,
+					!string.IsNullOrEmpty(vehicleReg) ? vehicleReg : balance,
+					!string.IsNullOrEmpty(dateVal) ? dateVal : DateTime.UtcNow.ToString("dd/MM/yyyy"),
+					publicUrl
+				};
+			}
+
+			for (int i = 0; i < expectedVarCount && i < pool.Length; i++)
+			{
+				list.Add(pool[i]);
+			}
+		}
+
+		return list;
 	}
 
 	public async Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default)
@@ -952,6 +1494,29 @@ public class WhatsAppService : IWhatsAppService
 		return null;
 	}
 
+	private static string GenerateSecureToken()
+	{
+		var bytes = RandomNumberGenerator.GetBytes(32);
+		return Convert.ToHexString(bytes).ToLowerInvariant();
+	}
+
+	private static string ComputeSha256Hash(string token)
+	{
+		var bytes = Encoding.UTF8.GetBytes(token);
+		var hashBytes = SHA256.HashData(bytes);
+		return Convert.ToHexString(hashBytes).ToLowerInvariant();
+	}
+
+	private string GetPublicInvoiceUrl(string rawToken)
+	{
+		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "https://invoice.e6carspa.com").TrimEnd('/');
+		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
+		{
+			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');
+		}
+		return $"{baseUrl}/i/{rawToken}";
+	}
+
 	private async Task<WhatsAppConfiguration> GetOrCreateConfigEntityAsync(CancellationToken cancellationToken)
 	{
 		var config = await _db.WhatsAppConfigurations.FirstOrDefaultAsync(cancellationToken);
@@ -968,7 +1533,7 @@ public class WhatsAppService : IWhatsAppService
 				InvoiceNotificationsEnabled = true,
 				PaymentCompletedNotificationsEnabled = true,
 				InvoiceTemplateName = "e6_carspa_invoice_generated",
-				InvoiceTemplateLanguage = "en_US",
+				InvoiceTemplateLanguage = "en",
 				PaymentCompletedTemplateName = "e6_carspa_payment_completed",
 				PaymentCompletedTemplateLanguage = "en_US",
 				CreatedAt = DateTime.UtcNow

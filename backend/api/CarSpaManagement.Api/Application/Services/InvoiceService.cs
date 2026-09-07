@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
@@ -374,10 +375,24 @@ public class InvoiceService : IInvoiceService
 			throw;
 		}
 
+		// Ensure public invoice link is created and obtain raw token
+		string? rawToken = null;
+		string? publicUrl = null;
+		try
+		{
+			var linkResult = await EnsurePublicLinkInternalAsync(invoice.Id, cancellationToken);
+			rawToken = linkResult.RawToken;
+			publicUrl = linkResult.Url;
+		}
+		catch
+		{
+			// Public link creation failure must not block invoice finalization
+		}
+
 		// Queue WhatsApp invoice finalized notification
 		try
 		{
-			var msg = await _whatsAppService.QueueInvoiceFinalizedNotificationAsync(invoice.Id, null, cancellationToken);
+			var msg = await _whatsAppService.QueueInvoiceFinalizedNotificationAsync(invoice.Id, publicUrl, rawToken, cancellationToken);
 			if (msg != null && msg.Status == WhatsAppMessageStatus.Pending)
 			{
 				var messageId = msg.Id;
@@ -1089,9 +1104,70 @@ public class InvoiceService : IInvoiceService
 
 	private string GetPublicInvoiceUrl(string rawToken)
 	{
-		var baseUrl = _configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173";
+		var baseUrl = _configuration["PublicInvoiceBaseUrl"] ?? "https://invoice.e6carspa.com";
 		baseUrl = baseUrl.TrimEnd('/');
+		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
+		{
+			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');
+		}
 		return $"{baseUrl}/i/{rawToken}";
+	}
+
+	private async Task<(string Url, string RawToken)> EnsurePublicLinkInternalAsync(Guid invoiceId, CancellationToken cancellationToken)
+	{
+		var activeLink = await _db.InvoicePublicLinks
+			.FirstOrDefaultAsync(l => l.InvoiceId == invoiceId && !l.IsRevoked && !l.IsDeleted, cancellationToken);
+
+		if (activeLink != null)
+		{
+			var existingMsg = await _db.WhatsAppMessages
+				.Where(m => m.InvoiceId == invoiceId && !string.IsNullOrEmpty(m.TemplateParametersJson))
+				.OrderByDescending(m => m.CreatedAt)
+				.FirstOrDefaultAsync(cancellationToken);
+
+			if (existingMsg != null)
+			{
+				try
+				{
+					using var doc = JsonDocument.Parse(existingMsg.TemplateParametersJson ?? "{}");
+					if (doc.RootElement.TryGetProperty("rawToken", out var rt) && !string.IsNullOrWhiteSpace(rt.GetString()))
+					{
+						var token = rt.GetString()!;
+						return (GetPublicInvoiceUrl(token), token);
+					}
+				}
+				catch { }
+			}
+
+			// If raw token is not recoverable, rotate the active link to get a fresh raw token
+			activeLink.IsRevoked = true;
+			activeLink.RevokedAtUtc = DateTime.UtcNow;
+			activeLink.UpdatedAt = DateTime.UtcNow;
+		}
+
+		var rawToken = GenerateSecureToken();
+		var tokenHash = ComputeSha256Hash(rawToken);
+		var now = DateTime.UtcNow;
+		var currentUserId = GetCurrentUserId();
+
+		var newLink = new InvoicePublicLink
+		{
+			Id = Guid.NewGuid(),
+			InvoiceId = invoiceId,
+			TokenHash = tokenHash,
+			CreatedAtUtc = now,
+			CreatedByUserId = currentUserId,
+			AccessCount = 0,
+			IsRevoked = false,
+			CreatedAt = now,
+			UpdatedAt = now,
+			IsDeleted = false
+		};
+
+		_db.InvoicePublicLinks.Add(newLink);
+		await _db.SaveChangesAsync(cancellationToken);
+
+		return (GetPublicInvoiceUrl(rawToken), rawToken);
 	}
 
 	private Guid? GetCurrentUserId()

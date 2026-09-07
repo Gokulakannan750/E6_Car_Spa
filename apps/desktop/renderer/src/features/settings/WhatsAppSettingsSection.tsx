@@ -8,7 +8,6 @@ import {
 	Activity,
 	Key,
 	ShieldCheck,
-	Settings2,
 	ChevronDown,
 	ChevronUp,
 	Eye,
@@ -17,7 +16,6 @@ import {
 	FileText,
 	Globe,
 	Tag,
-	ArrowRight,
 	ExternalLink,
 	Smartphone,
 	Layers,
@@ -25,6 +23,9 @@ import {
 	SendHorizontal,
 	Info,
 	X,
+	Receipt,
+	BellRing,
+	Check,
 } from 'lucide-react';
 import {
 	getWhatsAppConfig,
@@ -45,7 +46,6 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [testing, setTesting] = useState(false);
-	const [showTemplates, setShowTemplates] = useState(false);
 
 	const [successMsg, setSuccessMsg] = useState<string | null>(null);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 	const [showToken, setShowToken] = useState(false);
 
-	// Template Discovery State
+	// Template Discovery State (Step 1)
 	const [templates, setTemplates] = useState<MetaWhatsAppTemplateDto[] | null>(null);
 	const [loadingTemplates, setLoadingTemplates] = useState(false);
 	const [templateError, setTemplateError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 	} | null>(null);
 	const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
-	// Form State
+	// Form State (Step 3 Production Configurations)
 	const [isEnabled, setIsEnabled] = useState(false);
 	const [phoneNumberId, setPhoneNumberId] = useState('');
 	const [businessAccountId, setBusinessAccountId] = useState('');
@@ -105,6 +105,11 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 			setInvoiceTemplateLanguage(data.invoiceTemplateLanguage || 'en_US');
 			setPaymentCompletedTemplateName(data.paymentCompletedTemplateName || 'e6_carspa_payment_completed');
 			setPaymentCompletedTemplateLanguage(data.paymentCompletedTemplateLanguage || 'en_US');
+
+			// Auto-discover templates if credentials exist
+			if (data.hasAccessToken && data.phoneNumberId) {
+				handleFetchTemplates();
+			}
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to load WhatsApp configuration';
 			setErrorMsg(msg);
@@ -208,7 +213,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 				const list = res.templates || [];
 				setTemplates(list);
 
-				// If e6_car_spa_app is present and approved, select it by default
+				// If e6_car_spa_app is present and approved, select it for test by default
 				const e6Template = list.find(
 					(t) => t.name.toLowerCase() === 'e6_car_spa_app' && t.status.toUpperCase() === 'APPROVED'
 				);
@@ -344,14 +349,23 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 	const isUnsupportedTemplate = Boolean(
 		selectedTemplate &&
-		((selectedTemplateHeaderComp?.format && selectedTemplateHeaderComp.format.toUpperCase() !== 'TEXT') ||
-		(selectedTemplateHeaderComp?.variables && selectedTemplateHeaderComp.variables.length > 0) ||
-		(selectedTemplateButtonsComp?.buttons?.some((b) => b.example && b.example.length > 0)))
+			((selectedTemplateHeaderComp?.format && selectedTemplateHeaderComp.format.toUpperCase() !== 'TEXT') ||
+				(selectedTemplateHeaderComp?.variables && selectedTemplateHeaderComp.variables.length > 0) ||
+				selectedTemplateButtonsComp?.buttons?.some((b) => b.example && b.example.length > 0))
 	);
 
+	// Find discovered details for configured production templates
+	const configuredInvoiceTpl =
+		templates?.find((t) => t.name === invoiceTemplateName && t.language === invoiceTemplateLanguage) ||
+		templates?.find((t) => t.name === invoiceTemplateName);
+
+	const configuredPaymentTpl =
+		templates?.find((t) => t.name === paymentCompletedTemplateName && t.language === paymentCompletedTemplateLanguage) ||
+		templates?.find((t) => t.name === paymentCompletedTemplateName);
+
 	return (
-		<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
-			{/* Section Header */}
+		<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-8">
+			{/* Main Section Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
 				<div className="flex items-center gap-3">
 					<div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
@@ -375,9 +389,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 						}`}
 					>
 						<span
-							className={`w-2 h-2 rounded-full ${
-								isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
-							}`}
+							className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}
 						/>
 						{isConnected ? 'Connected' : 'Not Configured'}
 					</span>
@@ -386,484 +398,684 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 			{/* Status Feedback Messages */}
 			{successMsg && (
-				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
-					<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-					{successMsg}
+				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center justify-between gap-2">
+					<div className="flex items-center gap-2">
+						<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+						<span>{successMsg}</span>
+					</div>
+					<button
+						type="button"
+						onClick={() => setSuccessMsg(null)}
+						className="text-emerald-700 hover:text-emerald-900 p-0.5 rounded cursor-pointer"
+					>
+						<X className="w-3.5 h-3.5" />
+					</button>
 				</div>
 			)}
 			{errorMsg && (
-				<div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
-					<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-					{errorMsg}
+				<div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center justify-between gap-2">
+					<div className="flex items-center gap-2">
+						<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+						<span>{errorMsg}</span>
+					</div>
+					<button
+						type="button"
+						onClick={() => setErrorMsg(null)}
+						className="text-rose-700 hover:text-rose-900 p-0.5 rounded cursor-pointer"
+					>
+						<X className="w-3.5 h-3.5" />
+					</button>
 				</div>
 			)}
-			{testResult && (
-				<div
-					className={`px-4 py-3 rounded-xl text-xs font-medium flex flex-col gap-1 border ${
-						testResult.success
-							? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-							: 'bg-rose-50 border-rose-200 text-rose-800'
-					}`}
-				>
-					<div className="flex items-center gap-2">
-						{testResult.success ? (
-							<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-						) : (
-							<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+
+			<form onSubmit={handleSave} className="space-y-8">
+				{/* ============================================================== */}
+				{/* 1. META CONNECTION                                             */}
+				{/* ============================================================== */}
+				<div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+						<div className="flex items-center gap-2.5">
+							<div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
+								<Activity className="w-4 h-4" />
+							</div>
+							<div>
+								<h4 className="text-xs font-bold text-slate-800">1. Meta Connection</h4>
+								<p className="text-[11px] text-slate-500">
+									Configure Meta Graph API credentials for your WhatsApp Business Account.
+								</p>
+							</div>
+						</div>
+
+						{canManage && (
+							<button
+								type="button"
+								onClick={handleTestConnection}
+								disabled={testing || saving}
+								className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+							>
+								{testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+								{testing ? 'Testing...' : 'Test Connection'}
+							</button>
 						)}
-						<span className="font-bold">{testResult.message}</span>
 					</div>
-					{testResult.details && (
-						<p className="text-[11px] opacity-85 font-mono break-all mt-1 pl-6">
-							{testResult.details}
-						</p>
+
+					{/* Connection Test Result */}
+					{testResult && (
+						<div
+							className={`px-4 py-3 rounded-xl text-xs font-medium flex flex-col gap-1 border ${
+								testResult.success
+									? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+									: 'bg-rose-50 border-rose-200 text-rose-800'
+							}`}
+						>
+							<div className="flex items-center gap-2">
+								{testResult.success ? (
+									<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+								) : (
+									<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+								)}
+								<span className="font-bold">{testResult.message}</span>
+							</div>
+							{testResult.details && (
+								<p className="text-[11px] opacity-85 font-mono break-all mt-1 pl-6">{testResult.details}</p>
+							)}
+						</div>
+					)}
+
+					{/* Master Enable Toggle */}
+					<div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
+						<div className="space-y-0.5">
+							<label htmlFor="whatsapp-enabled-toggle" className="text-xs font-bold text-slate-800 cursor-pointer">
+								Enable WhatsApp Business Integration
+							</label>
+							<p className="text-[11px] text-slate-500">
+								When active, approved Meta template messages are dispatched automatically by background queue.
+							</p>
+						</div>
+						<label className="relative inline-flex items-center cursor-pointer">
+							<input
+								id="whatsapp-enabled-toggle"
+								type="checkbox"
+								checked={isEnabled}
+								disabled={!canManage}
+								onChange={(e) => setIsEnabled(e.target.checked)}
+								className="sr-only peer"
+							/>
+							<div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+						</label>
+					</div>
+
+					{/* Credentials Grid */}
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700">Phone Number ID</label>
+							<input
+								type="text"
+								value={phoneNumberId}
+								disabled={!canManage}
+								onChange={(e) => setPhoneNumberId(e.target.value)}
+								placeholder="Enter Meta Phone Number ID"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+						</div>
+
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700">WhatsApp Business Account ID (WABA)</label>
+							<input
+								type="text"
+								value={businessAccountId}
+								disabled={!canManage}
+								onChange={(e) => setBusinessAccountId(e.target.value)}
+								placeholder="Enter WhatsApp Business Account ID"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+						</div>
+
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700">Graph API Version</label>
+							<input
+								type="text"
+								value={graphApiVersion}
+								disabled={!canManage}
+								onChange={(e) => setGraphApiVersion(e.target.value)}
+								placeholder="v25.0"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+						</div>
+
+						<div className="space-y-1.5">
+							<div className="flex items-center justify-between">
+								<label className="text-xs font-semibold text-slate-700">Meta Access Token</label>
+								{config?.hasAccessToken && (
+									<span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+										<ShieldCheck className="w-3 h-3" />
+										Encrypted at rest
+									</span>
+								)}
+							</div>
+							<div className="relative">
+								<input
+									type={showToken ? 'text' : 'password'}
+									value={accessToken}
+									disabled={!canManage}
+									onChange={(e) => setAccessToken(e.target.value)}
+									placeholder={
+										config?.hasAccessToken
+											? '•••••••••••••••• (Configured — enter new token to update)'
+											: 'Enter Meta Permanent Access Token'
+									}
+									className="w-full px-3.5 py-2 pr-10 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+								/>
+								{accessToken ? (
+									<button
+										type="button"
+										onClick={() => setShowToken(!showToken)}
+										className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+									>
+										{showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+									</button>
+								) : (
+									<Key className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+								)}
+							</div>
+							<p className="text-[10px] text-slate-500">
+								{config?.hasAccessToken
+									? 'Token is securely encrypted. Decrypted only inside backend service during dispatch.'
+									: 'Enter your permanent System User Access Token from Meta Developer Portal.'}
+							</p>
+						</div>
+					</div>
+				</div>
+
+				{/* ============================================================== */}
+				{/* 2. AVAILABLE META TEMPLATES (STEP 1 DISCOVERY)                  */}
+				{/* ============================================================== */}
+				<div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+						<div>
+							<h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+								<Layers className="w-4 h-4 text-emerald-600" />
+								<span>2. Available Meta Templates (Live Discovery)</span>
+							</h4>
+							<p className="text-[11px] text-slate-500">
+								Discovered message templates from your Meta WhatsApp Business Account. Only APPROVED templates can be used for production notifications.
+							</p>
+						</div>
+
+						<button
+							type="button"
+							onClick={handleFetchTemplates}
+							disabled={loadingTemplates}
+							className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 self-start sm:self-auto"
+						>
+							<RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${loadingTemplates ? 'animate-spin' : ''}`} />
+							{loadingTemplates ? 'Fetching from Meta...' : 'Refresh Templates'}
+						</button>
+					</div>
+
+					{/* Error state */}
+					{templateError && (
+						<div className="bg-rose-50 border border-rose-200 text-rose-800 px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2">
+							<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+							<span>{templateError}</span>
+						</div>
+					)}
+
+					{/* Initial state (before first load) */}
+					{!templates && !loadingTemplates && !templateError && (
+						<div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-2">
+							<FileText className="w-6 h-6 text-slate-400 mx-auto" />
+							<p className="text-xs text-slate-600 font-medium">
+								Click "Refresh Templates" to discover templates directly from your WhatsApp Business Account.
+							</p>
+						</div>
+					)}
+
+					{/* Loading state */}
+					{loadingTemplates && !templates && (
+						<div className="p-6 bg-slate-50 border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-2">
+							<Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+							<p className="text-xs text-slate-500">Querying Meta Graph API templates...</p>
+						</div>
+					)}
+
+					{/* Empty state */}
+					{templates && templates.length === 0 && !loadingTemplates && (
+						<div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1">
+							<p className="text-xs font-bold text-slate-700">No Templates Found</p>
+							<p className="text-[11px] text-slate-500">
+								No WhatsApp templates were returned for this Business Account ID. Create templates in Meta WhatsApp Manager.
+							</p>
+						</div>
+					)}
+
+					{/* Templates list */}
+					{templates && templates.length > 0 && (
+						<div className="space-y-2.5">
+							<div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+								<span>
+									Found <strong className="text-slate-800">{templates.length}</strong> template{templates.length === 1 ? '' : 's'} ({approvedTemplates.length} approved)
+								</span>
+								<span className="text-[10px] text-slate-400">Click template name to inspect components & variables</span>
+							</div>
+
+							<div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+								{templates.map((tpl) => {
+									const badge = getStatusBadge(tpl.status);
+									const isExpanded = !!expandedTemplateIds[tpl.id];
+									const isApproved = tpl.status.toUpperCase() === 'APPROVED';
+									const bodyComp = tpl.components?.find((c) => c.type === 'BODY');
+									const headerComp = tpl.components?.find((c) => c.type === 'HEADER');
+									const footerComp = tpl.components?.find((c) => c.type === 'FOOTER');
+									const buttonsComp = tpl.components?.find((c) => c.type === 'BUTTONS');
+
+									return (
+										<div
+											key={tpl.id}
+											className={`border rounded-xl bg-slate-50/60 overflow-hidden transition-all ${
+												isApproved ? 'border-slate-200 hover:border-slate-300' : 'border-slate-200/60 opacity-80'
+											}`}
+										>
+											<div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+												<div className="flex items-start sm:items-center gap-2 flex-wrap">
+													<button
+														type="button"
+														onClick={() => toggleTemplateExpand(tpl.id)}
+														className="font-mono font-bold text-xs text-slate-800 hover:text-emerald-700 flex items-center gap-1.5 text-left cursor-pointer"
+													>
+														{tpl.name}
+														{isExpanded ? (
+															<ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+														) : (
+															<ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+														)}
+													</button>
+
+													<span
+														className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badge.className}`}
+													>
+														<span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
+														{badge.label}
+													</span>
+
+													<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+														<Globe className="w-3 h-3 text-slate-400" />
+														{tpl.language}
+													</span>
+
+													{tpl.category && (
+														<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+															<Tag className="w-3 h-3 text-slate-400" />
+															{tpl.category}
+														</span>
+													)}
+												</div>
+
+												{canManage && (
+													<div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+														<button
+															type="button"
+															disabled={!isApproved}
+															onClick={() => {
+																if (!isApproved) {
+																	setErrorMsg(`Template "${tpl.name}" is ${tpl.status}. Only APPROVED templates can be configured for production.`);
+																	return;
+																}
+																setInvoiceTemplateName(tpl.name);
+																setInvoiceTemplateLanguage(tpl.language);
+																setSuccessMsg(`Selected approved template "${tpl.name}" (${tpl.language}) for Production Invoice Notification.`);
+															}}
+															className={`px-2 py-1 border rounded-lg text-[10px] font-semibold transition-colors ${
+																isApproved
+																	? 'bg-white hover:bg-emerald-50 hover:text-emerald-700 border-slate-200 text-slate-600 cursor-pointer'
+																	: 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+															}`}
+															title={isApproved ? 'Use for Production Invoice Notification' : 'Only approved templates can be used'}
+														>
+															Use for Invoice
+														</button>
+														<button
+															type="button"
+															disabled={!isApproved}
+															onClick={() => {
+																if (!isApproved) {
+																	setErrorMsg(`Template "${tpl.name}" is ${tpl.status}. Only APPROVED templates can be configured for production.`);
+																	return;
+																}
+																setPaymentCompletedTemplateName(tpl.name);
+																setPaymentCompletedTemplateLanguage(tpl.language);
+																setSuccessMsg(`Selected approved template "${tpl.name}" (${tpl.language}) for Production Payment Notification.`);
+															}}
+															className={`px-2 py-1 border rounded-lg text-[10px] font-semibold transition-colors ${
+																isApproved
+																	? 'bg-white hover:bg-emerald-50 hover:text-emerald-700 border-slate-200 text-slate-600 cursor-pointer'
+																	: 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+															}`}
+															title={isApproved ? 'Use for Production Payment Completed Notification' : 'Only approved templates can be used'}
+														>
+															Use for Payment
+														</button>
+													</div>
+												)}
+											</div>
+
+											{/* Expanded Component Breakdown */}
+											{isExpanded && (
+												<div className="p-3.5 bg-white border-t border-slate-200/80 space-y-3 text-xs">
+													{headerComp && (
+														<div className="space-y-1">
+															<div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+																<span>Header</span>
+																<span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">
+																	{headerComp.format || 'TEXT'}
+																</span>
+															</div>
+															{headerComp.text && (
+																<p className="text-slate-800 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
+																	{headerComp.text}
+																</p>
+															)}
+														</div>
+													)}
+
+													{bodyComp && (
+														<div className="space-y-1">
+															<div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+																<span>Body Text</span>
+																{bodyComp.variables && bodyComp.variables.length > 0 && (
+																	<span className="text-emerald-700 font-normal">
+																		Variables: {bodyComp.variables.join(', ')}
+																	</span>
+																)}
+															</div>
+															<div className="text-slate-800 whitespace-pre-wrap bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-mono text-[11px] leading-relaxed">
+																{bodyComp.text}
+															</div>
+															{bodyComp.examples && bodyComp.examples.length > 0 && (
+																<div className="text-[10px] text-slate-500 pl-1">
+																	<span className="font-semibold">Example Values:</span> {bodyComp.examples.join(', ')}
+																</div>
+															)}
+														</div>
+													)}
+
+													{footerComp && footerComp.text && (
+														<div className="space-y-1">
+															<span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Footer</span>
+															<p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
+																{footerComp.text}
+															</p>
+														</div>
+													)}
+
+													{buttonsComp && buttonsComp.buttons && buttonsComp.buttons.length > 0 && (
+														<div className="space-y-1.5">
+															<span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buttons</span>
+															<div className="flex flex-wrap gap-2">
+																{buttonsComp.buttons.map((btn, idx) => (
+																	<div
+																		key={idx}
+																		className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[11px] text-slate-700"
+																	>
+																		{btn.type === 'URL' && <ExternalLink className="w-3 h-3 text-slate-400" />}
+																		{btn.type === 'PHONE_NUMBER' && <Smartphone className="w-3 h-3 text-slate-400" />}
+																		<span className="font-semibold">{btn.text || btn.type}</span>
+																		{btn.url && <span className="text-slate-400 font-mono text-[10px]">({btn.url})</span>}
+																		{btn.phoneNumber && (
+																			<span className="text-slate-400 font-mono text-[10px]">({btn.phoneNumber})</span>
+																		)}
+																	</div>
+																))}
+															</div>
+														</div>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})}
+							</div>
+						</div>
 					)}
 				</div>
-			)}
 
-			<form onSubmit={handleSave} className="space-y-6">
-				{/* Enable Toggle Switch */}
-				<div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200/80">
-					<div className="space-y-0.5">
-						<label htmlFor="whatsapp-enabled-toggle" className="text-xs font-bold text-slate-800 cursor-pointer">
-							Enable Automatic WhatsApp Notifications
-						</label>
-						<p className="text-[11px] text-slate-500">
-							When active, Meta WhatsApp Cloud API messages are dispatched automatically on business events.
-						</p>
-					</div>
-					<label className="relative inline-flex items-center cursor-pointer">
-						<input
-							id="whatsapp-enabled-toggle"
-							type="checkbox"
-							checked={isEnabled}
-							disabled={!canManage}
-							onChange={(e) => setIsEnabled(e.target.checked)}
-							className="sr-only peer"
-						/>
-						<div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-					</label>
-				</div>
-
-				{/* Meta Credentials Grid */}
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div className="space-y-1.5">
-						<label className="text-xs font-semibold text-slate-700">Phone Number ID</label>
-						<input
-							type="text"
-							value={phoneNumberId}
-							disabled={!canManage}
-							onChange={(e) => setPhoneNumberId(e.target.value)}
-							placeholder="Enter Phone Number ID"
-							className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-slate-800"
-						/>
-					</div>
-
-					<div className="space-y-1.5">
-						<label className="text-xs font-semibold text-slate-700">WhatsApp Business Account ID</label>
-						<input
-							type="text"
-							value={businessAccountId}
-							disabled={!canManage}
-							onChange={(e) => setBusinessAccountId(e.target.value)}
-							placeholder="Enter WhatsApp Business Account ID"
-							className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-slate-800"
-						/>
-					</div>
-
-					<div className="space-y-1.5">
-						<label className="text-xs font-semibold text-slate-700">Graph API Version</label>
-						<input
-							type="text"
-							value={graphApiVersion}
-							disabled={!canManage}
-							onChange={(e) => setGraphApiVersion(e.target.value)}
-							placeholder="v25.0"
-							className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-slate-800"
-						/>
-					</div>
-
-					<div className="space-y-1.5">
-						<div className="flex items-center justify-between">
-							<label className="text-xs font-semibold text-slate-700">Meta Access Token</label>
-							{config?.hasAccessToken && (
-								<span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-									<ShieldCheck className="w-3 h-3" />
-									Encrypted at rest
-								</span>
-							)}
+				{/* ============================================================== */}
+				{/* 3. PRODUCTION INVOICE NOTIFICATION                             */}
+				{/* ============================================================== */}
+				<div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+						<div className="flex items-center gap-2.5">
+							<div className="p-2 bg-blue-50 text-blue-600 rounded-lg border border-blue-100">
+								<FileText className="w-4 h-4" />
+							</div>
+							<div>
+								<h4 className="text-xs font-bold text-slate-800">3. Production Invoice Notification</h4>
+								<p className="text-[11px] text-slate-500">
+									These templates are used for automatic production notifications when an invoice is finalized.
+								</p>
+							</div>
 						</div>
-						<div className="relative">
-							<input
-								type={showToken ? 'text' : 'password'}
-								value={accessToken}
-								disabled={!canManage}
-								onChange={(e) => setAccessToken(e.target.value)}
-								placeholder={
-									config?.hasAccessToken
-										? '•••••••••••••••• (Configured — enter new token to update)'
-										: 'Enter Meta Access Token'
-								}
-								className="w-full px-3.5 py-2 pr-10 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 font-mono text-slate-800"
-							/>
-							{accessToken ? (
-								<button
-									type="button"
-									onClick={() => setShowToken(!showToken)}
-									className="absolute right-3 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-								>
-									{showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-								</button>
-							) : (
-								<Key className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
-							)}
-						</div>
-						<p className="text-[10px] text-slate-500">
-							{config?.hasAccessToken
-								? 'Token is securely encrypted. To update, enter a new token and click Save.'
-								: 'Enter your permanent System User Access Token from Meta Developer Portal.'}
-						</p>
-					</div>
-				</div>
 
-				{/* Event Notification Preferences */}
-				<div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-					<p className="text-xs font-bold text-slate-800">Notification Triggers</p>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						<label className="flex items-start gap-2.5 cursor-pointer">
+						<label className="flex items-center gap-2 cursor-pointer self-start sm:self-auto">
 							<input
 								type="checkbox"
 								checked={invoiceNotificationsEnabled}
 								disabled={!canManage}
 								onChange={(e) => setInvoiceNotificationsEnabled(e.target.checked)}
-								className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500 mt-0.5"
+								className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
 							/>
-							<div className="space-y-0.5">
-								<span className="text-xs font-semibold text-slate-700 block">Invoice Finalized</span>
-								<span className="text-[11px] text-slate-500 block">
-									Sends public invoice link when an invoice is generated/finalized.
+							<span className="text-xs font-semibold text-slate-700">Enabled</span>
+						</label>
+					</div>
+
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{/* Template Selection Dropdown (Only Approved Templates) */}
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+								<span>Approved Invoice Template</span>
+								{configuredInvoiceTpl && (
+									<span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+										<Check className="w-3 h-3" /> Meta Approved
+									</span>
+								)}
+							</label>
+
+							<select
+								value={invoiceTemplateName}
+								disabled={!canManage || !invoiceNotificationsEnabled}
+								onChange={(e) => {
+									const name = e.target.value;
+									setInvoiceTemplateName(name);
+									const matched = approvedTemplates.find((t) => t.name === name);
+									if (matched) {
+										setInvoiceTemplateLanguage(matched.language);
+									}
+								}}
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800 bg-white"
+							>
+								{/* If template was saved earlier and not yet discovered, show it as configured */}
+								{!approvedTemplates.some((t) => t.name === invoiceTemplateName) && invoiceTemplateName && (
+									<option value={invoiceTemplateName}>
+										{invoiceTemplateName} ({invoiceTemplateLanguage}) [Currently Configured]
+									</option>
+								)}
+
+								{approvedTemplates.length === 0 ? (
+									<option value="">
+										{templates ? 'No approved templates found in WABA' : 'Click "Refresh Templates" above to discover templates'}
+									</option>
+								) : (
+									<>
+										<option value="">-- Select an Approved Meta Template --</option>
+										{approvedTemplates.map((t) => (
+											<option key={t.id} value={t.name}>
+												{t.name} ({t.language}) — {t.category}
+											</option>
+										))}
+									</>
+								)}
+							</select>
+							<p className="text-[10px] text-slate-500">
+								Only templates with APPROVED status in Meta Business Manager are selectable.
+							</p>
+						</div>
+
+						{/* Template Language */}
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700">Template Language</label>
+							<input
+								type="text"
+								value={invoiceTemplateLanguage}
+								disabled={!canManage || !invoiceNotificationsEnabled}
+								onChange={(e) => setInvoiceTemplateLanguage(e.target.value)}
+								placeholder="en_US"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+							<p className="text-[10px] text-slate-500">
+								Language code must match the approved Meta template language (e.g. en_US).
+							</p>
+						</div>
+					</div>
+
+					{/* Active Template Preview Box */}
+					{configuredInvoiceTpl && (
+						<div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
+							<div className="flex items-center justify-between text-[11px]">
+								<span className="font-semibold text-slate-700">Template Preview ({configuredInvoiceTpl.name})</span>
+								<span className="text-[10px] text-slate-500 font-mono">
+									Variables: {configuredInvoiceTpl.components?.find((c) => c.type === 'BODY')?.variables?.length || 0}
 								</span>
 							</div>
-						</label>
+							<p className="text-[11px] text-slate-600 font-mono bg-white p-2 rounded-lg border border-slate-200 whitespace-pre-wrap">
+								{configuredInvoiceTpl.components?.find((c) => c.type === 'BODY')?.text || 'No body text'}
+							</p>
+							<p className="text-[10px] text-emerald-700 font-medium">
+								✓ Template parameters are automatically resolved from customer, invoice number, amount, and public link.
+							</p>
+						</div>
+					)}
+				</div>
 
-						<label className="flex items-start gap-2.5 cursor-pointer">
+				{/* ============================================================== */}
+				{/* 4. PRODUCTION PAYMENT NOTIFICATION                             */}
+				{/* ============================================================== */}
+				<div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+						<div className="flex items-center gap-2.5">
+							<div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+								<Receipt className="w-4 h-4" />
+							</div>
+							<div>
+								<h4 className="text-xs font-bold text-slate-800">4. Production Payment Notification</h4>
+								<p className="text-[11px] text-slate-500">
+									These templates are used for automatic production notifications when a payment transaction is completed.
+								</p>
+							</div>
+						</div>
+
+						<label className="flex items-center gap-2 cursor-pointer self-start sm:self-auto">
 							<input
 								type="checkbox"
 								checked={paymentCompletedNotificationsEnabled}
 								disabled={!canManage}
 								onChange={(e) => setPaymentCompletedNotificationsEnabled(e.target.checked)}
-								className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500 mt-0.5"
+								className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
 							/>
-							<div className="space-y-0.5">
-								<span className="text-xs font-semibold text-slate-700 block">Payment Completed</span>
-								<span className="text-[11px] text-slate-500 block">
-									Sends thank-you confirmation when an invoice balance becomes ₹0.
-								</span>
-							</div>
+							<span className="text-xs font-semibold text-slate-700">Enabled</span>
 						</label>
 					</div>
-				</div>
 
-				{/* Template Customization (Collapsible) */}
-				<div className="border border-slate-200 rounded-xl overflow-hidden">
-					<button
-						type="button"
-						onClick={() => setShowTemplates(!showTemplates)}
-						className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left text-xs font-bold text-slate-700 transition-colors"
-					>
-						<div className="flex items-center gap-2">
-							<Settings2 className="w-4 h-4 text-slate-500" />
-							<span>Meta Template Configuration (Advanced)</span>
-						</div>
-						{showTemplates ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-					</button>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						{/* Template Selection Dropdown (Only Approved Templates) */}
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+								<span>Approved Payment Template</span>
+								{configuredPaymentTpl && (
+									<span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+										<Check className="w-3 h-3" /> Meta Approved
+									</span>
+								)}
+							</label>
 
-					{showTemplates && (
-						<div className="p-4 space-y-5 bg-white border-t border-slate-200">
-							<p className="text-[11px] text-slate-500">
-								Configure Meta-approved template names and language codes for your WhatsApp Business account.
+							<select
+								value={paymentCompletedTemplateName}
+								disabled={!canManage || !paymentCompletedNotificationsEnabled}
+								onChange={(e) => {
+									const name = e.target.value;
+									setPaymentCompletedTemplateName(name);
+									const matched = approvedTemplates.find((t) => t.name === name);
+									if (matched) {
+										setPaymentCompletedTemplateLanguage(matched.language);
+									}
+								}}
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800 bg-white"
+							>
+								{!approvedTemplates.some((t) => t.name === paymentCompletedTemplateName) &&
+									paymentCompletedTemplateName && (
+										<option value={paymentCompletedTemplateName}>
+											{paymentCompletedTemplateName} ({paymentCompletedTemplateLanguage}) [Currently Configured]
+										</option>
+									)}
+
+								{approvedTemplates.length === 0 ? (
+									<option value="">
+										{templates ? 'No approved templates found in WABA' : 'Click "Refresh Templates" above to discover templates'}
+									</option>
+								) : (
+									<>
+										<option value="">-- Select an Approved Meta Template --</option>
+										{approvedTemplates.map((t) => (
+											<option key={t.id} value={t.name}>
+												{t.name} ({t.language}) — {t.category}
+											</option>
+										))}
+									</>
+								)}
+							</select>
+							<p className="text-[10px] text-slate-500">
+								Only templates with APPROVED status in Meta Business Manager are selectable.
 							</p>
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-								<div className="space-y-1.5">
-									<label className="text-xs font-semibold text-slate-700">Invoice Template Name</label>
-									<input
-										type="text"
-										value={invoiceTemplateName}
-										disabled={!canManage}
-										onChange={(e) => setInvoiceTemplateName(e.target.value)}
-										className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
-									/>
-								</div>
-								<div className="space-y-1.5">
-									<label className="text-xs font-semibold text-slate-700">Invoice Template Language</label>
-									<input
-										type="text"
-										value={invoiceTemplateLanguage}
-										disabled={!canManage}
-										onChange={(e) => setInvoiceTemplateLanguage(e.target.value)}
-										className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
-									/>
-								</div>
-								<div className="space-y-1.5">
-									<label className="text-xs font-semibold text-slate-700">Payment Completed Template Name</label>
-									<input
-										type="text"
-										value={paymentCompletedTemplateName}
-										disabled={!canManage}
-										onChange={(e) => setPaymentCompletedTemplateName(e.target.value)}
-										className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
-									/>
-								</div>
-								<div className="space-y-1.5">
-									<label className="text-xs font-semibold text-slate-700">Payment Completed Template Language</label>
-									<input
-										type="text"
-										value={paymentCompletedTemplateLanguage}
-										disabled={!canManage}
-										onChange={(e) => setPaymentCompletedTemplateLanguage(e.target.value)}
-										className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
-									/>
-								</div>
+						</div>
+
+						{/* Template Language */}
+						<div className="space-y-1.5">
+							<label className="text-xs font-semibold text-slate-700">Template Language</label>
+							<input
+								type="text"
+								value={paymentCompletedTemplateLanguage}
+								disabled={!canManage || !paymentCompletedNotificationsEnabled}
+								onChange={(e) => setPaymentCompletedTemplateLanguage(e.target.value)}
+								placeholder="en_US"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+							<p className="text-[10px] text-slate-500">
+								Language code must match the approved Meta template language (e.g. en_US).
+							</p>
+						</div>
+					</div>
+
+					{/* Active Template Preview Box */}
+					{configuredPaymentTpl && (
+						<div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1.5">
+							<div className="flex items-center justify-between text-[11px]">
+								<span className="font-semibold text-slate-700">Template Preview ({configuredPaymentTpl.name})</span>
+								<span className="text-[10px] text-slate-500 font-mono">
+									Variables: {configuredPaymentTpl.components?.find((c) => c.type === 'BODY')?.variables?.length || 0}
+								</span>
 							</div>
-
-							{/* Live Template Discovery Sub-section */}
-							<div className="pt-4 border-t border-slate-200 space-y-3">
-								<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-									<div>
-										<h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-											<Layers className="w-3.5 h-3.5 text-emerald-600" />
-											<span>Available Meta Templates (Live Discovery)</span>
-										</h4>
-										<p className="text-[11px] text-slate-500">
-											Discover all message templates approved or configured in your Meta WhatsApp Business Account.
-										</p>
-									</div>
-
-									<button
-										type="button"
-										onClick={handleFetchTemplates}
-										disabled={loadingTemplates}
-										className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-50 self-start sm:self-auto"
-									>
-										<RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${loadingTemplates ? 'animate-spin' : ''}`} />
-										{loadingTemplates ? 'Fetching from Meta...' : 'Refresh Templates'}
-									</button>
-								</div>
-
-								{/* Error state */}
-								{templateError && (
-									<div className="bg-rose-50 border border-rose-200 text-rose-800 px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2">
-										<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-										<span>{templateError}</span>
-									</div>
-								)}
-
-								{/* Initial state (before first load) */}
-								{!templates && !loadingTemplates && !templateError && (
-									<div className="p-4 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-2">
-										<FileText className="w-6 h-6 text-slate-400 mx-auto" />
-										<p className="text-xs text-slate-600 font-medium">
-											Click "Refresh Templates" to load templates directly from your WhatsApp Business Account.
-										</p>
-									</div>
-								)}
-
-								{/* Loading state */}
-								{loadingTemplates && !templates && (
-									<div className="p-6 bg-slate-50 border border-slate-100 rounded-xl flex flex-col items-center justify-center gap-2">
-										<Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
-										<p className="text-xs text-slate-500">Querying Meta Graph API templates...</p>
-									</div>
-								)}
-
-								{/* Empty state */}
-								{templates && templates.length === 0 && !loadingTemplates && (
-									<div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center space-y-1">
-										<p className="text-xs font-bold text-slate-700">No Templates Found</p>
-										<p className="text-[11px] text-slate-500">
-											No WhatsApp templates were returned for this Business Account ID. Create templates in Meta WhatsApp Manager.
-										</p>
-									</div>
-								)}
-
-								{/* Templates list */}
-								{templates && templates.length > 0 && (
-									<div className="space-y-2.5 mt-2">
-										<div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
-											<span>
-												Showing <strong className="text-slate-700">{templates.length}</strong> template{templates.length === 1 ? '' : 's'}
-											</span>
-											<span className="text-[10px] text-slate-400">Click a template to view components & variables</span>
-										</div>
-
-										<div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-											{templates.map((tpl) => {
-												const badge = getStatusBadge(tpl.status);
-												const isExpanded = !!expandedTemplateIds[tpl.id];
-												const bodyComp = tpl.components?.find((c) => c.type === 'BODY');
-												const headerComp = tpl.components?.find((c) => c.type === 'HEADER');
-												const footerComp = tpl.components?.find((c) => c.type === 'FOOTER');
-												const buttonsComp = tpl.components?.find((c) => c.type === 'BUTTONS');
-
-												return (
-													<div
-														key={tpl.id}
-														className="border border-slate-200 rounded-xl bg-slate-50/60 overflow-hidden hover:border-slate-300 transition-all"
-													>
-														<div className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-															<div className="flex items-start sm:items-center gap-2 flex-wrap">
-																<button
-																	type="button"
-																	onClick={() => toggleTemplateExpand(tpl.id)}
-																	className="font-mono font-bold text-xs text-slate-800 hover:text-emerald-700 flex items-center gap-1.5 text-left cursor-pointer"
-																>
-																	{tpl.name}
-																	{isExpanded ? (
-																		<ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-																	) : (
-																		<ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-																	)}
-																</button>
-
-																<span
-																	className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${badge.className}`}
-																>
-																	<span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
-																	{badge.label}
-																</span>
-
-																<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-																	<Globe className="w-3 h-3 text-slate-400" />
-																	{tpl.language}
-																</span>
-
-																{tpl.category && (
-																	<span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-																		<Tag className="w-3 h-3 text-slate-400" />
-																		{tpl.category}
-																	</span>
-																)}
-															</div>
-
-															{canManage && (
-																<div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-																	<button
-																		type="button"
-																		onClick={() => {
-																			setInvoiceTemplateName(tpl.name);
-																			setInvoiceTemplateLanguage(tpl.language);
-																			setSuccessMsg(`Selected "${tpl.name}" (${tpl.language}) for Invoice Template.`);
-																		}}
-																		className="px-2 py-1 bg-white hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer"
-																		title="Use as Invoice Template"
-																	>
-																		Use for Invoice
-																	</button>
-																	<button
-																		type="button"
-																		onClick={() => {
-																			setPaymentCompletedTemplateName(tpl.name);
-																			setPaymentCompletedTemplateLanguage(tpl.language);
-																			setSuccessMsg(`Selected "${tpl.name}" (${tpl.language}) for Payment Completed Template.`);
-																		}}
-																		className="px-2 py-1 bg-white hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer"
-																		title="Use as Payment Completed Template"
-																	>
-																		Use for Payment
-																	</button>
-																</div>
-															)}
-														</div>
-
-														{/* Expanded Component Breakdown */}
-														{isExpanded && (
-															<div className="p-3.5 bg-white border-t border-slate-200/80 space-y-3 text-xs">
-																{/* Header Component */}
-																{headerComp && (
-																	<div className="space-y-1">
-																		<div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-																			<span>Header</span>
-																			<span className="px-1.5 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">
-																				{headerComp.format || 'TEXT'}
-																			</span>
-																		</div>
-																		{headerComp.text && (
-																			<p className="text-slate-800 font-medium bg-slate-50 p-2 rounded-lg border border-slate-100">
-																				{headerComp.text}
-																			</p>
-																		)}
-																	</div>
-																)}
-
-																{/* Body Component */}
-																{bodyComp && (
-																	<div className="space-y-1">
-																		<div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-																			<span>Body Text</span>
-																			{bodyComp.variables && bodyComp.variables.length > 0 && (
-																				<span className="text-emerald-700 font-normal">
-																					Variables: {bodyComp.variables.join(', ')}
-																				</span>
-																			)}
-																		</div>
-																		<div className="text-slate-800 whitespace-pre-wrap bg-slate-50 p-2.5 rounded-lg border border-slate-100 font-mono text-[11px] leading-relaxed">
-																			{bodyComp.text}
-																		</div>
-																		{bodyComp.examples && bodyComp.examples.length > 0 && (
-																			<div className="text-[10px] text-slate-500 pl-1">
-																				<span className="font-semibold">Example Values:</span>{' '}
-																				{bodyComp.examples.join(', ')}
-																			</div>
-																		)}
-																	</div>
-																)}
-
-																{/* Footer Component */}
-																{footerComp && footerComp.text && (
-																	<div className="space-y-1">
-																		<span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Footer</span>
-																		<p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
-																			{footerComp.text}
-																		</p>
-																	</div>
-																)}
-
-																{/* Buttons Component */}
-																{buttonsComp && buttonsComp.buttons && buttonsComp.buttons.length > 0 && (
-																	<div className="space-y-1.5">
-																		<span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buttons</span>
-																		<div className="flex flex-wrap gap-2">
-																			{buttonsComp.buttons.map((btn, idx) => (
-																				<div
-																					key={idx}
-																					className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-[11px] text-slate-700"
-																				>
-																					{btn.type === 'URL' && <ExternalLink className="w-3 h-3 text-slate-400" />}
-																					{btn.type === 'PHONE_NUMBER' && <Smartphone className="w-3 h-3 text-slate-400" />}
-																					<span className="font-semibold">{btn.text || btn.type}</span>
-																					{btn.url && <span className="text-slate-400 font-mono text-[10px]">({btn.url})</span>}
-																					{btn.phoneNumber && (
-																						<span className="text-slate-400 font-mono text-[10px]">({btn.phoneNumber})</span>
-																					)}
-																				</div>
-																			))}
-																		</div>
-																	</div>
-																)}
-															</div>
-														)}
-													</div>
-												);
-											})}
-										</div>
-									</div>
-								)}
-							</div>
+							<p className="text-[11px] text-slate-600 font-mono bg-white p-2 rounded-lg border border-slate-200 whitespace-pre-wrap">
+								{configuredPaymentTpl.components?.find((c) => c.type === 'BODY')?.text || 'No body text'}
+							</p>
+							<p className="text-[10px] text-emerald-700 font-medium">
+								✓ Template parameters are automatically resolved from customer, payment amount, vehicle number, and balance.
+							</p>
 						</div>
 					)}
 				</div>
 
-				{/* Send Test WhatsApp Message (Step 2) */}
+				{/* ============================================================== */}
+				{/* 5. MANUAL TEST MESSAGE (STEP 2)                                 */}
+				{/* ============================================================== */}
 				<div className="p-5 bg-gradient-to-br from-slate-50 to-emerald-50/20 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
 					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
 						<div className="flex items-center gap-2.5">
@@ -871,9 +1083,9 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 								<Send className="w-4 h-4" />
 							</div>
 							<div>
-								<h4 className="text-xs font-bold text-slate-800">Send Test WhatsApp Message</h4>
+								<h4 className="text-xs font-bold text-slate-800">5. Manual Test Message</h4>
 								<p className="text-[11px] text-slate-500">
-									Send a live test template message through Meta Cloud API to verify template formatting & delivery.
+									Send a live test template message through Meta Cloud API to verify template formatting & delivery. This test is completely independent of production notifications.
 								</p>
 							</div>
 						</div>
@@ -920,12 +1132,10 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 							{testMessageResult.success ? (
 								<p className="text-[11px] text-emerald-700 pl-6">
-									The message has been accepted by Meta. Check the recipient's WhatsApp for delivery.
+									The message has been accepted by Meta for processing. Check the recipient's WhatsApp.
 								</p>
 							) : (
-								<p className="text-[11px] text-rose-700 pl-6">
-									{testMessageResult.message}
-								</p>
+								<p className="text-[11px] text-rose-700 pl-6">{testMessageResult.message}</p>
 							)}
 
 							{testMessageResult.details && (
@@ -988,7 +1198,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800 bg-white"
 							/>
 							<p className="text-[10px] text-slate-500">
-								This sends a real WhatsApp test message to the entered number.
+								This sends a real WhatsApp test message to the entered phone number.
 							</p>
 						</div>
 					</div>
@@ -1123,9 +1333,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 											<span className="text-slate-500 font-sans block mb-1">Parameters:</span>
 											<div className="space-y-0.5 pl-2 text-slate-700">
 												{testVariables.map((val, i) => (
-													<div key={i}>
-														{`{{${i + 1}}}: "${val}"`}
-													</div>
+													<div key={i}>{`{{${i + 1}}}: "${val}"`}</div>
 												))}
 											</div>
 										</div>
@@ -1161,23 +1369,18 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 					</div>
 				)}
 
-				{/* Action Buttons */}
+				{/* Global Save Button */}
 				{canManage && (
-					<div className="flex items-center justify-between pt-2">
-						<button
-							type="button"
-							onClick={handleTestConnection}
-							disabled={testing || saving}
-							className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-all cursor-pointer disabled:opacity-50"
-						>
-							{testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
-							{testing ? 'Testing Connection...' : 'Test Connection'}
-						</button>
+					<div className="flex items-center justify-between pt-4 border-t border-slate-200">
+						<div className="flex items-center gap-2 text-xs text-slate-500">
+							<BellRing className="w-4 h-4 text-slate-400" />
+							<span>Saving updates your production notification triggers and template selections.</span>
+						</div>
 
 						<button
 							type="submit"
 							disabled={saving || testing}
-							className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
+							className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-xs uppercase tracking-wider px-6 py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
 						>
 							{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
 							{saving ? 'Saving...' : 'Save WhatsApp Settings'}
