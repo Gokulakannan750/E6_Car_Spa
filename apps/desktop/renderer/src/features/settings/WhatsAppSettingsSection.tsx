@@ -615,9 +615,41 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 					{/* Error state */}
 					{templateError && (
-						<div className="bg-rose-50 border border-rose-200 text-rose-800 px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2">
-							<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-							<span>{templateError}</span>
+						<div className="space-y-3">
+							<div className="bg-rose-50 border border-rose-200 text-rose-800 px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2">
+								<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+								<span>{templateError}</span>
+							</div>
+
+							{(templateError.toLowerCase().includes('expired') ||
+								templateError.toLowerCase().includes('access token') ||
+								templateError.includes('190')) && (
+								<div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-2">
+									<div className="flex items-center gap-2 font-bold text-amber-950">
+										<Key className="w-4 h-4 text-amber-700 shrink-0" />
+										<span>Meta Access Token Expired (Action Required)</span>
+									</div>
+									<p className="text-[11px] text-amber-800 leading-relaxed">
+										Temporary tokens generated in the Meta Developer Portal expire automatically after <strong>24 hours</strong>.
+										To restore template discovery and automated messaging:
+									</p>
+									<ol className="list-decimal list-inside space-y-1 text-[11px] text-amber-900 pl-1">
+										<li>
+											Generate a new token in <strong>Meta for Developers</strong> (API Setup) or create a permanent{' '}
+											<strong>System User Token</strong> in Meta Business Settings.
+										</li>
+										<li>
+											Paste the new token into the <strong>Meta Access Token</strong> field in section 1 above.
+										</li>
+										<li>
+											Click <strong>Save WhatsApp Settings</strong> at the bottom of the page.
+										</li>
+										<li>
+											Click <strong>Refresh Templates</strong> to re-discover your approved templates.
+										</li>
+									</ol>
+								</div>
+							)}
 						</div>
 					)}
 

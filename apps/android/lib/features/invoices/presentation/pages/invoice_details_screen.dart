@@ -136,28 +136,30 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                 border: Border.all(color: AppColors.border),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.assignment_outlined, size: 18, color: AppColors.textSecondary),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Job Card:',
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  const Icon(Icons.assignment_outlined, size: 18, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: RichText(
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        children: [
+                          const TextSpan(text: 'Job Card: '),
+                          TextSpan(
+                            text: invoice.jobCardNumber,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        invoice.jobCardNumber,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: () {
                       context.go('/job-cards/${invoice.jobCardId}');
@@ -580,12 +582,15 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: isBold
-              ? AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary)
-              : AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+        Flexible(
+          child: Text(
+            label,
+            style: isBold
+                ? AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary)
+                : AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          ),
         ),
+        const SizedBox(width: 8),
         Text(
           value,
           style: isBold
@@ -675,30 +680,28 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
           ),
           child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  key: const Key('print_invoice_bottom_button'),
-                  icon: const Icon(Icons.print_outlined, size: 18, color: AppColors.primary),
-                  label: const Text('Print', style: TextStyle(color: AppColors.primary)),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () => InvoicePrintPreviewDialog.show(
-                    context,
-                    invoice: invoice,
-                  ),
+              OutlinedButton.icon(
+                key: const Key('print_invoice_bottom_button'),
+                icon: const Icon(Icons.print_outlined, size: 18, color: AppColors.primary),
+                label: const Text('Print', style: TextStyle(color: AppColors.primary)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => InvoicePrintPreviewDialog.show(
+                  context,
+                  invoice: invoice,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 2,
                 child: AppButton(
                   label: 'Record Payment (₹${invoice.balanceAmount.toStringAsFixed(2)})',
                   icon: Icons.payments_outlined,
                   isLoading: state.isRecordingPayment,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   onPressed: () {
                     RecordPaymentBottomSheet.show(
                       context,

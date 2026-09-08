@@ -10,6 +10,7 @@ class AppButton extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   final bool fullWidth;
+  final EdgeInsetsGeometry? padding;
 
   const AppButton({
     super.key,
@@ -19,6 +20,7 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.fullWidth = false,
+    this.padding,
   });
 
   @override
@@ -44,7 +46,12 @@ class AppButton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(label),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1),
+            ),
+          ),
         ],
       );
     } else if (icon != null) {
@@ -54,11 +61,19 @@ class AppButton extends StatelessWidget {
         children: [
           Icon(icon, size: 18),
           const SizedBox(width: 8),
-          Text(label),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label, maxLines: 1),
+            ),
+          ),
         ],
       );
     } else {
-      child = Text(label);
+      child = FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(label, maxLines: 1),
+      );
     }
 
     Widget button;
@@ -105,7 +120,7 @@ class AppButton extends StatelessWidget {
         foregroundColor: Colors.white,
         disabledBackgroundColor: AppColors.border,
         disabledForegroundColor: AppColors.textSecondary,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -116,7 +131,7 @@ class AppButton extends StatelessWidget {
         foregroundColor: AppColors.textPrimary,
         disabledForegroundColor: AppColors.textTertiary,
         side: const BorderSide(color: AppColors.borderDark),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -125,7 +140,7 @@ class AppButton extends StatelessWidget {
   ButtonStyle get _textStyle => TextButton.styleFrom(
         foregroundColor: AppColors.primary,
         disabledForegroundColor: AppColors.textTertiary,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       );
 
@@ -134,7 +149,7 @@ class AppButton extends StatelessWidget {
         foregroundColor: Colors.white,
         disabledBackgroundColor: AppColors.errorLight,
         disabledForegroundColor: AppColors.errorDark,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),

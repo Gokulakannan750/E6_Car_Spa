@@ -82,6 +82,7 @@ builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddScoped<IJobCardService, JobCardSvc>();
 builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
 builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
 builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IReportService, ReportService>();

@@ -392,7 +392,7 @@ public class InvoiceService : IInvoiceService
 		// Queue WhatsApp invoice finalized notification
 		try
 		{
-			var msg = await _whatsAppService.QueueInvoiceFinalizedNotificationAsync(invoice.Id, publicUrl, rawToken, cancellationToken);
+			var msg = await _whatsAppService.QueueInvoiceFinalizedNotificationAsync(invoice.Id, cancellationToken);
 			if (msg != null && msg.Status == WhatsAppMessageStatus.Pending)
 			{
 				var messageId = msg.Id;
@@ -509,6 +509,13 @@ public class InvoiceService : IInvoiceService
 	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;
+
+		if (!_db.Database.IsRelational())
+		{
+			var count = await _db.Invoices.CountAsync(cancellationToken) + 1;
+			return $"INV-{currentYear}-{count:D6}";
+		}
+
 		var conn = _db.Database.GetDbConnection();
 		var openedLocally = false;
 		if (conn.State != System.Data.ConnectionState.Open)

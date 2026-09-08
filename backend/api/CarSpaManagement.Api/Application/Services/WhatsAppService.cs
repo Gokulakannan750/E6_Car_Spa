@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,17 +13,21 @@ using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace CarSpaManagement.Api.Application.Services;
 
 public class WhatsAppService : IWhatsAppService
 {
+	private static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _messageLocks = new();
+
 	private readonly AppDbContext _db;
 	private readonly HttpClient _httpClient;
 	private readonly IAesEncryptionService _encryptionService;
 	private readonly IAuditLogService _auditLogService;
 	private readonly IConfiguration _configuration;
+	private readonly IInvoicePdfGenerator _invoicePdfGenerator;
 	private readonly ILogger<WhatsAppService> _logger;
 
 	public WhatsAppService(
@@ -32,12 +37,26 @@ public class WhatsAppService : IWhatsAppService
 		IAuditLogService auditLogService,
 		IConfiguration configuration,
 		ILogger<WhatsAppService> logger)
+		: this(db, httpClient, encryptionService, auditLogService, configuration, new InvoicePdfGenerator(), logger)
+	{
+	}
+
+	[ActivatorUtilitiesConstructor]
+	public WhatsAppService(
+		AppDbContext db,
+		HttpClient httpClient,
+		IAesEncryptionService encryptionService,
+		IAuditLogService auditLogService,
+		IConfiguration configuration,
+		IInvoicePdfGenerator invoicePdfGenerator,
+		ILogger<WhatsAppService> logger)
 	{
 		_db = db;
 		_httpClient = httpClient;
 		_encryptionService = encryptionService;
 		_auditLogService = auditLogService;
 		_configuration = configuration;
+		_invoicePdfGenerator = invoicePdfGenerator ?? new InvoicePdfGenerator();
 		_logger = logger;
 	}
 
@@ -482,7 +501,7 @@ public class WhatsAppService : IWhatsAppService
 		}
 	}
 
-	public async Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, string? publicInvoiceUrl = null, string? rawInvoiceToken = null, CancellationToken cancellationToken = default)
+	public async Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, CancellationToken cancellationToken = default)
 	{
 		// Idempotency: Check if an active message already exists for this invoice and type
 		var existing = await _db.WhatsAppMessages
@@ -496,7 +515,6 @@ public class WhatsAppService : IWhatsAppService
 		var invoice = await _db.Invoices
 			.Include(i => i.Customer)
 			.Include(i => i.Vehicle)
-			.Include(i => i.PublicLinks)
 			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
 
 		if (invoice is null || invoice.Status == InvoiceStatus.Draft || invoice.Status == InvoiceStatus.Cancelled || invoice.IsDeleted)
@@ -506,97 +524,6 @@ public class WhatsAppService : IWhatsAppService
 
 		var config = await GetOrCreateConfigEntityAsync(cancellationToken);
 		var normalizedPhone = NormalizePhoneNumber(invoice.Customer?.PhoneNumber);
-
-		// Resolve or ensure secure InvoicePublicLink to get rawToken and publicUrl
-		var resolvedRawToken = rawInvoiceToken;
-		var resolvedPublicUrl = publicInvoiceUrl;
-
-		if (string.IsNullOrWhiteSpace(resolvedRawToken))
-		{
-			var activeLink = await _db.InvoicePublicLinks
-				.FirstOrDefaultAsync(l => l.InvoiceId == invoiceId && !l.IsRevoked && !l.IsDeleted, cancellationToken);
-
-			if (activeLink == null)
-			{
-				resolvedRawToken = GenerateSecureToken();
-				var tokenHash = ComputeSha256Hash(resolvedRawToken);
-				var now = DateTime.UtcNow;
-
-				var newLink = new InvoicePublicLink
-				{
-					Id = Guid.NewGuid(),
-					InvoiceId = invoice.Id,
-					TokenHash = tokenHash,
-					CreatedAtUtc = now,
-					AccessCount = 0,
-					IsRevoked = false,
-					CreatedAt = now,
-					UpdatedAt = now,
-					IsDeleted = false
-				};
-
-				_db.InvoicePublicLinks.Add(newLink);
-				await _db.SaveChangesAsync(cancellationToken);
-
-				resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
-			}
-			else
-			{
-				// Check if any existing message recorded the raw token
-				var existingMsg = await _db.WhatsAppMessages
-					.Where(m => m.InvoiceId == invoiceId && !string.IsNullOrEmpty(m.TemplateParametersJson))
-					.OrderByDescending(m => m.CreatedAt)
-					.FirstOrDefaultAsync(cancellationToken);
-
-				if (existingMsg != null)
-				{
-					try
-					{
-						using var doc = JsonDocument.Parse(existingMsg.TemplateParametersJson ?? "{}");
-						if (doc.RootElement.TryGetProperty("rawToken", out var rt) && !string.IsNullOrWhiteSpace(rt.GetString()))
-						{
-							resolvedRawToken = rt.GetString();
-							resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken!);
-						}
-					}
-					catch { }
-				}
-
-				if (string.IsNullOrWhiteSpace(resolvedRawToken))
-				{
-					// Rotate to get a fresh valid rawToken
-					activeLink.IsRevoked = true;
-					activeLink.RevokedAtUtc = DateTime.UtcNow;
-					activeLink.UpdatedAt = DateTime.UtcNow;
-
-					resolvedRawToken = GenerateSecureToken();
-					var tokenHash = ComputeSha256Hash(resolvedRawToken);
-					var now = DateTime.UtcNow;
-
-					var rotatedLink = new InvoicePublicLink
-					{
-						Id = Guid.NewGuid(),
-						InvoiceId = invoice.Id,
-						TokenHash = tokenHash,
-						CreatedAtUtc = now,
-						AccessCount = 0,
-						IsRevoked = false,
-						CreatedAt = now,
-						UpdatedAt = now,
-						IsDeleted = false
-					};
-
-					_db.InvoicePublicLinks.Add(rotatedLink);
-					await _db.SaveChangesAsync(cancellationToken);
-
-					resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
-				}
-			}
-		}
-		else if (string.IsNullOrWhiteSpace(resolvedPublicUrl))
-		{
-			resolvedPublicUrl = GetPublicInvoiceUrl(resolvedRawToken);
-		}
 
 		var customerName = invoice.Customer?.Name ?? "Customer";
 		var invoiceNumber = invoice.InvoiceNumber ?? "INV-DRAFT";
@@ -612,8 +539,6 @@ public class WhatsAppService : IWhatsAppService
 			vehicleRegistration,
 			totalAmount,
 			invoiceDate = invoice.InvoiceDate.ToString("dd/MM/yyyy"),
-			publicUrl = resolvedPublicUrl ?? GetPublicInvoiceUrl(resolvedRawToken ?? string.Empty),
-			rawToken = resolvedRawToken ?? string.Empty,
 			parameters = new[]
 			{
 				customerName,
@@ -643,7 +568,7 @@ public class WhatsAppService : IWhatsAppService
 		else if (string.IsNullOrWhiteSpace(normalizedPhone))
 		{
 			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = "Customer phone number unavailable or invalid.";
+			message.ErrorMessage = "Customer phone number unavailable or invalid (Customer WhatsApp number is missing).";
 		}
 
 		_db.WhatsAppMessages.Add(message);
@@ -729,89 +654,110 @@ public class WhatsAppService : IWhatsAppService
 
 	public async Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default)
 	{
-		var message = await _db.WhatsAppMessages
-			.Include(m => m.Invoice)
-			.Include(m => m.Customer)
-			.FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
-
-		if (message == null || message.Status == WhatsAppMessageStatus.Sent || message.Status == WhatsAppMessageStatus.Skipped)
+		var semaphore = _messageLocks.GetOrAdd(messageId, _ => new SemaphoreSlim(1, 1));
+		if (!await semaphore.WaitAsync(0, cancellationToken))
 		{
-			return true;
-		}
-
-		var config = await GetOrCreateConfigEntityAsync(cancellationToken);
-		if (!config.IsEnabled)
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = "WhatsApp integration is disabled.";
-			await _db.SaveChangesAsync(cancellationToken);
-			return true;
-		}
-
-		// Check event-specific toggles
-		if (message.MessageType == WhatsAppMessageType.InvoiceFinalized && !config.InvoiceNotificationsEnabled)
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = "WhatsApp invoice notifications are disabled in settings.";
-			await _db.SaveChangesAsync(cancellationToken);
-			return true;
-		}
-
-		if (message.MessageType == WhatsAppMessageType.PaymentCompleted && !config.PaymentCompletedNotificationsEnabled)
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = "WhatsApp payment completed notifications are disabled in settings.";
-			await _db.SaveChangesAsync(cancellationToken);
-			return true;
-		}
-
-		// Recipient Phone validation
-		var normalizedPhone = NormalizePhoneNumber(message.RecipientPhone);
-		if (string.IsNullOrWhiteSpace(normalizedPhone))
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = "Customer phone number unavailable or invalid.";
-			await _db.SaveChangesAsync(cancellationToken);
-			return true;
-		}
-
-		var token = _encryptionService.Decrypt(config.AccessTokenEncrypted);
-		if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(config.PhoneNumberId))
-		{
-			message.Status = WhatsAppMessageStatus.Failed;
-			message.FailedAtUtc = DateTime.UtcNow;
-			message.ErrorMessage = "WhatsApp configuration is incomplete (missing Phone Number ID or Access Token).";
-			await _db.SaveChangesAsync(cancellationToken);
+			_logger.LogInformation("WhatsApp message {MessageId} is already being processed concurrently by another worker. Skipping.", messageId);
 			return false;
 		}
-
-		var templateName = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
-			? config.InvoiceTemplateName
-			: config.PaymentCompletedTemplateName)?.Trim();
-
-		var templateLang = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
-			? config.InvoiceTemplateLanguage
-			: config.PaymentCompletedTemplateLanguage)?.Trim();
-
-		if (string.IsNullOrWhiteSpace(templateName))
-		{
-			message.Status = WhatsAppMessageStatus.Failed;
-			message.FailedAtUtc = DateTime.UtcNow;
-			message.ErrorMessage = "WhatsApp template name is not configured.";
-			await _db.SaveChangesAsync(cancellationToken);
-			return false;
-		}
-
-		if (string.IsNullOrWhiteSpace(templateLang))
-		{
-			templateLang = "en";
-		}
-
-		message.AttemptCount++;
-		message.LastAttemptAtUtc = DateTime.UtcNow;
 
 		try
 		{
+			var message = await _db.WhatsAppMessages
+				.Include(m => m.Invoice)
+				.Include(m => m.Customer)
+				.FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+
+			if (message == null || message.Status == WhatsAppMessageStatus.Sent || message.Status == WhatsAppMessageStatus.Skipped)
+			{
+				return true;
+			}
+
+			var claimTime = DateTime.UtcNow;
+			var staleProcessingThreshold = claimTime.AddMinutes(-2);
+
+			if (message.Status == WhatsAppMessageStatus.Processing && message.LastAttemptAtUtc.HasValue && message.LastAttemptAtUtc > staleProcessingThreshold)
+			{
+				_logger.LogInformation("WhatsApp message {MessageId} is currently under an active processing lease held until {LastAttempt}. Skipping.", messageId, message.LastAttemptAtUtc);
+				return false;
+			}
+
+			// Claim the message atomically in DB state before starting any network/PDF/media operations
+			message.Status = WhatsAppMessageStatus.Processing;
+			message.AttemptCount++;
+			message.LastAttemptAtUtc = claimTime;
+			await _db.SaveChangesAsync(cancellationToken);
+
+			var config = await GetOrCreateConfigEntityAsync(cancellationToken);
+			if (!config.IsEnabled)
+			{
+				message.Status = WhatsAppMessageStatus.Skipped;
+				message.ErrorMessage = "WhatsApp integration is disabled.";
+				await _db.SaveChangesAsync(cancellationToken);
+				return true;
+			}
+
+			// Check event-specific toggles
+			if (message.MessageType == WhatsAppMessageType.InvoiceFinalized && !config.InvoiceNotificationsEnabled)
+			{
+				message.Status = WhatsAppMessageStatus.Skipped;
+				message.ErrorMessage = "WhatsApp invoice notifications are disabled in settings.";
+				await _db.SaveChangesAsync(cancellationToken);
+				return true;
+			}
+
+			if (message.MessageType == WhatsAppMessageType.PaymentCompleted && !config.PaymentCompletedNotificationsEnabled)
+			{
+				message.Status = WhatsAppMessageStatus.Skipped;
+				message.ErrorMessage = "WhatsApp payment completed notifications are disabled in settings.";
+				await _db.SaveChangesAsync(cancellationToken);
+				return true;
+			}
+
+			// Recipient Phone validation
+			var normalizedPhone = NormalizePhoneNumber(message.RecipientPhone);
+			if (string.IsNullOrWhiteSpace(normalizedPhone))
+			{
+				message.Status = WhatsAppMessageStatus.Skipped;
+				message.ErrorMessage = "Customer phone number unavailable or invalid (Customer WhatsApp number is missing).";
+				await _db.SaveChangesAsync(cancellationToken);
+				return true;
+			}
+
+			var token = _encryptionService.Decrypt(config.AccessTokenEncrypted);
+			if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(config.PhoneNumberId))
+			{
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = "WhatsApp configuration is incomplete (missing Phone Number ID or Access Token).";
+				await _db.SaveChangesAsync(cancellationToken);
+				return false;
+			}
+
+			var templateName = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
+				? config.InvoiceTemplateName
+				: config.PaymentCompletedTemplateName)?.Trim();
+
+			var templateLang = (message.MessageType == WhatsAppMessageType.InvoiceFinalized
+				? config.InvoiceTemplateLanguage
+				: config.PaymentCompletedTemplateLanguage)?.Trim();
+
+			if (string.IsNullOrWhiteSpace(templateName))
+			{
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = "WhatsApp template name is not configured.";
+				await _db.SaveChangesAsync(cancellationToken);
+				return false;
+			}
+
+			if (string.IsNullOrWhiteSpace(templateLang))
+			{
+				templateLang = "en";
+			}
+
+			try
+			{
 			// Server-side validation against Meta template discovery
 			var templatesResponse = await GetMetaTemplatesAsync(cancellationToken);
 			if (!templatesResponse.IsSuccess)
@@ -914,16 +860,104 @@ public class WhatsAppService : IWhatsAppService
 			var headerComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase));
 			var buttonsComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase));
 
-			if (headerComponent != null)
+			if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
 			{
-				var headerFormat = (headerComponent.Format ?? "TEXT").ToUpperInvariant();
-				if (headerFormat != "TEXT" || (headerComponent.Variables != null && headerComponent.Variables.Count > 0))
+				if (headerComponent == null || !string.Equals(headerComponent.Format, "DOCUMENT", StringComparison.OrdinalIgnoreCase))
+				{
+					message.Status = WhatsAppMessageStatus.Failed;
+					message.FailedAtUtc = DateTime.UtcNow;
+					message.ErrorMessage = $"Template '{templateName}' requires a DOCUMENT header component for invoice PDF attachments.";
+					await _db.SaveChangesAsync(cancellationToken);
+
+					await _auditLogService.RecordAsync(
+						action: AuditActions.WhatsAppNotificationFailed,
+						module: AuditModules.WhatsApp,
+						description: message.ErrorMessage,
+						entityType: "WhatsAppMessage",
+						entityId: message.Id,
+						entityReference: message.Invoice?.InvoiceNumber,
+						outcome: "Failure",
+						cancellationToken: cancellationToken);
+
+					return false;
+				}
+
+				if (headerComponent.Variables != null && headerComponent.Variables.Count > 0)
 				{
 					message.Status = WhatsAppMessageStatus.Failed;
 					message.FailedAtUtc = DateTime.UtcNow;
 					message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
 					await _db.SaveChangesAsync(cancellationToken);
+
+					await _auditLogService.RecordAsync(
+						action: AuditActions.WhatsAppNotificationFailed,
+						module: AuditModules.WhatsApp,
+						description: message.ErrorMessage,
+						entityType: "WhatsAppMessage",
+						entityId: message.Id,
+						entityReference: message.Invoice?.InvoiceNumber,
+						outcome: "Failure",
+						cancellationToken: cancellationToken);
+
 					return false;
+				}
+
+				if (buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Any(b => string.Equals(b.Type, "URL", StringComparison.OrdinalIgnoreCase)))
+				{
+					message.Status = WhatsAppMessageStatus.Failed;
+					message.FailedAtUtc = DateTime.UtcNow;
+					message.ErrorMessage = $"Template '{templateName}' contains a URL button which is not supported for PDF invoice document attachment.";
+					await _db.SaveChangesAsync(cancellationToken);
+
+					await _auditLogService.RecordAsync(
+						action: AuditActions.WhatsAppNotificationFailed,
+						module: AuditModules.WhatsApp,
+						description: message.ErrorMessage,
+						entityType: "WhatsAppMessage",
+						entityId: message.Id,
+						entityReference: message.Invoice?.InvoiceNumber,
+						outcome: "Failure",
+						cancellationToken: cancellationToken);
+
+					return false;
+				}
+
+				if (targetTemplate.Components.Any(c => !string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase)
+					&& !string.Equals(c.Type, "BODY", StringComparison.OrdinalIgnoreCase)
+					&& !string.Equals(c.Type, "FOOTER", StringComparison.OrdinalIgnoreCase)
+					&& !string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase)))
+				{
+					message.Status = WhatsAppMessageStatus.Failed;
+					message.FailedAtUtc = DateTime.UtcNow;
+					message.ErrorMessage = $"Template '{templateName}' contains unsupported components.";
+					await _db.SaveChangesAsync(cancellationToken);
+
+					await _auditLogService.RecordAsync(
+						action: AuditActions.WhatsAppNotificationFailed,
+						module: AuditModules.WhatsApp,
+						description: message.ErrorMessage,
+						entityType: "WhatsAppMessage",
+						entityId: message.Id,
+						entityReference: message.Invoice?.InvoiceNumber,
+						outcome: "Failure",
+						cancellationToken: cancellationToken);
+
+					return false;
+				}
+			}
+			else
+			{
+				if (headerComponent != null)
+				{
+					var headerFormat = (headerComponent.Format ?? "TEXT").ToUpperInvariant();
+					if (headerFormat != "TEXT" || (headerComponent.Variables != null && headerComponent.Variables.Count > 0))
+					{
+						message.Status = WhatsAppMessageStatus.Failed;
+						message.FailedAtUtc = DateTime.UtcNow;
+						message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
+						await _db.SaveChangesAsync(cancellationToken);
+						return false;
+					}
 				}
 			}
 
@@ -938,11 +972,11 @@ public class WhatsAppService : IWhatsAppService
 				expectedVarCount,
 				root);
 
-			if (resolvedParams.Count != expectedVarCount)
+			if (resolvedParams.Count != expectedVarCount || (expectedVarCount > 0 && resolvedParams.Any(string.IsNullOrWhiteSpace)))
 			{
 				message.Status = WhatsAppMessageStatus.Failed;
 				message.FailedAtUtc = DateTime.UtcNow;
-				message.ErrorMessage = $"Template '{templateName}' requires {expectedVarCount} BODY variable(s), but {resolvedParams.Count} could be resolved.";
+				message.ErrorMessage = $"Template '{templateName}' requires {expectedVarCount} BODY variable(s), but could not resolve valid values.";
 				await _db.SaveChangesAsync(cancellationToken);
 
 				await _auditLogService.RecordAsync(
@@ -959,6 +993,111 @@ public class WhatsAppService : IWhatsAppService
 			}
 
 			var componentsList = new List<object>();
+			string? mediaId = null;
+			var usedCachedMediaId = false;
+			Invoice? invoiceForPdf = null;
+			BusinessProfile? businessProfile = null;
+			string sanitizedFileName = "Invoice.pdf";
+
+			if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+			{
+				invoiceForPdf = await _db.Invoices
+					.Include(i => i.Customer)
+					.Include(i => i.Vehicle)
+					.Include(i => i.InvoiceItems)
+					.Include(i => i.Payments)
+					.FirstOrDefaultAsync(i => i.Id == message.InvoiceId, cancellationToken);
+
+				if (invoiceForPdf == null)
+				{
+					message.Status = WhatsAppMessageStatus.Failed;
+					message.FailedAtUtc = DateTime.UtcNow;
+					message.ErrorMessage = "Associated invoice was not found for PDF generation.";
+					await _db.SaveChangesAsync(cancellationToken);
+					return false;
+				}
+
+				businessProfile = await _db.BusinessProfiles.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+				sanitizedFileName = SanitizeFileName(invoiceForPdf.InvoiceNumber);
+
+				// Step 7: Check TemplateParametersJson for a cached media_id belonging ONLY to this specific WhatsAppMessage/invoice
+				var cachedId = GetCachedMediaId(message.TemplateParametersJson);
+				if (!string.IsNullOrWhiteSpace(cachedId))
+				{
+					mediaId = cachedId;
+					usedCachedMediaId = true;
+				}
+				else
+				{
+					// Step 8: Generate PDF in backend memory -> validate -> upload -> obtain media_id
+					var pdfBytes = _invoicePdfGenerator.GenerateInvoicePdf(invoiceForPdf, businessProfile);
+					var uploadResult = await UploadWhatsAppDocumentAsync(
+						pdfBytes,
+						sanitizedFileName,
+						config.PhoneNumberId,
+						config.GraphApiVersion,
+						token,
+						cancellationToken);
+
+					if (!uploadResult.Success)
+					{
+						var uploadStatusCode = uploadResult.StatusCode;
+						var uploadErrorMsg = uploadResult.ErrorMessage ?? "Meta media upload failed.";
+						var isTransientUpload = uploadStatusCode == 429 || uploadStatusCode >= 500;
+
+						if (isTransientUpload && message.AttemptCount < 3)
+						{
+							message.Status = WhatsAppMessageStatus.Pending;
+							message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
+							message.ErrorMessage = $"Transient media upload error (HTTP {uploadStatusCode}): {uploadErrorMsg}";
+							await _db.SaveChangesAsync(cancellationToken);
+							return false;
+						}
+
+						message.Status = WhatsAppMessageStatus.Failed;
+						message.FailedAtUtc = DateTime.UtcNow;
+						message.ErrorMessage = uploadErrorMsg;
+						await _db.SaveChangesAsync(cancellationToken);
+
+						var invNumber = message.Invoice?.InvoiceNumber ?? "INV";
+						await _auditLogService.RecordAsync(
+							action: AuditActions.WhatsAppNotificationFailed,
+							module: AuditModules.WhatsApp,
+							description: $"WhatsApp notification failed for Invoice '{invNumber}': {uploadErrorMsg}",
+							entityType: "WhatsAppMessage",
+							entityId: message.Id,
+							entityReference: invNumber,
+							outcome: "Failure",
+							cancellationToken: cancellationToken);
+
+						return false;
+					}
+
+					mediaId = uploadResult.MediaId!;
+
+					// Step 9: Store media_id strictly as part of this message's snapshot
+					message.TemplateParametersJson = SetCachedMediaId(message.TemplateParametersJson, mediaId);
+					await _db.SaveChangesAsync(cancellationToken);
+				}
+
+				// Step 10: Construct Meta template DOCUMENT header component
+				componentsList.Add(new
+				{
+					type = "header",
+					parameters = new object[]
+					{
+						new
+						{
+							type = "document",
+							document = new
+							{
+								id = mediaId,
+								filename = sanitizedFileName
+							}
+						}
+					}
+				});
+			}
 
 			if (expectedVarCount > 0)
 			{
@@ -970,8 +1109,8 @@ public class WhatsAppService : IWhatsAppService
 				});
 			}
 
-			// Validate and build dynamic Button Components if required
-			if (buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Count > 0)
+			// Validate and build dynamic Button Components if required (only for PaymentCompleted or non-invoice flows)
+			if (message.MessageType != WhatsAppMessageType.InvoiceFinalized && buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Count > 0)
 			{
 				for (int i = 0; i < buttonsComponent.Buttons.Count; i++)
 				{
@@ -1106,6 +1245,112 @@ public class WhatsAppService : IWhatsAppService
 			var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
 			var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
+			// Media ID Retry Handling:
+			// If cached media_id was rejected by Meta as invalid/expired, clear cache, regenerate PDF, re-upload, and retry send once.
+			if (!response.IsSuccessStatusCode && usedCachedMediaId && message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+			{
+				var testStatusCode = (int)response.StatusCode;
+				var (testErrorMsg, _) = ParseMetaError(responseBody, testStatusCode, token);
+				if (IsMediaError(testStatusCode, responseBody, testErrorMsg))
+				{
+					_logger.LogWarning("Cached Meta media_id '{MediaId}' rejected for message {MessageId}. Regenerating PDF and re-uploading...", mediaId, message.Id);
+
+					// 1. Clear cached media_id for that WhatsAppMessage
+					message.TemplateParametersJson = SetCachedMediaId(message.TemplateParametersJson, null);
+					await _db.SaveChangesAsync(cancellationToken);
+
+					// 2. Regenerate invoice PDF
+					var freshPdfBytes = _invoicePdfGenerator.GenerateInvoicePdf(invoiceForPdf!, businessProfile);
+
+					// 3. Upload fresh PDF
+					var retryUploadResult = await UploadWhatsAppDocumentAsync(
+						freshPdfBytes,
+						sanitizedFileName,
+						config.PhoneNumberId,
+						config.GraphApiVersion,
+						token,
+						cancellationToken);
+
+					if (!retryUploadResult.Success)
+					{
+						var retryStatusCode = retryUploadResult.StatusCode;
+						var retryErrorMsg = retryUploadResult.ErrorMessage ?? "Meta media upload failed during retry.";
+						var isTransientRetry = retryStatusCode == 429 || retryStatusCode >= 500;
+
+						if (isTransientRetry && message.AttemptCount < 3)
+						{
+							message.Status = WhatsAppMessageStatus.Pending;
+							message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
+							message.ErrorMessage = $"Transient media upload error (HTTP {retryStatusCode}): {retryErrorMsg}";
+							await _db.SaveChangesAsync(cancellationToken);
+							return false;
+						}
+
+						message.Status = WhatsAppMessageStatus.Failed;
+						message.FailedAtUtc = DateTime.UtcNow;
+						message.ErrorMessage = retryErrorMsg;
+						await _db.SaveChangesAsync(cancellationToken);
+
+						var invNumber = message.Invoice?.InvoiceNumber ?? "INV";
+						await _auditLogService.RecordAsync(
+							action: AuditActions.WhatsAppNotificationFailed,
+							module: AuditModules.WhatsApp,
+							description: $"WhatsApp notification failed for Invoice '{invNumber}': {retryErrorMsg}",
+							entityType: "WhatsAppMessage",
+							entityId: message.Id,
+							entityReference: invNumber,
+							outcome: "Failure",
+							cancellationToken: cancellationToken);
+
+						return false;
+					}
+
+					mediaId = retryUploadResult.MediaId!;
+
+					// 4. Obtain new media_id and store in snapshot
+					message.TemplateParametersJson = SetCachedMediaId(message.TemplateParametersJson, mediaId);
+					await _db.SaveChangesAsync(cancellationToken);
+
+					// 5. Update header component with new media_id
+					componentsList[0] = new
+					{
+						type = "header",
+						parameters = new object[]
+						{
+							new
+							{
+								type = "document",
+								document = new
+								{
+									id = mediaId,
+									filename = sanitizedFileName
+								}
+							}
+						}
+					};
+
+					var retryPayload = new
+					{
+						messaging_product = "whatsapp",
+						to = normalizedPhone,
+						type = "template",
+						template = new
+						{
+							name = targetTemplate.Name,
+							language = new { code = targetTemplate.Language },
+							components = componentsList.ToArray()
+						}
+					};
+
+					using var retryRequest = new HttpRequestMessage(HttpMethod.Post, requestUrl);
+					retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+					retryRequest.Content = new StringContent(JsonSerializer.Serialize(retryPayload), Encoding.UTF8, "application/json");
+
+					response = await _httpClient.SendAsync(retryRequest, cancellationToken);
+					responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+				}
+			}
+
 			var invNum = message.Invoice?.InvoiceNumber ?? "INV";
 
 			if (response.IsSuccessStatusCode)
@@ -1217,6 +1462,12 @@ public class WhatsAppService : IWhatsAppService
 			return false;
 		}
 	}
+	finally
+	{
+		semaphore.Release();
+		_messageLocks.TryRemove(KeyValuePair.Create(messageId, semaphore));
+	}
+}
 
 	public static List<string> ResolveBodyParameters(
 		WhatsAppMessageType messageType,
@@ -1431,8 +1682,10 @@ public class WhatsAppService : IWhatsAppService
 	public async Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default)
 	{
 		var now = DateTime.UtcNow;
+		var staleProcessingThreshold = now.AddMinutes(-2);
 		var pendingMessages = await _db.WhatsAppMessages
-			.Where(m => (m.Status == WhatsAppMessageStatus.Pending || m.Status == WhatsAppMessageStatus.Processing)
+			.Where(m => (m.Status == WhatsAppMessageStatus.Pending
+						|| (m.Status == WhatsAppMessageStatus.Processing && (m.LastAttemptAtUtc == null || m.LastAttemptAtUtc <= staleProcessingThreshold)))
 				&& (m.NextAttemptAtUtc == null || m.NextAttemptAtUtc <= now)
 				&& m.AttemptCount < 3
 				&& !m.IsDeleted)
@@ -1770,5 +2023,153 @@ public class WhatsAppService : IWhatsAppService
 		{
 			return null;
 		}
+	}
+
+	private long GetMaxDocumentSizeBytes()
+	{
+		var configVal = _configuration["WhatsApp:MaxDocumentSizeBytes"];
+		if (long.TryParse(configVal, out var bytes) && bytes > 0)
+		{
+			return bytes;
+		}
+		return 100L * 1024 * 1024; // 100MB default Meta limit for documents
+	}
+
+	private static string SanitizeFileName(string? invoiceNumber)
+	{
+		if (string.IsNullOrWhiteSpace(invoiceNumber))
+		{
+			return "Invoice.pdf";
+		}
+
+		var clean = Regex.Replace(invoiceNumber.Trim(), @"[^a-zA-Z0-9_\-\.]", "_");
+		if (!clean.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+		{
+			clean += ".pdf";
+		}
+		return clean;
+	}
+
+	private async Task<(bool Success, string? MediaId, int StatusCode, string? ErrorMessage)> UploadWhatsAppDocumentAsync(
+		byte[] pdfBytes,
+		string fileName,
+		string phoneNumberId,
+		string graphVersion,
+		string accessToken,
+		CancellationToken cancellationToken = default)
+	{
+		if (pdfBytes == null || pdfBytes.Length == 0)
+		{
+			return (false, null, 400, "Generated invoice PDF is empty.");
+		}
+
+		if (pdfBytes.Length < 5 ||
+			pdfBytes[0] != 0x25 || // '%'
+			pdfBytes[1] != 0x50 || // 'P'
+			pdfBytes[2] != 0x44 || // 'D'
+			pdfBytes[3] != 0x46 || // 'F'
+			pdfBytes[4] != 0x2D)   // '-'
+		{
+			return (false, null, 400, "Generated document does not have a valid PDF header.");
+		}
+
+		var maxBytes = GetMaxDocumentSizeBytes();
+		if (pdfBytes.Length > maxBytes)
+		{
+			return (false, null, 400, $"Generated PDF exceeds maximum allowed size of {maxBytes} bytes.");
+		}
+
+		var uploadUrl = $"https://graph.facebook.com/{graphVersion}/{Uri.EscapeDataString(phoneNumberId)}/media";
+		using var request = new HttpRequestMessage(HttpMethod.Post, uploadUrl);
+		request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+		using var content = new MultipartFormDataContent();
+		content.Add(new StringContent("whatsapp"), "messaging_product");
+		content.Add(new StringContent("application/pdf"), "type");
+
+		var byteContent = new ByteArrayContent(pdfBytes);
+		byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+		content.Add(byteContent, "file", fileName);
+
+		request.Content = content;
+
+		var response = await _httpClient.SendAsync(request, cancellationToken);
+		var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+		if (!response.IsSuccessStatusCode)
+		{
+			var (errorMsg, _) = ParseMetaError(responseBody, (int)response.StatusCode, accessToken);
+			return (false, null, (int)response.StatusCode, errorMsg);
+		}
+
+		using var doc = JsonDocument.Parse(responseBody);
+		if (!doc.RootElement.TryGetProperty("id", out var idProp) || string.IsNullOrWhiteSpace(idProp.GetString()))
+		{
+			return (false, null, (int)response.StatusCode, "Meta media upload response did not contain a valid media id.");
+		}
+
+		return (true, idProp.GetString()!, (int)response.StatusCode, null);
+	}
+
+	private static string? GetCachedMediaId(string? templateParametersJson)
+	{
+		if (string.IsNullOrWhiteSpace(templateParametersJson))
+			return null;
+
+		try
+		{
+			using var doc = JsonDocument.Parse(templateParametersJson);
+			if (doc.RootElement.TryGetProperty("mediaId", out var prop) && !string.IsNullOrWhiteSpace(prop.GetString()))
+			{
+				return prop.GetString();
+			}
+		}
+		catch { }
+
+		return null;
+	}
+
+	private static string SetCachedMediaId(string? templateParametersJson, string? mediaId)
+	{
+		var dict = new Dictionary<string, object?>();
+		if (!string.IsNullOrWhiteSpace(templateParametersJson))
+		{
+			try
+			{
+				var existing = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(templateParametersJson);
+				if (existing != null)
+				{
+					foreach (var kvp in existing)
+					{
+						if (!string.Equals(kvp.Key, "mediaId", StringComparison.OrdinalIgnoreCase))
+						{
+							dict[kvp.Key] = kvp.Value;
+						}
+					}
+				}
+			}
+			catch { }
+		}
+
+		if (!string.IsNullOrWhiteSpace(mediaId))
+		{
+			dict["mediaId"] = mediaId;
+		}
+
+		return JsonSerializer.Serialize(dict);
+	}
+
+	private static bool IsMediaError(int statusCode, string? responseBody, string? errorMsg)
+	{
+		if (string.IsNullOrWhiteSpace(responseBody) && string.IsNullOrWhiteSpace(errorMsg))
+			return false;
+
+		var combined = ((responseBody ?? "") + " " + (errorMsg ?? "")).ToLowerInvariant();
+		return combined.Contains("media") ||
+			   combined.Contains("131053") ||
+			   combined.Contains("131052") ||
+			   combined.Contains("131051") ||
+			   combined.Contains("cannot download media") ||
+			   combined.Contains("invalid media");
 	}
 }

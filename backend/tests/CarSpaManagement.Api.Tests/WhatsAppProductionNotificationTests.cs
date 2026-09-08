@@ -9,8 +9,10 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Infrastructure.Security;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
@@ -39,7 +41,28 @@ public class WhatsAppProductionNotificationTests
 
             if (ResponseFactory != null)
             {
-                return ResponseFactory(request);
+                var resp = ResponseFactory(request);
+                if (resp.StatusCode != HttpStatusCode.NotFound)
+                {
+                    return resp;
+                }
+            }
+
+            var uriStr = request.RequestUri?.ToString() ?? string.Empty;
+            if (uriStr.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"id\":\"media_doc_upload_id_101\"}", Encoding.UTF8, "application/json")
+                };
+            }
+
+            if (uriStr.Contains("messages"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"messages\":[{\"id\":\"wamid.HBgLMTIzNDU2\"}]}", Encoding.UTF8, "application/json")
+                };
             }
 
             return new HttpResponseMessage(HttpStatusCode.OK)
@@ -85,6 +108,7 @@ public class WhatsAppProductionNotificationTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options);
     }
@@ -103,19 +127,22 @@ public class WhatsAppProductionNotificationTests
         AppDbContext db,
         HttpClient httpClient,
         IAesEncryptionService enc,
-        IAuditLogService? audit = null)
+        IAuditLogService? audit = null,
+        IInvoicePdfGenerator? pdfGenerator = null,
+        IConfiguration? configuration = null)
     {
-        var config = new ConfigurationBuilder().Build();
+        var config = configuration ?? new ConfigurationBuilder().Build();
         return new WhatsAppService(
             db,
             httpClient,
             enc,
             audit ?? new NullAuditLogService(),
             config,
+            pdfGenerator ?? new InvoicePdfGenerator(),
             NullLogger<WhatsAppService>.Instance);
     }
 
-    private static string StandardTemplatesDiscoveryJson()
+    private static string StandardTemplatesDiscoveryJson(string invoiceLanguage = "en_US")
     {
         return JsonSerializer.Serialize(new
         {
@@ -126,14 +153,26 @@ public class WhatsAppProductionNotificationTests
                     name = "e6_carspa_invoice_generated",
                     status = "APPROVED",
                     category = "UTILITY",
-                    language = "en_US",
+                    language = invoiceLanguage,
                     id = "tpl_inv_101",
                     components = new object[]
                     {
                         new
                         {
+                            type = "HEADER",
+                            format = "DOCUMENT"
+                        },
+                        new
+                        {
                             type = "BODY",
-                            text = "Hi {{1}}, your invoice {{2}} is ready."
+                            text = "Hello {{1}},\n\nYour invoice {{2}} for vehicle {{3}} total {{4}} is ready.",
+                            example = new
+                            {
+                                body_text = new[]
+                                {
+                                    new[] { "Customer", "INV-2026-000001", "TN01AB1234", "1500" }
+                                }
+                            }
                         }
                     }
                 },
@@ -225,7 +264,7 @@ public class WhatsAppProductionNotificationTests
         var invoice = new Invoice
         {
             Id = Guid.NewGuid(),
-            InvoiceNumber = "INV-2026-001",
+            InvoiceNumber = status == InvoiceStatus.Draft ? null : "INV-2026-001",
             CustomerId = customer.Id,
             VehicleId = vehicle.Id,
             JobCardId = jobCard.Id,
@@ -534,13 +573,19 @@ public class WhatsAppProductionNotificationTests
         Assert.Null(refreshed.ErrorMessage);
 
         // Verify outgoing request payload
-        var postRequest = handler.RecordedRequests.FirstOrDefault(r => r.Method == HttpMethod.Post);
-        Assert.NotNull(postRequest);
-        Assert.Contains("v25.0/phone_meta_777/messages", postRequest.RequestUri!.ToString());
-        Assert.Equal("Bearer", postRequest.Headers.Authorization?.Scheme);
-        Assert.Equal("meta_secret_token_abc", postRequest.Headers.Authorization?.Parameter);
+        var mediaRequest = handler.RecordedRequests.FirstOrDefault(r => r.Method == HttpMethod.Post && r.RequestUri!.ToString().Contains("/media"));
+        Assert.NotNull(mediaRequest);
+        Assert.Contains("v25.0/phone_meta_777/media", mediaRequest.RequestUri!.ToString());
+        Assert.Equal("Bearer", mediaRequest.Headers.Authorization?.Scheme);
+        Assert.Equal("meta_secret_token_abc", mediaRequest.Headers.Authorization?.Parameter);
 
-        var postPayload = handler.RecordedPayloads.First(p => !string.IsNullOrEmpty(p));
+        var messagesRequest = handler.RecordedRequests.FirstOrDefault(r => r.Method == HttpMethod.Post && r.RequestUri!.ToString().Contains("/messages"));
+        Assert.NotNull(messagesRequest);
+        Assert.Contains("v25.0/phone_meta_777/messages", messagesRequest.RequestUri!.ToString());
+        Assert.Equal("Bearer", messagesRequest.Headers.Authorization?.Scheme);
+        Assert.Equal("meta_secret_token_abc", messagesRequest.Headers.Authorization?.Parameter);
+
+        var postPayload = handler.RecordedPayloads.First(p => p.Contains("\"template\""));
         using var doc = JsonDocument.Parse(postPayload);
         var root = doc.RootElement;
         Assert.Equal("whatsapp", root.GetProperty("messaging_product").GetString());
@@ -551,8 +596,13 @@ public class WhatsAppProductionNotificationTests
         Assert.Equal("e6_carspa_invoice_generated", tpl.GetProperty("name").GetString());
         Assert.Equal("en_US", tpl.GetProperty("language").GetProperty("code").GetString());
 
-        var bodyParams = tpl.GetProperty("components")[0].GetProperty("parameters");
-        Assert.Equal(2, bodyParams.GetArrayLength());
+        var headerParam = tpl.GetProperty("components")[0].GetProperty("parameters")[0];
+        Assert.Equal("document", headerParam.GetProperty("type").GetString());
+        Assert.Equal("media_doc_upload_id_101", headerParam.GetProperty("document").GetProperty("id").GetString());
+        Assert.Equal("INV-2026-001.pdf", headerParam.GetProperty("document").GetProperty("filename").GetString());
+
+        var bodyParams = tpl.GetProperty("components")[1].GetProperty("parameters");
+        Assert.Equal(4, bodyParams.GetArrayLength());
         Assert.Equal("Gokul Kannan", bodyParams[0].GetProperty("text").GetString());
         Assert.Equal("INV-2026-001", bodyParams[1].GetProperty("text").GetString());
 
@@ -859,6 +909,13 @@ public class WhatsAppProductionNotificationTests
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent(StandardTemplatesDiscoveryJson(), Encoding.UTF8, "application/json")
+                };
+            }
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"id\":\"media_doc_upload_id_101\"}", Encoding.UTF8, "application/json")
                 };
             }
             // Simulate Meta 400 bad request (permanent)
@@ -1211,6 +1268,11 @@ public class WhatsAppProductionNotificationTests
                     {
                         new
                         {
+                            type = "HEADER",
+                            format = "DOCUMENT"
+                        },
+                        new
+                        {
                             type = "BODY",
                             text = "Hello {{1}},\n\nYour invoice {{2}} for your vehicle {{3}} has been generated by E6 Car Spa.\n\nAmount: Rs.{{4}}\n\nYou can view your invoice using the button below.\n\nThank you for choosing E6 Car Spa.",
                             example = new
@@ -1274,9 +1336,13 @@ public class WhatsAppProductionNotificationTests
             var uri = req.RequestUri!.ToString();
             if (uri.Contains("message_templates"))
             {
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EnInvoiceTemplateWithButtonDiscoveryJson(), Encoding.UTF8, "application/json") };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
             }
-            if (req.Content != null)
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"media_doc_upload_id_101\"}", Encoding.UTF8, "application/json") };
+            }
+            if (req.Content != null && uri.Contains("messages"))
             {
                 var bodyStr = req.Content.ReadAsStringAsync().GetAwaiter().GetResult();
                 using var doc = JsonDocument.Parse(bodyStr);
@@ -1300,7 +1366,7 @@ public class WhatsAppProductionNotificationTests
     }
 
     [Fact]
-    public async Task QueueInvoiceFinalized_AutomaticallyCreatesAndRetrievesPublicInvoiceToken()
+    public async Task QueueInvoiceFinalized_DoesNotDependOnInvoicePublicLink_AndDoesNotStoreRawTokenOrPublicUrl()
     {
         // Arrange
         using var db = CreateInMemoryDbContext();
@@ -1329,20 +1395,12 @@ public class WhatsAppProductionNotificationTests
         // Assert
         Assert.NotNull(msg);
         var publicLinks = await db.InvoicePublicLinks.Where(l => l.InvoiceId == invoice.Id && !l.IsRevoked && !l.IsDeleted).ToListAsync();
-        Assert.Single(publicLinks);
-        var link = publicLinks[0];
-        Assert.Equal(64, link.TokenHash.Length);
+        Assert.Empty(publicLinks); // Strict boundary: WhatsApp queueing must not create public links
 
-        // Verify stored snapshot contains rawToken and valid publicUrl
+        // Verify stored snapshot does NOT contain rawToken or publicUrl
         using var doc = JsonDocument.Parse(msg.TemplateParametersJson ?? "{}");
-        Assert.True(doc.RootElement.TryGetProperty("rawToken", out var rtProp));
-        var rawToken = rtProp.GetString();
-        Assert.False(string.IsNullOrWhiteSpace(rawToken));
-        Assert.Equal(64, rawToken.Length);
-
-        Assert.True(doc.RootElement.TryGetProperty("publicUrl", out var puProp));
-        var publicUrl = puProp.GetString();
-        Assert.Contains($"/i/{rawToken}", publicUrl);
+        Assert.False(doc.RootElement.TryGetProperty("rawToken", out _));
+        Assert.False(doc.RootElement.TryGetProperty("publicUrl", out _));
 
         // Verify stored snapshot contains parameters array with exact four values in order
         Assert.True(doc.RootElement.TryGetProperty("parameters", out var paramsProp));
@@ -1354,7 +1412,7 @@ public class WhatsAppProductionNotificationTests
     }
 
     [Fact]
-    public async Task ProcessMessage_WithDynamicUrlButton_SerializesExpectedMetaButtonPayload()
+    public async Task ProcessMessage_WhenTemplateContainsUrlButton_RejectsTemplateForInvoiceDocumentAttachment()
     {
         // Arrange
         using var db = CreateInMemoryDbContext();
@@ -1375,7 +1433,6 @@ public class WhatsAppProductionNotificationTests
         });
         await db.SaveChangesAsync();
 
-        string? capturedPayloadJson = null;
         var handler = new MockHttpMessageHandler();
         handler.ResponseFactory = req =>
         {
@@ -1383,10 +1440,6 @@ public class WhatsAppProductionNotificationTests
             if (uri.Contains("message_templates"))
             {
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EnInvoiceTemplateWithButtonDiscoveryJson(), Encoding.UTF8, "application/json") };
-            }
-            if (req.Content != null)
-            {
-                capturedPayloadJson = req.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             }
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.BUTTON_TEST\"}]}", Encoding.UTF8, "application/json") };
         };
@@ -1399,37 +1452,11 @@ public class WhatsAppProductionNotificationTests
         var result = await service.ProcessMessageAsync(msg.Id);
 
         // Assert
-        Assert.True(result);
-        Assert.NotNull(capturedPayloadJson);
-
-        using var payloadDoc = JsonDocument.Parse(capturedPayloadJson!);
-        var components = payloadDoc.RootElement.GetProperty("template").GetProperty("components");
-        Assert.Equal(2, components.GetArrayLength());
-
-        // Body component
-        var bodyComp = components[0];
-        Assert.Equal("body", bodyComp.GetProperty("type").GetString());
-        var bodyParams = bodyComp.GetProperty("parameters");
-        Assert.Equal(4, bodyParams.GetArrayLength());
-
-        // Verify exact four values and order sent to Meta
-        Assert.Equal("Gokul Kannan", bodyParams[0].GetProperty("text").GetString()); // {{1}} Customer Name
-        Assert.Equal("INV-2026-001", bodyParams[1].GetProperty("text").GetString()); // {{2}} Invoice Number
-        Assert.Equal("TN33AB1234", bodyParams[2].GetProperty("text").GetString());   // {{3}} Vehicle Number
-        Assert.Equal("1,500.00", bodyParams[3].GetProperty("text").GetString());     // {{4}} Invoice Total
-
-        // Button component: type = button, sub_type = url, index = "0", parameters = [{ type = "text", text = "<rawToken>" }]
-        var buttonComp = components[1];
-        Assert.Equal("button", buttonComp.GetProperty("type").GetString());
-        Assert.Equal("url", buttonComp.GetProperty("sub_type").GetString());
-        Assert.Equal("0", buttonComp.GetProperty("index").GetString());
-
-        var btnParams = buttonComp.GetProperty("parameters");
-        Assert.Equal(1, btnParams.GetArrayLength());
-        Assert.Equal("text", btnParams[0].GetProperty("type").GetString());
-        var tokenText = btnParams[0].GetProperty("text").GetString();
-        Assert.False(string.IsNullOrWhiteSpace(tokenText));
-        Assert.Equal(64, tokenText.Length);
+        Assert.False(result);
+        var refreshed = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.NotNull(refreshed);
+        Assert.Equal(WhatsAppMessageStatus.Failed, refreshed.Status);
+        Assert.Contains("URL button", refreshed.ErrorMessage);
     }
 
     [Fact]
@@ -1494,7 +1521,11 @@ public class WhatsAppProductionNotificationTests
             var uri = req.RequestUri!.ToString();
             if (uri.Contains("message_templates"))
             {
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EnInvoiceTemplateWithButtonDiscoveryJson(), Encoding.UTF8, "application/json") };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"media_doc_upload_id_101\"}", Encoding.UTF8, "application/json") };
             }
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.SUCCESS_123\"}]}", Encoding.UTF8, "application/json") };
         };
@@ -1546,7 +1577,11 @@ public class WhatsAppProductionNotificationTests
             var uri = req.RequestUri!.ToString();
             if (uri.Contains("message_templates"))
             {
-                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(EnInvoiceTemplateWithButtonDiscoveryJson(), Encoding.UTF8, "application/json") };
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"media_doc_upload_id_101\"}", Encoding.UTF8, "application/json") };
             }
             return new HttpResponseMessage(HttpStatusCode.BadRequest)
             {
@@ -1572,4 +1607,951 @@ public class WhatsAppProductionNotificationTests
 
         Assert.Contains(audit.RecordedLogs, l => l.Action == AuditActions.WhatsAppNotificationFailed && l.Outcome == "Failure");
     }
+
+    [Fact]
+    public async Task ProcessMessage_WhenTemplateLacksDocumentHeader_FailsWithDescriptiveError()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en"
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                var bodyOnlyDiscovery = JsonSerializer.Serialize(new
+                {
+                    data = new object[]
+                    {
+                        new
+                        {
+                            name = "e6_carspa_invoice_generated",
+                            status = "APPROVED",
+                            category = "UTILITY",
+                            language = "en",
+                            id = "tpl_inv_no_hdr",
+                            components = new object[]
+                            {
+                                new
+                                {
+                                    type = "BODY",
+                                    text = "Hello {{1}}, {{2}}, {{3}}, {{4}}"
+                                }
+                            }
+                        }
+                    }
+                });
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(bodyOnlyDiscovery, Encoding.UTF8, "application/json") };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"doc_1\"}", Encoding.UTF8, "application/json") };
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(msg);
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.False(result);
+        var refreshed = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.Equal(WhatsAppMessageStatus.Failed, refreshed!.Status);
+        Assert.Contains("requires a DOCUMENT header component", refreshed.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ProcessMessage_WhenMediaUploadFailsWithPermanentError_MarksMessageAsFailed()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en"
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                {
+                    Content = new StringContent("{\"error\":{\"message\":\"Unsupported document format\",\"type\":\"OAuthException\",\"code\":100}}", Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.123\"}]}", Encoding.UTF8, "application/json") };
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(msg);
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.False(result);
+        var refreshed = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.Equal(WhatsAppMessageStatus.Failed, refreshed!.Status);
+        Assert.Contains("Unsupported document format", refreshed.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task ProcessMessage_WhenMediaUploadFailsWithTransientError_MarksMessageAsPendingForRetry()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en"
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("/media"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("{\"error\":{\"message\":\"Internal Meta service error\",\"type\":\"ServerException\",\"code\":500}}", Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.123\"}]}", Encoding.UTF8, "application/json") };
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(msg);
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.False(result);
+        var refreshed = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.Equal(WhatsAppMessageStatus.Pending, refreshed!.Status);
+        Assert.NotNull(refreshed.NextAttemptAtUtc);
+    }
+
+    [Fact]
+    public async Task ProcessMessage_WhenCachedMediaIdExists_ReusesMediaIdWithoutReuploading()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en"
+        });
+        await db.SaveChangesAsync();
+
+        string? capturedMessagesPayload = null;
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("messages"))
+            {
+                if (req.Content != null)
+                {
+                    capturedMessagesPayload = req.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                }
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.CACHED_OK\"}]}", Encoding.UTF8, "application/json") };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(msg);
+
+        // Pre-populate cached media_id in snapshot
+        msg.TemplateParametersJson = JsonSerializer.Serialize(new
+        {
+            parameters = new[] { "Gokul Kannan", "INV-2026-001", "TN33AB1234", "1,500.00" },
+            mediaId = "cached_media_existing_123"
+        });
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.True(result);
+        // Verify NO /media upload was performed
+        Assert.DoesNotContain(handler.RecordedRequests, r => r.RequestUri!.ToString().Contains("/media"));
+
+        // Verify /messages payload contains the cached media ID
+        Assert.NotNull(capturedMessagesPayload);
+        using var doc = JsonDocument.Parse(capturedMessagesPayload);
+        var headerParam = doc.RootElement.GetProperty("template").GetProperty("components")[0].GetProperty("parameters")[0];
+        Assert.Equal("cached_media_existing_123", headerParam.GetProperty("document").GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public async Task ProcessMessage_WhenCachedMediaIdRejectedByMeta_RegeneratesAndReuploadsMediaAndRetriesSend()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en"
+        });
+        await db.SaveChangesAsync();
+
+        int messagesCallCount = 0;
+        int mediaUploadCallCount = 0;
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("/media"))
+            {
+                mediaUploadCallCount++;
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"id\":\"fresh_media_id_555\"}", Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("messages"))
+            {
+                messagesCallCount++;
+                if (messagesCallCount == 1)
+                {
+                    // First send with stale cached media ID fails with Meta media error
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    {
+                        Content = new StringContent("{\"error\":{\"message\":\"Invalid media id: 131053\",\"type\":\"OAuthException\",\"code\":131053}}", Encoding.UTF8, "application/json")
+                    };
+                }
+                // Second send after retry succeeds
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.RETRY_SUCCESS_123\"}]}", Encoding.UTF8, "application/json") };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(msg);
+
+        // Pre-populate stale cached media_id
+        msg.TemplateParametersJson = JsonSerializer.Serialize(new
+        {
+            parameters = new[] { "Gokul Kannan", "INV-2026-001", "TN33AB1234", "1,500.00" },
+            mediaId = "stale_media_id_444"
+        });
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.True(result);
+        Assert.Equal(2, messagesCallCount);
+        Assert.Equal(1, mediaUploadCallCount);
+
+        var refreshed = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.Equal(WhatsAppMessageStatus.Sent, refreshed!.Status);
+        Assert.Equal("wamid.RETRY_SUCCESS_123", refreshed.MetaMessageId);
+        Assert.Contains("fresh_media_id_555", refreshed.TemplateParametersJson);
+    }
+
+    [Fact]
+    public async Task PaymentCompleted_DoesNotUploadMediaOrAttachDocumentHeader()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Paid);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_456",
+            GraphApiVersion = "v25.0",
+            AccessTokenEncrypted = enc.Encrypt("test_token"),
+            PaymentCompletedNotificationsEnabled = true,
+            PaymentCompletedTemplateName = "e6_carspa_payment_completed",
+            PaymentCompletedTemplateLanguage = "en_US"
+        });
+        await db.SaveChangesAsync();
+
+        string? capturedMessagesPayload = null;
+        var handler = new MockHttpMessageHandler();
+        handler.ResponseFactory = req =>
+        {
+            var uri = req.RequestUri!.ToString();
+            if (uri.Contains("message_templates"))
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(StandardTemplatesDiscoveryJson("en_US"), Encoding.UTF8, "application/json") };
+            }
+            if (uri.Contains("messages"))
+            {
+                if (req.Content != null)
+                {
+                    capturedMessagesPayload = req.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                }
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"messages\":[{\"id\":\"wamid.PAYMENT_123\"}]}", Encoding.UTF8, "application/json") };
+            }
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var msg = await service.QueuePaymentCompletedNotificationAsync(invoice.Id, 1500.00m);
+        Assert.NotNull(msg);
+
+        // Act
+        var result = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.True(result);
+        // Verify NO /media upload was performed for PaymentCompleted
+        Assert.DoesNotContain(handler.RecordedRequests, r => r.RequestUri!.ToString().Contains("/media"));
+
+        // Verify outgoing message payload has NO document header component
+        Assert.NotNull(capturedMessagesPayload);
+        using var doc = JsonDocument.Parse(capturedMessagesPayload);
+        var components = doc.RootElement.GetProperty("template").GetProperty("components");
+        foreach (var comp in components.EnumerateArray())
+        {
+            Assert.NotEqual("header", comp.GetProperty("type").GetString());
+        }
+    }
+
+    private class ThrowingWhatsAppService : IWhatsAppService
+    {
+        public Task<Application.DTOs.WhatsApp.WhatsAppConfigResponse> GetConfigurationAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Application.DTOs.WhatsApp.WhatsAppConfigResponse(false, "", "", "v25.0", false, false, false, "", "en", "", "en", DateTime.UtcNow));
+        public Task<Application.DTOs.WhatsApp.WhatsAppConfigResponse> UpdateConfigurationAsync(Application.DTOs.WhatsApp.UpdateWhatsAppConfigRequest request, Guid? userId = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<Application.DTOs.WhatsApp.TestWhatsAppConnectionResponse> TestConnectionAsync(Application.DTOs.WhatsApp.TestWhatsAppConnectionRequest? request = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("Simulated WhatsApp queueing failure.");
+        public Task<WhatsAppMessage?> QueuePaymentCompletedNotificationAsync(Guid invoiceId, decimal paymentAmount, string? publicInvoiceUrl = null, CancellationToken cancellationToken = default) => Task.FromResult<WhatsAppMessage?>(null);
+        public Task<IReadOnlyList<Application.DTOs.WhatsApp.InvoiceWhatsAppStatusDto>> GetInvoiceWhatsAppStatusAsync(Guid invoiceId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<Application.DTOs.WhatsApp.InvoiceWhatsAppStatusDto>>(new List<Application.DTOs.WhatsApp.InvoiceWhatsAppStatusDto>());
+        public Task<Application.DTOs.WhatsApp.MetaWhatsAppTemplatesResponse> GetMetaTemplatesAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<Application.DTOs.WhatsApp.SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(Application.DTOs.WhatsApp.SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public string? NormalizePhoneNumber(string? phone) => phone;
+    }
+
+    [Fact]
+    public async Task GenerateInvoice_WhenWhatsAppThrows_InvoiceFinalizationStillSucceedsAndCreatesPublicLink()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Draft);
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            { "PublicInvoiceBaseUrl", "https://invoice.e6carspa.com/i/" }
+        }).Build();
+
+        var invoiceService = new InvoiceService(
+            db,
+            new NullAuditLogService(),
+            config,
+            new HttpContextAccessor(),
+            new ThrowingWhatsAppService(),
+            new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>());
+
+        // Act
+        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id);
+
+        // Assert
+        Assert.NotNull(invoiceDto);
+        Assert.Equal(InvoiceStatus.Generated, invoiceDto.Status);
+
+        // Verify InvoicePublicLink was created independently and exists
+        var publicLink = await db.InvoicePublicLinks.FirstOrDefaultAsync(l => l.InvoiceId == invoiceDto.Id);
+        Assert.NotNull(publicLink);
+        Assert.False(publicLink.IsRevoked);
+        Assert.Equal(64, publicLink.TokenHash.Length);
+    }
+
+    [Fact]
+    public void DependencyInjection_ResolvesWhatsAppServiceAndInvoiceServiceWithoutConstructorAmbiguity()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddSingleton<IAesEncryptionService>(CreateEncryptionService());
+        services.AddSingleton<IAuditLogService, NullAuditLogService>();
+        services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        services.AddLogging();
+        services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
+        services.AddHttpClient<IWhatsAppService, WhatsAppService>();
+        services.AddScoped<IInvoiceService, InvoiceService>();
+        services.AddHttpContextAccessor();
+
+        var provider = services.BuildServiceProvider();
+
+        // Act & Assert: Must resolve without multiple constructor ambiguity
+        var whatsAppService = provider.GetRequiredService<IWhatsAppService>();
+        Assert.NotNull(whatsAppService);
+
+        var invoiceService = provider.GetRequiredService<IInvoiceService>();
+        Assert.NotNull(invoiceService);
+    }
+
+    // -------------------------------------------------------------
+    // 14. Idempotency & Concurrency Protection Tests
+    // -------------------------------------------------------------
+
+    [Fact]
+    public async Task InvoiceFinalization_CreatesExactlyOneWhatsAppMessagesRecord()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Draft);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            InvoiceNotificationsEnabled = true,
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en_US",
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+        await db.SaveChangesAsync();
+
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            { "PublicInvoiceBaseUrl", "https://invoice.e6carspa.com/i/" }
+        }).Build();
+
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                if (req.RequestUri?.ToString().Contains("message_templates") == true)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(StandardTemplatesDiscoveryJson("en_US"), Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var whatsAppService = CreateService(db, new HttpClient(handler), enc);
+
+        var services = new ServiceCollection();
+        services.AddScoped<IWhatsAppService>(_ => whatsAppService);
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+        var invoiceService = new InvoiceService(
+            db,
+            new NullAuditLogService(),
+            config,
+            new HttpContextAccessor(),
+            whatsAppService,
+            scopeFactory);
+
+        // Act
+        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id);
+
+        // Assert
+        Assert.NotNull(invoiceDto);
+        var records = await db.WhatsAppMessages
+            .Where(m => m.InvoiceId == invoice.Id && m.MessageType == WhatsAppMessageType.InvoiceFinalized)
+            .ToListAsync();
+        Assert.Single(records);
+    }
+
+    [Fact]
+    public async Task DuplicateQueueAttempts_DoNotCreateTwoRecords()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            InvoiceNotificationsEnabled = true,
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, new HttpClient(new MockHttpMessageHandler()), enc);
+
+        // Act
+        var msg1 = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        var msg2 = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+
+        // Assert
+        Assert.NotNull(msg1);
+        Assert.NotNull(msg2);
+        Assert.Equal(msg1.Id, msg2.Id);
+
+        var count = await db.WhatsAppMessages.CountAsync(m => m.InvoiceId == invoice.Id && m.MessageType == WhatsAppMessageType.InvoiceFinalized);
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task ConcurrentProcessMessageAsync_CallsProduceOnlyOneMetaMessagesRequest()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            InvoiceNotificationsEnabled = true,
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en_US",
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+        await db.SaveChangesAsync();
+
+        int messagesPostCount = 0;
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                var uri = req.RequestUri?.ToString() ?? "";
+                if (uri.Contains("message_templates"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(StandardTemplatesDiscoveryJson("en_US"), Encoding.UTF8, "application/json")
+                    };
+                }
+                if (uri.Contains("messages"))
+                {
+                    Interlocked.Increment(ref messagesPostCount);
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{\"messages\":[{\"id\":\"wamid.HBgLCONCURRENT\"}]}", Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var message = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(message);
+
+        // Act: Run 5 concurrent calls to ProcessMessageAsync
+        var tasks = Enumerable.Range(0, 5)
+            .Select(_ => service.ProcessMessageAsync(message.Id))
+            .ToArray();
+        await Task.WhenAll(tasks);
+
+        // Assert: Exactly one Meta /messages call occurred
+        Assert.Equal(1, messagesPostCount);
+
+        var finalRecord = await db.WhatsAppMessages.FindAsync(message.Id);
+        Assert.NotNull(finalRecord);
+        Assert.Equal(WhatsAppMessageStatus.Sent, finalRecord.Status);
+        Assert.Equal(1, finalRecord.AttemptCount);
+        Assert.Equal("wamid.HBgLCONCURRENT", finalRecord.MetaMessageId);
+    }
+
+    [Fact]
+    public async Task TransientMetaFailure_ReturnsMessageToPendingAndAllowsLaterRetry()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            InvoiceNotificationsEnabled = true,
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en_US",
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+        await db.SaveChangesAsync();
+
+        bool returnError = true;
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                var uri = req.RequestUri?.ToString() ?? "";
+                if (uri.Contains("message_templates"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(StandardTemplatesDiscoveryJson("en_US"), Encoding.UTF8, "application/json")
+                    };
+                }
+                if (uri.Contains("messages"))
+                {
+                    if (returnError)
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                        {
+                            Content = new StringContent("{\"error\":{\"message\":\"Service unavailable\",\"code\":2}}", Encoding.UTF8, "application/json")
+                        };
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{\"messages\":[{\"id\":\"wamid.HBgLRETRY_SUCCESS\"}]}", Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+        var message = await service.QueueInvoiceFinalizedNotificationAsync(invoice.Id);
+        Assert.NotNull(message);
+
+        // Act 1: Initial call fails transiently
+        var result1 = await service.ProcessMessageAsync(message.Id);
+        Assert.False(result1);
+
+        var recordAfterAttempt1 = await db.WhatsAppMessages.FindAsync(message.Id);
+        Assert.NotNull(recordAfterAttempt1);
+        Assert.Equal(WhatsAppMessageStatus.Pending, recordAfterAttempt1.Status);
+        Assert.Equal(1, recordAfterAttempt1.AttemptCount);
+        Assert.NotNull(recordAfterAttempt1.NextAttemptAtUtc);
+
+        // Act 2: Retry succeeds
+        returnError = false;
+        var result2 = await service.ProcessMessageAsync(message.Id);
+        Assert.True(result2);
+
+        var recordAfterAttempt2 = await db.WhatsAppMessages.FindAsync(message.Id);
+        Assert.NotNull(recordAfterAttempt2);
+        Assert.Equal(WhatsAppMessageStatus.Sent, recordAfterAttempt2.Status);
+        Assert.Equal(2, recordAfterAttempt2.AttemptCount);
+        Assert.Equal("wamid.HBgLRETRY_SUCCESS", recordAfterAttempt2.MetaMessageId);
+    }
+
+    [Fact]
+    public async Task SentMessages_AreIgnoredByBackgroundWorker()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppMessages.Add(new WhatsAppMessage
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoice.Id,
+            CustomerId = invoice.CustomerId,
+            MessageType = WhatsAppMessageType.InvoiceFinalized,
+            RecipientPhone = "919876543210",
+            Status = WhatsAppMessageStatus.Sent,
+            AttemptCount = 1,
+            SentAtUtc = DateTime.UtcNow.AddMinutes(-5),
+            MetaMessageId = "wamid.ALREADY_SENT",
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5)
+        });
+        await db.SaveChangesAsync();
+
+        int messagesPostCount = 0;
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                if (req.RequestUri?.ToString().Contains("messages") == true)
+                {
+                    Interlocked.Increment(ref messagesPostCount);
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+
+        // Act
+        await service.ProcessPendingMessagesAsync();
+
+        // Assert: Worker did not attempt to send
+        Assert.Equal(0, messagesPostCount);
+    }
+
+    [Fact]
+    public async Task ActiveProcessingMessages_AreIgnoredByBackgroundWorker()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppMessages.Add(new WhatsAppMessage
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoice.Id,
+            CustomerId = invoice.CustomerId,
+            MessageType = WhatsAppMessageType.InvoiceFinalized,
+            RecipientPhone = "919876543210",
+            Status = WhatsAppMessageStatus.Processing,
+            AttemptCount = 1,
+            LastAttemptAtUtc = DateTime.UtcNow.AddSeconds(-30), // Active lease (30s ago, < 2 min)
+            CreatedAt = DateTime.UtcNow.AddSeconds(-30)
+        });
+        await db.SaveChangesAsync();
+
+        int messagesPostCount = 0;
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                if (req.RequestUri?.ToString().Contains("messages") == true)
+                {
+                    Interlocked.Increment(ref messagesPostCount);
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+
+        // Act
+        await service.ProcessPendingMessagesAsync();
+
+        // Assert: Active processing message is ignored by background worker
+        Assert.Equal(0, messagesPostCount);
+    }
+
+    [Fact]
+    public async Task StaleProcessingMessages_CanBeRecoveredByBackgroundWorker()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Generated);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            InvoiceNotificationsEnabled = true,
+            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateLanguage = "en_US",
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+
+        var staleMsg = new WhatsAppMessage
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoice.Id,
+            CustomerId = invoice.CustomerId,
+            MessageType = WhatsAppMessageType.InvoiceFinalized,
+            RecipientPhone = "919876543210",
+            Status = WhatsAppMessageStatus.Processing,
+            AttemptCount = 1,
+            LastAttemptAtUtc = DateTime.UtcNow.AddMinutes(-10), // Stale lease (10 min ago, > 2 min)
+            CreatedAt = DateTime.UtcNow.AddMinutes(-10)
+        };
+        db.WhatsAppMessages.Add(staleMsg);
+        await db.SaveChangesAsync();
+
+        int messagesPostCount = 0;
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                var uri = req.RequestUri?.ToString() ?? "";
+                if (uri.Contains("message_templates"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(StandardTemplatesDiscoveryJson("en_US"), Encoding.UTF8, "application/json")
+                    };
+                }
+                if (uri.Contains("messages"))
+                {
+                    Interlocked.Increment(ref messagesPostCount);
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{\"messages\":[{\"id\":\"wamid.HBgLSTALE_RECOVERED\"}]}", Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+
+        // Act
+        await service.ProcessPendingMessagesAsync();
+
+        // Assert: Worker picked up stale lease, incremented attempt count to 2, and sent successfully
+        Assert.Equal(1, messagesPostCount);
+
+        var recovered = await db.WhatsAppMessages.FindAsync(staleMsg.Id);
+        Assert.NotNull(recovered);
+        Assert.Equal(WhatsAppMessageStatus.Sent, recovered.Status);
+        Assert.Equal(2, recovered.AttemptCount);
+        Assert.Equal("wamid.HBgLSTALE_RECOVERED", recovered.MetaMessageId);
+    }
+
+    [Fact]
+    public async Task PaymentCompleted_StillSendsSuccessfully()
+    {
+        // Arrange
+        using var db = CreateInMemoryDbContext();
+        var enc = CreateEncryptionService();
+        var (_, _, invoice) = await SeedInvoiceAsync(db, "9876543210", InvoiceStatus.Paid);
+
+        db.WhatsAppConfigurations.Add(new WhatsAppConfiguration
+        {
+            Id = Guid.NewGuid(),
+            SingletonKey = 1,
+            IsEnabled = true,
+            PaymentCompletedNotificationsEnabled = true,
+            PaymentCompletedTemplateName = "e6_car_spa_app",
+            PaymentCompletedTemplateLanguage = "en",
+            PhoneNumberId = "phone_123",
+            BusinessAccountId = "waba_123",
+            AccessTokenEncrypted = enc.Encrypt("token_123")
+        });
+        await db.SaveChangesAsync();
+
+        var handler = new MockHttpMessageHandler
+        {
+            ResponseFactory = req =>
+            {
+                var uri = req.RequestUri?.ToString() ?? "";
+                if (uri.Contains("message_templates"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(StandardTemplatesDiscoveryJson("en"), Encoding.UTF8, "application/json")
+                    };
+                }
+                if (uri.Contains("messages"))
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{\"messages\":[{\"id\":\"wamid.HBgLPAYMENT_OK\"}]}", Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }
+        };
+
+        var service = CreateService(db, new HttpClient(handler), enc);
+
+        // Act
+        var msg = await service.QueuePaymentCompletedNotificationAsync(invoice.Id, 1500m);
+        Assert.NotNull(msg);
+        var success = await service.ProcessMessageAsync(msg.Id);
+
+        // Assert
+        Assert.True(success);
+        var finalRecord = await db.WhatsAppMessages.FindAsync(msg.Id);
+        Assert.NotNull(finalRecord);
+        Assert.Equal(WhatsAppMessageStatus.Sent, finalRecord.Status);
+        Assert.Equal(1, finalRecord.AttemptCount);
+        Assert.Equal("wamid.HBgLPAYMENT_OK", finalRecord.MetaMessageId);
+    }
 }
+
