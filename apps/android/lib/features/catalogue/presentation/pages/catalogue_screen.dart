@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
@@ -20,8 +21,20 @@ class CatalogueScreen extends ConsumerStatefulWidget {
   ConsumerState<CatalogueScreen> createState() => _CatalogueScreenState();
 }
 
-class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
+class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<CatalogueScreen> {
   final _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final authState = ref.read(authNotifierProvider);
+    final currentUser = authState is Authenticated ? authState.user : null;
+    final canView = currentUser?.hasPermission('catalogue.view') ?? false;
+    if (!canView) return;
+
+    ref.read(catalogueProvider.notifier).loadCatalogue(silent: true);
+    ref.invalidate(serviceCategoriesProvider);
+  }
 
   @override
   void dispose() {

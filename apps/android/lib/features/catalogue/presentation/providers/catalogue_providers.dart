@@ -48,8 +48,10 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
     loadCatalogue();
   }
 
-  Future<void> loadCatalogue() async {
-    state = state.copyWith(isLoading: true, clearError: true);
+  Future<void> loadCatalogue({bool silent = false}) async {
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
     try {
       final res = await _repository.getServices(
         search: state.searchQuery.isEmpty ? null : state.searchQuery,
@@ -65,14 +67,17 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
         services: res.items,
         categories: sortedCats,
         isLoading: false,
+        clearError: true,
       );
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        categories: state.categories.isEmpty ? kCatalogueCategories : state.categories,
-        errorMessage: e.toString().replaceAll('ApiException: ', ''),
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          categories: state.categories.isEmpty ? kCatalogueCategories : state.categories,
+          errorMessage: e.toString().replaceAll('ApiException: ', ''),
+        );
+      }
     }
   }
 

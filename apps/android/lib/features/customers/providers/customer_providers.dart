@@ -63,20 +63,24 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
 
   Future<void> loadCustomers({
     bool refresh = false,
+    bool silent = false,
     String? search,
   }) async {
     if (!mounted) return;
-    if (refresh) {
+    if (silent) {
+      // Background auto-refresh: do not show spinners or clear data
+    } else if (refresh) {
       state = state.copyWith(isRefreshing: true, clearError: true);
     } else {
       state = state.copyWith(isLoading: true, clearError: true);
     }
 
     try {
+      final effectiveSearch = search ?? (state.searchQuery.isEmpty ? null : state.searchQuery);
       final response = await _repository.getCustomers(
-        page: 1,
+        page: state.page,
         pageSize: state.pageSize,
-        search: search ?? (state.searchQuery.isEmpty ? null : state.searchQuery),
+        search: effectiveSearch,
       );
 
       if (!mounted) return;
@@ -85,11 +89,11 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
         isRefreshing: false,
         customers: response.items,
         totalCount: response.totalCount,
-        page: 1,
         clearError: true,
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (silent) return;
       state = state.copyWith(
         isLoading: false,
         isRefreshing: false,
@@ -97,6 +101,7 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
       );
     } catch (e) {
       if (!mounted) return;
+      if (silent) return;
       state = state.copyWith(
         isLoading: false,
         isRefreshing: false,
@@ -115,6 +120,15 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
     final customer = await _repository.createCustomer(request);
     await loadCustomers(refresh: true);
     return customer;
+  }
+
+  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+    final updated = await _repository.updateCustomer(id, request);
+    if (mounted) {
+      final updatedList = state.customers.map((c) => c.id == id ? updated : c).toList();
+      state = state.copyWith(customers: updatedList);
+    }
+    return updated;
   }
 }
 
@@ -176,9 +190,11 @@ class CustomerDetailsNotifier extends StateNotifier<CustomerDetailsState> {
     }
   }
 
-  Future<void> loadDetails() async {
+  Future<void> loadDetails({bool silent = false}) async {
     if (!mounted) return;
-    state = state.copyWith(isLoading: true, clearError: true);
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
 
     try {
       final customer = await _customerRepo.getCustomerById(customerId);
@@ -195,17 +211,30 @@ class CustomerDetailsNotifier extends StateNotifier<CustomerDetailsState> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (silent) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.message,
       );
     } catch (e) {
       if (!mounted) return;
+      if (silent) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Unable to load customer details.',
       );
     }
+  }
+
+  Future<Customer> updateCustomer(UpdateCustomerRequest request) async {
+    final updated = await _customerRepo.updateCustomer(customerId, request);
+    if (mounted) {
+      state = state.copyWith(
+        customer: updated,
+        clearError: true,
+      );
+    }
+    return updated;
   }
 }
 

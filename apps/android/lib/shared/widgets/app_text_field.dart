@@ -24,6 +24,8 @@ class AppTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final InputCounterWidgetBuilder? buildCounter;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const AppTextField({
     super.key,
@@ -48,6 +50,8 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.maxLength,
     this.buildCounter,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -66,6 +70,8 @@ class AppTextField extends StatelessWidget {
       maxLength: maxLength,
       inputFormatters: inputFormatters,
       buildCounter: buildCounter ?? (maxLength != null ? (_, {required currentLength, required isFocused, required maxLength}) => null : null),
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       onChanged: onChanged,
       onTap: onTap,
       validator: validator,

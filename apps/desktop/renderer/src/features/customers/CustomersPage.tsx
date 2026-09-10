@@ -313,16 +313,6 @@ export function CustomersPage() {
 								<h3 className="text-lg font-semibold text-on-surface">
 									Vehicles ({customerVehicles.length})
 								</h3>
-								<Button
-									variant="secondary"
-									size="sm"
-									icon={<Edit3 className="w-3.5 h-3.5" />}
-									onClick={() => {
-										if (selectedCustomer) setEditingCustomer(selectedCustomer);
-									}}
-								>
-									Edit Vehicles
-								</Button>
 							</div>
 							{isLoadingVehicles ? (
 								<div className="py-4 text-center text-on-surface-variant">

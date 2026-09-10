@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
 import '../widgets/add_customer_dialog.dart';
@@ -19,8 +21,16 @@ class CustomersScreen extends ConsumerStatefulWidget {
   ConsumerState<CustomersScreen> createState() => _CustomersScreenState();
 }
 
-class _CustomersScreenState extends ConsumerState<CustomersScreen> {
+class _CustomersScreenState extends ConsumerState<CustomersScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<CustomersScreen> {
   final _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final authUser = ref.read(currentUserProvider);
+    if (authUser != null && !authUser.hasPermission('customers.view')) return;
+    ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+  }
 
   @override
   void dispose() {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Mail, MapPin, AlertCircle, CheckCircle2, Save, Car, Plus, Trash2, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { User, Phone, Mail, MapPin, AlertCircle, CheckCircle2, Save, Car, Plus, Trash2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Button } from '../../components/ui/Button';
 import {
@@ -51,6 +51,8 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 	const [vehicles, setVehicles] = useState<EditableVehicle[]>([]);
 	const [originalVehicles, setOriginalVehicles] = useState<VehicleDto[]>([]);
 	const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
+	const [expandedVehicleKeys, setExpandedVehicleKeys] = useState<Set<string>>(new Set());
+	const vehicleRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
 	const [error, setError] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,16 +69,17 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 		try {
 			const list = await getVehiclesByCustomer(customerId);
 			setOriginalVehicles(list || []);
-			setVehicles(
-				(list || []).map((v) => ({
-					id: v.id,
-					registrationNumber: v.registrationNumber,
-					make: v.make,
-					model: v.model,
-					variant: v.variant || '',
-					isOriginal: true,
-				})),
-			);
+			const mapped = (list || []).map((v) => ({
+				id: v.id,
+				registrationNumber: v.registrationNumber,
+				make: v.make,
+				model: v.model,
+				variant: v.variant || '',
+				isOriginal: true,
+			}));
+			setVehicles(mapped);
+			// Existing vehicles start expanded
+			setExpandedVehicleKeys(new Set(mapped.map((v) => v.id!).filter(Boolean)));
 		} catch (err) {
 			console.warn('Failed to load customer vehicles:', err);
 		} finally {
@@ -102,6 +105,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 			setTransferError('');
 			setVehicleConflict(null);
 			setShowTransferConfirm(false);
+			setExpandedVehicleKeys(new Set());
 		}
 	}, [customer, open, loadVehicles]);
 
@@ -114,11 +118,24 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 		onClose();
 	};
 
+	const toggleVehicle = (key: string) => {
+		setExpandedVehicleKeys((prev) => {
+			const next = new Set(prev);
+			if (next.has(key)) {
+				next.delete(key);
+			} else {
+				next.add(key);
+			}
+			return next;
+		});
+	};
+
 	const handleAddVehicle = () => {
+		const newTempId = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 		setVehicles((prev) => [
 			...prev,
 			{
-				tempId: `temp_${Date.now()}`,
+				tempId: newTempId,
 				registrationNumber: '',
 				make: '',
 				model: '',
@@ -126,10 +143,43 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 				isOriginal: false,
 			},
 		]);
+
+		// 1. Collapse ALL existing vehicle cards.
+		// 2. Add the new vehicle card.
+		// 3. Expand ONLY the newly added vehicle card.
+		setExpandedVehicleKeys(new Set([newTempId]));
+
+		// 4. Scroll the new vehicle card into view if the existing dialog already has scrolling behavior.
+		setTimeout(() => {
+			const el = vehicleRefs.current[newTempId];
+			if (el && typeof el.scrollIntoView === 'function') {
+				el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}
+		}, 50);
 	};
 
 	const handleRemoveNewVehicle = (index: number) => {
-		setVehicles((prev) => prev.filter((_, i) => i !== index));
+		const targetVeh = vehicles[index];
+		const targetKey = targetVeh ? (targetVeh.id || targetVeh.tempId) : undefined;
+
+		setVehicles((prev) => {
+			const remaining = prev.filter((_, i) => i !== index);
+			if (targetKey) {
+				setExpandedVehicleKeys((prevKeys) => {
+					const nextKeys = new Set(prevKeys);
+					const wasExpanded = nextKeys.has(targetKey);
+					nextKeys.delete(targetKey);
+					// If the removed vehicle was expanded and no other vehicles are expanded, expand the last remaining vehicle
+					if (wasExpanded && nextKeys.size === 0 && remaining.length > 0) {
+						const last = remaining[remaining.length - 1];
+						const lastKey = last.id || last.tempId;
+						if (lastKey) nextKeys.add(lastKey);
+					}
+					return nextKeys;
+				});
+			}
+			return remaining;
+		});
 	};
 
 	const handleVehicleChange = (index: number, field: keyof EditableVehicle, value: string) => {
@@ -164,6 +214,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 				];
 			});
 			setOriginalVehicles((prev) => [...prev, transferred]);
+			setExpandedVehicleKeys((prev) => new Set([...prev, transferred.id]));
 			setVehicleConflict(null);
 			setTransferError('');
 			setError('');
@@ -184,9 +235,9 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 		}
 	};
 
-	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!customer) return;
+	const handleSubmit = async (e?: React.FormEvent) => {
+		if (e) e.preventDefault();
+		if (!customer || isSubmitting) return;
 		setError('');
 		setSuccessFeedback('');
 		setTransferError('');
@@ -436,9 +487,11 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 						Cancel
 					</Button>
 					<Button
-						type="button"
+						type="submit"
+						form="edit-customer-form"
 						onClick={handleSubmit}
 						loading={isSubmitting}
+						disabled={isSubmitting}
 						icon={<Save className="w-4 h-4" />}
 					>
 						Save Changes
@@ -446,7 +499,9 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 				</>
 			}
 		>
-			<form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+			<form id="edit-customer-form" onSubmit={handleSubmit} noValidate className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+				{/* Hidden submit button to guarantee standard form submission on Enter */}
+				<button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
 				{error && !vehicleConflict && (
 					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-error-container/40 border border-error/30 text-error animate-fade-in text-sm">
 						<AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -475,13 +530,13 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 								<p className="text-xs text-on-surface-variant">
 									This will transfer this vehicle to the new customer. Existing service history, invoices and payments will remain unchanged.
 								</p>
+							</div>
 								{transferError && (
 									<div className="flex items-start gap-2 p-2.5 mt-2 rounded bg-error-container/40 border border-error/30 text-error text-xs">
 										<AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
 										<span>Transfer failed: {transferError}</span>
 									</div>
 								)}
-							</div>
 						</div>
 						<div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-500/20">
 							<Button
@@ -493,6 +548,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 									setTransferError('');
 									setError('');
 								}}
+								disabled={isTransferring}
 							>
 								Dismiss
 							</Button>
@@ -629,99 +685,137 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 						</div>
 					) : (
 						<div className="space-y-3">
-							{vehicles.map((veh, idx) => (
-								<div
-									key={veh.id || veh.tempId || idx}
-									className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant space-y-3"
-								>
-									<div className="flex items-center justify-between pb-1 border-b border-outline-variant/40">
-										<span className="text-xs font-semibold text-on-surface flex items-center gap-1.5">
-											<Car className="w-3.5 h-3.5 text-secondary" />
-											Vehicle #{idx + 1}
-											{veh.id && (
-												<span className="text-[10px] bg-secondary/10 text-secondary font-mono px-1.5 py-0.2 rounded">
-													Existing
-												</span>
-											)}
-											{!veh.id && (
-												<span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded font-medium">
-													New
-												</span>
-											)}
-										</span>
-										{!veh.id && (
+							{vehicles.map((veh, idx) => {
+								const vehKey = veh.id || veh.tempId || `veh_${idx}`;
+								const isExpanded = expandedVehicleKeys.has(vehKey);
+
+								return (
+									<div
+										key={vehKey}
+										ref={(el) => {
+											if (vehKey) vehicleRefs.current[vehKey] = el;
+										}}
+										className={`p-3.5 rounded-lg bg-surface-container-low border border-outline-variant transition-all ${
+											isExpanded ? 'space-y-3' : ''
+										}`}
+									>
+										<div
+											className={`flex items-center justify-between ${
+												isExpanded ? 'pb-2 border-b border-outline-variant/40' : ''
+											}`}
+										>
 											<button
 												type="button"
-												onClick={() => handleRemoveNewVehicle(idx)}
-												className="text-xs text-error hover:text-error/80 flex items-center gap-1"
-												title="Remove vehicle entry"
+												onClick={() => toggleVehicle(vehKey)}
+												aria-expanded={isExpanded}
+												aria-label={`Toggle Vehicle #${idx + 1}`}
+												className="flex-1 flex items-center gap-1.5 text-xs font-semibold text-on-surface hover:text-primary transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded py-0.5 px-1 -ml-1 text-left cursor-pointer select-none"
 											>
-												<Trash2 className="w-3.5 h-3.5" />
-												Remove
+												{isExpanded ? (
+													<ChevronDown className="w-3.5 h-3.5 text-secondary shrink-0" data-testid={`chevron-down-${idx}`} />
+												) : (
+													<ChevronRight className="w-3.5 h-3.5 text-secondary shrink-0" data-testid={`chevron-right-${idx}`} />
+												)}
+												<Car className="w-3.5 h-3.5 text-secondary shrink-0" />
+												<span>Vehicle #{idx + 1}</span>
+												{veh.registrationNumber && !isExpanded && (
+													<span className="text-[11px] font-mono font-normal text-on-surface-variant">
+														— {veh.registrationNumber}
+													</span>
+												)}
+												{veh.id && (
+													<span className="text-[10px] bg-secondary/10 text-secondary font-mono px-1.5 py-0.2 rounded font-normal">
+														Existing
+													</span>
+												)}
+												{!veh.id && (
+													<span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.2 rounded font-medium">
+														New
+													</span>
+												)}
 											</button>
-										)}
+											{!veh.id && (
+												<button
+													type="button"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleRemoveNewVehicle(idx);
+													}}
+													className="text-xs text-error hover:text-error/80 flex items-center gap-1 ml-2"
+													title="Remove vehicle entry"
+												>
+													<Trash2 className="w-3.5 h-3.5" />
+													Remove
+												</button>
+											)}
+										</div>
+
+										<div
+											hidden={!isExpanded}
+											className={isExpanded ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'hidden'}
+											style={{ display: isExpanded ? undefined : 'none' }}
+											aria-hidden={!isExpanded}
+										>
+											<div>
+												<label className="block text-xs font-medium text-on-surface mb-1">
+													Registration Number <span className="text-error">*</span>
+												</label>
+												<input
+													type="text"
+													required
+													value={veh.registrationNumber}
+													onChange={(e) =>
+														handleVehicleChange(idx, 'registrationNumber', e.target.value.toUpperCase())
+													}
+													placeholder="e.g. TN56P3334"
+													className="form-input w-full font-mono uppercase text-xs"
+												/>
+											</div>
+
+											<div>
+												<label className="block text-xs font-medium text-on-surface mb-1">
+													Make / Brand <span className="text-error">*</span>
+												</label>
+												<input
+													type="text"
+													required
+													value={veh.make}
+													onChange={(e) => handleVehicleChange(idx, 'make', e.target.value)}
+													placeholder="e.g. Maruti, Hyundai, Toyota"
+													className="form-input w-full text-xs"
+												/>
+											</div>
+
+											<div>
+												<label className="block text-xs font-medium text-on-surface mb-1">
+													Model <span className="text-error">*</span>
+												</label>
+												<input
+													type="text"
+													required
+													value={veh.model}
+													onChange={(e) => handleVehicleChange(idx, 'model', e.target.value)}
+													placeholder="e.g. Baleno, Creta, Fortuner"
+													className="form-input w-full text-xs"
+												/>
+											</div>
+
+											<div>
+												<label className="block text-xs font-medium text-on-surface mb-1">
+													Variant <span className="text-on-surface-variant font-normal">(Optional)</span>
+												</label>
+												<input
+													type="text"
+													value={veh.variant}
+													onChange={(e) => handleVehicleChange(idx, 'variant', e.target.value)}
+													placeholder="e.g. Zeta, SX(O)"
+													className="form-input w-full text-xs"
+												/>
+											</div>
+										</div>
 									</div>
-
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-										<div>
-											<label className="block text-xs font-medium text-on-surface mb-1">
-												Registration Number <span className="text-error">*</span>
-											</label>
-											<input
-												type="text"
-												required
-												value={veh.registrationNumber}
-												onChange={(e) =>
-													handleVehicleChange(idx, 'registrationNumber', e.target.value.toUpperCase())
-												}
-												placeholder="e.g. TN56P3334"
-												className="form-input w-full font-mono uppercase text-xs"
-											/>
-										</div>
-
-										<div>
-											<label className="block text-xs font-medium text-on-surface mb-1">
-												Make / Brand <span className="text-error">*</span>
-											</label>
-											<input
-												type="text"
-												required
-												value={veh.make}
-												onChange={(e) => handleVehicleChange(idx, 'make', e.target.value)}
-												placeholder="e.g. Maruti, Hyundai, Toyota"
-												className="form-input w-full text-xs"
-											/>
-										</div>
-
-										<div>
-											<label className="block text-xs font-medium text-on-surface mb-1">
-												Model <span className="text-error">*</span>
-											</label>
-											<input
-												type="text"
-												required
-												value={veh.model}
-												onChange={(e) => handleVehicleChange(idx, 'model', e.target.value)}
-												placeholder="e.g. Baleno, Creta, Fortuner"
-												className="form-input w-full text-xs"
-											/>
-										</div>
-
-										<div>
-											<label className="block text-xs font-medium text-on-surface mb-1">
-												Variant <span className="text-on-surface-variant font-normal">(Optional)</span>
-											</label>
-											<input
-												type="text"
-												value={veh.variant}
-												onChange={(e) => handleVehicleChange(idx, 'variant', e.target.value)}
-												placeholder="e.g. Zeta, SX(O)"
-												className="form-input w-full text-xs"
-											/>
-										</div>
-									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 					)}
 				</div>

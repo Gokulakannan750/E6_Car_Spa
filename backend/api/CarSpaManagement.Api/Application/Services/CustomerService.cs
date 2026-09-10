@@ -160,7 +160,7 @@ public class CustomerService : ICustomerService
 			outcome: "Success",
 			cancellationToken: cancellationToken);
 
-		return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
+		return await GetByIdAsync(id, cancellationToken);
 	}
 
 	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

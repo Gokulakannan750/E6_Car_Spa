@@ -275,5 +275,60 @@ void main() {
         throwsA(isA<NetworkException>()),
       );
     });
+
+    test('updateCustomer maps successfully and handles 409, 400, and 404', () async {
+      const updateReq = UpdateCustomerRequest(
+        name: 'Updated Name',
+        phoneNumber: '9123456789',
+        email: 'updated@example.com',
+        address: 'Updated Address',
+      );
+
+      final updated = await repository.updateCustomer('cust-1', updateReq);
+      expect(updated.name, 'Updated Name');
+      expect(updated.phoneNumber, '9123456789');
+      expect(updated.email, 'updated@example.com');
+      expect(updated.address, 'Updated Address');
+
+      // 409 Conflict
+      fakeApi.errorToThrow = DioException(
+        requestOptions: RequestOptions(path: '/customers/cust-1'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/customers/cust-1'),
+          statusCode: 409,
+          data: {'error': 'A customer with this phone number already exists.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      expect(
+        () => repository.updateCustomer('cust-1', updateReq),
+        throwsA(
+          isA<ConflictException>()
+              .having((e) => e.statusCode, 'statusCode', 409)
+              .having((e) => e.message, 'message', contains('already exists')),
+        ),
+      );
+
+      // 400 Validation
+      fakeApi.errorToThrow = DioException(
+        requestOptions: RequestOptions(path: '/customers/cust-1'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/customers/cust-1'),
+          statusCode: 400,
+          data: {'message': 'Phone number must be exactly 10 digits.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      expect(
+        () => repository.updateCustomer('cust-1', updateReq),
+        throwsA(
+          isA<ValidationException>()
+              .having((e) => e.statusCode, 'statusCode', 400),
+        ),
+      );
+    });
   });
 }
+

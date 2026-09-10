@@ -3,15 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
+import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../jobcards/providers/job_card_providers.dart';
 import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
 import '../../../vehicles/presentation/widgets/vehicle_card.dart';
+import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
+import '../widgets/edit_customer_dialog.dart';
 
-class CustomerDetailsScreen extends ConsumerWidget {
+class CustomerDetailsScreen extends ConsumerStatefulWidget {
   final String customerId;
 
   const CustomerDetailsScreen({
@@ -20,9 +25,35 @@ class CustomerDetailsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(customerDetailsProvider(customerId));
-    final notifier = ref.read(customerDetailsProvider(customerId).notifier);
+  ConsumerState<CustomerDetailsScreen> createState() => _CustomerDetailsScreenState();
+}
+
+class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<CustomerDetailsScreen> {
+  @override
+  void onAutoRefresh() {
+    final authUser = ref.read(currentUserProvider);
+    if (authUser != null && !authUser.hasPermission('customers.view')) return;
+    ref.read(customerDetailsProvider(widget.customerId).notifier).loadDetails(silent: true);
+  }
+
+  Future<void> _handleEditCustomer(
+    BuildContext context,
+    Customer customer,
+  ) async {
+    final updated = await EditCustomerDialog.show(context, customer: customer);
+    if (updated != null) {
+      ref.read(customerDetailsProvider(widget.customerId).notifier).loadDetails();
+      ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(customerDetailsProvider(widget.customerId));
+    final notifier = ref.read(customerDetailsProvider(widget.customerId).notifier);
+    final authUser = ref.watch(currentUserProvider);
+    final canEdit = authUser == null || authUser.hasPermission('customers.edit');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -32,23 +63,65 @@ class CustomerDetailsScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/customers'),
         ),
+        actions: [
+          if (state.customer != null && canEdit)
+            IconButton(
+              key: const Key('edit_details_action'),
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit Details',
+              onPressed: () => _handleEditCustomer(context, state.customer!),
+            ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: state.customer == null
-            ? null
-            : () {
-                ref.read(newJobCardProvider.notifier).selectCustomer(
-                      state.customer!,
-                      state.vehicles,
-                    );
-                context.go('/job-cards/new');
-              },
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
-        icon: const Icon(Icons.add_task),
-        label: const Text('New Job Card'),
-      ),
-      body: _buildBody(context, state, notifier, ref),
+      bottomNavigationBar: state.customer != null
+          ? SafeArea(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: AppColors.card,
+                  border: Border(top: BorderSide(color: AppColors.border)),
+                ),
+                child: Row(
+                  children: [
+                    if (canEdit) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const Key('edit_details_bottom_button'),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Edit Details'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.border),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => _handleEditCustomer(context, state.customer!),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      flex: canEdit ? 1 : 2,
+                      child: AppButton(
+                        key: const Key('new_job_card_bottom_button'),
+                        label: 'New Job Card',
+                        icon: Icons.add_task,
+                        onPressed: () {
+                          ref.read(newJobCardProvider.notifier).selectCustomer(
+                                state.customer!,
+                                state.vehicles,
+                              );
+                          context.go('/job-cards/new');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
+      body: _buildBody(context, state, notifier),
     );
   }
 
@@ -56,7 +129,6 @@ class CustomerDetailsScreen extends ConsumerWidget {
     BuildContext context,
     CustomerDetailsState state,
     CustomerDetailsNotifier notifier,
-    WidgetRef ref,
   ) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading customer profile...');
@@ -188,6 +260,7 @@ class CustomerDetailsScreen extends ConsumerWidget {
                       customerName: customer.name,
                       onCreated: (newVehicle) {
                         notifier.loadDetails();
+                        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
                       },
                     );
                   },

@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../data/vehicle_repository.dart';
 import '../../models/vehicle_model.dart';
+import '../../../customers/providers/customer_providers.dart';
 import '../../../../core/utils/uppercase_formatter.dart';
 
 class VehicleConflictInfo {
@@ -116,7 +117,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
       );
 
       final vehicle = await ref.read(vehicleRepositoryProvider).createVehicle(request);
-      widget.onCreated?.call(vehicle);
+      if (widget.onCreated != null) {
+        widget.onCreated!(vehicle);
+      } else {
+        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+      }
 
       if (mounted) {
         Navigator.of(context).pop(vehicle);
@@ -290,7 +295,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
           .read(vehicleRepositoryProvider)
           .transferOwnership(conflict.vehicleId, widget.customerId);
 
-      widget.onCreated?.call(transferredVehicle);
+      if (widget.onCreated != null) {
+        widget.onCreated!(transferredVehicle);
+      } else {
+        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -908,5 +908,436 @@ describe('EditCustomerModal Component & Vehicle Uniqueness', () => {
 			});
 		});
 	});
+
+	describe('Customer Details Editing & Parity', () => {
+		it('pre-populates existing customer details correctly', async () => {
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('9876543210')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('45 MG Road, Chennai')).toBeInTheDocument();
+		});
+
+		it('allows editing Name, Phone, Email, and Address and saves successfully', async () => {
+			const updatedCustomer: api.CustomerDto = {
+				...mockCustomer,
+				name: 'Johnathan Doe',
+				phoneNumber: '9123456789',
+				email: 'newjohn@example.com',
+				address: '99 Anna Nagar, Chennai',
+			};
+			vi.mocked(api.updateCustomer).mockResolvedValueOnce(updatedCustomer);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			const nameInput = screen.getByDisplayValue('John Doe');
+			const phoneInput = screen.getByDisplayValue('9876543210');
+			const emailInput = screen.getByDisplayValue('john@example.com');
+			const addressInput = screen.getByDisplayValue('45 MG Road, Chennai');
+
+			fireEvent.change(nameInput, { target: { value: 'Johnathan Doe' } });
+			fireEvent.change(phoneInput, { target: { value: '9123456789' } });
+			fireEvent.change(emailInput, { target: { value: 'newjohn@example.com' } });
+			fireEvent.change(addressInput, { target: { value: '99 Anna Nagar, Chennai' } });
+
+			fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+			await waitFor(() => {
+				expect(api.updateCustomer).toHaveBeenCalledWith({
+					id: 'cust-1',
+					name: 'Johnathan Doe',
+					phoneNumber: '9123456789',
+					email: 'newjohn@example.com',
+					address: '99 Anna Nagar, Chennai',
+				});
+				expect(mockOnSuccess).toHaveBeenCalledWith(updatedCustomer);
+			});
+		});
+
+		it('triggers same save handler when submitting via Enter key on an input field', async () => {
+			const updatedCustomer: api.CustomerDto = {
+				...mockCustomer,
+				name: 'Johnathan Doe',
+			};
+			vi.mocked(api.updateCustomer).mockResolvedValueOnce(updatedCustomer);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			const nameInput = screen.getByDisplayValue('John Doe');
+			fireEvent.change(nameInput, { target: { value: 'Johnathan Doe' } });
+
+			// Submit the form (equivalent to pressing Enter in the input)
+			const form = nameInput.closest('form')!;
+			fireEvent.submit(form);
+
+			await waitFor(() => {
+				expect(api.updateCustomer).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: 'cust-1',
+						name: 'Johnathan Doe',
+					})
+				);
+				expect(mockOnSuccess).toHaveBeenCalledWith(updatedCustomer);
+			});
+		});
+
+		it('keeps edit dialog open, preserves entered values, and displays friendly error on API failure', async () => {
+			vi.mocked(api.updateCustomer).mockRejectedValueOnce(
+				new api.ApiError('Customer name already exists.', 400, null)
+			);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			const nameInput = screen.getByDisplayValue('John Doe');
+			fireEvent.change(nameInput, { target: { value: 'Jane Modified' } });
+
+			fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+			await waitFor(() => {
+				expect(screen.getByText('Customer name already exists.')).toBeInTheDocument();
+			});
+
+			// Dialog remains open, onSuccess was NOT called
+			expect(mockOnSuccess).not.toHaveBeenCalled();
+			expect(mockOnClose).not.toHaveBeenCalled();
+
+			// Entered values are preserved
+			expect(screen.getByDisplayValue('Jane Modified')).toBeInTheDocument();
+		});
+	});
+
+	describe('Vehicle Accordion Behavior', () => {
+		const mockTwoVehicles: api.VehicleDto[] = [
+			{
+				id: 'veh-1',
+				customerId: 'cust-1',
+				registrationNumber: 'TN01AB1000',
+				make: 'Tata',
+				model: 'Nexon',
+				variant: 'XZ+',
+				color: 'Blue',
+				customerName: 'John Doe',
+				createdAt: '2026-01-10T10:00:00Z',
+			},
+			{
+				id: 'veh-2',
+				customerId: 'cust-1',
+				registrationNumber: 'TN02CD2000',
+				make: 'Hyundai',
+				model: 'Creta',
+				variant: 'SX',
+				color: 'White',
+				customerName: 'John Doe',
+				createdAt: '2026-01-11T10:00:00Z',
+			},
+		];
+
+		it('1. Existing vehicles start expanded in initial state', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+				expect(screen.getByDisplayValue('TN02CD2000')).toBeInTheDocument();
+			});
+
+			const toggleVeh1 = screen.getByRole('button', { name: /toggle vehicle #1/i });
+			const toggleVeh2 = screen.getByRole('button', { name: /toggle vehicle #2/i });
+
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'true');
+			expect(toggleVeh2).toHaveAttribute('aria-expanded', 'true');
+			expect(screen.getByTestId('chevron-down-0')).toBeInTheDocument();
+			expect(screen.getByTestId('chevron-down-1')).toBeInTheDocument();
+
+			expect(screen.getByDisplayValue('TN01AB1000')).toBeVisible();
+			expect(screen.getByDisplayValue('TN02CD2000')).toBeVisible();
+		});
+
+		it('2, 3, 4. Clicking "+ Add Vehicle" creates new vehicle, collapses existing vehicles, and expands only the new vehicle', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			});
+
+			// Click + Add Vehicle
+			fireEvent.click(screen.getByRole('button', { name: /add vehicle/i }));
+
+			// Vehicle #3 is created and marked New
+			expect(screen.getByText('Vehicle #3')).toBeInTheDocument();
+			const newBadges = screen.getAllByText('New');
+			expect(newBadges.length).toBeGreaterThanOrEqual(1);
+
+			// Existing vehicles (1 & 2) become collapsed
+			const toggleVeh1 = screen.getByRole('button', { name: /toggle vehicle #1/i });
+			const toggleVeh2 = screen.getByRole('button', { name: /toggle vehicle #2/i });
+			const toggleVeh3 = screen.getByRole('button', { name: /toggle vehicle #3/i });
+
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'false');
+			expect(toggleVeh2).toHaveAttribute('aria-expanded', 'false');
+			expect(screen.getByTestId('chevron-right-0')).toBeInTheDocument();
+			expect(screen.getByTestId('chevron-right-1')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('TN01AB1000')).not.toBeVisible();
+			expect(screen.getByDisplayValue('TN02CD2000')).not.toBeVisible();
+
+			// Newly added vehicle #3 is expanded
+			expect(toggleVeh3).toHaveAttribute('aria-expanded', 'true');
+			expect(screen.getByTestId('chevron-down-2')).toBeInTheDocument();
+		});
+
+		it('5 & 6. Clicking an existing vehicle header toggles between expanded and collapsed', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			});
+
+			// Collapse existing vehicles by adding a new vehicle
+			fireEvent.click(screen.getByRole('button', { name: /add vehicle/i }));
+
+			const toggleVeh1 = screen.getByRole('button', { name: /toggle vehicle #1/i });
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'false');
+			expect(screen.getByDisplayValue('TN01AB1000')).not.toBeVisible();
+
+			// 5. Clicking collapsed vehicle header expands it
+			fireEvent.click(toggleVeh1);
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'true');
+			expect(screen.getByTestId('chevron-down-0')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('TN01AB1000')).toBeVisible();
+
+			// 6. Clicking expanded vehicle header collapses it
+			fireEvent.click(toggleVeh1);
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'false');
+			expect(screen.getByTestId('chevron-right-0')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('TN01AB1000')).not.toBeVisible();
+		});
+
+		it('7. Existing vehicle field values survive collapse and expand cycles', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('Nexon')).toBeInTheDocument();
+			});
+
+			// Modify vehicle #1 model
+			const modelInput = screen.getByDisplayValue('Nexon');
+			fireEvent.change(modelInput, { target: { value: 'Nexon EV' } });
+			expect(screen.getByDisplayValue('Nexon EV')).toBeInTheDocument();
+
+			const toggleVeh1 = screen.getByRole('button', { name: /toggle vehicle #1/i });
+
+			// Collapse Vehicle #1
+			fireEvent.click(toggleVeh1);
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'false');
+
+			// Expand Vehicle #1 again
+			fireEvent.click(toggleVeh1);
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'true');
+
+			// Field values must still be present and visible
+			expect(screen.getByDisplayValue('TN01AB1000')).toBeVisible();
+			expect(screen.getByDisplayValue('Tata')).toBeVisible();
+			expect(screen.getByDisplayValue('Nexon EV')).toBeVisible();
+		});
+
+		it('8. Adding a second new vehicle collapses the previous new vehicle and expands only the newest vehicle', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			});
+
+			const addBtn = screen.getByRole('button', { name: /add vehicle/i });
+
+			// Add first new vehicle (Vehicle #3)
+			fireEvent.click(addBtn);
+			const toggleVeh3 = screen.getByRole('button', { name: /toggle vehicle #3/i });
+			expect(toggleVeh3).toHaveAttribute('aria-expanded', 'true');
+
+			// Add second new vehicle (Vehicle #4)
+			fireEvent.click(addBtn);
+
+			expect(screen.getByText('Vehicle #4')).toBeInTheDocument();
+			const toggleVeh1 = screen.getByRole('button', { name: /toggle vehicle #1/i });
+			const toggleVeh2 = screen.getByRole('button', { name: /toggle vehicle #2/i });
+			const toggleVeh4 = screen.getByRole('button', { name: /toggle vehicle #4/i });
+
+			// Vehicle #1, #2, #3 are all collapsed
+			expect(toggleVeh1).toHaveAttribute('aria-expanded', 'false');
+			expect(toggleVeh2).toHaveAttribute('aria-expanded', 'false');
+			expect(toggleVeh3).toHaveAttribute('aria-expanded', 'false');
+
+			// Only Vehicle #4 is expanded
+			expect(toggleVeh4).toHaveAttribute('aria-expanded', 'true');
+			expect(screen.getByTestId('chevron-down-3')).toBeInTheDocument();
+		});
+
+		it('9. Removing a new vehicle does not modify existing vehicles', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			});
+
+			// Add a new vehicle (Vehicle #3)
+			fireEvent.click(screen.getByRole('button', { name: /add vehicle/i }));
+			expect(screen.getByText('Vehicle #3')).toBeInTheDocument();
+
+			// Remove Vehicle #3
+			const removeBtn = screen.getByRole('button', { name: /remove/i });
+			fireEvent.click(removeBtn);
+
+			// Vehicle #3 is removed
+			expect(screen.queryByText('Vehicle #3')).not.toBeInTheDocument();
+
+			// Existing vehicles #1 and #2 remain present with their data intact
+			expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('TN02CD2000')).toBeInTheDocument();
+		});
+
+		it('10. Existing save functionality continues to work with accordion behavior', async () => {
+			vi.mocked(api.getVehiclesByCustomer).mockResolvedValueOnce(mockTwoVehicles);
+			vi.mocked(api.createVehicle).mockResolvedValueOnce({
+				id: 'veh-3',
+				customerId: 'cust-1',
+				registrationNumber: 'TN03EF3000',
+				make: 'Mahindra',
+				model: 'XUV700',
+				variant: 'AX7',
+				color: 'Black',
+				customerName: 'John Doe',
+				createdAt: '2026-03-01T10:00:00Z',
+			});
+
+			renderWithProviders(
+				<EditCustomerModal
+					open={true}
+					customer={mockCustomer}
+					onClose={mockOnClose}
+					onSuccess={mockOnSuccess}
+				/>
+			);
+
+			await waitFor(() => {
+				expect(screen.getByDisplayValue('TN01AB1000')).toBeInTheDocument();
+			});
+
+			// Add new vehicle
+			fireEvent.click(screen.getByRole('button', { name: /add vehicle/i }));
+
+			// Fill in Vehicle #3 details
+			const regInputs = screen.getAllByPlaceholderText(/e\.g\. TN56P3334/i);
+			const makeInputs = screen.getAllByPlaceholderText(/e\.g\. Maruti, Hyundai/i);
+			const modelInputs = screen.getAllByPlaceholderText(/e\.g\. Baleno, Creta/i);
+
+			// Index 2 is the new vehicle (indices 0 and 1 are collapsed existing vehicles)
+			fireEvent.change(regInputs[2], { target: { value: 'TN03EF3000' } });
+			fireEvent.change(makeInputs[2], { target: { value: 'Mahindra' } });
+			fireEvent.change(modelInputs[2], { target: { value: 'XUV700' } });
+
+			// Save changes
+			fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+			await waitFor(() => {
+				expect(api.updateCustomer).toHaveBeenCalledWith(
+					expect.objectContaining({
+						id: 'cust-1',
+						name: 'John Doe',
+					})
+				);
+				expect(api.createVehicle).toHaveBeenCalledWith({
+					customerId: 'cust-1',
+					registrationNumber: 'TN03EF3000',
+					make: 'Mahindra',
+					model: 'XUV700',
+					variant: null,
+				});
+				expect(mockOnSuccess).toHaveBeenCalled();
+			});
+		});
+	});
 });
+
 
