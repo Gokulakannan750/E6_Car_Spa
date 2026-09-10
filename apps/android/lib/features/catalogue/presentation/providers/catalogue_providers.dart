@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../data/service_repository.dart';
 import '../../models/service_model.dart';
 
@@ -12,7 +13,7 @@ class CatalogueState {
 
   const CatalogueState({
     this.services = const [],
-    this.categories = const [],
+    this.categories = kCatalogueCategories,
     this.selectedCategory,
     this.searchQuery = '',
     this.isLoading = false,
@@ -55,17 +56,21 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
         category: state.selectedCategory,
       );
       final cats = await _repository.getCategories();
+      final Set<String> allCats = Set<String>.from(kCatalogueCategories);
+      allCats.addAll(cats.where((c) => c.trim().isNotEmpty));
+      final sortedCats = allCats.toList()..sort();
 
       if (!mounted) return;
       state = state.copyWith(
         services: res.items,
-        categories: cats,
+        categories: sortedCats,
         isLoading: false,
       );
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
+        categories: state.categories.isEmpty ? kCatalogueCategories : state.categories,
         errorMessage: e.toString().replaceAll('ApiException: ', ''),
       );
     }

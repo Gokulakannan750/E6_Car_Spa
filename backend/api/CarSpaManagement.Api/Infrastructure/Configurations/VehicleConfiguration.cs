@@ -39,7 +39,9 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
 
  // Indexes
  builder.HasIndex(v => v.RegistrationNumber)
- .HasDatabaseName("IX_Vehicles_RegistrationNumber");
+ .IsUnique()
+ .HasFilter("\"IsDeleted\" = false")
+ .HasDatabaseName("UX_Vehicles_RegistrationNumber");
 
  builder.HasIndex(v => new { v.CustomerId, v.RegistrationNumber })
  .HasDatabaseName("IX_Vehicles_CustomerId_RegistrationNumber");

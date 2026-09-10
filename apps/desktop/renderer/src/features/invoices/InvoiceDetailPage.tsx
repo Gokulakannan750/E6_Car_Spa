@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
 	ArrowLeft,
@@ -152,6 +152,72 @@ export function InvoiceDetailPage() {
 	// Initial loaded values for modification check
 	const [initialGstEnabled, setInitialGstEnabled] = useState<boolean>(true);
 
+	// ─── WhatsApp Polling & Status Refresh ────────────────────────────────────
+	const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+	const stopPolling = useCallback(() => {
+		if (pollingTimerRef.current) {
+			clearInterval(pollingTimerRef.current);
+			pollingTimerRef.current = null;
+		}
+	}, []);
+
+	const startPolling = useCallback((targetType?: string) => {
+		stopPolling();
+		if (!id) return;
+
+		let attempts = 0;
+		const maxAttempts = 15; // 30s cutoff (15 * 2s)
+
+		const isTerminal = (status: string) => ['Sent', 'Failed', 'Skipped'].includes(status);
+
+		const poll = async () => {
+			attempts++;
+			if (attempts > maxAttempts) {
+				stopPolling();
+				return;
+			}
+
+			try {
+				const [refreshedInvoice, waData] = await Promise.all([
+					getInvoiceById(id).catch(() => null),
+					getInvoiceWhatsAppStatus(id).catch(() => null),
+				]);
+
+				if (refreshedInvoice) {
+					setInvoice(refreshedInvoice);
+				}
+
+				if (waData && waData.length > 0) {
+					setWhatsAppStatuses(waData);
+
+					if (targetType) {
+						const target = waData.find((s) => s.messageType === targetType);
+						if (target && isTerminal(target.status) && waData.every((s) => isTerminal(s.status))) {
+							stopPolling();
+						}
+					} else if (waData.every((s) => isTerminal(s.status))) {
+						stopPolling();
+					}
+				}
+			} catch {
+				// Ignore background polling errors
+			}
+		};
+
+		// Immediate check
+		poll();
+
+		// Schedule polling every 2 seconds
+		pollingTimerRef.current = setInterval(poll, 2000);
+	}, [id, stopPolling]);
+
+	useEffect(() => {
+		return () => {
+			stopPolling();
+		};
+	}, [stopPolling]);
+
 	// ─── Fetch Invoice ───────────────────────────────────────────────────────
 	const fetchInvoice = useCallback(async () => {
 		if (!id) return;
@@ -177,13 +243,18 @@ export function InvoiceDetailPage() {
 			const gstActive = typeof data.isGstEnabled === 'boolean' ? data.isGstEnabled : true;
 			setIsGstEnabled(gstActive);
 			setInitialGstEnabled(gstActive);
+
+			const isTerminal = (status: string) => ['Sent', 'Failed', 'Skipped'].includes(status);
+			if (data.invoiceNumber && (!waData || waData.length === 0 || waData.some((s) => !isTerminal(s.status)))) {
+				startPolling();
+			}
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to load invoice';
 			setError(msg);
 		} finally {
 			setLoading(false);
 		}
-	}, [id]);
+	}, [id, startPolling]);
 
 	useEffect(() => {
 		fetchInvoice();
@@ -202,6 +273,18 @@ export function InvoiceDetailPage() {
 	const isCancelled = normalizedStatus === 'Cancelled';
 	const isFinalized = !isDraft && !isCancelled;
 	const isPaid = normalizedStatus === 'Paid' || (invoice?.paidAmount != null && invoice?.totalAmount != null && invoice.paidAmount >= invoice.totalAmount && invoice.totalAmount > 0);
+
+	const latestWhatsAppStatuses = useMemo(() => {
+		const map = new Map<string, InvoiceWhatsAppStatusDto>();
+		for (const s of whatsAppStatuses) {
+			map.set(s.messageType, s);
+		}
+		return Array.from(map.values()).sort((a, b) => {
+			if (a.messageType === 'InvoiceFinalized') return -1;
+			if (b.messageType === 'InvoiceFinalized') return 1;
+			return 0;
+		});
+	}, [whatsAppStatuses]);
 
 	// ─── Financial Calculations ──────────────────────────────────────────────
 	const parsedDiscount = useMemo(() => {
@@ -347,6 +430,9 @@ export function InvoiceDetailPage() {
 			setInitialGstEnabled(finalized.isGstEnabled);
 			setPaymentAmount(String(finalized.balanceAmount ?? finalized.totalAmount));
 			setShowGenerateConfirm(false);
+
+			// Automatically poll/refresh notification status for InvoiceFinalized
+			startPolling('InvoiceFinalized');
 		} catch (err: unknown) {
 			console.warn('Generate invoice error:', err);
 			// In case of conflict (already generated), reload from API
@@ -360,6 +446,7 @@ export function InvoiceDetailPage() {
 					setInitialGstEnabled(reloaded.isGstEnabled);
 					setPaymentAmount(String(reloaded.balanceAmount ?? reloaded.totalAmount));
 					setShowGenerateConfirm(false);
+					startPolling('InvoiceFinalized');
 					return;
 				}
 			} catch {
@@ -455,6 +542,9 @@ export function InvoiceDetailPage() {
 			setPaymentReference('');
 			setPaymentFeedback(`Payment of ${formatCurrency(amt)} recorded successfully via ${paymentMethod === 'BankTransfer' ? 'Bank Transfer' : paymentMethod}.`);
 			setTimeout(() => setPaymentFeedback(null), 5000);
+
+			// Automatically poll/refresh notification status for PaymentCompleted
+			startPolling('PaymentCompleted');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to record payment. Please try again.';
 			setPaymentError(msg);
@@ -644,11 +734,11 @@ export function InvoiceDetailPage() {
 					</div>
 
 					{/* WhatsApp Read-Only Status Badges */}
-					{whatsAppStatuses.length > 0 && (
+					{latestWhatsAppStatuses.length > 0 && (
 						<div className="flex items-center gap-2 flex-wrap shrink-0">
-							{whatsAppStatuses.map((st, idx) => (
+							{latestWhatsAppStatuses.map((st, idx) => (
 								<span
-									key={idx}
+									key={st.messageType || idx}
 									className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${
 										st.status === 'Sent'
 											? 'bg-emerald-50 text-emerald-700 border border-emerald-200'

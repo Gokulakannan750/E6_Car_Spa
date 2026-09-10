@@ -429,14 +429,44 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
   }
 
   Future<void> lookupByRegistration(String registrationNumber) async {
-    if (registrationNumber.trim().isEmpty) return;
+    final normalized = registrationNumber.trim().toUpperCase();
+    if (normalized.isEmpty) return;
     if (!mounted) return;
     state = state.copyWith(isSearching: true, clearLookupError: true);
 
     try {
-      final vehicle = await _vehicleRepo.getVehicleByRegistration(registrationNumber.trim());
+      final fetchedVehicle = await _vehicleRepo.getVehicleByRegistration(normalized);
       if (!mounted) return;
-      if (vehicle != null) {
+      if (fetchedVehicle != null) {
+        final vehicle = fetchedVehicle.registrationNumber != fetchedVehicle.registrationNumber.trim().toUpperCase()
+            ? fetchedVehicle.copyWith(registrationNumber: fetchedVehicle.registrationNumber.trim().toUpperCase())
+            : fetchedVehicle;
+        if (state.customer != null) {
+          if (vehicle.customerId == state.customer!.id) {
+            // CASE 1: Belongs to currently selected customer
+            final existingIndex = state.customerVehicles.indexWhere((v) =>
+                v.id == vehicle.id ||
+                v.registrationNumber.trim().toUpperCase() == vehicle.registrationNumber.trim().toUpperCase());
+            final matchingVehicle = existingIndex >= 0 ? state.customerVehicles[existingIndex] : vehicle;
+            final vehicles = existingIndex >= 0 ? state.customerVehicles : [...state.customerVehicles, vehicle];
+            state = state.copyWith(
+              isSearching: false,
+              customerVehicles: vehicles,
+              selectedVehicle: matchingVehicle,
+              clearLookupError: true,
+            );
+            return;
+          } else {
+            // CASE 2: Belongs to another customer
+            final owner = vehicle.customerName ?? 'another customer';
+            state = state.copyWith(
+              isSearching: false,
+              lookupError: 'Vehicle ${vehicle.registrationNumber} is already registered to $owner. Tap "+ Add Vehicle" to transfer ownership.',
+            );
+            return;
+          }
+        }
+
         final customer = await _customerRepo.getCustomerById(vehicle.customerId);
         if (!mounted) return;
         final vehicles = await _vehicleRepo.getVehiclesByCustomer(customer.id);
@@ -451,7 +481,7 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       } else {
         state = state.copyWith(
           isSearching: false,
-          lookupError: 'No vehicle found with registration $registrationNumber',
+          lookupError: 'No vehicle found with registration $normalized',
         );
       }
     } on ApiException catch (e) {

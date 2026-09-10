@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/routes.dart';
+import '../../features/auth/presentation/pages/first_time_setup_screen.dart';
 import '../../features/auth/presentation/pages/login_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/providers/auth_state.dart';
@@ -41,22 +42,32 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authNotifierProvider);
     final location = state.matchedLocation;
-    final isAuthRoute =
-        location == AppRoutes.login || location == AppRoutes.forgotPassword;
+    final isAuthRoute = location == AppRoutes.login ||
+        location == AppRoutes.forgotPassword ||
+        location == AppRoutes.firstTimeSetup;
 
-    // During initial session check, keep on login or don't redirect yet
+    // During initial session check, keep on current route or don't redirect yet
     if (authState is AuthInitial) {
       return null;
+    }
+
+    // Uninitialized database requires initial Owner setup
+    if (authState is SetupRequired) {
+      return location == AppRoutes.firstTimeSetup ? null : AppRoutes.firstTimeSetup;
     }
 
     final isAuthenticated = authState is Authenticated;
 
     if (!isAuthenticated) {
       // Unauthenticated users cannot access protected routes
+      // If database is initialized, /setup is not accessible; redirect to /login
+      if (location == AppRoutes.firstTimeSetup) {
+        return AppRoutes.login;
+      }
       return isAuthRoute ? null : AppRoutes.login;
     }
 
-    // Authenticated users should not see login/forgot password pages
+    // Authenticated users should not see login/setup/forgot password pages
     if (isAuthRoute) {
       return AppRoutes.dashboard;
     }
@@ -81,6 +92,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.firstTimeSetup,
+        builder: (context, state) => const FirstTimeSetupScreen(),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,

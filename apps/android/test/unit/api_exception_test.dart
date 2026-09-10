@@ -134,7 +134,47 @@ void main() {
       expect(exception.message, 'The requested record could not be found.');
     });
 
-    test('429 Too Many Requests maps to RateLimitedException', () {
+    test('401 Unauthorized on login endpoint produces invalid credentials message', () {
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/auth/login'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 401,
+          data: {'error': 'Invalid username or password.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final exception = ApiException.fromDio(dioException);
+
+      expect(exception, isA<UnauthorizedException>());
+      expect(exception.statusCode, 401);
+      expect(exception.message, 'Invalid username or password.');
+    });
+
+    test('423 Locked maps to AccountLockedException', () {
+      final dioException = DioException(
+        requestOptions: RequestOptions(path: '/auth/login'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/auth/login'),
+          statusCode: 423,
+          data: {
+            'error': 'Account locked',
+            'remainingLockoutSeconds': 180,
+          },
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final exception = ApiException.fromDio(dioException);
+
+      expect(exception, isA<AccountLockedException>());
+      expect(exception.statusCode, 423);
+      expect(exception.message, 'Account temporarily locked. Please try again later.');
+      expect((exception as AccountLockedException).remainingLockoutSeconds, 180);
+    });
+
+    test('429 Too Many Requests maps to RateLimitedException with contract message', () {
       final dioException = DioException(
         requestOptions: RequestOptions(path: '/api/auth/login'),
         response: Response(
@@ -149,7 +189,7 @@ void main() {
 
       expect(exception, isA<RateLimitedException>());
       expect(exception.statusCode, 429);
-      expect(exception.message, 'Too many requests. Please try again shortly.');
+      expect(exception.message, 'Too many attempts. Please try again later.');
     });
 
     test('500 Server Error sanitizes technical dump when no friendly message is provided', () {

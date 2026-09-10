@@ -185,6 +185,7 @@ class CustomerDetailsScreen extends ConsumerWidget {
                     AddVehicleDialog.show(
                       context,
                       customerId: customer.id,
+                      customerName: customer.name,
                       onCreated: (newVehicle) {
                         notifier.loadDetails();
                       },

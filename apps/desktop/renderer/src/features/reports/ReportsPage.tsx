@@ -275,7 +275,7 @@ export function ReportsPage() {
 			if (Array.isArray(jcServices) && jcServices.length > 0) {
 				jcServices.forEach((s: any) => {
 					const name = s.serviceName || s.name || 'Custom Service';
-					const cat = s.category || 'General';
+					const cat = s.category || 'General Services';
 					const rev = s.lineTotal || (s.unitPrice ? s.unitPrice * (s.quantity || 1) : 0);
 					if (!serviceMap[name]) serviceMap[name] = { name, category: cat, count: 0, revenue: 0 };
 					serviceMap[name].count += s.quantity || 1;
@@ -284,7 +284,7 @@ export function ReportsPage() {
 			} else {
 				// Attribute by total amount if services array is flat
 				const name = 'Car Spa Service Package';
-				if (!serviceMap[name]) serviceMap[name] = { name, category: 'General', count: 0, revenue: 0 };
+				if (!serviceMap[name]) serviceMap[name] = { name, category: 'General Services', count: 0, revenue: 0 };
 				serviceMap[name].count += 1;
 				serviceMap[name].revenue += jc.totalAmount || 0;
 			}
@@ -407,7 +407,7 @@ export function ReportsPage() {
 
 			// ── Sheet 4: Top Services
 			const sHeaders = ['Service Name', 'Category', 'Bookings / Quantity', 'Total Revenue Generated (INR)'];
-			const sRows = topServices.map((s) => [s.name, s.category || 'General', s.count, s.revenue]);
+			const sRows = topServices.map((s) => [s.name, s.category || 'General Services', s.count, s.revenue]);
 			const wsServices = XLSX.utils.aoa_to_sheet([sHeaders, ...sRows]);
 			wsServices['!cols'] = [{ wch: 32 }, { wch: 20 }, { wch: 22 }, { wch: 26 }];
 			XLSX.utils.book_append_sheet(wb, wsServices, 'Top Services');

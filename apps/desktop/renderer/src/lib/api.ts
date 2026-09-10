@@ -121,7 +121,7 @@ export async function request<T>(
 	} catch {
 		// Network failure / server unreachable / fetch error
 		throw new ApiError(
-			'Unable to connect to the server. Please check that the E6 Car Spa server is running and try again.',
+			'Unable to connect to the server. Please try again.',
 			0,
 			null,
 			'NETWORK_ERROR',
@@ -131,7 +131,13 @@ export async function request<T>(
 
 	if (res.status === 204) return undefined as T;
 
-	if (res.status === 401 && !path.includes('/api/auth/login')) {
+	const normalizedPath = path.toLowerCase();
+	const isAuthEndpoint =
+		normalizedPath.includes('/auth/login') ||
+		normalizedPath.includes('/auth/status') ||
+		normalizedPath.includes('/auth/bootstrap');
+
+	if (res.status === 401 && !isAuthEndpoint) {
 		setAuthToken(null);
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem(USER_STORAGE_KEY);
@@ -186,9 +192,9 @@ export async function request<T>(
 		switch (res.status) {
 			case 401:
 				code = 'UNAUTHORIZED';
-				friendlyMessage = rawDetail && !isTechnicalError(rawDetail) && path.includes('/api/auth/login')
-					? rawDetail
-					: 'Your session has expired. Please sign in again.';
+				friendlyMessage = isAuthEndpoint
+					? 'Invalid username or password.'
+					: 'Session expired. Please log in again.';
 				break;
 			case 403:
 				code = 'PERMISSION_DENIED';
@@ -220,9 +226,7 @@ export async function request<T>(
 				break;
 			case 423: {
 				code = 'ACCOUNT_LOCKED';
-				friendlyMessage = rawDetail && !isTechnicalError(rawDetail)
-					? rawDetail
-					: 'Too many failed login attempts. Please try again later.';
+				friendlyMessage = 'Account temporarily locked. Please try again later.';
 				let remainingSeconds = 300;
 				if (rawBody && typeof rawBody === 'object') {
 					const b = rawBody as Record<string, unknown>;
@@ -233,7 +237,7 @@ export async function request<T>(
 			}
 			case 429:
 				code = 'RATE_LIMITED';
-				friendlyMessage = 'Too many requests. Please try again shortly.';
+				friendlyMessage = 'Too many attempts. Please try again later.';
 				break;
 			default:
 				if (res.status >= 500) {
@@ -690,6 +694,14 @@ export async function updateVehicle(id: string, data: UpdateVehicleInput) {
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'edit vehicles');
 }
+
+export async function transferVehicleOwnership(vehicleId: string, newCustomerId: string) {
+	return request<VehicleDto>(`/api/vehicles/${encodeURIComponent(vehicleId)}/transfer-ownership`, {
+		method: 'POST',
+		body: JSON.stringify({ newCustomerId }),
+	}, 'edit vehicles');
+}
+
 
 // ============================================================================
 // Job Cards
@@ -1584,6 +1596,11 @@ export interface UpdateBusinessProfileInput {
 	termsAndConditions?: string | null;
 }
 
+export interface LogoUploadResponse {
+	logoUrl: string;
+	profile: BusinessProfileDto;
+}
+
 export const BUSINESS_PROFILE_STORAGE_KEY = 'car_spa_business_profile';
 
 export function getCachedBusinessProfile(): BusinessProfileDto | null {
@@ -1622,6 +1639,43 @@ export function resolveLogoUrl(logoPath?: string | null, updatedAt?: string | nu
 	const pathWithSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
 	const fullUrl = `${base}${pathWithSlash}`;
 	return fullUrl.includes('?') ? fullUrl : `${fullUrl}${versionParam}`;
+}
+
+export interface PublicBusinessProfileDto {
+	businessName: string;
+	logoPath: string | null;
+	updatedAt: string | null;
+}
+
+export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileDto> {
+	const res = await request<PublicBusinessProfileDto>('/api/public/business-profile', {}, 'view public branding');
+	const existing = getCachedBusinessProfile();
+	if (existing) {
+		setCachedBusinessProfile({
+			...existing,
+			businessName: res.businessName,
+			logoPath: res.logoPath,
+			updatedAt: res.updatedAt,
+		});
+	} else {
+		setCachedBusinessProfile({
+			id: '',
+			businessName: res.businessName,
+			addressLine1: '',
+			addressLine2: null,
+			city: '',
+			state: '',
+			postalCode: '',
+			phone: '',
+			email: '',
+			gstin: null,
+			logoPath: res.logoPath,
+			invoicePrefix: 'INV',
+			createdAt: '',
+			updatedAt: res.updatedAt,
+		});
+	}
+	return res;
 }
 
 export async function getBusinessProfile() {
@@ -1731,6 +1785,20 @@ export interface WhatsAppConfigDto {
 	paymentCompletedTemplateName: string;
 	paymentCompletedTemplateLanguage: string;
 	updatedAt?: string | null;
+	healthStatus?: 'NotConfigured' | 'Healthy' | 'AuthenticationFailed' | 'ConfigurationInvalid' | 'TemporarilyUnavailable' | string;
+	lastCheckedAtUtc?: string | null;
+	lastSuccessAtUtc?: string | null;
+	lastFailureAtUtc?: string | null;
+	lastErrorMessage?: string | null;
+}
+
+export interface WhatsAppHealthDto {
+	status: 'NotConfigured' | 'Healthy' | 'AuthenticationFailed' | 'ConfigurationInvalid' | 'TemporarilyUnavailable' | string;
+	lastCheckedAtUtc?: string | null;
+	lastSuccessAtUtc?: string | null;
+	lastFailureAtUtc?: string | null;
+	lastErrorMessage?: string | null;
+	isConfigured: boolean;
 }
 
 export interface UpdateWhatsAppConfigRequest {
@@ -1806,6 +1874,10 @@ export interface MetaWhatsAppTemplatesResponse {
 
 export async function getWhatsAppConfig() {
 	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {}, 'view WhatsApp settings');
+}
+
+export async function getWhatsAppHealth(probe = false) {
+	return request<WhatsAppHealthDto>(`/api/settings/whatsapp/health${probe ? '?probe=true' : ''}`, {}, 'view WhatsApp integration health');
 }
 
 export async function updateWhatsAppConfig(data: UpdateWhatsAppConfigRequest) {

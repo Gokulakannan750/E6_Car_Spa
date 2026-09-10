@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -44,7 +44,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
-  late final TextEditingController _durationController;
   late final TextEditingController _descriptionController;
 
   String? _selectedCategory;
@@ -52,12 +51,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static const List<String> _fallbackCategories = [
-    'Exterior Detailing',
-    'Interior Care',
-    'Protection Packages',
-    'Others',
-  ];
 
   @override
   void initState() {
@@ -65,7 +58,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
     final s = widget.service;
     _nameController = TextEditingController(text: s.name);
     _priceController = TextEditingController(text: s.price.toStringAsFixed(2));
-    _durationController = TextEditingController(text: s.durationMinutes != null ? s.durationMinutes.toString() : '');
     _descriptionController = TextEditingController(text: s.description ?? '');
     _selectedCategory = s.category;
     _isActive = s.isActive;
@@ -75,7 +67,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
-    _durationController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -89,8 +80,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
       return;
     }
 
-    final duration = int.tryParse(_durationController.text.trim());
-
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -102,7 +91,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
         price: price,
         taxPercentage: widget.service.taxPercentage,
         category: _selectedCategory?.trim(),
-        durationMinutes: duration,
         description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
         isActive: _isActive,
       );
@@ -135,11 +123,10 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
 
-    final Set<String> allCategories = {};
-    categoriesAsync.whenData((cats) => allCategories.addAll(cats));
-    if (allCategories.isEmpty) {
-      allCategories.addAll(_fallbackCategories);
-    }
+    final Set<String> allCategories = Set<String>.from(kCatalogueCategories);
+    categoriesAsync.whenData((cats) {
+      allCategories.addAll(cats.where((c) => c.trim().isNotEmpty));
+    });
     if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
       allCategories.add(_selectedCategory!);
     }
@@ -257,24 +244,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                         if (val == null || val.trim().isEmpty) return 'Price is required';
                         final num = double.tryParse(val.trim());
                         if (num == null || num < 0) return 'Enter valid amount';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Duration (Minutes)
-                    AppTextField(
-                      controller: _durationController,
-                      label: 'Estimated Duration (Minutes)',
-                      hint: 'e.g. 60',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      prefixIcon: const Icon(Icons.schedule),
-                      validator: (val) {
-                        if (val != null && val.trim().isNotEmpty) {
-                          final num = int.tryParse(val.trim());
-                          if (num == null || num < 1 || num > 1440) return 'Enter 1 to 1440 minutes';
-                        }
                         return null;
                       },
                     ),

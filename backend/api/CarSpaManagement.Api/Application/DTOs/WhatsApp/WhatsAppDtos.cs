@@ -12,7 +12,21 @@ public record WhatsAppConfigResponse(
 	string InvoiceTemplateLanguage,
 	string PaymentCompletedTemplateName,
 	string PaymentCompletedTemplateLanguage,
-	DateTime? UpdatedAt
+	DateTime? UpdatedAt,
+	string HealthStatus = "NotConfigured",
+	DateTime? LastCheckedAtUtc = null,
+	DateTime? LastSuccessAtUtc = null,
+	DateTime? LastFailureAtUtc = null,
+	string? LastErrorMessage = null
+);
+
+public record WhatsAppHealthDto(
+	string Status,
+	DateTime? LastCheckedAtUtc,
+	DateTime? LastSuccessAtUtc,
+	DateTime? LastFailureAtUtc,
+	string? LastErrorMessage,
+	bool IsConfigured
 );
 
 public record UpdateWhatsAppConfigRequest

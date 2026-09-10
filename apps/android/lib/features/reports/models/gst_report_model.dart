@@ -27,7 +27,7 @@ class GstReportRowModel {
       invoiceNumber: json['invoiceNumber']?.toString() ?? json['InvoiceNumber']?.toString(),
       invoiceDate: DateTime.tryParse(json['invoiceDate']?.toString() ?? json['InvoiceDate']?.toString() ?? '') ?? DateTime.now(),
       customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
-      registrationNumber: json['registrationNumber']?.toString() ?? json['RegistrationNumber']?.toString() ?? '',
+      registrationNumber: (json['registrationNumber']?.toString() ?? json['RegistrationNumber']?.toString() ?? '').trim().toUpperCase(),
       isGstEnabled: json['isGstEnabled'] as bool? ?? json['IsGstEnabled'] as bool? ?? true,
       taxableAmount: ((json['taxableAmount'] ?? json['TaxableAmount'] ?? 0.0) as num).toDouble(),
       gstAmount: ((json['gstAmount'] ?? json['GstAmount'] ?? 0.0) as num).toDouble(),

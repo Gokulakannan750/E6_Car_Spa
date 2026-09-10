@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
@@ -154,6 +155,7 @@ class InvoiceDetailsState {
   final bool isGenerating;
   final bool isRecordingPayment;
   final Invoice? invoice;
+  final List<InvoiceWhatsAppStatus> whatsAppStatuses;
   final String? errorMessage;
   final String? actionSuccessMessage;
 
@@ -163,6 +165,7 @@ class InvoiceDetailsState {
     this.isGenerating = false,
     this.isRecordingPayment = false,
     this.invoice,
+    this.whatsAppStatuses = const [],
     this.errorMessage,
     this.actionSuccessMessage,
   });
@@ -173,6 +176,7 @@ class InvoiceDetailsState {
     bool? isGenerating,
     bool? isRecordingPayment,
     Invoice? invoice,
+    List<InvoiceWhatsAppStatus>? whatsAppStatuses,
     String? errorMessage,
     bool clearError = false,
     String? actionSuccessMessage,
@@ -184,6 +188,7 @@ class InvoiceDetailsState {
       isGenerating: isGenerating ?? this.isGenerating,
       isRecordingPayment: isRecordingPayment ?? this.isRecordingPayment,
       invoice: invoice ?? this.invoice,
+      whatsAppStatuses: whatsAppStatuses ?? this.whatsAppStatuses,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       actionSuccessMessage: clearSuccess ? null : (actionSuccessMessage ?? this.actionSuccessMessage),
     );
@@ -195,12 +200,102 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
   final String _invoiceId;
   final Ref _ref;
 
+  Timer? _pollingTimer;
+  int _pollingAttempts = 0;
+  bool _isFetchingWhatsApp = false;
+  String? _waitingForType;
+  Future<void>? _loadFuture;
+
+  static const Duration _pollingInterval = Duration(seconds: 2);
+  static const int _maxPollingAttempts = 15;
+
   InvoiceDetailsNotifier(this._repository, this._invoiceId, this._ref)
       : super(const InvoiceDetailsState()) {
     loadDetails();
   }
 
-  Future<void> loadDetails() async {
+  bool get isPolling => _pollingTimer != null && _pollingTimer!.isActive;
+
+  void stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+    _waitingForType = null;
+    _pollingAttempts = 0;
+  }
+
+  void checkAndResumePolling() {
+    if (!mounted) return;
+    final invoice = state.invoice;
+    if (invoice != null && invoice.isFinalized) {
+      if (state.whatsAppStatuses.isEmpty || state.whatsAppStatuses.any((s) => !s.isTerminal)) {
+        _startPolling(immediate: true);
+      }
+    }
+  }
+
+  void _startPolling({String? waitingForType, bool immediate = false}) {
+    stopPolling();
+    _waitingForType = waitingForType;
+    _pollingAttempts = 0;
+
+    if (immediate) {
+      refreshWhatsAppStatus(silent: true, waitingForType: waitingForType);
+    }
+
+    // Setup periodic polling
+    _pollingTimer = Timer.periodic(_pollingInterval, (timer) async {
+      if (!mounted) {
+        stopPolling();
+        return;
+      }
+      _pollingAttempts++;
+      if (_pollingAttempts >= _maxPollingAttempts) {
+        stopPolling();
+        return;
+      }
+      await refreshWhatsAppStatus(silent: true, waitingForType: _waitingForType);
+    });
+  }
+
+  Future<void> refreshWhatsAppStatus({bool silent = true, String? waitingForType}) async {
+    if (!mounted || _isFetchingWhatsApp) return;
+    _isFetchingWhatsApp = true;
+
+    try {
+      final statuses = await _repository.getInvoiceWhatsAppStatus(_invoiceId);
+      if (!mounted) return;
+
+      state = state.copyWith(whatsAppStatuses: statuses);
+
+      final targetType = waitingForType ?? _waitingForType;
+      if (targetType != null) {
+        final target = statuses.where((s) => s.messageType == targetType).firstOrNull;
+        if (target != null && target.isTerminal) {
+          if (statuses.every((s) => s.isTerminal)) {
+            stopPolling();
+          }
+        }
+      } else {
+        if (statuses.isNotEmpty && statuses.every((s) => s.isTerminal)) {
+          stopPolling();
+        }
+      }
+    } catch (_) {
+      // In silent polling, ignore errors so user experience isn't interrupted
+    } finally {
+      _isFetchingWhatsApp = false;
+    }
+  }
+
+  Future<void> loadDetails() {
+    if (_loadFuture != null) return _loadFuture!;
+    _loadFuture = _performLoadDetails().whenComplete(() {
+      _loadFuture = null;
+    });
+    return _loadFuture!;
+  }
+
+  Future<void> _performLoadDetails() async {
     if (!mounted) return;
     state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
 
@@ -212,6 +307,19 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
         invoice: invoice,
         clearError: true,
       );
+
+      if (invoice.isFinalized) {
+        try {
+          final statuses = await _repository.getInvoiceWhatsAppStatus(_invoiceId);
+          if (!mounted) return;
+          state = state.copyWith(whatsAppStatuses: statuses);
+          if (statuses.any((s) => !s.isTerminal)) {
+            _startPolling(immediate: false);
+          }
+        } catch (_) {
+          // Failure to load WhatsApp status does not fail invoice loading
+        }
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       state = state.copyWith(
@@ -284,6 +392,8 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
         clearError: true,
       );
       _ref.read(invoiceListProvider.notifier).loadInvoices();
+      _startPolling(waitingForType: 'InvoiceFinalized');
+      await refreshWhatsAppStatus(silent: true, waitingForType: 'InvoiceFinalized');
       return generated;
     } on ApiException catch (e) {
       if (!mounted) return null;
@@ -318,6 +428,8 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
         clearError: true,
       );
       _ref.read(invoiceListProvider.notifier).loadInvoices();
+      _startPolling(waitingForType: 'PaymentCompleted');
+      await refreshWhatsAppStatus(silent: true, waitingForType: 'PaymentCompleted');
       return true;
     } on ApiException catch (e) {
       if (!mounted) return false;
@@ -334,6 +446,12 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       );
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    stopPolling();
+    super.dispose();
   }
 }
 

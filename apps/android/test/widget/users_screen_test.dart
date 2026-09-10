@@ -30,6 +30,9 @@ class TestAuthNotifier extends StateNotifier<AuthState>
 
   @override
   void clearError() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class TestUsersNotifier extends StateNotifier<UsersState>

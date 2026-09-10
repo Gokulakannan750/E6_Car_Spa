@@ -68,5 +68,24 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 			.HasMaxLength(20)
 			.HasDefaultValue("en_US")
 			.IsRequired();
+
+		builder.Property(c => c.HealthStatus)
+			.HasConversion<string>()
+			.HasMaxLength(50)
+			.HasDefaultValue(CarSpaManagement.Api.Domain.Enums.WhatsAppHealthStatus.NotConfigured)
+			.IsRequired();
+
+		builder.Property(c => c.LastCheckedAtUtc)
+			.IsRequired(false);
+
+		builder.Property(c => c.LastSuccessAtUtc)
+			.IsRequired(false);
+
+		builder.Property(c => c.LastFailureAtUtc)
+			.IsRequired(false);
+
+		builder.Property(c => c.LastErrorMessage)
+			.HasMaxLength(500)
+			.IsRequired(false);
 	}
 }

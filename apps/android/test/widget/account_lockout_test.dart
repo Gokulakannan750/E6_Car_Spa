@@ -27,7 +27,7 @@ void main() {
       final exception = ApiException.fromDio(dioException);
       expect(exception, isA<AccountLockedException>());
       final lockedEx = exception as AccountLockedException;
-      expect(lockedEx.message, 'Too many failed login attempts. Please try again later.');
+      expect(lockedEx.message, 'Account temporarily locked. Please try again later.');
       expect(lockedEx.remainingLockoutSeconds, 300);
       expect(lockedEx.statusCode, 423);
     });
@@ -47,7 +47,7 @@ void main() {
       await tester.pump();
 
       // Verify lockout message is displayed
-      expect(find.textContaining('Too many failed login attempts'), findsOneWidget);
+      expect(find.textContaining('Account temporarily locked. Please try again later.'), findsOneWidget);
       expect(find.textContaining('remaining'), findsOneWidget);
 
       // Verify button says "Account Locked" and has null onPressed (disabled)
@@ -62,7 +62,7 @@ void main() {
 class MockLockedAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
   MockLockedAuthNotifier()
       : super(const AccountLocked(
-          message: 'Too many failed login attempts. Please try again later.',
+          message: 'Account temporarily locked. Please try again later.',
           remainingSeconds: 295,
         ));
 
@@ -81,4 +81,7 @@ class MockLockedAuthNotifier extends StateNotifier<AuthState> implements AuthNot
 
   @override
   Future<void> restoreSession() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

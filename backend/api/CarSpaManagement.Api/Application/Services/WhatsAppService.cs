@@ -94,6 +94,22 @@ public class WhatsAppService : IWhatsAppService
 			config.AccessTokenEncrypted = _encryptionService.Encrypt(request.AccessToken.Trim());
 		}
 
+		var isConfigured = !string.IsNullOrWhiteSpace(config.PhoneNumberId) &&
+						   !string.IsNullOrWhiteSpace(config.BusinessAccountId) &&
+						   !string.IsNullOrWhiteSpace(config.AccessTokenEncrypted);
+
+		if (!isConfigured)
+		{
+			config.HealthStatus = WhatsAppHealthStatus.NotConfigured;
+			config.LastErrorMessage = "WhatsApp integration is not fully configured.";
+		}
+		else
+		{
+			// Reset failure message and mark as pending probe / clean
+			config.HealthStatus = WhatsAppHealthStatus.NotConfigured;
+			config.LastErrorMessage = null;
+		}
+
 		config.UpdatedAt = DateTime.UtcNow;
 		await _db.SaveChangesAsync(cancellationToken);
 
@@ -178,8 +194,9 @@ public class WhatsAppService : IWhatsAppService
 
 			if (!phoneResponse.IsSuccessStatusCode)
 			{
-				var err = ParseMetaError(phoneContent, (int)phoneResponse.StatusCode, token);
-				return new TestWhatsAppConnectionResponse(false, $"Phone Number ID validation failed: {err.Message}", err.Details);
+				var (status, errMessage, errDetails) = ClassifyMetaError((int)phoneResponse.StatusCode, phoneContent, token);
+				await UpdateHealthStatusAsync(status, $"Phone Number ID validation failed: {errMessage}", cancellationToken);
+				return new TestWhatsAppConnectionResponse(false, $"Phone Number ID validation failed: {errMessage}", errDetails);
 			}
 
 			var (verifiedName, displayPhone, qualityRating, platformType) = ParsePhoneNumberDetails(phoneContent, phoneId);
@@ -194,11 +211,14 @@ public class WhatsAppService : IWhatsAppService
 
 			if (!wabaResponse.IsSuccessStatusCode)
 			{
-				var err = ParseMetaError(wabaContent, (int)wabaResponse.StatusCode, token);
-				return new TestWhatsAppConnectionResponse(false, $"WhatsApp Business Account ID validation failed: {err.Message}", err.Details);
+				var (status, errMessage, errDetails) = ClassifyMetaError((int)wabaResponse.StatusCode, wabaContent, token);
+				await UpdateHealthStatusAsync(status, $"WhatsApp Business Account ID validation failed: {errMessage}", cancellationToken);
+				return new TestWhatsAppConnectionResponse(false, $"WhatsApp Business Account ID validation failed: {errMessage}", errDetails);
 			}
 
 			var (wabaName, wabaIdResult) = ParseWabaDetails(wabaContent, wabaId);
+
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.Healthy, null, cancellationToken);
 
 			var details = $"Phone: {displayPhone} (Verified Name: {verifiedName}, Quality: {qualityRating}, Platform: {platformType}) | WABA: {wabaName} (ID: {wabaIdResult})";
 			return new TestWhatsAppConnectionResponse(true, "Successfully connected to Meta WhatsApp Cloud API.", details);
@@ -206,7 +226,9 @@ public class WhatsAppService : IWhatsAppService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "WhatsApp test connection failed with exception.");
-			return new TestWhatsAppConnectionResponse(false, $"Connection error: {SanitizeSecret(ex.Message, token)}");
+			var sanitizedEx = SanitizeSecret(ex.Message, token);
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.TemporarilyUnavailable, $"Connection error: {sanitizedEx}", cancellationToken);
+			return new TestWhatsAppConnectionResponse(false, $"Connection error: {sanitizedEx}");
 		}
 	}
 
@@ -235,6 +257,7 @@ public class WhatsAppService : IWhatsAppService
 		var token = _encryptionService.Decrypt(config.AccessTokenEncrypted);
 		if (string.IsNullOrWhiteSpace(token))
 		{
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.AuthenticationFailed, "Meta Access Token could not be decrypted.", cancellationToken);
 			return new MetaWhatsAppTemplatesResponse(false, "Meta Access Token could not be decrypted.", Array.Empty<MetaWhatsAppTemplateDto>(), 0);
 		}
 
@@ -254,7 +277,8 @@ public class WhatsAppService : IWhatsAppService
 
 				if (!response.IsSuccessStatusCode)
 				{
-					var (metaMsg, metaDetails) = ParseMetaError(responseContent, (int)response.StatusCode, token);
+					var (status, metaMsg, metaDetails) = ClassifyMetaError((int)response.StatusCode, responseContent, token);
+					await UpdateHealthStatusAsync(status, $"Unable to retrieve WhatsApp templates: {metaMsg}", cancellationToken);
 					return new MetaWhatsAppTemplatesResponse(false, $"Unable to retrieve WhatsApp templates from Meta: {metaMsg}", Array.Empty<MetaWhatsAppTemplateDto>(), 0, metaDetails);
 				}
 
@@ -1355,6 +1379,8 @@ public class WhatsAppService : IWhatsAppService
 
 			if (response.IsSuccessStatusCode)
 			{
+				await UpdateHealthStatusAsync(WhatsAppHealthStatus.Healthy, null, cancellationToken);
+
 				string? metaId = null;
 				try
 				{
@@ -1400,8 +1426,31 @@ public class WhatsAppService : IWhatsAppService
 
 			// Handle Failures
 			var statusCode = (int)response.StatusCode;
-			var (errorMsg, errorDetails) = ParseMetaError(responseBody, statusCode, token);
-			var isTransient = statusCode == 429 || statusCode >= 500;
+			var (healthStatus, errorMsg, errorDetails) = ClassifyMetaError(statusCode, responseBody, token);
+			await UpdateHealthStatusAsync(healthStatus, errorMsg, cancellationToken);
+
+			if (healthStatus == WhatsAppHealthStatus.AuthenticationFailed)
+			{
+				_logger.LogWarning("WhatsApp authentication failed for configured integration: {Error}", errorMsg);
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"WhatsApp authentication failed: {errorMsg}";
+				await _db.SaveChangesAsync(cancellationToken);
+
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: $"WhatsApp authentication failed for Invoice '{invNum}': {errorMsg}",
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: invNum,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
+
+				return false;
+			}
+
+			var isTransient = healthStatus == WhatsAppHealthStatus.TemporarilyUnavailable || statusCode == 429 || statusCode >= 500;
 
 			if (isTransient && message.AttemptCount < 3)
 			{
@@ -1433,19 +1482,21 @@ public class WhatsAppService : IWhatsAppService
 		catch (Exception ex)
 		{
 			_logger.LogError(ex, "Exception while sending WhatsApp message {MessageId}", messageId);
+			var sanitizedEx = SanitizeSecret(ex.Message, token);
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.TemporarilyUnavailable, $"Network/System error: {sanitizedEx}", cancellationToken);
 
 			if (message.AttemptCount < 3)
 			{
 				message.Status = WhatsAppMessageStatus.Pending;
 				message.NextAttemptAtUtc = DateTime.UtcNow.AddSeconds(Math.Pow(2, message.AttemptCount) * 10);
-				message.ErrorMessage = $"Network/System error: {SanitizeSecret(ex.Message, token)}";
+				message.ErrorMessage = $"Network/System error: {sanitizedEx}";
 				await _db.SaveChangesAsync(cancellationToken);
 				return false;
 			}
 
 			message.Status = WhatsAppMessageStatus.Failed;
 			message.FailedAtUtc = DateTime.UtcNow;
-			message.ErrorMessage = $"Final failure after {message.AttemptCount} attempts: {SanitizeSecret(ex.Message, token)}";
+			message.ErrorMessage = $"Final failure after {message.AttemptCount} attempts: {sanitizedEx}";
 			await _db.SaveChangesAsync(cancellationToken);
 
 			var invNum = message.Invoice?.InvoiceNumber ?? "INV";
@@ -1812,8 +1863,236 @@ public class WhatsAppService : IWhatsAppService
 			c.InvoiceTemplateLanguage,
 			c.PaymentCompletedTemplateName,
 			c.PaymentCompletedTemplateLanguage,
-			c.UpdatedAt
+			c.UpdatedAt,
+			c.HealthStatus.ToString(),
+			c.LastCheckedAtUtc,
+			c.LastSuccessAtUtc,
+			c.LastFailureAtUtc,
+			c.LastErrorMessage
 		);
+	}
+
+	public async Task<WhatsAppHealthDto> GetHealthStatusAsync(bool forceProbe = false, CancellationToken cancellationToken = default)
+	{
+		var config = await GetOrCreateConfigEntityAsync(cancellationToken);
+
+		var isConfigured = !string.IsNullOrWhiteSpace(config.PhoneNumberId) &&
+						   !string.IsNullOrWhiteSpace(config.BusinessAccountId) &&
+						   !string.IsNullOrWhiteSpace(config.AccessTokenEncrypted);
+
+		if (!isConfigured)
+		{
+			if (config.HealthStatus != WhatsAppHealthStatus.NotConfigured)
+			{
+				config.HealthStatus = WhatsAppHealthStatus.NotConfigured;
+				config.LastErrorMessage = "WhatsApp integration is not fully configured.";
+				await _db.SaveChangesAsync(cancellationToken);
+			}
+
+			return new WhatsAppHealthDto(
+				WhatsAppHealthStatus.NotConfigured.ToString(),
+				config.LastCheckedAtUtc,
+				config.LastSuccessAtUtc,
+				config.LastFailureAtUtc,
+				config.LastErrorMessage ?? "WhatsApp integration is not fully configured.",
+				false
+			);
+		}
+
+		if (forceProbe)
+		{
+			await ProbeHealthInternalAsync(config, cancellationToken);
+		}
+
+		return new WhatsAppHealthDto(
+			config.HealthStatus.ToString(),
+			config.LastCheckedAtUtc,
+			config.LastSuccessAtUtc,
+			config.LastFailureAtUtc,
+			config.LastErrorMessage,
+			true
+		);
+	}
+
+	public async Task ProbeHealthAsync(CancellationToken cancellationToken = default)
+	{
+		var config = await _db.WhatsAppConfigurations.FirstOrDefaultAsync(cancellationToken);
+		if (config == null || !config.IsEnabled)
+			return;
+
+		var isConfigured = !string.IsNullOrWhiteSpace(config.PhoneNumberId) &&
+						   !string.IsNullOrWhiteSpace(config.BusinessAccountId) &&
+						   !string.IsNullOrWhiteSpace(config.AccessTokenEncrypted);
+
+		if (!isConfigured)
+			return;
+
+		await ProbeHealthInternalAsync(config, cancellationToken);
+	}
+
+	private async Task ProbeHealthInternalAsync(WhatsAppConfiguration config, CancellationToken cancellationToken)
+	{
+		var phoneId = config.PhoneNumberId?.Trim();
+		var graphVersion = !string.IsNullOrWhiteSpace(config.GraphApiVersion) ? config.GraphApiVersion.Trim() : "v25.0";
+
+		if (string.IsNullOrWhiteSpace(phoneId) || string.IsNullOrWhiteSpace(config.AccessTokenEncrypted))
+		{
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.NotConfigured, "Phone Number ID or Access Token missing.", cancellationToken);
+			return;
+		}
+
+		string? token = null;
+		try
+		{
+			token = _encryptionService.Decrypt(config.AccessTokenEncrypted);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to decrypt WhatsApp access token during health probe.");
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.AuthenticationFailed, "Access token decryption failed.", cancellationToken);
+			return;
+		}
+
+		if (string.IsNullOrWhiteSpace(token))
+		{
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.AuthenticationFailed, "Access token is empty.", cancellationToken);
+			return;
+		}
+
+		try
+		{
+			var probeUrl = $"https://graph.facebook.com/{graphVersion}/{Uri.EscapeDataString(phoneId)}?fields=id,verified_name";
+			using var request = new HttpRequestMessage(HttpMethod.Get, probeUrl);
+			request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await _httpClient.SendAsync(request, cancellationToken);
+			var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+			if (response.IsSuccessStatusCode)
+			{
+				await UpdateHealthStatusAsync(WhatsAppHealthStatus.Healthy, null, cancellationToken);
+			}
+			else
+			{
+				var (status, errorMsg, _) = ClassifyMetaError((int)response.StatusCode, responseBody, token);
+				await UpdateHealthStatusAsync(status, errorMsg, cancellationToken);
+			}
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "WhatsApp health probe encountered network/system exception.");
+			var sanitizedEx = SanitizeSecret(ex.Message, token);
+			await UpdateHealthStatusAsync(WhatsAppHealthStatus.TemporarilyUnavailable, $"Network error: {sanitizedEx}", cancellationToken);
+		}
+	}
+
+	public static (WhatsAppHealthStatus Status, string Message, string? Details) ClassifyMetaError(
+		int statusCode,
+		string? responseBody,
+		string? tokenToMask = null)
+	{
+		var (cleanMsg, cleanDetails) = ParseMetaError(responseBody, statusCode, tokenToMask);
+
+		if (statusCode == 401)
+		{
+			return (WhatsAppHealthStatus.AuthenticationFailed, cleanMsg, cleanDetails);
+		}
+
+		if (statusCode == 429 || statusCode >= 500)
+		{
+			return (WhatsAppHealthStatus.TemporarilyUnavailable, cleanMsg, cleanDetails);
+		}
+
+		if (!string.IsNullOrWhiteSpace(responseBody))
+		{
+			try
+			{
+				using var doc = JsonDocument.Parse(responseBody);
+				if (doc.RootElement.TryGetProperty("error", out var errorObj))
+				{
+					var type = errorObj.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
+					var code = errorObj.TryGetProperty("code", out var c) ? c.GetInt32() : 0;
+					var subcode = errorObj.TryGetProperty("error_subcode", out var sc) ? sc.GetInt32() : 0;
+					var msg = errorObj.TryGetProperty("message", out var m) ? m.GetString() ?? "" : "";
+
+					// Authentication failure indicators
+					if (string.Equals(type, "OAuthException", StringComparison.OrdinalIgnoreCase) ||
+						code == 190 ||
+						code == 102 ||
+						code == 10 ||
+						subcode == 463 ||
+						subcode == 467 ||
+						subcode == 490 ||
+						msg.Contains("access token", StringComparison.OrdinalIgnoreCase) ||
+						msg.Contains("OAuth", StringComparison.OrdinalIgnoreCase) ||
+						msg.Contains("Session has expired", StringComparison.OrdinalIgnoreCase))
+					{
+						return (WhatsAppHealthStatus.AuthenticationFailed, cleanMsg, cleanDetails);
+					}
+
+					// Configuration invalid indicators
+					if (code == 100 ||
+						code == 80007 ||
+						code == 131008 ||
+						code == 131009 ||
+						subcode == 33 ||
+						msg.Contains("phone number", StringComparison.OrdinalIgnoreCase) ||
+						msg.Contains("business account", StringComparison.OrdinalIgnoreCase) ||
+						msg.Contains("does not exist", StringComparison.OrdinalIgnoreCase) ||
+						msg.Contains("Cannot find", StringComparison.OrdinalIgnoreCase))
+					{
+						return (WhatsAppHealthStatus.ConfigurationInvalid, cleanMsg, cleanDetails);
+					}
+				}
+			}
+			catch { }
+		}
+
+		if (statusCode >= 400 && statusCode < 500)
+		{
+			return (WhatsAppHealthStatus.ConfigurationInvalid, cleanMsg, cleanDetails);
+		}
+
+		return (WhatsAppHealthStatus.TemporarilyUnavailable, cleanMsg, cleanDetails);
+	}
+
+	private async Task UpdateHealthStatusAsync(
+		WhatsAppHealthStatus status,
+		string? errorMessage = null,
+		CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			var config = await _db.WhatsAppConfigurations.FirstOrDefaultAsync(cancellationToken);
+			if (config == null) return;
+
+			var now = DateTime.UtcNow;
+			config.HealthStatus = status;
+			config.LastCheckedAtUtc = now;
+
+			if (status == WhatsAppHealthStatus.Healthy)
+			{
+				config.LastSuccessAtUtc = now;
+				config.LastErrorMessage = null;
+			}
+			else if (status != WhatsAppHealthStatus.NotConfigured)
+			{
+				config.LastFailureAtUtc = now;
+				config.LastErrorMessage = !string.IsNullOrWhiteSpace(errorMessage)
+					? (errorMessage.Length > 500 ? errorMessage[..500] : errorMessage)
+					: null;
+			}
+			else
+			{
+				config.LastErrorMessage = errorMessage;
+			}
+
+			await _db.SaveChangesAsync(cancellationToken);
+		}
+		catch (Exception ex)
+		{
+			_logger.LogWarning(ex, "Failed to persist WhatsApp health status update.");
+		}
 	}
 
 	private static (string verifiedName, string displayPhone, string qualityRating, string platformType) ParsePhoneNumberDetails(string content, string defaultPhoneId)

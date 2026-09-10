@@ -77,6 +77,9 @@ class TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
 
   @override
   void clearError() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -122,7 +125,7 @@ void main() {
       expect(find.text('Service Name *'), findsOneWidget);
       expect(find.text('Category *'), findsOneWidget);
       expect(find.text('Price (₹) *'), findsOneWidget);
-      expect(find.text('Estimated Duration (Minutes) *'), findsOneWidget);
+      expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
       expect(find.text('Description / Scope (Optional)'), findsOneWidget);
       expect(find.text('Service Active Status'), findsOneWidget);
 
@@ -130,15 +133,14 @@ void main() {
       expect(find.text('GST (%)'), findsNothing);
       expect(find.text('Tax Percentage'), findsNothing);
 
-      // Clear default fields and attempt submit
-      await tester.enterText(find.widgetWithText(TextFormField, '60'), '');
+      // Attempt submit without filling required fields
       await tester.tap(find.byKey(const Key('modal_add_service_button')));
       await tester.pumpAndSettle();
 
       // Verify validation errors
       expect(find.text('Service name is required'), findsOneWidget);
       expect(find.text('Price is required'), findsOneWidget);
-      expect(find.text('Duration is required'), findsOneWidget);
+      expect(find.text('Duration is required'), findsNothing);
     });
 
     testWidgets('AddServiceBottomSheet successfully submits new service with authoritative categories', (tester) async {
@@ -172,11 +174,10 @@ void main() {
       await tester.tap(find.text('Open Add Sheet'));
       await tester.pumpAndSettle();
 
-      // Enter valid form data
+      // Enter valid form data: Name, Price, Description
       await tester.enterText(find.byType(TextFormField).at(0), 'Android Test Service');
       await tester.enterText(find.byType(TextFormField).at(1), '1500');
-      await tester.enterText(find.byType(TextFormField).at(2), '60');
-      await tester.enterText(find.byType(TextFormField).at(3), 'Real phone testing');
+      await tester.enterText(find.byType(TextFormField).at(2), 'Real phone testing');
 
       // Tap submit
       await tester.tap(find.byKey(const Key('modal_add_service_button')));
@@ -186,7 +187,7 @@ void main() {
       expect(fakeRepo.lastCreateRequest, isNotNull);
       expect(fakeRepo.lastCreateRequest!.name, 'Android Test Service');
       expect(fakeRepo.lastCreateRequest!.price, 1500.0);
-      expect(fakeRepo.lastCreateRequest!.durationMinutes, 60);
+      expect(fakeRepo.lastCreateRequest!.durationMinutes, isNull);
       expect(fakeRepo.lastCreateRequest!.description, 'Real phone testing');
       expect(fakeRepo.lastCreateRequest!.taxPercentage, 18.0); // preserved internally
       expect(fakeRepo.lastCreateRequest!.isActive, isTrue);

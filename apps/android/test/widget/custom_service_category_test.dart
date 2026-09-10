@@ -51,8 +51,9 @@ void main() {
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
 
-      // Verify the 4 authoritative categories are present
+      // Verify the 5 authoritative categories are present
       expect(find.text('Exterior Detailing'), findsWidgets);
+      expect(find.text('General Services'), findsWidgets);
       expect(find.text('Interior Care'), findsWidgets);
       expect(find.text('Protection Packages'), findsWidgets);
       expect(find.text('Others'), findsWidgets);

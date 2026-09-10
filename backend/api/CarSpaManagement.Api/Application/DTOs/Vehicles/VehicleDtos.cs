@@ -24,3 +24,9 @@ public record UpdateVehicleRequest
 }
 
 public record VehicleListResponse(IReadOnlyList<VehicleDto> Items, int TotalCount, int Page, int PageSize);
+
+public record TransferVehicleOwnershipRequest
+{
+	[Required]
+	public Guid NewCustomerId { get; init; }
+}

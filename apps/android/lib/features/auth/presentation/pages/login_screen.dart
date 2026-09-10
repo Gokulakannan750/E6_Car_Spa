@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_business_logo.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/powered_by_trovo.dart';
+import '../../../settings/providers/settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/auth_state.dart';
 
@@ -30,6 +32,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.initState();
     _usernameController = TextEditingController();
     _passwordController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(settingsNotifierProvider.notifier).loadPublicProfile();
+    });
   }
 
   @override
@@ -101,6 +106,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     final authState = ref.watch(authNotifierProvider);
+    final businessProfile = ref.watch(businessProfileProvider);
+    final businessName = businessProfile?.businessName.trim().isNotEmpty == true
+        ? businessProfile!.businessName
+        : 'E6 Car Spa';
     final isLoading = authState is Authenticating;
     final isLocked = _remainingLockoutSeconds > 0 || authState is AccountLocked;
     final isInputEnabled = !isLoading && !isLocked;
@@ -110,7 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final mins = _remainingLockoutSeconds ~/ 60;
       final secs = _remainingLockoutSeconds % 60;
       final timeStr = mins > 0 ? '${mins}m ${secs.toString().padLeft(2, '0')}s' : '${secs}s';
-      errorMessage = 'Too many failed login attempts. Please try again in $timeStr.';
+      errorMessage = 'Account temporarily locked. Please try again later. ($timeStr remaining)';
     } else if (authState is AccountLocked) {
       final mins = authState.remainingSeconds ~/ 60;
       final secs = authState.remainingSeconds % 60;
@@ -121,6 +130,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else if (authState is Unauthenticated && authState.message != null) {
       errorMessage = authState.message;
     }
+
+    final isSuccess = authState is Unauthenticated && authState.isSuccess;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -138,30 +149,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children: [
                     // Brand Header / Logo
                     Center(
-                      child: Container(
-                        width: 72,
+                      child: AppBusinessLogo(
                         height: 72,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.local_car_wash_rounded,
-                          size: 38,
-                          color: Colors.white,
-                        ),
+                        maxHeight: 72,
+                        maxWidth: 240,
+                        borderRadius: 16,
+                        fallbackIcon: Icons.local_car_wash_rounded,
+                        fallbackColor: AppColors.primary,
+                        fallbackBoxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'E6 Car Spa',
+                      businessName,
                       style: AppTextStyles.displayMedium.copyWith(
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
@@ -179,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Error Message Banner
+                    // Error / Success Message Banner
                     if (errorMessage != null) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -187,25 +193,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.errorLight,
+                          color: isSuccess ? AppColors.successLight : AppColors.errorLight,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.error.withValues(alpha: 0.3),
+                            color: (isSuccess ? AppColors.success : AppColors.error)
+                                .withValues(alpha: 0.3),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              isLocked ? Icons.lock_clock_outlined : Icons.error_outline_rounded,
+                              isSuccess
+                                  ? Icons.check_circle_outline_rounded
+                                  : (isLocked
+                                      ? Icons.lock_clock_outlined
+                                      : Icons.error_outline_rounded),
                               size: 20,
-                              color: AppColors.error,
+                              color: isSuccess ? AppColors.success : AppColors.error,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 errorMessage,
                                 style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.errorDark,
+                                  color: isSuccess ? AppColors.successDark : AppColors.errorDark,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),

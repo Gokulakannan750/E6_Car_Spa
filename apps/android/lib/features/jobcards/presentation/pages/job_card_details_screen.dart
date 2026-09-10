@@ -39,7 +39,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Convert to Invoice?'),
+        title: const Text('Convert to Draft?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,7 +115,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to convert job card to invoice.'),
+          content: Text('Failed to convert job card to draft.'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
@@ -240,8 +240,9 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
             border: Border(top: BorderSide(color: AppColors.border)),
           ),
           child: AppButton(
-            label: 'Convert to Invoice',
+            label: 'Mark as Finished',
             icon: Icons.receipt_outlined,
+            variant: AppButtonVariant.success,
             isLoading: _isConverting,
             onPressed: () => _handleConvertToInvoice(jc),
           ),

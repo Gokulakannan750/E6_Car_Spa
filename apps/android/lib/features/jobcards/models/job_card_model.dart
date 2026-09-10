@@ -84,7 +84,7 @@ class VehicleSummary {
   factory VehicleSummary.fromJson(Map<String, dynamic> json) {
     return VehicleSummary(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      registrationNumber: json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '',
+      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
       variant: json['variant'] as String? ?? json['Variant'] as String?,
@@ -310,7 +310,7 @@ class JobCardListItem {
       jobCardNumber: json['jobCardNumber'] as String? ?? json['JobCardNumber'] as String? ?? '',
       customerName: json['customerName'] as String? ?? json['CustomerName'] as String? ?? '',
       customerPhone: json['customerPhone'] as String? ?? json['CustomerPhone'] as String? ?? '',
-      registrationNumber: json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '',
+      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
       vehicleDisplayName: json['vehicleDisplayName'] as String? ?? json['VehicleDisplayName'] as String?,

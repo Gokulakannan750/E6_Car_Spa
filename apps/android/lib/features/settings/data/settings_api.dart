@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/business_profile_model.dart';
+import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import '../models/logo_upload_response.dart';
 
@@ -7,6 +8,12 @@ class SettingsApi {
   final Dio _dio;
 
   SettingsApi(this._dio);
+
+  /// Retrieves the anonymous public branding profile (businessName, logoPath, updatedAt)
+  Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
+    final response = await _dio.get('/public/business-profile');
+    return PublicBusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
 
   /// Retrieves the current Business Profile & Invoice Configuration
   Future<BusinessProfileModel> getBusinessProfile() async {

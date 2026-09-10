@@ -5,6 +5,8 @@ import { Button } from '../../components/ui/Button';
 import {
 	createCustomer,
 	createVehicle,
+	getVehicleByRegistration,
+	transferVehicleOwnership,
 	type CustomerDto,
 	ApiError,
 } from '../../lib/api';
@@ -33,6 +35,20 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 	const [error, setError] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
+	// Ownership transfer conflict state
+	const [createdCustomer, setCreatedCustomer] = useState<CustomerDto | null>(null);
+	const [vehicleConflict, setVehicleConflict] = useState<{
+		vehicleId: string;
+		registrationNumber: string;
+		make: string;
+		model: string;
+		variant?: string | null;
+		currentCustomerId: string;
+		currentCustomerName: string;
+	} | null>(null);
+	const [showTransferConfirm, setShowTransferConfirm] = useState(false);
+	const [isTransferring, setIsTransferring] = useState(false);
+
 	const resetForm = () => {
 		setName('');
 		setPhoneNumber('');
@@ -44,6 +60,9 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 		setModel('');
 		setVariant('');
 		setError('');
+		setCreatedCustomer(null);
+		setVehicleConflict(null);
+		setShowTransferConfirm(false);
 	};
 
 	const handleClose = () => {
@@ -126,6 +145,46 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 						variant: variant.trim() || null,
 					});
 				} catch (vehErr: unknown) {
+					if (vehErr instanceof ApiError && vehErr.status === 409) {
+						const body = (vehErr.body && typeof vehErr.body === 'object' ? vehErr.body : {}) as Record<string, any>;
+						let existingCustId = body.existingCustomerId;
+						let existingCustName = body.existingCustomerName;
+						let existingVehId = body.existingVehicleId;
+						let existingMake = body.make || trimmedMake;
+						let existingModel = body.model || trimmedModel;
+						let existingVariant = body.variant ?? variant.trim();
+
+						if (!existingCustId || !existingVehId) {
+							try {
+								const existing = await getVehicleByRegistration(trimmedRegNumber);
+								if (existing) {
+									existingCustId = existing.customerId;
+									existingCustName = existing.customerName;
+									existingVehId = existing.id;
+									existingMake = existing.make;
+									existingModel = existing.model;
+									existingVariant = existing.variant;
+								}
+							} catch {
+								// Fallback lookup failed
+							}
+						}
+
+						if (existingCustId && existingCustId !== newCustomer.id) {
+							setCreatedCustomer(newCustomer);
+							setVehicleConflict({
+								vehicleId: existingVehId,
+								registrationNumber: trimmedRegNumber,
+								make: existingMake,
+								model: existingModel,
+								variant: existingVariant,
+								currentCustomerId: existingCustId,
+								currentCustomerName: existingCustName || 'Another Customer',
+							});
+							setError(`Vehicle ${trimmedRegNumber} is already registered to ${existingCustName || 'another customer'}.`);
+							return;
+						}
+					}
 					console.warn('Customer created, but vehicle creation failed:', vehErr);
 					// Still proceed as customer was created successfully
 				}
@@ -146,7 +205,31 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 		}
 	};
 
+	const handleConfirmTransfer = async () => {
+		if (!vehicleConflict || !createdCustomer) return;
+		setIsTransferring(true);
+		setError('');
+		try {
+			await transferVehicleOwnership(vehicleConflict.vehicleId, createdCustomer.id);
+			const cust = createdCustomer;
+			resetForm();
+			onSuccess(cust);
+		} catch (err: unknown) {
+			if (err instanceof ApiError) {
+				setError(err.message || 'Failed to transfer vehicle ownership.');
+			} else if (err instanceof Error) {
+				setError(err.message);
+			} else {
+				setError('An error occurred while transferring vehicle ownership.');
+			}
+			setShowTransferConfirm(false);
+		} finally {
+			setIsTransferring(false);
+		}
+	};
+
 	return (
+		<>
 		<Dialog
 			open={open}
 			onOpenChange={(isOpen) => {
@@ -176,6 +259,47 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 					<div className="flex items-start gap-2.5 p-3 rounded-lg bg-error-container/40 border border-error/30 text-error animate-fade-in text-sm">
 						<AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
 						<span>{error}</span>
+					</div>
+				)}
+
+				{vehicleConflict && (
+					<div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-on-surface space-y-3 animate-fade-in">
+						<div className="flex items-start gap-3">
+							<AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+							<div className="space-y-1 text-sm">
+								<p className="font-semibold text-amber-600 dark:text-amber-400">
+									Vehicle Already Registered
+								</p>
+								<p className="text-xs text-on-surface-variant">
+									Vehicle <span className="font-mono font-bold text-on-surface">{vehicleConflict.registrationNumber}</span> is already registered to <span className="font-semibold text-on-surface">{vehicleConflict.currentCustomerName}</span>.
+								</p>
+								<p className="text-xs text-on-surface-variant">
+									This will transfer this vehicle to the new customer. Existing service history, invoices and payments will remain unchanged.
+								</p>
+							</div>
+						</div>
+						<div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-500/20">
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								onClick={() => {
+									const cust = createdCustomer;
+									resetForm();
+									if (cust) onSuccess(cust);
+								}}
+							>
+								{createdCustomer ? 'Continue Without Vehicle' : 'Dismiss'}
+							</Button>
+							<Button
+								type="button"
+								variant="primary"
+								size="sm"
+								onClick={() => setShowTransferConfirm(true)}
+							>
+								Transfer Vehicle
+							</Button>
+						</div>
 					</div>
 				)}
 
@@ -345,5 +469,66 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 				</div>
 			</form>
 		</Dialog>
+
+		{/* Transfer Vehicle Confirmation Dialog */}
+		<Dialog
+			open={showTransferConfirm && !!vehicleConflict}
+			onOpenChange={(isOpen) => {
+				if (!isOpen && !isTransferring) setShowTransferConfirm(false);
+			}}
+			title="Transfer Vehicle Ownership?"
+			description="Confirm vehicle transfer to this customer"
+			size="md"
+			footer={
+				<>
+					<Button
+						type="button"
+						variant="secondary"
+						onClick={() => setShowTransferConfirm(false)}
+						disabled={isTransferring}
+					>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						variant="primary"
+						onClick={handleConfirmTransfer}
+						loading={isTransferring}
+					>
+						Transfer Ownership
+					</Button>
+				</>
+			}
+		>
+			{vehicleConflict && (
+				<div className="space-y-4 text-sm text-on-surface">
+					<div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant space-y-2">
+						<div className="flex justify-between">
+							<span className="text-xs text-on-surface-variant">Vehicle:</span>
+							<span className="font-mono font-bold text-on-surface">{vehicleConflict.registrationNumber}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-xs text-on-surface-variant">Make / Model:</span>
+							<span className="font-medium text-on-surface">
+								{vehicleConflict.make} {vehicleConflict.model} {vehicleConflict.variant || ''}
+							</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-xs text-on-surface-variant">Current Owner:</span>
+							<span className="font-medium text-error">{vehicleConflict.currentCustomerName}</span>
+						</div>
+						<div className="flex justify-between">
+							<span className="text-xs text-on-surface-variant">New Owner:</span>
+							<span className="font-medium text-primary">{createdCustomer?.name || name}</span>
+						</div>
+					</div>
+
+					<p className="text-xs text-on-surface-variant leading-relaxed">
+						Existing service history, job cards, invoices and payments will not be deleted or changed.
+					</p>
+				</div>
+			)}
+		</Dialog>
+		</>
 	);
 }

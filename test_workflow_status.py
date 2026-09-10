@@ -56,7 +56,7 @@ st, list_res = req('GET', f"/job-cards?search={jc1['jobCardNumber']}")
 jc1_list = list_res['items'][0]
 print(f"List JC1: invoiceId={jc1_list.get('invoiceId')}, invoiceNumber={jc1_list.get('invoiceNumber')}, invoiceStatus={jc1_list.get('invoiceStatus')}")
 assert jc1_list['invoiceId'] is None
-print(">> State A verified: Button = 'Convert to Invoice'")
+print(">> State A verified: Button = 'Convert to Draft'")
 
 # Create Job Card 2 (State B: Draft Invoice)
 print("\n--- TEST B: Convert Job Card to Draft Invoice (State B) ---")
@@ -121,7 +121,7 @@ for j in all_jcs['items']:
     inv_st = j.get('invoiceStatus')
     
     if not inv_id:
-        btn = "Convert to Invoice (Primary Blue)"
+        btn = "Convert to Draft (Primary Blue)"
     elif (inv_st == 'Draft' or inv_st == '0' or not inv_st) and not inv_num:
         btn = "Invoice Drafted (Amber)"
     else:

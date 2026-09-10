@@ -69,9 +69,13 @@ class AppColors {
   static const Color readyText = Color(0xFF047857);
   static const Color readyBorder = Color(0xFFA7F3D0);
 
-  static const Color invoicedBg = Color(0xFFFAF5FF);
-  static const Color invoicedText = Color(0xFF6B21A8);
-  static const Color invoicedBorder = Color(0xFFE9D5FF);
+  static const Color generatedBg = Color(0xFFEFF6FF);
+  static const Color generatedText = Color(0xFF1D4ED8);
+  static const Color generatedBorder = Color(0xFFBFDBFE);
+
+  static const Color invoicedBg = generatedBg;
+  static const Color invoicedText = generatedText;
+  static const Color invoicedBorder = generatedBorder;
 
   static const Color deliveredBg = Color(0xFFF0FDFA);
   static const Color deliveredText = Color(0xFF0F766E);

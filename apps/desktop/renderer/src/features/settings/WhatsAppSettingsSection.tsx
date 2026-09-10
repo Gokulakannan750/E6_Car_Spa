@@ -175,6 +175,11 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 				message: res.message,
 				details: res.details,
 			});
+
+			const refreshed = await getWhatsAppConfig().catch(() => null);
+			if (refreshed) {
+				setConfig(refreshed);
+			}
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Connection test request failed';
 			setTestResult({
@@ -363,6 +368,75 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 		templates?.find((t) => t.name === paymentCompletedTemplateName && t.language === paymentCompletedTemplateLanguage) ||
 		templates?.find((t) => t.name === paymentCompletedTemplateName);
 
+	function renderHealthBadge() {
+		const status = config?.healthStatus || (isConnected ? 'Healthy' : 'NotConfigured');
+
+		if (status === 'Healthy') {
+			return (
+				<div className="flex flex-col items-end gap-1">
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-emerald-50 text-emerald-700 border-emerald-200">
+						<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+						Connected
+					</span>
+					{config?.lastCheckedAtUtc && (
+						<span className="text-[10px] text-slate-400">
+							Last checked: {new Date(config.lastCheckedAtUtc).toLocaleTimeString()}
+						</span>
+					)}
+				</div>
+			);
+		}
+
+		if (status === 'AuthenticationFailed') {
+			return (
+				<div className="flex flex-col items-end gap-1">
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-rose-50 text-rose-700 border-rose-200">
+						<span className="w-2 h-2 rounded-full bg-rose-500" />
+						Authentication Failed
+					</span>
+					<span className="text-[10px] text-rose-600 font-medium">
+						Please update the WhatsApp access token
+					</span>
+				</div>
+			);
+		}
+
+		if (status === 'ConfigurationInvalid') {
+			return (
+				<div className="flex flex-col items-end gap-1">
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+						<span className="w-2 h-2 rounded-full bg-amber-500" />
+						Configuration Invalid
+					</span>
+					<span className="text-[10px] text-amber-600 font-medium">
+						Check Phone Number ID / Business Account ID
+					</span>
+				</div>
+			);
+		}
+
+		if (status === 'TemporarilyUnavailable') {
+			return (
+				<div className="flex flex-col items-end gap-1">
+					<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200">
+						<span className="w-2 h-2 rounded-full bg-amber-400" />
+						Temporarily Unavailable
+					</span>
+					<span className="text-[10px] text-slate-400">
+						Meta/WhatsApp service could not be reached
+					</span>
+				</div>
+			);
+		}
+
+		return (
+			<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border bg-slate-100 text-slate-600 border-slate-200">
+				<span className="w-2 h-2 rounded-full bg-slate-400" />
+				Not Configured
+			</span>
+		);
+	}
+
 	return (
 		<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-8">
 			{/* Main Section Header */}
@@ -381,18 +455,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 				{/* Live Status Badge */}
 				<div className="flex items-center gap-2">
-					<span
-						className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-							isConnected
-								? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-								: 'bg-slate-100 text-slate-600 border-slate-200'
-						}`}
-					>
-						<span
-							className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`}
-						/>
-						{isConnected ? 'Connected' : 'Not Configured'}
-					</span>
+					{renderHealthBadge()}
 				</div>
 			</div>
 

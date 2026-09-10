@@ -1236,7 +1236,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("RegistrationNumber")
-                        .HasDatabaseName("IX_Vehicles_RegistrationNumber");
+                        .IsUnique()
+                        .HasDatabaseName("UX_Vehicles_RegistrationNumber")
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("CustomerId", "IsDeleted")
                         .HasDatabaseName("IX_Vehicles_CustomerId_IsDeleted");
@@ -1270,6 +1272,13 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("character varying(20)")
                         .HasDefaultValue("v25.0");
 
+                    b.Property<string>("HealthStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("NotConfigured");
+
                     b.Property<bool>("InvoiceNotificationsEnabled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -1280,7 +1289,7 @@ namespace CarSpaManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasDefaultValue("en_US");
+                        .HasDefaultValue("en");
 
                     b.Property<string>("InvoiceTemplateName")
                         .IsRequired()
@@ -1296,6 +1305,19 @@ namespace CarSpaManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastCheckedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("LastFailureAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSuccessAtUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("PaymentCompletedNotificationsEnabled")
                         .ValueGeneratedOnAdd()

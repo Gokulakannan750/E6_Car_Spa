@@ -59,7 +59,7 @@ class JobCardReportRowModel {
       date: DateTime.tryParse(json['date']?.toString() ?? json['Date']?.toString() ?? '') ?? DateTime.now(),
       customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
       customerPhone: json['customerPhone']?.toString() ?? json['CustomerPhone']?.toString() ?? '',
-      vehicleRegistration: json['vehicleRegistration']?.toString() ?? json['VehicleRegistration']?.toString() ?? '',
+      vehicleRegistration: (json['vehicleRegistration']?.toString() ?? json['VehicleRegistration']?.toString() ?? '').trim().toUpperCase(),
       vehicleDetails: json['vehicleDetails']?.toString() ?? json['VehicleDetails']?.toString() ?? '',
       status: _parseJobCardStatus(json['status'] ?? json['Status']),
       totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),

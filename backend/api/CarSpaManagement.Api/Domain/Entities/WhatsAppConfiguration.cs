@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Domain.Common;
+using CarSpaManagement.Api.Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Domain.Entities;
@@ -35,4 +36,15 @@ public class WhatsAppConfiguration : BaseEntity
 
 	[MaxLength(20)]
 	public string PaymentCompletedTemplateLanguage { get; set; } = "en_US";
+
+	public WhatsAppHealthStatus HealthStatus { get; set; } = WhatsAppHealthStatus.NotConfigured;
+
+	public DateTime? LastCheckedAtUtc { get; set; }
+
+	public DateTime? LastSuccessAtUtc { get; set; }
+
+	public DateTime? LastFailureAtUtc { get; set; }
+
+	[MaxLength(500)]
+	public string? LastErrorMessage { get; set; }
 }

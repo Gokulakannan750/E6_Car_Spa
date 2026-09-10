@@ -26,6 +26,14 @@ public class WhatsAppSettingsController : ControllerBase
 		return Ok(config);
 	}
 
+	[HttpGet("health")]
+	[RequirePermission("settings.view")]
+	public async Task<IActionResult> GetHealth([FromQuery] bool probe = false, CancellationToken ct = default)
+	{
+		var health = await _whatsAppService.GetHealthStatusAsync(probe, ct);
+		return Ok(health);
+	}
+
 	[HttpPut]
 	[RequirePermission("settings.business")]
 	public async Task<IActionResult> UpdateSettings([FromBody] UpdateWhatsAppConfigRequest request, CancellationToken ct)

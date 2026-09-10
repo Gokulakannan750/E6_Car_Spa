@@ -5,15 +5,36 @@ import hmac
 import hashlib
 import base64
 import uuid
+import os
+import subprocess
 
 BASE_URL = "http://localhost:5298/api"
-DEV_SECRET = "E6CarSpa_Dev_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key"
-PROD_SECRET = "E6CarSpa_Production_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key"
+
+def get_signing_secrets():
+    secrets = []
+    env_jwt = os.environ.get("JWT_KEY")
+    if env_jwt:
+        secrets.append(env_jwt)
+    try:
+        res = subprocess.run(
+            ["dotnet", "user-secrets", "list", "--project", "backend/api/CarSpaManagement.Api"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in res.stdout.splitlines():
+            if line.startswith("Jwt:Key") and "=" in line:
+                secrets.append(line.split("=", 1)[1].strip())
+    except Exception:
+        pass
+    if not secrets:
+        secrets.append("e6_car_spa_development_test_signing_key_32_bytes")
+    return secrets
 
 def b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
 
-def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner: bool = True, permissions: list = None, secret_key: str = DEV_SECRET):
+def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner: bool = True, permissions: list = None, secret_key: str = None):
+    if secret_key is None:
+        secret_key = get_signing_secrets()[0]
     header = {"alg": "HS256", "typ": "JWT"}
     now = int(time.time())
     payload = {
@@ -41,17 +62,21 @@ def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner
 
 def get_auth_token():
     # Use a bootstrap token to query existing users
-    temp_id = str(uuid.uuid4())
-    temp_token = generate_test_jwt(temp_id, "admin", role="Owner", is_owner=True)
-    r = requests.get(f"{BASE_URL}/users", headers={"Authorization": f"Bearer {temp_token}"})
-    if r.status_code == 200 and r.json():
-        real_user = r.json()[0]
-        real_user_id = real_user["id"]
-        real_username = real_user["username"]
-        print(f"[*] Found database user: {real_username} ({real_user_id})")
-        return generate_test_jwt(real_user_id, real_username, role="Owner", is_owner=True), real_user_id
-    
-    return temp_token, temp_id
+    for candidate_id in ["d9de44ce-35c5-4bb1-8596-50e4b783c8e8", str(uuid.uuid4())]:
+        for secret in get_signing_secrets():
+            temp_token = generate_test_jwt(candidate_id, "admin", role="Owner", is_owner=True, secret_key=secret)
+            try:
+                r = requests.get(f"{BASE_URL}/users", headers={"Authorization": f"Bearer {temp_token}"}, timeout=5)
+                if r.status_code == 200 and r.json():
+                    real_user = r.json()[0]
+                    real_user_id = real_user["id"]
+                    real_username = real_user["username"]
+                    print(f"[*] Found database user: {real_username} ({real_user_id})")
+                    return generate_test_jwt(real_user_id, real_username, role="Owner", is_owner=True, secret_key=secret), real_user_id
+                return temp_token, candidate_id
+            except Exception:
+                continue
+    return temp_token, candidate_id
 
 def run_tests():
     print("=== STARTING STEP 13 STAFF ADVANCES TEST SUITE ===")

@@ -56,6 +56,9 @@ class TestAuthNotifier extends StateNotifier<AuthState>
 
   @override
   void clearError() {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -223,6 +226,9 @@ class StateControllerNotifier extends StateNotifier<SettingsState>
 
   @override
   Future<void> loadProfile() async {}
+
+  @override
+  Future<void> loadPublicProfile() async {}
 
   @override
   Future<bool> updateProfile(dynamic request) async => true;

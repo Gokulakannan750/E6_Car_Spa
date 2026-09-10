@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 
-enum AppButtonVariant { primary, secondary, text, danger }
+enum AppButtonVariant { primary, secondary, text, danger, success }
 
 class AppButton extends StatelessWidget {
   final String label;
@@ -39,7 +39,9 @@ class AppButton extends StatelessWidget {
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(
-                variant == AppButtonVariant.primary || variant == AppButtonVariant.danger
+                variant == AppButtonVariant.primary ||
+                        variant == AppButtonVariant.danger ||
+                        variant == AppButtonVariant.success
                     ? Colors.white
                     : AppColors.primary,
               ),
@@ -106,6 +108,13 @@ class AppButton extends StatelessWidget {
           child: child,
         );
         break;
+      case AppButtonVariant.success:
+        button = ElevatedButton(
+          onPressed: isEnabled ? onPressed : null,
+          style: _successStyle,
+          child: child,
+        );
+        break;
     }
 
     if (fullWidth) {
@@ -149,6 +158,17 @@ class AppButton extends StatelessWidget {
         foregroundColor: Colors.white,
         disabledBackgroundColor: AppColors.errorLight,
         disabledForegroundColor: AppColors.errorDark,
+        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      );
+
+  ButtonStyle get _successStyle => ElevatedButton.styleFrom(
+        backgroundColor: AppColors.success,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: AppColors.border,
+        disabledForegroundColor: AppColors.textSecondary,
         padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

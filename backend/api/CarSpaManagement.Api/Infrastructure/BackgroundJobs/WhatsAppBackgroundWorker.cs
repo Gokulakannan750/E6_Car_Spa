@@ -10,6 +10,8 @@ public class WhatsAppBackgroundWorker : BackgroundService
 	private readonly IServiceProvider _serviceProvider;
 	private readonly ILogger<WhatsAppBackgroundWorker> _logger;
 	private readonly TimeSpan _period = TimeSpan.FromSeconds(5);
+	private readonly TimeSpan _healthProbeInterval = TimeSpan.FromHours(1);
+	private DateTime _lastHealthProbeUtc = DateTime.MinValue;
 
 	public WhatsAppBackgroundWorker(
 		IServiceProvider serviceProvider,
@@ -30,7 +32,23 @@ public class WhatsAppBackgroundWorker : BackgroundService
 			{
 				using var scope = _serviceProvider.CreateScope();
 				var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+
+				// 1. Process queued messages
 				await whatsAppService.ProcessPendingMessagesAsync(stoppingToken);
+
+				// 2. Throttled periodic health probe (every 1 hour)
+				if (DateTime.UtcNow - _lastHealthProbeUtc >= _healthProbeInterval)
+				{
+					_lastHealthProbeUtc = DateTime.UtcNow;
+					try
+					{
+						await whatsAppService.ProbeHealthAsync(stoppingToken);
+					}
+					catch (Exception probeEx) when (!stoppingToken.IsCancellationRequested)
+					{
+						_logger.LogWarning(probeEx, "WhatsApp background health probe encountered an error.");
+					}
+				}
 			}
 			catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
 			{

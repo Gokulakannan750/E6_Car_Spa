@@ -7,30 +7,69 @@ import time
 import hmac
 import hashlib
 import base64
+import os
+import subprocess
+import re
 import psycopg2
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 BASE_URL = "http://localhost:5298"
-DEV_SECRET = "E6CarSpa_Dev_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key"
-FALLBACK_SECRET = "E6CarSpa_SuperSecure_SecretSigningKey_2026_Auth_Foundation_Key"
 
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "E6CarSpaNew",
-    "user": "postgres",
-    "password": "Gokulakannan750"
-}
+def get_signing_secrets():
+    secrets = []
+    env_jwt = os.environ.get("JWT_KEY")
+    if env_jwt:
+        secrets.append(env_jwt)
+    try:
+        res = subprocess.run(
+            ["dotnet", "user-secrets", "list", "--project", "backend/api/CarSpaManagement.Api"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in res.stdout.splitlines():
+            if line.startswith("Jwt:Key") and "=" in line:
+                secrets.append(line.split("=", 1)[1].strip())
+    except Exception:
+        pass
+    if not secrets:
+        secrets.append("e6_car_spa_development_test_signing_key_32_bytes")
+    return secrets
+
+def get_db_password():
+    password = os.environ.get("PGPASSWORD") or os.environ.get("DB_PASSWORD")
+    if password:
+        return password
+    try:
+        res = subprocess.run(
+            ["dotnet", "user-secrets", "list", "--project", "backend/api/CarSpaManagement.Api"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in res.stdout.splitlines():
+            if "DefaultConnection" in line and "Password=" in line:
+                m = re.search(r"Password=([^;]+)", line)
+                if m:
+                    return m.group(1)
+    except Exception:
+        pass
+    print("ERROR: Database password not provided. Please set the PGPASSWORD environment variable.", file=sys.stderr)
+    sys.exit(1)
 
 def get_db_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    return psycopg2.connect(
+        host=os.environ.get("PGHOST", "localhost"),
+        port=int(os.environ.get("PGPORT", "5432")),
+        dbname=os.environ.get("PGDATABASE", "E6CarSpaNew"),
+        user=os.environ.get("PGUSER", "postgres"),
+        password=get_db_password()
+    )
 
 def b64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
 
-def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner: bool = True, permissions: list = None, secret_key: str = DEV_SECRET):
+def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner: bool = True, permissions: list = None, secret_key: str = None):
+    if secret_key is None:
+        secret_key = get_signing_secrets()[0]
     header = {"alg": "HS256", "typ": "JWT"}
     now = int(time.time())
     payload = {
@@ -57,19 +96,19 @@ def generate_test_jwt(user_id: str, username: str, role: str = "Owner", is_owner
     return f"{h_b64}.{p_b64}.{sig_b64}"
 
 def get_owner_token():
-    temp_id = str(uuid.uuid4())
-    for secret in [DEV_SECRET, FALLBACK_SECRET]:
-        temp_token = generate_test_jwt(temp_id, "admin", role="Owner", is_owner=True, secret_key=secret)
-        try:
-            r = requests.get(f"{BASE_URL}/api/users", headers={"Authorization": f"Bearer {temp_token}"}, timeout=5)
-            if r.status_code == 200:
-                users = r.json()
-                if users:
-                    real_user = next((u for u in users if u.get("role") == "Owner"), users[0])
-                    return generate_test_jwt(real_user["id"], real_user["username"], role="Owner", is_owner=True, secret_key=secret), real_user["id"], secret
-                return temp_token, temp_id, secret
-        except Exception:
-            continue
+    for candidate_id in ["d9de44ce-35c5-4bb1-8596-50e4b783c8e8", str(uuid.uuid4())]:
+        for secret in get_signing_secrets():
+            temp_token = generate_test_jwt(candidate_id, "admin", role="Owner", is_owner=True, secret_key=secret)
+            try:
+                r = requests.get(f"{BASE_URL}/api/users", headers={"Authorization": f"Bearer {temp_token}"}, timeout=5)
+                if r.status_code == 200:
+                    users = r.json()
+                    if users:
+                        real_user = next((u for u in users if u.get("role") == "Owner"), users[0])
+                        return generate_test_jwt(real_user["id"], real_user["username"], role="Owner", is_owner=True, secret_key=secret), real_user["id"], secret
+                    return temp_token, candidate_id, secret
+            except Exception:
+                continue
     raise RuntimeError("Could not connect to API server on http://localhost:5298")
 
 def log_test(name, success, msg=""):

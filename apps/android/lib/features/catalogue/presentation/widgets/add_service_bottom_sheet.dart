@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -40,7 +40,6 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _durationController = TextEditingController(text: '60');
   final _descriptionController = TextEditingController();
 
   String? _selectedCategory;
@@ -48,18 +47,11 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static const List<String> _fallbackCategories = [
-    'Exterior Detailing',
-    'Interior Care',
-    'Protection Packages',
-    'Others',
-  ];
 
   @override
   void dispose() {
     _nameController.dispose();
     _priceController.dispose();
-    _durationController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -78,13 +70,6 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
       return;
     }
 
-    final durationText = _durationController.text.trim();
-    final duration = int.tryParse(durationText);
-    if (duration == null || duration < 1 || duration > 1440) {
-      setState(() => _errorMessage = 'Please enter a valid duration between 1 and 1440 minutes');
-      return;
-    }
-
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -95,7 +80,6 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
         name: _nameController.text.trim(),
         category: _selectedCategory!.trim(),
         price: price,
-        durationMinutes: duration,
         description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
         taxPercentage: 18.0,
         isActive: _isActive,
@@ -131,11 +115,10 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
 
-    final Set<String> allCategories = {};
-    categoriesAsync.whenData((cats) => allCategories.addAll(cats));
-    if (allCategories.isEmpty) {
-      allCategories.addAll(_fallbackCategories);
-    }
+    final Set<String> allCategories = Set<String>.from(kCatalogueCategories);
+    categoriesAsync.whenData((cats) {
+      allCategories.addAll(cats.where((c) => c.trim().isNotEmpty));
+    });
     final categoryList = allCategories.toList()..sort();
     if (_selectedCategory == null && categoryList.isNotEmpty) {
       _selectedCategory = categoryList.first;
@@ -253,23 +236,6 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                         if (val == null || val.trim().isEmpty) return 'Price is required';
                         final num = double.tryParse(val.trim());
                         if (num == null || num < 0) return 'Enter valid amount';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Duration (Minutes)
-                    AppTextField(
-                      controller: _durationController,
-                      label: 'Estimated Duration (Minutes) *',
-                      hint: 'e.g. 60',
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      prefixIcon: const Icon(Icons.schedule),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Duration is required';
-                        final num = int.tryParse(val.trim());
-                        if (num == null || num < 1 || num > 1440) return 'Enter 1 to 1440 minutes';
                         return null;
                       },
                     ),

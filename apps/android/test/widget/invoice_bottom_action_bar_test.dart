@@ -16,6 +16,11 @@ class FakeInvoiceApiForBottomBarTest extends InvoiceApi {
     if (mockInvoice != null) return mockInvoice!;
     throw Exception('Invoice not found');
   }
+
+  @override
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+    return const [];
+  }
 }
 
 Invoice _createTestInvoice({required double balanceAmount}) {

@@ -59,25 +59,51 @@ const STATUS_ENUM_MAP: Record<number, InvoiceDisplayStatus> = {
 	2: 'Paid',
 	3: 'PartiallyPaid',
 	4: 'Cancelled',
+	5: 'Generated',
+	6: 'Generated',
 };
 
 export function getInvoiceDisplayStatus(inv: InvoiceListDto): InvoiceDisplayStatus {
 	// If backend gave a numeric status enum, map it
 	if (typeof inv.status === 'number' || (typeof inv.status === 'string' && /^\d+$/.test(inv.status))) {
 		const num = Number(inv.status);
-		return STATUS_ENUM_MAP[num] ?? 'Draft';
+		if (num in STATUS_ENUM_MAP) {
+			const mapped = STATUS_ENUM_MAP[num];
+			// If mapped to Draft but already has a generated invoice number, it's not Draft
+			if (mapped === 'Draft' && inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
+				if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
+					return 'Paid';
+				}
+				if (inv.paidAmount != null && inv.paidAmount > 0) {
+					return 'PartiallyPaid';
+				}
+				return 'Generated';
+			}
+			return mapped;
+		}
 	}
 	// If string matches standard names
 	if (typeof inv.status === 'string') {
 		const s = inv.status.toLowerCase();
 		if (s === 'paid') return 'Paid';
 		if (s === 'partiallypaid' || s === 'partially paid' || s === 'partial') return 'PartiallyPaid';
-		if (s === 'generated' || s === 'issued') return 'Generated';
+		if (s === 'generated' || s === 'issued' || s === 'sent') return 'Generated';
 		if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
-		if (s === 'draft') return 'Draft';
+		if (s === 'draft') {
+			if (inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
+				if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
+					return 'Paid';
+				}
+				if (inv.paidAmount != null && inv.paidAmount > 0) {
+					return 'PartiallyPaid';
+				}
+				return 'Generated';
+			}
+			return 'Draft';
+		}
 	}
-	// Fallback to paidAmount check if generated
-	if (inv.invoiceNumber) {
+	// Fallback to paidAmount / invoiceNumber check if generated
+	if (inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
 		if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
 			return 'Paid';
 		}
@@ -103,22 +129,6 @@ export function getInvoiceStatusSlug(inv: InvoiceListDto): string {
 		case 'Draft':
 		default:
 			return 'draft';
-	}
-}
-
-function getBadgeVariant(status: InvoiceDisplayStatus): 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' {
-	switch (status) {
-		case 'Paid':
-			return 'success';
-		case 'PartiallyPaid':
-			return 'warning';
-		case 'Generated':
-			return 'info';
-		case 'Cancelled':
-			return 'error';
-		case 'Draft':
-		default:
-			return 'secondary';
 	}
 }
 
@@ -245,7 +255,7 @@ export function Invoices() {
 						<AlertCircle className="w-5 h-5 shrink-0" />
 						<span>{error}</span>
 					</div>
-					<Button size="sm" variant="secondary" onClick={loadInvoices}>
+					<Button size="sm" variant="secondary" onClick={() => loadInvoices()}>
 						Retry
 					</Button>
 				</div>

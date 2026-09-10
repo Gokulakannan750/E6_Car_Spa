@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
@@ -43,12 +44,6 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
   bool _isSubmitting = false;
   String? _errorMessage;
 
-  static const List<String> _fallbackCategories = [
-    'Exterior Detailing',
-    'Interior Care',
-    'Protection Packages',
-    'Others',
-  ];
 
   @override
   void dispose() {
@@ -108,11 +103,10 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final categoriesAsync = ref.watch(serviceCategoriesProvider);
 
-    final Set<String> allCategories = {};
-    categoriesAsync.whenData((cats) => allCategories.addAll(cats));
-    if (allCategories.isEmpty) {
-      allCategories.addAll(_fallbackCategories);
-    }
+    final Set<String> allCategories = Set<String>.from(kCatalogueCategories);
+    categoriesAsync.whenData((cats) {
+      allCategories.addAll(cats.where((c) => c.trim().isNotEmpty));
+    });
     if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
       allCategories.add(_selectedCategory!);
     }

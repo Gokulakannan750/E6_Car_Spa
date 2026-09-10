@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../models/auth_user.dart';
+import '../models/bootstrap_owner_request.dart';
 import '../models/login_request.dart';
 import 'auth_api.dart';
 import 'auth_token_storage.dart';
@@ -16,6 +17,17 @@ class AuthRepository {
   final AuthTokenStorage _storage;
 
   const AuthRepository(this._api, this._storage);
+
+  /// Checks whether backend is initialized with an Owner against GET /api/auth/status
+  Future<bool> checkInitialization() async {
+    final status = await _api.getAuthStatus();
+    return status.initialized;
+  }
+
+  /// Bootstraps initial Owner account against POST /api/auth/bootstrap
+  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+    return await _api.bootstrapOwner(request);
+  }
 
   /// Performs login, stores token and user in secure storage, and returns AuthUser
   Future<AuthUser> login(String username, String password) async {

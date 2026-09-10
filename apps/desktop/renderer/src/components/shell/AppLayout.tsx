@@ -4,7 +4,7 @@ import { Header } from './Header';
 import { useAppStore } from '../../stores/app';
 import { cn } from '../../utils/cn';
 
-const ROUTE_TITLES: Record<string, string> = {
+export const ROUTE_TITLES: Record<string, string> = {
 	'/': 'Dashboard',
 	'/dashboard': 'Dashboard',
 	'/customers': 'Customers',
@@ -14,13 +14,22 @@ const ROUTE_TITLES: Record<string, string> = {
 	'/staff-advances': 'Staff Advances',
 	'/reports': 'Reports',
 	'/showroom': 'Showroom',
+	'/audit': 'Audit Trail',
+	'/settings/users': 'Users & Access',
 	'/settings': 'Settings',
 };
 
-function getPageTitle(pathname: string): string {
+export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/invoices')) return 'Invoices';
 	if (pathname.startsWith('/job-cards')) return 'Job Cards';
 	if (pathname.startsWith('/customers')) return 'Customers';
+	if (pathname.startsWith('/audit')) return 'Audit Trail';
+	if (pathname.startsWith('/settings/users')) return 'Users & Access';
+	if (pathname.startsWith('/settings')) return 'Settings';
+	if (pathname.startsWith('/reports')) return 'Reports';
+	if (pathname.startsWith('/showroom')) return 'Showroom';
+	if (pathname.startsWith('/staff-advances')) return 'Staff Advances';
+	if (pathname.startsWith('/catalogue')) return 'Catalogue';
 	return ROUTE_TITLES[pathname] || 'Dashboard';
 }
 

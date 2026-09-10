@@ -55,8 +55,9 @@ public class InvoiceService : IInvoiceService
 		{
 			search = search.Trim().ToLower();
 			query = query.Where(i => (i.InvoiceNumber != null && i.InvoiceNumber.ToLower().Contains(search))
-				|| (i.Customer.Name != null && i.Customer.Name.ToLower().Contains(search))
-				|| (i.Vehicle.RegistrationNumber != null && i.Vehicle.RegistrationNumber.ToLower().Contains(search)));
+				|| (i.Customer != null && i.Customer.Name != null && i.Customer.Name.ToLower().Contains(search))
+				|| (i.Vehicle != null && i.Vehicle.RegistrationNumber != null && i.Vehicle.RegistrationNumber.ToLower().Contains(search))
+				|| (i.JobCard != null && i.JobCard.JobCardNumber != null && i.JobCard.JobCardNumber.ToLower().Contains(search)));
 		}
 
 		return await query.OrderByDescending(i => i.CreatedAt)
@@ -77,7 +78,10 @@ public class InvoiceService : IInvoiceService
 		if (!string.IsNullOrWhiteSpace(search))
 		{
 			search = search.Trim().ToLower();
-			query = query.Where(i => (i.InvoiceNumber != null && i.InvoiceNumber.ToLower().Contains(search)));
+			query = query.Where(i => (i.InvoiceNumber != null && i.InvoiceNumber.ToLower().Contains(search))
+				|| (i.Customer != null && i.Customer.Name != null && i.Customer.Name.ToLower().Contains(search))
+				|| (i.Vehicle != null && i.Vehicle.RegistrationNumber != null && i.Vehicle.RegistrationNumber.ToLower().Contains(search))
+				|| (i.JobCard != null && i.JobCard.JobCardNumber != null && i.JobCard.JobCardNumber.ToLower().Contains(search)));
 		}
 
 		return await query.CountAsync(cancellationToken);

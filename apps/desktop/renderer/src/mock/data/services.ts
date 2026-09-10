@@ -1,4 +1,7 @@
-// Cleaned: Real service catalogue is loaded exclusively from PostgreSQL via API.
+// Real service catalogue is loaded exclusively from PostgreSQL via backend API.
+// No production services are hardcoded in client data.
+export { CATALOGUE_CATEGORIES, type CatalogueCategory } from '../../constants/catalogue';
+
 export interface MockService {
 	id: string;
 	name: string;
@@ -11,9 +14,3 @@ export interface MockService {
 
 export const mockServices: MockService[] = [];
 export const serviceCategories: string[] = [];
-export const CATALOGUE_CATEGORIES = [
-	'Exterior Detailing',
-	'Interior Care',
-	'Protection Packages',
-	'Others',
-] as const;

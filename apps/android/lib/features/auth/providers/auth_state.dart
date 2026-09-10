@@ -9,20 +9,38 @@ class AuthInitial extends AuthState {
   const AuthInitial();
 }
 
+/// System has not been initialized with an Owner account
+class SetupRequired extends AuthState {
+  final String? message;
+  const SetupRequired([this.message]);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SetupRequired &&
+          runtimeType == other.runtimeType &&
+          message == other.message;
+
+  @override
+  int get hashCode => message.hashCode;
+}
+
 /// User is not logged in
 class Unauthenticated extends AuthState {
   final String? message;
-  const Unauthenticated([this.message]);
+  final bool isSuccess;
+  const Unauthenticated([this.message, this.isSuccess = false]);
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is Unauthenticated &&
           runtimeType == other.runtimeType &&
-          message == other.message;
+          message == other.message &&
+          isSuccess == other.isSuccess;
 
   @override
-  int get hashCode => message.hashCode;
+  int get hashCode => Object.hash(message, isSuccess);
 }
 
 /// Login request in-flight

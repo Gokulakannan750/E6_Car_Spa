@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf renderer/dist-renderer renderer/dist-electron",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm --dir renderer test",
+    "test:watch": "pnpm --dir renderer test:watch",
     "electron:dev": "vite",
     "electron:build": "vite build",
     "electron:package": "electron-builder --win"

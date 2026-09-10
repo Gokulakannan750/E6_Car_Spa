@@ -38,10 +38,34 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       state = SettingsLoaded(profile: profile);
     } catch (e) {
       if (state is! SettingsLoaded) {
+        try {
+          final publicProf = await _repository.getPublicBusinessProfile();
+          state = SettingsLoaded(profile: publicProf);
+          return;
+        } catch (_) {}
+
         final message = e is ApiException
             ? e.message
             : 'Failed to load business profile. Please check connection.';
         state = SettingsError(message);
+      }
+    }
+  }
+
+  /// Loads the public branding profile (businessName, logoPath, updatedAt)
+  /// Safe to call before login or when unauthenticated.
+  Future<void> loadPublicProfile() async {
+    final cached = await _repository.getCachedBusinessProfile();
+    if (cached != null && state is! SettingsLoaded) {
+      state = SettingsLoaded(profile: cached);
+    }
+
+    try {
+      final profile = await _repository.getPublicBusinessProfile();
+      state = SettingsLoaded(profile: profile);
+    } catch (_) {
+      if (cached != null && state is! SettingsLoaded) {
+        state = SettingsLoaded(profile: cached);
       }
     }
   }

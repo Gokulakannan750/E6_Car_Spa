@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Vehicles;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
@@ -59,11 +61,18 @@ public class VehicleService : IVehicleService
 		return await query.CountAsync(cancellationToken);
 	}
 
+	public static string NormalizeRegistration(string? registrationNumber)
+	{
+		if (string.IsNullOrWhiteSpace(registrationNumber)) return string.Empty;
+		return Regex.Replace(registrationNumber.Trim().ToUpper(), @"[\s\-]", "");
+	}
+
 	public async Task<VehicleDto> CreateAsync(CreateVehicleRequest request, CancellationToken cancellationToken = default)
 	{
+		var normalizedReg = NormalizeRegistration(request.RegistrationNumber);
 		var vehicle = new Vehicle
 		{
-			RegistrationNumber = request.RegistrationNumber.Trim().ToUpper(),
+			RegistrationNumber = normalizedReg,
 			Make = request.Make.Trim(),
 			Model = request.Model.Trim(),
 			Variant = request.Variant?.Trim(),
@@ -71,8 +80,15 @@ public class VehicleService : IVehicleService
 			CustomerId = request.CustomerId
 		};
 
-		await _db.Vehicles.AddAsync(vehicle, cancellationToken);
-		await _db.SaveChangesAsync(cancellationToken);
+		try
+		{
+			await _db.Vehicles.AddAsync(vehicle, cancellationToken);
+			await _db.SaveChangesAsync(cancellationToken);
+		}
+		catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+		{
+			throw new ConflictException($"A vehicle with registration number '{normalizedReg}' already exists.");
+		}
 
 		// Load customer for DTO
 		await _db.Entry(vehicle).Reference(v => v.Customer).LoadAsync(cancellationToken);
@@ -95,14 +111,22 @@ public class VehicleService : IVehicleService
 		var vehicle = await _db.Vehicles.Include(v => v.Customer).FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
 		if (vehicle is null) return null;
 
-		vehicle.RegistrationNumber = request.RegistrationNumber.Trim().ToUpper();
+		var normalizedReg = NormalizeRegistration(request.RegistrationNumber);
+		vehicle.RegistrationNumber = normalizedReg;
 		vehicle.Make = request.Make.Trim();
 		vehicle.Model = request.Model.Trim();
 		vehicle.Variant = request.Variant?.Trim();
 		vehicle.Color = request.Color?.Trim();
 		vehicle.UpdatedAt = DateTime.UtcNow;
 
-		await _db.SaveChangesAsync(cancellationToken);
+		try
+		{
+			await _db.SaveChangesAsync(cancellationToken);
+		}
+		catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+		{
+			throw new ConflictException($"A vehicle with registration number '{normalizedReg}' already exists.");
+		}
 
 		await _auditLogService.RecordAsync(
 			action: "vehicles.edit",
@@ -139,20 +163,100 @@ public class VehicleService : IVehicleService
 		return true;
 	}
 
- public async Task<bool> RegistrationNumberExistsAsync(string registrationNumber, Guid? excludeId = null, CancellationToken cancellationToken = default)
- {
- var query = _db.Vehicles.Where(v => v.RegistrationNumber == registrationNumber.ToUpper());
- if (excludeId.HasValue) query = query.Where(v => v.Id != excludeId.Value);
- return await query.AnyAsync(cancellationToken);
- }
+	public async Task<bool> RegistrationNumberExistsAsync(string registrationNumber, Guid? excludeId = null, CancellationToken cancellationToken = default)
+	{
+		var normalized = NormalizeRegistration(registrationNumber);
+		if (string.IsNullOrEmpty(normalized)) return false;
 
- public async Task<VehicleDto?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
- {
- var vehicle = await _db.Vehicles
- .Include(v => v.Customer)
- .FirstOrDefaultAsync(v => v.RegistrationNumber == registrationNumber.ToUpper(), cancellationToken);
- return vehicle is null ? null : ToDto(vehicle);
- }
+		var query = _db.Vehicles.Where(v => v.RegistrationNumber == normalized);
+		if (excludeId.HasValue) query = query.Where(v => v.Id != excludeId.Value);
+		return await query.AnyAsync(cancellationToken);
+	}
 
- private static VehicleDto ToDto(Vehicle v) => new(v.Id, v.RegistrationNumber, v.Make, v.Model, v.Variant, v.Color, v.CustomerId, v.Customer.Name, v.CreatedAt);
+	public async Task<VehicleDto?> GetByRegistrationNumberAsync(string registrationNumber, CancellationToken cancellationToken = default)
+	{
+		var normalized = NormalizeRegistration(registrationNumber);
+		if (string.IsNullOrEmpty(normalized)) return null;
+
+		var vehicle = await _db.Vehicles
+			.Include(v => v.Customer)
+			.FirstOrDefaultAsync(v => v.RegistrationNumber == normalized, cancellationToken);
+		return vehicle is null ? null : ToDto(vehicle);
+	}
+
+	public async Task<VehicleDto> TransferOwnershipAsync(Guid vehicleId, Guid newCustomerId, CancellationToken cancellationToken = default)
+	{
+		var vehicle = await _db.Vehicles
+			.Include(v => v.Customer)
+			.FirstOrDefaultAsync(v => v.Id == vehicleId && !v.IsDeleted, cancellationToken);
+		if (vehicle is null)
+			throw new NotFoundException($"Vehicle with ID '{vehicleId}' was not found.");
+
+		var newCustomer = await _db.Customers
+			.FirstOrDefaultAsync(c => c.Id == newCustomerId && !c.IsDeleted, cancellationToken);
+		if (newCustomer is null)
+			throw new NotFoundException($"Customer with ID '{newCustomerId}' was not found.");
+
+		if (vehicle.CustomerId == newCustomerId)
+			throw new ConflictException("Vehicle is already owned by this customer.");
+
+		var previousCustomerId = vehicle.CustomerId;
+		var previousCustomerName = vehicle.Customer?.Name ?? "Unknown";
+
+		var hasActiveTransaction = _db.Database.CurrentTransaction != null;
+		Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
+		if (!hasActiveTransaction && _db.Database.IsRelational())
+		{
+			transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+		}
+
+		try
+		{
+			vehicle.CustomerId = newCustomer.Id;
+			vehicle.UpdatedAt = DateTime.UtcNow;
+
+			await _db.SaveChangesAsync(cancellationToken);
+
+			await _auditLogService.RecordAsync(
+				action: "vehicles.transfer_ownership",
+				module: "Vehicles",
+				description: $"Ownership of vehicle '{vehicle.RegistrationNumber}' ({vehicle.Make} {vehicle.Model}) transferred from '{previousCustomerName}' to '{newCustomer.Name}'.",
+				entityType: "Vehicle",
+				entityId: vehicle.Id,
+				entityReference: vehicle.RegistrationNumber,
+				oldValues: System.Text.Json.JsonSerializer.Serialize(new { customerId = previousCustomerId, customerName = previousCustomerName }),
+				newValues: System.Text.Json.JsonSerializer.Serialize(new { customerId = newCustomer.Id, customerName = newCustomer.Name }),
+				metadata: System.Text.Json.JsonSerializer.Serialize(new { vehicleId = vehicle.Id, registrationNumber = vehicle.RegistrationNumber, previousCustomerId, newCustomerId = newCustomer.Id }),
+				outcome: "Success",
+				cancellationToken: cancellationToken);
+
+			if (transaction != null)
+			{
+				await transaction.CommitAsync(cancellationToken);
+			}
+		}
+		finally
+		{
+			if (transaction != null)
+			{
+				await transaction.DisposeAsync();
+			}
+		}
+
+		return new VehicleDto(vehicle.Id, vehicle.RegistrationNumber, vehicle.Make, vehicle.Model, vehicle.Variant, vehicle.Color, newCustomer.Id, newCustomer.Name, vehicle.CreatedAt);
+	}
+
+
+	private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+	{
+		if (ex.InnerException is Npgsql.PostgresException pgEx && pgEx.SqlState == "23505")
+			return true;
+
+		var msg = ex.InnerException?.Message ?? ex.Message;
+		return msg.Contains("UX_Vehicles_RegistrationNumber", StringComparison.OrdinalIgnoreCase) ||
+		       msg.Contains("23505", StringComparison.OrdinalIgnoreCase) ||
+		       msg.Contains("unique", StringComparison.OrdinalIgnoreCase);
+	}
+
+	private static VehicleDto ToDto(Vehicle v) => new(v.Id, v.RegistrationNumber, v.Make, v.Model, v.Variant, v.Color, v.CustomerId, v.Customer.Name, v.CreatedAt);
 }

@@ -51,12 +51,11 @@ public class CustomerService : ICustomerService
 
  public async Task<CustomerDto?> GetByRegistrationAsync(string registrationNumber, CancellationToken cancellationToken = default)
  {
- if (string.IsNullOrWhiteSpace(registrationNumber)) return null;
+		var reg = VehicleService.NormalizeRegistration(registrationNumber);
+		if (string.IsNullOrEmpty(reg)) return null;
 
- var reg = registrationNumber.Trim().ToUpper();
-
- return await _db.Vehicles
- .Where(v => v.RegistrationNumber == reg)
+		return await _db.Vehicles
+			.Where(v => v.RegistrationNumber == reg)
  .Select(v => new CustomerDto(
  v.Customer.Id,
  v.Customer.Name,

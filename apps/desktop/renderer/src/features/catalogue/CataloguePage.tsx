@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, Edit3, ChevronDown, Clock, PlusCircle, Info, Wrench } from 'lucide-react';
+import { Plus, Search, Edit3, ChevronDown, PlusCircle, Info, Wrench } from 'lucide-react';
 import { getServices, getServiceCategories, createService, updateService, type ServiceDto, type CreateServiceInput } from '../../lib/api';
 import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { Combobox } from '../../components/ui/Combobox';
 import { useAuth } from '../auth/auth-context';
+import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,6 @@ interface ServiceFormData {
 	category: string;
 	description: string;
 	price: string;
-	durationMinutes: string;
 	isActive: boolean;
 }
 
@@ -26,29 +26,19 @@ const emptyForm: ServiceFormData = {
 	category: '',
 	description: '',
 	price: '',
-	durationMinutes: '60',
 	isActive: true,
 };
 
 
-type SortOption = 'recommended' | 'price-asc' | 'price-desc' | 'duration-asc';
+type SortOption = 'recommended' | 'price-asc' | 'price-desc';
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 	{ value: 'recommended', label: 'Sort by: Recommended' },
 	{ value: 'price-asc', label: 'Price: Low to High' },
 	{ value: 'price-desc', label: 'Price: High to Low' },
-	{ value: 'duration-asc', label: 'Duration: Shortest First' },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDuration(minutes: number | null | undefined): string {
-	if (!minutes) return '—';
-	if (minutes < 60) return `${minutes} min`;
-	const hours = Math.floor(minutes / 60);
-	const mins = minutes % 60;
-	return mins > 0 ? `${hours}h ${mins}m` : `${hours} hour${hours > 1 ? 's' : ''}`;
-}
 
 function formatPrice(price: number): string {
 	return `₹${price.toLocaleString('en-IN')}`;
@@ -95,9 +85,12 @@ export function CataloguePage() {
 
 	const services = servicesData?.items ?? [];
 
-	// ── Authoritative Categories from backend GET /api/services/categories + loaded services ──
+	// ── Established Categories + Dynamic backend categories + loaded service categories ──
 	const dynamicCategories = useMemo(() => {
-		const set = new Set<string>(backendCategories);
+		const set = new Set<string>(CATALOGUE_CATEGORIES);
+		backendCategories.forEach((c) => {
+			if (c && c.trim()) set.add(c.trim());
+		});
 		services.forEach((s) => {
 			if (s.category && s.category.trim()) set.add(s.category.trim());
 		});
@@ -152,9 +145,6 @@ export function CataloguePage() {
 			case 'price-desc':
 				result.sort((a, b) => b.price - a.price);
 				break;
-			case 'duration-asc':
-				result.sort((a, b) => (a.durationMinutes ?? 0) - (b.durationMinutes ?? 0));
-				break;
 			case 'recommended':
 			default:
 				break;
@@ -177,7 +167,6 @@ export function CataloguePage() {
 			category: svc.category || '',
 			description: svc.description || '',
 			price: String(svc.price),
-			durationMinutes: String(svc.durationMinutes ?? '60'),
 			isActive: svc.isActive,
 		});
 		setShowCreateDialog(true);
@@ -188,11 +177,10 @@ export function CataloguePage() {
 		createMutation.mutate(
 			{
 				name: form.name.trim(),
-				category: form.category.trim() || 'General',
+				category: form.category.trim() || 'General Services',
 				description: form.description.trim() || undefined,
 				price: parseFloat(form.price) || 0,
 				taxPercentage: 18,
-				durationMinutes: form.durationMinutes ? parseInt(form.durationMinutes) : undefined,
 				isActive: form.isActive,
 			},
 			{
@@ -212,11 +200,10 @@ export function CataloguePage() {
 				id: editingService.id,
 				data: {
 					name: form.name.trim(),
-					category: form.category.trim() || 'General',
+					category: form.category.trim() || 'General Services',
 					description: form.description.trim() || undefined,
 					price: parseFloat(form.price) || 0,
 					taxPercentage: editingService.taxPercentage ?? 18,
-					durationMinutes: form.durationMinutes ? parseInt(form.durationMinutes) : undefined,
 					isActive: form.isActive,
 				},
 			},
@@ -373,7 +360,7 @@ export function CataloguePage() {
 							{/* Top: Category Tag & Status / Badges */}
 							<div className="flex items-center justify-between mb-2">
 								<span className="text-xs font-semibold uppercase tracking-wider text-secondary bg-secondary/10 px-2.5 py-0.5 rounded">
-									{svc.category || 'Exterior Detailing'}
+									{svc.category || 'General Services'}
 								</span>
 								<StatusBadge status={svc.isActive ? 'active' : 'inactive'} />
 							</div>
@@ -388,25 +375,14 @@ export function CataloguePage() {
 								{svc.description || 'Professional car detailing and protection service provided by our certified specialists.'}
 							</p>
 
-							{/* Middle Info Box (Duration & Starting Price) */}
-							<div className="grid grid-cols-2 gap-3 mb-4 p-3 bg-surface-container-low rounded-lg border border-outline-variant/50">
-								<div>
-									<span className="block font-label-md text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
-										Duration
-									</span>
-									<span className="flex items-center gap-1 text-sm text-on-surface font-medium">
-										<Clock className="w-4 h-4 text-outline shrink-0" />
-										{formatDuration(svc.durationMinutes)}
-									</span>
-								</div>
-								<div>
-									<span className="block font-label-md text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
-										Starting Price
-									</span>
-									<span className="font-headline-sm text-lg font-bold text-secondary tracking-tight">
-										From {formatPrice(svc.price)}
-									</span>
-								</div>
+							{/* Starting Price Box */}
+							<div className="mb-4 p-3 bg-surface-container-low rounded-lg border border-outline-variant/50 flex items-center justify-between">
+								<span className="font-label-md text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+									Starting Price
+								</span>
+								<span className="font-headline-sm text-lg font-bold text-secondary tracking-tight">
+									From {formatPrice(svc.price)}
+								</span>
 							</div>
 
 							{/* Bottom Row: Add to Job Card & Details / Edit */}
@@ -522,17 +498,7 @@ export function CataloguePage() {
 							</div>
 						</div>
 
-						<div>
-							<label className="block text-xs font-semibold text-on-surface mb-1">Duration (Minutes)</label>
-							<input
-								type="number"
-								min="0"
-								value={form.durationMinutes}
-								onChange={(e) => setForm((p) => ({ ...p, durationMinutes: e.target.value }))}
-								className="form-input w-full text-sm py-1.5"
-								placeholder="60"
-							/>
-						</div>
+
 
 						<div>
 							<label className="block text-xs font-semibold text-on-surface mb-1">Description</label>
@@ -567,7 +533,7 @@ export function CataloguePage() {
 					open={!!viewingService}
 					onOpenChange={(open) => !open && setViewingService(null)}
 					title={viewingService.name}
-					description={`Category: ${viewingService.category || 'General'}`}
+					description={`Category: ${viewingService.category || 'General Services'}`}
 					footer={
 						<>
 							<Button variant="secondary" onClick={() => setViewingService(null)}>
@@ -591,14 +557,7 @@ export function CataloguePage() {
 					<div className="space-y-4 text-sm">
 						<p className="text-on-surface leading-relaxed">{viewingService.description || 'No detailed description available.'}</p>
 
-						<div className="grid grid-cols-3 gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/60">
-							<div>
-								<span className="text-xs text-on-surface-variant block uppercase font-semibold">Duration</span>
-								<span className="font-medium text-on-surface flex items-center gap-1.5 mt-0.5">
-									<Clock className="w-4 h-4 text-secondary" />
-									{formatDuration(viewingService.durationMinutes)}
-								</span>
-							</div>
+						<div className="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/60">
 							<div>
 								<span className="text-xs text-on-surface-variant block uppercase font-semibold">Starting Price</span>
 								<span className="font-bold text-secondary text-base block mt-0.5">

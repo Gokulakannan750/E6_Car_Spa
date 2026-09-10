@@ -113,6 +113,13 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
       createdAt: DateTime.now(),
     );
   }
+
+  List<InvoiceWhatsAppStatus> mockWhatsAppStatuses = [];
+
+  @override
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+    return mockWhatsAppStatuses;
+  }
 }
 
 void main() {
@@ -156,6 +163,33 @@ void main() {
       status: InvoiceStatus.draft,
       items: [],
       payments: [],
+      createdAt: DateTime(2026, 8, 25),
+      updatedAt: null,
+    );
+
+    final testFinalizedInvoice = Invoice(
+      id: 'inv-fin-1',
+      invoiceNumber: 'INV-2026-000001',
+      jobCardId: 'jc-1',
+      jobCardNumber: 'JC-2026-000001',
+      customerId: 'c-1',
+      customerName: 'Priya',
+      customerPhone: '9840123456',
+      vehicleId: 'v-1',
+      registrationNumber: 'TN01AA1111',
+      vehicleMake: 'Honda',
+      vehicleModel: 'City',
+      invoiceDate: DateTime(2026, 8, 25),
+      subtotal: 1000.0,
+      discount: 0.0,
+      taxableAmount: 1000.0,
+      gstAmount: 180.0,
+      totalAmount: 1180.0,
+      paidAmount: 0.0,
+      balanceAmount: 1180.0,
+      status: InvoiceStatus.generated,
+      items: const [],
+      payments: const [],
       createdAt: DateTime(2026, 8, 25),
       updatedAt: null,
     );
@@ -228,6 +262,86 @@ void main() {
       );
 
       expect(paySuccess, true);
+    });
+
+    test('InvoiceDetailsNotifier refreshes WhatsApp status silently and stops polling on Sent', () async {
+      fakeApi.mockInvoice = testFinalizedInvoice;
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Pending',
+        ),
+      ];
+
+      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      await notifier.loadDetails();
+
+      var state = container.read(invoiceDetailsProvider('inv-fin-1'));
+      expect(state.isLoading, false);
+      expect(state.whatsAppStatuses.length, 1);
+      expect(state.whatsAppStatuses.first.isPending, true);
+      expect(notifier.isPolling, true);
+
+      // Now backend reports Sent
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        ),
+      ];
+
+      await notifier.refreshWhatsAppStatus(silent: true);
+
+      state = container.read(invoiceDetailsProvider('inv-fin-1'));
+      expect(state.whatsAppStatuses.first.isSent, true);
+      expect(notifier.isPolling, false); // Polling stopped!
+    });
+
+    test('InvoiceDetailsNotifier stops polling when WhatsApp status is Failed', () async {
+      fakeApi.mockInvoice = testFinalizedInvoice;
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Processing',
+        ),
+      ];
+
+      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      await notifier.loadDetails();
+
+      expect(notifier.isPolling, true);
+
+      // Backend reports Failed
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Failed',
+          errorMessage: 'Meta template error',
+        ),
+      ];
+
+      await notifier.refreshWhatsAppStatus(silent: true);
+
+      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+      expect(state.whatsAppStatuses.first.isFailed, true);
+      expect(notifier.isPolling, false); // Polling stopped!
+    });
+
+    test('InvoiceDetailsNotifier stopPolling cancels active polling timer', () async {
+      fakeApi.mockInvoice = testFinalizedInvoice;
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Pending',
+        ),
+      ];
+
+      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      await notifier.loadDetails();
+
+      expect(notifier.isPolling, true);
+      notifier.stopPolling();
+      expect(notifier.isPolling, false);
     });
   });
 }

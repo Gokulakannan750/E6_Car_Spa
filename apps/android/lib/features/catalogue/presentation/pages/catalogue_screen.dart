@@ -334,23 +334,10 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen> {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Text(
-                      svc.category ?? 'General',
+                      svc.category ?? 'General Services',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                     ),
                   ),
-                  if (svc.durationMinutes != null) ...[
-                    const SizedBox(width: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.schedule, size: 12, color: AppColors.textTertiary),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${svc.durationMinutes} min',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ],

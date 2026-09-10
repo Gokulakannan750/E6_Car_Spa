@@ -3,7 +3,6 @@ import {
 	getAuthStatus,
 	getMe,
 	loginApi,
-	getAuthToken,
 	setAuthToken,
 	initAuthToken,
 	USER_STORAGE_KEY,
@@ -21,11 +20,13 @@ export interface AuthContextValue {
 	isOwner: boolean;
 	isInitialized: boolean | null;
 	isLoading: boolean;
+	sessionExpiredMessage: string | null;
 	hasPermission: (permissionCode?: string) => boolean;
 	login: (username: string, password: string) => Promise<AuthUser>;
 	logout: () => void;
+	clearSessionExpiredMessage: () => void;
 	refreshAuth: () => Promise<void>;
-	checkInitialization: () => Promise<boolean>;
+	checkInitialization: (isInitialStartup?: boolean) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -35,9 +36,11 @@ export const AuthContext = createContext<AuthContextValue>({
 	isOwner: false,
 	isInitialized: null,
 	isLoading: true,
+	sessionExpiredMessage: null,
 	hasPermission: () => false,
 	login: async () => { throw new Error('AuthContext not initialized'); },
 	logout: () => {},
+	clearSessionExpiredMessage: () => {},
 	refreshAuth: async () => {},
 	checkInitialization: async () => false,
 });
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [token, setTokenState] = useState<string | null>(null);
 	const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
 	const setCurrentUser = useAppStore((s) => s.setCurrentUser);
 
 	const syncAppStoreUser = useCallback((u: AuthUser | null) => {
@@ -68,15 +72,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		});
 	}, [setCurrentUser]);
 
-	const checkInitialization = useCallback(async () => {
+	const checkInitialization = useCallback(async (isInitialStartup: boolean = false) => {
 		try {
 			const res = await getAuthStatus();
 			setIsInitialized(res.initialized);
 			return res.initialized;
 		} catch (err) {
 			console.error('Failed to check auth status:', err);
-			setIsInitialized(true); // default to true on error to allow login attempt
-			return true;
+			// During initial startup when state is unknown, default to true to allow login attempt (Case 5).
+			// If already on FirstTimeSetup (isInitialized === false), retain false on network error so
+			// the screen is preserved and not prematurely exited.
+			if (isInitialStartup) {
+				setIsInitialized(true);
+				return true;
+			}
+			return false;
 		}
 	}, []);
 
@@ -115,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		async function init() {
 			setIsLoading(true);
 			try {
-				const initialized = await checkInitialization();
+				const initialized = await checkInitialization(true);
 				if (initialized) {
 					const existingToken = await initAuthToken();
 					if (existingToken) {
@@ -146,6 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		const handleUnauthorized = () => {
 			if (isMounted) {
+				setSessionExpiredMessage('Session expired. Please log in again.');
 				logout();
 			}
 		};
@@ -157,20 +168,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		};
 	}, [checkInitialization, logout, syncAppStoreUser]);
 
+	const clearSessionExpiredMessage = useCallback(() => {
+		setSessionExpiredMessage(null);
+	}, []);
+
 	const login = useCallback(async (username: string, password: string) => {
-		setIsLoading(true);
-		try {
-			const res = await loginApi({ username, password });
-			setAuthToken(res.token);
-			setTokenState(res.token);
-			setUser(res.user);
-			localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(res.user));
-			syncAppStoreUser(res.user);
-			setIsInitialized(true);
-			return res.user;
-		} finally {
-			setIsLoading(false);
-		}
+		setSessionExpiredMessage(null);
+		const res = await loginApi({ username, password });
+		setAuthToken(res.token);
+		setTokenState(res.token);
+		setUser(res.user);
+		localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(res.user));
+		syncAppStoreUser(res.user);
+		setIsInitialized(true);
+		return res.user;
 	}, [syncAppStoreUser]);
 
 	const hasPermission = useCallback((permissionCode?: string): boolean => {
@@ -197,9 +208,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isOwner,
 				isInitialized,
 				isLoading,
+				sessionExpiredMessage,
 				hasPermission,
 				login,
 				logout,
+				clearSessionExpiredMessage,
 				refreshAuth,
 				checkInitialization,
 			}}

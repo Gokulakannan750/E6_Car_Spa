@@ -174,4 +174,7 @@ class _FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier
 
   @override
   Future<void> logout() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

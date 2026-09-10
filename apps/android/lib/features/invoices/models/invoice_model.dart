@@ -33,6 +33,18 @@ enum InvoiceStatus {
     }
     return InvoiceStatus.draft;
   }
+
+  static InvoiceStatus parse(dynamic val) {
+    if (val == null) return InvoiceStatus.draft;
+    if (val is InvoiceStatus) return val;
+    if (val is int) return InvoiceStatus.fromValue(val);
+    if (val is String) {
+      final parsedInt = int.tryParse(val);
+      if (parsedInt != null) return InvoiceStatus.fromValue(parsedInt);
+      return InvoiceStatus.fromString(val);
+    }
+    return InvoiceStatus.draft;
+  }
 }
 
 enum PaymentMethod {
@@ -226,11 +238,12 @@ class Invoice {
     this.updatedAt,
   });
 
-  bool get isDraft => invoiceNumber == null || invoiceNumber!.trim().isEmpty || status == InvoiceStatus.draft;
+  bool get isDraft => (invoiceNumber == null || invoiceNumber!.trim().isEmpty) && status == InvoiceStatus.draft;
   bool get isPaid => status == InvoiceStatus.paid || (paidAmount >= totalAmount && totalAmount > 0);
   bool get isPartiallyPaid => status == InvoiceStatus.partiallyPaid || (paidAmount > 0 && paidAmount < totalAmount);
   bool get isCancelled => status == InvoiceStatus.cancelled;
   bool get isFinalized => !isDraft && !isCancelled;
+  String get displayStatusText => status.label;
 
   String get vehicleDisplayName {
     final buffer = StringBuffer('$vehicleMake $vehicleModel');
@@ -243,19 +256,38 @@ class Invoice {
   factory Invoice.fromJson(Map<String, dynamic> json) {
     final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
     final rawPayments = json['payments'] as List<dynamic>? ?? json['Payments'] as List<dynamic>? ?? [];
-    final statusRaw = json['status'] ?? json['Status'] ?? 0;
-    final statusInt = statusRaw is int ? statusRaw : (int.tryParse(statusRaw.toString()) ?? 0);
+    final rawNumber = json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?;
+    final invNumber = (rawNumber != null && rawNumber.trim().isNotEmpty) ? rawNumber.trim() : null;
+
+    final subtotal = ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num).toDouble();
+    final discount = ((json['discount'] ?? json['Discount'] ?? 0.0) as num).toDouble();
+    final taxableAmount = ((json['taxableAmount'] ?? json['TaxableAmount'] ?? 0.0) as num).toDouble();
+    final gstAmount = ((json['gstAmount'] ?? json['GstAmount'] ?? 0.0) as num).toDouble();
+    final totalAmount = ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble();
+    final paidAmount = ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble();
+    final balanceAmount = ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble();
+
+    var parsedStatus = InvoiceStatus.parse(json['status'] ?? json['Status']);
+    if (invNumber != null && parsedStatus == InvoiceStatus.draft) {
+      if (balanceAmount <= 0 && paidAmount >= totalAmount && totalAmount > 0) {
+        parsedStatus = InvoiceStatus.paid;
+      } else if (paidAmount > 0 && paidAmount < totalAmount) {
+        parsedStatus = InvoiceStatus.partiallyPaid;
+      } else {
+        parsedStatus = InvoiceStatus.generated;
+      }
+    }
 
     return Invoice(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      invoiceNumber: json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
+      invoiceNumber: invNumber,
       jobCardId: json['jobCardId'] as String? ?? json['JobCardId'] as String? ?? '',
       jobCardNumber: json['jobCardNumber'] as String? ?? json['JobCardNumber'] as String? ?? '',
       customerId: json['customerId'] as String? ?? json['CustomerId'] as String? ?? '',
       customerName: json['customerName'] as String? ?? json['CustomerName'] as String? ?? '',
       customerPhone: json['customerPhone'] as String? ?? json['CustomerPhone'] as String? ?? '',
       vehicleId: json['vehicleId'] as String? ?? json['VehicleId'] as String? ?? '',
-      registrationNumber: json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '',
+      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
       vehicleMake: json['vehicleMake'] as String? ?? json['VehicleMake'] as String? ?? '',
       vehicleModel: json['vehicleModel'] as String? ?? json['VehicleModel'] as String? ?? '',
       vehicleVariant: json['vehicleVariant'] as String? ?? json['VehicleVariant'] as String?,
@@ -265,14 +297,14 @@ class Invoice {
           : (json['InvoiceDate'] != null
               ? DateTime.tryParse(json['InvoiceDate'].toString()) ?? DateTime.now()
               : DateTime.now()),
-      subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num).toDouble(),
-      discount: ((json['discount'] ?? json['Discount'] ?? 0.0) as num).toDouble(),
-      taxableAmount: ((json['taxableAmount'] ?? json['TaxableAmount'] ?? 0.0) as num).toDouble(),
-      gstAmount: ((json['gstAmount'] ?? json['GstAmount'] ?? 0.0) as num).toDouble(),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
-      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble(),
-      balanceAmount: ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble(),
-      status: InvoiceStatus.fromValue(statusInt),
+      subtotal: subtotal,
+      discount: discount,
+      taxableAmount: taxableAmount,
+      gstAmount: gstAmount,
+      totalAmount: totalAmount,
+      paidAmount: paidAmount,
+      balanceAmount: balanceAmount,
+      status: parsedStatus,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
       isGstEnabled: (json['isGstEnabled'] ?? json['IsGstEnabled'] ?? true) as bool,
       items: rawItems.map((e) => InvoiceItem.fromJson(e as Map<String, dynamic>)).toList(),
@@ -321,29 +353,46 @@ class InvoiceListItem {
     required this.createdAt,
   });
 
-  bool get isDraft => invoiceNumber == null || invoiceNumber!.trim().isEmpty || status == InvoiceStatus.draft;
+  bool get isDraft => (invoiceNumber == null || invoiceNumber!.trim().isEmpty) && status == InvoiceStatus.draft;
+  bool get isFinalized => !isDraft && status != InvoiceStatus.cancelled;
+  String get displayStatusText => status.label;
 
   factory InvoiceListItem.fromJson(Map<String, dynamic> json) {
-    final statusRaw = json['status'] ?? json['Status'] ?? 0;
-    final statusInt = statusRaw is int ? statusRaw : (int.tryParse(statusRaw.toString()) ?? 0);
+    final rawNumber = json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?;
+    final invNumber = (rawNumber != null && rawNumber.trim().isNotEmpty) ? rawNumber.trim() : null;
+
+    final total = ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble();
+    final paid = ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble();
+    final bal = ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble();
+
+    var parsedStatus = InvoiceStatus.parse(json['status'] ?? json['Status']);
+    if (invNumber != null && parsedStatus == InvoiceStatus.draft) {
+      if (bal <= 0 && paid >= total && total > 0) {
+        parsedStatus = InvoiceStatus.paid;
+      } else if (paid > 0 && paid < total) {
+        parsedStatus = InvoiceStatus.partiallyPaid;
+      } else {
+        parsedStatus = InvoiceStatus.generated;
+      }
+    }
 
     return InvoiceListItem(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      invoiceNumber: json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
+      invoiceNumber: invNumber,
       jobCardNumber: json['jobCardNumber'] as String? ?? json['JobCardNumber'] as String? ?? '',
       customerName: json['customerName'] as String? ?? json['CustomerName'] as String? ?? '',
       customerPhone: json['customerPhone'] as String? ?? json['CustomerPhone'] as String? ?? '',
-      registrationNumber: json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '',
+      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
       vehicle: json['vehicle'] as String? ?? json['Vehicle'] as String? ?? '',
       invoiceDate: json['invoiceDate'] != null
           ? DateTime.tryParse(json['invoiceDate'].toString()) ?? DateTime.now()
           : (json['InvoiceDate'] != null
               ? DateTime.tryParse(json['InvoiceDate'].toString()) ?? DateTime.now()
               : DateTime.now()),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
-      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble(),
-      balanceAmount: ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble(),
-      status: InvoiceStatus.fromValue(statusInt),
+      totalAmount: total,
+      paidAmount: paid,
+      balanceAmount: bal,
+      status: parsedStatus,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
@@ -374,6 +423,67 @@ class InvoiceListResponse {
       totalCount: (json['totalCount'] ?? json['TotalCount'] ?? 0) as int,
       page: (json['page'] ?? json['Page'] ?? 1) as int,
       pageSize: (json['pageSize'] ?? json['PageSize'] ?? 20) as int,
+    );
+  }
+}
+
+@immutable
+class InvoiceWhatsAppStatus {
+  final String id;
+  final String invoiceId;
+  final String messageType;
+  final String recipientPhone;
+  final String status;
+  final String? errorMessage;
+  final DateTime? sentAt;
+  final DateTime? createdAt;
+
+  const InvoiceWhatsAppStatus({
+    this.id = '',
+    this.invoiceId = '',
+    required this.messageType,
+    this.recipientPhone = '',
+    required this.status,
+    this.errorMessage,
+    this.sentAt,
+    this.createdAt,
+  });
+
+  bool get isPending => status.toLowerCase() == 'pending';
+  bool get isProcessing => status.toLowerCase() == 'processing';
+  bool get isSent =>
+      status.toLowerCase() == 'sent' ||
+      status.toLowerCase() == 'delivered' ||
+      status.toLowerCase() == 'read';
+  bool get isFailed => status.toLowerCase() == 'failed';
+  bool get isSkipped => status.toLowerCase() == 'skipped';
+  bool get isTerminal => isSent || isFailed || isSkipped;
+
+  String get displayType {
+    if (messageType == 'InvoiceFinalized') return 'Invoice';
+    if (messageType == 'PaymentCompleted') return 'Receipt';
+    return messageType;
+  }
+
+  String get displayStatus {
+    if (status.isEmpty) return 'Pending';
+    return status;
+  }
+
+  factory InvoiceWhatsAppStatus.fromJson(Map<String, dynamic> json) {
+    return InvoiceWhatsAppStatus(
+      id: json['id'] as String? ?? json['Id'] as String? ?? '',
+      invoiceId: json['invoiceId'] as String? ?? json['InvoiceId'] as String? ?? '',
+      messageType: json['messageType'] as String? ?? json['MessageType'] as String? ?? '',
+      recipientPhone: json['recipientPhone'] as String? ?? json['RecipientPhone'] as String? ?? '',
+      status: json['status'] as String? ?? json['Status'] as String? ?? 'Pending',
+      errorMessage: json['errorMessage'] as String? ?? json['ErrorMessage'] as String?,
+      sentAt: json['sentAt'] != null
+          ? DateTime.tryParse(json['sentAt'].toString())
+          : (json['SentAt'] != null ? DateTime.tryParse(json['SentAt'].toString()) : null),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : (json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt'].toString()) : null),
     );
   }
 }

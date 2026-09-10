@@ -18,8 +18,9 @@ class VehicleApi {
   }
 
   Future<Vehicle?> getVehicleByRegistration(String registrationNumber) async {
+    final normalized = registrationNumber.trim().toUpperCase();
     try {
-      final response = await _dio.get('/vehicles/by-registration/$registrationNumber');
+      final response = await _dio.get('/vehicles/by-registration/$normalized');
       if (response.data == null) return null;
       return Vehicle.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -65,5 +66,13 @@ class VehicleApi {
 
   Future<void> deleteVehicle(String id) async {
     await _dio.delete('/vehicles/$id');
+  }
+
+  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+    final response = await _dio.post(
+      '/vehicles/$vehicleId/transfer-ownership',
+      data: {'newCustomerId': newCustomerId},
+    );
+    return Vehicle.fromJson(response.data as Map<String, dynamic>);
   }
 }

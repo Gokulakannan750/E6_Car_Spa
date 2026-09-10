@@ -27,8 +27,8 @@ class StatusBadge extends StatelessWidget {
       type = StatusType.cancelled;
     } else if (lower.contains('quality') || lower.contains('pending')) {
       type = StatusType.pending;
-    } else if (lower.contains('invoice')) {
-      type = StatusType.confirmed;
+    } else if (lower.contains('invoice') || lower.contains('generated')) {
+      type = StatusType.generated;
     } else {
       type = StatusType.draft;
     }
@@ -51,8 +51,9 @@ class StatusBadge extends StatelessWidget {
         return AppColors.readyBg;
       case StatusType.overdue:
         return AppColors.cancelledBg;
+      case StatusType.generated:
       case StatusType.confirmed:
-        return AppColors.invoicedBg;
+        return AppColors.generatedBg;
       case StatusType.locked:
         return AppColors.draftBg;
     }
@@ -74,8 +75,9 @@ class StatusBadge extends StatelessWidget {
         return AppColors.readyBorder;
       case StatusType.overdue:
         return AppColors.cancelledBorder;
+      case StatusType.generated:
       case StatusType.confirmed:
-        return AppColors.invoicedBorder;
+        return AppColors.generatedBorder;
       case StatusType.locked:
         return AppColors.draftBorder;
     }
@@ -97,8 +99,9 @@ class StatusBadge extends StatelessWidget {
         return AppColors.readyText;
       case StatusType.overdue:
         return AppColors.cancelledText;
+      case StatusType.generated:
       case StatusType.confirmed:
-        return AppColors.invoicedText;
+        return AppColors.generatedText;
       case StatusType.locked:
         return AppColors.draftText;
     }
@@ -120,6 +123,7 @@ class StatusBadge extends StatelessWidget {
         return Icons.payments_outlined;
       case StatusType.overdue:
         return Icons.warning_amber_outlined;
+      case StatusType.generated:
       case StatusType.confirmed:
         return Icons.verified_outlined;
       case StatusType.locked:
@@ -165,5 +169,6 @@ enum StatusType {
   paid,
   overdue,
   confirmed,
+  generated,
   locked,
 }

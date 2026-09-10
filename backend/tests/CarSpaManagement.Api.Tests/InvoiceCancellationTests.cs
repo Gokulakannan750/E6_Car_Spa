@@ -67,6 +67,9 @@ public class InvoiceCancellationTests
         public Task<Application.DTOs.WhatsApp.SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(Application.DTOs.WhatsApp.SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<Application.DTOs.WhatsApp.WhatsAppHealthDto> GetHealthStatusAsync(bool forceProbe = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Application.DTOs.WhatsApp.WhatsAppHealthDto(Domain.Enums.WhatsAppHealthStatus.NotConfigured.ToString(), null, null, null, null, false));
+        public Task ProbeHealthAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public string? NormalizePhoneNumber(string? phone) => phone;
     }
 

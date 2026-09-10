@@ -10,6 +10,7 @@ import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
 import '../../../vehicles/presentation/widgets/vehicle_card.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/add_custom_service_dialog.dart';
+import '../../../../core/utils/uppercase_formatter.dart';
 
 class NewJobCardScreen extends ConsumerStatefulWidget {
   const NewJobCardScreen({super.key});
@@ -170,6 +171,10 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               child: AppTextField(
                 controller: _lookupController,
                 hint: 'Phone or vehicle registration',
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: const [
+                  UpperCaseTextFormatter(),
+                ],
                 prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary),
               ),
             ),
@@ -191,7 +196,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         if (RegExp(r'^[0-9]+$').hasMatch(val)) {
                           notifier.lookupByPhone(val);
                         } else {
-                          notifier.lookupByRegistration(val);
+                          notifier.lookupByRegistration(val.toUpperCase());
                         }
                       },
                 child: state.isSearching
@@ -347,11 +352,19 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   AddVehicleDialog.show(
                     context,
                     customerId: state.customer!.id,
+                    customerName: state.customer!.name,
                     initialRegNumber: RegExp(r'^[0-9]+$').hasMatch(_lookupController.text)
                         ? null
-                        : _lookupController.text.trim(),
+                        : _lookupController.text.trim().toUpperCase(),
                     onCreated: (newVeh) {
-                      final updatedList = [...state.customerVehicles, newVeh];
+                      final updatedList = state.customerVehicles.any((v) =>
+                              v.id == newVeh.id ||
+                              v.registrationNumber.trim().toUpperCase() == newVeh.registrationNumber.trim().toUpperCase())
+                          ? state.customerVehicles.map((v) =>
+                              (v.id == newVeh.id || v.registrationNumber.trim().toUpperCase() == newVeh.registrationNumber.trim().toUpperCase())
+                                  ? newVeh
+                                  : v).toList()
+                          : [...state.customerVehicles, newVeh];
                       notifier.selectCustomer(state.customer!, updatedList, vehicle: newVeh);
                     },
                   );
@@ -625,7 +638,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  svc.category ?? 'General',
+                                  svc.category ?? 'General Services',
                                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
                                 ),
                               ),
@@ -726,7 +739,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Vehicle: ${state.selectedVehicle?.registrationNumber ?? ''} — ${state.selectedVehicle?.displayName ?? ''}',
+                'Vehicle: ${state.selectedVehicle?.registrationNumber.toUpperCase() ?? ''} — ${state.selectedVehicle?.displayName ?? ''}',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
               ),
             ],

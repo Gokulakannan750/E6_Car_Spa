@@ -27,6 +27,24 @@ class InvoiceDetailsScreen extends ConsumerStatefulWidget {
 
 class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(invoiceDetailsProvider(widget.invoiceId).notifier).checkAndResumePolling();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    try {
+      ref.read(invoiceDetailsProvider(widget.invoiceId).notifier).stopPolling();
+    } catch (_) {}
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final state = ref.watch(invoiceDetailsProvider(widget.invoiceId));
     final notifier = ref.read(invoiceDetailsProvider(widget.invoiceId).notifier);
@@ -120,7 +138,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ── Status Banner (Draft vs Finalized vs Cancelled) ─────────────
-            _buildStatusBanner(invoice),
+            _buildStatusBanner(invoice, state.whatsAppStatuses),
             const SizedBox(height: 16),
 
             // ── Customer & Vehicle Card ─────────────────────────────────────
@@ -421,7 +439,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     );
   }
 
-  Widget _buildStatusBanner(Invoice invoice) {
+  Widget _buildStatusBanner(Invoice invoice, List<InvoiceWhatsAppStatus> whatsAppStatuses) {
     if (invoice.isDraft) {
       return Container(
         padding: const EdgeInsets.all(12),
@@ -468,6 +486,21 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
       );
     }
 
+    // Deduplicate keeping latest entry per messageType, and sort InvoiceFinalized before PaymentCompleted
+    final deduplicated = <InvoiceWhatsAppStatus>[];
+    final seen = <String>{};
+    for (final st in whatsAppStatuses) {
+      if (!seen.contains(st.messageType)) {
+        seen.add(st.messageType);
+        deduplicated.add(st);
+      }
+    }
+    deduplicated.sort((a, b) {
+      if (a.messageType == 'InvoiceFinalized') return -1;
+      if (b.messageType == 'InvoiceFinalized') return 1;
+      return 0;
+    });
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -475,14 +508,70 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_outline, size: 20, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Invoice Finalized: Locked against edits. Official #${invoice.invoiceNumber ?? ""} issued.',
-              style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              const Icon(Icons.lock_outline, size: 20, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Invoice Finalized: Locked against edits. Official #${invoice.invoiceNumber ?? ""} issued.',
+                  style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          if (deduplicated.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: deduplicated.map((st) => _buildWhatsAppChip(st)).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppChip(InvoiceWhatsAppStatus st) {
+    Color color;
+    IconData icon;
+    if (st.isSent) {
+      color = AppColors.success;
+      icon = Icons.check_circle_rounded;
+    } else if (st.isPending || st.isProcessing) {
+      color = AppColors.warning;
+      icon = Icons.schedule_rounded;
+    } else if (st.isSkipped) {
+      color = AppColors.textSecondary;
+      icon = Icons.skip_next_rounded;
+    } else {
+      color = AppColors.error;
+      icon = Icons.error_outline_rounded;
+    }
+
+    return Container(
+      key: Key('whatsapp_status_chip_${st.messageType}_${st.status}'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            'WhatsApp ${st.displayType}: ${st.displayStatus}',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

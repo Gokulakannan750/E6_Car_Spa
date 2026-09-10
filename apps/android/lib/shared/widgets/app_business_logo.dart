@@ -23,6 +23,7 @@ class AppBusinessLogo extends ConsumerWidget {
   final DateTime? customUpdatedAt;
   final BoxBorder? border;
   final List<BoxShadow>? boxShadow;
+  final List<BoxShadow>? fallbackBoxShadow;
   final EdgeInsetsGeometry? padding;
 
   const AppBusinessLogo({
@@ -44,6 +45,7 @@ class AppBusinessLogo extends ConsumerWidget {
     this.customUpdatedAt,
     this.border,
     this.boxShadow,
+    this.fallbackBoxShadow,
     this.padding,
   });
 
@@ -149,7 +151,7 @@ class AppBusinessLogo extends ConsumerWidget {
         shape: shape,
         borderRadius: br,
         border: border,
-        boxShadow: boxShadow,
+        boxShadow: fallbackBoxShadow ?? boxShadow,
       ),
       child: Center(
         child: fallbackIcon != null

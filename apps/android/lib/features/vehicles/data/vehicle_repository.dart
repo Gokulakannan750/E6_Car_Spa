@@ -37,8 +37,9 @@ class VehicleRepository {
   }
 
   Future<Vehicle?> getVehicleByRegistration(String registrationNumber) async {
+    final normalized = registrationNumber.trim().toUpperCase();
     try {
-      return await _api.getVehicleByRegistration(registrationNumber);
+      return await _api.getVehicleByRegistration(normalized);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -75,6 +76,14 @@ class VehicleRepository {
   Future<void> deleteVehicle(String id) async {
     try {
       await _api.deleteVehicle(id);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+    try {
+      return await _api.transferOwnership(vehicleId, newCustomerId);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

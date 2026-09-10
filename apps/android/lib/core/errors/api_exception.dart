@@ -67,10 +67,12 @@ class ApiException implements Exception {
       }
     }
 
+    final normEndpoint = endpoint.toLowerCase();
+    final isLogin = normEndpoint.contains('/auth/login') || normEndpoint.endsWith('auth/login');
+
     if (statusCode == 401) {
-      final isLogin = endpoint.contains('/api/auth/login');
-      final msg = (isLogin && rawMessage != null && !isTechnical(rawMessage))
-          ? rawMessage
+      final msg = isLogin
+          ? 'Invalid username or password.'
           : 'Session expired. Please log in again.';
       return UnauthorizedException(message: msg, endpoint: endpoint, details: error.response?.data);
     }
@@ -114,9 +116,7 @@ class ApiException implements Exception {
     }
 
     if (statusCode == 423) {
-      final msg = (rawMessage != null && !isTechnical(rawMessage))
-          ? rawMessage
-          : 'Too many failed login attempts. Please try again later.';
+      const msg = 'Account temporarily locked. Please try again later.';
       int remaining = 300;
       if (error.response?.data is Map) {
         final map = error.response!.data as Map;
@@ -136,7 +136,7 @@ class ApiException implements Exception {
 
     if (statusCode == 429) {
       return RateLimitedException(
-        message: 'Too many requests. Please try again shortly.',
+        message: 'Too many attempts. Please try again later.',
         endpoint: endpoint,
         details: error.response?.data,
       );
@@ -146,13 +146,13 @@ class ApiException implements Exception {
       case DioExceptionType.connectionTimeout:
         return NetworkException(
           endpoint: endpoint,
-          message: 'Connection timeout. Please check your internet connection.',
+          message: 'Connection timeout. Unable to connect to the server. Please try again.',
           details: error.response?.data,
         );
       case DioExceptionType.sendTimeout:
         return NetworkException(
           endpoint: endpoint,
-          message: 'Request send timeout. Please try again.',
+          message: 'Request send timeout. Unable to connect to the server. Please try again.',
           details: error.response?.data,
         );
       case DioExceptionType.receiveTimeout:
@@ -164,7 +164,7 @@ class ApiException implements Exception {
       case DioExceptionType.connectionError:
         return NetworkException(
           endpoint: endpoint,
-          message: 'Unable to connect to the server. Please check that the E6 Car Spa server is running and try again.',
+          message: 'Unable to connect to the server. Please try again.',
           details: error.response?.data,
         );
       case DioExceptionType.badCertificate:
@@ -260,7 +260,7 @@ class AccountLockedException extends ApiException {
   final int remainingLockoutSeconds;
 
   const AccountLockedException({
-    super.message = 'Too many failed login attempts. Please try again later.',
+    super.message = 'Account temporarily locked. Please try again later.',
     super.endpoint,
     super.details,
     this.remainingLockoutSeconds = 300,
@@ -269,7 +269,7 @@ class AccountLockedException extends ApiException {
 
 class RateLimitedException extends ApiException {
   const RateLimitedException({
-    super.message = 'Too many requests. Please try again shortly.',
+    super.message = 'Too many attempts. Please try again later.',
     super.endpoint,
     super.details,
   }) : super(statusCode: 429);
@@ -286,7 +286,7 @@ class ServerException extends ApiException {
 class NetworkException extends ApiException {
   const NetworkException({
     super.endpoint,
-    super.message = 'No internet connection.',
+    super.message = 'No internet connection. Unable to connect to the server. Please try again.',
     super.details,
   });
 }

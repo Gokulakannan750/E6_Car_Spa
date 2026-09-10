@@ -44,6 +44,16 @@ public partial class BusinessProfileService : IBusinessProfileService
         return ToDto(profile);
     }
 
+    public async Task<PublicBusinessProfileDto> GetPublicProfileAsync(CancellationToken ct = default)
+    {
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        return new PublicBusinessProfileDto(
+            BusinessName: profile.BusinessName,
+            LogoPath: profile.LogoPath,
+            UpdatedAt: profile.UpdatedAt
+        );
+    }
+
     public async Task<BusinessProfileDto> UpdateProfileAsync(UpdateBusinessProfileRequest request, CancellationToken ct = default)
     {
         var profile = await GetOrCreateProfileEntityAsync(ct);

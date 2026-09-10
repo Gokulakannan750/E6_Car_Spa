@@ -36,3 +36,16 @@ __pycache__/
 backups/
 *.zip
 *.sql
+*.dump
+*.backup
+*.dump.*
+*.pgpass
+pgpass.conf
+logs/backup/
+
+# Keys and Certificates
+*.pem
+*.key
+*.pfx
+*.p12
+*.crt

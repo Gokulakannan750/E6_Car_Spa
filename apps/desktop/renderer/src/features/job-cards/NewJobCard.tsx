@@ -6,12 +6,14 @@ import {
 	createCustomer,
 	getVehiclesByCustomer,
 	createVehicle,
+	transferVehicleOwnership,
 	getServices,
 	createService,
 	createJobCard,
 	getServiceById,
 	getCustomerById,
 	getJobCardById,
+	ApiError,
 	type CustomerDto,
 	type VehicleDto,
 	type ServiceDto,
@@ -19,6 +21,7 @@ import {
 } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
+import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
 import {
 	Search,
 	Plus,
@@ -35,6 +38,7 @@ import {
 	CarFront,
 	Printer,
 	Download,
+	AlertCircle,
 } from 'lucide-react';
 import { JobCardPrintDocument } from './JobCardDetails';
 import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
@@ -42,6 +46,16 @@ import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+export interface VehicleConflictInfo {
+	vehicleId: string;
+	registrationNumber: string;
+	make: string;
+	model: string;
+	variant?: string | null;
+	currentCustomerId: string;
+	currentCustomerName: string;
+}
 
 interface ServiceItem {
 	id: string;
@@ -73,7 +87,6 @@ interface NewServiceForm {
 	name: string;
 	category: string;
 	description: string;
-	durationMinutes: string;
 	price: string;
 	isActive: boolean;
 }
@@ -146,12 +159,18 @@ export default function NewJobCard() {
 	const [newVehicle, setNewVehicle] = useState<NewVehicleForm>({ registrationNumber: '', make: '', model: '', variant: '' });
 	const [isCreatingVehicle, setIsCreatingVehicle] = useState(false);
 
+	// ── Ownership Transfer ────────────────────────────────────────────────────
+	const [vehicleConflict, setVehicleConflict] = useState<VehicleConflictInfo | null>(null);
+	const [showTransferConfirm, setShowTransferConfirm] = useState(false);
+	const [isTransferring, setIsTransferring] = useState(false);
+	const [transferError, setTransferError] = useState<string>('');
+
 	// ── Services ──────────────────────────────────────────────────────────────
 	const [services, setServices] = useState<ServiceItem[]>([]);
 	const [serviceSearch, setServiceSearch] = useState('');
 	const [searchResults, setSearchResults] = useState<ServiceDto[]>([]);
 	const [showNewService, setShowNewService] = useState(false);
-	const [newService, setNewService] = useState<NewServiceForm>({ name: '', category: '', description: '', durationMinutes: '', price: '', isActive: true });
+	const [newService, setNewService] = useState<NewServiceForm>({ name: '', category: '', description: '', price: '', isActive: true });
 	const [isCreatingService, setIsCreatingService] = useState(false);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const searchInputRef = useRef<HTMLInputElement>(null);
@@ -278,13 +297,40 @@ export default function NewJobCard() {
 		setIsSearching(true);
 		setCustomerError(null);
 		setInfoMessage(null);
-		setShowNewCustomer(false);
-		setShowNewVehicle(false);
+		setTransferError('');
 
 		// Try Live Backend API
 		try {
 			const result = await getVehicleByRegistration(rawReg);
 			if (result) {
+				if (customer) {
+					// If customer is already selected:
+					if (result.customerId === customer.id) {
+						// CASE 1: Belongs to selected customer
+						setVehicles((prev) => (prev.some((v) => v.id === result.id) ? prev : [...prev, result]));
+						setSelectedVehicle(result);
+						setVehicleConflict(null);
+						setShowNewVehicle(false);
+						setInfoMessage(`Vehicle ${rawReg} is registered to ${customer.name} and has been selected.`);
+						setIsSearching(false);
+						return;
+					} else {
+						// CASE 2: Belongs to another customer
+						setVehicleConflict({
+							vehicleId: result.id,
+							registrationNumber: result.registrationNumber,
+							make: result.make,
+							model: result.model,
+							variant: result.variant,
+							currentCustomerId: result.customerId,
+							currentCustomerName: result.customerName || 'Another Customer',
+						});
+						setIsSearching(false);
+						return;
+					}
+				}
+
+				// No customer selected yet -> load vehicle and its customer
 				let custDto: CustomerDto | null = null;
 				try {
 					custDto = await getCustomerById(result.customerId);
@@ -307,16 +353,25 @@ export default function NewJobCard() {
 			// API not reachable or 404
 		}
 
-		// Vehicle Not Found -> Clear previous customer and prompt to Create Customer & Vehicle
-		setCustomer(null);
-		setSelectedVehicle(null);
-		setVehicles([]);
-		setIsSearching(false);
-		setInfoMessage(`No vehicle found with registration "${rawReg}". Please create a customer and vehicle record below.`);
-		setNewVehicle((prev) => ({ ...prev, registrationNumber: rawReg }));
-		setNewCustomer({ name: '', phone: phone.trim().replace(/\D/g, '').slice(0, 10), email: '', address: '' });
-		setShowNewCustomer(true);
-	}, [regNumber, phone, loadCustomerAndVehicles]);
+		// Vehicle Not Found
+		if (!customer) {
+			setCustomer(null);
+			setSelectedVehicle(null);
+			setVehicles([]);
+			setShowNewCustomer(false);
+			setShowNewVehicle(false);
+			setIsSearching(false);
+			setInfoMessage(`No vehicle found with registration "${rawReg}". Please create a customer and vehicle record below.`);
+			setNewVehicle((prev) => ({ ...prev, registrationNumber: rawReg }));
+			setNewCustomer({ name: '', phone: phone.trim().replace(/\D/g, '').slice(0, 10), email: '', address: '' });
+			setShowNewCustomer(true);
+		} else {
+			setIsSearching(false);
+			setCustomerError(`No vehicle found with registration "${rawReg}". Enter vehicle details below to add it.`);
+			setNewVehicle((prev) => ({ ...prev, registrationNumber: rawReg }));
+			setShowNewVehicle(true);
+		}
+	}, [regNumber, phone, customer, loadCustomerAndVehicles]);
 
 	// ── Create customer ───────────────────────────────────────────────────────
 	const handleCreateCustomer = async (e?: React.FormEvent) => {
@@ -363,6 +418,7 @@ export default function NewJobCard() {
 		setIsCreatingVehicle(true);
 		setCustomerError(null);
 		setInfoMessage(null);
+		setTransferError('');
 
 		const regUpper = newVehicle.registrationNumber.trim().toUpperCase();
 
@@ -374,15 +430,122 @@ export default function NewJobCard() {
 				variant: newVehicle.variant || undefined,
 				customerId: customer.id,
 			});
-			setVehicles((prev) => [...prev, created]);
+			setVehicles((prev) => [...prev.filter((v) => v.id !== created.id), created]);
 			setSelectedVehicle(created);
 			setShowNewVehicle(false);
+			setVehicleConflict(null);
+			setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
 		} catch (err: unknown) {
 			console.error('Failed to create vehicle:', err);
+			if (err instanceof ApiError && err.status === 409) {
+				const body = (err.body && typeof err.body === 'object' ? err.body : {}) as Record<string, any>;
+				let existingCustId = body.existingCustomerId || body.customerId;
+				let existingCustName = body.existingCustomerName || body.customerName;
+				let existingVehId = body.existingVehicleId || body.vehicleId;
+				let existingMake = body.make || newVehicle.make.trim();
+				let existingModel = body.model || newVehicle.model.trim();
+				let existingVariant = body.variant ?? newVehicle.variant?.trim();
+
+				if (!existingCustId || !existingVehId) {
+					try {
+						const existing = await getVehicleByRegistration(regUpper);
+						if (existing) {
+							existingCustId = existing.customerId;
+							existingCustName = existing.customerName;
+							existingVehId = existing.id;
+							existingMake = existing.make;
+							existingModel = existing.model;
+							existingVariant = existing.variant;
+						}
+					} catch {
+						// Fallback lookup failed
+					}
+				}
+
+				if (existingCustId && existingCustId === customer.id) {
+					// CASE 1: Vehicle belongs to currently selected customer
+					let existingVehicle = vehicles.find((v) => v.id === existingVehId || v.registrationNumber.toUpperCase() === regUpper);
+					if (!existingVehicle && existingVehId) {
+						existingVehicle = {
+							id: existingVehId,
+							registrationNumber: regUpper,
+							make: existingMake,
+							model: existingModel,
+							variant: existingVariant || null,
+							color: null,
+							customerId: customer.id,
+							customerName: customer.name,
+							createdAt: new Date().toISOString(),
+						};
+						setVehicles((prev) => [...prev, existingVehicle!]);
+					}
+					if (existingVehicle) {
+						setSelectedVehicle(existingVehicle);
+					}
+					setShowNewVehicle(false);
+					setVehicleConflict(null);
+					setCustomerError(null);
+					setInfoMessage(`Vehicle ${regUpper} is already registered to ${customer.name} and has been selected.`);
+					setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
+					return;
+				} else if (existingCustId && existingVehId && existingCustId !== customer.id) {
+					// CASE 2: Vehicle belongs to another customer
+					setCustomerError(null);
+					setTransferError('');
+					setVehicleConflict({
+						vehicleId: existingVehId,
+						registrationNumber: regUpper,
+						make: existingMake,
+						model: existingModel,
+						variant: existingVariant,
+						currentCustomerId: existingCustId,
+						currentCustomerName: existingCustName || 'Another Customer',
+					});
+					return;
+				}
+			}
+
 			const msg = err instanceof Error ? err.message : 'Failed to create vehicle. Please check the details and try again.';
 			setCustomerError(msg);
 		} finally {
 			setIsCreatingVehicle(false);
+		}
+	};
+
+	// ── Confirm Vehicle Ownership Transfer ───────────────────────────────────
+	const handleConfirmTransfer = async () => {
+		if (!vehicleConflict || !customer) return;
+		setIsTransferring(true);
+		setTransferError('');
+		try {
+			const transferred = await transferVehicleOwnership(vehicleConflict.vehicleId, customer.id);
+			setVehicles((prev) => {
+				const filtered = prev.filter(
+					(v) => v.id !== transferred.id && v.registrationNumber.trim().toUpperCase() !== transferred.registrationNumber.trim().toUpperCase()
+				);
+				return [...filtered, transferred];
+			});
+			setSelectedVehicle(transferred);
+			setVehicleConflict(null);
+			setShowTransferConfirm(false);
+			setShowNewVehicle(false);
+			setTransferError('');
+			setCustomerError(null);
+			setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
+			setInfoMessage(`Vehicle ${transferred.registrationNumber} ownership transferred to ${customer.name}.`);
+		} catch (err: unknown) {
+			console.error('Failed to transfer vehicle ownership:', err);
+			const msg =
+				err instanceof ApiError
+					? err.message || 'Failed to transfer vehicle ownership.'
+					: err instanceof Error
+						? err.message
+						: 'An error occurred while transferring vehicle ownership.';
+			setTransferError(msg);
+			setShowTransferConfirm(false);
+			// vehicleConflict is preserved on failure so user can retry
+		} finally {
+			setIsTransferring(false);
 		}
 	};
 
@@ -506,7 +669,7 @@ export default function NewJobCard() {
 		try {
 			const created = await createService({
 				name: newService.name.trim(),
-				category: newService.category || 'Exterior Detailing',
+				category: newService.category || CATALOGUE_CATEGORIES[0],
 				price: parseFloat(newService.price),
 				taxPercentage: 18,
 				description: newService.description || undefined,
@@ -514,7 +677,7 @@ export default function NewJobCard() {
 			});
 			handleAddService(created);
 			setShowNewService(false);
-			setNewService({ name: '', category: '', description: '', durationMinutes: '', price: '', isActive: true });
+			setNewService({ name: '', category: '', description: '', price: '', isActive: true });
 		} catch (err: unknown) {
 			console.error('Failed to create service:', err);
 			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
@@ -597,9 +760,13 @@ export default function NewJobCard() {
 		setShowNewCustomer(false);
 		setShowNewVehicle(false);
 		setShowNewService(false);
+		setVehicleConflict(null);
+		setShowTransferConfirm(false);
+		setIsTransferring(false);
+		setTransferError('');
 		setNewCustomer({ name: '', phone: '', email: '', address: '' });
 		setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
-		setNewService({ name: '', category: '', description: '', durationMinutes: '', price: '', isActive: true });
+		setNewService({ name: '', category: '', description: '', price: '', isActive: true });
 		setStep(0);
 		setCustomerError(null);
 		setInfoMessage(null);
@@ -923,7 +1090,7 @@ export default function NewJobCard() {
 							)}
 
 							{/* ── Error Banner ─────────────────────────────────────────── */}
-							{customerError && (
+							{customerError && !vehicleConflict && (
 								<div className="bg-error/10 border border-error/30 rounded-lg p-3 text-error text-sm flex items-center gap-2">
 									<X className="w-4 h-4 shrink-0" />
 									<span>{customerError}</span>
@@ -1046,6 +1213,53 @@ export default function NewJobCard() {
 											loading={isCreatingCustomer}
 										>
 											Save &amp; Select Customer
+										</Button>
+									</div>
+								</div>
+							)}
+
+							{/* ── Vehicle Conflict Panel ─────────────────────────────────── */}
+							{vehicleConflict && (
+								<div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-on-surface space-y-3 animate-fade-in" data-testid="vehicle-conflict-panel">
+									<div className="flex items-start gap-3">
+										<AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+										<div className="space-y-1 text-sm">
+											<p className="font-semibold text-amber-600 dark:text-amber-400">
+												Vehicle Already Registered
+											</p>
+											<p className="text-xs text-on-surface-variant">
+												Vehicle <span className="font-mono font-bold text-on-surface">{vehicleConflict.registrationNumber}</span> is already registered to <span className="font-semibold text-on-surface">{vehicleConflict.currentCustomerName}</span>.
+											</p>
+											<p className="text-xs text-on-surface-variant">
+												This will transfer this vehicle to the new customer. Existing service history, job cards, invoices and payments will remain unchanged.
+											</p>
+											{transferError && (
+												<div className="flex items-start gap-2 p-2.5 mt-2 rounded bg-error-container/40 border border-error/30 text-error text-xs" data-testid="transfer-error-banner">
+													<AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+													<span>Transfer failed: {transferError}</span>
+												</div>
+											)}
+										</div>
+									</div>
+									<div className="flex items-center justify-end gap-2 pt-2 border-t border-amber-500/20">
+										<Button
+											type="button"
+											variant="secondary"
+											size="sm"
+											onClick={() => {
+												setVehicleConflict(null);
+												setTransferError('');
+											}}
+										>
+											Dismiss
+										</Button>
+										<Button
+											type="button"
+											variant="primary"
+											size="sm"
+											onClick={() => setShowTransferConfirm(true)}
+										>
+											Transfer Vehicle
 										</Button>
 									</div>
 								</div>
@@ -1245,8 +1459,7 @@ export default function NewJobCard() {
 												<div>
 													<p className="text-sm font-semibold text-on-surface">{svc.name}</p>
 													<p className="text-xs text-on-surface-variant">
-														<span className="text-secondary font-medium">{svc.category || 'General'}</span>
-														{svc.durationMinutes ? ` · ${svc.durationMinutes} min` : ''}
+														<span className="text-secondary font-medium">{svc.category || 'General Services'}</span>
 													</p>
 												</div>
 												<div className="text-right">
@@ -1265,7 +1478,7 @@ export default function NewJobCard() {
 								onOpenChange={(open) => {
 									setShowNewService(open);
 									if (!open) {
-										setNewService({ name: '', category: 'Exterior Detailing', description: '', durationMinutes: '60', price: '', isActive: true });
+										setNewService({ name: '', category: CATALOGUE_CATEGORIES[0], description: '', price: '', isActive: true });
 									}
 								}}
 								title="Add Custom / Quick Service"
@@ -1278,7 +1491,7 @@ export default function NewJobCard() {
 											variant="secondary"
 											onClick={() => {
 												setShowNewService(false);
-												setNewService({ name: '', category: 'Exterior Detailing', description: '', durationMinutes: '60', price: '', isActive: true });
+												setNewService({ name: '', category: CATALOGUE_CATEGORIES[0], description: '', price: '', isActive: true });
 											}}
 										>
 											Cancel
@@ -1311,43 +1524,31 @@ export default function NewJobCard() {
 									<div>
 										<label className="block text-sm font-medium text-on-surface mb-1">Category</label>
 										<select
-											value={newService.category || 'Exterior Detailing'}
+											value={newService.category || CATALOGUE_CATEGORIES[0]}
 											onChange={(e) => setNewService((p) => ({ ...p, category: e.target.value }))}
 											className="form-input w-full"
 										>
-											<option value="Exterior Detailing">Exterior Detailing</option>
-											<option value="Interior Care">Interior Care</option>
-											<option value="Protection Packages">Protection Packages</option>
-											<option value="Others">Others</option>
+											{CATALOGUE_CATEGORIES.map((cat) => (
+												<option key={cat} value={cat}>
+													{cat}
+												</option>
+											))}
 										</select>
 									</div>
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-										<div>
-											<label className="block text-sm font-medium text-on-surface mb-1">
-												Price (₹) <span className="text-error">*</span>
-											</label>
-											<input
-												required
-												type="number"
-												step="0.01"
-												min="0"
-												value={newService.price}
-												onChange={(e) => setNewService((p) => ({ ...p, price: e.target.value }))}
-												className="form-input w-full"
-												placeholder="0.00"
-											/>
-										</div>
-										<div>
-											<label className="block text-sm font-medium text-on-surface mb-1">Duration (min)</label>
-											<input
-												type="number"
-												min="0"
-												value={newService.durationMinutes}
-												onChange={(e) => setNewService((p) => ({ ...p, durationMinutes: e.target.value }))}
-												className="form-input w-full"
-												placeholder="60"
-											/>
-										</div>
+									<div>
+										<label className="block text-sm font-medium text-on-surface mb-1">
+											Price (₹) <span className="text-error">*</span>
+										</label>
+										<input
+											required
+											type="number"
+											step="0.01"
+											min="0"
+											value={newService.price}
+											onChange={(e) => setNewService((p) => ({ ...p, price: e.target.value }))}
+											className="form-input w-full"
+											placeholder="0.00"
+										/>
 									</div>
 								</div>
 							</Dialog>
@@ -1392,7 +1593,7 @@ export default function NewJobCard() {
 															</td>
 															<td className="py-3.5 px-4 text-xs">
 																<span className="inline-block px-2.5 py-1 rounded-md bg-surface-container text-on-surface-variant font-medium">
-																	{svc.category || 'General'}
+																	{svc.category || 'General Services'}
 																</span>
 															</td>
 															<td className="py-3.5 px-4 text-right font-medium text-on-surface">
@@ -1598,6 +1799,66 @@ export default function NewJobCard() {
 					</div>
 				</div>
 			</div>
+
+			{/* ── Transfer Ownership Confirmation Dialog ───────────────────── */}
+			<Dialog
+				open={showTransferConfirm}
+				onOpenChange={(isOpen) => {
+					if (!isOpen && !isTransferring) setShowTransferConfirm(false);
+				}}
+				title="Transfer Vehicle Ownership?"
+				description="Transfer this vehicle to the currently selected customer"
+				size="md"
+				footer={
+					<>
+						<Button
+							type="button"
+							variant="secondary"
+							onClick={() => setShowTransferConfirm(false)}
+							disabled={isTransferring}
+						>
+							Cancel
+						</Button>
+						<Button
+							type="button"
+							variant="primary"
+							onClick={handleConfirmTransfer}
+							loading={isTransferring}
+						>
+							Transfer Ownership
+						</Button>
+					</>
+				}
+			>
+				{vehicleConflict && (
+					<div className="space-y-4 text-sm text-on-surface">
+						<div className="p-3.5 rounded-lg bg-surface-container-low border border-outline-variant space-y-2">
+							<div className="flex justify-between">
+								<span className="text-xs text-on-surface-variant">Vehicle:</span>
+								<span className="font-mono font-bold text-on-surface">{vehicleConflict.registrationNumber}</span>
+							</div>
+							<div className="flex justify-between">
+								<span className="text-xs text-on-surface-variant">Make / Model:</span>
+								<span className="font-medium text-on-surface">
+									{vehicleConflict.make} {vehicleConflict.model} {vehicleConflict.variant ? `(${vehicleConflict.variant})` : ''}
+								</span>
+							</div>
+							<div className="flex justify-between">
+								<span className="text-xs text-on-surface-variant">Current Owner:</span>
+								<span className="font-medium text-error">{vehicleConflict.currentCustomerName}</span>
+							</div>
+							<div className="flex justify-between">
+								<span className="text-xs text-on-surface-variant">New Owner:</span>
+								<span className="font-medium text-primary">{customer?.name}</span>
+							</div>
+						</div>
+
+						<p className="text-xs text-on-surface-variant leading-relaxed">
+							Existing service history, job cards, invoices and payments will not be deleted or changed.
+						</p>
+					</div>
+				)}
+			</Dialog>
 		</div>
 	);
 }

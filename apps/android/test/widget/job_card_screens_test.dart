@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:e6_car_spa/core/constants/app_colors.dart';
 import 'package:e6_car_spa/core/theme/app_theme.dart';
+import 'package:e6_car_spa/shared/widgets/app_button.dart';
 import 'package:e6_car_spa/features/catalogue/data/service_api.dart';
 import 'package:e6_car_spa/features/catalogue/data/service_repository.dart';
 import 'package:e6_car_spa/features/customers/data/customer_api.dart';
@@ -188,6 +190,81 @@ void main() {
       expect(find.text('₹117.00'), findsOneWidget); // Tax
       expect(find.text('₹767.00'), findsWidgets); // Line total & Total Amount
       expect(find.text('Full body wash and interior sanitize'), findsOneWidget);
+
+      // Verify Mark as Finished button renders with success green variant and color
+      final finishBtn = tester.widget<AppButton>(find.widgetWithText(AppButton, 'Mark as Finished'));
+      expect(finishBtn.variant, AppButtonVariant.success);
+
+      final finishElevated = tester.widget<ElevatedButton>(
+        find.descendant(
+          of: find.widgetWithText(AppButton, 'Mark as Finished'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+      expect(finishElevated.style?.backgroundColor?.resolve({}), AppColors.success);
+    });
+
+    testWidgets('JobCardDetailsScreen renders View Invoice with primary blue variant when invoice exists', (tester) async {
+      const invoicedJobCard = JobCard(
+        id: 'jc-2',
+        jobCardNumber: 'JC-2026-0002',
+        status: JobCardStatus.invoiced,
+        customer: CustomerSummary(
+          id: 'c-1',
+          name: 'Ramesh Kumar',
+          phoneNumber: '9876543210',
+        ),
+        vehicle: VehicleSummary(
+          id: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          make: 'Hyundai',
+          model: 'Creta',
+        ),
+        services: [],
+        subtotal: 0.0,
+        totalAmount: 0.0,
+        invoiceId: 'inv-123',
+        invoiceNumber: 'INV-2026-001',
+      );
+
+      final fakeRepo = _FakeJobCardRepo(detailCard: invoicedJobCard);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            jobCardRepositoryProvider.overrideWithValue(fakeRepo),
+            jobCardDetailsProvider('jc-2').overrideWith(
+              (ref) => JobCardDetailsNotifier(
+                'jc-2',
+                fakeRepo,
+                const JobCardDetailsState(
+                  jobCard: invoicedJobCard,
+                  isLoading: false,
+                ),
+                false,
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const JobCardDetailsScreen(jobCardId: 'jc-2'),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      // Verify View Invoice button renders with primary blue variant and color
+      final viewInvoiceBtn = tester.widget<AppButton>(find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'));
+      expect(viewInvoiceBtn.variant, AppButtonVariant.primary);
+
+      final viewInvoiceElevated = tester.widget<ElevatedButton>(
+        find.descendant(
+          of: find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'),
+          matching: find.byType(ElevatedButton),
+        ),
+      );
+      expect(viewInvoiceElevated.style?.backgroundColor?.resolve({}), AppColors.primary);
     });
   });
 }

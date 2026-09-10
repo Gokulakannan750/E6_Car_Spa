@@ -79,4 +79,10 @@ class InvoiceApi {
     final list = response.data as List<dynamic>? ?? [];
     return list.map((e) => PaymentDto.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+    final response = await _dio.get('/invoices/$invoiceId/whatsapp-status');
+    final list = response.data as List<dynamic>? ?? [];
+    return list.map((e) => InvoiceWhatsAppStatus.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }

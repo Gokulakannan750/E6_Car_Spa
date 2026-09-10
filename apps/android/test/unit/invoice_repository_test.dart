@@ -89,6 +89,15 @@ class FakeInvoiceApi extends InvoiceApi {
     if (mockPaymentsList != null) return mockPaymentsList!;
     return [];
   }
+
+  List<InvoiceWhatsAppStatus>? mockWhatsAppStatuses;
+
+  @override
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+    if (dioErrorToThrow != null) throw dioErrorToThrow!;
+    if (mockWhatsAppStatuses != null) return mockWhatsAppStatuses!;
+    return [];
+  }
 }
 
 void main() {
@@ -245,6 +254,34 @@ void main() {
 
       expect(
         () => repository.recordPayment('inv-1', const RecordPaymentRequest(amount: 50000.0, paymentMethod: 'Cash')),
+        throwsA(isA<ApiException>()),
+      );
+    });
+
+    test('getInvoiceWhatsAppStatus returns list of statuses and handles error', () async {
+      fakeApi.mockWhatsAppStatuses = [
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        ),
+      ];
+
+      final statuses = await repository.getInvoiceWhatsAppStatus('inv-1');
+      expect(statuses.length, 1);
+      expect(statuses.first.isSent, true);
+      expect(statuses.first.displayType, 'Invoice');
+      expect(statuses.first.displayStatus, 'Sent');
+
+      fakeApi.dioErrorToThrow = DioException(
+        requestOptions: RequestOptions(path: '/invoices/inv-1/whatsapp-status'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/invoices/inv-1/whatsapp-status'),
+          statusCode: 500,
+        ),
+      );
+
+      expect(
+        () => repository.getInvoiceWhatsAppStatus('inv-1'),
         throwsA(isA<ApiException>()),
       );
     });

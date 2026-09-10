@@ -49,7 +49,7 @@ class SalesReportRowModel {
       invoiceDate: DateTime.tryParse(json['invoiceDate']?.toString() ?? json['InvoiceDate']?.toString() ?? '') ?? DateTime.now(),
       customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
       customerPhone: json['customerPhone']?.toString() ?? json['CustomerPhone']?.toString() ?? '',
-      registrationNumber: json['registrationNumber']?.toString() ?? json['RegistrationNumber']?.toString() ?? '',
+      registrationNumber: (json['registrationNumber']?.toString() ?? json['RegistrationNumber']?.toString() ?? '').trim().toUpperCase(),
       subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num).toDouble(),
       discount: ((json['discount'] ?? json['Discount'] ?? 0.0) as num).toDouble(),
       gst: ((json['gst'] ?? json['Gst'] ?? 0.0) as num).toDouble(),

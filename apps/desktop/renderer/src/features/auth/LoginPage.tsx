@@ -1,19 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import LoginForm from './LoginForm';
-import { getCachedBusinessProfile, resolveLogoUrl } from '../../lib/api';
+import {
+	getCachedBusinessProfile,
+	getPublicBusinessProfile,
+	resolveLogoUrl,
+	type PublicBusinessProfileDto,
+} from '../../lib/api';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 
 export default function LoginPage() {
 	const { isAuthenticated, isInitialized, isLoading } = useAuth();
 	const cachedProfile = getCachedBusinessProfile();
+	const [publicProfile, setPublicProfile] = useState<PublicBusinessProfileDto | null>(() => {
+		if (cachedProfile) {
+			return {
+				businessName: cachedProfile.businessName,
+				logoPath: cachedProfile.logoPath,
+				updatedAt: cachedProfile.updatedAt,
+			};
+		}
+		return null;
+	});
 	const [imgError, setImgError] = useState(false);
 
-	const businessName = cachedProfile?.businessName || 'E6 CAR SPA';
-	const hasCustomLogo = Boolean(cachedProfile?.logoPath && cachedProfile.logoPath.trim().length > 0);
+	useEffect(() => {
+		let isMounted = true;
+		getPublicBusinessProfile()
+			.then((profile) => {
+				if (isMounted) {
+					setPublicProfile(profile);
+				}
+			})
+			.catch(() => {
+				// Offline or server not ready - fallback gracefully to cachedProfile
+			});
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
+	const businessName = publicProfile?.businessName || cachedProfile?.businessName || 'E6 CAR SPA';
+	const logoPath = publicProfile !== null ? publicProfile.logoPath : cachedProfile?.logoPath;
+	const updatedAt = publicProfile !== null ? publicProfile.updatedAt : cachedProfile?.updatedAt;
+	const hasCustomLogo = Boolean(logoPath && logoPath.trim().length > 0);
 	const showImage = hasCustomLogo && !imgError;
-	const logoUrl = resolveLogoUrl(cachedProfile?.logoPath, cachedProfile?.updatedAt);
+	const logoUrl = resolveLogoUrl(logoPath, updatedAt);
 
 	if (isLoading) {
 		return (

@@ -485,7 +485,7 @@ void main() {
 
       final exception = ApiException.fromDio(timeoutError);
       expect(exception is NetworkException, true);
-      expect(exception.message.contains('Connection timeout'), true);
+      expect(exception.message.contains('Unable to connect to the server'), true);
     });
   });
 }

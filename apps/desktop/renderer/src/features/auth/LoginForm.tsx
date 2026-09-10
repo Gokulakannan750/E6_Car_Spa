@@ -1,19 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import { User, Lock, ArrowRight, Clock } from 'lucide-react';
 
 export default function LoginForm() {
+	const { login, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth();
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
-	const [error, setError] = useState('');
+	const [error, setError] = useState(() => sessionExpiredMessage || '');
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [lockoutSeconds, setLockoutSeconds] = useState(0);
-	const { login } = useAuth();
 	const navigate = useNavigate();
 	const location = useLocation();
 
 	const from = (location.state as { from?: { pathname?: string } })?.from?.pathname || '/dashboard';
+	const hasConsumedSessionExpired = useRef(false);
+
+	useEffect(() => {
+		if (sessionExpiredMessage && !hasConsumedSessionExpired.current) {
+			hasConsumedSessionExpired.current = true;
+			setError(sessionExpiredMessage);
+			clearSessionExpiredMessage();
+		}
+	}, [sessionExpiredMessage, clearSessionExpiredMessage]);
 
 	useEffect(() => {
 		if (lockoutSeconds <= 0) return;
@@ -52,12 +61,24 @@ export default function LoginForm() {
 				if (apiErr.code === 'ACCOUNT_LOCKED' || apiErr.status === 423) {
 					const remaining = apiErr.remainingLockoutSeconds || 300;
 					setLockoutSeconds(remaining);
-					setError(apiErr.message || 'Too many failed login attempts. Please try again later.');
+					setError('Account temporarily locked. Please try again later.');
+					return;
+				}
+				if (apiErr.code === 'RATE_LIMITED' || apiErr.status === 429) {
+					setError('Too many attempts. Please try again later.');
+					return;
+				}
+				if (apiErr.code === 'NETWORK_ERROR' || apiErr.status === 0) {
+					setError('Unable to connect to the server. Please try again.');
+					return;
+				}
+				if (apiErr.code === 'UNAUTHORIZED' || apiErr.status === 401) {
+					setError('Invalid username or password.');
 					return;
 				}
 			}
-			// Security rule: generic error message, do not reveal whether user exists
-			setError('Invalid username or password.');
+			// Unexpected error: generic server-error handling, DO NOT default to "Invalid username or password."
+			setError('Something went wrong. Please try again.');
 		} finally {
 			setIsSubmitting(false);
 		}

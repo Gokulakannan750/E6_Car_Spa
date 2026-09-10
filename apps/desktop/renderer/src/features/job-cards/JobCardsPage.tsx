@@ -73,7 +73,7 @@ export function JobCardsPage() {
 				navigate(`/invoices/${invoice.id}`);
 			}
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : 'Failed to convert job card to invoice';
+			const msg = err instanceof Error ? err.message : 'Failed to convert job card to draft';
 			console.warn('Convert to invoice error:', msg);
 			setConvertError(msg);
 			// Duplicate invoice protection: if an invoice already exists, refresh job cards to get current invoice state
@@ -110,14 +110,14 @@ export function JobCardsPage() {
 						variant="secondary"
 						size="sm"
 						icon={<RefreshCw className="w-3.5 h-3.5" />}
-						onClick={loadJobCards}
+						onClick={() => loadJobCards()}
 					>
 						Retry
 					</Button>
 				</div>
 			)}
 
-			{/* Convert to Invoice Error Banner */}
+			{/* Convert to Draft Error Banner */}
 			{convertError && (
 				<div className="flex items-start gap-3 rounded-lg border border-error/30 bg-error/10 p-4">
 					<FileText className="mt-0.5 h-5 w-5 shrink-0 text-error" />
@@ -258,14 +258,14 @@ export function JobCardsPage() {
 											if (!jc.invoiceId) {
 												return (
 													<Button
-														variant="primary"
+														variant="success"
 														size="sm"
 														icon={<FileText className="w-3.5 h-3.5" />}
 														onClick={() => handleConvertToInvoice(jc)}
 														disabled={convertingId !== null}
 														loading={convertingId === jc.id}
 													>
-														{convertingId === jc.id ? 'Converting…' : 'Convert to Invoice'}
+														{convertingId === jc.id ? 'Converting…' : 'Mark as Finished'}
 													</Button>
 												);
 											}
@@ -292,8 +292,8 @@ export function JobCardsPage() {
 											// State C — Invoice Generated (finalized)
 											return (
 												<Button
+													variant="primary"
 													size="sm"
-													className="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-xs cursor-pointer"
 													icon={<Check className="w-3.5 h-3.5" />}
 													onClick={() => navigate(`/invoices/${jc.invoiceId}`)}
 												>

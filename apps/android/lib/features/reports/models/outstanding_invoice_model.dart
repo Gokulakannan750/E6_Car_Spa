@@ -45,7 +45,7 @@ class OutstandingInvoiceRowModel {
       invoiceDate: DateTime.tryParse(json['invoiceDate']?.toString() ?? json['InvoiceDate']?.toString() ?? '') ?? DateTime.now(),
       customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
       customerPhone: json['customerPhone']?.toString() ?? json['CustomerPhone']?.toString() ?? '',
-      vehicleRegistration: json['vehicleRegistration']?.toString() ?? json['VehicleRegistration']?.toString() ?? '',
+      vehicleRegistration: (json['vehicleRegistration']?.toString() ?? json['VehicleRegistration']?.toString() ?? '').trim().toUpperCase(),
       totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
       paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble(),
       balanceAmount: ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble(),

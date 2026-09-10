@@ -127,8 +127,10 @@ public class ServiceService : IServiceService
 		service.Description = request.Description?.Trim();
 		service.Category = request.Category?.Trim();
 		service.Price = request.Price;
-		service.TaxPercentage = request.TaxPercentage;
-		service.DurationMinutes = request.DurationMinutes;
+		if (request.DurationMinutes.HasValue)
+		{
+			service.DurationMinutes = request.DurationMinutes;
+		}
 		service.IsActive = request.IsActive;
 		service.UpdatedAt = DateTime.UtcNow;
 

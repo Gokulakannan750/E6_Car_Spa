@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { bootstrapOwner, ApiError } from '../../lib/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { getAuthStatus, bootstrapOwner, ApiError } from '../../lib/api';
 import { useAuth } from './auth-context';
 import { ShieldCheck, UserCheck, Lock, User, CheckCircle2 } from 'lucide-react';
 
@@ -12,8 +12,70 @@ export default function FirstTimeSetup() {
 	const [error, setError] = useState('');
 	const [successMsg, setSuccessMsg] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const { checkInitialization } = useAuth();
+	const { isInitialized, checkInitialization } = useAuth();
 	const navigate = useNavigate();
+
+	const isSubmittingRef = useRef(isSubmitting);
+	isSubmittingRef.current = isSubmitting;
+
+	// Cross-device synchronization:
+	// Automatically redirect to /login if database is already initialized
+	useEffect(() => {
+		if (isInitialized === true) {
+			navigate('/login', { replace: true });
+		}
+	}, [isInitialized, navigate]);
+
+	// Periodically check GET /api/auth/status every 10s and when window regains focus
+	useEffect(() => {
+		if (isInitialized === true) return;
+
+		let isMounted = true;
+
+		const pollStatus = async () => {
+			if (!isMounted || isSubmittingRef.current) return;
+			try {
+				const res = await getAuthStatus();
+				if (res.initialized && isMounted) {
+					await checkInitialization(false);
+					navigate('/login', { replace: true });
+				}
+			} catch (err) {
+				// Network error or backend temporarily unavailable:
+				// Do NOT assume initialized = false.
+				// Do NOT redirect or destroy the current setup screen.
+				// Preserve existing setup state and retry on next interval.
+				console.warn('Periodic auth status check failed, retrying on next cycle:', err);
+			}
+		};
+
+		// 10-second polling interval (consistent with 10-12s cross-platform refresh strategy)
+		const intervalId = setInterval(pollStatus, 10000);
+
+		const handleFocus = () => {
+			pollStatus();
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				pollStatus();
+			}
+		};
+
+		window.addEventListener('focus', handleFocus);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			isMounted = false;
+			clearInterval(intervalId);
+			window.removeEventListener('focus', handleFocus);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	}, [isInitialized, checkInitialization, navigate]);
+
+	if (isInitialized === true) {
+		return <Navigate to="/login" replace />;
+	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -115,12 +177,13 @@ export default function FirstTimeSetup() {
 
 					<form onSubmit={handleSubmit} className="space-y-4">
 						<div>
-							<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+							<label htmlFor="fullName" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
 								Full Name
 							</label>
 							<div className="relative">
 								<User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
 								<input
+									id="fullName"
 									type="text"
 									value={fullName}
 									onChange={(e) => setFullName(e.target.value)}
@@ -132,12 +195,13 @@ export default function FirstTimeSetup() {
 						</div>
 
 						<div>
-							<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+							<label htmlFor="username" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
 								Username
 							</label>
 							<div className="relative">
 								<UserCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
 								<input
+									id="username"
 									type="text"
 									value={username}
 									onChange={(e) => setUsername(e.target.value)}
@@ -149,12 +213,13 @@ export default function FirstTimeSetup() {
 						</div>
 
 						<div>
-							<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+							<label htmlFor="password" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
 								Password
 							</label>
 							<div className="relative">
 								<Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
 								<input
+									id="password"
 									type="password"
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
@@ -167,12 +232,13 @@ export default function FirstTimeSetup() {
 						</div>
 
 						<div>
-							<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+							<label htmlFor="confirmPassword" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
 								Confirm Password
 							</label>
 							<div className="relative">
 								<Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
 								<input
+									id="confirmPassword"
 									type="password"
 									value={confirmPassword}
 									onChange={(e) => setConfirmPassword(e.target.value)}

@@ -46,6 +46,35 @@ class SettingsRepository {
     } catch (_) {}
   }
 
+  Future<BusinessProfileModel> getPublicBusinessProfile() async {
+    try {
+      final publicProfile = await _api.getPublicBusinessProfile();
+      final cached = await getCachedBusinessProfile();
+      final updatedProfile = (cached ??
+              const BusinessProfileModel(
+                id: '',
+                businessName: 'E6 Car Spa',
+                addressLine1: '',
+                city: '',
+                state: '',
+                postalCode: '',
+                phone: '',
+                email: '',
+              ))
+          .copyWith(
+        businessName: publicProfile.businessName,
+        logoPath: publicProfile.logoPath,
+        updatedAt: publicProfile.updatedAt,
+      );
+      await _saveCachedProfile(updatedProfile);
+      return updatedProfile;
+    } on DioException catch (e) {
+      final cached = await getCachedBusinessProfile();
+      if (cached != null) return cached;
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<BusinessProfileModel> getBusinessProfile() async {
     try {
       final profile = await _api.getBusinessProfile();

@@ -27,7 +27,7 @@ class Vehicle {
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      registrationNumber: json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '',
+      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
       variant: json['variant'] as String? ?? json['Variant'] as String?,
@@ -62,6 +62,30 @@ class Vehicle {
       buffer.write(' ($variant)');
     }
     return buffer.toString();
+  }
+
+  Vehicle copyWith({
+    String? id,
+    String? registrationNumber,
+    String? make,
+    String? model,
+    String? variant,
+    String? color,
+    String? customerId,
+    String? customerName,
+    DateTime? createdAt,
+  }) {
+    return Vehicle(
+      id: id ?? this.id,
+      registrationNumber: (registrationNumber ?? this.registrationNumber).trim().toUpperCase(),
+      make: make ?? this.make,
+      model: model ?? this.model,
+      variant: variant ?? this.variant,
+      color: color ?? this.color,
+      customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
+      createdAt: createdAt ?? this.createdAt,
+    );
   }
 }
 

@@ -98,4 +98,12 @@ class InvoiceRepository {
       throw ApiException.fromDio(e);
     }
   }
+
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+    try {
+      return await _api.getInvoiceWhatsAppStatus(invoiceId);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }

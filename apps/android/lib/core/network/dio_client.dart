@@ -31,7 +31,12 @@ final dioProvider = Provider<Dio>((ref) {
         return handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        final path = error.requestOptions.path.toLowerCase();
+        final isAuthEndpoint = path.contains('/auth/login') ||
+            path.contains('/auth/bootstrap') ||
+            path.contains('/auth/status');
+
+        if (error.response?.statusCode == 401 && !isAuthEndpoint) {
           await storage.clearSession();
           AuthSessionEvents.notifyUnauthorized();
         }
