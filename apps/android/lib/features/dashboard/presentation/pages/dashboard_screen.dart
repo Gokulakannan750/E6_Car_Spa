@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../customers/presentation/widgets/add_customer_dialog.dart';
@@ -41,24 +42,7 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Center(
-                child: Text(
-                  'E6',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ),
+            const E6BrandBadge(),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +50,7 @@ class DashboardScreen extends ConsumerWidget {
               children: [
                 const Text(
                   'Dashboard',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
                 ),
                 Text(
                   'Welcome, $userName',

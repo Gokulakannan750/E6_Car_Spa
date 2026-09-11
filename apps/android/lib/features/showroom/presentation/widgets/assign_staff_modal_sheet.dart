@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
+import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../staff/providers/staff_provider.dart';
 
@@ -259,11 +260,14 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
           ],
 
           // Search Field
-          AppTextField(
+          AppSearchField(
             controller: _searchController,
-            hintText: 'Search staff by name, role, or phone...',
-            prefixIcon: const Icon(Icons.search),
+            hint: 'Search staff by name, role, or phone...',
             onChanged: (_) => setState(() {}),
+            onClear: () {
+              _searchController.clear();
+              setState(() {});
+            },
           ),
           const SizedBox(height: 10),
 

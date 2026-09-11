@@ -15,6 +15,8 @@ class AppTextStyles {
       inter.copyWith(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.3);
 
   // Headings
+  static TextStyle get appBarTitle =>
+      inter.copyWith(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.2);
   static TextStyle get headingLarge =>
       inter.copyWith(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.textPrimary, height: 1.35);
   static TextStyle get headingMedium =>

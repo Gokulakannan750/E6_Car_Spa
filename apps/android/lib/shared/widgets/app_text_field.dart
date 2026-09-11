@@ -26,6 +26,12 @@ class AppTextField extends StatelessWidget {
   final InputCounterWidgetBuilder? buildCounter;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
+  final Color? textColor;
+  final Color? labelColor;
+  final Color? hintColor;
+  final Color? fillColor;
+  final Color? borderColor;
+  final Color? focusedBorderColor;
 
   const AppTextField({
     super.key,
@@ -52,17 +58,27 @@ class AppTextField extends StatelessWidget {
     this.buildCounter,
     this.textInputAction,
     this.onFieldSubmitted,
+    this.textColor,
+    this.labelColor,
+    this.hintColor,
+    this.fillColor,
+    this.borderColor,
+    this.focusedBorderColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final effectiveLabel = isRequired && label != null ? '$label *' : label;
     final effectiveHint = hint ?? hintText;
+    final effectiveBorderColor = borderColor ?? AppColors.border;
+    final effectiveFocusedBorderColor = focusedBorderColor ?? AppColors.accent;
+    final effectiveFillColor = fillColor ?? (isEnabled ? AppColors.card : AppColors.surfaceAlt);
 
     return TextFormField(
       controller: controller,
       initialValue: controller == null ? initialValue : null,
       enabled: isEnabled,
+      style: textColor != null ? TextStyle(color: textColor, fontSize: 14) : null,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       obscureText: isPassword,
@@ -77,23 +93,25 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: effectiveLabel,
+        labelStyle: labelColor != null ? TextStyle(color: labelColor, fontSize: 14) : null,
         hintText: effectiveHint,
+        hintStyle: hintColor != null ? TextStyle(color: hintColor, fontSize: 14) : null,
         helperText: helperText,
         errorText: errorText,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         border: const OutlineInputBorder(),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.border),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: effectiveBorderColor),
         ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: AppColors.accent, width: 2),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: effectiveFocusedBorderColor, width: 2),
         ),
         errorBorder: const OutlineInputBorder(
           borderSide: BorderSide(color: AppColors.error),
         ),
         filled: true,
-        fillColor: isEnabled ? AppColors.card : AppColors.surfaceAlt,
+        fillColor: effectiveFillColor,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../customers/presentation/widgets/add_customer_dialog.dart';
 import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
@@ -44,7 +45,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
         elevation: 0,
         title: const Text(
           'New Job Card',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close, color: AppColors.textPrimary),
@@ -578,11 +579,14 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
         ],
 
         // Available Services Search & List
-        AppTextField(
+        AppSearchField(
           controller: _serviceSearchController,
           hint: 'Search catalogue services...',
-          prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary),
           onChanged: (_) => setState(() {}),
+          onClear: () {
+            _serviceSearchController.clear();
+            setState(() {});
+          },
         ),
         const SizedBox(height: 12),
 

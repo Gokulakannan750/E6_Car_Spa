@@ -15,6 +15,9 @@ release
 *.jpeg
 *.gif
 *.svg
+!apps/desktop/renderer/src/assets/**
+!apps/desktop/renderer/public/**
+!apps/android/assets/**
 *.pdb
 *.deps.json
 *.runtimeconfig.json

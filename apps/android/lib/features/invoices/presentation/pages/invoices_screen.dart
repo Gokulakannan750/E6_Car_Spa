@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_search_field.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../models/invoice_model.dart';
@@ -44,7 +47,16 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Invoices'),
+        title: Row(
+          children: [
+            const E6BrandBadge(),
+            const SizedBox(width: 10),
+            Text(
+              'Invoices',
+              style: AppTextStyles.appBarTitle,
+            ),
+          ],
+        ),
         centerTitle: false,
         actions: const [
           AppLogoutAction(),
@@ -58,39 +70,15 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Column(
               children: [
-                // Search Input
-                TextField(
+                AppSearchField(
                   controller: _searchController,
+                  hint: 'Search invoices, customer, vehicle...',
+                  clearIcon: Icons.clear,
                   onChanged: (val) => notifier.search(val),
-                  decoration: InputDecoration(
-                    hintText: 'Search invoices, customer, vehicle...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondary),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              notifier.search('');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: AppColors.surfaceAlt,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                    ),
-                  ),
+                  onClear: () {
+                    _searchController.clear();
+                    notifier.search('');
+                  },
                 ),
                 const SizedBox(height: 8),
 

@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
 import '../../../staff/models/staff_model.dart';
@@ -209,7 +210,16 @@ class _StaffAdvancesScreenState extends ConsumerState<StaffAdvancesScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Staff Advances'),
+        title: Row(
+          children: [
+            const E6BrandBadge(),
+            const SizedBox(width: 10),
+            Text(
+              'Staff Advances',
+              style: AppTextStyles.appBarTitle,
+            ),
+          ],
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         bottom: TabBar(

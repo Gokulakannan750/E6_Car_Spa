@@ -43,12 +43,17 @@ class AppTheme {
         displayColor: AppColors.textPrimary,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.card,

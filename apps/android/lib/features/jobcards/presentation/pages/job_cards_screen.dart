@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -46,7 +47,16 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Job Cards'),
+        title: Row(
+          children: [
+            const E6BrandBadge(),
+            const SizedBox(width: 10),
+            Text(
+              'Job Cards',
+              style: AppTextStyles.appBarTitle,
+            ),
+          ],
+        ),
         centerTitle: false,
         actions: const [
           AppLogoutAction(),

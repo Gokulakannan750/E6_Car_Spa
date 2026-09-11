@@ -12,6 +12,9 @@ class AppButton extends StatelessWidget {
   final bool fullWidth;
   final EdgeInsetsGeometry? padding;
 
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+
   const AppButton({
     super.key,
     required this.label,
@@ -21,6 +24,8 @@ class AppButton extends StatelessWidget {
     this.icon,
     this.fullWidth = false,
     this.padding,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   @override
@@ -125,10 +130,14 @@ class AppButton extends StatelessWidget {
   }
 
   ButtonStyle get _primaryStyle => ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: AppColors.border,
-        disabledForegroundColor: AppColors.textSecondary,
+        backgroundColor: backgroundColor ?? AppColors.primary,
+        foregroundColor: foregroundColor ?? Colors.white,
+        disabledBackgroundColor: backgroundColor != null
+            ? backgroundColor!.withValues(alpha: 0.4)
+            : AppColors.border,
+        disabledForegroundColor: foregroundColor != null
+            ? foregroundColor!.withValues(alpha: 0.5)
+            : AppColors.textSecondary,
         padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

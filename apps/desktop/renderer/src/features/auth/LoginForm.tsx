@@ -117,7 +117,7 @@ export default function LoginForm() {
 							if (!isLocked && error) setError('');
 						}}
 						disabled={isSubmitting || isLocked}
-						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 						placeholder="Enter your username"
 						required
 						autoComplete="username"
@@ -140,7 +140,7 @@ export default function LoginForm() {
 							if (!isLocked && error) setError('');
 						}}
 						disabled={isSubmitting || isLocked}
-						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 						placeholder="Enter your password"
 						required
 						autoComplete="current-password"
@@ -151,7 +151,7 @@ export default function LoginForm() {
 			<button
 				type="submit"
 				disabled={isSubmitting || isLocked}
-				className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm cursor-pointer"
+				className="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm cursor-pointer"
 			>
 				{isSubmitting ? (
 					<>

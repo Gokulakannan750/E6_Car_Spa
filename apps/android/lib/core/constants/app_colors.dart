@@ -95,4 +95,28 @@ class AppColors {
   static const Color bottomNavBorder = Color(0xFFE2E8F0);
   static const Color bottomNavActive = Color(0xFF0453CD);
   static const Color bottomNavInactive = Color(0xFF64748B);
+
+  // Login Branding (Red & Black gradient matching desktop)
+  static const Color loginGradientStart = Color(0xFF7F1D1D); // Red-900
+  static const Color loginGradientMiddle = Color(0xFF000000); // Black
+  static const Color loginGradientEnd = Color(0xFF450A0A); // Red-950
+  static const Color loginAccent = Color(0xFFDC2626); // Red-600
+  static const Color loginCardBg = Color(0xF2140606); // Deep obsidian wine
+  static const Color loginCardBorder = Color(0x4DDC2626); // Subtle red border glow
+  static const Color loginInputFill = Color(0xCC220B0B); // Dark crimson input fill
+  static const Color loginInputBorder = Color(0x737F1D1D); // Muted red border
+  static const Color loginTextSecondary = Color(0xCCFECACA); // Muted red-tinted white (80%)
+  static const Color loginTextMuted = Color(0x80FECACA); // Subdued red-tinted white (50%)
+
+  // Brand Gradients (matching the login and desktop aesthetic)
+  static const LinearGradient brandGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFDC2626), // Vibrant red accent highlight
+      Color(0xFF7F1D1D), // Deep wine red-900
+      Color(0xFF1E0303), // Deep obsidian black
+    ],
+  );
 }
+

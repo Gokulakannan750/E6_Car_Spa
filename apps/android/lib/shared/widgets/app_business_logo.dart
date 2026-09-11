@@ -147,10 +147,21 @@ class AppBusinessLogo extends ConsumerWidget {
       width: effectiveWidth,
       height: height,
       decoration: BoxDecoration(
-        color: backgroundColor ?? fallbackColor ?? AppColors.primary,
+        color: (backgroundColor != null || fallbackColor != null)
+            ? (backgroundColor ?? fallbackColor)
+            : null,
+        gradient: (backgroundColor == null && fallbackColor == null)
+            ? AppColors.brandGradient
+            : null,
         shape: shape,
         borderRadius: br,
-        border: border,
+        border: border ??
+            ((backgroundColor == null && fallbackColor == null)
+                ? Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    width: 0.75,
+                  )
+                : null),
         boxShadow: fallbackBoxShadow ?? boxShadow,
       ),
       child: Center(

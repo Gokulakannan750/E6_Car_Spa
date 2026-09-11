@@ -41,10 +41,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 				to={item.path}
 				className={({ isActive }) =>
 					cn(
-						'sidebar-transition flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2',
-						'text-slate-400 hover:text-white hover:bg-white/5',
+						'sidebar-transition flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2 transition-all',
+						'text-red-100/70 hover:text-white hover:bg-white/10',
 						{
-							'bg-white/10 text-white font-semibold': isActive,
+							'bg-red-600/25 text-white font-semibold shadow-sm border border-red-500/30': isActive,
 						},
 					)
 				}
@@ -52,7 +52,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 			>
 				{({ isActive }) => (
 					<>
-						<Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-blue-400')} />
+						<Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-red-400' : 'text-red-200/60')} />
 						{!collapsed && <span className="sidebar-transition truncate">{item.label}</span>}
 					</>
 				)}
@@ -74,10 +74,10 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 				to={item.path}
 				className={({ isActive }) =>
 					cn(
-						'sidebar-transition flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2',
-						'text-slate-400 hover:text-white hover:bg-white/5',
+						'sidebar-transition flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2 transition-all',
+						'text-red-100/70 hover:text-white hover:bg-white/10',
 						{
-							'bg-white/10 text-white font-semibold': isActive,
+							'bg-red-600/25 text-white font-semibold shadow-sm border border-red-500/30': isActive,
 						},
 					)
 				}
@@ -85,7 +85,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 			>
 				{({ isActive }) => (
 					<>
-						<Icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-blue-400')} />
+						<Icon className={cn('h-5 w-5 flex-shrink-0', isActive ? 'text-red-400' : 'text-red-200/60')} />
 						{!collapsed && <span className="sidebar-transition truncate">{item.label}</span>}
 					</>
 				)}
@@ -104,13 +104,13 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 
 	return (
 		<aside
-			className="h-screen flex flex-col bg-[#0b1228] border-r border-white/8 fixed left-0 top-0 z-40 sidebar-transition"
+			className="h-screen flex flex-col bg-gradient-to-br from-red-900 via-black to-red-950 border-r border-white/10 fixed left-0 top-0 z-40 sidebar-transition shadow-2xl"
 			style={{
 				width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
 			}}
 		>
 			{/* Logo / Brand */}
-			<div className={cn('flex items-center h-16 border-b border-white/8', collapsed ? 'justify-center' : 'px-4')}>
+			<div className={cn('flex items-center h-16 border-b border-white/10', collapsed ? 'justify-center' : 'px-4')}>
 				{!collapsed ? (
 					<div className="flex items-center gap-3 min-w-0 flex-1">
 						{showImage ? (
@@ -121,13 +121,13 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 								onError={() => setImgError(true)}
 							/>
 						) : (
-							<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+							<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-950/50">
 								<span className="text-white font-bold text-xs">E6</span>
 							</div>
 						)}
 						<div className="sidebar-transition overflow-hidden whitespace-nowrap min-w-0 flex-1">
 							<span className="text-white font-semibold text-sm truncate block leading-tight">{businessName}</span>
-							<span className="text-slate-400 text-xs block mt-0.5">Management Suite</span>
+							<span className="text-red-200/60 text-xs block mt-0.5">Management Suite</span>
 						</div>
 					</div>
 				) : (
@@ -139,7 +139,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 							onError={() => setImgError(true)}
 						/>
 					) : (
-						<div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+						<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-950/50">
 							<span className="text-white font-bold text-xs">E6</span>
 						</div>
 					)
@@ -152,11 +152,11 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 			</nav>
 
 			{/* Collapse Toggle */}
-			<div className={cn('border-t border-white/8 py-2', collapsed ? 'flex justify-center px-2' : 'px-2')}>
+			<div className={cn('border-t border-white/10 py-2', collapsed ? 'flex justify-center px-2' : 'px-2')}>
 				<button
 					onClick={toggleSidebar}
 					className={cn(
-						'sidebar-transition flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 cursor-pointer',
+						'sidebar-transition flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-200/70 hover:text-white hover:bg-white/10 cursor-pointer',
 						collapsed ? 'justify-center' : 'w-full',
 					)}
 					title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -173,14 +173,14 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 			</div>
 
 			{/* Bottom Navigation */}
-			<div className="border-t border-white/8 py-2 space-y-1">
+			<div className="border-t border-white/10 py-2 space-y-1">
 				{BOTTOM_NAVIGATION_ITEMS.map(renderBottomNavItem)}
 			</div>
 
 			{/* User info at bottom */}
 			{authUser && (
-				<div className={cn('border-t border-white/8 p-3', 'flex items-center gap-3')}>
-					<div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-sm">
+				<div className={cn('border-t border-white/10 p-3', 'flex items-center gap-3')}>
+					<div className="h-8 w-8 rounded-full bg-gradient-to-tr from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md shadow-red-950/50">
 						{userInitials}
 					</div>
 					{!collapsed && (
@@ -188,7 +188,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 							<p className="text-white text-sm font-medium truncate">
 								{authUser.fullName}
 							</p>
-							<p className="text-slate-400 text-xs truncate capitalize">
+							<p className="text-red-200/60 text-xs truncate capitalize">
 								{authUser.role}
 							</p>
 						</div>

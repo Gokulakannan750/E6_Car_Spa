@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
@@ -46,7 +47,16 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Customers'),
+        title: Row(
+          children: [
+            const E6BrandBadge(),
+            const SizedBox(width: 10),
+            Text(
+              'Customers',
+              style: AppTextStyles.appBarTitle,
+            ),
+          ],
+        ),
         centerTitle: false,
         actions: const [
           AppLogoutAction(),

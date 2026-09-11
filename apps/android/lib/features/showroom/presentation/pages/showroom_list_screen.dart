@@ -4,7 +4,9 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../models/showroom_model.dart';
 import '../../providers/showroom_provider.dart';
@@ -141,12 +143,15 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          'Showrooms',
-          style: AppTextStyles.headingMedium.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+        title: Row(
+          children: [
+            const E6BrandBadge(),
+            const SizedBox(width: 10),
+            Text(
+              'Showrooms',
+              style: AppTextStyles.appBarTitle,
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -210,21 +215,15 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: AppTextField(
+              child: AppSearchField(
                 controller: _searchController,
-                hintText: 'Search showrooms by name, address, phone...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(showroomsProvider.notifier).setSearchTerm('');
-                        },
-                      )
-                    : null,
+                hint: 'Search showrooms by name, address, phone...',
                 onChanged: (val) {
                   ref.read(showroomsProvider.notifier).setSearchTerm(val);
+                },
+                onClear: () {
+                  _searchController.clear();
+                  ref.read(showroomsProvider.notifier).setSearchTerm('');
                 },
               ),
             ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -11,7 +10,6 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../jobcards/providers/job_card_providers.dart';
-import '../../../vehicles/data/vehicle_repository.dart';
 import '../../../vehicles/models/vehicle_model.dart';
 import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
 import '../../../vehicles/presentation/widgets/vehicle_card.dart';
@@ -51,55 +49,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
     }
   }
 
-  Future<void> _handleDeleteVehicle(
-    BuildContext context,
-    Vehicle vehicle,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Vehicle?'),
-        content: Text(
-          'Are you sure you want to delete vehicle ${vehicle.registrationNumber} (${vehicle.displayName})? This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, foregroundColor: Colors.white),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
 
-    if (confirmed != true) return;
-    if (!mounted || !context.mounted) return;
-
-    try {
-      await ref.read(vehicleRepositoryProvider).deleteVehicle(vehicle.id);
-      if (!mounted || !context.mounted) return;
-      ref.read(customerDetailsProvider(widget.customerId).notifier).loadDetails();
-      ref.read(customerListProvider.notifier).loadCustomers(silent: true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Vehicle ${vehicle.registrationNumber} deleted successfully.'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      if (!mounted || !context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e is ApiException ? e.message : 'Failed to delete vehicle.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +57,6 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
     final notifier = ref.read(customerDetailsProvider(widget.customerId).notifier);
     final authUser = ref.watch(currentUserProvider);
     final canEdit = authUser == null || authUser.hasPermission('customers.edit');
-    final canDeleteVehicle = authUser == null || authUser.hasPermission('vehicles.delete');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -175,7 +124,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
               ),
             )
           : null,
-      body: _buildBody(context, state, notifier, canDeleteVehicle),
+      body: _buildBody(context, state, notifier),
     );
   }
 
@@ -183,7 +132,6 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
     BuildContext context,
     CustomerDetailsState state,
     CustomerDetailsNotifier notifier,
-    bool canDeleteVehicle,
   ) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading customer profile...');
@@ -354,29 +302,17 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                   final vehicle = state.vehicles[index];
                   return VehicleCard(
                     vehicle: vehicle,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (canDeleteVehicle)
-                          IconButton(
-                            key: Key('delete_vehicle_${vehicle.id}'),
-                            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.textSecondary),
-                            tooltip: 'Delete vehicle',
-                            onPressed: () => _handleDeleteVehicle(context, vehicle),
-                          ),
-                        IconButton(
-                          icon: const Icon(Icons.add_task, color: AppColors.accent),
-                          tooltip: 'New Job Card for this vehicle',
-                          onPressed: () {
-                            ref.read(newJobCardProvider.notifier).selectCustomer(
-                                  customer,
-                                  state.vehicles,
-                                  vehicle: vehicle,
-                                );
-                            context.go('/job-cards/new');
-                          },
-                        ),
-                      ],
+                    trailing: IconButton(
+                      icon: const Icon(Icons.add_task, color: AppColors.accent),
+                      tooltip: 'New Job Card for this vehicle',
+                      onPressed: () {
+                        ref.read(newJobCardProvider.notifier).selectCustomer(
+                              customer,
+                              state.vehicles,
+                              vehicle: vehicle,
+                            );
+                        context.go('/job-cards/new');
+                      },
                     ),
                   );
                 },

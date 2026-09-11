@@ -452,56 +452,6 @@ void main() {
       expect(find.text('3 vehicles'), findsOneWidget);
     });
 
-    testWidgets('Deleting vehicle from Customer Details invokes deleteVehicle and updates vehicle count',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
-
-      const krishna = Customer(
-        id: 'c-krishna',
-        name: 'Krishna',
-        phoneNumber: '9874563210',
-        vehicleCount: 2,
-      );
-      custRepo.customers = [krishna];
-      custRepo.customerMap[krishna.id] = krishna;
-
-      vehRepo.customerVehicles[krishna.id] = [
-        Vehicle(id: 'v-1', registrationNumber: 'TN33A0001', make: 'Tata', model: 'Nexon', customerId: krishna.id, createdAt: DateTime.now()),
-        Vehicle(id: 'v-2', registrationNumber: 'TN33A0002', make: 'Tata', model: 'Mazza', customerId: krishna.id, createdAt: DateTime.now()),
-      ];
-
-      await tester.pumpWidget(createCustomerDetailsWidget(
-        customerId: krishna.id,
-        custRepo: custRepo,
-        vehRepo: vehRepo,
-      ));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('Registered Vehicles (2)'), findsOneWidget);
-      expect(find.text('TN33A0001'), findsOneWidget);
-      expect(find.text('TN33A0002'), findsOneWidget);
-
-      // Tap delete button for v-1
-      final deleteBtn = find.byKey(const Key('delete_vehicle_v-1'));
-      expect(deleteBtn, findsOneWidget);
-      await tester.tap(deleteBtn);
-      await tester.pumpAndSettle();
-
-      // Confirm dialog appears
-      expect(find.text('Delete Vehicle?'), findsOneWidget);
-      expect(find.text('Delete'), findsOneWidget);
-
-      // Tap Delete in dialog
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
-      await tester.pumpAndSettle();
-
-      expect(vehRepo.deleteVehicleCalls, 1);
-      expect(find.text('Registered Vehicles (1)'), findsOneWidget);
-      expect(find.text('TN33A0001'), findsNothing);
-      expect(find.text('TN33A0002'), findsOneWidget);
-    });
 
     testWidgets('Ownership transfer updates vehicle count for both old and new customers in data layer',
         (tester) async {

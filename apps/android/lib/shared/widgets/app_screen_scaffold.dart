@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import 'e6_brand_badge.dart';
 
 class AppScreenScaffold extends StatelessWidget {
   final String title;
@@ -12,6 +13,7 @@ class AppScreenScaffold extends StatelessWidget {
   final VoidCallback? onBackPressed;
   final Widget? leading;
   final Color backgroundColor;
+  final bool showBrandBadge;
 
   const AppScreenScaffold({
     super.key,
@@ -24,6 +26,7 @@ class AppScreenScaffold extends StatelessWidget {
     this.onBackPressed,
     this.leading,
     this.backgroundColor = AppColors.background,
+    this.showBrandBadge = true,
   });
 
   @override
@@ -33,12 +36,21 @@ class AppScreenScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(
-          title,
-          style: AppTextStyles.headingLarge.copyWith(
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showBrandBadge) ...[
+              const E6BrandBadge(),
+              const SizedBox(width: 10),
+            ],
+            Flexible(
+              child: Text(
+                title,
+                style: AppTextStyles.appBarTitle,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
         automaticallyImplyLeading: false,
         leading: leading ??
