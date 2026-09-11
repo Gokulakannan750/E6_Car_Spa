@@ -270,6 +270,162 @@ void main() {
       expect(fakeStorage.clearSessionCallCount, 0);
       expect(fakeStorage.storedToken, 'valid-token-staff');
     });
+
+    test('onError on HTTP 401 for /public/business-profile does NOT clear session', () async {
+      fakeStorage.storedToken = 'pre-existing-token';
+
+      bool unauthorizedNotified = false;
+      final sub = AuthSessionEvents.onUnauthorized.listen((_) {
+        unauthorizedNotified = true;
+      });
+
+      final interceptor = dio.interceptors.firstWhere((i) => i is InterceptorsWrapper) as InterceptorsWrapper;
+      final dioError = DioException(
+        requestOptions: RequestOptions(path: '/public/business-profile'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/public/business-profile'),
+          statusCode: 401,
+          statusMessage: 'Unauthorized',
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final errorCompleter = Completer<DioException>();
+      interceptor.onError(
+        dioError,
+        _ErrorInterceptHandler(
+          onNext: (err) => errorCompleter.complete(err),
+        ),
+      );
+
+      final err = await errorCompleter.future;
+      expect(err.response?.statusCode, 401);
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(fakeStorage.clearSessionCallCount, 0);
+      expect(fakeStorage.storedToken, 'pre-existing-token');
+      expect(unauthorizedNotified, isFalse);
+
+      await sub.cancel();
+    });
+
+    test('onError on HTTP 401 for /api/public/business-profile does NOT clear session', () async {
+      fakeStorage.storedToken = 'pre-existing-token';
+
+      bool unauthorizedNotified = false;
+      final sub = AuthSessionEvents.onUnauthorized.listen((_) {
+        unauthorizedNotified = true;
+      });
+
+      final interceptor = dio.interceptors.firstWhere((i) => i is InterceptorsWrapper) as InterceptorsWrapper;
+      final dioError = DioException(
+        requestOptions: RequestOptions(path: '/api/public/business-profile'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/public/business-profile'),
+          statusCode: 401,
+          statusMessage: 'Unauthorized',
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final errorCompleter = Completer<DioException>();
+      interceptor.onError(
+        dioError,
+        _ErrorInterceptHandler(
+          onNext: (err) => errorCompleter.complete(err),
+        ),
+      );
+
+      final err = await errorCompleter.future;
+      expect(err.response?.statusCode, 401);
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(fakeStorage.clearSessionCallCount, 0);
+      expect(fakeStorage.storedToken, 'pre-existing-token');
+      expect(unauthorizedNotified, isFalse);
+
+      await sub.cancel();
+    });
+
+    test('onError on HTTP 401 for non-whitelisted /api/public/other DOES clear session (no blanket public rule)', () async {
+      fakeStorage.storedToken = 'existing-token';
+
+      bool unauthorizedNotified = false;
+      final sub = AuthSessionEvents.onUnauthorized.listen((_) {
+        unauthorizedNotified = true;
+      });
+
+      final interceptor = dio.interceptors.firstWhere((i) => i is InterceptorsWrapper) as InterceptorsWrapper;
+      final dioError = DioException(
+        requestOptions: RequestOptions(path: '/api/public/other-endpoint'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/public/other-endpoint'),
+          statusCode: 401,
+          statusMessage: 'Unauthorized',
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final errorCompleter = Completer<DioException>();
+      interceptor.onError(
+        dioError,
+        _ErrorInterceptHandler(
+          onNext: (err) => errorCompleter.complete(err),
+        ),
+      );
+
+      final err = await errorCompleter.future;
+      expect(err.response?.statusCode, 401);
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(fakeStorage.clearSessionCallCount, 1);
+      expect(fakeStorage.storedToken, isNull);
+      expect(unauthorizedNotified, isTrue);
+
+      await sub.cancel();
+    });
+
+    test('onError on HTTP 401 for /api/settings/business DOES clear session and trigger unauthorized event', () async {
+      fakeStorage.storedToken = 'expired-token';
+
+      bool unauthorizedNotified = false;
+      final sub = AuthSessionEvents.onUnauthorized.listen((_) {
+        unauthorizedNotified = true;
+      });
+
+      final interceptor = dio.interceptors.firstWhere((i) => i is InterceptorsWrapper) as InterceptorsWrapper;
+      final dioError = DioException(
+        requestOptions: RequestOptions(path: '/api/settings/business'),
+        response: Response(
+          requestOptions: RequestOptions(path: '/api/settings/business'),
+          statusCode: 401,
+          statusMessage: 'Unauthorized',
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final errorCompleter = Completer<DioException>();
+      interceptor.onError(
+        dioError,
+        _ErrorInterceptHandler(
+          onNext: (err) => errorCompleter.complete(err),
+        ),
+      );
+
+      final err = await errorCompleter.future;
+      expect(err.response?.statusCode, 401);
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(fakeStorage.clearSessionCallCount, 1);
+      expect(fakeStorage.storedToken, isNull);
+      expect(unauthorizedNotified, isTrue);
+
+      await sub.cancel();
+    });
   });
 }
 

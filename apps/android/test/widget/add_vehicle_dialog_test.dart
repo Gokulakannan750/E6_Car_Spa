@@ -331,10 +331,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Transfer Vehicle Ownership?'), findsOneWidget);
-      expect(find.text('Customer A'), findsOneWidget);
-      expect(find.text('Customer B'), findsOneWidget);
+      expect(find.textContaining('Customer A'), findsWidgets);
+      expect(find.textContaining('Customer B'), findsOneWidget);
       expect(
-        find.text('Existing service history, job cards, invoices and payments will not be deleted or changed.'),
+        find.textContaining('All historical service records, job cards, and invoices will remain intact with the previous owner.'),
         findsOneWidget,
       );
 

@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../models/business_profile_model.dart';
+import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import '../models/logo_upload_response.dart';
 import 'settings_api.dart';
@@ -24,6 +25,7 @@ class SettingsRepository {
   final FlutterSecureStorage _storage;
 
   static const String _cachedProfileKey = 'e6_cached_business_profile';
+  static const String _cachedPublicBrandingKey = 'e6_cached_public_branding';
 
   SettingsRepository(this._api, [FlutterSecureStorage? storage])
       : _storage = storage ?? const FlutterSecureStorage();
@@ -46,30 +48,33 @@ class SettingsRepository {
     } catch (_) {}
   }
 
-  Future<BusinessProfileModel> getPublicBusinessProfile() async {
+  Future<PublicBusinessProfileModel?> getCachedPublicBranding() async {
+    try {
+      final jsonStr = await _storage.read(key: _cachedPublicBrandingKey);
+      if (jsonStr == null || jsonStr.isEmpty) return null;
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      return PublicBusinessProfileModel.fromJson(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _saveCachedPublicBranding(PublicBusinessProfileModel branding) async {
+    try {
+      final jsonStr = jsonEncode(branding.toJson());
+      await _storage.write(key: _cachedPublicBrandingKey, value: jsonStr);
+    } catch (_) {}
+  }
+
+  /// Retrieves the anonymous public branding profile (businessName, logoPath, updatedAt).
+  /// Strictly saves only to the public branding cache and NEVER overwrites the protected profile cache.
+  Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
     try {
       final publicProfile = await _api.getPublicBusinessProfile();
-      final cached = await getCachedBusinessProfile();
-      final updatedProfile = (cached ??
-              const BusinessProfileModel(
-                id: '',
-                businessName: 'E6 Car Spa',
-                addressLine1: '',
-                city: '',
-                state: '',
-                postalCode: '',
-                phone: '',
-                email: '',
-              ))
-          .copyWith(
-        businessName: publicProfile.businessName,
-        logoPath: publicProfile.logoPath,
-        updatedAt: publicProfile.updatedAt,
-      );
-      await _saveCachedProfile(updatedProfile);
-      return updatedProfile;
+      await _saveCachedPublicBranding(publicProfile);
+      return publicProfile;
     } on DioException catch (e) {
-      final cached = await getCachedBusinessProfile();
+      final cached = await getCachedPublicBranding();
       if (cached != null) return cached;
       throw ApiException.fromDio(e);
     }

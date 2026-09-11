@@ -9,6 +9,8 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 
@@ -19,8 +21,16 @@ class JobCardsScreen extends ConsumerStatefulWidget {
   ConsumerState<JobCardsScreen> createState() => _JobCardsScreenState();
 }
 
-class _JobCardsScreenState extends ConsumerState<JobCardsScreen> {
+class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<JobCardsScreen> {
   final _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final authUser = ref.read(currentUserProvider);
+    if (authUser != null && !authUser.hasPermission('jobcards.view')) return;
+    ref.read(jobCardListProvider.notifier).loadJobCards(silent: true);
+  }
 
   @override
   void dispose() {

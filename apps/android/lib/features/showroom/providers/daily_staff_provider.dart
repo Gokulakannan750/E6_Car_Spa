@@ -90,17 +90,20 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
         state.showroomId,
         targetDate,
       );
+      if (!mounted) return;
       state = state.copyWith(
         dailyStaffResponse: response,
         isLoading: false,
         clearError: true,
       );
     } on ApiException catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.message,
       );
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to load daily staff assignments.',
@@ -144,15 +147,18 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       // Invalidate master showrooms list so today counts update
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
+      if (!mounted) return assignment;
       state = state.copyWith(isAssigning: false, clearError: true);
       return assignment;
     } on ApiException catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isAssigning: false,
         errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isAssigning: false,
         errorMessage: 'Failed to assign staff member.',
@@ -179,14 +185,17 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
 
       await loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      if (!mounted) return;
       state = state.copyWith(isAssigning: false, clearError: true);
     } on ApiException catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isAssigning: false,
         errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isAssigning: false,
         errorMessage: 'Failed to assign staff members.',
@@ -211,15 +220,18 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
 
       await loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      if (!mounted) return updated;
       state = state.copyWith(isLoading: false, clearError: true);
       return updated;
     } on ApiException catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isLoading: false,
         errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
+      if (!mounted) rethrow;
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to update vehicles attended.',
@@ -239,6 +251,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       // Invalidate master showrooms list so counts update
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
+      if (!mounted) return;
       state = state.copyWith(isRemoving: false, clearError: true);
     } on ApiException catch (e) {
       if (!mounted) return;

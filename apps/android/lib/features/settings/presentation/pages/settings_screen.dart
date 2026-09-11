@@ -61,6 +61,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _prefixController = TextEditingController();
     _termsController = TextEditingController();
     _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(settingsNotifierProvider.notifier).loadProfile();
+    });
   }
 
   @override

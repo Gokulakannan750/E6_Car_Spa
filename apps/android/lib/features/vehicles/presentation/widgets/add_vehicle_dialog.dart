@@ -117,10 +117,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
       );
 
       final vehicle = await ref.read(vehicleRepositoryProvider).createVehicle(request);
+      ref.invalidate(customerDetailsProvider(widget.customerId));
+      ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+
       if (widget.onCreated != null) {
         widget.onCreated!(vehicle);
-      } else {
-        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
       }
 
       if (mounted) {
@@ -219,67 +220,53 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
   }
 
   Future<void> _showTransferConfirmation() async {
-    if (_vehicleConflict == null) return;
-    final conflict = _vehicleConflict!;
+    final conflict = _vehicleConflict;
+    if (conflict == null) return;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Transfer Vehicle Ownership?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDetailRow('Vehicle:', conflict.registrationNumber),
-                  const SizedBox(height: 6),
-                  _buildDetailRow(
-                    'Make / Model:',
-                    '${conflict.make} ${conflict.model} ${conflict.variant ?? ''}'.trim(),
-                  ),
-                  const SizedBox(height: 6),
-                  _buildDetailRow('Current Owner:', conflict.currentCustomerName, isError: true),
-                  const SizedBox(height: 6),
-                  _buildDetailRow('New Owner:', widget.customerName ?? 'New Owner', isPrimary: true),
-                ],
-              ),
+            Text(
+              'Vehicle ${conflict.registrationNumber} is currently registered to ${conflict.currentCustomerName}.',
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             Text(
-              'Existing service history, job cards, invoices and payments will not be deleted or changed.',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+              'Transferring ownership will assign it to ${widget.customerName ?? 'the current customer'}. All historical service records, job cards, and invoices will remain intact with the previous owner.',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Are you sure you want to proceed?',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
         ),
         actions: [
           TextButton(
             key: const Key('transfer_cancel_button'),
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             key: const Key('transfer_confirm_button'),
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
             ),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Transfer Ownership'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true) {
+    if (confirmed == true && mounted) {
       await _executeTransfer(conflict);
     }
   }
@@ -295,10 +282,18 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
           .read(vehicleRepositoryProvider)
           .transferOwnership(conflict.vehicleId, widget.customerId);
 
+      // Invalidate old customer details provider if conflict had old customer ID
+      if (conflict.currentCustomerId.isNotEmpty) {
+        ref.invalidate(customerDetailsProvider(conflict.currentCustomerId));
+      }
+      // Invalidate current customer details provider
+      ref.invalidate(customerDetailsProvider(widget.customerId));
+
+      // Refresh master customer list so both old and new customers' vehicle counts update
+      ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+
       if (widget.onCreated != null) {
         widget.onCreated!(transferredVehicle);
-      } else {
-        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
       }
 
       if (mounted) {
@@ -320,26 +315,6 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
         });
       }
     }
-  }
-
-  Widget _buildDetailRow(String label, String value, {bool isError = false, bool isPrimary = false}) {
-    Color valueColor = AppColors.textPrimary;
-    if (isError) valueColor = AppColors.error;
-    if (isPrimary) valueColor = AppColors.primary;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
-        Text(
-          value,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: valueColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
   }
 
   @override

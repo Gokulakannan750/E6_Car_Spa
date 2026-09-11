@@ -20,9 +20,7 @@ final businessProfileProvider = Provider<BusinessProfileModel?>((ref) {
 class SettingsNotifier extends StateNotifier<SettingsState> {
   final SettingsRepository _repository;
 
-  SettingsNotifier(this._repository) : super(const SettingsInitial()) {
-    loadProfile();
-  }
+  SettingsNotifier(this._repository) : super(const SettingsInitial());
 
   Future<void> loadProfile() async {
     // Check if we have a cached profile for immediate zero-flicker display
@@ -38,12 +36,6 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       state = SettingsLoaded(profile: profile);
     } catch (e) {
       if (state is! SettingsLoaded) {
-        try {
-          final publicProf = await _repository.getPublicBusinessProfile();
-          state = SettingsLoaded(profile: publicProf);
-          return;
-        } catch (_) {}
-
         final message = e is ApiException
             ? e.message
             : 'Failed to load business profile. Please check connection.';
@@ -52,21 +44,86 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     }
   }
 
-  /// Loads the public branding profile (businessName, logoPath, updatedAt)
+  /// Loads the public branding profile (businessName, logoPath, updatedAt).
   /// Safe to call before login or when unauthenticated.
+  /// Preserves all protected business settings and never writes dummy profiles to protected storage.
   Future<void> loadPublicProfile() async {
-    final cached = await _repository.getCachedBusinessProfile();
-    if (cached != null && state is! SettingsLoaded) {
-      state = SettingsLoaded(profile: cached);
+    // 1. If full protected profile is already loaded in state, preserve all protected fields!
+    if (state is SettingsLoaded) {
+      final currentProfile = (state as SettingsLoaded).profile;
+      try {
+        final publicBranding = await _repository.getPublicBusinessProfile();
+        state = (state as SettingsLoaded).copyWith(
+          profile: currentProfile.copyWith(
+            businessName: publicBranding.businessName,
+            logoPath: publicBranding.logoPath,
+            updatedAt: publicBranding.updatedAt,
+          ),
+        );
+      } catch (_) {}
+      return;
     }
 
+    // 2. If a cached protected profile exists in storage, load it and update branding
+    final cachedProfile = await _repository.getCachedBusinessProfile();
+    if (cachedProfile != null) {
+      state = SettingsLoaded(profile: cachedProfile);
+      try {
+        final publicBranding = await _repository.getPublicBusinessProfile();
+        state = SettingsLoaded(
+          profile: cachedProfile.copyWith(
+            businessName: publicBranding.businessName,
+            logoPath: publicBranding.logoPath,
+            updatedAt: publicBranding.updatedAt,
+          ),
+        );
+      } catch (_) {}
+      return;
+    }
+
+    // 3. Check cached public branding for zero-flicker display
+    final cachedBranding = await _repository.getCachedPublicBranding();
+    if (cachedBranding != null && state is! SettingsLoaded) {
+      state = SettingsLoaded(
+        profile: BusinessProfileModel(
+          id: '',
+          businessName: cachedBranding.businessName,
+          addressLine1: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          phone: '',
+          email: '',
+          logoPath: cachedBranding.logoPath,
+          updatedAt: cachedBranding.updatedAt,
+        ),
+      );
+    }
+
+    // 4. Fetch fresh public branding from anonymous endpoint
     try {
-      final profile = await _repository.getPublicBusinessProfile();
-      state = SettingsLoaded(profile: profile);
+      final publicBranding = await _repository.getPublicBusinessProfile();
+      final current = state is SettingsLoaded ? (state as SettingsLoaded).profile : null;
+      state = SettingsLoaded(
+        profile: (current ??
+                const BusinessProfileModel(
+                  id: '',
+                  businessName: 'E6 Car Spa',
+                  addressLine1: '',
+                  city: '',
+                  state: '',
+                  postalCode: '',
+                  phone: '',
+                  email: '',
+                ))
+            .copyWith(
+          businessName: publicBranding.businessName,
+          logoPath: publicBranding.logoPath,
+          updatedAt: publicBranding.updatedAt,
+        ),
+      );
     } catch (_) {
-      if (cached != null && state is! SettingsLoaded) {
-        state = SettingsLoaded(profile: cached);
-      }
+      // If network fails and nothing was cached, leave state as is
     }
   }
 

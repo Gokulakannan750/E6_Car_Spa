@@ -527,9 +527,12 @@ void main() {
       await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
       await tester.pumpAndSettle();
 
-      // Modify field and submit with Enter/Done action
+      // Modify field and submit with Enter/Done action on final field (Address)
       final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
       await tester.enterText(nameField, 'Ramesh By Enter');
+      final addressField = find.byType(TextFormField).last;
+      await tester.tap(addressField);
+      await tester.pumpAndSettle();
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 

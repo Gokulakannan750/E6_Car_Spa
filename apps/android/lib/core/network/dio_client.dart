@@ -31,12 +31,29 @@ final dioProvider = Provider<Dio>((ref) {
         return handler.next(options);
       },
       onError: (error, handler) async {
-        final path = error.requestOptions.path.toLowerCase();
-        final isAuthEndpoint = path.contains('/auth/login') ||
-            path.contains('/auth/bootstrap') ||
-            path.contains('/auth/status');
+        final path = error.requestOptions.path;
+        final uri = Uri.tryParse(path);
+        String normalizedPath = (uri?.path ?? path).toLowerCase();
+        if (!normalizedPath.startsWith('/')) {
+          normalizedPath = '/$normalizedPath';
+        }
+        if (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
+          normalizedPath = normalizedPath.substring(0, normalizedPath.length - 1);
+        }
+        final canonicalPath = normalizedPath.startsWith('/api/')
+            ? normalizedPath.substring(4)
+            : normalizedPath;
 
-        if (error.response?.statusCode == 401 && !isAuthEndpoint) {
+        const unauthenticatedEndpoints = <String>{
+          '/auth/login',
+          '/auth/bootstrap',
+          '/auth/status',
+          '/public/business-profile',
+        };
+
+        final isUnauthenticated = unauthenticatedEndpoints.contains(canonicalPath);
+
+        if (error.response?.statusCode == 401 && !isUnauthenticated) {
           await storage.clearSession();
           AuthSessionEvents.notifyUnauthorized();
         }

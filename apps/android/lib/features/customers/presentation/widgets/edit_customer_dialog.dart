@@ -194,7 +194,7 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       isRequired: true,
                       prefixIcon: const Icon(Icons.person_outline, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => _handleSubmit(),
+                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Customer name is required.';
@@ -214,7 +214,7 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       maxLength: 10,
                       prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => _handleSubmit(),
+                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(10),
@@ -239,7 +239,7 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: const Icon(Icons.email_outlined, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => _handleSubmit(),
+                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
                     ),
                     const SizedBox(height: 14),
 

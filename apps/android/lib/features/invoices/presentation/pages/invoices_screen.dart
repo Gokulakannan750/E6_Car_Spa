@@ -6,6 +6,8 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
+import '../../../auth/providers/auth_provider.dart';
 import '../../models/invoice_model.dart';
 import '../../providers/invoice_providers.dart';
 import '../widgets/invoice_card.dart';
@@ -17,8 +19,16 @@ class InvoicesScreen extends ConsumerStatefulWidget {
   ConsumerState<InvoicesScreen> createState() => _InvoicesScreenState();
 }
 
-class _InvoicesScreenState extends ConsumerState<InvoicesScreen> {
+class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<InvoicesScreen> {
   final _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final authUser = ref.read(currentUserProvider);
+    if (authUser != null && !authUser.hasPermission('invoices.view')) return;
+    ref.read(invoiceListProvider.notifier).loadInvoices(silent: true);
+  }
 
   @override
   void dispose() {

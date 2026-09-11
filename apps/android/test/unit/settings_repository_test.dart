@@ -3,7 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:e6_car_spa/core/errors/api_exception.dart';
 import 'package:e6_car_spa/features/settings/data/settings_api.dart';
 import 'package:e6_car_spa/features/settings/data/settings_repository.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:e6_car_spa/features/settings/models/business_profile_model.dart';
+import 'package:e6_car_spa/features/settings/models/public_business_profile_model.dart';
 import 'package:e6_car_spa/features/settings/models/update_business_profile_request.dart';
 import 'package:e6_car_spa/features/settings/models/logo_upload_response.dart';
 
@@ -11,9 +13,21 @@ class MockSettingsApi extends SettingsApi {
   MockSettingsApi() : super(Dio());
 
   BusinessProfileModel? profileToReturn;
+  PublicBusinessProfileModel? publicProfileToReturn;
   LogoUploadResponseModel? logoUploadToReturn;
   DioException? dioExceptionToThrow;
   Exception? exceptionToThrow;
+
+  @override
+  Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
+    if (dioExceptionToThrow != null) throw dioExceptionToThrow!;
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    return publicProfileToReturn ??
+        const PublicBusinessProfileModel(
+          businessName: 'E6 Car Spa',
+          logoPath: null,
+        );
+  }
 
   @override
   Future<BusinessProfileModel> getBusinessProfile() async {
@@ -49,8 +63,55 @@ class MockSettingsApi extends SettingsApi {
   }
 }
 
+class MockSecureStorage extends FlutterSecureStorage {
+  final Map<String, String> data = {};
+
+  MockSecureStorage() : super();
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => data[key];
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (value != null) {
+      data[key] = value;
+    } else {
+      data.remove(key);
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => data.remove(key);
+}
+
 void main() {
   late MockSettingsApi mockApi;
+  late MockSecureStorage mockStorage;
   late SettingsRepository repository;
 
   final sampleProfile = BusinessProfileModel(
@@ -68,7 +129,8 @@ void main() {
 
   setUp(() {
     mockApi = MockSettingsApi();
-    repository = SettingsRepository(mockApi);
+    mockStorage = MockSecureStorage();
+    repository = SettingsRepository(mockApi, mockStorage);
   });
 
   group('SettingsRepository Tests', () {
@@ -160,6 +222,58 @@ void main() {
         () => repository.getBusinessProfile(),
         throwsA(isA<ApiException>()),
       );
+    });
+
+    test('getPublicBusinessProfile saves to public branding cache and NEVER writes to protected profile cache', () async {
+      mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
+        businessName: 'Public Brand Name',
+        logoPath: '/logos/public.png',
+      );
+
+      final result = await repository.getPublicBusinessProfile();
+
+      expect(result.businessName, 'Public Brand Name');
+      expect(result.logoPath, '/logos/public.png');
+
+      // 1. Verify public cache has data
+      final cachedPublic = await repository.getCachedPublicBranding();
+      expect(cachedPublic, isNotNull);
+      expect(cachedPublic!.businessName, 'Public Brand Name');
+
+      // 2. CRITICAL INVARIANT: Protected profile cache remains null!
+      final cachedProtected = await repository.getCachedBusinessProfile();
+      expect(cachedProtected, isNull);
+      expect(mockStorage.data.containsKey('e6_cached_business_profile'), isFalse);
+    });
+
+    test('getPublicBusinessProfile never overwrites protected settings of a previously cached full profile', () async {
+      mockApi.profileToReturn = sampleProfile;
+      await repository.getBusinessProfile();
+
+      // Verify protected settings are cached
+      var cached = await repository.getCachedBusinessProfile();
+      expect(cached?.gstin, '33AAAAA0000A1Z5');
+      expect(cached?.invoicePrefix, 'INV');
+      expect(cached?.addressLine1, '36, Geetha Nagar');
+      expect(cached?.city, 'Erode');
+      expect(cached?.phone, '+91 9578749449');
+      expect(cached?.email, 'e6carspaerd@gmail.com');
+
+      // Now fetch public profile
+      mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
+        businessName: 'Updated Brand Name',
+        logoPath: '/new/logo.png',
+      );
+      await repository.getPublicBusinessProfile();
+
+      // Verify protected settings in storage were NOT corrupted or blanked out
+      cached = await repository.getCachedBusinessProfile();
+      expect(cached?.gstin, '33AAAAA0000A1Z5');
+      expect(cached?.invoicePrefix, 'INV');
+      expect(cached?.addressLine1, '36, Geetha Nagar');
+      expect(cached?.city, 'Erode');
+      expect(cached?.phone, '+91 9578749449');
+      expect(cached?.email, 'e6carspaerd@gmail.com');
     });
   });
 }
