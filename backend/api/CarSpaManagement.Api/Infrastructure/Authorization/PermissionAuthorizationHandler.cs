@@ -35,10 +35,8 @@ public class PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
             return; // Inactive or deleted user denied immediately
         }
 
-        // 1. OWNER RULE: Active Owner bypasses all permission checks automatically
-        if (user.Role == UserRole.Owner ||
-            context.User.IsInRole("Owner") ||
-            context.User.HasClaim(c => c.Type == "isOwner" && c.Value.Equals("true", StringComparison.OrdinalIgnoreCase)))
+        // 1. OWNER RULE: Active Owner bypasses all permission checks automatically based on current database record
+        if (user.Role == UserRole.Owner)
         {
             context.Succeed(requirement);
             return;

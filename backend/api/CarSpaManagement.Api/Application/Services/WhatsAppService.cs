@@ -884,102 +884,99 @@ public class WhatsAppService : IWhatsAppService
 			var headerComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase));
 			var buttonsComponent = targetTemplate.Components.FirstOrDefault(c => string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase));
 
-			if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+			if (targetTemplate.Components.Any(c => !string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(c.Type, "BODY", StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(c.Type, "FOOTER", StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase)))
 			{
-				if (headerComponent == null || !string.Equals(headerComponent.Format, "DOCUMENT", StringComparison.OrdinalIgnoreCase))
-				{
-					message.Status = WhatsAppMessageStatus.Failed;
-					message.FailedAtUtc = DateTime.UtcNow;
-					message.ErrorMessage = $"Template '{templateName}' requires a DOCUMENT header component for invoice PDF attachments.";
-					await _db.SaveChangesAsync(cancellationToken);
+				message.Status = WhatsAppMessageStatus.Failed;
+				message.FailedAtUtc = DateTime.UtcNow;
+				message.ErrorMessage = $"Template '{templateName}' contains unsupported components.";
+				await _db.SaveChangesAsync(cancellationToken);
 
-					await _auditLogService.RecordAsync(
-						action: AuditActions.WhatsAppNotificationFailed,
-						module: AuditModules.WhatsApp,
-						description: message.ErrorMessage,
-						entityType: "WhatsAppMessage",
-						entityId: message.Id,
-						entityReference: message.Invoice?.InvoiceNumber,
-						outcome: "Failure",
-						cancellationToken: cancellationToken);
+				await _auditLogService.RecordAsync(
+					action: AuditActions.WhatsAppNotificationFailed,
+					module: AuditModules.WhatsApp,
+					description: message.ErrorMessage,
+					entityType: "WhatsAppMessage",
+					entityId: message.Id,
+					entityReference: message.Invoice?.InvoiceNumber,
+					outcome: "Failure",
+					cancellationToken: cancellationToken);
 
-					return false;
-				}
-
-				if (headerComponent.Variables != null && headerComponent.Variables.Count > 0)
-				{
-					message.Status = WhatsAppMessageStatus.Failed;
-					message.FailedAtUtc = DateTime.UtcNow;
-					message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
-					await _db.SaveChangesAsync(cancellationToken);
-
-					await _auditLogService.RecordAsync(
-						action: AuditActions.WhatsAppNotificationFailed,
-						module: AuditModules.WhatsApp,
-						description: message.ErrorMessage,
-						entityType: "WhatsAppMessage",
-						entityId: message.Id,
-						entityReference: message.Invoice?.InvoiceNumber,
-						outcome: "Failure",
-						cancellationToken: cancellationToken);
-
-					return false;
-				}
-
-				if (buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Any(b => string.Equals(b.Type, "URL", StringComparison.OrdinalIgnoreCase)))
-				{
-					message.Status = WhatsAppMessageStatus.Failed;
-					message.FailedAtUtc = DateTime.UtcNow;
-					message.ErrorMessage = $"Template '{templateName}' contains a URL button which is not supported for PDF invoice document attachment.";
-					await _db.SaveChangesAsync(cancellationToken);
-
-					await _auditLogService.RecordAsync(
-						action: AuditActions.WhatsAppNotificationFailed,
-						module: AuditModules.WhatsApp,
-						description: message.ErrorMessage,
-						entityType: "WhatsAppMessage",
-						entityId: message.Id,
-						entityReference: message.Invoice?.InvoiceNumber,
-						outcome: "Failure",
-						cancellationToken: cancellationToken);
-
-					return false;
-				}
-
-				if (targetTemplate.Components.Any(c => !string.Equals(c.Type, "HEADER", StringComparison.OrdinalIgnoreCase)
-					&& !string.Equals(c.Type, "BODY", StringComparison.OrdinalIgnoreCase)
-					&& !string.Equals(c.Type, "FOOTER", StringComparison.OrdinalIgnoreCase)
-					&& !string.Equals(c.Type, "BUTTONS", StringComparison.OrdinalIgnoreCase)))
-				{
-					message.Status = WhatsAppMessageStatus.Failed;
-					message.FailedAtUtc = DateTime.UtcNow;
-					message.ErrorMessage = $"Template '{templateName}' contains unsupported components.";
-					await _db.SaveChangesAsync(cancellationToken);
-
-					await _auditLogService.RecordAsync(
-						action: AuditActions.WhatsAppNotificationFailed,
-						module: AuditModules.WhatsApp,
-						description: message.ErrorMessage,
-						entityType: "WhatsAppMessage",
-						entityId: message.Id,
-						entityReference: message.Invoice?.InvoiceNumber,
-						outcome: "Failure",
-						cancellationToken: cancellationToken);
-
-					return false;
-				}
+				return false;
 			}
-			else
+
+			var isDocumentHeader = message.MessageType == WhatsAppMessageType.InvoiceFinalized
+				&& headerComponent != null
+				&& string.Equals(headerComponent.Format, "DOCUMENT", StringComparison.OrdinalIgnoreCase);
+
+			if (headerComponent != null)
 			{
-				if (headerComponent != null)
+				var headerFormat = (headerComponent.Format ?? "TEXT").ToUpperInvariant();
+				if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
 				{
-					var headerFormat = (headerComponent.Format ?? "TEXT").ToUpperInvariant();
+					if (headerFormat == "DOCUMENT" || headerFormat == "TEXT")
+					{
+						if (headerComponent.Variables != null && headerComponent.Variables.Count > 0)
+						{
+							message.Status = WhatsAppMessageStatus.Failed;
+							message.FailedAtUtc = DateTime.UtcNow;
+							message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
+							await _db.SaveChangesAsync(cancellationToken);
+
+							await _auditLogService.RecordAsync(
+								action: AuditActions.WhatsAppNotificationFailed,
+								module: AuditModules.WhatsApp,
+								description: message.ErrorMessage,
+								entityType: "WhatsAppMessage",
+								entityId: message.Id,
+								entityReference: message.Invoice?.InvoiceNumber,
+								outcome: "Failure",
+								cancellationToken: cancellationToken);
+
+							return false;
+						}
+					}
+					else
+					{
+						message.Status = WhatsAppMessageStatus.Failed;
+						message.FailedAtUtc = DateTime.UtcNow;
+						message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
+						await _db.SaveChangesAsync(cancellationToken);
+
+						await _auditLogService.RecordAsync(
+							action: AuditActions.WhatsAppNotificationFailed,
+							module: AuditModules.WhatsApp,
+							description: message.ErrorMessage,
+							entityType: "WhatsAppMessage",
+							entityId: message.Id,
+							entityReference: message.Invoice?.InvoiceNumber,
+							outcome: "Failure",
+							cancellationToken: cancellationToken);
+
+						return false;
+					}
+				}
+				else
+				{
 					if (headerFormat != "TEXT" || (headerComponent.Variables != null && headerComponent.Variables.Count > 0))
 					{
 						message.Status = WhatsAppMessageStatus.Failed;
 						message.FailedAtUtc = DateTime.UtcNow;
 						message.ErrorMessage = $"Template '{templateName}' contains unsupported dynamic parameters in header.";
 						await _db.SaveChangesAsync(cancellationToken);
+
+						await _auditLogService.RecordAsync(
+							action: AuditActions.WhatsAppNotificationFailed,
+							module: AuditModules.WhatsApp,
+							description: message.ErrorMessage,
+							entityType: "WhatsAppMessage",
+							entityId: message.Id,
+							entityReference: message.Invoice?.InvoiceNumber,
+							outcome: "Failure",
+							cancellationToken: cancellationToken);
+
 						return false;
 					}
 				}
@@ -1023,7 +1020,7 @@ public class WhatsAppService : IWhatsAppService
 			BusinessProfile? businessProfile = null;
 			string sanitizedFileName = "Invoice.pdf";
 
-			if (message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+			if (isDocumentHeader)
 			{
 				invoiceForPdf = await _db.Invoices
 					.Include(i => i.Customer)
@@ -1133,8 +1130,8 @@ public class WhatsAppService : IWhatsAppService
 				});
 			}
 
-			// Validate and build dynamic Button Components if required (only for PaymentCompleted or non-invoice flows)
-			if (message.MessageType != WhatsAppMessageType.InvoiceFinalized && buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Count > 0)
+			// Validate and build dynamic Button Components if required
+			if (buttonsComponent?.Buttons != null && buttonsComponent.Buttons.Count > 0)
 			{
 				for (int i = 0; i < buttonsComponent.Buttons.Count; i++)
 				{
@@ -1271,7 +1268,7 @@ public class WhatsAppService : IWhatsAppService
 
 			// Media ID Retry Handling:
 			// If cached media_id was rejected by Meta as invalid/expired, clear cache, regenerate PDF, re-upload, and retry send once.
-			if (!response.IsSuccessStatusCode && usedCachedMediaId && message.MessageType == WhatsAppMessageType.InvoiceFinalized)
+			if (!response.IsSuccessStatusCode && usedCachedMediaId && isDocumentHeader && message.MessageType == WhatsAppMessageType.InvoiceFinalized)
 			{
 				var testStatusCode = (int)response.StatusCode;
 				var (testErrorMsg, _) = ParseMetaError(responseBody, testStatusCode, token);

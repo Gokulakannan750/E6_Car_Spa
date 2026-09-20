@@ -10,7 +10,6 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../jobcards/providers/job_card_providers.dart';
-import '../../../vehicles/models/vehicle_model.dart';
 import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
 import '../../../vehicles/presentation/widgets/vehicle_card.dart';
 import '../../models/customer_model.dart';

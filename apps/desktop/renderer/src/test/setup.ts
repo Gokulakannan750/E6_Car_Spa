@@ -40,9 +40,6 @@ if (typeof window !== 'undefined') {
 	if (!window.electronAPI) {
 		window.electronAPI = {
 			getVersion: () => Promise.resolve('1.0.0'),
-			getPath: () => Promise.resolve('/mock/path'),
-			printJobCard: () => Promise.resolve(undefined),
-			printInvoice: () => Promise.resolve(undefined),
 			saveInvoicePdf: () => Promise.resolve({ success: true, filePath: '/mock/invoice.pdf' }),
 			getAuthToken: () => Promise.resolve(null),
 			setAuthToken: () => Promise.resolve(undefined),

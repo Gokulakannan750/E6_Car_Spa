@@ -1,6 +1,7 @@
 class AppConstants {
   // Environment configurations
-  static const String defaultDevApiUrl = 'http://10.0.2.2:5298/api';
+  static const String defaultDevApiUrl = 'http://192.168.1.4:5298/api';
+  static const String defaultEmulatorApiUrl = 'http://10.0.2.2:5298/api';
   static const String defaultProdApiUrl = 'https://api.e6carspa.com/api';
 
   // Default values
