@@ -33,7 +33,7 @@ export function CustomerDetailPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 
-	const [activityFilter, setActivityFilter] = useState<'all' | 'paid' | 'invoiced' | 'pending'>('all');
+	const [activityFilter, setActivityFilter] = useState<'all' | 'paid' | 'payment-pending' | 'partially-paid'>('all');
 	const [editingCustomer, setEditingCustomer] = useState<CustomerDto | null>(null);
 
 	// ─── Fetch Customer Profile ───────────────────────────────────────────────
