@@ -325,4 +325,89 @@ describe('ShowroomPage Component (Daily Operations & Billing)', () => {
 			expect(screen.getAllByText('₹8,000.00').length).toBeGreaterThan(0);
 		});
 	});
+
+	it('disables Confirm Attendance button and displays warning when zero staff are assigned', async () => {
+		vi.mocked(api.getDailyStaff).mockResolvedValue({
+			...mockDailyStaffResponse,
+			totalVehiclesAttended: 0,
+			staffAssignments: [],
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom" element={<ShowroomPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.confirm_attendance'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Popular Hyundai Showroom')).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByText('Popular Hyundai Showroom'));
+
+		await waitFor(() => {
+			expect(
+				screen.getByText('Please assign at least one staff member before confirming attendance.')
+			).toBeInTheDocument();
+		});
+
+		const confirmBtn = screen.getByRole('button', { name: /confirm attendance/i });
+		expect(confirmBtn).toBeDisabled();
+	});
+
+	it('enables Confirm Attendance button and allows confirmation when at least one staff is assigned', async () => {
+		vi.mocked(api.confirmDailyStaffAttendance).mockResolvedValue({
+			...mockDailyStaffResponse,
+			isAttendanceConfirmed: true,
+			attendanceConfirmedAt: `${todayStr}T18:00:00Z`,
+			attendanceConfirmedByName: 'Admin',
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom" element={<ShowroomPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.confirm_attendance'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Popular Hyundai Showroom')).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByText('Popular Hyundai Showroom'));
+
+		await waitFor(() => {
+			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
+		});
+
+		const confirmBtn = screen.getByRole('button', { name: /confirm attendance/i });
+		expect(confirmBtn).not.toBeDisabled();
+
+		fireEvent.click(confirmBtn);
+
+		await waitFor(() => {
+			expect(api.confirmDailyStaffAttendance).toHaveBeenCalledWith('sr-1', todayStr);
+		});
+	});
 });

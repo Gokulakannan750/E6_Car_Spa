@@ -31,6 +31,7 @@ import {
 import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { BUSINESS_PROFILE_QUERY_KEY } from './hooks/useBusinessProfile';
+import { capitalizeSentence } from '../../utils/text';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
 
@@ -146,11 +147,11 @@ export default function SettingsPage() {
 			setSuccessMsg(null);
 
 			const updated = await updateBusinessProfile({
-				businessName: businessName.trim(),
-				addressLine1: addressLine1.trim(),
-				addressLine2: addressLine2.trim() || null,
-				city: city.trim(),
-				state: state.trim(),
+				businessName: capitalizeSentence(businessName.trim()),
+				addressLine1: capitalizeSentence(addressLine1.trim()),
+				addressLine2: addressLine2.trim() ? capitalizeSentence(addressLine2.trim()) : null,
+				city: capitalizeSentence(city.trim()),
+				state: capitalizeSentence(state.trim()),
 				postalCode: postalCode.trim(),
 				phone: cleanPhone,
 				email: email.trim(),
@@ -236,29 +237,35 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-6 max-w-5xl">
 			{/* Page Header */}
-			<div className="flex items-center justify-between">
-				<div className="space-y-1">
-					<h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-					<p className="text-xs text-slate-500">
-						Manage company profile, business details, invoice configuration, and WhatsApp integration.
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div>
+					<h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+						System Settings
+					</h1>
+					<p className="text-xs text-slate-500 mt-0.5">
+						Configure company profile, tax invoice branding, and multi-channel WhatsApp messaging
 					</p>
 				</div>
 				{canManageBusiness && activeTab === 'company' && (
 					<button
 						type="submit"
 						form="business-profile-form"
-						disabled={saving}
-						className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
+						disabled={saving || loading}
+						className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
 					>
-						{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+						{saving ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Save className="w-4 h-4" />
+						)}
 						{saving ? 'Saving...' : 'Save Settings'}
 					</button>
 				)}
 			</div>
 
-			{/* Navigation Tabs */}
+			{/* Main Settings Tabs */}
 			<div className="flex items-center gap-2 border-b border-slate-200">
 				<button
 					type="button"
@@ -290,9 +297,9 @@ export default function SettingsPage() {
 				</button>
 			</div>
 
-			{/* Alerts for Company Profile */}
-			{activeTab === 'company' && successMsg && (
-				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
+			{/* Notification Toasts */}
+			{successMsg && (
+				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
 					<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
 					{successMsg}
 				</div>
@@ -426,6 +433,7 @@ export default function SettingsPage() {
 											value={businessName}
 											disabled={!canManageBusiness}
 											onChange={(e) => setBusinessName(e.target.value)}
+											onBlur={() => setBusinessName(capitalizeSentence(businessName))}
 											placeholder="e.g. E6 Car Spa"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -440,6 +448,7 @@ export default function SettingsPage() {
 											value={addressLine1}
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine1(e.target.value)}
+											onBlur={() => setAddressLine1(capitalizeSentence(addressLine1))}
 											placeholder="e.g. 36, Geetha Nagar Main Road"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -454,6 +463,7 @@ export default function SettingsPage() {
 											value={addressLine2}
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine2(e.target.value)}
+											onBlur={() => setAddressLine2(capitalizeSentence(addressLine2))}
 											placeholder="e.g. Behind Sakthi Mahal, Perundurai Road"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -469,6 +479,7 @@ export default function SettingsPage() {
 												value={city}
 												disabled={!canManageBusiness}
 												onChange={(e) => setCity(e.target.value)}
+												onBlur={() => setCity(capitalizeSentence(city))}
 												placeholder="e.g. Erode"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
@@ -482,6 +493,7 @@ export default function SettingsPage() {
 												value={state}
 												disabled={!canManageBusiness}
 												onChange={(e) => setState(e.target.value)}
+												onBlur={() => setState(capitalizeSentence(state))}
 												placeholder="e.g. Tamil Nadu"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>

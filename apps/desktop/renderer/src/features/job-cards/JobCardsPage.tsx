@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
 	Plus,
 	Search,
@@ -41,6 +41,7 @@ export function JobCardsPage() {
 				pageSize,
 				search: effectiveSearch || undefined,
 			}),
+		placeholderData: keepPreviousData,
 	});
 
 	const items: JobCardListDto[] = jobCardsData?.items || [];
@@ -50,8 +51,8 @@ export function JobCardsPage() {
 	const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
 	useEffect(() => {
-		if (page > totalPages) setPage(totalPages);
-	}, [page, totalPages]);
+		if (jobCardsData && page > totalPages) setPage(totalPages);
+	}, [page, totalPages, jobCardsData]);
 
 	const formatCurrency = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 
@@ -69,6 +70,8 @@ export function JobCardsPage() {
 			const invoice = await createInvoiceFromJobCard(jobCard.id);
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+			queryClient.invalidateQueries({ queryKey: ['customers'] });
 			if (invoice && invoice.id) {
 				navigate(`/invoices/${invoice.id}`);
 			}
@@ -326,8 +329,9 @@ export function JobCardsPage() {
 							{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
 								<button
 									key={p}
+									type="button"
 									onClick={() => setPage(p)}
-									className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+									className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
 										p === page
 											? 'bg-secondary text-white'
 											: 'text-on-surface-variant hover:bg-surface-container-low'

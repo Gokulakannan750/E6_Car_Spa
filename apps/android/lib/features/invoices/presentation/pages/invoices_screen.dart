@@ -91,7 +91,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
                       const SizedBox(width: 6),
                       _buildFilterChip('Draft', InvoiceStatus.draft, state.selectedStatus, notifier),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Generated', InvoiceStatus.generated, state.selectedStatus, notifier),
+                      _buildFilterChip('Payment Pending', InvoiceStatus.generated, state.selectedStatus, notifier),
                       const SizedBox(width: 6),
                       _buildFilterChip('Partially Paid', InvoiceStatus.partiallyPaid, state.selectedStatus, notifier),
                       const SizedBox(width: 6),

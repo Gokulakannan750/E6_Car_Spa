@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
 	ArrowLeft,
 	Receipt,
@@ -30,6 +31,7 @@ import {
 	getInvoiceById,
 	updateInvoice,
 	generateInvoice,
+	cancelInvoice,
 	recordPayment,
 	getBusinessProfile,
 	getInvoiceWhatsAppStatus,
@@ -73,17 +75,20 @@ function getInvoiceStatusSlug(
 	if (normalized === 'Cancelled') return 'cancelled';
 
 	if (calculations) {
-		if (calculations.balanceAmount <= 0 && calculations.paidAmount >= calculations.totalAmount && calculations.totalAmount > 0) {
+		if (calculations.balanceAmount <= 0 && calculations.totalAmount > 0) {
 			return 'paid';
 		}
-		if (calculations.paidAmount > 0 && calculations.paidAmount < calculations.totalAmount) {
+		if (calculations.paidAmount > 0 && calculations.balanceAmount > 0) {
 			return 'partially-paid';
+		}
+		if (calculations.paidAmount === 0 && calculations.balanceAmount > 0 && normalized !== 'Draft') {
+			return 'payment-pending';
 		}
 	}
 
 	if (normalized === 'Paid') return 'paid';
 	if (normalized === 'PartiallyPaid') return 'partially-paid';
-	if (normalized === 'Generated') return 'generated';
+	if (normalized === 'Generated') return 'payment-pending';
 	if (normalized === 'Draft') return 'draft';
 	return 'draft';
 }
@@ -106,6 +111,7 @@ function formatDate(iso: string) {
 export function InvoiceDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const queryClient = useQueryClient();
 	const { hasPermission } = useAuth();
 
 	const canDiscount = hasPermission('invoices.discount');
@@ -394,6 +400,9 @@ export function InvoiceDetailPage() {
 			setInitialGstEnabled(gstActive);
 			setSaveSuccess(true);
 
+			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+
 			setTimeout(() => {
 				setSaveSuccess(false);
 			}, 3000);
@@ -430,6 +439,12 @@ export function InvoiceDetailPage() {
 			setInitialGstEnabled(finalized.isGstEnabled);
 			setPaymentAmount(String(finalized.balanceAmount ?? finalized.totalAmount));
 			setShowGenerateConfirm(false);
+
+			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+			queryClient.invalidateQueries({ queryKey: ['customer'] });
+			queryClient.invalidateQueries({ queryKey: ['customers'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
 
 			// Automatically poll/refresh notification status for InvoiceFinalized
 			startPolling('InvoiceFinalized');
@@ -543,6 +558,12 @@ export function InvoiceDetailPage() {
 			setPaymentFeedback(`Payment of ${formatCurrency(amt)} recorded successfully via ${paymentMethod === 'BankTransfer' ? 'Bank Transfer' : paymentMethod}.`);
 			setTimeout(() => setPaymentFeedback(null), 5000);
 
+			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+			queryClient.invalidateQueries({ queryKey: ['customer'] });
+			queryClient.invalidateQueries({ queryKey: ['customers'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+
 			// Automatically poll/refresh notification status for PaymentCompleted
 			startPolling('PaymentCompleted');
 		} catch (err: unknown) {
@@ -550,6 +571,32 @@ export function InvoiceDetailPage() {
 			setPaymentError(msg);
 		} finally {
 			setIsRecordingPayment(false);
+		}
+	};
+
+	// ─── Cancel Invoice ──────────────────────────────────────────────────────
+	const [isCancelling, setIsCancelling] = useState(false);
+	const handleCancelInvoice = async () => {
+		if (!id || isCancelling) return;
+		setIsCancelling(true);
+		try {
+			const updated = await cancelInvoice(id, 'Invoice cancelled by user');
+			setInvoice(updated);
+			setShowCancelConfirm(false);
+			setCancelNotice('Invoice cancelled successfully.');
+			setTimeout(() => setCancelNotice(null), 4000);
+
+			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+			queryClient.invalidateQueries({ queryKey: ['customer'] });
+			queryClient.invalidateQueries({ queryKey: ['customers'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : 'Failed to cancel invoice.';
+			setCancelNotice(msg);
+			setTimeout(() => setCancelNotice(null), 5000);
+		} finally {
+			setIsCancelling(false);
 		}
 	};
 
@@ -1418,13 +1465,10 @@ export function InvoiceDetailPage() {
 						</Button>
 						<Button
 							className="bg-error hover:bg-error/90 text-white border-transparent"
-							onClick={() => {
-								setShowCancelConfirm(false);
-								setCancelNotice('Invoice cancellation request recorded.');
-								setTimeout(() => setCancelNotice(null), 4000);
-							}}
+							disabled={isCancelling}
+							onClick={handleCancelInvoice}
 						>
-							Yes, Cancel Bill
+							{isCancelling ? 'Cancelling...' : 'Yes, Cancel Bill'}
 						</Button>
 					</div>
 				}

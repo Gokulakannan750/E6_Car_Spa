@@ -87,7 +87,7 @@ export const BOTTOM_NAVIGATION_ITEMS: NavigationItem[] = [
 ];
 
 export const SIDEBAR_COLLAPSED_WIDTH = 64;
-export const SIDEBAR_EXPANDED_WIDTH = 240;
+export const SIDEBAR_EXPANDED_WIDTH = 256;
 
 export const ICON_MAP: Record<string, React.ForwardRefExoticComponent<React.RefAttributes<SVGSVGElement> & Record<string, unknown>>> = {
 	LayoutDashboard,

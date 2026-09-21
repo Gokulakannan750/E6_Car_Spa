@@ -10,6 +10,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { Combobox } from '../../components/ui/Combobox';
 import { useAuth } from '../auth/auth-context';
 import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
+import { capitalizeSentence } from '../../utils/text';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,9 +177,9 @@ export function CataloguePage() {
 		e.preventDefault();
 		createMutation.mutate(
 			{
-				name: form.name.trim(),
-				category: form.category.trim() || 'General Services',
-				description: form.description.trim() || undefined,
+				name: capitalizeSentence(form.name.trim()),
+				category: capitalizeSentence(form.category.trim()) || 'General Services',
+				description: form.description.trim() ? capitalizeSentence(form.description.trim()) : undefined,
 				price: parseFloat(form.price) || 0,
 				taxPercentage: 18,
 				isActive: form.isActive,
@@ -199,9 +200,9 @@ export function CataloguePage() {
 			{
 				id: editingService.id,
 				data: {
-					name: form.name.trim(),
-					category: form.category.trim() || 'General Services',
-					description: form.description.trim() || undefined,
+					name: capitalizeSentence(form.name.trim()),
+					category: capitalizeSentence(form.category.trim()) || 'General Services',
+					description: form.description.trim() ? capitalizeSentence(form.description.trim()) : undefined,
 					price: parseFloat(form.price) || 0,
 					taxPercentage: editingService.taxPercentage ?? 18,
 					isActive: form.isActive,
@@ -467,6 +468,7 @@ export function CataloguePage() {
 								required
 								value={form.name}
 								onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+								onBlur={() => setForm((p) => ({ ...p, name: capitalizeSentence(p.name) }))}
 								className="form-input w-full text-sm py-1.5"
 								placeholder="e.g. Level 3 Paint Correction"
 							/>
@@ -498,13 +500,12 @@ export function CataloguePage() {
 							</div>
 						</div>
 
-
-
 						<div>
 							<label className="block text-xs font-semibold text-on-surface mb-1">Description</label>
 							<textarea
 								value={form.description}
 								onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+								onBlur={() => setForm((p) => ({ ...p, description: capitalizeSentence(p.description) }))}
 								rows={2}
 								className="form-input w-full text-sm py-1.5 resize-none"
 								placeholder="Detailed description of the service process, materials used, and warranty..."

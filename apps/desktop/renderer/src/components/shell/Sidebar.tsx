@@ -117,7 +117,7 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 							<img
 								src={logoUrl}
 								alt={businessName}
-								className="h-8 max-h-8 w-auto max-w-[120px] object-contain flex-shrink-0"
+								className="h-8 max-h-8 w-auto max-w-[96px] object-contain flex-shrink-0"
 								onError={() => setImgError(true)}
 							/>
 						) : (
@@ -125,9 +125,9 @@ export function Sidebar({ collapsed = false }: { collapsed?: boolean }) {
 								<span className="text-white font-bold text-xs">E6</span>
 							</div>
 						)}
-						<div className="sidebar-transition overflow-hidden whitespace-nowrap min-w-0 flex-1">
+						<div className="sidebar-transition overflow-hidden min-w-0 flex-1">
 							<span className="text-white font-semibold text-sm truncate block leading-tight">{businessName}</span>
-							<span className="text-red-200/60 text-xs block mt-0.5">Management Suite</span>
+							<span className="text-red-200/70 text-[11px] font-medium tracking-tight block mt-0.5 whitespace-nowrap pr-1">Management Suite</span>
 						</div>
 					</div>
 				) : (

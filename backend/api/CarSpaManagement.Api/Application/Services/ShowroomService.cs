@@ -251,6 +251,11 @@ public class ShowroomService : IShowroomService
             .Where(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted)
             .ToListAsync(ct);
 
+        if (assignments.Count == 0)
+        {
+            throw new InvalidOperationException("Please assign at least one staff member before confirming attendance.");
+        }
+
         if (assignments.Any(a => a.VehiclesAttended < 0))
         {
             throw new InvalidOperationException("Vehicles attended count cannot be negative.");

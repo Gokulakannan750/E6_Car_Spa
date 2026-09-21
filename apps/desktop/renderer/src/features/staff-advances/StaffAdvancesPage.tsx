@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { useAuth } from '../auth/auth-context';
+import { capitalizeSentence } from '../../utils/text';
 import {
 	getStaffAdvances,
 	getStaffList,
@@ -295,8 +296,8 @@ export function StaffAdvancesPage() {
 			staffId: createStaffId,
 			amount: amt,
 			advanceDate: createDate,
-			reason: createReason.trim(),
-			notes: createNotes.trim() || undefined,
+			reason: capitalizeSentence(createReason.trim()),
+			notes: createNotes.trim() ? capitalizeSentence(createNotes.trim()) : undefined,
 		});
 	};
 
@@ -342,11 +343,11 @@ export function StaffAdvancesPage() {
 		}
 
 		staffMutation.mutate({
-			name: staffFormName.trim(),
+			name: capitalizeSentence(staffFormName.trim()),
 			phoneNumber: cleanPhone,
 			email: staffFormEmail.trim() || null,
-			address: staffFormAddress.trim() || null,
-			role: staffFormRole.trim() || null,
+			address: staffFormAddress.trim() ? capitalizeSentence(staffFormAddress.trim()) : null,
+			role: staffFormRole.trim() ? capitalizeSentence(staffFormRole.trim()) : null,
 			isActive: staffFormIsActive,
 		});
 	};
@@ -1175,6 +1176,7 @@ export function StaffAdvancesPage() {
 							type="text"
 							value={createReason}
 							onChange={(e) => setCreateReason(e.target.value)}
+							onBlur={() => setCreateReason(capitalizeSentence(createReason))}
 							placeholder="e.g. Personal Advance, Emergency, Festival Advance"
 							required
 							className="form-input w-full text-xs bg-white"
@@ -1190,6 +1192,7 @@ export function StaffAdvancesPage() {
 							rows={2}
 							value={createNotes}
 							onChange={(e) => setCreateNotes(e.target.value)}
+							onBlur={() => setCreateNotes(capitalizeSentence(createNotes))}
 							placeholder="Optional additional notes or remarks..."
 							className="form-input w-full text-xs bg-white resize-none"
 						/>
@@ -1504,6 +1507,7 @@ export function StaffAdvancesPage() {
 							type="text"
 							value={staffFormName}
 							onChange={(e) => setStaffFormName(e.target.value)}
+							onBlur={() => setStaffFormName(capitalizeSentence(staffFormName))}
 							placeholder="e.g. Ramesh Kumar"
 							required
 							className="form-input w-full text-xs bg-white"
@@ -1535,6 +1539,7 @@ export function StaffAdvancesPage() {
 								type="text"
 								value={staffFormRole}
 								onChange={(e) => setStaffFormRole(e.target.value)}
+								onBlur={() => setStaffFormRole(capitalizeSentence(staffFormRole))}
 								placeholder="e.g. Senior Technician, Detailer, Manager"
 								className="form-input w-full text-xs bg-white"
 							/>
@@ -1578,6 +1583,7 @@ export function StaffAdvancesPage() {
 							type="text"
 							value={staffFormAddress}
 							onChange={(e) => setStaffFormAddress(e.target.value)}
+							onBlur={() => setStaffFormAddress(capitalizeSentence(staffFormAddress))}
 							placeholder="e.g. 12, Main Road, Chennai"
 							className="form-input w-full text-xs bg-white"
 						/>

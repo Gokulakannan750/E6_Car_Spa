@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAppStore } from '../../stores/app';
 import { cn } from '../../utils/cn';
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH } from '../../constants/navigation';
 
 export const ROUTE_TITLES: Record<string, string> = {
 	'/': 'Dashboard',
@@ -47,7 +48,7 @@ export function AppLayout() {
 
 			<div
 				className={cn('flex-1 flex flex-col min-w-0 transition-all duration-200')}
-				style={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
+				style={{ marginLeft: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH }}
 			>
 				<Header
 					pageTitle={pageTitle}

@@ -652,6 +652,120 @@ void main() {
       // New Job Card remains accessible
       expect(find.text('New Job Card'), findsOneWidget);
     });
+
+    testWidgets('Customer Details displays recent activity with payment badges, financial breakdown, filters, and total outstanding card', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final fakeCustRepo = _FakeCustomerRepo();
+      fakeCustRepo.mockCustomer = sampleCustomer;
+      final fakeVehRepo = _FakeVehicleRepo();
+
+      final historyResponse = CustomerHistoryResponse(
+        customerId: testCustomerId,
+        customerName: 'Ramesh Kumar',
+        phoneNumber: '9876543210',
+        totalJobCards: 2,
+        totalVehicles: 1,
+        totalOutstandingAmount: 2852.9,
+        totalPaidAmount: 7085.9,
+        totalInvoicedAmount: 9938.8,
+        jobCards: [
+          CustomerJobCardHistoryItem(
+            jobCardId: 'jc-1',
+            jobCardNumber: 'JC-2026-000028',
+            vehicleNumber: 'TN12A1234',
+            status: 'Invoiced',
+            createdAt: DateTime(2026, 9, 21),
+            totalAmount: 7085.9,
+            invoiceId: 'inv-1',
+            invoiceNumber: 'INV-2026-000028',
+            invoiceStatus: 'Paid',
+            invoiceTotal: 7085.9,
+            paidAmount: 7085.9,
+            outstandingAmount: 0.0,
+            paymentStatus: 'Paid',
+          ),
+          CustomerJobCardHistoryItem(
+            jobCardId: 'jc-2',
+            jobCardNumber: 'JC-2026-000015',
+            vehicleNumber: 'TN01A0004',
+            status: 'Invoiced',
+            createdAt: DateTime(2026, 9, 20),
+            totalAmount: 7852.9,
+            invoiceId: 'inv-2',
+            invoiceNumber: 'INV-2026-000015',
+            invoiceStatus: 'PartiallyPaid',
+            invoiceTotal: 7852.9,
+            paidAmount: 5000.0,
+            outstandingAmount: 2852.9,
+            paymentStatus: 'Pending',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+            customerDetailsProvider(testCustomerId).overrideWith((ref) {
+              return CustomerDetailsNotifier(
+                testCustomerId,
+                fakeCustRepo,
+                fakeVehRepo,
+                CustomerDetailsState(
+                  isLoading: false,
+                  customer: sampleCustomer,
+                  vehicles: [sampleVehicle],
+                  history: historyResponse,
+                ),
+                false,
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            home: CustomerDetailsScreen(customerId: testCustomerId),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify Job Cards & Badges
+      expect(find.text('JC-2026-000028'), findsOneWidget);
+      expect(find.text('JC-2026-000015'), findsOneWidget);
+      expect(find.text('PAID'), findsOneWidget);
+      expect(find.text('PARTIALLY PAID'), findsOneWidget);
+
+      // Verify breakdown text
+      expect(find.text('Paid: ₹5000.00 · Pending: ₹2852.90'), findsOneWidget);
+
+      // Verify Outstanding Amount Card
+      expect(find.text('Outstanding Amount'), findsOneWidget);
+      expect(find.text('₹2852.90'), findsOneWidget);
+      expect(find.text('Pending Payment'), findsOneWidget);
+
+      // Verify filter chips
+      expect(find.text('All (2)'), findsOneWidget);
+      expect(find.text('Paid (1)'), findsOneWidget);
+      expect(find.text('Partially Paid (1)'), findsOneWidget);
+
+      // Tap Paid filter chip
+      await tester.tap(find.text('Paid (1)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('JC-2026-000028'), findsOneWidget);
+      expect(find.text('JC-2026-000015'), findsNothing);
+
+      // Tap Partially Paid filter chip
+      await tester.tap(find.text('Partially Paid (1)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('JC-2026-000028'), findsNothing);
+      expect(find.text('JC-2026-000015'), findsOneWidget);
+    });
   });
 }
 

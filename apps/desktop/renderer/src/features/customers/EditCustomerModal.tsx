@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Phone, Mail, MapPin, AlertCircle, CheckCircle2, Save, Car, Plus, Trash2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Button } from '../../components/ui/Button';
+import { capitalizeSentence } from '../../utils/text';
 import {
 	updateCustomer,
 	getVehiclesByCustomer,
@@ -242,10 +243,10 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 		setSuccessFeedback('');
 		setTransferError('');
 
-		const trimmedName = name.trim();
+		const trimmedName = capitalizeSentence(name.trim());
 		const trimmedPhone = phoneNumber.trim().replace(/\D/g, '').slice(0, 10);
 		const trimmedEmail = email.trim();
-		const trimmedAddress = address.trim();
+		const trimmedAddress = capitalizeSentence(address.trim());
 
 		// Validation
 		if (!trimmedName) {
@@ -315,9 +316,9 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 			// 2. Process vehicle updates and creations
 			for (const v of vehicles) {
 				const reg = v.registrationNumber.trim().toUpperCase();
-				const mk = v.make.trim();
-				const md = v.model.trim();
-				const vr = v.variant.trim() || null;
+				const mk = capitalizeSentence(v.make.trim());
+				const md = capitalizeSentence(v.model.trim());
+				const vr = capitalizeSentence(v.variant.trim()) || null;
 
 				if (v.id) {
 					// Check if existing vehicle changed
@@ -581,6 +582,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 									required
 									value={name}
 									onChange={(e) => setName(e.target.value)}
+									onBlur={() => setName(capitalizeSentence(name))}
 									placeholder="e.g. John Doe"
 									className="form-input w-full pl-9"
 									autoFocus
@@ -635,6 +637,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 									type="text"
 									value={address}
 									onChange={(e) => setAddress(e.target.value)}
+									onBlur={() => setAddress(capitalizeSentence(address))}
 									placeholder="e.g. 45 Greenways Rd, Chennai"
 									className="form-input w-full pl-9"
 								/>
@@ -781,6 +784,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 													required
 													value={veh.make}
 													onChange={(e) => handleVehicleChange(idx, 'make', e.target.value)}
+													onBlur={() => handleVehicleChange(idx, 'make', capitalizeSentence(veh.make))}
 													placeholder="e.g. Maruti, Hyundai, Toyota"
 													className="form-input w-full text-xs"
 												/>
@@ -795,6 +799,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 													required
 													value={veh.model}
 													onChange={(e) => handleVehicleChange(idx, 'model', e.target.value)}
+													onBlur={() => handleVehicleChange(idx, 'model', capitalizeSentence(veh.model))}
 													placeholder="e.g. Baleno, Creta, Fortuner"
 													className="form-input w-full text-xs"
 												/>
@@ -808,6 +813,7 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 													type="text"
 													value={veh.variant}
 													onChange={(e) => handleVehicleChange(idx, 'variant', e.target.value)}
+													onBlur={() => handleVehicleChange(idx, 'variant', capitalizeSentence(veh.variant))}
 													placeholder="e.g. Zeta, SX(O)"
 													className="form-input w-full text-xs"
 												/>

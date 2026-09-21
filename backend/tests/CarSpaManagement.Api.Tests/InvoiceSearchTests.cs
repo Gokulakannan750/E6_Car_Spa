@@ -391,4 +391,40 @@ public class InvoiceSearchTests
 
         Assert.Null(ex);
     }
+
+    [Fact]
+    public async Task GetAllAsync_ExcludesSoftDeletedInvoices()
+    {
+        var (db, service) = CreateTestServices();
+        var (_, _, _, activeInv) = await SeedInvoiceAsync(db, invoiceNumber: "INV-2026-000601", jobCardNumber: "JC-2026-000601");
+        var (_, _, _, deletedInv) = await SeedInvoiceAsync(db, invoiceNumber: "INV-2026-000602", jobCardNumber: "JC-2026-000602");
+
+        deletedInv.IsDeleted = true;
+        await db.SaveChangesAsync();
+
+        var list = await service.GetAllAsync(1, 10);
+        var total = await service.GetTotalCountAsync();
+
+        Assert.Contains(list, i => i.InvoiceNumber == "INV-2026-000601");
+        Assert.DoesNotContain(list, i => i.InvoiceNumber == "INV-2026-000602");
+        Assert.Equal(1, total);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_Pagination_ReturnsCorrectPagesAndTotal()
+    {
+        var (db, service) = CreateTestServices();
+        for (int i = 1; i <= 25; i++)
+        {
+            await SeedInvoiceAsync(db, invoiceNumber: $"INV-2026-{i:D6}", jobCardNumber: $"JC-2026-{i:D6}");
+        }
+
+        var page1 = await service.GetAllAsync(1, 20);
+        var page2 = await service.GetAllAsync(2, 20);
+        var total = await service.GetTotalCountAsync();
+
+        Assert.Equal(20, page1.Count);
+        Assert.Equal(5, page2.Count);
+        Assert.Equal(25, total);
+    }
 }

@@ -223,7 +223,7 @@ void main() {
       expect(item6.status, InvoiceStatus.generated);
       expect(item6.isDraft, false);
       expect(item6.isFinalized, true);
-      expect(item6.displayStatusText, 'Generated');
+      expect(item6.displayStatusText, 'Payment Pending');
 
       final jsonStr = Map<String, dynamic>.from(jsonInt6);
       jsonStr['status'] = 'Generated';
@@ -231,7 +231,7 @@ void main() {
       expect(itemStr.status, InvoiceStatus.generated);
       expect(itemStr.isDraft, false);
       expect(itemStr.isFinalized, true);
-      expect(itemStr.displayStatusText, 'Generated');
+      expect(itemStr.displayStatusText, 'Payment Pending');
     });
 
     test('InvoiceListItem promotes draft status to generated when invoiceNumber exists', () {
@@ -255,7 +255,7 @@ void main() {
       expect(item.status, InvoiceStatus.generated);
       expect(item.isDraft, false);
       expect(item.isFinalized, true);
-      expect(item.displayStatusText, 'Generated');
+      expect(item.displayStatusText, 'Payment Pending');
     });
 
     test('InvoiceListItem preserves draft status when invoiceNumber is null or empty', () {

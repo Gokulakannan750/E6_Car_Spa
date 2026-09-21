@@ -287,6 +287,39 @@ export interface CustomerListResponse {
  pageSize: number;
 }
 
+export interface CustomerJobCardHistoryItemDto {
+	jobCardId: string;
+	jobCardNumber: string;
+	createdAt: string;
+	status: string;
+	vehicleNumber?: string | null;
+	vehicleModel?: string | null;
+	subtotal: number;
+	taxAmount: number;
+	discountAmount: number;
+	totalAmount: number;
+	vehicles: { vehicleId: string; vehicleNumber: string; model?: string | null; color?: string | null }[];
+	invoiceId?: string | null;
+	invoiceNumber?: string | null;
+	invoiceStatus?: string | null;
+	invoiceTotal?: number | null;
+	paidAmount?: number | null;
+	outstandingAmount?: number | null;
+	paymentStatus?: string | null;
+}
+
+export interface CustomerHistoryResponse {
+	customerId: string;
+	customerName: string;
+	phoneNumber: string;
+	totalJobCards: number;
+	totalVehicles: number;
+	jobCards: CustomerJobCardHistoryItemDto[];
+	totalOutstandingAmount: number;
+	totalPaidAmount: number;
+	totalInvoicedAmount: number;
+}
+
 export interface CreateCustomerInput {
  name: string;
  phoneNumber: string;
@@ -645,6 +678,10 @@ export async function getCustomerById(id: string) {
 	return request<CustomerDto>(`/api/customers/${encodeURIComponent(id)}`, {}, 'view customers');
 }
 
+export async function getCustomerHistory(customerId: string) {
+	return request<CustomerHistoryResponse>(`/api/customers/${encodeURIComponent(customerId)}/history`, {}, 'view customer history');
+}
+
 export async function getCustomerByPhone(phone: string) {
  return request<CustomerDto>(`/api/customers/by-phone/${encodeURIComponent(phone)}`, {}, 'view customers');
 }
@@ -824,6 +861,13 @@ export async function generateInvoice(id: string) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
     method: 'POST',
   }, 'generate invoices');
+}
+
+export async function cancelInvoice(id: string, reason?: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify(reason ? { reason } : {}),
+  }, 'cancel invoices');
 }
 
 export async function getInvoicePayments(invoiceId: string) {
@@ -1423,7 +1467,14 @@ function cleanPayload(obj: unknown): unknown {
  return obj;
 }
 
-export function getJobCardStatusLabel(status: number): string {
+export function getJobCardStatusLabel(status: number | string): string {
+	if (typeof status === 'string') {
+		const parsed = parseInt(status, 10);
+		if (isNaN(parsed)) {
+			return status.replace(/([a-z])([A-Z])/g, '$1 $2');
+		}
+		status = parsed;
+	}
 	const labels: Record<number, string> = { 0: 'Draft', 1: 'In Progress', 2: 'Quality Check', 3: 'Ready', 4: 'Invoiced', 5: 'Paid', 6: 'Delivered', 7: 'Cancelled' };
 	return labels[status] ?? `Status ${status}`;
 }

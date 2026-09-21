@@ -21,14 +21,16 @@ class StatusBadge extends StatelessWidget {
       type = StatusType.inProgress;
     } else if (lower.contains('ready') || lower.contains('completed') || lower.contains('delivered')) {
       type = StatusType.completed;
-    } else if (lower.contains('paid')) {
+    } else if (lower.contains('paid') && !lower.contains('partially')) {
       type = StatusType.paid;
+    } else if (lower.contains('partially')) {
+      type = StatusType.pending;
     } else if (lower.contains('cancel')) {
       type = StatusType.cancelled;
+    } else if (lower.contains('payment pending') || lower.contains('invoice') || lower.contains('generated')) {
+      type = StatusType.generated;
     } else if (lower.contains('quality') || lower.contains('pending')) {
       type = StatusType.pending;
-    } else if (lower.contains('invoice') || lower.contains('generated')) {
-      type = StatusType.generated;
     } else {
       type = StatusType.draft;
     }

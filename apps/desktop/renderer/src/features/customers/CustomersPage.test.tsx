@@ -4,13 +4,21 @@ import { CustomersPage } from './CustomersPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('react-router-dom')>();
+	return {
+		...actual,
+		useNavigate: () => mockNavigate,
+	};
+});
+
 vi.mock('../../lib/api', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('../../lib/api')>();
 	return {
 		...actual,
 		getCustomers: vi.fn(),
 		getVehiclesByCustomer: vi.fn(),
-		getJobCardsByCustomer: vi.fn(),
 	};
 });
 
@@ -45,12 +53,6 @@ describe('CustomersPage Component', () => {
 			pageSize: 100,
 		});
 		vi.mocked(api.getVehiclesByCustomer).mockResolvedValue([]);
-		vi.mocked(api.getJobCardsByCustomer).mockResolvedValue({
-			items: [],
-			totalCount: 0,
-			page: 1,
-			pageSize: 50,
-		});
 	});
 
 	it('renders customer list page and displays customer items', async () => {
@@ -128,23 +130,7 @@ describe('CustomersPage Component', () => {
 		});
 	});
 
-	it('opens Customer Details modal when clicking a customer row', async () => {
-		const mockVehicles: api.VehicleDto[] = [
-			{
-				id: 'veh-1',
-				customerId: 'cust-1',
-				registrationNumber: 'TN01AB1234',
-				make: 'Hyundai',
-				model: 'Creta',
-				variant: 'SX(O)',
-				color: 'White',
-				customerName: 'Gokul Sharma',
-				createdAt: '2026-01-15T10:00:00Z',
-			},
-		];
-
-		vi.mocked(api.getVehiclesByCustomer).mockResolvedValue(mockVehicles);
-
+	it('navigates to dedicated Customer Details page when clicking a customer row', async () => {
 		renderWithProviders(<CustomersPage />);
 
 		await waitFor(() => {
@@ -155,10 +141,7 @@ describe('CustomersPage Component', () => {
 		const row = screen.getByText('Gokul Sharma').closest('tr')!;
 		fireEvent.click(row);
 
-		await waitFor(() => {
-			expect(screen.getByText('123 Anna Salai, Chennai')).toBeInTheDocument();
-			expect(screen.getByText(/Hyundai Creta/i)).toBeInTheDocument();
-		});
+		expect(mockNavigate).toHaveBeenCalledWith('/customers/cust-1');
 	});
 
 	it('opens Create Customer dialog when clicking Create Customer button', async () => {
@@ -188,53 +171,4 @@ describe('CustomersPage Component', () => {
 			expect(screen.getByDisplayValue('Gokul Sharma')).toBeInTheDocument();
 		});
 	});
-
-	it('Customer Details modal displays Edit Details and does NOT display Edit Vehicles', async () => {
-		const mockVehicles: api.VehicleDto[] = [
-			{
-				id: 'veh-1',
-				customerId: 'cust-1',
-				registrationNumber: 'TN01AB1234',
-				make: 'Hyundai',
-				model: 'Creta',
-				variant: 'SX(O)',
-				color: 'White',
-				customerName: 'Gokul Sharma',
-				createdAt: '2026-01-15T10:00:00Z',
-			},
-		];
-
-		vi.mocked(api.getVehiclesByCustomer).mockResolvedValue(mockVehicles);
-
-		renderWithProviders(<CustomersPage />);
-
-		await waitFor(() => {
-			expect(screen.getByText('Gokul Sharma')).toBeInTheDocument();
-		});
-
-		// Click customer row to open Customer Details dialog
-		const row = screen.getByText('Gokul Sharma').closest('tr')!;
-		fireEvent.click(row);
-
-		await waitFor(() => {
-			expect(screen.getByText('Customer details, vehicles, and recent job cards')).toBeInTheDocument();
-		});
-
-		// Verify "Edit Details" and "New Job Card" are present
-		expect(screen.getByRole('button', { name: /edit details/i })).toBeInTheDocument();
-		expect(screen.getByRole('button', { name: /new job card/i })).toBeInTheDocument();
-
-		// Verify "Edit Vehicles" is NOT present in Customer Details dialog
-		expect(screen.queryByRole('button', { name: /edit vehicles/i })).not.toBeInTheDocument();
-
-		// Clicking "Edit Details" opens the edit form pre-populated with customer data
-		fireEvent.click(screen.getByRole('button', { name: /edit details/i }));
-		await waitFor(() => {
-			expect(screen.getByRole('heading', { name: /edit customer & vehicle details/i })).toBeInTheDocument();
-			expect(screen.getByDisplayValue('Gokul Sharma')).toBeInTheDocument();
-			expect(screen.getByDisplayValue('9876543210')).toBeInTheDocument();
-			expect(screen.getByDisplayValue('gokul@example.com')).toBeInTheDocument();
-		});
-	});
 });
-

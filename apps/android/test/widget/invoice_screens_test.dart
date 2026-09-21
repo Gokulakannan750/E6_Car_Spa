@@ -202,7 +202,7 @@ void main() {
       expect(find.text('Invoices'), findsOneWidget);
       expect(find.text('All Invoices'), findsOneWidget);
       expect(find.text('Draft'), findsOneWidget);
-      expect(find.text('Generated'), findsWidgets);
+      expect(find.text('Payment Pending'), findsWidgets);
       expect(find.text('Paid'), findsOneWidget);
       expect(find.byType(InvoiceCard), findsOneWidget);
       expect(find.text('INV-2026-000001'), findsOneWidget);
@@ -325,7 +325,7 @@ void main() {
       expect(find.text('No matching invoices'), findsOneWidget);
     });
 
-    testWidgets('InvoicesScreen renders Generated status badge and not Draft for finalized invoice', (tester) async {
+    testWidgets('InvoicesScreen renders Payment Pending status badge and not Draft for finalized invoice', (tester) async {
       final generatedItem = InvoiceListItem.fromJson({
         'id': 'inv-gen-19',
         'invoiceNumber': 'INV-2026-000019',
@@ -364,19 +364,19 @@ void main() {
 
       final cardFinder = find.byType(InvoiceCard);
       expect(cardFinder, findsOneWidget);
-      // Status badge inside card should be "Generated"
-      expect(find.descendant(of: cardFinder, matching: find.text('Generated')), findsOneWidget);
+      // Status badge inside card should be "Payment Pending"
+      expect(find.descendant(of: cardFinder, matching: find.text('Payment Pending')), findsOneWidget);
       // It should NOT be "Draft" inside the card
       expect(find.descendant(of: cardFinder, matching: find.text('Draft')), findsNothing);
     });
 
-    testWidgets('StatusBadge renders Generated with blue styling matching Desktop and preserves other statuses', (tester) async {
+    testWidgets('StatusBadge renders Payment Pending with blue styling matching Desktop and preserves other statuses', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: Column(
               children: [
-                StatusBadge(label: 'Generated', type: StatusType.generated),
+                StatusBadge(label: 'Payment Pending', type: StatusType.generated),
                 StatusBadge(label: 'Draft', type: StatusType.draft),
                 StatusBadge(label: 'Partially Paid', type: StatusType.paid),
                 StatusBadge(label: 'Paid', type: StatusType.paid),
@@ -387,7 +387,7 @@ void main() {
         ),
       );
 
-      final genBadgeFinder = find.widgetWithText(StatusBadge, 'Generated');
+      final genBadgeFinder = find.widgetWithText(StatusBadge, 'Payment Pending');
       expect(genBadgeFinder, findsOneWidget);
 
       // Verify container decoration (blue styling)
@@ -408,8 +408,8 @@ void main() {
       expect(genIcon.color, AppColors.generatedText);
       expect(genIcon.icon, Icons.verified_outlined);
 
-      // Verify StatusBadge.fromLabel('Generated') assigns StatusType.generated
-      final fromLabelBadge = StatusBadge.fromLabel('Generated');
+      // Verify StatusBadge.fromLabel('Payment Pending') assigns StatusType.generated
+      final fromLabelBadge = StatusBadge.fromLabel('Payment Pending');
       expect(fromLabelBadge.type, StatusType.generated);
 
       // Verify other statuses are unchanged
@@ -417,7 +417,7 @@ void main() {
       expect(draftBadge.type, StatusType.draft);
 
       final partBadge = StatusBadge.fromLabel('Partially Paid');
-      expect(partBadge.type, StatusType.paid);
+      expect(partBadge.type, StatusType.pending);
 
       final paidBadge = StatusBadge.fromLabel('Paid');
       expect(paidBadge.type, StatusType.paid);

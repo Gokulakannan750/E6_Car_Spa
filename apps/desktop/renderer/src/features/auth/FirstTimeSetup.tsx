@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { getAuthStatus, bootstrapOwner, ApiError } from '../../lib/api';
+import { capitalizeSentence } from '../../utils/text';
 import { useAuth } from './auth-context';
 import { ShieldCheck, UserCheck, Lock, User, CheckCircle2 } from 'lucide-react';
 
@@ -111,7 +112,7 @@ export default function FirstTimeSetup() {
 
 		try {
 			await bootstrapOwner({
-				fullName: fullName.trim(),
+				fullName: capitalizeSentence(fullName.trim()),
 				username: username.trim().toLowerCase(),
 				password,
 				confirmPassword,
@@ -187,6 +188,7 @@ export default function FirstTimeSetup() {
 									type="text"
 									value={fullName}
 									onChange={(e) => setFullName(e.target.value)}
+									onBlur={() => setFullName(capitalizeSentence(fullName))}
 									placeholder="e.g. Gokulakannan"
 									required
 									className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
