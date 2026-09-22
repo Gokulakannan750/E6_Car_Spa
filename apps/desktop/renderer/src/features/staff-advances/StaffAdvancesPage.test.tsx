@@ -15,15 +15,10 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		settleStaffAdvance: vi.fn(),
 		obsoleteStaffAdvance: vi.fn(),
 		getStaffAdvanceHistory: vi.fn(),
-		createStaffMember: vi.fn(),
-		updateStaffMember: vi.fn(),
-		revealStaffAadhaar: vi.fn(),
-		deleteStaffAadhaarDocument: vi.fn(),
-		downloadStaffAadhaarDocument: vi.fn(),
 	};
 });
 
-describe('StaffAdvancesPage Component', () => {
+describe('StaffAdvancesPage Component (/staff-advances)', () => {
 	const mockStaffList: api.StaffDto[] = [
 		{
 			id: 'staff-1',
@@ -126,13 +121,14 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
 
 		await waitFor(() => {
 			expect(screen.getByText('Staff Advances')).toBeInTheDocument();
+			expect(screen.getByText('Track staff advances, repayments and settlement status')).toBeInTheDocument();
 			expect(screen.getByText('Medical Emergency')).toBeInTheDocument();
 			expect(screen.getByText('Festival Advance')).toBeInTheDocument();
 		});
@@ -142,6 +138,10 @@ describe('StaffAdvancesPage Component', () => {
 		expect(screen.getAllByText('₹2,000.00').length).toBeGreaterThan(0);
 		expect(screen.getAllByText('₹7,000.00').length).toBeGreaterThan(0);
 		expect(screen.getByText('1 active advance pending recovery')).toBeInTheDocument();
+
+		// Staff Directory tab must NOT exist
+		expect(screen.queryByRole('button', { name: /staff directory/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /add staff member/i })).not.toBeInTheDocument();
 	});
 
 	it('opens record advance modal and submits valid advance payment', async () => {
@@ -160,7 +160,7 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
@@ -176,11 +176,11 @@ describe('StaffAdvancesPage Component', () => {
 		});
 
 		// Fill out advance form
-		const staffSelect = screen.getByText('Select Staff Member...').closest('select')!;
+		const staffSelect = screen.getByText('Select staff member...').closest('select')!;
 		fireEvent.change(staffSelect, {
 			target: { value: 'staff-1' },
 		});
-		fireEvent.change(screen.getByPlaceholderText('5000'), {
+		fireEvent.change(screen.getByPlaceholderText('e.g. 5000'), {
 			target: { value: '3500' },
 		});
 		fireEvent.change(screen.getByPlaceholderText(/e\.g\. personal advance/i), {
@@ -221,7 +221,7 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
@@ -263,7 +263,7 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
@@ -289,122 +289,15 @@ describe('StaffAdvancesPage Component', () => {
 		});
 	});
 
-	it('switches to Staff Directory tab and renders staff list with masked Aadhaar', async () => {
-		renderWithProviders(
-			<Routes>
-				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
-			</Routes>,
-			{
-				initialEntries: ['/staff-advances'],
-				authUser: {
-					id: 'usr-admin',
-					fullName: 'Admin User',
-					username: 'admin',
-					email: 'admin@e6carspa.com',
-					role: 'Owner',
-					isOwner: true,
-					permissions: ['staff.create', 'staff.edit', 'staff.view_sensitive'],
-				},
-			}
-		);
-
-		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /staff directory/i })).toBeInTheDocument();
-		});
-
-		fireEvent.click(screen.getByRole('button', { name: /staff directory/i }));
-
-		await waitFor(() => {
-			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
-			expect(screen.getByText('Senthil Nathan')).toBeInTheDocument();
-			expect(screen.getByText('9876540001')).toBeInTheDocument();
-			expect(screen.getByText('9876540002')).toBeInTheDocument();
-			expect(screen.getByText('XXXX XXXX 9012')).toBeInTheDocument();
-			expect(screen.getByText(/not added/i)).toBeInTheDocument();
-		});
-	});
-
-	it('validates mandatory Aadhaar on new staff creation and submits formatted value', async () => {
-		vi.mocked(api.createStaffMember).mockResolvedValue({
-			id: 'staff-3',
-			name: 'Ramesh Kumar',
-			phoneNumber: '9876543210',
-			email: null,
-			address: null,
-			role: 'Technician',
-			isActive: true,
-			totalAdvances: 0,
-			totalAdvanceAmount: 0,
-			aadhaarMasked: 'XXXX XXXX 9012',
-			hasAadhaarDocument: false,
-		});
-
-		renderWithProviders(
-			<Routes>
-				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
-			</Routes>,
-			{
-				initialEntries: ['/staff-advances'],
-				authUser: {
-					id: 'usr-admin',
-					fullName: 'Admin User',
-					username: 'admin',
-					email: 'admin@e6carspa.com',
-					role: 'Owner',
-					isOwner: true,
-					permissions: ['staff.create', 'staff.edit'],
-				},
-			}
-		);
-
-		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /add staff member/i })).toBeInTheDocument();
-		});
-
-		fireEvent.click(screen.getByRole('button', { name: /add staff member/i }));
-
-		await waitFor(() => {
-			expect(screen.getByPlaceholderText(/e\.g\. ramesh kumar/i)).toBeInTheDocument();
-		});
-
-		// Fill in name and phone
-		fireEvent.change(screen.getByPlaceholderText(/e\.g\. ramesh kumar/i), {
-			target: { value: 'Ramesh Kumar' },
-		});
-		fireEvent.change(screen.getByPlaceholderText('e.g. 9876543210'), {
-			target: { value: '9876543210' },
-		});
-
-		// Try to submit with missing Aadhaar
-		const submitBtn = screen.getByRole('button', { name: /^add staff$/i });
-		fireEvent.click(submitBtn);
-
-		await waitFor(() => {
-			expect(screen.getByText(/aadhaar number is required/i)).toBeInTheDocument();
-		});
-
-		// Enter valid 12-digit Aadhaar
-		fireEvent.change(screen.getByPlaceholderText('1234 5678 9012'), {
-			target: { value: '1234 5678 9012' },
-		});
-
-		fireEvent.click(submitBtn);
-
-		await waitFor(() => {
-			expect(api.createStaffMember).toHaveBeenCalledWith(
-				expect.objectContaining({
-					name: 'Ramesh Kumar',
-					phoneNumber: '9876543210',
-					aadhaarNumber: '123456789012',
-				})
-			);
-		});
-	});
-
-	it('opens staff details modal and reveals Aadhaar on authorized request', async () => {
-		vi.mocked(api.revealStaffAadhaar).mockResolvedValue({
+	it('opens staff advance history modal when clicking history button', async () => {
+		vi.mocked(api.getStaffAdvanceHistory).mockResolvedValue({
 			staffId: 'staff-1',
-			aadhaarNumber: '123456789012',
+			staffName: 'Karthik Raja',
+			totalAdvancesCount: 1,
+			totalAdvancesAmount: 5000,
+			outstandingAmount: 5000,
+			settledAmount: 0,
+			advances: [mockAdvancesResponse.items[0]],
 		});
 
 		renderWithProviders(
@@ -420,42 +313,20 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff.view', 'staff.view_sensitive'],
+					permissions: ['staff_advances.view'],
 				},
 			}
 		);
 
-		fireEvent.click(screen.getByRole('button', { name: /staff directory/i }));
-
 		await waitFor(() => {
-			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
+			expect(screen.getAllByTitle('View staff advance history').length).toBeGreaterThan(0);
 		});
 
-		// Click Details button
-		const detailsBtns = screen.getAllByRole('button', { name: /^details$/i });
-		fireEvent.click(detailsBtns[0]);
+		fireEvent.click(screen.getAllByTitle('View staff advance history')[0]);
 
 		await waitFor(() => {
-			expect(screen.getByText(/Karthik Raja.*Staff Details/i)).toBeInTheDocument();
-			expect(screen.getByText(/Identification/i)).toBeInTheDocument();
-			expect(screen.getAllByText('XXXX XXXX 9012').length).toBeGreaterThanOrEqual(1);
-			expect(screen.getByRole('button', { name: /show/i })).toBeInTheDocument();
-		});
-
-		// Click Show to reveal
-		fireEvent.click(screen.getByRole('button', { name: /show/i }));
-
-		await waitFor(() => {
-			expect(api.revealStaffAadhaar).toHaveBeenCalledWith('staff-1');
-			expect(screen.getByText('1234 5678 9012')).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /hide/i })).toBeInTheDocument();
-		});
-
-		// Click Hide to mask again
-		fireEvent.click(screen.getByRole('button', { name: /hide/i }));
-
-		await waitFor(() => {
-			expect(screen.getAllByText('XXXX XXXX 9012').length).toBeGreaterThanOrEqual(2);
+			expect(screen.getByText(/Karthik Raja.*Advance History/i)).toBeInTheDocument();
+			expect(api.getStaffAdvanceHistory).toHaveBeenCalledWith('staff-1');
 		});
 	});
 });

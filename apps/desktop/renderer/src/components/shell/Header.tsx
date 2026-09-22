@@ -119,11 +119,11 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 						<input
 							type="text"
 							className="bg-transparent border-none outline-none text-sm w-full p-0 text-slate-900 placeholder:text-slate-400"
-							placeholder="Search customers, vehicles, job cards..."
+							placeholder="Search anything..."
 							value={searchQuery}
 							onChange={(e) => onSearchChange?.(e.target.value)}
 						/>
-						{searchQuery && (
+						{searchQuery ? (
 							<button
 								type="button"
 								onClick={handleClear}
@@ -131,11 +131,21 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 							>
 								<X className="h-3.5 w-3.5" />
 							</button>
+						) : (
+							<kbd className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-mono font-medium shrink-0">
+								Ctrl + K
+							</kbd>
 						)}
 					</div>
 				</div>
 
 				{actions && <div className="flex items-center gap-2">{actions}</div>}
+
+				{/* Live System Status Dot */}
+				<div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium" title="All systems operational">
+					<span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+					<span className="hidden lg:inline">Operational</span>
+				</div>
 
 				{/* User Profile & Logout */}
 				{currentUser && (

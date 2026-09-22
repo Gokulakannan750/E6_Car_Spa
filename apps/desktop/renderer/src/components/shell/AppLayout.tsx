@@ -11,8 +11,14 @@ export const ROUTE_TITLES: Record<string, string> = {
 	'/customers': 'Customers',
 	'/job-cards': 'Job Cards',
 	'/invoices': 'Invoices',
+	'/payments': 'Payments',
 	'/catalogue': 'Catalogue',
+	'/staff': 'Staff Directory',
 	'/staff-advances': 'Staff Advances',
+	'/staff-attendance': 'Staff Attendance',
+	'/attendance': 'Staff Attendance',
+	'/staff-salary': 'Staff Salary',
+	'/salary': 'Staff Salary',
 	'/reports': 'Reports',
 	'/showroom': 'Showroom',
 	'/audit': 'Audit Trail',
@@ -22,6 +28,7 @@ export const ROUTE_TITLES: Record<string, string> = {
 
 export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/invoices')) return 'Invoices';
+	if (pathname.startsWith('/payments')) return 'Payments';
 	if (pathname.startsWith('/job-cards')) return 'Job Cards';
 	if (pathname.startsWith('/customers')) return 'Customers';
 	if (pathname.startsWith('/audit')) return 'Audit Trail';
@@ -30,6 +37,9 @@ export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/reports')) return 'Reports';
 	if (pathname.startsWith('/showroom')) return 'Showroom';
 	if (pathname.startsWith('/staff-advances')) return 'Staff Advances';
+	if (pathname.startsWith('/staff-attendance') || pathname.startsWith('/attendance')) return 'Staff Attendance';
+	if (pathname.startsWith('/staff-salary') || pathname.startsWith('/salary')) return 'Staff Salary';
+	if (pathname.startsWith('/staff')) return 'Staff Directory';
 	if (pathname.startsWith('/catalogue')) return 'Catalogue';
 	return ROUTE_TITLES[pathname] || 'Dashboard';
 }

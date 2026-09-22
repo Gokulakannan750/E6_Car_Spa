@@ -16,15 +16,24 @@ describe('AppLayout getPageTitle', () => {
 		expect(getPageTitle('/job-cards/new')).toBe('Job Cards');
 		expect(getPageTitle('/job-cards/jc-123')).toBe('Job Cards');
 
-		// 4. Invoices
+		// 4. Invoices & Payments
 		expect(getPageTitle('/invoices')).toBe('Invoices');
 		expect(getPageTitle('/invoices/inv-123')).toBe('Invoices');
+		expect(getPageTitle('/payments')).toBe('Payments');
+		expect(getPageTitle('/payments/pay-123')).toBe('Payments');
 
 		// 5. Catalogue
 		expect(getPageTitle('/catalogue')).toBe('Catalogue');
 
-		// 6. Staff Advances
+		// 6. Staff Workspace (Independent Features)
+		expect(getPageTitle('/staff')).toBe('Staff Directory');
+		expect(getPageTitle('/staff/staff-123')).toBe('Staff Directory');
 		expect(getPageTitle('/staff-advances')).toBe('Staff Advances');
+		expect(getPageTitle('/staff-advances/adv-123')).toBe('Staff Advances');
+		expect(getPageTitle('/staff-attendance')).toBe('Staff Attendance');
+		expect(getPageTitle('/attendance')).toBe('Staff Attendance');
+		expect(getPageTitle('/staff-salary')).toBe('Staff Salary');
+		expect(getPageTitle('/salary')).toBe('Staff Salary');
 
 		// 7. Reports
 		expect(getPageTitle('/reports')).toBe('Reports');
