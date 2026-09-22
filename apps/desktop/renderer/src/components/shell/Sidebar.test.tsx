@@ -7,7 +7,6 @@ import {
 	getWorkspaceFromPath,
 	isItemActive,
 	WORKSPACE_NAVIGATION,
-	GLOBAL_AUDIT_ITEM,
 } from '../../constants/navigation';
 
 vi.mock('../../features/settings/hooks/useBusinessProfile', () => ({
@@ -329,23 +328,31 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			expect(isItemActive(jobCardsItem, '/customers')).toBe(false);
 		});
 
-		it('28. Query parameters correctly activate Settings items', () => {
+		it('28. Canonical routes and query parameters correctly activate Settings items', () => {
 			const companyItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings')!;
-			const whatsappItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings?tab=whatsapp')!;
-			const systemItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings?tab=system')!;
+			const whatsappItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings/whatsapp')!;
+			const systemItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings/system')!;
 			const usersItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings/users')!;
 
-			// /settings (default tab = company)
+			// /settings (default = company settings)
 			expect(isItemActive(companyItem, '/settings', '')).toBe(true);
 			expect(isItemActive(whatsappItem, '/settings', '')).toBe(false);
 			expect(isItemActive(systemItem, '/settings', '')).toBe(false);
 			expect(isItemActive(usersItem, '/settings', '')).toBe(false);
 
-			// /settings?tab=whatsapp
+			// /settings/whatsapp (canonical)
+			expect(isItemActive(companyItem, '/settings/whatsapp', '')).toBe(false);
+			expect(isItemActive(whatsappItem, '/settings/whatsapp', '')).toBe(true);
+
+			// /settings?tab=whatsapp (legacy fallback)
 			expect(isItemActive(companyItem, '/settings', '?tab=whatsapp')).toBe(false);
 			expect(isItemActive(whatsappItem, '/settings', '?tab=whatsapp')).toBe(true);
 
-			// /settings?tab=system
+			// /settings/system (canonical)
+			expect(isItemActive(companyItem, '/settings/system', '')).toBe(false);
+			expect(isItemActive(systemItem, '/settings/system', '')).toBe(true);
+
+			// /settings?tab=system (legacy fallback)
 			expect(isItemActive(companyItem, '/settings', '?tab=system')).toBe(false);
 			expect(isItemActive(systemItem, '/settings', '?tab=system')).toBe(true);
 

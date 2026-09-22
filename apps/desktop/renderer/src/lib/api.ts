@@ -1002,6 +1002,8 @@ export interface StaffAdvanceDto {
 	obsoletedByUserId?: string | null;
 	obsoletedByName?: string | null;
 	obsoleteReason?: string | null;
+	balanceAmount?: number | null;
+	staffSalarySettlementId?: string | null;
 	createdAt: string;
 	updatedAt?: string | null;
 }
@@ -1106,6 +1108,144 @@ export async function obsoleteStaffAdvance(id: string, data: ObsoleteStaffAdvanc
 
 export async function getStaffAdvanceHistory(staffId: string) {
 	return request<StaffAdvanceHistoryDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/history`, {}, 'view staff advances');
+}
+
+// ============================================================================
+// Staff Salary
+// ============================================================================
+
+export type StaffSalaryStatus = 'NotEntered' | 'Ready' | 'Settled';
+
+export interface StaffSalaryItemDto {
+	staffId: string;
+	staffName: string;
+	staffRole?: string | null;
+	staffPhoneNumber: string;
+	isActive: boolean;
+	periodFrom: string;
+	periodTo: string;
+	enteredSalary?: number | null;
+	outstandingAdvance: number;
+	advanceDeduction?: number | null;
+	finalSalary?: number | null;
+	remainingAdvance?: number | null;
+	status: StaffSalaryStatus | string;
+	settledAt?: string | null;
+	settledByName?: string | null;
+	notes?: string | null;
+	settlementId?: string | null;
+}
+
+export interface StaffSalaryRosterResponse {
+	periodFrom: string;
+	periodTo: string;
+	totalStaffCount: number;
+	notEnteredCount: number;
+	readyCount: number;
+	settledCount: number;
+	totalEnteredSalary: number;
+	totalAdvanceDeductions: number;
+	totalFinalSalary: number;
+	items: StaffSalaryItemDto[];
+}
+
+export interface StaffSalaryPreviewResponse {
+	staffId: string;
+	staffName: string;
+	staffRole?: string | null;
+	periodFrom: string;
+	periodTo: string;
+	enteredSalary: number;
+	outstandingAdvance: number;
+	advanceDeduction: number;
+	finalSalary: number;
+	remainingAdvance: number;
+	status: StaffSalaryStatus | string;
+}
+
+export interface SaveEnteredSalaryInput {
+	staffId: string;
+	periodFrom: string;
+	periodTo: string;
+	enteredSalary: number;
+	notes?: string | null;
+}
+
+export interface SettleStaffSalaryInput {
+	staffId: string;
+	periodFrom: string;
+	periodTo: string;
+	enteredSalary: number;
+	notes?: string | null;
+}
+
+export interface StaffSalarySettlementDto {
+	id: string;
+	staffId: string;
+	staffName: string;
+	staffRole?: string | null;
+	periodFrom: string;
+	periodTo: string;
+	enteredSalary: number;
+	outstandingAdvanceBeforeSettlement: number;
+	advanceDeduction: number;
+	remainingAdvanceAfterSettlement: number;
+	finalSalary: number;
+	status: StaffSalaryStatus | string;
+	settledAt?: string | null;
+	settledByUserId?: string | null;
+	settledByName?: string | null;
+	notes?: string | null;
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export async function getStaffSalaryRoster(params: {
+	fromDate: string;
+	toDate: string;
+	staffId?: string;
+	status?: string;
+	search?: string;
+}) {
+	const qs = new URLSearchParams();
+	qs.set('fromDate', params.fromDate);
+	qs.set('toDate', params.toDate);
+	if (params.staffId) qs.set('staffId', params.staffId);
+	if (params.status) qs.set('status', params.status);
+	if (params.search) qs.set('search', params.search);
+	return request<StaffSalaryRosterResponse>('/api/staff-salary?' + qs.toString(), {}, 'view staff salary');
+}
+
+export async function getStaffSalaryPreview(params: {
+	staffId: string;
+	fromDate: string;
+	toDate: string;
+	enteredSalary: number;
+}) {
+	const qs = new URLSearchParams();
+	qs.set('staffId', params.staffId);
+	qs.set('fromDate', params.fromDate);
+	qs.set('toDate', params.toDate);
+	qs.set('enteredSalary', String(params.enteredSalary));
+	return request<StaffSalaryPreviewResponse>('/api/staff-salary/preview?' + qs.toString(), {}, 'view staff salary preview');
+}
+
+export async function saveEnteredSalary(data: SaveEnteredSalaryInput) {
+	return request<StaffSalaryItemDto>('/api/staff-salary/enter', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'save staff salary');
+}
+
+export async function settleStaffSalary(data: SettleStaffSalaryInput) {
+	return request<StaffSalarySettlementDto>('/api/staff-salary/settle', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'settle staff salary');
+}
+
+export async function getStaffSalarySettlementHistory(staffId: string) {
+	return request<StaffSalarySettlementDto[]>(`/api/staff-salary/settlements/${encodeURIComponent(staffId)}`, {}, 'view staff salary history');
 }
 
 export async function getStaffList() {
@@ -1234,7 +1374,196 @@ export async function getStaffById(id: string) {
 }
 
 export async function getStaffAdvancesByStaffId(staffId: string) {
- return request<StaffAdvanceDto[]>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/advances`, {}, 'view staff advances');
+	return request<StaffAdvanceDto[]>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/advances`, {}, 'view staff advances');
+}
+
+// ============================================================================
+// Staff Attendance
+// ============================================================================
+
+export type StaffAttendanceStatus = 'Present' | 'HalfDay' | 'Leave' | 'Unmarked';
+
+export interface StaffAttendanceDto {
+	id: string;
+	staffId: string;
+	staffName: string;
+	staffRole?: string | null;
+	staffPhoneNumber: string;
+	attendanceDate: string;
+	status: 'Present' | 'HalfDay' | 'Leave';
+	checkInTime?: string | null;
+	checkOutTime?: string | null;
+	workingHours?: number | null;
+	workingHoursFormatted?: string | null;
+	notes?: string | null;
+	createdAt: string;
+	updatedAt?: string | null;
+	createdByUserName?: string | null;
+	updatedByUserName?: string | null;
+}
+
+export interface DailyStaffAttendanceItemDto {
+	staffId: string;
+	staffName: string;
+	staffRole?: string | null;
+	staffPhoneNumber: string;
+	isActive: boolean;
+	attendanceId?: string | null;
+	status: StaffAttendanceStatus;
+	checkInTime?: string | null;
+	checkOutTime?: string | null;
+	workingHours?: number | null;
+	workingHoursFormatted?: string | null;
+	notes?: string | null;
+	attendanceDate: string;
+}
+
+export interface DailyAttendanceSummaryDto {
+	totalActiveStaff: number;
+	presentCount: number;
+	halfDayCount: number;
+	leaveCount: number;
+	unmarkedCount: number;
+}
+
+export interface DailyAttendanceResponse {
+	date: string;
+	isAttendanceConfirmed: boolean;
+	attendanceConfirmedAt?: string | null;
+	attendanceConfirmedByUserId?: string | null;
+	attendanceConfirmedByName?: string | null;
+	summary: DailyAttendanceSummaryDto;
+	staffMembers: DailyStaffAttendanceItemDto[];
+}
+
+export interface DateRangeAttendanceResponse {
+	fromDate: string;
+	toDate: string;
+	totalRecords: number;
+	presentCount: number;
+	halfDayCount: number;
+	leaveCount: number;
+	records: StaffAttendanceDto[];
+}
+
+export interface MonthlyStaffDailyRecordDto {
+	date: string;
+	day: number;
+	dayOfWeek: string;
+	status: 'Present' | 'HalfDay' | 'Leave' | 'Unmarked';
+	checkInTime?: string | null;
+	checkOutTime?: string | null;
+	workingHours?: number | null;
+	workingHoursFormatted?: string | null;
+	notes?: string | null;
+}
+
+export interface MonthlyStaffAttendanceItemDto {
+	staffId: string;
+	name: string;
+	role?: string | null;
+	phoneNumber: string;
+	presentDays: number;
+	halfDays: number;
+	leaveDays: number;
+	unmarkedDays: number;
+	attendanceDays: number;
+	dailyRecords: MonthlyStaffDailyRecordDto[];
+}
+
+export interface MonthlyAttendanceSummaryDto {
+	present: number;
+	halfDay: number;
+	leave: number;
+	unmarked: number;
+}
+
+export interface MonthlyAttendanceReportResponse {
+	year: number;
+	month: number;
+	fromDate: string;
+	toDate: string;
+	totalCalendarDays: number;
+	staffCount: number;
+	summary: MonthlyAttendanceSummaryDto;
+	staff: MonthlyStaffAttendanceItemDto[];
+}
+
+export interface UpsertStaffAttendanceInput {
+	staffId: string;
+	attendanceDate: string;
+	status: 'Present' | 'HalfDay' | 'Leave';
+	checkInTime?: string | null;
+	checkOutTime?: string | null;
+	notes?: string | null;
+}
+
+export async function getDailyAttendance(date?: string) {
+	const url = date ? `/api/staff-attendance?date=${encodeURIComponent(date)}` : '/api/staff-attendance';
+	return request<DailyAttendanceResponse>(url, {}, 'view staff attendance');
+}
+
+export async function getDateRangeAttendance(params: {
+	fromDate: string;
+	toDate: string;
+	staffId?: string;
+	status?: string;
+	search?: string;
+}) {
+	const qs = new URLSearchParams();
+	qs.append('fromDate', params.fromDate);
+	qs.append('toDate', params.toDate);
+	if (params.staffId) qs.append('staffId', params.staffId);
+	if (params.status && params.status !== 'All') qs.append('status', params.status);
+	if (params.search && params.search.trim()) qs.append('search', params.search.trim());
+
+	return request<DateRangeAttendanceResponse>(`/api/staff-attendance/range?${qs.toString()}`, {}, 'view attendance history');
+}
+
+export async function getMonthlyAttendanceReport(params: {
+	year: number;
+	month: number;
+	staffId?: string;
+	status?: string;
+	search?: string;
+}) {
+	const qs = new URLSearchParams();
+	qs.append('year', params.year.toString());
+	qs.append('month', params.month.toString());
+	if (params.staffId) qs.append('staffId', params.staffId);
+	if (params.status && params.status !== 'All') qs.append('status', params.status);
+	if (params.search && params.search.trim()) qs.append('search', params.search.trim());
+
+	return request<MonthlyAttendanceReportResponse>(
+		`/api/staff-attendance/monthly-report?${qs.toString()}`,
+		{},
+		'view monthly attendance report'
+	);
+}
+
+export async function upsertStaffAttendance(data: UpsertStaffAttendanceInput) {
+	return request<StaffAttendanceDto>('/api/staff-attendance', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'manage staff attendance');
+}
+
+export async function deleteStaffAttendance(id: string) {
+	return request<void>(`/api/staff-attendance/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	}, 'delete staff attendance');
+}
+
+export async function confirmStaffAttendance(date: string) {
+	return request<DailyAttendanceResponse>(`/api/staff-attendance/confirm?date=${encodeURIComponent(date)}`, {
+		method: 'POST',
+	}, 'confirm staff attendance');
+}
+
+export async function unlockStaffAttendance(date: string) {
+	return request<DailyAttendanceResponse>(`/api/staff-attendance/unlock?date=${encodeURIComponent(date)}`, {
+		method: 'POST',
+	}, 'unlock staff attendance');
 }
 
 // ============================================================================

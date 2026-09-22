@@ -56,7 +56,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 		navigate(path);
 	};
 
-	const renderNavItem = (item: NavigationItem, isGlobal = false) => {
+	const renderNavItem = (item: NavigationItem) => {
 		if (item.requiresPermission && !hasPermission(item.requiresPermission)) {
 			return null;
 		}
@@ -193,7 +193,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 							Global
 						</div>
 					)}
-					{renderNavItem(GLOBAL_AUDIT_ITEM, true)}
+					{renderNavItem(GLOBAL_AUDIT_ITEM)}
 				</div>
 			</nav>
 

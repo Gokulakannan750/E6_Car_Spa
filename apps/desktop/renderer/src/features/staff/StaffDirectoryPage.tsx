@@ -4,7 +4,6 @@ import {
 	Search,
 	History,
 	UserPlus,
-	Calendar,
 	X,
 	CheckCircle2,
 	AlertTriangle,
@@ -15,7 +14,6 @@ import {
 	MapPin,
 	Eye,
 	EyeOff,
-	Upload,
 	Trash2,
 	Download,
 	ShieldCheck,
@@ -37,7 +35,6 @@ import {
 	deleteStaffAadhaarDocument,
 	downloadStaffAadhaarDocument,
 	type StaffDto,
-	type StaffAdvanceHistoryDto,
 } from '../../lib/api';
 
 function formatAadhaarInput(val: string): string {

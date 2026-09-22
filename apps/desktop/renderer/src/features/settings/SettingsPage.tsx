@@ -13,9 +13,6 @@ import {
 	FileText,
 	Loader2,
 	Image as ImageIcon,
-	MessageSquare,
-	ShieldCheck,
-	Check,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/auth-context';
@@ -28,7 +25,6 @@ import {
 	setCachedBusinessProfile,
 	BusinessProfileDto,
 } from '../../lib/api';
-import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { BUSINESS_PROFILE_QUERY_KEY } from './hooks/useBusinessProfile';
 import { capitalizeSentence } from '../../utils/text';
@@ -37,22 +33,21 @@ const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i
 
 export default function SettingsPage() {
 	const navigate = useNavigate();
-	const [searchParams, setSearchParams] = useSearchParams();
+	const [searchParams] = useSearchParams();
 	const queryClient = useQueryClient();
 	const { user, hasPermission } = useAuth();
 	const canViewUsers = hasPermission('users.view');
 	const canManageBusiness = Boolean(user?.isOwner || hasPermission('settings.business'));
 
-	const tabParam = searchParams.get('tab');
-	const activeTab = tabParam === 'whatsapp' ? 'whatsapp' : 'company';
-
-	const handleTabChange = (tab: 'company' | 'whatsapp') => {
-		if (tab === 'company') {
-			setSearchParams({});
-		} else {
-			setSearchParams({ tab });
+	// Backward-compatibility redirect for legacy tab query parameters
+	useEffect(() => {
+		const tabParam = searchParams.get('tab');
+		if (tabParam === 'whatsapp') {
+			navigate('/settings/whatsapp', { replace: true });
+		} else if (tabParam === 'system') {
+			navigate('/settings/system', { replace: true });
 		}
-	};
+	}, [searchParams, navigate]);
 
 	const [profile, setProfile] = useState<BusinessProfileDto | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -237,18 +232,18 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="space-y-6 max-w-5xl">
+		<div className="space-y-6 w-full">
 			{/* Page Header */}
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 				<div>
 					<h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-						System Settings
+						Company Settings
 					</h1>
 					<p className="text-xs text-slate-500 mt-0.5">
-						Configure company profile, tax invoice branding, and multi-channel WhatsApp messaging
+						Configure company profile, tax invoice branding, and business identity
 					</p>
 				</div>
-				{canManageBusiness && activeTab === 'company' && (
+				{canManageBusiness && (
 					<button
 						type="submit"
 						form="business-profile-form"
@@ -265,38 +260,6 @@ export default function SettingsPage() {
 				)}
 			</div>
 
-			{/* Main Settings Tabs */}
-			<div className="flex items-center gap-2 border-b border-slate-200">
-				<button
-					type="button"
-					onClick={() => handleTabChange('company')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-						activeTab === 'company'
-							? 'border-blue-600 text-blue-600'
-							: 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-					}`}
-				>
-					<Building2 className="w-4 h-4" />
-					<span>Company Settings</span>
-				</button>
-
-				<button
-					type="button"
-					onClick={() => handleTabChange('whatsapp')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-						activeTab === 'whatsapp'
-							? 'border-emerald-600 text-emerald-600'
-							: 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-					}`}
-				>
-					<MessageSquare className="w-4 h-4" />
-					<span>WhatsApp Settings</span>
-					<span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded-full font-semibold">
-						Cloud API
-					</span>
-				</button>
-			</div>
-
 			{/* Notification Toasts */}
 			{successMsg && (
 				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
@@ -304,16 +267,15 @@ export default function SettingsPage() {
 					{successMsg}
 				</div>
 			)}
-			{activeTab === 'company' && errorMsg && (
+			{errorMsg && (
 				<div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
 					<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
 					{errorMsg}
 				</div>
 			)}
 
-			{/* TAB 1: COMPANY SETTINGS */}
-			{activeTab === 'company' && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
+			{/* COMPANY SETTINGS CONTENT */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
 					<div className="lg:col-span-2 space-y-6">
 						{/* Users & Permissions Quick Card */}
 						{canViewUsers && (
@@ -661,90 +623,6 @@ export default function SettingsPage() {
 						</div>
 					</div>
 				</div>
-			)}
-
-			{/* TAB 2: WHATSAPP SETTINGS */}
-			{activeTab === 'whatsapp' && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
-					{/* Main WhatsApp Settings Section */}
-					<div className="lg:col-span-2 space-y-6">
-						<WhatsAppSettingsSection canManage={canManageBusiness} />
-					</div>
-
-					{/* WhatsApp Integration Sidebar */}
-					<div className="space-y-6">
-						{/* WhatsApp Overview Card */}
-						<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
-							<div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-								<div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-									<MessageSquare className="w-4 h-4" />
-								</div>
-								<div>
-									<h3 className="text-xs font-bold text-slate-800">Cloud API Architecture</h3>
-									<p className="text-[11px] text-slate-500">Direct Meta Integration</p>
-								</div>
-							</div>
-
-							<div className="space-y-3 text-xs">
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">API Standard</span>
-									<span className="font-mono font-semibold text-slate-800">Meta Graph API v25.0</span>
-								</div>
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">Token Security</span>
-									<span className="font-semibold text-emerald-700 flex items-center gap-1">
-										<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> AES-GCM Encrypted
-									</span>
-								</div>
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">Queue Processing</span>
-									<span className="font-semibold text-slate-800">30s Auto Worker</span>
-								</div>
-								<div className="flex justify-between py-1">
-									<span className="text-slate-500">Retry Policy</span>
-									<span className="font-semibold text-slate-800">Exponential Backoff</span>
-								</div>
-							</div>
-						</div>
-
-						{/* Automation Rules Card */}
-						<div className="bg-gradient-to-br from-emerald-50/70 to-slate-50 rounded-2xl border border-emerald-100 p-5 space-y-3">
-							<h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-								<Check className="w-4 h-4 text-emerald-600" />
-								<span>Production Triggers</span>
-							</h4>
-
-							<div className="space-y-2.5 text-[11px]">
-								<div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100/70">
-									<p className="font-bold text-slate-800">Invoice Finalized</p>
-									<p className="text-slate-500 mt-0.5">
-										Auto-sends approved invoice template with customer name, bill total, vehicle number, and public view link.
-									</p>
-								</div>
-
-								<div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100/70">
-									<p className="font-bold text-slate-800">Payment Completed</p>
-									<p className="text-slate-500 mt-0.5">
-										Auto-sends confirmation receipt when invoice balance reaches ₹0. Includes vehicle plate and amount paid.
-									</p>
-								</div>
-							</div>
-						</div>
-
-						{/* Safety Note */}
-						<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] text-slate-600 space-y-1.5">
-							<p className="font-bold text-slate-700">Durable Fault Isolation</p>
-							<p className="text-slate-500 leading-relaxed">
-								WhatsApp notifications run as background side effects. Even if Meta's Cloud API is temporarily unreachable, invoices and payments are always preserved without interruption.
-							</p>
-						</div>
-
-						<div className="text-center pt-2">
-							<PoweredByTrovo />
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }

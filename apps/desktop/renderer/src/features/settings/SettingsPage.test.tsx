@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { Routes, Route } from 'react-router-dom';
 import SettingsPage from './SettingsPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
@@ -246,7 +247,7 @@ describe('SettingsPage Component & Business Profile Boundary', () => {
 		});
 	});
 
-	it('switches between Company Settings and WhatsApp Settings tabs', async () => {
+	it('renders Company Settings cleanly without duplicate WhatsApp tab bar', async () => {
 		renderWithProviders(<SettingsPage />, {
 			authUser: {
 				id: 'usr-1',
@@ -259,16 +260,59 @@ describe('SettingsPage Component & Business Profile Boundary', () => {
 		});
 
 		await waitFor(() => {
-			expect(screen.getByText('Company Settings')).toBeInTheDocument();
-			expect(screen.getByText('WhatsApp Settings')).toBeInTheDocument();
+			expect(screen.getByRole('heading', { name: 'Company Settings', level: 1 })).toBeInTheDocument();
 		});
 
-		// Switch to WhatsApp tab
-		fireEvent.click(screen.getByText('WhatsApp Settings'));
+		// Verify that WhatsApp tab is NOT rendered inside Company Settings
+		expect(screen.queryByText('WhatsApp Business Integration')).not.toBeInTheDocument();
+		expect(screen.queryByText('Cloud API Architecture')).not.toBeInTheDocument();
+	});
+
+	it('redirects legacy /settings?tab=whatsapp to /settings/whatsapp for backward compatibility', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/settings" element={<SettingsPage />} />
+				<Route path="/settings/whatsapp" element={<div>WhatsApp Target Page</div>} />
+			</Routes>,
+			{
+				initialEntries: ['/settings?tab=whatsapp'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['settings.business'],
+				},
+			}
+		);
 
 		await waitFor(() => {
-			expect(screen.getByText('WhatsApp Business Integration')).toBeInTheDocument();
-			expect(screen.getByText('Cloud API Architecture')).toBeInTheDocument();
+			expect(screen.getByText('WhatsApp Target Page')).toBeInTheDocument();
+		});
+	});
+
+	it('redirects legacy /settings?tab=system to /settings/system for backward compatibility', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/settings" element={<SettingsPage />} />
+				<Route path="/settings/system" element={<div>System Target Page</div>} />
+			</Routes>,
+			{
+				initialEntries: ['/settings?tab=system'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['settings.business'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('System Target Page')).toBeInTheDocument();
 		});
 	});
 });

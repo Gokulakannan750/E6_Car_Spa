@@ -35,7 +35,7 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
 
   late bool _isActive;
   bool _isEditingAadhaar = false;
-  bool _removeAadhaarDocument = false;
+  final bool _removeAadhaarDocument = false;
   bool _isLoading = false;
   String? _errorMessage;
 

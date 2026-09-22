@@ -23,7 +23,6 @@ import {
 	getStaffAdvances,
 	getStaffList,
 	createStaffAdvance,
-	settleStaffAdvance,
 	obsoleteStaffAdvance,
 	getStaffAdvanceHistory,
 	type StaffAdvanceDto,
@@ -62,7 +61,6 @@ export function StaffAdvancesPage() {
 	const { hasPermission } = useAuth();
 
 	const canCreate = hasPermission('staff_advances.create');
-	const canSettle = hasPermission('staff_advances.settle');
 	const canObsolete = hasPermission('staff_advances.obsolete');
 
 	// ── Filters & Pagination ────────────────────────────────────────────────
@@ -82,9 +80,7 @@ export function StaffAdvancesPage() {
 	const [createNotes, setCreateNotes] = useState('');
 	const [createError, setCreateError] = useState('');
 
-	// ── Settle Confirmation Modal State ─────────────────────────────────────
-	const [settlingAdvance, setSettlingAdvance] = useState<StaffAdvanceDto | null>(null);
-	const [settleError, setSettleError] = useState('');
+
 
 	// ── Obsolete Confirmation Modal State ───────────────────────────────────
 	const [obsoletingAdvance, setObsoletingAdvance] = useState<StaffAdvanceDto | null>(null);
@@ -163,21 +159,7 @@ export function StaffAdvancesPage() {
 		},
 	});
 
-	const settleAdvanceMutation = useMutation({
-		mutationFn: (id: string) => settleStaffAdvance(id),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ['staff-advances'] });
-			qc.invalidateQueries({ queryKey: ['staff-list'] });
-			if (viewingHistoryStaffId) {
-				qc.invalidateQueries({ queryKey: ['staff-advance-history', viewingHistoryStaffId] });
-			}
-			setSettlingAdvance(null);
-			setSettleError('');
-		},
-		onError: (err: Error) => {
-			setSettleError(err.message || 'Failed to settle staff advance.');
-		},
-	});
+
 
 	const obsoleteAdvanceMutation = useMutation({
 		mutationFn: ({ id, reason }: { id: string; reason: string }) =>
@@ -246,12 +228,7 @@ export function StaffAdvancesPage() {
 		});
 	};
 
-	const handleSettleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!settlingAdvance) return;
-		setSettleError('');
-		settleAdvanceMutation.mutate(settlingAdvance.id);
-	};
+
 
 	const handleObsoleteSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -310,7 +287,7 @@ export function StaffAdvancesPage() {
 						Staff Advances
 					</h1>
 					<p className="text-sm text-on-surface-variant mt-1">
-						Track staff advances, repayments and settlement status
+						Track staff advances. Outstanding balances are recovered automatically during Staff Salary settlement.
 					</p>
 				</div>
 				<div className="flex items-center gap-2.5">
@@ -603,7 +580,12 @@ export function StaffAdvancesPage() {
 
 											{/* Amount */}
 											<td className="py-3 px-4 text-right font-bold text-on-surface font-mono text-sm whitespace-nowrap">
-												{formatINR(a.amount)}
+												<div>{formatINR(a.balanceAmount != null ? a.balanceAmount : a.amount)}</div>
+												{a.balanceAmount != null && a.balanceAmount < a.amount && (
+													<div className="text-[10px] text-on-surface-variant font-normal">
+														Orig: {formatINR(a.amount)}
+													</div>
+												)}
 											</td>
 
 											{/* Reason / Notes */}
@@ -645,21 +627,6 @@ export function StaffAdvancesPage() {
 												<div className="flex items-center justify-end gap-1.5">
 													{isOutstanding && (
 														<>
-															{canSettle && (
-																<button
-																	type="button"
-																	onClick={() => {
-																		setSettleError('');
-																		setSettlingAdvance(a);
-																	}}
-																	className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border border-emerald-200/80 transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-																	title="Mark advance as recovered/settled from staff salary"
-																>
-																	<CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-																	<span>Mark Settled</span>
-																</button>
-															)}
-
 															{canObsolete && (
 																<button
 																	type="button"
@@ -895,68 +862,7 @@ export function StaffAdvancesPage() {
 				</form>
 			</Dialog>
 
-			{/* ── MODAL 2: SETTLE CONFIRMATION MODAL ── */}
-			<Dialog
-				open={!!settlingAdvance}
-				onOpenChange={(open) => {
-					if (!open && !settleAdvanceMutation.isPending) setSettlingAdvance(null);
-				}}
-				title="Mark Advance as Settled?"
-				description="This confirms that the advance has been recovered from the staff member's salary."
-			>
-				{settlingAdvance && (
-					<form onSubmit={handleSettleSubmit} className="space-y-4 pt-2">
-						{settleError && (
-							<div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
-								<AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-								<span>{settleError}</span>
-							</div>
-						)}
 
-						<div className="p-4 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl space-y-2 text-xs">
-							<div className="flex justify-between">
-								<span className="text-emerald-900 font-medium">Staff Member:</span>
-								<span className="font-bold text-emerald-950">{settlingAdvance.staffName}</span>
-							</div>
-							<div className="flex justify-between">
-								<span className="text-emerald-900 font-medium">Advance Amount:</span>
-								<span className="font-bold font-mono text-emerald-950 text-sm">{formatINR(settlingAdvance.amount)}</span>
-							</div>
-							<div className="flex justify-between">
-								<span className="text-emerald-900 font-medium">Advance Date:</span>
-								<span className="text-emerald-950 font-medium">{formatDate(settlingAdvance.advanceDate)}</span>
-							</div>
-							<div className="flex justify-between">
-								<span className="text-emerald-900 font-medium">Reason:</span>
-								<span className="text-emerald-950">{settlingAdvance.reason}</span>
-							</div>
-						</div>
-
-						<p className="text-xs text-on-surface-variant leading-relaxed">
-							Marking this advance as settled will update its status to <strong>Settled</strong> and record your user account as the settler.
-						</p>
-
-						<div className="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant">
-							<Button
-								type="button"
-								variant="secondary"
-								onClick={() => setSettlingAdvance(null)}
-								disabled={settleAdvanceMutation.isPending}
-							>
-								Cancel
-							</Button>
-							<Button
-								type="submit"
-								loading={settleAdvanceMutation.isPending}
-								className="bg-emerald-600 hover:bg-emerald-700 text-white"
-								icon={<CheckCircle2 className="w-4 h-4" />}
-							>
-								Mark Settled
-							</Button>
-						</div>
-					</form>
-				)}
-			</Dialog>
 
 			{/* ── MODAL 3: OBSOLETE CONFIRMATION MODAL ── */}
 			<Dialog
@@ -1120,19 +1026,6 @@ export function StaffAdvancesPage() {
 												{adv.status === 'Obsolete' && adv.obsoleteReason && ` · Obsolete: "${adv.obsoleteReason}"`}
 											</p>
 										</div>
-
-										{adv.status === 'Outstanding' && canSettle && (
-											<button
-												type="button"
-												onClick={() => {
-													setSettleError('');
-													setSettlingAdvance(adv);
-												}}
-												className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-all cursor-pointer shrink-0"
-											>
-												Mark Settled
-											</button>
-										)}
 									</div>
 								))
 							)}

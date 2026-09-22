@@ -49,12 +49,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [dynamicBackendService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Protection Packages']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Brand New Dynamic Ceramic Service')).toBeInTheDocument();
@@ -77,12 +75,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [unknownService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Exterior Detailing']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Completely Unique Future Service 2027')).toBeInTheDocument();
@@ -93,12 +89,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [dynamicBackendService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Protection Packages']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			// ₹15,499 formatted in en-IN
@@ -110,12 +104,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [dynamicBackendService, secondBackendService],
 			totalCount: 2,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Protection Packages', 'Interior Care']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Brand New Dynamic Ceramic Service')).toBeInTheDocument();
@@ -136,12 +128,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [],
 			totalCount: 0,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue([]);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		// Verify the 4 fixed categories are all present as tabs
 		for (const cat of CATALOGUE_CATEGORIES) {
@@ -153,12 +143,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [dynamicBackendService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue([]);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(api.getServices).toHaveBeenCalled();
@@ -170,12 +158,10 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [],
 			totalCount: 0,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue([]);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('No services found.')).toBeInTheDocument();
@@ -186,7 +172,7 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		vi.mocked(api.getServices).mockRejectedValue(new Error('Network error loading catalogue'));
 		vi.mocked(api.getServiceCategories).mockRejectedValue(new Error('Network error'));
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Failed to load services. Please try again.')).toBeInTheDocument();
@@ -202,6 +188,7 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		category: 'General Services',
 		price: 15500,
 		taxPercentage: 18,
+		durationMinutes: null,
 		description: 'Android Testing',
 		isActive: true,
 		createdAt: '2026-09-05T05:49:03.317115Z',
@@ -213,6 +200,7 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		category: 'Exterior Detailing',
 		price: 5000,
 		taxPercentage: 18,
+		durationMinutes: null,
 		description: 'Paint correction',
 		isActive: true,
 		createdAt: '2026-09-05T05:49:03.317115Z',
@@ -226,12 +214,10 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [generalService, exteriorService],
 			totalCount: 2,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Exterior Detailing', 'General Services']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /General Services/i })).toBeInTheDocument();
@@ -244,12 +230,10 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [generalService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['General Services']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			// Tab should show General Services (1)
@@ -261,12 +245,10 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [generalService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['General Services']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Android service Testing')).toBeInTheDocument();
@@ -279,12 +261,10 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [generalService, exteriorService],
 			totalCount: 2,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Exterior Detailing', 'General Services']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByText('Android service Testing')).toBeInTheDocument();
@@ -305,12 +285,10 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [generalService, exteriorService],
 			totalCount: 2,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Exterior Detailing', 'General Services']);
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue' });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'] });
 
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /Exterior Detailing/i })).toBeInTheDocument();
@@ -327,7 +305,7 @@ describe('Catalogue Duration Removal Verification', () => {
 		id: 'user-admin-1',
 		username: 'admin',
 		fullName: 'Administrator',
-		role: 'Admin',
+		role: 'Owner' as const,
 		isOwner: true,
 		permissions: ['catalogue.view', 'catalogue.create', 'catalogue.edit'],
 	};
@@ -349,14 +327,12 @@ describe('Catalogue Duration Removal Verification', () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [testService],
 			totalCount: 1,
-			page: 1,
-			pageSize: 200,
 		});
 		vi.mocked(api.getServiceCategories).mockResolvedValue(['Exterior Detailing']);
 	});
 
 	it('1. Catalogue cards do not display Duration', async () => {
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue', authUser: adminUser });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: adminUser });
 
 		await waitFor(() => {
 			expect(screen.getByText('Standard Exterior Wash')).toBeInTheDocument();
@@ -366,7 +342,7 @@ describe('Catalogue Duration Removal Verification', () => {
 	});
 
 	it('2. Duration sorting is removed from sort dropdown', async () => {
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue', authUser: adminUser });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: adminUser });
 
 		await waitFor(() => {
 			expect(screen.getByText('Standard Exterior Wash')).toBeInTheDocument();
@@ -376,7 +352,7 @@ describe('Catalogue Duration Removal Verification', () => {
 	});
 
 	it('3. Add Service modal does not display Duration field', async () => {
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue', authUser: adminUser });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: adminUser });
 
 		await waitFor(() => {
 			expect(screen.getByText('Standard Exterior Wash')).toBeInTheDocument();
@@ -401,7 +377,7 @@ describe('Catalogue Duration Removal Verification', () => {
 			durationMinutes: null,
 		});
 
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue', authUser: adminUser });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: adminUser });
 
 		await waitFor(() => {
 			expect(screen.getByText('Standard Exterior Wash')).toBeInTheDocument();
@@ -437,7 +413,7 @@ describe('Catalogue Duration Removal Verification', () => {
 	});
 
 	it('5. View Details dialog does not display Duration', async () => {
-		renderWithProviders(<CataloguePage />, { initialRoute: '/catalogue', authUser: adminUser });
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: adminUser });
 
 		await waitFor(() => {
 			expect(screen.getByText('Standard Exterior Wash')).toBeInTheDocument();

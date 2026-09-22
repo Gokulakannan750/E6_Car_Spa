@@ -128,7 +128,7 @@ describe('StaffAdvancesPage Component (/staff-advances)', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Staff Advances')).toBeInTheDocument();
-			expect(screen.getByText('Track staff advances, repayments and settlement status')).toBeInTheDocument();
+			expect(screen.getByText(/Track staff advances/i)).toBeInTheDocument();
 			expect(screen.getByText('Medical Emergency')).toBeInTheDocument();
 			expect(screen.getByText('Festival Advance')).toBeInTheDocument();
 		});
@@ -202,12 +202,7 @@ describe('StaffAdvancesPage Component (/staff-advances)', () => {
 		});
 	});
 
-	it('opens settle modal and submits mark settled', async () => {
-		vi.mocked(api.settleStaffAdvance).mockResolvedValue({
-			...mockAdvancesResponse.items[0],
-			status: 'Settled',
-		});
-
+	it('does not display normal Settle action, clarifying recovery happens via Staff Salary settlement', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
@@ -227,21 +222,19 @@ describe('StaffAdvancesPage Component (/staff-advances)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /mark settled/i })).toBeInTheDocument();
+			expect(screen.getByText('Medical Emergency')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByRole('button', { name: /mark settled/i }));
+		// Verify normal "Mark Settled" button is removed
+		expect(screen.queryByRole('button', { name: /mark settled/i })).not.toBeInTheDocument();
 
-		await waitFor(() => {
-			expect(screen.getByText('Mark Advance as Settled?')).toBeInTheDocument();
-		});
+		// Verify "Mark Obsolete" remains available
+		expect(screen.getByRole('button', { name: /mark obsolete/i })).toBeInTheDocument();
 
-		const confirmBtns = screen.getAllByRole('button', { name: /mark settled/i });
-		fireEvent.click(confirmBtns[confirmBtns.length - 1]);
-
-		await waitFor(() => {
-			expect(api.settleStaffAdvance).toHaveBeenCalledWith('adv-1');
-		});
+		// Verify informational text about Salary Settlement recovery
+		expect(
+			screen.getByText(/recovered automatically during Staff Salary settlement/i)
+		).toBeInTheDocument();
 	});
 
 	it('opens mark obsolete modal and requires mandatory reason', async () => {
@@ -293,7 +286,6 @@ describe('StaffAdvancesPage Component (/staff-advances)', () => {
 		vi.mocked(api.getStaffAdvanceHistory).mockResolvedValue({
 			staffId: 'staff-1',
 			staffName: 'Karthik Raja',
-			totalAdvancesCount: 1,
 			totalAdvancesAmount: 5000,
 			outstandingAmount: 5000,
 			settledAmount: 0,

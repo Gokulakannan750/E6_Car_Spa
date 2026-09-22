@@ -77,6 +77,16 @@ public static class PermissionSeeder
         ("staff_advances.settle", "Settle Staff Advance", "Staff Advances", "Allows marking staff advances as settled upon salary recovery"),
         ("staff_advances.obsolete", "Obsolete Staff Advance", "Staff Advances", "Allows marking staff advances as obsolete with mandatory reason"),
 
+        // Staff Attendance
+        ("staff_attendance.view", "View Staff Attendance", "Staff Attendance", "Allows viewing daily staff attendance and history"),
+        ("staff_attendance.manage", "Manage Staff Attendance", "Staff Attendance", "Allows marking, editing, and managing staff attendance records"),
+        ("staff_attendance.confirm", "Confirm Attendance", "Staff Attendance", "Allows confirming and locking daily staff attendance"),
+
+        // Staff Salary
+        ("staff_salary.view", "View Staff Salary", "Staff Salary", "Allows viewing staff salary rosters, calculations, and settlement history"),
+        ("staff_salary.manage", "Manage Staff Salary", "Staff Salary", "Allows entering and updating staff salary amounts"),
+        ("staff_salary.settle", "Settle Staff Salary", "Staff Salary", "Allows settling staff salary and recovering staff advances"),
+
         // Reports
         ("reports.view", "View Reports", "Reports", "Allows viewing business and financial reports"),
         ("reports.sales", "Sales Report", "Reports", "Allows viewing sales and revenue reports"),

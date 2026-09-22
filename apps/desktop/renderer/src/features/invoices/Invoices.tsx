@@ -53,16 +53,6 @@ const KPI_CARDS: KpiConfig[] = [
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 export type InvoiceDisplayStatus = 'Draft' | 'PaymentPending' | 'PartiallyPaid' | 'Paid' | 'Cancelled';
 
-const STATUS_ENUM_MAP: Record<number, InvoiceDisplayStatus> = {
-	0: 'Draft',
-	1: 'PaymentPending',
-	2: 'Paid',
-	3: 'PartiallyPaid',
-	4: 'Cancelled',
-	5: 'PaymentPending',
-	6: 'PaymentPending',
-};
-
 export function getInvoiceDisplayStatus(inv: InvoiceListDto): InvoiceDisplayStatus {
 	// 1. If invoice is cancelled:
 	const rawStatus = typeof inv.status === 'string' ? inv.status.toLowerCase() : '';

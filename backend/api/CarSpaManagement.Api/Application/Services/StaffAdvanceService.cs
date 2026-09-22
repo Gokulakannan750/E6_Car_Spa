@@ -85,7 +85,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         var outstandingRecords = await activeForSummary
             .Where(a => a.Status == StaffAdvanceStatus.Outstanding)
-            .Select(a => a.Amount)
+            .Select(a => a.BalanceAmount ?? a.Amount)
             .ToListAsync(cancellationToken);
 
         var settledRecords = await activeForSummary
@@ -190,6 +190,7 @@ public class StaffAdvanceService : IStaffAdvanceService
             AdvanceType = "Advance",
             Description = request.Reason.Trim(),
             Amount = Math.Round(request.Amount, 2),
+            BalanceAmount = Math.Round(request.Amount, 2),
             AdvanceDate = request.AdvanceDate.Date,
             Reason = request.Reason.Trim(),
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
@@ -240,6 +241,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         }
 
         advance.Status = StaffAdvanceStatus.Settled;
+        advance.BalanceAmount = 0m;
         advance.SettledAt = DateTime.UtcNow;
         advance.SettledByUserId = userId;
         advance.UpdatedAt = DateTime.UtcNow;
@@ -347,7 +349,7 @@ public class StaffAdvanceService : IStaffAdvanceService
             .ToListAsync(cancellationToken);
 
         var activeAdvances = advances.Where(a => a.Status != StaffAdvanceStatus.Obsolete).ToList();
-        var outstandingAmount = activeAdvances.Where(a => a.Status == StaffAdvanceStatus.Outstanding).Sum(a => a.Amount);
+        var outstandingAmount = activeAdvances.Where(a => a.Status == StaffAdvanceStatus.Outstanding).Sum(a => a.BalanceAmount ?? a.Amount);
         var settledAmount = activeAdvances.Where(a => a.Status == StaffAdvanceStatus.Settled).Sum(a => a.Amount);
         var totalAdvancesAmount = outstandingAmount + settledAmount;
 
@@ -380,7 +382,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         var advancesStats = await _db.StaffAdvances
             .Where(a => !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding && staffIds.Contains(a.StaffId))
             .GroupBy(a => a.StaffId)
-            .Select(g => new { StaffId = g.Key, Count = g.Count(), Total = g.Sum(x => x.Amount) })
+            .Select(g => new { StaffId = g.Key, Count = g.Count(), Total = g.Sum(x => x.BalanceAmount ?? x.Amount) })
             .ToDictionaryAsync(x => x.StaffId, cancellationToken);
 
         return staffList.Select(s =>
@@ -399,7 +401,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
 
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
@@ -562,7 +564,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
 
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
@@ -681,7 +683,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
 
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
@@ -712,7 +714,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
-        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
 
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
@@ -886,5 +888,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         ObsoletedByName: a.ObsoletedByUser?.FullName ?? a.ObsoletedByUser?.Username,
         ObsoleteReason: a.ObsoleteReason,
         CreatedAt: a.CreatedAt,
-        UpdatedAt: a.UpdatedAt);
+        UpdatedAt: a.UpdatedAt,
+        BalanceAmount: a.BalanceAmount ?? (a.Status == StaffAdvanceStatus.Settled ? 0m : a.Amount),
+        StaffSalarySettlementId: a.StaffSalarySettlementId);
 }

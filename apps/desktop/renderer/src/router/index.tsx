@@ -20,6 +20,8 @@ const loadSalary = () => import('../features/staff/SalaryPage');
 const loadReports = () => import('../features/reports/ReportsPage');
 const loadShowroom = () => import('../features/showroom/ShowroomPage');
 const loadSettings = () => import('../features/settings/SettingsPage');
+const loadWhatsAppSettings = () => import('../features/settings/WhatsAppSettingsPage');
+const loadSystemPreferences = () => import('../features/settings/SystemPreferencesPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
 const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
@@ -324,6 +326,34 @@ export const router = createBrowserRouter([
 					return {
 						Component: () => (
 							<RouteGuard requiredPermission="users.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/whatsapp',
+				lazy: async () => {
+					const m = await loadWhatsAppSettings();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="settings.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/system',
+				lazy: async () => {
+					const m = await loadSystemPreferences();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="settings.view">
 								<Comp />
 							</RouteGuard>
 						),

@@ -22,8 +22,10 @@ export const ROUTE_TITLES: Record<string, string> = {
 	'/reports': 'Reports',
 	'/showroom': 'Showroom',
 	'/audit': 'Audit Trail',
+	'/settings/whatsapp': 'WhatsApp Settings',
+	'/settings/system': 'System Preferences',
 	'/settings/users': 'Users & Access',
-	'/settings': 'Settings',
+	'/settings': 'Company Settings',
 };
 
 export function getPageTitle(pathname: string): string {
@@ -32,8 +34,10 @@ export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/job-cards')) return 'Job Cards';
 	if (pathname.startsWith('/customers')) return 'Customers';
 	if (pathname.startsWith('/audit')) return 'Audit Trail';
+	if (pathname.startsWith('/settings/whatsapp')) return 'WhatsApp Settings';
+	if (pathname.startsWith('/settings/system')) return 'System Preferences';
 	if (pathname.startsWith('/settings/users')) return 'Users & Access';
-	if (pathname.startsWith('/settings')) return 'Settings';
+	if (pathname.startsWith('/settings')) return 'Company Settings';
 	if (pathname.startsWith('/reports')) return 'Reports';
 	if (pathname.startsWith('/showroom')) return 'Showroom';
 	if (pathname.startsWith('/staff-advances')) return 'Staff Advances';

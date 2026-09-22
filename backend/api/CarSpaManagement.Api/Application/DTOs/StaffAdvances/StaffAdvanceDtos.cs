@@ -22,7 +22,9 @@ public record StaffAdvanceDto(
     string? ObsoletedByName,
     string? ObsoleteReason,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    decimal? BalanceAmount = null,
+    Guid? StaffSalarySettlementId = null);
 
 public record CreateStaffAdvanceRequest
 {

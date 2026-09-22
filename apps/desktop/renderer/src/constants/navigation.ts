@@ -296,7 +296,7 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 		},
 		{
 			label: 'WhatsApp Settings',
-			path: '/settings?tab=whatsapp',
+			path: '/settings/whatsapp',
 			icon: 'MessageSquare',
 			requiresPermission: 'settings.view',
 		},
@@ -308,7 +308,7 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 		},
 		{
 			label: 'System Preferences',
-			path: '/settings?tab=system',
+			path: '/settings/system',
 			icon: 'Sliders',
 			requiresPermission: 'settings.view',
 		},
@@ -337,19 +337,31 @@ export function isItemActive(
 		return normPath === targetPath && hash === `#${targetHash}`;
 	}
 
-	// Query-param-based items (e.g. /settings?tab=whatsapp, /staff-advances?tab=staff, /reports?type=billing)
+	// Query-param-based items (e.g. /staff-advances?tab=staff, /reports?type=billing)
 	if (item.path.includes('?')) {
 		const [targetPath, targetQuery] = item.path.split('?');
 		return normPath === targetPath && search === `?${targetQuery}`;
 	}
 
-	// Specific checks for base items that have query-param siblings:
+	// Specific checks for base items that have query-param siblings or sub-routes:
 	if (item.path === '/settings') {
 		// Company Settings is active if on /settings without competing tab
 		return (
 			normPath === '/settings' &&
 			(!search || search === '?tab=company' || (!search.includes('tab=whatsapp') && !search.includes('tab=system')))
 		);
+	}
+
+	if (item.path === '/settings/whatsapp') {
+		return normPath === '/settings/whatsapp' || (normPath === '/settings' && search.includes('tab=whatsapp'));
+	}
+
+	if (item.path === '/settings/system') {
+		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
+	}
+
+	if (item.path === '/settings/users') {
+		return normPath === '/settings/users' || normPath.startsWith('/settings/users/');
 	}
 
 	if (item.path === '/staff') {

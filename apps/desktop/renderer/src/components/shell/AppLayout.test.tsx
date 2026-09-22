@@ -45,15 +45,19 @@ describe('AppLayout getPageTitle', () => {
 		expect(getPageTitle('/audit')).toBe('Audit Trail');
 		expect(getPageTitle('/audit/details')).toBe('Audit Trail');
 
-		// 10. Users & Access
+		// 10. Settings Features
+		expect(getPageTitle('/settings')).toBe('Company Settings');
+		expect(getPageTitle('/settings/whatsapp')).toBe('WhatsApp Settings');
+		expect(getPageTitle('/settings/system')).toBe('System Preferences');
 		expect(getPageTitle('/settings/users')).toBe('Users & Access');
-
-		// 11. Settings
-		expect(getPageTitle('/settings')).toBe('Settings');
 	});
 
-	it('includes /audit in ROUTE_TITLES mapping', () => {
+	it('includes /audit and settings routes in ROUTE_TITLES mapping', () => {
 		expect(ROUTE_TITLES['/audit']).toBe('Audit Trail');
+		expect(ROUTE_TITLES['/settings']).toBe('Company Settings');
+		expect(ROUTE_TITLES['/settings/whatsapp']).toBe('WhatsApp Settings');
+		expect(ROUTE_TITLES['/settings/system']).toBe('System Preferences');
+		expect(ROUTE_TITLES['/settings/users']).toBe('Users & Access');
 	});
 
 	it('falls back to Dashboard for unknown routes', () => {

@@ -3,6 +3,8 @@ dist
 dist-*
 dist-electron
 release
+*.tsbuildinfo
+scratch/
 *.log
 .DS_Store
 .env
