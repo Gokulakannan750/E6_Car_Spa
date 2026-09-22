@@ -1016,6 +1016,16 @@ export interface StaffDto {
 	isActive: boolean;
 	totalAdvances: number;
 	totalAdvanceAmount: number;
+	aadhaarMasked?: string | null;
+	hasAadhaarDocument?: boolean;
+	aadhaarDocumentFileName?: string | null;
+	aadhaarDocumentContentType?: string | null;
+	aadhaarDocumentSize?: number | null;
+}
+
+export interface StaffAadhaarRevealDto {
+	staffId: string;
+	aadhaarNumber: string;
 }
 
 export interface CreateStaffAdvanceInput {
@@ -1105,22 +1115,42 @@ export async function getStaffList() {
 export interface CreateStaffInput {
 	name: string;
 	phoneNumber: string;
+	aadhaarNumber: string;
 	email?: string | null;
 	address?: string | null;
 	role?: string | null;
 	isActive?: boolean;
+	aadhaarFile?: File | null;
 }
 
 export interface UpdateStaffInput {
 	name?: string;
 	phoneNumber?: string;
+	aadhaarNumber?: string;
 	email?: string | null;
 	address?: string | null;
 	role?: string | null;
 	isActive?: boolean;
+	removeAadhaarDocument?: boolean;
+	aadhaarFile?: File | null;
 }
 
 export async function createStaffMember(data: CreateStaffInput) {
+	if (data.aadhaarFile) {
+		const formData = new FormData();
+		formData.append('name', data.name);
+		formData.append('phoneNumber', data.phoneNumber);
+		formData.append('aadhaarNumber', data.aadhaarNumber);
+		if (data.email) formData.append('email', data.email);
+		if (data.address) formData.append('address', data.address);
+		if (data.role) formData.append('role', data.role);
+		if (data.isActive !== undefined) formData.append('isActive', String(data.isActive));
+		formData.append('aadhaarFile', data.aadhaarFile);
+		return request<StaffDto>('/api/staff-advances/staff', {
+			method: 'POST',
+			body: formData,
+		}, 'manage staff');
+	}
 	return request<StaffDto>('/api/staff-advances/staff', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
@@ -1128,10 +1158,69 @@ export async function createStaffMember(data: CreateStaffInput) {
 }
 
 export async function updateStaffMember(id: string, data: UpdateStaffInput) {
+	if (data.aadhaarFile || data.removeAadhaarDocument) {
+		const formData = new FormData();
+		if (data.name !== undefined) formData.append('name', data.name);
+		if (data.phoneNumber !== undefined) formData.append('phoneNumber', data.phoneNumber);
+		if (data.aadhaarNumber !== undefined) formData.append('aadhaarNumber', data.aadhaarNumber);
+		if (data.email !== undefined && data.email !== null) formData.append('email', data.email);
+		if (data.address !== undefined && data.address !== null) formData.append('address', data.address);
+		if (data.role !== undefined && data.role !== null) formData.append('role', data.role);
+		if (data.isActive !== undefined) formData.append('isActive', String(data.isActive));
+		if (data.removeAadhaarDocument !== undefined) formData.append('removeAadhaarDocument', String(data.removeAadhaarDocument));
+		if (data.aadhaarFile) formData.append('aadhaarFile', data.aadhaarFile);
+		return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
+			method: 'PUT',
+			body: formData,
+		}, 'manage staff');
+	}
 	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(id)}`, {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'manage staff');
+}
+
+export async function revealStaffAadhaar(staffId: string) {
+	return request<StaffAadhaarRevealDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/aadhaar`, {}, 'reveal sensitive aadhaar');
+}
+
+export async function uploadStaffAadhaarDocument(staffId: string, file: File) {
+	const formData = new FormData();
+	formData.append('file', file);
+	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/aadhaar-document`, {
+		method: 'POST',
+		body: formData,
+	}, 'upload staff aadhaar document');
+}
+
+export async function deleteStaffAadhaarDocument(staffId: string) {
+	return request<StaffDto>(`/api/staff-advances/staff/${encodeURIComponent(staffId)}/aadhaar-document`, {
+		method: 'DELETE',
+	}, 'delete staff aadhaar document');
+}
+
+export function getStaffAadhaarDocumentUrl(staffId: string): string {
+	return `${API_BASE}/api/staff-advances/staff/${encodeURIComponent(staffId)}/aadhaar-document`;
+}
+
+export async function downloadStaffAadhaarDocument(staffId: string): Promise<{ blob: Blob; fileName: string }> {
+	const token = getAuthToken();
+	const res = await fetch(`${API_BASE}/api/staff-advances/staff/${encodeURIComponent(staffId)}/aadhaar-document`, {
+		headers: token ? { Authorization: `Bearer ${token}` } : {},
+	});
+	if (!res.ok) {
+		throw new ApiError('Failed to download Aadhaar document', res.status, null);
+	}
+	const blob = await res.blob();
+	const disposition = res.headers.get('content-disposition');
+	let fileName = 'aadhaar_document';
+	if (disposition && disposition.includes('filename=')) {
+		const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+		if (match && match[1]) {
+			fileName = match[1].replace(/['"]/g, '');
+		}
+	}
+	return { blob, fileName };
 }
 
 export async function deleteStaffMember(id: string) {

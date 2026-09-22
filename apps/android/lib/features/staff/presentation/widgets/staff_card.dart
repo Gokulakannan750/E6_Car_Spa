@@ -186,6 +186,41 @@ class StaffCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Text(
+                        staff.aadhaarMasked ?? 'Aadhaar: Not Added',
+                        style: TextStyle(
+                          fontFamily: staff.aadhaarMasked != null ? 'monospace' : null,
+                          fontSize: 11,
+                          fontWeight: staff.aadhaarMasked != null ? FontWeight.w600 : FontWeight.w400,
+                          color: staff.aadhaarMasked != null ? AppColors.textPrimary : AppColors.textSecondary,
+                          fontStyle: staff.aadhaarMasked == null ? FontStyle.italic : null,
+                        ),
+                      ),
+                      if (staff.hasAadhaarDocument) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withAlpha(20),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Doc',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),

@@ -17,6 +17,9 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getStaffAdvanceHistory: vi.fn(),
 		createStaffMember: vi.fn(),
 		updateStaffMember: vi.fn(),
+		revealStaffAadhaar: vi.fn(),
+		deleteStaffAadhaarDocument: vi.fn(),
+		downloadStaffAadhaarDocument: vi.fn(),
 	};
 });
 
@@ -32,6 +35,11 @@ describe('StaffAdvancesPage Component', () => {
 			isActive: true,
 			totalAdvances: 1,
 			totalAdvanceAmount: 5000,
+			aadhaarMasked: 'XXXX XXXX 9012',
+			hasAadhaarDocument: true,
+			aadhaarDocumentFileName: 'aadhaar_doc.pdf',
+			aadhaarDocumentContentType: 'application/pdf',
+			aadhaarDocumentSize: 102400,
 		},
 		{
 			id: 'staff-2',
@@ -43,6 +51,8 @@ describe('StaffAdvancesPage Component', () => {
 			isActive: true,
 			totalAdvances: 0,
 			totalAdvanceAmount: 0,
+			aadhaarMasked: null,
+			hasAadhaarDocument: false,
 		},
 	];
 
@@ -279,7 +289,56 @@ describe('StaffAdvancesPage Component', () => {
 		});
 	});
 
-	it('switches to Staff Directory tab and renders staff list', async () => {
+	it('switches to Staff Directory tab and renders staff list with masked Aadhaar', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/staff-advances'],
+				authUser: {
+					id: 'usr-admin',
+					fullName: 'Admin User',
+					username: 'admin',
+					email: 'admin@e6carspa.com',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['staff.create', 'staff.edit', 'staff.view_sensitive'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /staff directory/i })).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByRole('button', { name: /staff directory/i }));
+
+		await waitFor(() => {
+			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
+			expect(screen.getByText('Senthil Nathan')).toBeInTheDocument();
+			expect(screen.getByText('9876540001')).toBeInTheDocument();
+			expect(screen.getByText('9876540002')).toBeInTheDocument();
+			expect(screen.getByText('XXXX XXXX 9012')).toBeInTheDocument();
+			expect(screen.getByText(/not added/i)).toBeInTheDocument();
+		});
+	});
+
+	it('validates mandatory Aadhaar on new staff creation and submits formatted value', async () => {
+		vi.mocked(api.createStaffMember).mockResolvedValue({
+			id: 'staff-3',
+			name: 'Ramesh Kumar',
+			phoneNumber: '9876543210',
+			email: null,
+			address: null,
+			role: 'Technician',
+			isActive: true,
+			totalAdvances: 0,
+			totalAdvanceAmount: 0,
+			aadhaarMasked: 'XXXX XXXX 9012',
+			hasAadhaarDocument: false,
+		});
+
 		renderWithProviders(
 			<Routes>
 				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
@@ -299,16 +358,104 @@ describe('StaffAdvancesPage Component', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /staff directory/i })).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /add staff member/i })).toBeInTheDocument();
 		});
+
+		fireEvent.click(screen.getByRole('button', { name: /add staff member/i }));
+
+		await waitFor(() => {
+			expect(screen.getByPlaceholderText(/e\.g\. ramesh kumar/i)).toBeInTheDocument();
+		});
+
+		// Fill in name and phone
+		fireEvent.change(screen.getByPlaceholderText(/e\.g\. ramesh kumar/i), {
+			target: { value: 'Ramesh Kumar' },
+		});
+		fireEvent.change(screen.getByPlaceholderText('e.g. 9876543210'), {
+			target: { value: '9876543210' },
+		});
+
+		// Try to submit with missing Aadhaar
+		const submitBtn = screen.getByRole('button', { name: /^add staff$/i });
+		fireEvent.click(submitBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText(/aadhaar number is required/i)).toBeInTheDocument();
+		});
+
+		// Enter valid 12-digit Aadhaar
+		fireEvent.change(screen.getByPlaceholderText('1234 5678 9012'), {
+			target: { value: '1234 5678 9012' },
+		});
+
+		fireEvent.click(submitBtn);
+
+		await waitFor(() => {
+			expect(api.createStaffMember).toHaveBeenCalledWith(
+				expect.objectContaining({
+					name: 'Ramesh Kumar',
+					phoneNumber: '9876543210',
+					aadhaarNumber: '123456789012',
+				})
+			);
+		});
+	});
+
+	it('opens staff details modal and reveals Aadhaar on authorized request', async () => {
+		vi.mocked(api.revealStaffAadhaar).mockResolvedValue({
+			staffId: 'staff-1',
+			aadhaarNumber: '123456789012',
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/staff-advances'],
+				authUser: {
+					id: 'usr-admin',
+					fullName: 'Admin User',
+					username: 'admin',
+					email: 'admin@e6carspa.com',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['staff.view', 'staff.view_sensitive'],
+				},
+			}
+		);
 
 		fireEvent.click(screen.getByRole('button', { name: /staff directory/i }));
 
 		await waitFor(() => {
 			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
-			expect(screen.getByText('Senthil Nathan')).toBeInTheDocument();
-			expect(screen.getByText('9876540001')).toBeInTheDocument();
-			expect(screen.getByText('9876540002')).toBeInTheDocument();
+		});
+
+		// Click Details button
+		const detailsBtns = screen.getAllByRole('button', { name: /^details$/i });
+		fireEvent.click(detailsBtns[0]);
+
+		await waitFor(() => {
+			expect(screen.getByText(/Karthik Raja.*Staff Details/i)).toBeInTheDocument();
+			expect(screen.getByText(/Identification/i)).toBeInTheDocument();
+			expect(screen.getAllByText('XXXX XXXX 9012').length).toBeGreaterThanOrEqual(1);
+			expect(screen.getByRole('button', { name: /show/i })).toBeInTheDocument();
+		});
+
+		// Click Show to reveal
+		fireEvent.click(screen.getByRole('button', { name: /show/i }));
+
+		await waitFor(() => {
+			expect(api.revealStaffAadhaar).toHaveBeenCalledWith('staff-1');
+			expect(screen.getByText('1234 5678 9012')).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /hide/i })).toBeInTheDocument();
+		});
+
+		// Click Hide to mask again
+		fireEvent.click(screen.getByRole('button', { name: /hide/i }));
+
+		await waitFor(() => {
+			expect(screen.getAllByText('XXXX XXXX 9012').length).toBeGreaterThanOrEqual(2);
 		});
 	});
 });

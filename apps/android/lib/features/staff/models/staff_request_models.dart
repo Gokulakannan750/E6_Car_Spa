@@ -8,6 +8,7 @@ class CreateStaffRequest {
   final String? address;
   final String? role;
   final bool isActive;
+  final String aadhaarNumber;
 
   const CreateStaffRequest({
     required this.name,
@@ -16,6 +17,7 @@ class CreateStaffRequest {
     this.address,
     this.role,
     this.isActive = true,
+    required this.aadhaarNumber,
   });
 
   Map<String, dynamic> toJson() => {
@@ -25,6 +27,7 @@ class CreateStaffRequest {
     if (address != null && address!.trim().isNotEmpty) 'address': address!.trim(),
     if (role != null && role!.trim().isNotEmpty) 'role': role!.trim(),
     'isActive': isActive,
+    'aadhaarNumber': aadhaarNumber.trim().replaceAll(RegExp(r'[\s-]'), ''),
   };
 }
 
@@ -36,6 +39,8 @@ class UpdateStaffRequest {
   final String? address;
   final String? role;
   final bool? isActive;
+  final String? aadhaarNumber;
+  final bool? removeAadhaarDocument;
 
   const UpdateStaffRequest({
     this.name,
@@ -44,6 +49,8 @@ class UpdateStaffRequest {
     this.address,
     this.role,
     this.isActive,
+    this.aadhaarNumber,
+    this.removeAadhaarDocument,
   });
 
   Map<String, dynamic> toJson() => {
@@ -53,5 +60,8 @@ class UpdateStaffRequest {
     if (address != null && address!.trim().isNotEmpty) 'address': address!.trim(),
     if (role != null && role!.trim().isNotEmpty) 'role': role!.trim(),
     if (isActive != null) 'isActive': isActive,
+    if (aadhaarNumber != null && aadhaarNumber!.trim().isNotEmpty)
+      'aadhaarNumber': aadhaarNumber!.trim().replaceAll(RegExp(r'[\s-]'), ''),
+    if (removeAadhaarDocument != null) 'removeAadhaarDocument': removeAadhaarDocument,
   };
 }

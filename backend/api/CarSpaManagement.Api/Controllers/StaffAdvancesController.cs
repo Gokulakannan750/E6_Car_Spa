@@ -161,6 +161,53 @@ public class StaffAdvancesController : ControllerBase
         return Ok(staff);
     }
 
+    [HttpGet("staff/{staffId:guid}/aadhaar")]
+    [RequirePermission("staff.view_sensitive")]
+    public async Task<IActionResult> RevealStaffAadhaar(Guid staffId, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        var result = await _service.RevealStaffAadhaarAsync(staffId, userId, ct);
+        if (result is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
+        return Ok(result);
+    }
+
+    [HttpGet("staff/{staffId:guid}/aadhaar-document")]
+    [RequirePermission("staff.view")]
+    public async Task<IActionResult> GetStaffAadhaarDocument(Guid staffId, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        var doc = await _service.GetStaffAadhaarDocumentAsync(staffId, userId, ct);
+        if (doc is null) return NotFound(new { message = $"Aadhaar document not found for staff member with ID '{staffId}'." });
+
+        return File(doc.Value.Bytes, doc.Value.ContentType, doc.Value.FileName);
+    }
+
+    [HttpPost("staff/{staffId:guid}/aadhaar-document")]
+    [RequirePermission("staff.edit")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("file-upload")]
+    public async Task<IActionResult> UploadStaffAadhaarDocument(Guid staffId, [FromForm] IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "Please provide a valid document file." });
+        }
+
+        var userId = GetUserId();
+        var dto = await _service.UploadStaffAadhaarDocumentAsync(staffId, file, userId, ct);
+        if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
+        return Ok(dto);
+    }
+
+    [HttpDelete("staff/{staffId:guid}/aadhaar-document")]
+    [RequirePermission("staff.edit")]
+    public async Task<IActionResult> DeleteStaffAadhaarDocument(Guid staffId, CancellationToken ct)
+    {
+        var userId = GetUserId();
+        var dto = await _service.DeleteStaffAadhaarDocumentAsync(staffId, userId, ct);
+        if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
+        return Ok(dto);
+    }
+
     [HttpGet("staff/{staffId:guid}/advances")]
     [RequirePermission("staff_advances.view")]
     public async Task<IActionResult> GetByStaffIdLegacy(Guid staffId, CancellationToken ct)
@@ -178,18 +225,80 @@ public class StaffAdvancesController : ControllerBase
 
     [HttpPost("staff")]
     [RequirePermission("staff.create")]
-    public async Task<IActionResult> CreateStaff([FromBody] CreateStaffRequest request, CancellationToken ct)
+    public async Task<IActionResult> CreateStaff(CancellationToken ct)
     {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        CreateStaffRequest request;
+        if (Request.HasFormContentType)
+        {
+            var form = await Request.ReadFormAsync(ct);
+            var file = form.Files.GetFile("aadhaarFile") ?? form.Files.GetFile("AadhaarFile");
+            request = new CreateStaffRequest
+            {
+                Name = form["name"].FirstOrDefault() ?? form["Name"].FirstOrDefault() ?? string.Empty,
+                PhoneNumber = form["phoneNumber"].FirstOrDefault() ?? form["PhoneNumber"].FirstOrDefault() ?? string.Empty,
+                AadhaarNumber = form["aadhaarNumber"].FirstOrDefault() ?? form["AadhaarNumber"].FirstOrDefault() ?? string.Empty,
+                Email = form["email"].FirstOrDefault() ?? form["Email"].FirstOrDefault(),
+                Address = form["address"].FirstOrDefault() ?? form["Address"].FirstOrDefault(),
+                Role = form["role"].FirstOrDefault() ?? form["Role"].FirstOrDefault(),
+                IsActive = !bool.TryParse(form["isActive"].FirstOrDefault() ?? form["IsActive"].FirstOrDefault(), out var act) || act,
+                AadhaarFile = file
+            };
+        }
+        else
+        {
+            request = await Request.ReadFromJsonAsync<CreateStaffRequest>(ct) ?? new CreateStaffRequest();
+        }
+
+        Serilog.Log.Information("Staff creation request received: HasForm={HasForm}, HasAadhaar={HasAadhaar}, HasFile={HasFile}",
+            Request.HasFormContentType,
+            !string.IsNullOrWhiteSpace(request.AadhaarNumber),
+            request.AadhaarFile != null);
+
         var dto = await _service.CreateStaffMemberAsync(request, ct);
         return CreatedAtAction(nameof(GetStaffById), new { staffId = dto.Id }, dto);
     }
 
     [HttpPut("staff/{staffId:guid}")]
     [RequirePermission("staff.edit")]
-    public async Task<IActionResult> UpdateStaff(Guid staffId, [FromBody] UpdateStaffRequest request, CancellationToken ct)
+    public async Task<IActionResult> UpdateStaff(Guid staffId, CancellationToken ct)
     {
-        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        UpdateStaffRequest request;
+        if (Request.HasFormContentType)
+        {
+            var form = await Request.ReadFormAsync(ct);
+            var file = form.Files.GetFile("aadhaarFile") ?? form.Files.GetFile("AadhaarFile");
+            bool? isActive = null;
+            if (bool.TryParse(form["isActive"].FirstOrDefault() ?? form["IsActive"].FirstOrDefault(), out var act))
+                isActive = act;
+            bool? removeDoc = null;
+            if (bool.TryParse(form["removeAadhaarDocument"].FirstOrDefault() ?? form["RemoveAadhaarDocument"].FirstOrDefault(), out var rem))
+                removeDoc = rem;
+
+            request = new UpdateStaffRequest
+            {
+                Name = form["name"].FirstOrDefault() ?? form["Name"].FirstOrDefault(),
+                PhoneNumber = form["phoneNumber"].FirstOrDefault() ?? form["PhoneNumber"].FirstOrDefault(),
+                AadhaarNumber = form["aadhaarNumber"].FirstOrDefault() ?? form["AadhaarNumber"].FirstOrDefault(),
+                Email = form["email"].FirstOrDefault() ?? form["Email"].FirstOrDefault(),
+                Address = form["address"].FirstOrDefault() ?? form["Address"].FirstOrDefault(),
+                Role = form["role"].FirstOrDefault() ?? form["Role"].FirstOrDefault(),
+                IsActive = isActive,
+                RemoveAadhaarDocument = removeDoc,
+                AadhaarFile = file
+            };
+        }
+        else
+        {
+            request = await Request.ReadFromJsonAsync<UpdateStaffRequest>(ct) ?? new UpdateStaffRequest();
+        }
+
+        Serilog.Log.Information("Staff update request received for {StaffId}: HasForm={HasForm}, HasAadhaar={HasAadhaar}, HasFile={HasFile}, RemoveDoc={RemoveDoc}",
+            staffId,
+            Request.HasFormContentType,
+            !string.IsNullOrWhiteSpace(request.AadhaarNumber),
+            request.AadhaarFile != null,
+            request.RemoveAadhaarDocument);
+
         var dto = await _service.UpdateStaffMemberAsync(staffId, request, ct);
         if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return Ok(dto);

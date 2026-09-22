@@ -4,7 +4,11 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
+using CarSpaManagement.Api.Infrastructure.Security;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace CarSpaManagement.Api.Application.Services;
 
@@ -12,11 +16,16 @@ public class StaffAdvanceService : IStaffAdvanceService
 {
     private readonly AppDbContext _db;
     private readonly IAuditLogService _auditLogService;
+    private readonly IAesEncryptionService _encryptionService;
 
-    public StaffAdvanceService(AppDbContext db, IAuditLogService auditLogService)
+    public StaffAdvanceService(
+        AppDbContext db,
+        IAuditLogService auditLogService,
+        IAesEncryptionService encryptionService)
     {
         _db = db;
         _auditLogService = auditLogService;
+        _encryptionService = encryptionService;
     }
 
     public async Task<StaffAdvanceListResponse> GetAllAsync(
@@ -377,16 +386,9 @@ public class StaffAdvanceService : IStaffAdvanceService
         return staffList.Select(s =>
         {
             var hasStats = advancesStats.TryGetValue(s.Id, out var st);
-            return new StaffDto(
-                s.Id,
-                s.Name,
-                s.PhoneNumber,
-                s.Email,
-                s.Address,
-                s.Role,
-                s.IsActive,
-                hasStats && st != null ? st.Count : 0,
-                hasStats && st != null ? Math.Round(st.Total, 2) : 0m);
+            var totalCount = hasStats && st != null ? st.Count : 0;
+            var totalAmt = hasStats && st != null ? Math.Round(st.Total, 2) : 0m;
+            return ToStaffDto(s, totalCount, totalAmt);
         }).ToList();
     }
 
@@ -399,20 +401,14 @@ public class StaffAdvanceService : IStaffAdvanceService
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
 
-        return new StaffDto(
-            staff.Id,
-            staff.Name,
-            staff.PhoneNumber,
-            staff.Email,
-            staff.Address,
-            staff.Role,
-            staff.IsActive,
-            totalAdvances,
-            Math.Round(totalAmount, 2));
+        return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
 
     public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
     {
+        var normalizedAadhaar = NormalizeAndValidateAadhaar(request.AadhaarNumber, isRequired: true);
+        var encryptedAadhaar = _encryptionService.Encrypt(normalizedAadhaar);
+
         var staff = new Staff
         {
             Id = Guid.NewGuid(),
@@ -422,8 +418,28 @@ public class StaffAdvanceService : IStaffAdvanceService
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
             Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim(),
             IsActive = request.IsActive,
+            AadhaarNumberEncrypted = encryptedAadhaar,
             CreatedAt = DateTime.UtcNow
         };
+
+        if (request.AadhaarFile != null)
+        {
+            ValidateAadhaarFile(request.AadhaarFile);
+            var dir = GetStaffDocumentDirectory(staff.Id);
+            var ext = Path.GetExtension(request.AadhaarFile.FileName).ToLowerInvariant();
+            var physicalFileName = $"{Guid.NewGuid()}{ext}";
+            var physicalPath = Path.Combine(dir, physicalFileName);
+
+            using (var stream = new FileStream(physicalPath, FileMode.Create))
+            {
+                await request.AadhaarFile.CopyToAsync(stream, cancellationToken);
+            }
+
+            staff.AadhaarDocumentPath = physicalPath;
+            staff.AadhaarDocumentFileName = Path.GetFileName(request.AadhaarFile.FileName);
+            staff.AadhaarDocumentContentType = request.AadhaarFile.ContentType;
+            staff.AadhaarDocumentSize = request.AadhaarFile.Length;
+        }
 
         await _db.Staff.AddAsync(staff, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
@@ -438,16 +454,20 @@ public class StaffAdvanceService : IStaffAdvanceService
             outcome: "Success",
             cancellationToken: cancellationToken);
 
-        return new StaffDto(
-            staff.Id,
-            staff.Name,
-            staff.PhoneNumber,
-            staff.Email,
-            staff.Address,
-            staff.Role,
-            staff.IsActive,
-            0,
-            0m);
+        if (staff.AadhaarDocumentPath != null)
+        {
+            await _auditLogService.RecordAsync(
+                action: "staff.aadhaar_document_uploaded",
+                module: "Staff",
+                description: $"Aadhaar document uploaded for staff member '{staff.Name}'.",
+                entityType: "Staff",
+                entityId: staff.Id,
+                entityReference: staff.Name,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
+
+        return ToStaffDto(staff, 0, 0m);
     }
 
     public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
@@ -461,6 +481,71 @@ public class StaffAdvanceService : IStaffAdvanceService
         if (request.Address is not null) staff.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
         if (request.Role is not null) staff.Role = string.IsNullOrWhiteSpace(request.Role) ? null : request.Role.Trim();
         if (request.IsActive.HasValue) staff.IsActive = request.IsActive.Value;
+
+        if (!string.IsNullOrWhiteSpace(request.AadhaarNumber))
+        {
+            var normalizedAadhaar = NormalizeAndValidateAadhaar(request.AadhaarNumber, isRequired: true);
+            staff.AadhaarNumberEncrypted = _encryptionService.Encrypt(normalizedAadhaar);
+
+            await _auditLogService.RecordAsync(
+                action: "staff.aadhaar_updated",
+                module: "Staff",
+                description: $"Aadhaar number updated for staff member '{staff.Name}'.",
+                entityType: "Staff",
+                entityId: staff.Id,
+                entityReference: staff.Name,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
+
+        if (request.RemoveAadhaarDocument == true)
+        {
+            TryDeletePhysicalFile(staff.AadhaarDocumentPath);
+            staff.AadhaarDocumentPath = null;
+            staff.AadhaarDocumentFileName = null;
+            staff.AadhaarDocumentContentType = null;
+            staff.AadhaarDocumentSize = null;
+
+            await _auditLogService.RecordAsync(
+                action: "staff.aadhaar_document_deleted",
+                module: "Staff",
+                description: $"Aadhaar document deleted for staff member '{staff.Name}'.",
+                entityType: "Staff",
+                entityId: staff.Id,
+                entityReference: staff.Name,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
+        else if (request.AadhaarFile != null)
+        {
+            ValidateAadhaarFile(request.AadhaarFile);
+            TryDeletePhysicalFile(staff.AadhaarDocumentPath);
+
+            var dir = GetStaffDocumentDirectory(staff.Id);
+            var ext = Path.GetExtension(request.AadhaarFile.FileName).ToLowerInvariant();
+            var physicalFileName = $"{Guid.NewGuid()}{ext}";
+            var physicalPath = Path.Combine(dir, physicalFileName);
+
+            using (var stream = new FileStream(physicalPath, FileMode.Create))
+            {
+                await request.AadhaarFile.CopyToAsync(stream, cancellationToken);
+            }
+
+            staff.AadhaarDocumentPath = physicalPath;
+            staff.AadhaarDocumentFileName = Path.GetFileName(request.AadhaarFile.FileName);
+            staff.AadhaarDocumentContentType = request.AadhaarFile.ContentType;
+            staff.AadhaarDocumentSize = request.AadhaarFile.Length;
+
+            await _auditLogService.RecordAsync(
+                action: "staff.aadhaar_document_uploaded",
+                module: "Staff",
+                description: $"Aadhaar document updated for staff member '{staff.Name}'.",
+                entityType: "Staff",
+                entityId: staff.Id,
+                entityReference: staff.Name,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
 
         staff.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
@@ -479,16 +564,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
 
-        return new StaffDto(
-            staff.Id,
-            staff.Name,
-            staff.PhoneNumber,
-            staff.Email,
-            staff.Address,
-            staff.Role,
-            staff.IsActive,
-            totalAdvances,
-            Math.Round(totalAmount, 2));
+        return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
 
     public async Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default)
@@ -513,7 +589,283 @@ public class StaffAdvanceService : IStaffAdvanceService
         return true;
     }
 
+    public async Task<StaffAadhaarRevealDto?> RevealStaffAadhaarAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return null;
+
+        if (string.IsNullOrWhiteSpace(staff.AadhaarNumberEncrypted))
+        {
+            throw new ValidationException("Staff member does not have an Aadhaar number recorded.");
+        }
+
+        var decrypted = _encryptionService.Decrypt(staff.AadhaarNumberEncrypted);
+        if (string.IsNullOrWhiteSpace(decrypted))
+        {
+            throw new InvalidOperationException("Failed to decrypt Aadhaar number.");
+        }
+
+        await _auditLogService.RecordAsync(
+            action: "staff.aadhaar_viewed",
+            module: "Staff",
+            description: $"Sensitive Aadhaar number viewed for staff member '{staff.Name}'.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        return new StaffAadhaarRevealDto(staff.Id, decrypted);
+    }
+
+    public async Task<(byte[] Bytes, string ContentType, string FileName)?> GetStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null || string.IsNullOrWhiteSpace(staff.AadhaarDocumentPath) || !File.Exists(staff.AadhaarDocumentPath))
+        {
+            return null;
+        }
+
+        var bytes = await File.ReadAllBytesAsync(staff.AadhaarDocumentPath, cancellationToken);
+        var contentType = staff.AadhaarDocumentContentType ?? "application/octet-stream";
+        var fileName = staff.AadhaarDocumentFileName ?? Path.GetFileName(staff.AadhaarDocumentPath);
+
+        await _auditLogService.RecordAsync(
+            action: "staff.aadhaar_document_viewed",
+            module: "Staff",
+            description: $"Aadhaar document viewed/downloaded for staff member '{staff.Name}'.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        return (bytes, contentType, fileName);
+    }
+
+    public async Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, IFormFile file, Guid requestingUserId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return null;
+
+        ValidateAadhaarFile(file);
+        TryDeletePhysicalFile(staff.AadhaarDocumentPath);
+
+        var dir = GetStaffDocumentDirectory(staff.Id);
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var physicalFileName = $"{Guid.NewGuid()}{ext}";
+        var physicalPath = Path.Combine(dir, physicalFileName);
+
+        using (var stream = new FileStream(physicalPath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        staff.AadhaarDocumentPath = physicalPath;
+        staff.AadhaarDocumentFileName = Path.GetFileName(file.FileName);
+        staff.AadhaarDocumentContentType = file.ContentType;
+        staff.AadhaarDocumentSize = file.Length;
+        staff.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "staff.aadhaar_document_uploaded",
+            module: "Staff",
+            description: $"Aadhaar document uploaded for staff member '{staff.Name}'.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
+        var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+        return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
+    }
+
+    public async Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        if (staff is null) return null;
+
+        TryDeletePhysicalFile(staff.AadhaarDocumentPath);
+        staff.AadhaarDocumentPath = null;
+        staff.AadhaarDocumentFileName = null;
+        staff.AadhaarDocumentContentType = null;
+        staff.AadhaarDocumentSize = null;
+        staff.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "staff.aadhaar_document_deleted",
+            module: "Staff",
+            description: $"Aadhaar document deleted for staff member '{staff.Name}'.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.Name,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
+        var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
+        var totalAmount = await advancesQuery.SumAsync(a => (decimal?)a.Amount, cancellationToken) ?? 0m;
+
+        return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
+    }
+
     // ── Helper ──────────────────────────────────────────────────────────────
+
+    private StaffDto ToStaffDto(Staff s, int totalAdvances, decimal totalAmount)
+    {
+        string? masked = null;
+        if (!string.IsNullOrWhiteSpace(s.AadhaarNumberEncrypted))
+        {
+            var decrypted = _encryptionService?.Decrypt(s.AadhaarNumberEncrypted);
+            masked = MaskAadhaar(decrypted);
+        }
+
+        return new StaffDto(
+            Id: s.Id,
+            Name: s.Name,
+            PhoneNumber: s.PhoneNumber,
+            Email: s.Email,
+            Address: s.Address,
+            Role: s.Role,
+            IsActive: s.IsActive,
+            TotalAdvances: totalAdvances,
+            TotalAdvanceAmount: totalAmount,
+            AadhaarMasked: masked,
+            HasAadhaarDocument: !string.IsNullOrWhiteSpace(s.AadhaarDocumentPath),
+            AadhaarDocumentFileName: s.AadhaarDocumentFileName,
+            AadhaarDocumentContentType: s.AadhaarDocumentContentType,
+            AadhaarDocumentSize: s.AadhaarDocumentSize
+        );
+    }
+
+    private static string NormalizeAndValidateAadhaar(string? rawAadhaar, bool isRequired)
+    {
+        if (string.IsNullOrWhiteSpace(rawAadhaar))
+        {
+            if (isRequired)
+                throw new ValidationException("Aadhaar number is required.");
+            return string.Empty;
+        }
+
+        // Allow spaces and hyphens for convenience, strip them out
+        var normalized = rawAadhaar.Replace(" ", "").Replace("-", "").Trim();
+
+        if (normalized.Length != 12 || !Regex.IsMatch(normalized, @"^\d{12}$"))
+        {
+            throw new ValidationException("Aadhaar number must be exactly 12 numeric digits.");
+        }
+
+        return normalized;
+    }
+
+    private static string? MaskAadhaar(string? rawAadhaar)
+    {
+        if (string.IsNullOrWhiteSpace(rawAadhaar) || rawAadhaar.Length != 12)
+            return null;
+
+        // Mask first 8 digits, display last 4 digits: XXXX XXXX 1234
+        var last4 = rawAadhaar.Substring(8, 4);
+        return $"XXXX XXXX {last4}";
+    }
+
+    private static readonly HashSet<string> AllowedDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf", ".jpg", ".jpeg", ".png"
+    };
+
+    private static readonly HashSet<string> AllowedMimeTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/pdf", "image/jpeg", "image/png"
+    };
+
+    private const long MaxDocumentSizeBytes = 5 * 1024 * 1024; // 5 MB
+
+    private static void ValidateAadhaarFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new ValidationException("Uploaded file is empty.");
+        }
+
+        if (file.Length > MaxDocumentSizeBytes)
+        {
+            throw new ValidationException("Document size must not exceed 5 MB.");
+        }
+
+        var ext = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(ext) || !AllowedDocumentExtensions.Contains(ext))
+        {
+            throw new ValidationException("Unsupported file type. Allowed formats: PDF, JPG, JPEG, PNG.");
+        }
+
+        if (!AllowedMimeTypes.Contains(file.ContentType))
+        {
+            throw new ValidationException("Invalid content type. Allowed formats: PDF, JPG, JPEG, PNG.");
+        }
+
+        // Validate magic bytes
+        using var stream = file.OpenReadStream();
+        var header = new byte[8];
+        var read = stream.Read(header, 0, header.Length);
+        if (read < 4)
+        {
+            throw new ValidationException("Invalid or corrupted file.");
+        }
+
+        var normalizedExt = ext.ToLowerInvariant();
+        if (normalizedExt == ".pdf")
+        {
+            // %PDF -> 0x25, 0x50, 0x44, 0x46
+            if (header[0] != 0x25 || header[1] != 0x50 || header[2] != 0x44 || header[3] != 0x46)
+                throw new ValidationException("Invalid PDF document file signature.");
+        }
+        else if (normalizedExt == ".png")
+        {
+            // 89 50 4E 47
+            if (header[0] != 0x89 || header[1] != 0x50 || header[2] != 0x4E || header[3] != 0x47)
+                throw new ValidationException("Invalid PNG image file signature.");
+        }
+        else if (normalizedExt == ".jpg" || normalizedExt == ".jpeg")
+        {
+            // FF D8 FF
+            if (header[0] != 0xFF || header[1] != 0xD8 || header[2] != 0xFF)
+                throw new ValidationException("Invalid JPEG image file signature.");
+        }
+    }
+
+    private static string GetStaffDocumentDirectory(Guid staffId)
+    {
+        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "uploads", "aadhaar_documents", staffId.ToString());
+        if (!Directory.Exists(basePath))
+        {
+            Directory.CreateDirectory(basePath);
+        }
+        return basePath;
+    }
+
+    private static void TryDeletePhysicalFile(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception)
+        {
+            // Do not crash on file delete failure
+        }
+    }
 
     private static StaffAdvanceDto ToDto(StaffAdvance a) => new(
         Id: a.Id,

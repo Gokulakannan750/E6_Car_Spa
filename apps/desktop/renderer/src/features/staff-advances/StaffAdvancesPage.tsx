@@ -18,6 +18,16 @@ import {
 	Mail,
 	MapPin,
 	RotateCcw,
+	Eye,
+	EyeOff,
+	FileText,
+	Upload,
+	Trash2,
+	Download,
+	ShieldCheck,
+	FileCheck,
+	Info,
+	User,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
@@ -33,10 +43,26 @@ import {
 	getStaffAdvanceHistory,
 	createStaffMember,
 	updateStaffMember,
+	revealStaffAadhaar,
+	deleteStaffAadhaarDocument,
+	downloadStaffAadhaarDocument,
 	type StaffDto,
 	type StaffAdvanceDto,
 	type StaffAdvanceStatus,
 } from '../../lib/api';
+
+function formatAadhaarInput(val: string): string {
+	const cleaned = val.replace(/\D/g, '').slice(0, 12);
+	const parts = [];
+	for (let i = 0; i < cleaned.length; i += 4) {
+		parts.push(cleaned.slice(i, i + 4));
+	}
+	return parts.join(' ');
+}
+
+function normalizeAadhaar(val: string): string {
+	return val.replace(/[\s-]/g, '');
+}
 
 function formatINR(value: number): string {
 	return '₹' + (value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -75,6 +101,7 @@ export function StaffAdvancesPage() {
 	const canSettle = hasPermission('staff_advances.settle');
 	const canObsolete = hasPermission('staff_advances.obsolete');
 	const canManageStaff = hasPermission('staff.create') || hasPermission('staff.edit');
+	const canViewSensitive = hasPermission('staff.view_sensitive') || hasPermission('staff.view');
 
 	const [activeTab, setActiveTab] = useState<TabType>('advances');
 
@@ -118,7 +145,19 @@ export function StaffAdvancesPage() {
 	const [staffFormAddress, setStaffFormAddress] = useState('');
 	const [staffFormRole, setStaffFormRole] = useState('Technician');
 	const [staffFormIsActive, setStaffFormIsActive] = useState(true);
+	const [staffFormAadhaar, setStaffFormAadhaar] = useState('');
+	const [staffFormAadhaarFile, setStaffFormAadhaarFile] = useState<File | null>(null);
+	const [staffFormRemoveDocument, setStaffFormRemoveDocument] = useState(false);
+	const [staffFormIsEditingAadhaar, setStaffFormIsEditingAadhaar] = useState(false);
 	const [staffFormError, setStaffFormError] = useState('');
+
+	// Staff Details Modal State
+	const [viewingDetailsStaff, setViewingDetailsStaff] = useState<StaffDto | null>(null);
+	const [revealedAadhaar, setRevealedAadhaar] = useState<string | null>(null);
+	const [isRevealingAadhaar, setIsRevealingAadhaar] = useState(false);
+	const [revealError, setRevealError] = useState<string | null>(null);
+	const [isDownloadingDoc, setIsDownloadingDoc] = useState(false);
+	const [docError, setDocError] = useState<string | null>(null);
 
 	// ── Queries ─────────────────────────────────────────────────────────────
 	const { data: staffList = [] } = useQuery({
@@ -223,15 +262,38 @@ export function StaffAdvancesPage() {
 	});
 
 	const staffMutation = useMutation({
-		mutationFn: async (data: { name: string; phoneNumber: string; email?: string | null; address?: string | null; role?: string | null; isActive?: boolean }) => {
+		mutationFn: async (data: {
+			name: string;
+			phoneNumber: string;
+			email?: string | null;
+			address?: string | null;
+			role?: string | null;
+			isActive?: boolean;
+			aadhaarNumber?: string;
+			aadhaarFile?: File | null;
+			removeAadhaarDocument?: boolean;
+		}) => {
 			if (editingStaff) {
 				return await updateStaffMember(editingStaff.id, data);
 			} else {
 				return await createStaffMember(data as any);
 			}
 		},
-		onSuccess: () => {
+		onSuccess: (savedStaff) => {
+			if (savedStaff) {
+				qc.setQueryData<StaffDto[]>(['staff-list'], (old = []) => {
+					const exists = old.some((s) => s.id === savedStaff.id);
+					if (exists) {
+						return old.map((s) => (s.id === savedStaff.id ? savedStaff : s));
+					}
+					return [savedStaff, ...old];
+				});
+			}
 			qc.invalidateQueries({ queryKey: ['staff-list'] });
+			qc.refetchQueries({ queryKey: ['staff-list'] });
+			if (viewingDetailsStaff && savedStaff && savedStaff.id === viewingDetailsStaff.id) {
+				setViewingDetailsStaff(savedStaff);
+			}
 			setShowStaffModal(false);
 			resetStaffForm();
 		},
@@ -269,6 +331,10 @@ export function StaffAdvancesPage() {
 		setStaffFormAddress('');
 		setStaffFormRole('Technician');
 		setStaffFormIsActive(true);
+		setStaffFormAadhaar('');
+		setStaffFormAadhaarFile(null);
+		setStaffFormRemoveDocument(false);
+		setStaffFormIsEditingAadhaar(false);
 		setStaffFormError('');
 	};
 
@@ -342,6 +408,37 @@ export function StaffAdvancesPage() {
 			return;
 		}
 
+		const cleanAadhaar = normalizeAadhaar(staffFormAadhaar);
+		if (!editingStaff) {
+			if (!cleanAadhaar) {
+				setStaffFormError('Aadhaar number is required for new staff members.');
+				return;
+			}
+			if (cleanAadhaar.length !== 12 || !/^\d{12}$/.test(cleanAadhaar)) {
+				setStaffFormError('Aadhaar number must be exactly 12 numeric digits.');
+				return;
+			}
+		} else {
+			if (staffFormIsEditingAadhaar && cleanAadhaar) {
+				if (cleanAadhaar.length !== 12 || !/^\d{12}$/.test(cleanAadhaar)) {
+					setStaffFormError('Aadhaar number must be exactly 12 numeric digits.');
+					return;
+				}
+			}
+		}
+
+		if (staffFormAadhaarFile) {
+			const ext = staffFormAadhaarFile.name.split('.').pop()?.toLowerCase();
+			if (!['pdf', 'jpg', 'jpeg', 'png'].includes(ext || '')) {
+				setStaffFormError('Unsupported file type. Only PDF, JPG, JPEG, and PNG files are allowed.');
+				return;
+			}
+			if (staffFormAadhaarFile.size > 5 * 1024 * 1024) {
+				setStaffFormError('Aadhaar document exceeds maximum allowed size of 5 MB.');
+				return;
+			}
+		}
+
 		staffMutation.mutate({
 			name: capitalizeSentence(staffFormName.trim()),
 			phoneNumber: cleanPhone,
@@ -349,7 +446,35 @@ export function StaffAdvancesPage() {
 			address: staffFormAddress.trim() ? capitalizeSentence(staffFormAddress.trim()) : null,
 			role: staffFormRole.trim() ? capitalizeSentence(staffFormRole.trim()) : null,
 			isActive: staffFormIsActive,
+			aadhaarNumber: (!editingStaff || staffFormIsEditingAadhaar) && cleanAadhaar ? cleanAadhaar : undefined,
+			aadhaarFile: staffFormAadhaarFile,
+			removeAadhaarDocument: staffFormRemoveDocument,
 		});
+	};
+
+	const handleRevealAadhaar = async (staffId: string) => {
+		setRevealError(null);
+		setIsRevealingAadhaar(true);
+		try {
+			const res = await revealStaffAadhaar(staffId);
+			setRevealedAadhaar(res.aadhaarNumber);
+		} catch (err: any) {
+			setRevealError(err.message || 'Failed to reveal Aadhaar number.');
+		} finally {
+			setIsRevealingAadhaar(false);
+		}
+	};
+
+	const handleDownloadDoc = async (staff: StaffDto) => {
+		setDocError(null);
+		setIsDownloadingDoc(true);
+		try {
+			await downloadStaffAadhaarDocument(staff.id, staff.aadhaarDocumentFileName || `${staff.name}-Aadhaar.pdf`);
+		} catch (err: any) {
+			setDocError(err.message || 'Failed to download document.');
+		} finally {
+			setIsDownloadingDoc(false);
+		}
 	};
 
 	// ── Filtered Staff List ─────────────────────────────────────────────────
@@ -1025,6 +1150,18 @@ export function StaffAdvancesPage() {
 												<span className="truncate">{staff.address}</span>
 											</div>
 										)}
+										<div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+											<div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-600">
+												<ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+												<span>{staff.aadhaarMasked ? staff.aadhaarMasked : <em className="text-slate-400 font-sans">Aadhaar: Not Added</em>}</span>
+											</div>
+											{staff.hasAadhaarDocument && (
+												<span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200" title={staff.aadhaarDocumentFileName || 'Document uploaded'}>
+													<FileCheck className="w-3 h-3" />
+													Doc
+												</span>
+											)}
+										</div>
 									</div>
 
 									{/* Advances info tag */}
@@ -1036,15 +1173,30 @@ export function StaffAdvancesPage() {
 									</div>
 								</div>
 
-								<div className="mt-4 pt-3 border-t border-outline-variant flex items-center justify-between">
-									<button
-										type="button"
-										onClick={() => setViewingHistoryStaffId(staff.id)}
-										className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-									>
-										<History className="w-3.5 h-3.5" />
-										<span>Advance History</span>
-									</button>
+								<div className="mt-4 pt-3 border-t border-outline-variant flex items-center justify-between gap-2">
+									<div className="flex items-center gap-2">
+										<button
+											type="button"
+											onClick={() => {
+												setViewingDetailsStaff(staff);
+												setRevealedAadhaar(null);
+												setRevealError(null);
+												setDocError(null);
+											}}
+											className="text-xs font-semibold text-slate-700 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
+										>
+											<User className="w-3.5 h-3.5 text-slate-400" />
+											<span>Details</span>
+										</button>
+										<button
+											type="button"
+											onClick={() => setViewingHistoryStaffId(staff.id)}
+											className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+										>
+											<History className="w-3.5 h-3.5" />
+											<span>History</span>
+										</button>
+									</div>
 
 									<div className="flex items-center gap-1">
 										{canCreate && (
@@ -1072,6 +1224,10 @@ export function StaffAdvancesPage() {
 													setStaffFormAddress(staff.address || '');
 													setStaffFormRole(staff.role || 'Technician');
 													setStaffFormIsActive(staff.isActive);
+													setStaffFormAadhaar('');
+													setStaffFormAadhaarFile(null);
+													setStaffFormRemoveDocument(false);
+													setStaffFormIsEditingAadhaar(!staff.aadhaarMasked);
 													setShowStaffModal(true);
 												}}
 												className="p-1.5 text-on-surface-variant hover:text-on-surface hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
@@ -1491,7 +1647,7 @@ export function StaffAdvancesPage() {
 						: 'Add a new employee to the staff directory.'
 				}
 			>
-				<form onSubmit={handleStaffFormSubmit} className="space-y-4 pt-2">
+				<form onSubmit={handleStaffFormSubmit} className="space-y-4 pt-2" noValidate>
 					{staffFormError && (
 						<div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
 							<AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
@@ -1589,6 +1745,151 @@ export function StaffAdvancesPage() {
 						/>
 					</div>
 
+					{/* ── Aadhaar Information Section ── */}
+					<div className="pt-2 border-t border-outline-variant space-y-3">
+						<div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 uppercase tracking-wider">
+							<ShieldCheck className="w-4 h-4 text-blue-600" />
+							<span>Aadhaar Identification</span>
+						</div>
+
+						{!editingStaff ? (
+							/* Add Staff: Mandatory Aadhaar */
+							<div>
+								<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+									Aadhaar Number *
+								</label>
+								<input
+									type="text"
+									inputMode="numeric"
+									maxLength={14}
+									value={staffFormAadhaar}
+									onChange={(e) => setStaffFormAadhaar(formatAadhaarInput(e.target.value))}
+									placeholder="1234 5678 9012"
+									required
+									className="form-input w-full text-xs bg-white font-mono"
+								/>
+								<p className="text-[11px] text-slate-500 mt-1">
+									Enter the 12-digit Aadhaar number
+								</p>
+							</div>
+						) : (
+							/* Edit Staff: Masked Aadhaar with change option */
+							<div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+								<div className="flex items-center justify-between">
+									<div>
+										<span className="text-xs text-slate-600">Current Aadhaar:</span>
+										<p className="font-mono font-bold text-xs text-slate-800 mt-0.5">
+											{editingStaff.aadhaarMasked ? editingStaff.aadhaarMasked : <em className="text-slate-400 font-sans font-normal">Aadhaar: Not Added</em>}
+										</p>
+									</div>
+									<button
+										type="button"
+										onClick={() => setStaffFormIsEditingAadhaar(!staffFormIsEditingAadhaar)}
+										className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+									>
+										{staffFormIsEditingAadhaar ? 'Keep Current' : (editingStaff.aadhaarMasked ? 'Change' : 'Add Aadhaar')}
+									</button>
+								</div>
+
+								{staffFormIsEditingAadhaar && (
+									<div className="pt-2 border-t border-slate-200">
+										<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+											New Aadhaar Number {editingStaff.aadhaarMasked ? '' : '*'}
+										</label>
+										<input
+											type="text"
+											inputMode="numeric"
+											maxLength={14}
+											value={staffFormAadhaar}
+											onChange={(e) => setStaffFormAadhaar(formatAadhaarInput(e.target.value))}
+											placeholder="1234 5678 9012"
+											className="form-input w-full text-xs bg-white font-mono"
+										/>
+										<p className="text-[11px] text-slate-500 mt-1">
+											Enter the new 12-digit Aadhaar number
+										</p>
+									</div>
+								)}
+							</div>
+						)}
+
+						{/* Aadhaar Copy / Document Upload */}
+						<div>
+							<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+								Aadhaar Copy (Optional)
+							</label>
+
+							{editingStaff?.hasAadhaarDocument && !staffFormRemoveDocument && !staffFormAadhaarFile ? (
+								<div className="p-3 bg-blue-50/60 border border-blue-200 rounded-xl flex items-center justify-between gap-2">
+									<div className="flex items-center gap-2 min-w-0">
+										<FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
+										<div className="min-w-0">
+											<p className="text-xs font-semibold text-blue-950 truncate">
+												✓ Uploaded: {editingStaff.aadhaarDocumentFileName || 'Document'}
+											</p>
+											<p className="text-[11px] text-blue-700">
+												{editingStaff.aadhaarDocumentContentType || 'Document'}
+											</p>
+										</div>
+									</div>
+									<div className="flex items-center gap-2 shrink-0">
+										<button
+											type="button"
+											onClick={() => handleDownloadDoc(editingStaff)}
+											className="px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+										>
+											<Download className="w-3.5 h-3.5" />
+											<span>View</span>
+										</button>
+										<button
+											type="button"
+											onClick={() => setStaffFormRemoveDocument(true)}
+											className="px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+										>
+											<Trash2 className="w-3.5 h-3.5" />
+											<span>Remove</span>
+										</button>
+									</div>
+								</div>
+							) : (
+								<div className="space-y-2">
+									<div className="flex items-center gap-2">
+										<input
+											type="file"
+											accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+											onChange={(e) => {
+												if (e.target.files && e.target.files[0]) {
+													setStaffFormAadhaarFile(e.target.files[0]);
+													setStaffFormRemoveDocument(false);
+												}
+											}}
+											className="form-input w-full text-xs bg-white file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+										/>
+										{staffFormAadhaarFile && (
+											<button
+												type="button"
+												onClick={() => setStaffFormAadhaarFile(null)}
+												className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+												title="Clear file"
+											>
+												<X className="w-4 h-4" />
+											</button>
+										)}
+									</div>
+									<p className="text-[11px] text-slate-500">
+										Optional — upload Aadhaar copy<br />
+										PDF, JPG, JPEG, PNG • Max 5 MB
+									</p>
+									{staffFormRemoveDocument && (
+										<p className="text-xs text-amber-700 font-medium">
+											Existing document will be removed upon saving.
+										</p>
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+
 					<div className="flex items-center justify-end gap-2.5 pt-3 border-t border-outline-variant">
 						<Button
 							type="button"
@@ -1606,6 +1907,209 @@ export function StaffAdvancesPage() {
 						</Button>
 					</div>
 				</form>
+			</Dialog>
+
+			{/* ─────────────────────────────────────────────────────────────────── */}
+			{/* MODAL 6: STAFF DETAILS (WITH IDENTIFICATION SECTION) */}
+			{/* ─────────────────────────────────────────────────────────────────── */}
+			<Dialog
+				open={!!viewingDetailsStaff}
+				onOpenChange={(open) => {
+					if (!open) {
+						setViewingDetailsStaff(null);
+						setRevealedAadhaar(null);
+						setRevealError(null);
+						setDocError(null);
+					}
+				}}
+				title={`${viewingDetailsStaff?.name || 'Staff'} — Staff Details`}
+				description="Employee identity, contact information, and advance summary."
+			>
+				{viewingDetailsStaff && (
+					<div className="space-y-4 pt-1">
+						{/* Top Profile Summary */}
+						<div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
+							<div className="flex items-center gap-3">
+								<div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
+									{viewingDetailsStaff.name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
+								</div>
+								<div>
+									<h3 className="font-bold text-base text-slate-900">{viewingDetailsStaff.name}</h3>
+									<p className="text-xs text-slate-500 font-medium">
+										{viewingDetailsStaff.role || 'Technician'}
+									</p>
+								</div>
+							</div>
+							<span
+								className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+									viewingDetailsStaff.isActive
+										? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+										: 'bg-slate-100 text-slate-600 border border-slate-200'
+								}`}
+							>
+								{viewingDetailsStaff.isActive ? 'Active' : 'Inactive'}
+							</span>
+						</div>
+
+						{/* Contact Details */}
+						<div className="p-4 rounded-xl border border-slate-200/80 bg-white space-y-2 text-xs">
+							<div className="flex justify-between items-center py-1 border-b border-slate-100">
+								<span className="text-slate-500 font-medium">Phone Number</span>
+								<span className="font-bold font-mono text-slate-900">{viewingDetailsStaff.phoneNumber}</span>
+							</div>
+							<div className="flex justify-between items-center py-1 border-b border-slate-100">
+								<span className="text-slate-500 font-medium">Email Address</span>
+								<span className="text-slate-800">{viewingDetailsStaff.email || '—'}</span>
+							</div>
+							<div className="flex justify-between items-center py-1 border-b border-slate-100">
+								<span className="text-slate-500 font-medium">Residential Address</span>
+								<span className="text-slate-800 text-right max-w-[60%]">{viewingDetailsStaff.address || '—'}</span>
+							</div>
+							<div className="flex justify-between items-center py-1">
+								<span className="text-slate-500 font-medium">Outstanding Advance</span>
+								<span className={`font-bold font-mono ${viewingDetailsStaff.totalAdvances > 0 ? 'text-amber-700 text-sm' : 'text-slate-700'}`}>
+									{formatINR(viewingDetailsStaff.totalAdvanceAmount || 0)}
+								</span>
+							</div>
+						</div>
+
+						{/* ── IDENTIFICATION SECTION ── */}
+						<div className="p-4 rounded-xl border border-blue-200/80 bg-blue-50/40 space-y-3">
+							<div className="flex items-center gap-2 text-xs font-bold text-blue-950 uppercase tracking-wider">
+								<ShieldCheck className="w-4 h-4 text-blue-600" />
+								<span>Identification</span>
+							</div>
+
+							{revealError && (
+								<div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
+									<AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+									<span>{revealError}</span>
+								</div>
+							)}
+
+							{docError && (
+								<div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
+									<AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+									<span>{docError}</span>
+								</div>
+							)}
+
+							{/* Aadhaar Number */}
+							<div className="p-3 bg-white border border-blue-100 rounded-xl flex items-center justify-between gap-3">
+								<div>
+									<span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+										Aadhaar Number
+									</span>
+									<div className="font-mono text-sm font-bold text-slate-900 mt-0.5">
+										{revealedAadhaar ? (
+											<span className="text-emerald-700 tracking-wider">{formatAadhaarInput(revealedAadhaar)}</span>
+										) : viewingDetailsStaff.aadhaarMasked ? (
+											<span className="text-slate-700 tracking-wider">{viewingDetailsStaff.aadhaarMasked}</span>
+										) : (
+											<span className="text-slate-400 font-normal font-sans text-xs">Not Added</span>
+										)}
+									</div>
+								</div>
+
+								{viewingDetailsStaff.aadhaarMasked && (
+									<div>
+										{revealedAadhaar ? (
+											<button
+												type="button"
+												onClick={() => setRevealedAadhaar(null)}
+												className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+											>
+												<EyeOff className="w-3.5 h-3.5" />
+												<span>Hide</span>
+											</button>
+										) : (
+											<button
+												type="button"
+												onClick={() => handleRevealAadhaar(viewingDetailsStaff.id)}
+												disabled={isRevealingAadhaar}
+												className="px-2.5 py-1 text-xs font-semibold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+											>
+												<Eye className="w-3.5 h-3.5" />
+												<span>{isRevealingAadhaar ? 'Revealing...' : 'Show'}</span>
+											</button>
+										)}
+									</div>
+								)}
+							</div>
+
+							{/* Aadhaar Document */}
+							<div className="p-3 bg-white border border-blue-100 rounded-xl flex items-center justify-between gap-3">
+								<div className="min-w-0">
+									<span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+										Aadhaar Copy
+									</span>
+									<div className="text-xs text-slate-800 font-medium mt-0.5 truncate">
+										{viewingDetailsStaff.hasAadhaarDocument ? (
+											<span className="text-slate-900 font-semibold truncate flex items-center gap-1">
+												<FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+												<span className="truncate">{viewingDetailsStaff.aadhaarDocumentFileName || 'Document'}</span>
+											</span>
+										) : (
+											<span className="text-slate-400 font-normal">Not uploaded</span>
+										)}
+									</div>
+								</div>
+
+								{viewingDetailsStaff.hasAadhaarDocument && (
+									<Button
+										size="sm"
+										variant="secondary"
+										icon={<Download className="w-3.5 h-3.5" />}
+										loading={isDownloadingDoc}
+										onClick={() => handleDownloadDoc(viewingDetailsStaff)}
+									>
+										View Document
+									</Button>
+								)}
+							</div>
+						</div>
+
+						{/* Footer Actions */}
+						<div className="flex items-center justify-between pt-2 border-t border-outline-variant">
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={() => {
+									setViewingDetailsStaff(null);
+									setRevealedAadhaar(null);
+								}}
+							>
+								Close
+							</Button>
+
+							{canManageStaff && (
+								<Button
+									size="sm"
+									icon={<Edit2 className="w-3.5 h-3.5" />}
+									onClick={() => {
+										const target = viewingDetailsStaff;
+										setViewingDetailsStaff(null);
+										setRevealedAadhaar(null);
+										setEditingStaff(target);
+										setStaffFormName(target.name);
+										setStaffFormPhone(target.phoneNumber);
+										setStaffFormEmail(target.email || '');
+										setStaffFormAddress(target.address || '');
+										setStaffFormRole(target.role || 'Technician');
+										setStaffFormIsActive(target.isActive);
+										setStaffFormAadhaar('');
+										setStaffFormAadhaarFile(null);
+										setStaffFormRemoveDocument(false);
+										setStaffFormIsEditingAadhaar(!target.aadhaarMasked);
+										setShowStaffModal(true);
+									}}
+								>
+									Edit Staff
+								</Button>
+							)}
+						</div>
+					</div>
+				)}
 			</Dialog>
 		</div>
 	);

@@ -25,6 +25,20 @@ public class Staff : BaseEntity
 
  public bool IsActive { get; set; } = true;
 
+ [MaxLength(500)]
+ public string? AadhaarNumberEncrypted { get; set; }
+
+ [MaxLength(500)]
+ public string? AadhaarDocumentPath { get; set; }
+
+ [MaxLength(255)]
+ public string? AadhaarDocumentFileName { get; set; }
+
+ [MaxLength(100)]
+ public string? AadhaarDocumentContentType { get; set; }
+
+ public long? AadhaarDocumentSize { get; set; }
+
  public List<StaffAdvance> StaffAdvances { get; set; } = new();
  public List<ShowroomStaffAssignment> ShowroomAssignments { get; set; } = new();
 }

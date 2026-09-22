@@ -60,4 +60,28 @@ class StaffRepository {
       throw ApiException.fromDio(e);
     }
   }
+
+  Future<String> revealAadhaar(String staffId) async {
+    try {
+      return await _api.revealAadhaar(staffId);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Staff> uploadAadhaarDocument(String staffId, List<int> fileBytes, String fileName) async {
+    try {
+      return await _api.uploadAadhaarDocument(staffId, fileBytes, fileName);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Staff> deleteAadhaarDocument(String staffId) async {
+    try {
+      return await _api.deleteAadhaarDocument(staffId);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }

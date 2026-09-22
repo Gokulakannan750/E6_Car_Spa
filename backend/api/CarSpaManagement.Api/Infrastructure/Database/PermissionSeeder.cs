@@ -65,6 +65,7 @@ public static class PermissionSeeder
 
         // Staff & Staff Advances
         ("staff.view", "View Staff", "Staff", "Allows viewing staff members"),
+        ("staff.view_sensitive", "View Sensitive Staff Data", "Staff", "Allows viewing and revealing unmasked sensitive staff identification numbers"),
         ("staff.create", "Create Staff", "Staff", "Allows adding new staff members"),
         ("staff.edit", "Edit Staff", "Staff", "Allows updating staff details"),
         ("staff.delete", "Delete Staff", "Staff", "Allows deleting staff member records"),

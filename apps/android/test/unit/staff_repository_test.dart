@@ -159,12 +159,14 @@ void main() {
         phoneNumber: '  9876501234  ',
         role: 'Washer',
         isActive: true,
+        aadhaarNumber: '1234 5678 9012',
       );
 
       final json = request.toJson();
       expect(json['name'], 'Anand Kumar');
       expect(json['phoneNumber'], '9876501234');
       expect(json['role'], 'Washer');
+      expect(json['aadhaarNumber'], '123456789012');
       expect(json.containsKey('email'), isFalse); // Omitted when null
 
       final created = await repository.createStaff(request);

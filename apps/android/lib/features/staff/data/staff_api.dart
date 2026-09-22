@@ -37,4 +37,26 @@ class StaffApi {
   Future<void> deleteStaff(String staffId) async {
     await _dio.delete('/staff-advances/staff/$staffId');
   }
+
+  Future<String> revealAadhaar(String staffId) async {
+    final response = await _dio.get('/staff-advances/staff/$staffId/aadhaar');
+    final data = response.data as Map<String, dynamic>;
+    return (data['aadhaarNumber'] ?? data['AadhaarNumber'] ?? '') as String;
+  }
+
+  Future<Staff> uploadAadhaarDocument(String staffId, List<int> fileBytes, String fileName) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
+    });
+    final response = await _dio.post(
+      '/staff-advances/staff/$staffId/aadhaar-document',
+      data: formData,
+    );
+    return Staff.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Staff> deleteAadhaarDocument(String staffId) async {
+    final response = await _dio.delete('/staff-advances/staff/$staffId/aadhaar-document');
+    return Staff.fromJson(response.data as Map<String, dynamic>);
+  }
 }
