@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
@@ -139,31 +141,51 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
     final state = ref.watch(showroomsProvider);
     final canManage = _hasPermission('showroom.manage');
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            const E6BrandBadge(),
-            const SizedBox(width: 10),
-            Text(
-              'Showrooms',
-              style: AppTextStyles.appBarTitle,
+    void handleBack() {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      } else {
+        context.go(AppRoutes.dashboard);
+      }
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        handleBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          leading: IconButton(
+            key: const Key('showroom_back_button'),
+            icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: 'Back to Dashboard',
+            onPressed: handleBack,
+          ),
+          title: Row(
+            children: [
+              const E6BrandBadge(),
+              const SizedBox(width: 10),
+              Text(
+                'Showroom',
+                style: AppTextStyles.appBarTitle,
+              ),
+            ],
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          actions: [
+            IconButton(
+              onPressed: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
+              icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+              tooltip: 'Refresh',
             ),
+            const AppLogoutAction(),
           ],
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 1,
-        actions: [
-          IconButton(
-            onPressed: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
-            tooltip: 'Refresh',
-          ),
-          const AppLogoutAction(),
-        ],
-      ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: _openCreateShowroomSheet,
@@ -310,8 +332,9 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildKpiCard({
     required String title,

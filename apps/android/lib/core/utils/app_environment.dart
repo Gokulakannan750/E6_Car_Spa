@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../constants/app_constants.dart';
 
 class AppEnvironment {
@@ -14,9 +16,14 @@ class AppEnvironment {
       return AppConstants.defaultProdApiUrl;
     }
 
+    if (!kIsWeb && Platform.isAndroid) {
+      return AppConstants.defaultEmulatorApiUrl;
+    }
+
     return AppConstants.defaultDevApiUrl;
   }
 
   static String get appName => AppConstants.appName;
   static String get appVersion => AppConstants.appVersion;
 }
+

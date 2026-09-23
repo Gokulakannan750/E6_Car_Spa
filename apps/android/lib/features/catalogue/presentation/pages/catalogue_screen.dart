@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
@@ -9,7 +11,6 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../../shared/widgets/app_search_field.dart';
-import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
 import '../providers/catalogue_providers.dart';
@@ -73,18 +74,18 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
     final state = ref.watch(catalogueProvider);
     final notifier = ref.read(catalogueProvider.notifier);
 
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Row(
-          children: [
-            const E6BrandBadge(),
-            const SizedBox(width: 10),
-            Text(
-              'Service Catalogue',
-              style: AppTextStyles.appBarTitle,
-            ),
-          ],
+        leading: IconButton(
+          key: const Key('catalogue_back_button'),
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to Dashboard',
+          onPressed: () => context.go(AppRoutes.dashboard),
+        ),
+        title: Text(
+          'Service Catalogue',
+          style: AppTextStyles.appBarTitle,
         ),
         centerTitle: false,
         actions: const [
@@ -200,6 +201,15 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
           ],
         ),
       ),
+    );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go(AppRoutes.dashboard);
+      },
+      child: scaffold,
     );
   }
 

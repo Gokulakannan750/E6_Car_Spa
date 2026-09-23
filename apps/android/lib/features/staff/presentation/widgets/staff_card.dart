@@ -7,6 +7,7 @@ import '../../models/staff_model.dart';
 /// Mobile-adapted Table/List row presentation for Staff Directory matching Desktop layout.
 class StaffCard extends StatelessWidget {
   final Staff staff;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onHistory;
   final VoidCallback? onAddAdvance;
@@ -16,6 +17,7 @@ class StaffCard extends StatelessWidget {
   const StaffCard({
     super.key,
     required this.staff,
+    this.onTap,
     this.onEdit,
     this.onHistory,
     this.onAddAdvance,
@@ -53,9 +55,12 @@ class StaffCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           // Table Row 1: Staff Member Header & Status
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -330,6 +335,7 @@ class StaffCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
@@ -8,7 +9,6 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
-import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -44,18 +44,18 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
     final state = ref.watch(jobCardListProvider);
     final notifier = ref.read(jobCardListProvider.notifier);
 
-    return Scaffold(
+    final scaffold = Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Row(
-          children: [
-            const E6BrandBadge(),
-            const SizedBox(width: 10),
-            Text(
-              'Job Cards',
-              style: AppTextStyles.appBarTitle,
-            ),
-          ],
+        leading: IconButton(
+          key: const Key('job_cards_back_button'),
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to Dashboard',
+          onPressed: () => context.go(AppRoutes.dashboard),
+        ),
+        title: Text(
+          'Job Cards',
+          style: AppTextStyles.appBarTitle,
         ),
         centerTitle: false,
         actions: const [
@@ -128,6 +128,15 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
           ],
         ),
       ),
+    );
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        context.go(AppRoutes.dashboard);
+      },
+      child: scaffold,
     );
   }
 

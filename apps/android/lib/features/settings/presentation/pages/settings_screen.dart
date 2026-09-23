@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/app_environment.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -394,6 +396,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 prefixController: _prefixController,
                 termsController: _termsController,
                 isEnabled: canManage && !isSaving,
+              ),
+              const SizedBox(height: 16),
+
+              // Users & Access Control Card (if authorized)
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(20),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.manage_accounts_outlined, color: AppColors.primary, size: 20),
+                  ),
+                  title: const Text(
+                    'Users & Permissions',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
+                  ),
+                  subtitle: const Text(
+                    'Manage staff login accounts, roles and security privileges',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 20, color: AppColors.textTertiary),
+                  onTap: () => context.push(AppRoutes.users),
+                ),
               ),
               const SizedBox(height: 16),
 

@@ -14,6 +14,10 @@ class AppRoutes {
   static const String quotationsInvoices = '/quotations-invoices';
   static const String invoiceDetail = '/quotations-invoices/:id';
   static const String catalogue = '/catalogue';
+  static const String staff = '/staff';
+  static const String staffAttendance = '/staff/attendance';
+  static const String staffMonthlyReport = '/staff/monthly-report';
+  static const String staffSalary = '/staff/salary';
   static const String staffAdvances = '/staff-advances';
   static const String reports = '/reports';
   static const String salesReport = '/reports/sales';
@@ -67,7 +71,7 @@ class AppRoutes {
     if (location.startsWith('/job-cards')) return 2;
     if (location.startsWith('/quotations-invoices') || location.startsWith('/invoices')) return 3;
     if (location.startsWith('/catalogue')) return 4;
-    if (location.startsWith('/staff-advances') ||
+    if (location.startsWith('/staff') ||
         location.startsWith('/reports') ||
         location.startsWith('/showroom') ||
         location.startsWith('/settings')) {
