@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_confirm_dialog.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
@@ -143,17 +145,30 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         currentUser?.hasPermission('users.deactivate') ?? false;
 
     if (!canView) {
-      return const AppScreenScaffold(
-        title: 'Users & Permissions',
-        actions: [AppLogoutAction()],
-        body: Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: AppEmptyState(
-              icon: Icons.lock_outline_rounded,
-              title: 'Access Restricted',
-              message:
-                  'You do not have permission to view or manage user accounts.\nContact your administrator if you require access.',
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          context.go(AppRoutes.settings);
+        },
+        child: AppScreenScaffold(
+          title: 'Users & Permissions',
+          leading: IconButton(
+            key: const Key('users_back_button'),
+            icon: const Icon(Icons.arrow_back_rounded),
+            onPressed: () => context.go(AppRoutes.settings),
+          ),
+          onBackPressed: () => context.go(AppRoutes.settings),
+          actions: const [AppLogoutAction()],
+          body: const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: AppEmptyState(
+                icon: Icons.lock_outline_rounded,
+                title: 'Access Restricted',
+                message:
+                    'You do not have permission to view or manage user accounts.\nContact your administrator if you require access.',
+              ),
             ),
           ),
         ),
@@ -162,9 +177,21 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
     final usersState = ref.watch(usersNotifierProvider);
 
-    return AppScreenScaffold(
-      title: 'Users & Permissions',
-      actions: const [AppLogoutAction()],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        context.go(AppRoutes.settings);
+      },
+      child: AppScreenScaffold(
+        title: 'Users & Permissions',
+        leading: IconButton(
+          key: const Key('users_back_button'),
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.go(AppRoutes.settings),
+        ),
+        onBackPressed: () => context.go(AppRoutes.settings),
+        actions: const [AppLogoutAction()],
       floatingActionButton: canCreate && usersState is UsersLoaded
           ? FloatingActionButton.extended(
               onPressed: () => _handleOpenCreate(usersState),
@@ -210,8 +237,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
           return const SizedBox.shrink();
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLoadedContent({
     required BuildContext context,

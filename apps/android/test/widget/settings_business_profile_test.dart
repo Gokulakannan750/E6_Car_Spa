@@ -7,7 +7,7 @@ import 'package:e6_car_spa/features/settings/data/settings_api.dart';
 import 'package:e6_car_spa/features/settings/data/settings_repository.dart';
 import 'package:e6_car_spa/features/settings/models/business_profile_model.dart';
 import 'package:e6_car_spa/features/settings/models/update_business_profile_request.dart';
-import 'package:e6_car_spa/features/settings/presentation/pages/settings_screen.dart';
+import 'package:e6_car_spa/features/settings/presentation/pages/company_settings_screen.dart';
 import 'package:e6_car_spa/shared/widgets/app_button.dart';
 import 'package:e6_car_spa/shared/widgets/app_error_state.dart';
 import 'package:flutter/material.dart';
@@ -118,7 +118,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
@@ -162,7 +162,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
@@ -197,7 +197,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
@@ -236,7 +236,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
@@ -273,7 +273,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
@@ -304,7 +304,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
           ],
           child: const MaterialApp(
-            home: SettingsScreen(),
+            home: CompanySettingsScreen(),
           ),
         ),
       );
