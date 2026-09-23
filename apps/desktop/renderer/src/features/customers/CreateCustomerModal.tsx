@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Phone, Mail, MapPin, Car, AlertCircle, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Button } from '../../components/ui/Button';
+import { capitalizeSentence } from '../../utils/text';
 import {
 	createCustomer,
 	createVehicle,
@@ -74,10 +75,10 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 		e.preventDefault();
 		setError('');
 
-		const trimmedName = name.trim();
+		const trimmedName = capitalizeSentence(name.trim());
 		const trimmedPhone = phoneNumber.trim().replace(/\D/g, '').slice(0, 10);
 		const trimmedEmail = email.trim();
-		const trimmedAddress = address.trim();
+		const trimmedAddress = capitalizeSentence(address.trim());
 
 		// Validation
 		if (!trimmedName) {
@@ -105,8 +106,9 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 
 		// Vehicle validation if enabled
 		const trimmedRegNumber = regNumber.trim().toUpperCase();
-		const trimmedMake = make.trim();
-		const trimmedModel = model.trim();
+		const trimmedMake = capitalizeSentence(make.trim());
+		const trimmedModel = capitalizeSentence(model.trim());
+		const trimmedVariant = capitalizeSentence(variant.trim());
 
 		if (showVehicleSection) {
 			if (!trimmedRegNumber) {
@@ -142,7 +144,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 						registrationNumber: trimmedRegNumber,
 						make: trimmedMake,
 						model: trimmedModel,
-						variant: variant.trim() || null,
+						variant: trimmedVariant || null,
 					});
 				} catch (vehErr: unknown) {
 					if (vehErr instanceof ApiError && vehErr.status === 409) {
@@ -321,6 +323,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 									required
 									value={name}
 									onChange={(e) => setName(e.target.value)}
+									onBlur={() => setName(capitalizeSentence(name))}
 									placeholder="e.g. John Doe"
 									className="form-input w-full pl-9"
 									autoFocus
@@ -375,6 +378,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 									type="text"
 									value={address}
 									onChange={(e) => setAddress(e.target.value)}
+									onBlur={() => setAddress(capitalizeSentence(address))}
 									placeholder="e.g. 45 Greenways Rd, Chennai"
 									className="form-input w-full pl-9"
 								/>
@@ -431,6 +435,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 										type="text"
 										value={make}
 										onChange={(e) => setMake(e.target.value)}
+										onBlur={() => setMake(capitalizeSentence(make))}
 										placeholder="e.g. Hyundai, Toyota, BMW"
 										className="form-input w-full"
 									/>
@@ -446,6 +451,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 										type="text"
 										value={model}
 										onChange={(e) => setModel(e.target.value)}
+										onBlur={() => setModel(capitalizeSentence(model))}
 										placeholder="e.g. Creta, Fortuner, Baleno"
 										className="form-input w-full"
 									/>
@@ -459,6 +465,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 										type="text"
 										value={variant}
 										onChange={(e) => setVariant(e.target.value)}
+										onBlur={() => setVariant(capitalizeSentence(variant))}
 										placeholder="e.g. SX(O) Diesel, Zeta"
 										className="form-input w-full"
 									/>

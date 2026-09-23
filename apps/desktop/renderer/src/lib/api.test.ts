@@ -1559,4 +1559,47 @@ describe('Audit Logs API Client', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0].module).toBe('Settings');
   });
+
+  it('calls staff attendance getDaily, confirm, and unlock endpoints', async () => {
+    const mockDaily = {
+      date: '2026-09-22',
+      isAttendanceConfirmed: true,
+      attendanceConfirmedAt: '2026-09-22T18:00:00Z',
+      attendanceConfirmedByName: 'Admin',
+      summary: {
+        totalActiveStaff: 1,
+        presentCount: 1,
+        halfDayCount: 0,
+        leaveCount: 0,
+        unmarkedCount: 0,
+      },
+      staffMembers: [],
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockDaily,
+    });
+
+    await api.getDailyAttendance('2026-09-22');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/staff-attendance?date=2026-09-22'),
+      expect.anything()
+    );
+
+    await api.confirmStaffAttendance('2026-09-22');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/staff-attendance/confirm?date=2026-09-22'),
+      expect.objectContaining({ method: 'POST' })
+    );
+
+    await api.unlockStaffAttendance('2026-09-22');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/staff-attendance/unlock?date=2026-09-22'),
+      expect.objectContaining({ method: 'POST' })
+    );
+  });
 });
+

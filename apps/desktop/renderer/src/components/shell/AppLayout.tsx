@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAppStore } from '../../stores/app';
 import { cn } from '../../utils/cn';
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_EXPANDED_WIDTH } from '../../constants/navigation';
 
 export const ROUTE_TITLES: Record<string, string> = {
 	'/': 'Dashboard',
@@ -10,25 +11,39 @@ export const ROUTE_TITLES: Record<string, string> = {
 	'/customers': 'Customers',
 	'/job-cards': 'Job Cards',
 	'/invoices': 'Invoices',
+	'/payments': 'Payments',
 	'/catalogue': 'Catalogue',
+	'/staff': 'Staff Directory',
 	'/staff-advances': 'Staff Advances',
+	'/staff-attendance': 'Staff Attendance',
+	'/attendance': 'Staff Attendance',
+	'/staff-salary': 'Staff Salary',
+	'/salary': 'Staff Salary',
 	'/reports': 'Reports',
 	'/showroom': 'Showroom',
 	'/audit': 'Audit Trail',
+	'/settings/whatsapp': 'WhatsApp Settings',
+	'/settings/system': 'System Preferences',
 	'/settings/users': 'Users & Access',
-	'/settings': 'Settings',
+	'/settings': 'Company Settings',
 };
 
 export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/invoices')) return 'Invoices';
+	if (pathname.startsWith('/payments')) return 'Payments';
 	if (pathname.startsWith('/job-cards')) return 'Job Cards';
 	if (pathname.startsWith('/customers')) return 'Customers';
 	if (pathname.startsWith('/audit')) return 'Audit Trail';
+	if (pathname.startsWith('/settings/whatsapp')) return 'WhatsApp Settings';
+	if (pathname.startsWith('/settings/system')) return 'System Preferences';
 	if (pathname.startsWith('/settings/users')) return 'Users & Access';
-	if (pathname.startsWith('/settings')) return 'Settings';
+	if (pathname.startsWith('/settings')) return 'Company Settings';
 	if (pathname.startsWith('/reports')) return 'Reports';
 	if (pathname.startsWith('/showroom')) return 'Showroom';
 	if (pathname.startsWith('/staff-advances')) return 'Staff Advances';
+	if (pathname.startsWith('/staff-attendance') || pathname.startsWith('/attendance')) return 'Staff Attendance';
+	if (pathname.startsWith('/staff-salary') || pathname.startsWith('/salary')) return 'Staff Salary';
+	if (pathname.startsWith('/staff')) return 'Staff Directory';
 	if (pathname.startsWith('/catalogue')) return 'Catalogue';
 	return ROUTE_TITLES[pathname] || 'Dashboard';
 }
@@ -47,7 +62,7 @@ export function AppLayout() {
 
 			<div
 				className={cn('flex-1 flex flex-col min-w-0 transition-all duration-200')}
-				style={{ marginLeft: sidebarCollapsed ? 64 : 240 }}
+				style={{ marginLeft: sidebarCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH }}
 			>
 				<Header
 					pageTitle={pageTitle}

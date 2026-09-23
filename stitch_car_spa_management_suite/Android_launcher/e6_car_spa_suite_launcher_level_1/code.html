@@ -1,0 +1,264 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>E6 Car Spa - Workspace Launcher</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              red: '#850e0e',
+              dark: '#0f172a',
+              subtle: '#64748b',
+              surface: '#f3f5f8',
+              card: '#ffffff'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Roboto', 'system-ui', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-typography-and-scroll">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    /* Hide scrollbars for clean mobile feel */
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style data-purpose="banner-effects">
+    .metallic-banner {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%);
+    }
+    .headlight-glow {
+      filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.45));
+    }
+  </style>
+</head>
+<body class="bg-[#eef2f6] text-slate-800 min-h-screen flex justify-center items-start antialiased selection:bg-rose-100">
+<!-- Mobile Frame Container simulating modern mobile device viewport -->
+<main class="w-full max-w-[440px] bg-[#f5f7fa] min-h-screen shadow-2xl relative flex flex-col pb-8 border-x border-slate-200">
+<!-- BEGIN: AndroidStatusBar -->
+<header class="w-full pt-2 px-6 flex justify-between items-center text-xs font-semibold text-slate-800 select-none z-30" data-purpose="status-bar">
+<!-- Time -->
+<span class="tracking-tight text-[13px] font-medium pl-0.5">12:30</span>
+<!-- Camera Punch-Hole Simulation -->
+<div class="w-3.5 h-3.5 bg-black rounded-full shadow-inner ring-1 ring-slate-800/40"></div>
+<!-- System Icons: Wifi, Signal & Battery -->
+<div class="flex items-center space-x-1.5 pr-0.5 text-slate-700">
+<!-- Cellular Signal -->
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+<path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z" opacity="0.2"></path>
+<path d="M12 3L2 19h20L12 3z"></path>
+</svg>
+<!-- Wifi -->
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 3.5c3.74 0 7.15 1.44 9.72 3.82L12 19.34 2.28 11.32C4.85 8.94 8.26 7.5 12 7.5z"></path>
+</svg>
+<!-- Battery -->
+<svg class="w-4 h-4 fill-current rotate-90" viewBox="0 0 24 24">
+<path d="M17 5v14c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1V5c0-.55.45-1 1-1h1V2h6v2h1c.55 0 1 .45 1 1zm-2 1H9v12h6V6z"></path>
+</svg>
+</div>
+</header>
+<!-- END: AndroidStatusBar -->
+<!-- BEGIN: TopAppHeader -->
+<section class="px-5 pt-3 pb-2 flex items-center justify-between" data-purpose="user-greeting-header">
+<div class="flex items-center space-x-3">
+<!-- Brand Logo Badge -->
+<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#990000] to-[#600000] flex items-center justify-center shadow-md shadow-red-950/20 text-white font-extrabold text-xl tracking-tight flex-shrink-0">
+          E6
+        </div>
+<!-- Business & Welcome Info -->
+<div class="flex flex-col">
+<h1 class="text-[17px] font-bold text-slate-900 leading-tight">E6 Car Spa</h1>
+<p class="text-[13px] font-semibold text-slate-800 leading-snug">Good Morning, Gokula</p>
+<p class="text-[11px] text-slate-400 font-normal leading-tight mt-0.5">What would you like to manage today?</p>
+</div>
+</div>
+<!-- User Profile Action Icon -->
+<button aria-label="User profile menu" class="flex items-center space-x-1 p-1.5 pl-2 pr-2.5 rounded-full bg-white border border-slate-200/90 shadow-sm active:scale-95 transition-transform">
+<svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+<circle cx="12" cy="8" r="4"></circle>
+<path d="M5.5 20a6.5 6.5 0 0113 0" stroke-linecap="round"></path>
+</svg>
+<svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+<path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</section>
+<!-- END: TopAppHeader -->
+<!-- BEGIN: HeroPromoBanner -->
+<section class="px-5 pt-2 pb-3" data-purpose="marketing-hero-banner">
+<div class="metallic-banner relative rounded-2xl overflow-hidden shadow-lg p-4 text-white min-h-[108px] flex items-center justify-between border border-slate-700/60">
+<!-- Left Banner Slogan -->
+<div class="z-10 max-w-[55%]">
+<span class="block text-[11px] font-bold uppercase tracking-wider text-slate-300">Clean Cars</span>
+<span class="block text-[12px] font-extrabold uppercase tracking-wide text-slate-100">Happy People</span>
+<span class="block text-[13px] font-black uppercase tracking-wider text-red-500 mt-0.5">Drive Better</span>
+<div class="w-10 h-0.5 bg-red-600 rounded-full mt-1.5"></div>
+</div>
+<!-- Right Realistic Luxury Car Front Artwork (Vector SVG Composition) -->
+<div class="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none flex items-center justify-end overflow-hidden">
+<svg class="w-full h-full object-cover scale-110 translate-x-2" fill="none" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="carBody" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#334155"></stop>
+<stop offset="40%" stop-color="#0f172a"></stop>
+<stop offset="100%" stop-color="#020617"></stop>
+</linearGradient>
+<linearGradient id="neonGlow" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#38bdf8"></stop>
+<stop offset="100%" stop-color="#93c5fd"></stop>
+</linearGradient>
+</defs>
+<!-- Sleek Dark Metallic Hood/Silhouette -->
+<path d="M15 110 C 50 85, 90 70, 160 60 C 200 55, 230 45, 240 20 L 240 120 Z" fill="url(#carBody)" opacity="0.95"></path>
+<path d="M60 100 C 110 75, 170 65, 240 55" opacity="0.6" stroke="#475569" stroke-width="1.5"></path>
+<!-- Prominent LED Headlight with Glow -->
+<g class="headlight-glow">
+<path d="M140 68 C 165 62, 195 62, 225 65 C 205 78, 175 82, 145 74 Z" fill="#0f172a" stroke="#67e8f9" stroke-width="1.6"></path>
+<path d="M148 69 C 170 65, 195 65, 215 67" stroke="url(#neonGlow)" stroke-linecap="round" stroke-width="2.2"></path>
+<ellipse cx="178" cy="72" fill="#e0f2fe" opacity="0.9" rx="7" ry="4.5"></ellipse>
+<ellipse cx="160" cy="71" fill="#bae6fd" opacity="0.8" rx="5" ry="3.5"></ellipse>
+<!-- Projector LED dots -->
+<circle cx="200" cy="69" fill="#38bdf8" r="2"></circle>
+<circle cx="206" cy="69" fill="#7dd3fc" r="1.5"></circle>
+</g>
+<!-- Front Bumper Edge / Aero Lines -->
+<path d="M120 105 C 150 98, 190 95, 235 96" stroke="#334155" stroke-width="2.5"></path>
+<path d="M100 115 C 145 106, 185 108, 230 112" stroke="#1e293b" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</section>
+<!-- END: HeroPromoBanner -->
+<!-- BEGIN: ApplicationsTitle -->
+<section class="px-5 pt-2 pb-2.5" data-purpose="section-header">
+<h2 class="text-base font-extrabold text-slate-900 tracking-tight">Applications</h2>
+<p class="text-xs text-slate-500 font-normal">Choose a workspace to continue</p>
+</section>
+<!-- END: ApplicationsTitle -->
+<!-- BEGIN: WorkspacesGrid -->
+<!-- Two-Column Mobile Grid for Primary Business Workspaces -->
+<section class="px-5 grid grid-cols-2 gap-3" data-purpose="applications-grid">
+<!-- Card 1: E6 Billing -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:border-sky-300 transition-colors flex flex-col justify-between" data-purpose="workspace-billing">
+<div>
+<div class="flex items-start justify-between mb-2.5">
+<div class="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 13l2-5a2 2 0 012-1h10a2 2 0 012 1l2 5v5a1 1 0 01-1 1h-1a2 2 0 01-2-2 2 2 0 01-2 2H9a2 2 0 01-2-2 2 2 0 01-2 2H4a1 1 0 01-1-1v-5z" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="7.5" cy="14.5" r="1.5"></circle>
+<circle cx="16.5" cy="14.5" r="1.5"></circle>
+</svg>
+</div>
+<span class="text-sky-600 text-sm font-semibold pt-0.5">→</span>
+</div>
+<h3 class="text-sm font-bold text-slate-900 tracking-tight">E6 Billing</h3>
+<p class="text-[11px] text-slate-500 leading-tight mt-1 line-clamp-2">Customers, job cards, invoices and payments</p>
+</div>
+</article>
+<!-- Card 2: E6 Staff -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:border-emerald-300 transition-colors flex flex-col justify-between" data-purpose="workspace-staff">
+<div>
+<div class="flex items-start justify-between mb-2.5">
+<div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-sky-600 text-sm font-semibold pt-0.5">→</span>
+</div>
+<h3 class="text-sm font-bold text-slate-900 tracking-tight">E6 Staff</h3>
+<p class="text-[11px] text-slate-500 leading-tight mt-1 line-clamp-2">Staff, attendance &amp; salary management</p>
+</div>
+</article>
+<!-- Card 3: E6 Showroom -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:border-amber-300 transition-colors flex flex-col justify-between" data-purpose="workspace-showroom">
+<div>
+<div class="flex items-start justify-between mb-2.5">
+<div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M3 9l1-5h16l1 5M3 9a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0M3 9v11a1 1 0 001 1h16a1 1 0 001-1V9m-8 12v-6h4v6" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-sky-600 text-sm font-semibold pt-0.5">→</span>
+</div>
+<h3 class="text-sm font-bold text-slate-900 tracking-tight">E6 Showroom</h3>
+<p class="text-[11px] text-slate-500 leading-tight mt-1 line-clamp-2">Showrooms, staff work and showroom billing</p>
+</div>
+</article>
+<!-- Card 4: E6 Reports -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:border-purple-300 transition-colors flex flex-col justify-between" data-purpose="workspace-reports">
+<div>
+<div class="flex items-start justify-between mb-2.5">
+<div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span class="text-sky-600 text-sm font-semibold pt-0.5">→</span>
+</div>
+<h3 class="text-sm font-bold text-slate-900 tracking-tight">E6 Reports</h3>
+<p class="text-[11px] text-slate-500 leading-tight mt-1 line-clamp-2">Business, billing, staff and showroom reports</p>
+</div>
+</article>
+</section>
+<!-- END: WorkspacesGrid -->
+<!-- BEGIN: SettingsSection -->
+<!-- Lower Section matching original half-width card and layout spacing -->
+<section class="px-5 pt-3" data-purpose="settings-section">
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] hover:border-slate-400 transition-colors flex items-center justify-between cursor-pointer" data-purpose="workspace-settings">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 shadow-sm flex-shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round"></path>
+<circle cx="12" cy="12" r="3"></circle>
+</svg>
+</div>
+<div>
+<h3 class="text-sm font-bold text-slate-900 tracking-tight">Settings</h3>
+<p class="text-[11px] text-slate-500 leading-tight mt-0.5">Business configuration and system settings</p>
+</div>
+</div>
+<span class="text-sky-600 text-sm font-semibold pl-2">→</span>
+</article>
+</section>
+<!-- END: SettingsSection -->
+<!-- BEGIN: PageFooter -->
+<footer class="mt-auto pt-6 px-5 text-center" data-purpose="page-footer">
+<p class="text-[10px] text-slate-400 font-medium tracking-tight">
+        © 2024 E6 Car Spa. All rights reserved.
+      </p>
+</footer>
+<!-- END: PageFooter -->
+</main>
+<script data-purpose="card-interactive-feedback">
+    // Add lightweight touch ripple / click tactile response
+    document.querySelectorAll('article').forEach(card => {
+      card.addEventListener('click', () => {
+        card.classList.add('scale-[0.98]');
+        setTimeout(() => card.classList.remove('scale-[0.98]'), 150);
+      });
+    });
+  </script>
+
+
+</body></html>

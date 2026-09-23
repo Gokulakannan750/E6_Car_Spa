@@ -12,19 +12,21 @@ public class AesEncryptionService : IAesEncryptionService
 
 	public AesEncryptionService(IOptions<WhatsAppOptions> options, IConfiguration? configuration = null)
 	{
-		var keyString = Environment.GetEnvironmentVariable("WHATSAPP_ENCRYPTION_KEY")
-			?? options?.Value?.EncryptionKey
-			?? configuration?["WhatsApp:EncryptionKey"];
+		var keyString = Environment.GetEnvironmentVariable("STAFF_ENCRYPTION_KEY")
+			?? Environment.GetEnvironmentVariable("WHATSAPP_ENCRYPTION_KEY")
+			?? configuration?["Security:EncryptionKey"]
+			?? configuration?["WhatsApp:EncryptionKey"]
+			?? options?.Value?.EncryptionKey;
 
 		if (string.IsNullOrWhiteSpace(keyString))
 		{
 			throw new InvalidOperationException(
-				"WhatsApp encryption key is not configured. Supply 'WhatsApp:EncryptionKey' or environment variable 'WHATSAPP_ENCRYPTION_KEY'.");
+				"WhatsApp encryption key is not configured. Supply 'WhatsApp:EncryptionKey', 'Security:EncryptionKey', or environment variable 'WHATSAPP_ENCRYPTION_KEY'.");
 		}
 
 		if (keyString.Length < 32)
 		{
-			throw new InvalidOperationException("WhatsApp encryption key must be at least 32 characters long for AES-256-GCM security.");
+			throw new InvalidOperationException("Encryption key must be at least 32 characters long for AES-256-GCM security.");
 		}
 
 		// Derive a fixed 256-bit (32-byte) key using SHA-256

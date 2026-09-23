@@ -16,15 +16,24 @@ describe('AppLayout getPageTitle', () => {
 		expect(getPageTitle('/job-cards/new')).toBe('Job Cards');
 		expect(getPageTitle('/job-cards/jc-123')).toBe('Job Cards');
 
-		// 4. Invoices
+		// 4. Invoices & Payments
 		expect(getPageTitle('/invoices')).toBe('Invoices');
 		expect(getPageTitle('/invoices/inv-123')).toBe('Invoices');
+		expect(getPageTitle('/payments')).toBe('Payments');
+		expect(getPageTitle('/payments/pay-123')).toBe('Payments');
 
 		// 5. Catalogue
 		expect(getPageTitle('/catalogue')).toBe('Catalogue');
 
-		// 6. Staff Advances
+		// 6. Staff Workspace (Independent Features)
+		expect(getPageTitle('/staff')).toBe('Staff Directory');
+		expect(getPageTitle('/staff/staff-123')).toBe('Staff Directory');
 		expect(getPageTitle('/staff-advances')).toBe('Staff Advances');
+		expect(getPageTitle('/staff-advances/adv-123')).toBe('Staff Advances');
+		expect(getPageTitle('/staff-attendance')).toBe('Staff Attendance');
+		expect(getPageTitle('/attendance')).toBe('Staff Attendance');
+		expect(getPageTitle('/staff-salary')).toBe('Staff Salary');
+		expect(getPageTitle('/salary')).toBe('Staff Salary');
 
 		// 7. Reports
 		expect(getPageTitle('/reports')).toBe('Reports');
@@ -36,15 +45,19 @@ describe('AppLayout getPageTitle', () => {
 		expect(getPageTitle('/audit')).toBe('Audit Trail');
 		expect(getPageTitle('/audit/details')).toBe('Audit Trail');
 
-		// 10. Users & Access
+		// 10. Settings Features
+		expect(getPageTitle('/settings')).toBe('Company Settings');
+		expect(getPageTitle('/settings/whatsapp')).toBe('WhatsApp Settings');
+		expect(getPageTitle('/settings/system')).toBe('System Preferences');
 		expect(getPageTitle('/settings/users')).toBe('Users & Access');
-
-		// 11. Settings
-		expect(getPageTitle('/settings')).toBe('Settings');
 	});
 
-	it('includes /audit in ROUTE_TITLES mapping', () => {
+	it('includes /audit and settings routes in ROUTE_TITLES mapping', () => {
 		expect(ROUTE_TITLES['/audit']).toBe('Audit Trail');
+		expect(ROUTE_TITLES['/settings']).toBe('Company Settings');
+		expect(ROUTE_TITLES['/settings/whatsapp']).toBe('WhatsApp Settings');
+		expect(ROUTE_TITLES['/settings/system']).toBe('System Preferences');
+		expect(ROUTE_TITLES['/settings/users']).toBe('Users & Access');
 	});
 
 	it('falls back to Dashboard for unknown routes', () => {

@@ -15,12 +15,10 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		settleStaffAdvance: vi.fn(),
 		obsoleteStaffAdvance: vi.fn(),
 		getStaffAdvanceHistory: vi.fn(),
-		createStaffMember: vi.fn(),
-		updateStaffMember: vi.fn(),
 	};
 });
 
-describe('StaffAdvancesPage Component', () => {
+describe('StaffAdvancesPage Component (/staff-advances)', () => {
 	const mockStaffList: api.StaffDto[] = [
 		{
 			id: 'staff-1',
@@ -32,6 +30,11 @@ describe('StaffAdvancesPage Component', () => {
 			isActive: true,
 			totalAdvances: 1,
 			totalAdvanceAmount: 5000,
+			aadhaarMasked: 'XXXX XXXX 9012',
+			hasAadhaarDocument: true,
+			aadhaarDocumentFileName: 'aadhaar_doc.pdf',
+			aadhaarDocumentContentType: 'application/pdf',
+			aadhaarDocumentSize: 102400,
 		},
 		{
 			id: 'staff-2',
@@ -43,6 +46,8 @@ describe('StaffAdvancesPage Component', () => {
 			isActive: true,
 			totalAdvances: 0,
 			totalAdvanceAmount: 0,
+			aadhaarMasked: null,
+			hasAadhaarDocument: false,
 		},
 	];
 
@@ -116,13 +121,14 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
 
 		await waitFor(() => {
 			expect(screen.getByText('Staff Advances')).toBeInTheDocument();
+			expect(screen.getByText(/Track staff advances/i)).toBeInTheDocument();
 			expect(screen.getByText('Medical Emergency')).toBeInTheDocument();
 			expect(screen.getByText('Festival Advance')).toBeInTheDocument();
 		});
@@ -132,6 +138,10 @@ describe('StaffAdvancesPage Component', () => {
 		expect(screen.getAllByText('₹2,000.00').length).toBeGreaterThan(0);
 		expect(screen.getAllByText('₹7,000.00').length).toBeGreaterThan(0);
 		expect(screen.getByText('1 active advance pending recovery')).toBeInTheDocument();
+
+		// Staff Directory tab must NOT exist
+		expect(screen.queryByRole('button', { name: /staff directory/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /add staff member/i })).not.toBeInTheDocument();
 	});
 
 	it('opens record advance modal and submits valid advance payment', async () => {
@@ -150,7 +160,7 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
@@ -166,11 +176,11 @@ describe('StaffAdvancesPage Component', () => {
 		});
 
 		// Fill out advance form
-		const staffSelect = screen.getByText('Select Staff Member...').closest('select')!;
+		const staffSelect = screen.getByText('Select staff member...').closest('select')!;
 		fireEvent.change(staffSelect, {
 			target: { value: 'staff-1' },
 		});
-		fireEvent.change(screen.getByPlaceholderText('5000'), {
+		fireEvent.change(screen.getByPlaceholderText('e.g. 5000'), {
 			target: { value: '3500' },
 		});
 		fireEvent.change(screen.getByPlaceholderText(/e\.g\. personal advance/i), {
@@ -192,12 +202,7 @@ describe('StaffAdvancesPage Component', () => {
 		});
 	});
 
-	it('opens settle modal and submits mark settled', async () => {
-		vi.mocked(api.settleStaffAdvance).mockResolvedValue({
-			...mockAdvancesResponse.items[0],
-			status: 'Settled',
-		});
-
+	it('does not display normal Settle action, clarifying recovery happens via Staff Salary settlement', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
@@ -211,27 +216,25 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
 
 		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /mark settled/i })).toBeInTheDocument();
+			expect(screen.getByText('Medical Emergency')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByRole('button', { name: /mark settled/i }));
+		// Verify normal "Mark Settled" button is removed
+		expect(screen.queryByRole('button', { name: /mark settled/i })).not.toBeInTheDocument();
 
-		await waitFor(() => {
-			expect(screen.getByText('Mark Advance as Settled?')).toBeInTheDocument();
-		});
+		// Verify "Mark Obsolete" remains available
+		expect(screen.getByRole('button', { name: /mark obsolete/i })).toBeInTheDocument();
 
-		const confirmBtns = screen.getAllByRole('button', { name: /mark settled/i });
-		fireEvent.click(confirmBtns[confirmBtns.length - 1]);
-
-		await waitFor(() => {
-			expect(api.settleStaffAdvance).toHaveBeenCalledWith('adv-1');
-		});
+		// Verify informational text about Salary Settlement recovery
+		expect(
+			screen.getByText(/recovered automatically during Staff Salary settlement/i)
+		).toBeInTheDocument();
 	});
 
 	it('opens mark obsolete modal and requires mandatory reason', async () => {
@@ -253,7 +256,7 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete', 'staff.create', 'staff.edit'],
+					permissions: ['staff_advances.create', 'staff_advances.settle', 'staff_advances.obsolete'],
 				},
 			}
 		);
@@ -279,7 +282,16 @@ describe('StaffAdvancesPage Component', () => {
 		});
 	});
 
-	it('switches to Staff Directory tab and renders staff list', async () => {
+	it('opens staff advance history modal when clicking history button', async () => {
+		vi.mocked(api.getStaffAdvanceHistory).mockResolvedValue({
+			staffId: 'staff-1',
+			staffName: 'Karthik Raja',
+			totalAdvancesAmount: 5000,
+			outstandingAmount: 5000,
+			settledAmount: 0,
+			advances: [mockAdvancesResponse.items[0]],
+		});
+
 		renderWithProviders(
 			<Routes>
 				<Route path="/staff-advances" element={<StaffAdvancesPage />} />
@@ -293,22 +305,20 @@ describe('StaffAdvancesPage Component', () => {
 					email: 'admin@e6carspa.com',
 					role: 'Owner',
 					isOwner: true,
-					permissions: ['staff.create', 'staff.edit'],
+					permissions: ['staff_advances.view'],
 				},
 			}
 		);
 
 		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /staff directory/i })).toBeInTheDocument();
+			expect(screen.getAllByTitle('View staff advance history').length).toBeGreaterThan(0);
 		});
 
-		fireEvent.click(screen.getByRole('button', { name: /staff directory/i }));
+		fireEvent.click(screen.getAllByTitle('View staff advance history')[0]);
 
 		await waitFor(() => {
-			expect(screen.getByText('Karthik Raja')).toBeInTheDocument();
-			expect(screen.getByText('Senthil Nathan')).toBeInTheDocument();
-			expect(screen.getByText('9876540001')).toBeInTheDocument();
-			expect(screen.getByText('9876540002')).toBeInTheDocument();
+			expect(screen.getByText(/Karthik Raja.*Advance History/i)).toBeInTheDocument();
+			expect(api.getStaffAdvanceHistory).toHaveBeenCalledWith('staff-1');
 		});
 	});
 });

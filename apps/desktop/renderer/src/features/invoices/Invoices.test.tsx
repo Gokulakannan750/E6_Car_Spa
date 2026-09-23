@@ -102,14 +102,14 @@ describe('Invoices List Component & Status Display', () => {
 		expect(getInvoiceDisplayStatus(mockDraftItem)).toBe('Draft');
 		expect(getInvoiceDisplayStatus({ ...mockDraftItem, status: 'Draft' })).toBe('Draft');
 
-		// 2. Generated / Finalized (numeric 6 and string 'Generated')
-		expect(getInvoiceDisplayStatus(mockGeneratedItem)).toBe('Generated');
-		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 'Generated' })).toBe('Generated');
-		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: '6' as unknown as api.InvoiceStatus })).toBe('Generated');
+		// 2. Generated / Finalized unpaid (numeric 6 and string 'Generated') -> PaymentPending
+		expect(getInvoiceDisplayStatus(mockGeneratedItem)).toBe('PaymentPending');
+		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 'Generated' })).toBe('PaymentPending');
+		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: '6' as unknown as api.InvoiceStatus })).toBe('PaymentPending');
 
 		// 3. Generated invoice with invoice number but status defaulted to 0 or null
-		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 0 })).toBe('Generated');
-		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 'Draft' })).toBe('Generated');
+		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 0 })).toBe('PaymentPending');
+		expect(getInvoiceDisplayStatus({ ...mockGeneratedItem, status: 'Draft' })).toBe('PaymentPending');
 
 		// 4. Partially Paid (numeric 3 and string 'PartiallyPaid')
 		expect(getInvoiceDisplayStatus(mockPartiallyPaidItem)).toBe('PartiallyPaid');
@@ -124,7 +124,7 @@ describe('Invoices List Component & Status Display', () => {
 		expect(getInvoiceDisplayStatus({ ...mockCancelledItem, status: 'Cancelled' })).toBe('Cancelled');
 	});
 
-	it('renders Draft, Generated, Partially Paid, Paid, and Cancelled invoices in the list table', async () => {
+	it('renders Draft, Payment Pending, Partially Paid, Paid, and Cancelled invoices in the list table', async () => {
 		vi.mocked(api.getInvoices).mockResolvedValue({
 			items: [mockDraftItem, mockGeneratedItem, mockPartiallyPaidItem, mockPaidItem, mockCancelledItem],
 			totalCount: 5,
@@ -147,8 +147,8 @@ describe('Invoices List Component & Status Display', () => {
 		// Draft displays 'Draft'
 		expect(screen.getAllByText('Draft').length).toBeGreaterThanOrEqual(1);
 
-		// Generated/finalized invoice displays 'Generated'
-		expect(screen.getAllByText('Generated').length).toBeGreaterThanOrEqual(1);
+		// Payment Pending invoice displays 'Payment Pending'
+		expect(screen.getAllByText('Payment Pending').length).toBeGreaterThanOrEqual(1);
 
 		// Partially Paid displays 'Partially Paid'
 		expect(screen.getAllByText('Partially Paid').length).toBeGreaterThanOrEqual(1);
@@ -160,7 +160,7 @@ describe('Invoices List Component & Status Display', () => {
 		expect(screen.getAllByText('Cancelled').length).toBeGreaterThanOrEqual(1);
 	});
 
-	it('Generated invoice does NOT display Draft badge in its table row', async () => {
+	it('Payment Pending invoice does NOT display Draft badge in its table row', async () => {
 		vi.mocked(api.getInvoices).mockResolvedValue({
 			items: [mockGeneratedItem],
 			totalCount: 1,
@@ -174,14 +174,14 @@ describe('Invoices List Component & Status Display', () => {
 			expect(screen.getByText('INV-2026-000019')).toBeInTheDocument();
 		});
 
-		// The row must contain 'Generated', and NOT contain a 'Draft' badge
+		// The row must contain 'Payment Pending', and NOT contain a 'Draft' badge
 		const row = screen.getByText('INV-2026-000019').closest('tr');
 		expect(row).toBeInTheDocument();
-		expect(row).toHaveTextContent('Generated');
+		expect(row).toHaveTextContent('Payment Pending');
 		expect(row).not.toHaveTextContent('Draft');
 	});
 
-	it('filters invoices when clicking the Generated filter tab', async () => {
+	it('filters invoices when clicking the Payment Pending filter tab', async () => {
 		vi.mocked(api.getInvoices).mockResolvedValue({
 			items: [mockGeneratedItem],
 			totalCount: 1,
@@ -195,8 +195,8 @@ describe('Invoices List Component & Status Display', () => {
 			expect(screen.getByText('INV-2026-000019')).toBeInTheDocument();
 		});
 
-		// Find the Generated status filter button among filter tabs
-		const generatedFilterBtn = screen.getByRole('button', { name: 'Generated' });
+		// Find the Payment Pending status filter button among filter tabs
+		const generatedFilterBtn = screen.getByRole('button', { name: 'Payment Pending' });
 		fireEvent.click(generatedFilterBtn);
 
 		await waitFor(() => {

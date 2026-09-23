@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../config/routes.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import 'e6_brand_badge.dart';
@@ -29,11 +31,19 @@ class AppScreenScaffold extends StatelessWidget {
     this.showBrandBadge = true,
   });
 
+  void _handleBackNavigation(BuildContext context) {
+    if (onBackPressed != null) {
+      onBackPressed!();
+    } else if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      context.go(AppRoutes.dashboard);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final canPop = Navigator.of(context).canPop();
-
-    return Scaffold(
+    final Widget scaffold = Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         title: Row(
@@ -54,10 +64,12 @@ class AppScreenScaffold extends StatelessWidget {
         ),
         automaticallyImplyLeading: false,
         leading: leading ??
-            (showBackButton && canPop
+            (showBackButton
                 ? IconButton(
+                    key: const Key('app_scaffold_back_button'),
                     icon: const Icon(Icons.arrow_back_rounded),
-                    onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
+                    tooltip: 'Back to Dashboard',
+                    onPressed: () => _handleBackNavigation(context),
                   )
                 : null),
         actions: actions,
@@ -69,5 +81,18 @@ class AppScreenScaffold extends StatelessWidget {
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
     );
+
+    if (showBackButton) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _handleBackNavigation(context);
+        },
+        child: scaffold,
+      );
+    }
+
+    return scaffold;
   }
 }

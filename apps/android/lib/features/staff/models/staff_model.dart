@@ -11,6 +11,11 @@ class Staff {
   final bool isActive;
   final int totalAdvances;
   final double totalAdvanceAmount;
+  final String? aadhaarMasked;
+  final bool hasAadhaarDocument;
+  final String? aadhaarDocumentFileName;
+  final String? aadhaarDocumentContentType;
+  final int? aadhaarDocumentSize;
 
   const Staff({
     required this.id,
@@ -22,6 +27,11 @@ class Staff {
     this.isActive = true,
     this.totalAdvances = 0,
     this.totalAdvanceAmount = 0.0,
+    this.aadhaarMasked,
+    this.hasAadhaarDocument = false,
+    this.aadhaarDocumentFileName,
+    this.aadhaarDocumentContentType,
+    this.aadhaarDocumentSize,
   });
 
   String get initials {
@@ -42,6 +52,11 @@ class Staff {
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
       totalAdvances: (json['totalAdvances'] ?? json['TotalAdvances'] ?? 0) as int,
       totalAdvanceAmount: ((json['totalAdvanceAmount'] ?? json['TotalAdvanceAmount'] ?? 0.0) as num).toDouble(),
+      aadhaarMasked: json['aadhaarMasked'] as String? ?? json['AadhaarMasked'] as String?,
+      hasAadhaarDocument: (json['hasAadhaarDocument'] ?? json['HasAadhaarDocument'] ?? false) as bool,
+      aadhaarDocumentFileName: json['aadhaarDocumentFileName'] as String? ?? json['AadhaarDocumentFileName'] as String?,
+      aadhaarDocumentContentType: json['aadhaarDocumentContentType'] as String? ?? json['AadhaarDocumentContentType'] as String?,
+      aadhaarDocumentSize: json['aadhaarDocumentSize'] as int? ?? json['AadhaarDocumentSize'] as int?,
     );
   }
 
@@ -55,5 +70,10 @@ class Staff {
     'isActive': isActive,
     'totalAdvances': totalAdvances,
     'totalAdvanceAmount': totalAdvanceAmount,
+    'aadhaarMasked': aadhaarMasked,
+    'hasAadhaarDocument': hasAadhaarDocument,
+    'aadhaarDocumentFileName': aadhaarDocumentFileName,
+    'aadhaarDocumentContentType': aadhaarDocumentContentType,
+    'aadhaarDocumentSize': aadhaarDocumentSize,
   };
 }

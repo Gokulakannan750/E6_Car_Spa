@@ -15,6 +15,7 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using CarSpaManagement.Api.Infrastructure.Database;
+using CarSpaManagement.Api.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -309,7 +310,12 @@ public class AuditTrailSecurityTests
     public async Task StaffAdvanceService_DeleteStaff_IsAudited()
     {
         var (db, _, auditService) = CreateAuditContext(Guid.NewGuid(), "owner_admin", "Owner");
-        var staffService = new StaffAdvanceService(db, auditService);
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            { "Security:EncryptionKey", "12345678901234567890123456789012" }
+        }).Build();
+        var encryptionService = new AesEncryptionService(config);
+        var staffService = new StaffAdvanceService(db, auditService, encryptionService);
 
         var staff = new Staff { Id = Guid.NewGuid(), Name = "Worker Raj", PhoneNumber = "9876540000", Role = "Detailer" };
         db.Staff.Add(staff);

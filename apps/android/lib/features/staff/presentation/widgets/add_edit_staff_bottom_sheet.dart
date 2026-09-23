@@ -31,8 +31,11 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
   late final TextEditingController _emailController;
   late final TextEditingController _addressController;
   late final TextEditingController _roleController;
+  late final TextEditingController _aadhaarController;
 
   late bool _isActive;
+  bool _isEditingAadhaar = false;
+  final bool _removeAadhaarDocument = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -46,7 +49,9 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
     _emailController = TextEditingController(text: widget.staff?.email ?? '');
     _addressController = TextEditingController(text: widget.staff?.address ?? '');
     _roleController = TextEditingController(text: widget.staff?.role ?? '');
+    _aadhaarController = TextEditingController();
     _isActive = widget.staff?.isActive ?? true;
+    _isEditingAadhaar = widget.staff != null && widget.staff!.aadhaarMasked == null;
   }
 
   @override
@@ -56,6 +61,7 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
     _emailController.dispose();
     _addressController.dispose();
     _roleController.dispose();
+    _aadhaarController.dispose();
     super.dispose();
   }
 
@@ -81,6 +87,33 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
     }
     final cleanPhone = PhoneValidator.clean(phone);
 
+    final rawAadhaar = _aadhaarController.text.trim();
+    final cleanAadhaar = rawAadhaar.replaceAll(RegExp(r'[\s-]'), '');
+
+    if (!isEdit) {
+      if (cleanAadhaar.isEmpty) {
+        setState(() {
+          _errorMessage = 'Aadhaar number is required for new staff.';
+        });
+        return;
+      }
+      if (cleanAadhaar.length != 12 || !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
+        setState(() {
+          _errorMessage = 'Aadhaar number must be exactly 12 numeric digits.';
+        });
+        return;
+      }
+    } else {
+      if (_isEditingAadhaar && cleanAadhaar.isNotEmpty) {
+        if (cleanAadhaar.length != 12 || !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
+          setState(() {
+            _errorMessage = 'Aadhaar number must be exactly 12 numeric digits.';
+          });
+          return;
+        }
+      }
+    }
+
     final email = _emailController.text.trim();
     final address = _addressController.text.trim();
     final role = _roleController.text.trim();
@@ -100,6 +133,8 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
         address: address.isEmpty ? null : address,
         role: role.isEmpty ? null : role,
         isActive: _isActive,
+        aadhaarNumber: _isEditingAadhaar && cleanAadhaar.isNotEmpty ? cleanAadhaar : null,
+        removeAadhaarDocument: _removeAadhaarDocument ? true : null,
       );
       error = await widget.onUpdate?.call(widget.staff!.id, request);
     } else {
@@ -110,6 +145,7 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
         address: address.isEmpty ? null : address,
         role: role.isEmpty ? null : role,
         isActive: _isActive,
+        aadhaarNumber: cleanAadhaar,
       );
       error = await widget.onCreate?.call(request);
     }
@@ -276,7 +312,92 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
                 maxLines: 2,
                 isEnabled: !_isLoading,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
+
+              // Field 6: Aadhaar Information
+              if (!isEdit) ...[
+                Text(
+                  'Aadhaar Number *',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                AppTextField(
+                  controller: _aadhaarController,
+                  hintText: 'e.g. 1234 5678 9012',
+                  keyboardType: TextInputType.number,
+                  prefixIcon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.textSecondary),
+                  isEnabled: !_isLoading,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Enter the 12-digit Aadhaar number',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                ),
+                const SizedBox(height: 14),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Aadhaar Number',
+                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.staff?.aadhaarMasked ?? 'Aadhaar: Not Added',
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isEditingAadhaar = !_isEditingAadhaar;
+                              });
+                            },
+                            child: Text(_isEditingAadhaar ? 'Cancel' : (widget.staff?.aadhaarMasked != null ? 'Change' : 'Add Aadhaar')),
+                          ),
+                        ],
+                      ),
+                      if (_isEditingAadhaar) ...[
+                        const Divider(height: 16),
+                        Text(
+                          'New Aadhaar Number',
+                          style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        AppTextField(
+                          controller: _aadhaarController,
+                          hintText: '12-digit Aadhaar number',
+                          keyboardType: TextInputType.number,
+                          prefixIcon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.textSecondary),
+                          isEnabled: !_isLoading,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
 
               // Active switch
               if (isEdit)

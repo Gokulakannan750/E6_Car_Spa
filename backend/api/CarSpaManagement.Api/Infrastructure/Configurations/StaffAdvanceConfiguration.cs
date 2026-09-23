@@ -21,6 +21,9 @@ public class StaffAdvanceConfiguration : IEntityTypeConfiguration<StaffAdvance>
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
+        builder.Property(a => a.BalanceAmount)
+            .HasColumnType("decimal(18,2)");
+
         builder.Property(a => a.AdvanceDate)
             .HasColumnType("date")
             .IsRequired();

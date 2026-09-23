@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import {
 	Receipt,
 	Eye,
@@ -23,11 +23,11 @@ import {
 	type InvoiceStatus,
 } from '../../lib/api';
 
-// ─── Status filter config (Draft, Generated, Partially Paid, Paid, Cancelled) ──
+// ─── Status filter config (Draft, Payment Pending, Partially Paid, Paid, Cancelled) ──
 const STATUS_FILTERS: { label: string; value: InvoiceStatus | 'All' }[] = [
 	{ label: 'All', value: 'All' },
 	{ label: 'Draft', value: 'Draft' },
-	{ label: 'Generated', value: 'Generated' },
+	{ label: 'Payment Pending', value: 'Generated' },
 	{ label: 'Partially Paid', value: 'PartiallyPaid' },
 	{ label: 'Paid', value: 'Paid' },
 	{ label: 'Cancelled', value: 'Cancelled' },
@@ -44,74 +44,49 @@ interface KpiConfig {
 
 const KPI_CARDS: KpiConfig[] = [
 	{ label: 'Draft', status: 'Draft', icon: <FileText className="w-5 h-5" />, colorClass: 'text-warning', bgClass: 'bg-warning-container' },
-	{ label: 'Generated', status: 'Generated', icon: <Sparkles className="w-5 h-5" />, colorClass: 'text-info', bgClass: 'bg-info-container' },
+	{ label: 'Payment Pending', status: 'Generated', icon: <Sparkles className="w-5 h-5" />, colorClass: 'text-info', bgClass: 'bg-info-container' },
 	{ label: 'Partially Paid', status: 'PartiallyPaid', icon: <Clock className="w-5 h-5" />, colorClass: 'text-warning', bgClass: 'bg-warning-container' },
 	{ label: 'Paid', status: 'Paid', icon: <CircleDollarSign className="w-5 h-5" />, colorClass: 'text-success', bgClass: 'bg-success-container' },
 	{ label: 'Cancelled', status: 'Cancelled', icon: <AlertCircle className="w-5 h-5" />, colorClass: 'text-error', bgClass: 'bg-error-container' },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-export type InvoiceDisplayStatus = 'Draft' | 'Generated' | 'PartiallyPaid' | 'Paid' | 'Cancelled';
-
-const STATUS_ENUM_MAP: Record<number, InvoiceDisplayStatus> = {
-	0: 'Draft',
-	1: 'Generated',
-	2: 'Paid',
-	3: 'PartiallyPaid',
-	4: 'Cancelled',
-	5: 'Generated',
-	6: 'Generated',
-};
+export type InvoiceDisplayStatus = 'Draft' | 'PaymentPending' | 'PartiallyPaid' | 'Paid' | 'Cancelled';
 
 export function getInvoiceDisplayStatus(inv: InvoiceListDto): InvoiceDisplayStatus {
-	// If backend gave a numeric status enum, map it
-	if (typeof inv.status === 'number' || (typeof inv.status === 'string' && /^\d+$/.test(inv.status))) {
-		const num = Number(inv.status);
-		if (num in STATUS_ENUM_MAP) {
-			const mapped = STATUS_ENUM_MAP[num];
-			// If mapped to Draft but already has a generated invoice number, it's not Draft
-			if (mapped === 'Draft' && inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
-				if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
-					return 'Paid';
-				}
-				if (inv.paidAmount != null && inv.paidAmount > 0) {
-					return 'PartiallyPaid';
-				}
-				return 'Generated';
-			}
-			return mapped;
-		}
+	// 1. If invoice is cancelled:
+	const rawStatus = typeof inv.status === 'string' ? inv.status.toLowerCase() : '';
+	if (rawStatus === 'cancelled' || rawStatus === 'canceled' || inv.status === 4) {
+		return 'Cancelled';
 	}
-	// If string matches standard names
-	if (typeof inv.status === 'string') {
-		const s = inv.status.toLowerCase();
-		if (s === 'paid') return 'Paid';
-		if (s === 'partiallypaid' || s === 'partially paid' || s === 'partial') return 'PartiallyPaid';
-		if (s === 'generated' || s === 'issued' || s === 'sent') return 'Generated';
-		if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
-		if (s === 'draft') {
-			if (inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
-				if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
-					return 'Paid';
-				}
-				if (inv.paidAmount != null && inv.paidAmount > 0) {
-					return 'PartiallyPaid';
-				}
-				return 'Generated';
-			}
-			return 'Draft';
-		}
+
+	const hasNumber = Boolean(inv.invoiceNumber && inv.invoiceNumber.trim() !== '');
+	const isDraftStatus = rawStatus === 'draft' || inv.status === 0;
+
+	// 5. If draft and no invoice number:
+	if (isDraftStatus && !hasNumber) {
+		return 'Draft';
 	}
-	// Fallback to paidAmount / invoiceNumber check if generated
-	if (inv.invoiceNumber && inv.invoiceNumber.trim() !== '') {
-		if (inv.paidAmount != null && inv.totalAmount != null && inv.paidAmount >= inv.totalAmount && inv.totalAmount > 0) {
-			return 'Paid';
-		}
-		if (inv.paidAmount != null && inv.paidAmount > 0) {
-			return 'PartiallyPaid';
-		}
-		return 'Generated';
+
+	const total = inv.totalAmount ?? 0;
+	const paid = inv.paidAmount ?? 0;
+	const balance = inv.balanceAmount != null ? inv.balanceAmount : Math.max(0, total - paid);
+
+	// 2. If BalanceAmount <= 0:
+	if ((total > 0 && balance <= 0) || rawStatus === 'paid' || inv.status === 2) {
+		return 'Paid';
 	}
+
+	// 3. If PaidAmount > 0:
+	if ((paid > 0 && balance > 0) || rawStatus === 'partiallypaid' || rawStatus === 'partially paid' || rawStatus === 'partial' || inv.status === 3) {
+		return 'PartiallyPaid';
+	}
+
+	// 4. If invoice exists and BalanceAmount > 0 and PaidAmount == 0:
+	if (hasNumber || !isDraftStatus || rawStatus === 'generated' || rawStatus === 'issued' || rawStatus === 'sent' || inv.status === 1 || inv.status === 6) {
+		return 'PaymentPending';
+	}
+
 	return 'Draft';
 }
 
@@ -122,8 +97,8 @@ export function getInvoiceStatusSlug(inv: InvoiceListDto): string {
 			return 'paid';
 		case 'PartiallyPaid':
 			return 'partially-paid';
-		case 'Generated':
-			return 'generated';
+		case 'PaymentPending':
+			return 'payment-pending';
 		case 'Cancelled':
 			return 'cancelled';
 		case 'Draft':
@@ -178,6 +153,7 @@ export function Invoices() {
 				search: effectiveSearch || undefined,
 				status: statusFilter === 'All' ? undefined : statusFilter,
 			}),
+		placeholderData: keepPreviousData,
 	});
 
 	const items = invoicesData?.items ?? [];
@@ -188,8 +164,8 @@ export function Invoices() {
 	const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
 	useEffect(() => {
-		if (page > totalPages) setPage(totalPages);
-	}, [page, totalPages]);
+		if (invoicesData && page > totalPages) setPage(totalPages);
+	}, [page, totalPages, invoicesData]);
 
 	// ─── KPI counts (computed from loaded data) ──────────────────────────────
 	const statusCounts = useMemo(() => {
@@ -202,7 +178,11 @@ export function Invoices() {
 		};
 		for (const item of items) {
 			const displayStatus = getInvoiceDisplayStatus(item);
-			counts[displayStatus] = (counts[displayStatus] || 0) + 1;
+			if (displayStatus === 'PaymentPending') {
+				counts.Generated = (counts.Generated || 0) + 1;
+			} else {
+				counts[displayStatus] = (counts[displayStatus] || 0) + 1;
+			}
 		}
 		return counts;
 	}, [items]);
@@ -470,8 +450,9 @@ export function Invoices() {
 							{Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
 								<button
 									key={p}
+									type="button"
 									onClick={() => setPage(p)}
-									className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+									className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
 										p === page
 											? 'bg-secondary text-white'
 											: 'text-on-surface-variant hover:bg-surface-container-low'

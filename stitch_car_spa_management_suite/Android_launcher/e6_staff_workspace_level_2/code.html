@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>E6 Car Spa - E6 Staff Workspace</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              red: '#e11d48',
+              blue: '#2563eb',
+              dark: '#0f172a',
+              muted: '#64748b',
+              surface: '#f8fafc',
+              border: '#e2e8f0',
+              staff: '#10b981',
+              'staff-light': '#ecfdf5'
+            }
+          },
+          boxShadow: {
+            'subtle': '0 2px 8px -2px rgba(15, 23, 42, 0.04), 0 1px 3px -1px rgba(15, 23, 42, 0.03)',
+            'card': '0 4px 16px -4px rgba(15, 23, 42, 0.06)',
+            'floating': '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: CustomStyles -->
+<style data-purpose="scrollbar-utilities">
+    /* Hide scrollbars for slick mobile horizontal carousels */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style data-purpose="ios-system-simulation">
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  </style>
+<!-- END: CustomStyles -->
+</head>
+<body class="bg-slate-100 flex justify-center min-h-screen text-slate-800 antialiased font-sans sm:py-6">
+<!-- BEGIN: MobileFrameContainer -->
+<!-- Constrained mobile frame matching the aspect ratio and feel of the original device snapshot -->
+<main class="w-full max-w-[420px] bg-[#f8f9fc] min-h-screen flex flex-col shadow-2xl relative sm:rounded-[44px] overflow-hidden border border-slate-200/80">
+<!-- BEGIN: SystemStatusBar -->
+<header class="pt-3 px-6 pb-2 flex justify-between items-center bg-[#f8f9fc] z-20" data-purpose="status-bar">
+<span class="text-sm font-semibold tracking-tight text-slate-900">12:30</span>
+<!-- Camera Punch hole simulator -->
+<div class="w-4 h-4 bg-black rounded-full mx-auto -ml-3"></div>
+<div class="flex items-center space-x-2 text-slate-900">
+<!-- Wi-Fi Icon -->
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24">
+<path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 2.22c3.96 0 7.55 1.57 10.22 4.14L12 18.66 1.78 10.36C4.45 7.79 8.04 6.22 12 6.22z"></path>
+</svg>
+<!-- Cell Signal -->
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24">
+<path d="M2 22h20V2z"></path>
+</svg>
+<!-- Battery Icon -->
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path d="M16 4h-2V2h-4v2H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"></path>
+</svg>
+</div>
+</header>
+<!-- END: SystemStatusBar -->
+<!-- BEGIN: Level2TopAppBar -->
+<section class="px-5 pt-2 pb-3 bg-[#f8f9fc] border-b border-slate-200/70 sticky top-0 z-30" data-purpose="top-navigation">
+<div class="flex items-center justify-between">
+<!-- Back Arrow & Workspace Title -->
+<div class="flex items-center space-x-3">
+<a aria-label="Back to Suite Launcher" class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 active:scale-95 transition-all shadow-sm" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</a>
+<div class="flex items-center space-x-2.5">
+<div class="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+<svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2.2" viewbox="0 0 24 24">
+<path d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<div>
+<h1 class="text-lg font-bold text-slate-900 leading-tight">E6 Staff</h1>
+<p class="text-[11px] font-medium text-slate-400 leading-none">Level-2 Workspace</p>
+</div>
+</div>
+</div>
+<!-- Right Quick Action Icons -->
+<div class="flex items-center space-x-2">
+<button class="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 active:scale-95 transition-all shadow-sm">
+<svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 active:scale-95 transition-all shadow-sm">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 4.5v15m7.5-7.5h-15" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+</section>
+<!-- END: Level2TopAppBar -->
+<!-- BEGIN: WorkspaceNavigationTabs -->
+<!-- Horizontal tabs corresponding directly to the launcher card items -->
+<nav class="bg-white border-b border-slate-200/80 px-4 pt-1 shadow-sm" data-purpose="suite-navigation-tabs">
+<div class="flex space-x-6 overflow-x-auto no-scrollbar">
+<!-- Active Tab: Directory -->
+<button class="flex flex-col items-center pb-2.5 pt-1.5 border-b-2 border-emerald-600 text-emerald-600 font-semibold text-xs tracking-tight whitespace-nowrap">
+<span class="flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+            Directory
+          </span>
+</button>
+<button class="flex flex-col items-center pb-2.5 pt-1.5 border-b-2 border-transparent text-slate-500 font-medium text-xs tracking-tight hover:text-slate-800 whitespace-nowrap">
+<span class="flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+            Attendance
+          </span>
+</button>
+<button class="flex flex-col items-center pb-2.5 pt-1.5 border-b-2 border-transparent text-slate-500 font-medium text-xs tracking-tight hover:text-slate-800 whitespace-nowrap">
+<span class="flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+            Monthly Report
+          </span>
+</button>
+<button class="flex flex-col items-center pb-2.5 pt-1.5 border-b-2 border-transparent text-slate-500 font-medium text-xs tracking-tight hover:text-slate-800 whitespace-nowrap">
+<span class="flex items-center gap-1.5">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6H2.25m0 0v10.5m0-10.5h1.5A2.25 2.25 0 016 8.25m0 0h12m-12 0v7.5m12-7.5v7.5m0-7.5A2.25 2.25 0 0120.25 6H21m0 0v10.5m0 0a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25m14.25-10.5v10.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+            Salary &amp; Advances
+          </span>
+</button>
+</div>
+</nav>
+<!-- END: WorkspaceNavigationTabs -->
+<!-- BEGIN: ScrollableWorkspaceContent -->
+<div class="flex-1 overflow-y-auto px-5 pt-4 pb-28 space-y-4" data-purpose="workspace-body">
+<!-- BEGIN: OperationalKPIBanner -->
+<!-- Clean, minimal stat widgets consistent with the card aesthetics -->
+<section class="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-subtle" data-purpose="operational-kpi">
+<div class="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-2.5">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+<span class="text-xs font-semibold text-slate-700 tracking-wide uppercase">Live Shift Status</span>
+</div>
+<span class="text-[11px] font-medium text-slate-400">Gokula Branch</span>
+</div>
+<div class="grid grid-cols-3 gap-2 text-center">
+<div class="bg-slate-50/80 rounded-xl p-2 border border-slate-100">
+<span class="block text-[11px] font-medium text-slate-500">Total Staff</span>
+<span class="text-base font-bold text-slate-900 mt-0.5">28</span>
+<span class="text-[10px] text-emerald-600 font-medium font-mono">Active</span>
+</div>
+<div class="bg-emerald-50/60 rounded-xl p-2 border border-emerald-100/60">
+<span class="block text-[11px] font-medium text-emerald-800">On Duty</span>
+<span class="text-base font-bold text-emerald-700 mt-0.5">24</span>
+<span class="text-[10px] text-emerald-600 font-medium">4 Off/Leave</span>
+</div>
+<div class="bg-slate-50/80 rounded-xl p-2 border border-slate-100">
+<span class="block text-[11px] font-medium text-slate-500">Coverage</span>
+<span class="text-base font-bold text-slate-900 mt-0.5">92%</span>
+<span class="text-[10px] text-slate-400 font-medium">Bays 1-6</span>
+</div>
+</div>
+</section>
+<!-- END: OperationalKPIBanner -->
+<!-- BEGIN: SearchAndRoleFilters -->
+<section class="space-y-2.5" data-purpose="filter-bar">
+<!-- Search Input -->
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+<svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<input class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-normal text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm" placeholder="Search staff by name, role, or bay..." type="text"/>
+</div>
+<!-- Role Pills Carousel -->
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-0.5">
+<button class="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium whitespace-nowrap shadow-sm">
+            All (28)
+          </button>
+<button class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium whitespace-nowrap hover:bg-slate-50">
+            Detailers (10)
+          </button>
+<button class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium whitespace-nowrap hover:bg-slate-50">
+            Technicians (8)
+          </button>
+<button class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium whitespace-nowrap hover:bg-slate-50">
+            Supervisors (4)
+          </button>
+<button class="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium whitespace-nowrap hover:bg-slate-50">
+            Washers (6)
+          </button>
+</div>
+</section>
+<!-- END: SearchAndRoleFilters -->
+<!-- BEGIN: StaffDirectoryList -->
+<section class="space-y-3" data-purpose="directory-cards-container">
+<!-- Section Header -->
+<div class="flex items-center justify-between pt-1">
+<h2 class="text-sm font-bold text-slate-900 tracking-tight">Active Team Members</h2>
+<span class="text-xs text-slate-400 font-medium">Sorted by: On Duty</span>
+</div>
+<!-- Staff Card 1 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle hover:border-slate-300 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<!-- Staff Avatar / Initials -->
+<div class="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm shadow-sm relative">
+                RK
+                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<h3 class="font-bold text-sm text-slate-900 leading-tight">Rajesh Kumar</h3>
+<p class="text-xs text-slate-500 font-medium mt-0.5">Senior Detailer • Ceramic Specialist</p>
+</div>
+</div>
+<!-- Status Badge -->
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              Bay 2 • On Duty
+            </span>
+</div>
+<!-- Staff Performance Strip -->
+<div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-4">
+<span class="text-slate-600 font-medium">
+<strong class="text-slate-900 font-semibold">142</strong> Jobs Done
+              </span>
+<span class="flex items-center text-amber-500 font-semibold text-xs">
+<svg class="w-3.5 h-3.5 fill-current mr-1" viewbox="0 0 20 20">
+<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+</svg>
+                4.9
+              </span>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center space-x-1.5">
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Call Rajesh">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Log Attendance">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium text-[11px] hover:bg-slate-200">
+                View
+              </button>
+</div>
+</div>
+</article>
+<!-- Staff Card 2 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle hover:border-slate-300 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<!-- Staff Avatar / Initials -->
+<div class="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm relative">
+                AV
+                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<h3 class="font-bold text-sm text-slate-900 leading-tight">Arun Varma</h3>
+<p class="text-xs text-slate-500 font-medium mt-0.5">Lead Technician • Paint Correction</p>
+</div>
+</div>
+<!-- Status Badge -->
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              Inspection • On Duty
+            </span>
+</div>
+<!-- Staff Performance Strip -->
+<div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-4">
+<span class="text-slate-600 font-medium">
+<strong class="text-slate-900 font-semibold">98</strong> Jobs Done
+              </span>
+<span class="flex items-center text-amber-500 font-semibold text-xs">
+<svg class="w-3.5 h-3.5 fill-current mr-1" viewbox="0 0 20 20">
+<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+</svg>
+                4.8
+              </span>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center space-x-1.5">
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Call Arun">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Log Attendance">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium text-[11px] hover:bg-slate-200">
+                View
+              </button>
+</div>
+</div>
+</article>
+<!-- Staff Card 3 -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle hover:border-slate-300 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<!-- Staff Avatar / Initials -->
+<div class="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm relative">
+                PS
+                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<h3 class="font-bold text-sm text-slate-900 leading-tight">Priya Sundaram</h3>
+<p class="text-xs text-slate-500 font-medium mt-0.5">Operations Supervisor • Front Office</p>
+</div>
+</div>
+<!-- Status Badge -->
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              Reception • On Duty
+            </span>
+</div>
+<!-- Staff Performance Strip -->
+<div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-4">
+<span class="text-slate-600 font-medium">
+<strong class="text-slate-900 font-semibold">Morning Shift</strong> Lead
+              </span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                Superuser
+              </span>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center space-x-1.5">
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Call Priya">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium text-[11px] hover:bg-slate-200">
+                View
+              </button>
+</div>
+</div>
+</article>
+<!-- Staff Card 4 (Break status) -->
+<article class="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-subtle hover:border-slate-300 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-3">
+<!-- Staff Avatar / Initials -->
+<div class="w-11 h-11 rounded-2xl bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-sm relative">
+                VK
+                <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-amber-400 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<h3 class="font-bold text-sm text-slate-900 leading-tight">Vignesh K</h3>
+<p class="text-xs text-slate-500 font-medium mt-0.5">Wash Specialist • Bay 1</p>
+</div>
+</div>
+<!-- Status Badge (Amber) -->
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
+              Break • Till 1:30 PM
+            </span>
+</div>
+<!-- Staff Performance Strip -->
+<div class="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+<div class="flex items-center space-x-4">
+<span class="text-slate-600 font-medium">
+<strong class="text-slate-900 font-semibold">184</strong> Cars Washed
+              </span>
+<span class="flex items-center text-amber-500 font-semibold text-xs">
+<svg class="w-3.5 h-3.5 fill-current mr-1" viewbox="0 0 20 20">
+<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+</svg>
+                4.7
+              </span>
+</div>
+<!-- Quick Actions -->
+<div class="flex items-center space-x-1.5">
+<button class="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100" title="Call Vignesh">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24">
+<path d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium text-[11px] hover:bg-slate-200">
+                View
+              </button>
+</div>
+</div>
+</article>
+</section>
+<!-- END: StaffDirectoryList -->
+<!-- Footer Brand Watermark matching Image_2 -->
+<footer class="pt-6 pb-2 text-center" data-purpose="brand-watermark">
+<div class="opacity-30 tracking-wider">
+<p class="text-xs font-black tracking-widest text-slate-700">E6 CAR SPA</p>
+<div class="w-8 h-0.5 bg-brand-red mx-auto mt-0.5 mb-1"></div>
+<p class="text-[9px] font-bold tracking-widest text-slate-500">DRIVE BETTER</p>
+</div>
+<p class="text-[10px] text-slate-400 mt-3 font-normal">© 2024 E6 Car Spa. All rights reserved.</p>
+</footer>
+</div>
+<!-- END: ScrollableWorkspaceContent -->
+<!-- BEGIN: FloatingAddStaffCTA -->
+<!-- Fixed floating action above the bottom nav bar -->
+<div class="absolute bottom-5 inset-x-5 z-40" data-purpose="quick-action-cta">
+<button class="w-full bg-slate-900 hover:bg-black text-white font-semibold py-3.5 px-5 rounded-2xl flex items-center justify-between shadow-floating active:scale-[0.98] transition-all border border-slate-800">
+<span class="flex items-center space-x-2 text-sm">
+<div class="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewbox="0 0 24 24">
+<path d="M12 4.5v15m7.5-7.5h-15" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</div>
+<span>Add New Staff Member</span>
+</span>
+<span class="text-xs bg-slate-800 text-slate-300 font-mono px-2 py-0.5 rounded-md border border-slate-700">
+          ⌘N
+        </span>
+</button>
+</div>
+<!-- END: FloatingAddStaffCTA -->
+<!-- BEGIN: AndroidGestureIndicator -->
+<div class="absolute bottom-1.5 inset-x-0 flex justify-center pointer-events-none z-50">
+<div class="w-32 h-1 bg-slate-300/80 rounded-full"></div>
+</div>
+<!-- END: AndroidGestureIndicator -->
+</main>
+<!-- END: MobileFrameContainer -->
+</body></html>

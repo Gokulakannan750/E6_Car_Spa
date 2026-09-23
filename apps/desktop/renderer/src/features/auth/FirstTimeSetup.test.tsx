@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { screen, fireEvent, act } from '@testing-library/react';
 import FirstTimeSetup from './FirstTimeSetup';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';

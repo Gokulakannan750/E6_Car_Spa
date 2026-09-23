@@ -42,6 +42,7 @@ public class InvoiceService : IInvoiceService
 	public async Task<IReadOnlyList<InvoiceListDto>> GetAllAsync(int page, int pageSize, string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
 	{
 		var query = _db.Invoices
+			.Where(i => !i.IsDeleted)
 			.Include(i => i.Customer)
 			.Include(i => i.Vehicle)
 			.Include(i => i.JobCard)
@@ -69,7 +70,7 @@ public class InvoiceService : IInvoiceService
 
 	public async Task<int> GetTotalCountAsync(string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
 	{
-		var query = _db.Invoices.AsQueryable();
+		var query = _db.Invoices.Where(i => !i.IsDeleted).AsQueryable();
 
 		if (status.HasValue) query = query.Where(i => i.Status == status.Value);
 		if (fromDate.HasValue) query = query.Where(i => i.InvoiceDate >= fromDate.Value);
@@ -783,11 +784,11 @@ public class InvoiceService : IInvoiceService
 	private static InvoiceListDto ToListDto(Invoice i) => new(
 		i.Id,
 		i.InvoiceNumber,
-		i.JobCard.JobCardNumber,
-		i.Customer.Name,
-		i.Customer.PhoneNumber,
-		i.Vehicle.RegistrationNumber,
-		string.Concat(i.Vehicle.Make, " ", i.Vehicle.Model),
+		i.JobCard != null ? i.JobCard.JobCardNumber : "—",
+		i.Customer != null ? i.Customer.Name : "—",
+		i.Customer != null ? i.Customer.PhoneNumber : "—",
+		i.Vehicle != null ? i.Vehicle.RegistrationNumber : "—",
+		i.Vehicle != null ? string.Concat(i.Vehicle.Make, " ", i.Vehicle.Model).Trim() : "—",
 		i.InvoiceDate,
 		i.TotalAmount,
 		i.PaidAmount,

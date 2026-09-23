@@ -7,7 +7,7 @@ enum InvoiceStatus {
   partiallyPaid(3, 'Partially Paid'),
   cancelled(4, 'Cancelled'),
   overdue(5, 'Overdue'),
-  generated(6, 'Generated');
+  generated(6, 'Payment Pending');
 
   final int value;
   final String label;

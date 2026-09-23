@@ -26,11 +26,18 @@ public class StaffAdvance : BaseEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? BalanceAmount { get; set; }
+
     public StaffAdvanceStatus Status { get; set; } = StaffAdvanceStatus.Outstanding;
 
     public DateTime? SettledAt { get; set; }
     public Guid? SettledByUserId { get; set; }
     public User? SettledByUser { get; set; }
+
+    public Guid? StaffSalarySettlementId { get; set; }
+    [ForeignKey(nameof(StaffSalarySettlementId))]
+    public StaffSalarySettlement? StaffSalarySettlement { get; set; }
 
     public DateTime? ObsoletedAt { get; set; }
     public Guid? ObsoletedByUserId { get; set; }

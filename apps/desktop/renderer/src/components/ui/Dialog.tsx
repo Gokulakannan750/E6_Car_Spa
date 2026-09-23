@@ -27,6 +27,8 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
 		<div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => onOpenChange(false)}>
 			<div className="fixed inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" />
 			<div
+				role="dialog"
+				aria-modal="true"
 				className={cn(
 					'relative bg-surface-container-lowest rounded-xl shadow-elevation-2 w-full animate-scale-in max-h-[85vh] flex flex-col border border-outline-variant/60',
 					sizes[size]

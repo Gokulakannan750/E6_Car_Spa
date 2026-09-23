@@ -24,6 +24,7 @@ void main() {
       expect(find.text('Add an employee to the workshop directory'), findsOneWidget);
       expect(find.text('Full Name *'), findsOneWidget);
       expect(find.text('Phone Number *'), findsOneWidget);
+      expect(find.text('Aadhaar Number *'), findsOneWidget);
       expect(find.widgetWithText(AppButton, 'Create Staff'), findsOneWidget);
       expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
     });
@@ -75,7 +76,37 @@ void main() {
       expect(find.text('Phone number must be exactly 10 digits'), findsOneWidget);
     });
 
-    testWidgets('submits valid request and invokes onCreate callback', (tester) async {
+    testWidgets('validates 12-digit Aadhaar number before submitting', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AddEditStaffBottomSheet(),
+          ),
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField).at(0), 'Ramesh Kumar');
+      await tester.enterText(find.byType(TextField).at(1), '9876543210');
+
+      // Missing Aadhaar
+      await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aadhaar number is required for new staff.'), findsOneWidget);
+
+      // Invalid 11-digit Aadhaar
+      await tester.enterText(find.byType(TextField).at(5), '12345678901');
+      await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aadhaar number must be exactly 12 numeric digits.'), findsOneWidget);
+    });
+
+    testWidgets('submits valid request and invokes onCreate callback with normalized Aadhaar', (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -98,6 +129,7 @@ void main() {
       await tester.enterText(find.byType(TextField).at(0), 'Ramesh Detailer');
       await tester.enterText(find.byType(TextField).at(1), '9876543210');
       await tester.enterText(find.byType(TextField).at(2), 'Floor Supervisor');
+      await tester.enterText(find.byType(TextField).at(5), '1234 5678 9012');
 
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();
@@ -106,6 +138,7 @@ void main() {
       expect(submittedRequest!.name, 'Ramesh Detailer');
       expect(submittedRequest!.phoneNumber, '9876543210');
       expect(submittedRequest!.role, 'Floor Supervisor');
+      expect(submittedRequest!.aadhaarNumber, '123456789012');
     });
 
     testWidgets('renders Edit mode prepopulated with existing staff data', (tester) async {
@@ -121,6 +154,7 @@ void main() {
         address: 'Coimbatore',
         role: 'Master Polisher',
         isActive: true,
+        aadhaarMasked: 'XXXX XXXX 9012',
       );
 
       await tester.pumpWidget(
@@ -137,6 +171,7 @@ void main() {
       expect(find.text('Karthik Raja'), findsOneWidget);
       expect(find.text('9123456780'), findsOneWidget);
       expect(find.text('Master Polisher'), findsOneWidget);
+      expect(find.text('XXXX XXXX 9012'), findsOneWidget);
       expect(find.text('Active Status'), findsOneWidget);
       expect(find.widgetWithText(AppButton, 'Save Changes'), findsOneWidget);
     });
@@ -160,6 +195,7 @@ void main() {
 
       await tester.enterText(find.byType(TextField).at(0), 'Duplicate Name');
       await tester.enterText(find.byType(TextField).at(1), '9876543210');
+      await tester.enterText(find.byType(TextField).at(5), '123456789012');
 
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();

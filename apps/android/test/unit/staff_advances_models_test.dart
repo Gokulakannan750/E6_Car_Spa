@@ -218,6 +218,7 @@ void main() {
       final req = CreateStaffRequest(
         name: 'Ramesh Kumar',
         phoneNumber: '9840123456',
+        aadhaarNumber: '123456789012',
         email: 'ramesh@e6.com',
         address: 'Chennai',
         role: 'Technician',
@@ -228,6 +229,7 @@ void main() {
 
       expect(json['name'], 'Ramesh Kumar');
       expect(json['phoneNumber'], '9840123456');
+      expect(json['aadhaarNumber'], '123456789012');
       expect(json['email'], 'ramesh@e6.com');
       expect(json['address'], 'Chennai');
       expect(json['role'], 'Technician');

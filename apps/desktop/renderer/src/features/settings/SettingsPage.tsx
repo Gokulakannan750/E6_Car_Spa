@@ -13,9 +13,6 @@ import {
 	FileText,
 	Loader2,
 	Image as ImageIcon,
-	MessageSquare,
-	ShieldCheck,
-	Check,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/auth-context';
@@ -28,30 +25,29 @@ import {
 	setCachedBusinessProfile,
 	BusinessProfileDto,
 } from '../../lib/api';
-import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { BUSINESS_PROFILE_QUERY_KEY } from './hooks/useBusinessProfile';
+import { capitalizeSentence } from '../../utils/text';
 
 const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i;
 
 export default function SettingsPage() {
 	const navigate = useNavigate();
-	const [searchParams, setSearchParams] = useSearchParams();
+	const [searchParams] = useSearchParams();
 	const queryClient = useQueryClient();
 	const { user, hasPermission } = useAuth();
 	const canViewUsers = hasPermission('users.view');
 	const canManageBusiness = Boolean(user?.isOwner || hasPermission('settings.business'));
 
-	const tabParam = searchParams.get('tab');
-	const activeTab = tabParam === 'whatsapp' ? 'whatsapp' : 'company';
-
-	const handleTabChange = (tab: 'company' | 'whatsapp') => {
-		if (tab === 'company') {
-			setSearchParams({});
-		} else {
-			setSearchParams({ tab });
+	// Backward-compatibility redirect for legacy tab query parameters
+	useEffect(() => {
+		const tabParam = searchParams.get('tab');
+		if (tabParam === 'whatsapp') {
+			navigate('/settings/whatsapp', { replace: true });
+		} else if (tabParam === 'system') {
+			navigate('/settings/system', { replace: true });
 		}
-	};
+	}, [searchParams, navigate]);
 
 	const [profile, setProfile] = useState<BusinessProfileDto | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -146,11 +142,11 @@ export default function SettingsPage() {
 			setSuccessMsg(null);
 
 			const updated = await updateBusinessProfile({
-				businessName: businessName.trim(),
-				addressLine1: addressLine1.trim(),
-				addressLine2: addressLine2.trim() || null,
-				city: city.trim(),
-				state: state.trim(),
+				businessName: capitalizeSentence(businessName.trim()),
+				addressLine1: capitalizeSentence(addressLine1.trim()),
+				addressLine2: addressLine2.trim() ? capitalizeSentence(addressLine2.trim()) : null,
+				city: capitalizeSentence(city.trim()),
+				state: capitalizeSentence(state.trim()),
 				postalCode: postalCode.trim(),
 				phone: cleanPhone,
 				email: email.trim(),
@@ -236,77 +232,50 @@ export default function SettingsPage() {
 	}
 
 	return (
-		<div className="space-y-6">
+		<div className="space-y-6 w-full">
 			{/* Page Header */}
-			<div className="flex items-center justify-between">
-				<div className="space-y-1">
-					<h1 className="text-2xl font-bold tracking-tight text-slate-900">Settings</h1>
-					<p className="text-xs text-slate-500">
-						Manage company profile, business details, invoice configuration, and WhatsApp integration.
+			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+				<div>
+					<h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+						Company Settings
+					</h1>
+					<p className="text-xs text-slate-500 mt-0.5">
+						Configure company profile, tax invoice branding, and business identity
 					</p>
 				</div>
-				{canManageBusiness && activeTab === 'company' && (
+				{canManageBusiness && (
 					<button
 						type="submit"
 						form="business-profile-form"
-						disabled={saving}
-						className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
+						disabled={saving || loading}
+						className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
 					>
-						{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+						{saving ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Save className="w-4 h-4" />
+						)}
 						{saving ? 'Saving...' : 'Save Settings'}
 					</button>
 				)}
 			</div>
 
-			{/* Navigation Tabs */}
-			<div className="flex items-center gap-2 border-b border-slate-200">
-				<button
-					type="button"
-					onClick={() => handleTabChange('company')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-						activeTab === 'company'
-							? 'border-blue-600 text-blue-600'
-							: 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-					}`}
-				>
-					<Building2 className="w-4 h-4" />
-					<span>Company Settings</span>
-				</button>
-
-				<button
-					type="button"
-					onClick={() => handleTabChange('whatsapp')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all cursor-pointer ${
-						activeTab === 'whatsapp'
-							? 'border-emerald-600 text-emerald-600'
-							: 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
-					}`}
-				>
-					<MessageSquare className="w-4 h-4" />
-					<span>WhatsApp Settings</span>
-					<span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] rounded-full font-semibold">
-						Cloud API
-					</span>
-				</button>
-			</div>
-
-			{/* Alerts for Company Profile */}
-			{activeTab === 'company' && successMsg && (
-				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
+			{/* Notification Toasts */}
+			{successMsg && (
+				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
 					<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
 					{successMsg}
 				</div>
 			)}
-			{activeTab === 'company' && errorMsg && (
+			{errorMsg && (
 				<div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
 					<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
 					{errorMsg}
 				</div>
 			)}
 
-			{/* TAB 1: COMPANY SETTINGS */}
-			{activeTab === 'company' && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
+			{/* COMPANY SETTINGS CONTENT */}
+			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
 					<div className="lg:col-span-2 space-y-6">
 						{/* Users & Permissions Quick Card */}
 						{canViewUsers && (
@@ -426,6 +395,7 @@ export default function SettingsPage() {
 											value={businessName}
 											disabled={!canManageBusiness}
 											onChange={(e) => setBusinessName(e.target.value)}
+											onBlur={() => setBusinessName(capitalizeSentence(businessName))}
 											placeholder="e.g. E6 Car Spa"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -440,6 +410,7 @@ export default function SettingsPage() {
 											value={addressLine1}
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine1(e.target.value)}
+											onBlur={() => setAddressLine1(capitalizeSentence(addressLine1))}
 											placeholder="e.g. 36, Geetha Nagar Main Road"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -454,6 +425,7 @@ export default function SettingsPage() {
 											value={addressLine2}
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine2(e.target.value)}
+											onBlur={() => setAddressLine2(capitalizeSentence(addressLine2))}
 											placeholder="e.g. Behind Sakthi Mahal, Perundurai Road"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -469,6 +441,7 @@ export default function SettingsPage() {
 												value={city}
 												disabled={!canManageBusiness}
 												onChange={(e) => setCity(e.target.value)}
+												onBlur={() => setCity(capitalizeSentence(city))}
 												placeholder="e.g. Erode"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
@@ -482,6 +455,7 @@ export default function SettingsPage() {
 												value={state}
 												disabled={!canManageBusiness}
 												onChange={(e) => setState(e.target.value)}
+												onBlur={() => setState(capitalizeSentence(state))}
 												placeholder="e.g. Tamil Nadu"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
@@ -649,90 +623,6 @@ export default function SettingsPage() {
 						</div>
 					</div>
 				</div>
-			)}
-
-			{/* TAB 2: WHATSAPP SETTINGS */}
-			{activeTab === 'whatsapp' && (
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
-					{/* Main WhatsApp Settings Section */}
-					<div className="lg:col-span-2 space-y-6">
-						<WhatsAppSettingsSection canManage={canManageBusiness} />
-					</div>
-
-					{/* WhatsApp Integration Sidebar */}
-					<div className="space-y-6">
-						{/* WhatsApp Overview Card */}
-						<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
-							<div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-								<div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-									<MessageSquare className="w-4 h-4" />
-								</div>
-								<div>
-									<h3 className="text-xs font-bold text-slate-800">Cloud API Architecture</h3>
-									<p className="text-[11px] text-slate-500">Direct Meta Integration</p>
-								</div>
-							</div>
-
-							<div className="space-y-3 text-xs">
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">API Standard</span>
-									<span className="font-mono font-semibold text-slate-800">Meta Graph API v25.0</span>
-								</div>
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">Token Security</span>
-									<span className="font-semibold text-emerald-700 flex items-center gap-1">
-										<ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> AES-GCM Encrypted
-									</span>
-								</div>
-								<div className="flex justify-between py-1 border-b border-slate-100">
-									<span className="text-slate-500">Queue Processing</span>
-									<span className="font-semibold text-slate-800">30s Auto Worker</span>
-								</div>
-								<div className="flex justify-between py-1">
-									<span className="text-slate-500">Retry Policy</span>
-									<span className="font-semibold text-slate-800">Exponential Backoff</span>
-								</div>
-							</div>
-						</div>
-
-						{/* Automation Rules Card */}
-						<div className="bg-gradient-to-br from-emerald-50/70 to-slate-50 rounded-2xl border border-emerald-100 p-5 space-y-3">
-							<h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-								<Check className="w-4 h-4 text-emerald-600" />
-								<span>Production Triggers</span>
-							</h4>
-
-							<div className="space-y-2.5 text-[11px]">
-								<div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100/70">
-									<p className="font-bold text-slate-800">Invoice Finalized</p>
-									<p className="text-slate-500 mt-0.5">
-										Auto-sends approved invoice template with customer name, bill total, vehicle number, and public view link.
-									</p>
-								</div>
-
-								<div className="bg-white/80 p-2.5 rounded-xl border border-emerald-100/70">
-									<p className="font-bold text-slate-800">Payment Completed</p>
-									<p className="text-slate-500 mt-0.5">
-										Auto-sends confirmation receipt when invoice balance reaches ₹0. Includes vehicle plate and amount paid.
-									</p>
-								</div>
-							</div>
-						</div>
-
-						{/* Safety Note */}
-						<div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] text-slate-600 space-y-1.5">
-							<p className="font-bold text-slate-700">Durable Fault Isolation</p>
-							<p className="text-slate-500 leading-relaxed">
-								WhatsApp notifications run as background side effects. Even if Meta's Cloud API is temporarily unreachable, invoices and payments are always preserved without interruption.
-							</p>
-						</div>
-
-						<div className="text-center pt-2">
-							<PoweredByTrovo />
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }

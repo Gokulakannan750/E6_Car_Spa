@@ -7,6 +7,7 @@ import '../../models/staff_model.dart';
 /// Mobile-adapted Table/List row presentation for Staff Directory matching Desktop layout.
 class StaffCard extends StatelessWidget {
   final Staff staff;
+  final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onHistory;
   final VoidCallback? onAddAdvance;
@@ -16,6 +17,7 @@ class StaffCard extends StatelessWidget {
   const StaffCard({
     super.key,
     required this.staff,
+    this.onTap,
     this.onEdit,
     this.onHistory,
     this.onAddAdvance,
@@ -53,9 +55,12 @@ class StaffCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           // Table Row 1: Staff Member Header & Status
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
@@ -186,6 +191,41 @@ class StaffCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 13, color: AppColors.textSecondary),
+                      const SizedBox(width: 6),
+                      Text(
+                        staff.aadhaarMasked ?? 'Aadhaar: Not Added',
+                        style: TextStyle(
+                          fontFamily: staff.aadhaarMasked != null ? 'monospace' : null,
+                          fontSize: 11,
+                          fontWeight: staff.aadhaarMasked != null ? FontWeight.w600 : FontWeight.w400,
+                          color: staff.aadhaarMasked != null ? AppColors.textPrimary : AppColors.textSecondary,
+                          fontStyle: staff.aadhaarMasked == null ? FontStyle.italic : null,
+                        ),
+                      ),
+                      if (staff.hasAadhaarDocument) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withAlpha(20),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Doc',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -295,6 +335,7 @@ class StaffCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

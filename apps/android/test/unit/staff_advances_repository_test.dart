@@ -247,6 +247,7 @@ void main() {
       final req = CreateStaffRequest(
         name: 'Ramesh Kumar',
         phoneNumber: '9840123456',
+        aadhaarNumber: '123456789012',
         role: 'Detailer',
       );
 

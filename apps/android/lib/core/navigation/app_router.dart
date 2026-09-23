@@ -25,6 +25,7 @@ import '../../features/reports/presentation/pages/showroom_report_screen.dart';
 import '../../features/reports/presentation/pages/staff_productivity_screen.dart';
 import '../../features/reports/presentation/pages/staff_advances_report_screen.dart';
 import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
+import '../../features/staff/presentation/pages/staff_screen.dart';
 import '../../features/staffadvances/presentation/pages/staff_advances_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
 import '../../features/users/presentation/pages/users_screen.dart';
@@ -176,6 +177,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => const NoTransitionPage(
               child: CatalogueScreen(),
             ),
+          ),
+          GoRoute(
+            path: AppRoutes.staff,
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: StaffScreen(initialTabIndex: 0),
+            ),
+            routes: [
+              GoRoute(
+                path: 'attendance',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: StaffScreen(initialTabIndex: 1),
+                ),
+              ),
+              GoRoute(
+                path: 'monthly-report',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: StaffScreen(initialTabIndex: 2),
+                ),
+              ),
+              GoRoute(
+                path: 'salary',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: StaffScreen(initialTabIndex: 3),
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoutes.staffAdvances,

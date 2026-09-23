@@ -22,6 +22,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
+import { capitalizeSentence } from '../../utils/text';
 import {
 	Search,
 	Plus,
@@ -391,10 +392,10 @@ export default function NewJobCard() {
 
 		try {
 			const created = await createCustomer({
-				name: newCustomer.name.trim(),
+				name: capitalizeSentence(newCustomer.name.trim()),
 				phoneNumber: phoneClean,
 				email: newCustomer.email || undefined,
-				address: newCustomer.address || undefined,
+				address: newCustomer.address ? capitalizeSentence(newCustomer.address.trim()) : undefined,
 			});
 			await loadCustomerAndVehicles(created);
 			setShowNewCustomer(false);
@@ -425,9 +426,9 @@ export default function NewJobCard() {
 		try {
 			const created = await createVehicle({
 				registrationNumber: regUpper,
-				make: newVehicle.make.trim(),
-				model: newVehicle.model.trim(),
-				variant: newVehicle.variant || undefined,
+				make: capitalizeSentence(newVehicle.make.trim()),
+				model: capitalizeSentence(newVehicle.model.trim()),
+				variant: newVehicle.variant ? capitalizeSentence(newVehicle.variant.trim()) : undefined,
 				customerId: customer.id,
 			});
 			setVehicles((prev) => [...prev.filter((v) => v.id !== created.id), created]);
@@ -668,11 +669,11 @@ export default function NewJobCard() {
 		setCustomerError(null);
 		try {
 			const created = await createService({
-				name: newService.name.trim(),
+				name: capitalizeSentence(newService.name.trim()),
 				category: newService.category || CATALOGUE_CATEGORIES[0],
 				price: parseFloat(newService.price),
 				taxPercentage: 18,
-				description: newService.description || undefined,
+				description: newService.description ? capitalizeSentence(newService.description.trim()) : undefined,
 				isActive: newService.isActive,
 			});
 			handleAddService(created);
@@ -1162,6 +1163,7 @@ export default function NewJobCard() {
 												required
 												value={newCustomer.name}
 												onChange={(e) => setNewCustomer((p) => ({ ...p, name: e.target.value }))}
+												onBlur={() => setNewCustomer((p) => ({ ...p, name: capitalizeSentence(p.name) }))}
 												className="form-input w-full"
 												placeholder="e.g. Rahul Sharma"
 											/>
@@ -1196,6 +1198,7 @@ export default function NewJobCard() {
 											<input
 												value={newCustomer.address}
 												onChange={(e) => setNewCustomer((p) => ({ ...p, address: e.target.value }))}
+												onBlur={() => setNewCustomer((p) => ({ ...p, address: capitalizeSentence(p.address) }))}
 												className="form-input w-full"
 												placeholder="City or residential address (optional)"
 											/>
@@ -1362,6 +1365,7 @@ export default function NewJobCard() {
 														required
 														value={newVehicle.make}
 														onChange={(e) => setNewVehicle((p) => ({ ...p, make: e.target.value }))}
+														onBlur={() => setNewVehicle((p) => ({ ...p, make: capitalizeSentence(p.make) }))}
 														className="form-input w-full"
 														placeholder="e.g. Maruti / Hyundai"
 													/>
@@ -1374,6 +1378,7 @@ export default function NewJobCard() {
 														required
 														value={newVehicle.model}
 														onChange={(e) => setNewVehicle((p) => ({ ...p, model: e.target.value }))}
+														onBlur={() => setNewVehicle((p) => ({ ...p, model: capitalizeSentence(p.model) }))}
 														className="form-input w-full"
 														placeholder="e.g. Swift / Creta"
 													/>
@@ -1383,6 +1388,7 @@ export default function NewJobCard() {
 													<input
 														value={newVehicle.variant}
 														onChange={(e) => setNewVehicle((p) => ({ ...p, variant: e.target.value }))}
+														onBlur={() => setNewVehicle((p) => ({ ...p, variant: capitalizeSentence(p.variant) }))}
 														className="form-input w-full"
 														placeholder="e.g. VXi / SX (optional)"
 													/>
@@ -1516,6 +1522,7 @@ export default function NewJobCard() {
 											required
 											value={newService.name}
 											onChange={(e) => setNewService((p) => ({ ...p, name: e.target.value }))}
+											onBlur={() => setNewService((p) => ({ ...p, name: capitalizeSentence(p.name) }))}
 											className="form-input w-full"
 											placeholder="e.g. Custom Scratch Removal"
 											autoFocus

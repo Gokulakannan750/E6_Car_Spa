@@ -6,6 +6,7 @@ import {
 	updateUser,
 	ApiError,
 } from '../../lib/api';
+import { capitalizeSentence } from '../../utils/text';
 import { PermissionSelector } from './PermissionSelector';
 import { X, ShieldCheck, Check } from 'lucide-react';
 
@@ -75,9 +76,10 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 		setIsSubmitting(true);
 
 		try {
+			const formattedFullName = capitalizeSentence(fullName.trim());
 			if (isEdit && user) {
 				await updateUser(user.id, {
-					fullName: fullName.trim(),
+					fullName: formattedFullName,
 					email: email.trim() || null,
 					password: password || undefined,
 					confirmPassword: confirmPassword || undefined,
@@ -86,7 +88,7 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 				});
 			} else {
 				await createUser({
-					fullName: fullName.trim(),
+					fullName: formattedFullName,
 					username: username.trim().toLowerCase(),
 					email: email.trim() || null,
 					password,
@@ -173,6 +175,7 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 								type="text"
 								value={fullName}
 								onChange={(e) => setFullName(e.target.value)}
+								onBlur={() => setFullName(capitalizeSentence(fullName))}
 								placeholder="e.g. Ramesh Kumar"
 								required
 								className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"

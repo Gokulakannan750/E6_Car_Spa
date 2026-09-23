@@ -17,4 +17,10 @@ public interface IStaffAdvanceService
     Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default);
     Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default);
+
+    // Staff Aadhaar management
+    Task<StaffAadhaarRevealDto?> RevealStaffAadhaarAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType, string FileName)?> GetStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
+    Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, Microsoft.AspNetCore.Http.IFormFile file, Guid requestingUserId, CancellationToken cancellationToken = default);
+    Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
 }

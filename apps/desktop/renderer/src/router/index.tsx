@@ -13,10 +13,15 @@ const loadJobCardDetail = () => import('../features/job-cards/JobCardDetailPage'
 const loadInvoices = () => import('../features/invoices/Invoices');
 const loadInvoiceDetail = () => import('../features/invoices/InvoiceDetailPage');
 const loadCatalogue = () => import('../features/catalogue/CataloguePage');
-const loadStaffAdvances = () => import('../features/staff-advances/StaffAdvancesPage');
+const loadStaffDirectory = () => import('../features/staff/StaffDirectoryPage');
+const loadStaffAdvances = () => import('../features/staff/StaffAdvancesPage');
+const loadAttendance = () => import('../features/staff/AttendancePage');
+const loadSalary = () => import('../features/staff/SalaryPage');
 const loadReports = () => import('../features/reports/ReportsPage');
 const loadShowroom = () => import('../features/showroom/ShowroomPage');
 const loadSettings = () => import('../features/settings/SettingsPage');
+const loadWhatsAppSettings = () => import('../features/settings/WhatsAppSettingsPage');
+const loadSystemPreferences = () => import('../features/settings/SystemPreferencesPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
 const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
@@ -157,6 +162,19 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: '/payments',
+				lazy: async () => {
+					const m = await loadInvoices();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="invoices.view">
+								<m.Invoices />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
 				path: '/catalogue',
 				lazy: async () => {
 					const m = await loadCatalogue();
@@ -170,6 +188,19 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: '/staff',
+				lazy: async () => {
+					const m = await loadStaffDirectory();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="staff_advances.view">
+								<m.StaffDirectoryPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
 				path: '/staff-advances',
 				lazy: async () => {
 					const m = await loadStaffAdvances();
@@ -177,6 +208,58 @@ export const router = createBrowserRouter([
 						Component: () => (
 							<RouteGuard requiredPermission="staff_advances.view">
 								<m.StaffAdvancesPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/staff-attendance',
+				lazy: async () => {
+					const m = await loadAttendance();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="staff_advances.view">
+								<m.AttendancePage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/attendance',
+				lazy: async () => {
+					const m = await loadAttendance();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="staff_advances.view">
+								<m.AttendancePage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/staff-salary',
+				lazy: async () => {
+					const m = await loadSalary();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="staff_advances.view">
+								<m.SalaryPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/salary',
+				lazy: async () => {
+					const m = await loadSalary();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="staff_advances.view">
+								<m.SalaryPage />
 							</RouteGuard>
 						),
 					};
@@ -243,6 +326,34 @@ export const router = createBrowserRouter([
 					return {
 						Component: () => (
 							<RouteGuard requiredPermission="users.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/whatsapp',
+				lazy: async () => {
+					const m = await loadWhatsAppSettings();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="settings.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/system',
+				lazy: async () => {
+					const m = await loadSystemPreferences();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="settings.view">
 								<Comp />
 							</RouteGuard>
 						),

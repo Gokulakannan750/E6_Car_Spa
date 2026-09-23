@@ -35,7 +35,14 @@ public record CustomerJobCardHistoryItemDto(
  decimal TaxAmount,
  decimal DiscountAmount,
  decimal TotalAmount,
- IReadOnlyList<CustomerVehicleSummaryDto> Vehicles
+ IReadOnlyList<CustomerVehicleSummaryDto> Vehicles,
+ Guid? InvoiceId = null,
+ string? InvoiceNumber = null,
+ string? InvoiceStatus = null,
+ decimal? InvoiceTotal = null,
+ decimal? PaidAmount = null,
+ decimal? OutstandingAmount = null,
+ string? PaymentStatus = null
 );
 
 public record CustomerVehicleSummaryDto(
@@ -51,5 +58,8 @@ public record CustomerHistoryResponse(
  string PhoneNumber,
  int TotalJobCards,
  int TotalVehicles,
- IReadOnlyList<CustomerJobCardHistoryItemDto> JobCards
+ IReadOnlyList<CustomerJobCardHistoryItemDto> JobCards,
+ decimal TotalOutstandingAmount = 0m,
+ decimal TotalPaidAmount = 0m,
+ decimal TotalInvoicedAmount = 0m
 );

@@ -149,6 +149,13 @@ class CustomerJobCardHistoryItem {
   final double taxAmount;
   final double discountAmount;
   final double totalAmount;
+  final String? invoiceId;
+  final String? invoiceNumber;
+  final String? invoiceStatus;
+  final double? invoiceTotal;
+  final double? paidAmount;
+  final double? outstandingAmount;
+  final String? paymentStatus;
 
   const CustomerJobCardHistoryItem({
     required this.jobCardId,
@@ -161,6 +168,13 @@ class CustomerJobCardHistoryItem {
     this.taxAmount = 0.0,
     this.discountAmount = 0.0,
     this.totalAmount = 0.0,
+    this.invoiceId,
+    this.invoiceNumber,
+    this.invoiceStatus,
+    this.invoiceTotal,
+    this.paidAmount,
+    this.outstandingAmount,
+    this.paymentStatus,
   });
 
   factory CustomerJobCardHistoryItem.fromJson(Map<String, dynamic> json) {
@@ -179,6 +193,19 @@ class CustomerJobCardHistoryItem {
       taxAmount: ((json['taxAmount'] ?? json['TaxAmount'] ?? 0.0) as num).toDouble(),
       discountAmount: ((json['discountAmount'] ?? json['DiscountAmount'] ?? 0.0) as num).toDouble(),
       totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
+      invoiceId: json['invoiceId'] as String? ?? json['InvoiceId'] as String?,
+      invoiceNumber: json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
+      invoiceStatus: json['invoiceStatus'] as String? ?? json['InvoiceStatus'] as String?,
+      invoiceTotal: json['invoiceTotal'] != null
+          ? (json['invoiceTotal'] as num).toDouble()
+          : (json['InvoiceTotal'] != null ? (json['InvoiceTotal'] as num).toDouble() : null),
+      paidAmount: json['paidAmount'] != null
+          ? (json['paidAmount'] as num).toDouble()
+          : (json['PaidAmount'] != null ? (json['PaidAmount'] as num).toDouble() : null),
+      outstandingAmount: json['outstandingAmount'] != null
+          ? (json['outstandingAmount'] as num).toDouble()
+          : (json['OutstandingAmount'] != null ? (json['OutstandingAmount'] as num).toDouble() : null),
+      paymentStatus: json['paymentStatus'] as String? ?? json['PaymentStatus'] as String?,
     );
   }
 }
@@ -191,6 +218,9 @@ class CustomerHistoryResponse {
   final int totalJobCards;
   final int totalVehicles;
   final List<CustomerJobCardHistoryItem> jobCards;
+  final double totalOutstandingAmount;
+  final double totalPaidAmount;
+  final double totalInvoicedAmount;
 
   const CustomerHistoryResponse({
     required this.customerId,
@@ -199,6 +229,9 @@ class CustomerHistoryResponse {
     this.totalJobCards = 0,
     this.totalVehicles = 0,
     this.jobCards = const [],
+    this.totalOutstandingAmount = 0.0,
+    this.totalPaidAmount = 0.0,
+    this.totalInvoicedAmount = 0.0,
   });
 
   factory CustomerHistoryResponse.fromJson(Map<String, dynamic> json) {
@@ -210,6 +243,9 @@ class CustomerHistoryResponse {
       totalJobCards: (json['totalJobCards'] ?? json['TotalJobCards'] ?? 0) as int,
       totalVehicles: (json['totalVehicles'] ?? json['TotalVehicles'] ?? 0) as int,
       jobCards: rawJcs.map((e) => CustomerJobCardHistoryItem.fromJson(e as Map<String, dynamic>)).toList(),
+      totalOutstandingAmount: ((json['totalOutstandingAmount'] ?? json['TotalOutstandingAmount'] ?? 0.0) as num).toDouble(),
+      totalPaidAmount: ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num).toDouble(),
+      totalInvoicedAmount: ((json['totalInvoicedAmount'] ?? json['TotalInvoicedAmount'] ?? 0.0) as num).toDouble(),
     );
   }
 }

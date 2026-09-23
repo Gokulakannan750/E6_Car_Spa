@@ -50,6 +50,8 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
 
 
 
+  String _activityFilter = 'all';
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(customerDetailsProvider(widget.customerId));
@@ -144,6 +146,47 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
     }
 
     final customer = state.customer!;
+    final allJobCards = state.history?.jobCards ?? [];
+
+    bool checkCancelled(CustomerJobCardHistoryItem jc) =>
+        jc.paymentStatus == 'Cancelled' || jc.status == 'Cancelled';
+
+    bool checkPaid(CustomerJobCardHistoryItem jc) =>
+        !checkCancelled(jc) &&
+        (jc.paymentStatus == 'Paid' ||
+            (jc.invoiceTotal != null &&
+                (jc.outstandingAmount ?? 0) <= 0 &&
+                (jc.paidAmount ?? 0) > 0));
+
+    bool checkPartiallyPaid(CustomerJobCardHistoryItem jc) =>
+        !checkCancelled(jc) &&
+        !checkPaid(jc) &&
+        (jc.paymentStatus == 'Partially Paid' ||
+            jc.paymentStatus == 'PartiallyPaid' ||
+            (jc.invoiceId != null &&
+                (jc.paidAmount ?? 0) > 0 &&
+                (jc.outstandingAmount ?? 0) > 0));
+
+    bool checkPaymentPending(CustomerJobCardHistoryItem jc) =>
+        !checkCancelled(jc) &&
+        !checkPaid(jc) &&
+        !checkPartiallyPaid(jc) &&
+        jc.paymentStatus != 'Draft' &&
+        jc.status != 'Draft' &&
+        (jc.outstandingAmount ?? 0) > 0 &&
+        (jc.paidAmount ?? 0) == 0;
+
+    final filteredJobCards = allJobCards.where((jc) {
+      if (_activityFilter == 'all') return true;
+      if (_activityFilter == 'paid') return checkPaid(jc);
+      if (_activityFilter == 'payment-pending') return checkPaymentPending(jc);
+      if (_activityFilter == 'partially-paid') return checkPartiallyPaid(jc);
+      return true;
+    }).toList();
+
+    final paidCount = allJobCards.where(checkPaid).length;
+    final paymentPendingCount = allJobCards.where(checkPaymentPending).length;
+    final partiallyPaidCount = allJobCards.where(checkPartiallyPaid).length;
 
     return RefreshIndicator(
       onRefresh: () => notifier.loadDetails(),
@@ -318,13 +361,52 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
               ),
             const SizedBox(height: 24),
 
-            // ── Recent Job Cards Section ────────────────────────────────────
-            Text(
-              'Recent Job Cards',
-              style: AppTextStyles.headingMedium,
+            // ── Recent Activity / Job Cards Section ─────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: AppTextStyles.headingMedium,
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-            if (state.history == null || state.history!.jobCards.isEmpty)
+
+            // Activity Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildActivityFilterChip(
+                    label: 'All (${allJobCards.length})',
+                    isSelected: _activityFilter == 'all',
+                    onSelected: () => setState(() => _activityFilter = 'all'),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildActivityFilterChip(
+                    label: 'Paid ($paidCount)',
+                    isSelected: _activityFilter == 'paid',
+                    onSelected: () => setState(() => _activityFilter = 'paid'),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildActivityFilterChip(
+                    label: 'Payment Pending ($paymentPendingCount)',
+                    isSelected: _activityFilter == 'payment-pending',
+                    onSelected: () => setState(() => _activityFilter = 'payment-pending'),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildActivityFilterChip(
+                    label: 'Partially Paid ($partiallyPaidCount)',
+                    isSelected: _activityFilter == 'partially-paid',
+                    onSelected: () => setState(() => _activityFilter = 'partially-paid'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            if (allJobCards.isEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 decoration: BoxDecoration(
@@ -339,14 +421,42 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                   ),
                 ),
               )
+            else if (filteredJobCards.isEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Center(
+                  child: Text(
+                    'No $_activityFilter activity records found.',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              )
             else
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: state.history!.jobCards.length,
+                itemCount: filteredJobCards.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
-                  final jc = state.history!.jobCards[index];
+                  final jc = filteredJobCards[index];
+                  final hasInvoice = jc.invoiceId != null;
+                  final isPaid = checkPaid(jc);
+                  final isPartiallyPaid = checkPartiallyPaid(jc);
+                  final isPaymentPending = checkPaymentPending(jc);
+                  final isCancelled = checkCancelled(jc);
+                  final total = jc.invoiceTotal ?? jc.totalAmount;
+                  final paid = jc.paidAmount ?? 0;
+                  final outstanding = jc.outstandingAmount ?? 0;
+
+                  final displayIdentifier = (jc.invoiceNumber != null && jc.invoiceNumber!.isNotEmpty)
+                      ? jc.invoiceNumber!
+                      : jc.jobCardNumber;
+
                   return Card(
                     elevation: 0,
                     margin: EdgeInsets.zero,
@@ -360,40 +470,239 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                       title: Row(
                         children: [
                           Text(
-                            jc.jobCardNumber,
+                            displayIdentifier,
                             style: AppTextStyles.headingSmall.copyWith(
                               color: AppColors.primary,
                             ),
                           ),
+                          if (jc.invoiceNumber != null && jc.jobCardNumber.isNotEmpty && jc.jobCardNumber != jc.invoiceNumber) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceAlt,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                jc.jobCardNumber,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
                           const Spacer(),
                           Text(
-                            '₹${jc.totalAmount.toStringAsFixed(2)}',
+                            '₹${total.toStringAsFixed(2)}',
                             style: AppTextStyles.headingSmall,
                           ),
                         ],
                       ),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              jc.vehicleNumber ?? '—',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  jc.vehicleNumber ?? '—',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (hasInvoice)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isPaid
+                                          ? Colors.green.shade50
+                                          : (isPartiallyPaid
+                                              ? Colors.amber.shade50
+                                              : (isCancelled
+                                                  ? Colors.red.shade50
+                                                  : Colors.blue.shade50)),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isPaid
+                                            ? Colors.green.shade300
+                                            : (isPartiallyPaid
+                                                ? Colors.amber.shade300
+                                                : (isCancelled
+                                                    ? Colors.red.shade300
+                                                    : Colors.blue.shade300)),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isPaid
+                                          ? 'PAID'
+                                          : (isPartiallyPaid
+                                              ? 'PARTIALLY PAID'
+                                              : (isCancelled ? 'CANCELLED' : 'PAYMENT PENDING')),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isPaid
+                                            ? Colors.green.shade800
+                                            : (isPartiallyPaid
+                                                ? Colors.amber.shade900
+                                                : (isCancelled
+                                                    ? Colors.red.shade800
+                                                    : Colors.blue.shade800)),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  StatusBadge.fromLabel(jc.status),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            StatusBadge.fromLabel(jc.status),
+                            if (hasInvoice && (isPaymentPending || isPartiallyPaid)) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Paid: ₹${paid.toStringAsFixed(2)} · Pending: ₹${outstanding.toStringAsFixed(2)}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: isPartiallyPaid ? Colors.amber.shade800 : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.textTertiary),
-                      onTap: () => context.go('/job-cards/${jc.jobCardId}'),
-                    ),
-                  );
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+                        onTap: () {
+                          if (jc.invoiceId != null && jc.invoiceId!.isNotEmpty) {
+                            context.go('/invoices/${jc.invoiceId}');
+                          } else {
+                            context.go('/job-cards/${jc.jobCardId}');
+                          }
+                        },
+                      ),
+                    );
                 },
               ),
+
+            const SizedBox(height: 20),
+
+            // ── Customer Total Outstanding Balance Card ───────────────────────
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                    ? Colors.amber.shade50
+                    : AppColors.card,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                      ? Colors.amber.shade300
+                      : AppColors.border,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                          ? Colors.amber.shade100
+                          : Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      (state.history?.totalOutstandingAmount ?? 0) > 0
+                          ? Icons.account_balance_wallet_outlined
+                          : Icons.check_circle_outline,
+                      color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                          ? Colors.amber.shade800
+                          : Colors.green.shade800,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Outstanding Amount',
+                          style: AppTextStyles.labelMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '₹${(state.history?.totalOutstandingAmount ?? 0).toStringAsFixed(2)}',
+                          style: AppTextStyles.headingMedium.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                                ? Colors.amber.shade900
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                          ? Colors.amber.shade100
+                          : Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                            ? Colors.amber.shade300
+                            : Colors.green.shade300,
+                      ),
+                    ),
+                    child: Text(
+                      (state.history?.totalOutstandingAmount ?? 0) > 0
+                          ? 'Pending Payment'
+                          : 'All Settled',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                            ? Colors.amber.shade900
+                            : Colors.green.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActivityFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onSelected,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onSelected(),
+      labelStyle: AppTextStyles.labelMedium.copyWith(
+        color: isSelected ? AppColors.textOnPrimary : AppColors.textPrimary,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+        fontSize: 12,
+      ),
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surfaceAlt,
+      showCheckmark: false,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : AppColors.border,
         ),
       ),
     );

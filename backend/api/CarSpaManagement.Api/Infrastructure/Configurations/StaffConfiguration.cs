@@ -36,6 +36,25 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
  builder.Property(s => s.IsActive)
  .HasDefaultValue(true);
 
+ builder.Property(s => s.AadhaarNumberEncrypted)
+ .HasMaxLength(500)
+ .IsRequired(false);
+
+ builder.Property(s => s.AadhaarDocumentPath)
+ .HasMaxLength(500)
+ .IsRequired(false);
+
+ builder.Property(s => s.AadhaarDocumentFileName)
+ .HasMaxLength(255)
+ .IsRequired(false);
+
+ builder.Property(s => s.AadhaarDocumentContentType)
+ .HasMaxLength(100)
+ .IsRequired(false);
+
+ builder.Property(s => s.AadhaarDocumentSize)
+ .IsRequired(false);
+
  builder.HasMany(s => s.StaffAdvances)
  .WithOne(a => a.Staff)
  .HasForeignKey(a => a.StaffId)

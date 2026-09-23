@@ -90,6 +90,7 @@ export interface NavigationItem {
 	children?: NavigationItem[];
 	badge?: string | number;
 	requiresPermission?: string;
+	anchor?: boolean;
 }
 
 export type SidebarCollapsed = 'expanded' | 'collapsed';

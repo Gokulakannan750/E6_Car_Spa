@@ -58,6 +58,7 @@ import {
 	type StaffDto,
 	type ShowroomPaymentDto,
 } from '../../lib/api';
+import { capitalizeSentence } from '../../utils/text';
 
 // ── Pure Calendar Date Helpers (No Timezone Offset Skipping) ─────────────────
 function addDays(dateStr: string, days: number): string {
@@ -437,6 +438,10 @@ export function ShowroomPage() {
 	const confirmAttendanceMutation = useMutation({
 		mutationFn: () => {
 			if (!selectedShowroom) throw new Error('No showroom selected');
+			const assignedStaffCount = dailyStaffData?.staffAssignments?.length ?? 0;
+			if (assignedStaffCount === 0) {
+				throw new Error('Please assign at least one staff member before confirming attendance.');
+			}
 			return confirmDailyStaffAttendance(selectedShowroom.id, selectedDate);
 		},
 		onSuccess: () => {
@@ -562,16 +567,16 @@ export function ShowroomPage() {
 			updateShowroomMutation.mutate({
 				id: editingShowroom.id,
 				data: {
-					name: formName.trim(),
-					address: formAddress.trim(),
+					name: capitalizeSentence(formName.trim()),
+					address: capitalizeSentence(formAddress.trim()),
 					phone: cleanPhone || undefined,
 					isActive: formIsActive,
 				},
 			});
 		} else {
 			createShowroomMutation.mutate({
-				name: formName.trim(),
-				address: formAddress.trim(),
+				name: capitalizeSentence(formName.trim()),
+				address: capitalizeSentence(formAddress.trim()),
 				phone: cleanPhone || undefined,
 				isActive: formIsActive,
 			});
@@ -640,7 +645,7 @@ export function ShowroomPage() {
 
 		setDailyBillMutation.mutate({
 			amount,
-			notes: billNotesInput.trim() || undefined,
+			notes: billNotesInput.trim() ? capitalizeSentence(billNotesInput.trim()) : undefined,
 		});
 	};
 
@@ -673,7 +678,7 @@ export function ShowroomPage() {
 			amount,
 			paymentMethod,
 			reference: paymentReference.trim() || undefined,
-			notes: paymentNotes.trim() || undefined,
+			notes: paymentNotes.trim() ? capitalizeSentence(paymentNotes.trim()) : undefined,
 		});
 	};
 
@@ -1074,6 +1079,7 @@ export function ShowroomPage() {
 									placeholder="e.g. Erode Showroom"
 									value={formName}
 									onChange={(e) => setFormName(e.target.value)}
+									onBlur={() => setFormName(capitalizeSentence(formName))}
 									className="form-input w-full text-xs"
 									required
 								/>
@@ -1085,6 +1091,7 @@ export function ShowroomPage() {
 									placeholder="e.g. 142 Brough Road, Erode, Tamil Nadu 638001"
 									value={formAddress}
 									onChange={(e) => setFormAddress(e.target.value)}
+									onBlur={() => setFormAddress(capitalizeSentence(formAddress))}
 									className="form-input w-full text-xs min-h-[70px]"
 									required
 								/>
@@ -1437,6 +1444,8 @@ export function ShowroomPage() {
 							);
 						}
 
+						const hasAssignedStaff = (dailyStaffData?.staffAssignments?.length ?? 0) > 0;
+
 						if (isCorrectionMode) {
 							return (
 								<div className="p-4 bg-purple-50/90 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
@@ -1456,6 +1465,12 @@ export function ShowroomPage() {
 											<p className="text-xs text-purple-700 mt-0.5">
 												Changes are being made by Owner. Attendance must be confirmed again after updates.
 											</p>
+											{!hasAssignedStaff && (
+												<p className="text-xs text-amber-700 font-medium mt-1 flex items-center gap-1">
+													<AlertCircle className="w-3.5 h-3.5 shrink-0" />
+													Please assign at least one staff member before confirming attendance.
+												</p>
+											)}
 										</div>
 									</div>
 
@@ -1465,8 +1480,10 @@ export function ShowroomPage() {
 										size="sm"
 										icon={<CheckCircle2 className="w-3.5 h-3.5" />}
 										loading={confirmAttendanceMutation.isPending}
+										disabled={!hasAssignedStaff || confirmAttendanceMutation.isPending}
+										title={!hasAssignedStaff ? 'Please assign at least one staff member before confirming attendance.' : undefined}
 										onClick={() => confirmAttendanceMutation.mutate()}
-										className="shrink-0 bg-purple-700 hover:bg-purple-800"
+										className="shrink-0 bg-purple-700 hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Confirm Attendance
 									</Button>
@@ -1492,6 +1509,12 @@ export function ShowroomPage() {
 										<p className="text-xs text-amber-700 mt-0.5">
 											Attendance and vehicle counts can still be edited.
 										</p>
+										{!hasAssignedStaff && (
+											<p className="text-xs text-amber-700 font-medium mt-1 flex items-center gap-1">
+												<AlertCircle className="w-3.5 h-3.5 shrink-0" />
+												Please assign at least one staff member before confirming attendance.
+											</p>
+										)}
 									</div>
 								</div>
 
@@ -1502,8 +1525,10 @@ export function ShowroomPage() {
 										size="sm"
 										icon={<CheckCircle2 className="w-3.5 h-3.5" />}
 										loading={confirmAttendanceMutation.isPending}
+										disabled={!hasAssignedStaff || confirmAttendanceMutation.isPending}
+										title={!hasAssignedStaff ? 'Please assign at least one staff member before confirming attendance.' : undefined}
 										onClick={() => confirmAttendanceMutation.mutate()}
-										className="shrink-0"
+										className="shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Confirm Attendance
 									</Button>
@@ -2502,6 +2527,7 @@ export function ShowroomPage() {
 								placeholder="e.g. Standard daily showroom package, 19 vehicles detailed."
 								value={billNotesInput}
 								onChange={(e) => setBillNotesInput(e.target.value)}
+								onBlur={() => setBillNotesInput(capitalizeSentence(billNotesInput))}
 								className="form-input w-full text-xs min-h-[60px]"
 							/>
 						</div>
@@ -2642,6 +2668,7 @@ export function ShowroomPage() {
 								placeholder="e.g. Installment paid by showroom manager."
 								value={paymentNotes}
 								onChange={(e) => setPaymentNotes(e.target.value)}
+								onBlur={() => setPaymentNotes(capitalizeSentence(paymentNotes))}
 								className="form-input w-full text-xs"
 							/>
 						</div>

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace CarSpaManagement.Api.Application.DTOs.StaffAdvances;
 
@@ -21,7 +22,9 @@ public record StaffAdvanceDto(
     string? ObsoletedByName,
     string? ObsoleteReason,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    decimal? BalanceAmount = null,
+    Guid? StaffSalarySettlementId = null);
 
 public record CreateStaffAdvanceRequest
 {
@@ -81,24 +84,39 @@ public record StaffDto(
     string? Role,
     bool IsActive,
     int TotalAdvances,
-    decimal TotalAdvanceAmount);
+    decimal TotalAdvanceAmount,
+    string? AadhaarMasked = null,
+    bool HasAadhaarDocument = false,
+    string? AadhaarDocumentFileName = null,
+    string? AadhaarDocumentContentType = null,
+    long? AadhaarDocumentSize = null);
+
+public record StaffAadhaarRevealDto(
+    Guid StaffId,
+    string AadhaarNumber);
 
 public record CreateStaffRequest
 {
     [Required, MaxLength(100)] public string Name { get; init; } = string.Empty;
     [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string PhoneNumber { get; init; } = string.Empty;
+    [Required(ErrorMessage = "Aadhaar number is required.")] public string AadhaarNumber { get; init; } = string.Empty;
     [MaxLength(100)] public string? Email { get; init; }
     [MaxLength(200)] public string? Address { get; init; }
     [MaxLength(50)] public string? Role { get; init; }
     public bool IsActive { get; init; } = true;
+    public IFormFile? AadhaarFile { get; init; }
 }
 
 public record UpdateStaffRequest
 {
     [MaxLength(100)] public string? Name { get; init; }
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string? PhoneNumber { get; init; }
+    public string? AadhaarNumber { get; init; }
     [MaxLength(100)] public string? Email { get; init; }
     [MaxLength(200)] public string? Address { get; init; }
     [MaxLength(50)] public string? Role { get; init; }
     public bool? IsActive { get; init; }
+    public bool? RemoveAadhaarDocument { get; init; }
+    public IFormFile? AadhaarFile { get; init; }
 }
+
