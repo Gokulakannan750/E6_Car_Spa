@@ -1,10 +1,12 @@
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
+using CarSpaManagement.Api.Application.DTOs.StaffAttendance;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace CarSpaManagement.Api.Application.Services;
 
@@ -12,6 +14,7 @@ public class ShowroomService : IShowroomService
 {
     private readonly AppDbContext _db;
     private readonly IAuditLogService _auditLogService;
+    private static readonly Regex GstinRegex = new(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", RegexOptions.Compiled);
 
     public ShowroomService(AppDbContext db, IAuditLogService auditLogService)
     {
@@ -20,6 +23,60 @@ public class ShowroomService : IShowroomService
     }
 
     private static DateTime ToUtcDate(DateTime dt) => ShowroomDateHelper.ToUtcDate(dt);
+
+    private static string? NormalizeAndValidateGstin(string? gstin)
+    {
+        if (string.IsNullOrWhiteSpace(gstin)) return null;
+        var normalized = gstin.Trim().ToUpperInvariant();
+        if (!GstinRegex.IsMatch(normalized))
+        {
+            throw new ArgumentException("Invalid Indian GSTIN structure. Expected 15-character format (e.g., 33AAAAA0000A1Z5).");
+        }
+        return normalized;
+    }
+
+    public static string DerivePrefix(string showroomName)
+    {
+        if (string.IsNullOrWhiteSpace(showroomName))
+            return "SR";
+
+        var chars = showroomName.Where(char.IsLetter).ToArray();
+        if (chars.Length >= 2)
+        {
+            return new string(chars, 0, 2).ToUpperInvariant();
+        }
+        if (chars.Length == 1)
+        {
+            return (chars[0].ToString() + "X").ToUpperInvariant();
+        }
+        return "SR";
+    }
+
+    private async Task<string> FindNextMasterIdCandidateAsync(string prefix, HashSet<string> attemptedCandidates, CancellationToken ct)
+    {
+        var existing = await _db.Showrooms
+            .IgnoreQueryFilters()
+            .Where(s => s.MasterId.StartsWith(prefix))
+            .Select(s => s.MasterId)
+            .ToListAsync(ct);
+
+        var existingSet = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+        foreach (var attempted in attemptedCandidates)
+        {
+            existingSet.Add(attempted);
+        }
+
+        for (var num = 10001; num <= 99999; num++)
+        {
+            var candidate = $"{prefix}{num:D5}";
+            if (!existingSet.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new InvalidOperationException($"All 5-digit Master IDs for prefix '{prefix}' (10001-99999) are exhausted.");
+    }
 
     public async Task<IReadOnlyList<ShowroomDto>> GetAllAsync(string? search = null, bool? isActive = null, CancellationToken ct = default)
     {
@@ -45,9 +102,11 @@ public class ShowroomService : IShowroomService
             .Select(s => new
             {
                 s.Id,
+                s.MasterId,
                 s.Name,
                 s.Address,
                 s.Phone,
+                s.Gstin,
                 s.IsActive,
                 s.CreatedAt,
                 s.UpdatedAt,
@@ -68,7 +127,9 @@ public class ShowroomService : IShowroomService
             s.ActiveStaffToday,
             s.VehiclesToday,
             s.CreatedAt,
-            s.UpdatedAt
+            s.UpdatedAt,
+            s.Gstin,
+            s.MasterId
         )).ToList();
     }
 
@@ -91,34 +152,75 @@ public class ShowroomService : IShowroomService
             assignmentsToday.Count,
             assignmentsToday.Sum(a => a.VehiclesAttended),
             showroom.CreatedAt,
-            showroom.UpdatedAt
+            showroom.UpdatedAt,
+            showroom.Gstin,
+            showroom.MasterId
         );
     }
 
     public async Task<ShowroomDto> CreateAsync(CreateShowroomRequest request, CancellationToken ct = default)
     {
-        var showroom = new Showroom
+        var prefix = DerivePrefix(request.Name);
+        var attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        const int maxRetries = 5;
+
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            Name = request.Name.Trim(),
-            Address = request.Address.Trim(),
-            Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
-            IsActive = request.IsActive
-        };
+            var masterId = await FindNextMasterIdCandidateAsync(prefix, attempted, ct);
+            attempted.Add(masterId);
 
-        _db.Showrooms.Add(showroom);
-        await _db.SaveChangesAsync(ct);
+            var showroom = new Showroom
+            {
+                MasterId = masterId,
+                Name = request.Name.Trim(),
+                Address = request.Address.Trim(),
+                Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim(),
+                Gstin = NormalizeAndValidateGstin(request.Gstin),
+                IsActive = request.IsActive
+            };
 
-        return new ShowroomDto(
-            showroom.Id,
-            showroom.Name,
-            showroom.Address,
-            showroom.Phone,
-            showroom.IsActive,
-            0,
-            0,
-            showroom.CreatedAt,
-            showroom.UpdatedAt
-        );
+            _db.Showrooms.Add(showroom);
+
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+
+                return new ShowroomDto(
+                    showroom.Id,
+                    showroom.Name,
+                    showroom.Address,
+                    showroom.Phone,
+                    showroom.IsActive,
+                    0,
+                    0,
+                    showroom.CreatedAt,
+                    showroom.UpdatedAt,
+                    showroom.Gstin,
+                    showroom.MasterId
+                );
+            }
+            catch (DbUpdateException ex)
+            {
+                _db.Entry(showroom).State = EntityState.Detached;
+
+                var isUniqueViolation = ex.InnerException?.Message.Contains("IX_Showrooms_MasterId", StringComparison.OrdinalIgnoreCase) == true
+                    || ex.Message.Contains("IX_Showrooms_MasterId", StringComparison.OrdinalIgnoreCase)
+                    || ex.InnerException?.Message.Contains("23505", StringComparison.OrdinalIgnoreCase) == true
+                    || ex.InnerException?.Message.Contains("unique", StringComparison.OrdinalIgnoreCase) == true;
+
+                if (!isUniqueViolation && attempt == maxRetries)
+                {
+                    throw;
+                }
+
+                if (attempt == maxRetries)
+                {
+                    throw new InvalidOperationException("Failed to generate a unique Master ID due to concurrent creation conflicts. Please retry.", ex);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Failed to create showroom.");
     }
 
     public async Task<ShowroomDto?> UpdateAsync(Guid id, UpdateShowroomRequest request, CancellationToken ct = default)
@@ -129,34 +231,12 @@ public class ShowroomService : IShowroomService
         if (request.Name != null) showroom.Name = request.Name.Trim();
         if (request.Address != null) showroom.Address = request.Address.Trim();
         if (request.Phone != null) showroom.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
+        if (request.Gstin != null) showroom.Gstin = NormalizeAndValidateGstin(request.Gstin);
         if (request.IsActive.HasValue) showroom.IsActive = request.IsActive.Value;
 
         await _db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(id, ct);
-    }
-
-    public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
-    {
-        var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == id, ct);
-        if (showroom == null) return false;
-
-        showroom.IsDeleted = true;
-        showroom.UpdatedAt = DateTime.UtcNow;
-
-        // Also soft delete associated daily staff assignments
-        var assignments = await _db.ShowroomStaffAssignments
-            .Where(a => a.ShowroomId == id)
-            .ToListAsync(ct);
-
-        foreach (var a in assignments)
-        {
-            a.IsDeleted = true;
-            a.UpdatedAt = DateTime.UtcNow;
-        }
-
-        await _db.SaveChangesAsync(ct);
-        return true;
     }
 
     public async Task<bool> ToggleActiveAsync(Guid id, CancellationToken ct = default)
@@ -195,25 +275,102 @@ public class ShowroomService : IShowroomService
 
         var targetDate = ToUtcDate(date);
 
+        // 1. Query rich work sessions for this showroom and date
+        var sessions = await _db.ShowroomStaffWorkSessions
+            .Include(s => s.Staff)
+            .Include(s => s.HomeShowroom)
+            .Include(s => s.WorkingShowroom)
+            .Where(s => s.WorkingShowroomId == showroomId && s.Date == targetDate && !s.IsDeleted)
+            .OrderBy(s => s.StartTime)
+            .ThenBy(s => s.Staff.Name)
+            .ToListAsync(ct);
+
+        // 2. Query legacy assignments for this showroom and date
         var assignments = await _db.ShowroomStaffAssignments
             .Include(a => a.Staff)
+                .ThenInclude(st => st.DefaultShowroom)
             .Include(a => a.Showroom)
             .Where(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted)
             .OrderBy(a => a.Staff.Name)
             .ToListAsync(ct);
 
-        var list = assignments.Select(a => new DailyStaffAssignmentDto(
-            a.Id,
-            a.ShowroomId,
-            showroom.Name,
-            a.StaffId,
-            a.Staff?.Name ?? "Unknown Staff",
-            a.Staff?.PhoneNumber ?? string.Empty,
-            a.Staff?.Role,
-            a.Date,
-            a.VehiclesAttended,
-            a.CreatedAt
-        )).ToList();
+        var list = new List<DailyStaffAssignmentDto>();
+        var mappedStaffIds = new HashSet<Guid>();
+
+        foreach (var s in sessions)
+        {
+            mappedStaffIds.Add(s.StaffId);
+            var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(s.StartTime, s.EndTime);
+            var isTransfer = s.HomeShowroomId != showroomId || s.AttendanceStatus == StaffAttendanceStatus.TemporaryTransfer;
+
+            list.Add(new DailyStaffAssignmentDto(
+                s.Id,
+                s.WorkingShowroomId,
+                showroom.Name,
+                s.StaffId,
+                s.Staff?.StaffMasterId ?? string.Empty,
+                s.Staff?.Name ?? "Unknown Staff",
+                s.Staff?.PhoneNumber ?? string.Empty,
+                s.Staff?.Role,
+                s.Date,
+                0,
+                s.CreatedAt,
+                s.StartTime ?? "09:00",
+                s.EndTime ?? "18:00",
+                hours ?? 9.0,
+                formatted ?? "9h",
+                s.AttendanceStatus.ToString(),
+                isTransfer ? "TemporaryTransfer" : "Regular",
+                s.HomeShowroomId,
+                s.HomeShowroom?.MasterId,
+                s.HomeShowroom?.Name,
+                s.TransferReason,
+                s.Notes
+            ));
+        }
+
+        // Query staff IDs with any active work sessions on targetDate to prevent ghost legacy resurrecting
+        var allAssignedStaffIdsOnDate = await _db.ShowroomStaffWorkSessions
+            .Where(s => s.Date == targetDate && !s.IsDeleted)
+            .Select(s => s.StaffId)
+            .Distinct()
+            .ToListAsync(ct);
+        var globalAssignedStaffSet = new HashSet<Guid>(allAssignedStaffIdsOnDate);
+
+        // Add any legacy assignments that do not have a work session anywhere for this date
+        foreach (var a in assignments)
+        {
+            if (!globalAssignedStaffSet.Contains(a.StaffId) && !mappedStaffIds.Contains(a.StaffId))
+            {
+                var homeShowroom = a.Staff?.DefaultShowroom;
+                var isTransfer = homeShowroom != null && homeShowroom.Id != showroomId;
+
+                list.Add(new DailyStaffAssignmentDto(
+                    a.Id,
+                    a.ShowroomId,
+                    showroom.Name,
+                    a.StaffId,
+                    a.Staff?.StaffMasterId ?? string.Empty,
+                    a.Staff?.Name ?? "Unknown Staff",
+                    a.Staff?.PhoneNumber ?? string.Empty,
+                    a.Staff?.Role,
+                    a.Date,
+                    a.VehiclesAttended,
+                    a.CreatedAt,
+                    "09:00",
+                    "18:00",
+                    9.0,
+                    "9h",
+                    "Present",
+                    isTransfer ? "TemporaryTransfer" : "Regular",
+                    homeShowroom?.Id ?? showroomId,
+                    homeShowroom?.MasterId ?? showroom.MasterId,
+                    homeShowroom?.Name ?? showroom.Name,
+                    null,
+                    null
+                ));
+            }
+        }
 
         var totalVehicles = list.Sum(a => a.VehiclesAttended);
 
@@ -360,108 +517,290 @@ public class ShowroomService : IShowroomService
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == showroomId, ct)
             ?? throw new KeyNotFoundException($"Showroom with ID '{showroomId}' was not found.");
 
-        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == request.StaffId, ct)
+        var staff = await _db.Staff.Include(st => st.DefaultShowroom).FirstOrDefaultAsync(s => s.Id == request.StaffId, ct)
             ?? throw new KeyNotFoundException($"Staff member with ID '{request.StaffId}' was not found.");
 
-        // Check if an assignment already exists for this showroom, staff and date
-        var existing = await _db.ShowroomStaffAssignments
+        if (!staff.IsActive)
+        {
+            throw new ValidationException($"Staff member '{staff.Name}' is inactive and cannot be assigned to showroom attendance.");
+        }
+
+        var startTime = string.IsNullOrWhiteSpace(request.StartTime) ? "09:00" : request.StartTime.Trim();
+        var endTime = string.IsNullOrWhiteSpace(request.EndTime) ? "18:00" : request.EndTime.Trim();
+
+        // Overlap Validation across all showrooms on targetDate
+        await AttendanceTimeHelper.ValidateNoSessionOverlapAsync(
+            _db,
+            request.StaffId,
+            staff.Name,
+            targetDate,
+            startTime,
+            endTime,
+            excludeSessionId: null,
+            ct: ct);
+
+
+        var homeShowroomId = staff.DefaultShowroomId ?? showroomId;
+        var isTransfer = string.Equals(request.AssignmentType, "TemporaryTransfer", StringComparison.OrdinalIgnoreCase)
+            || (homeShowroomId != showroomId && !string.Equals(request.AssignmentType, "Regular", StringComparison.OrdinalIgnoreCase));
+
+        var sessionType = isTransfer ? ShowroomStaffSessionType.Custom : ShowroomStaffSessionType.FullDay;
+        var attendanceStatus = isTransfer ? StaffAttendanceStatus.TemporaryTransfer : StaffAttendanceStatus.Present;
+
+        var session = new ShowroomStaffWorkSession
+        {
+            Id = Guid.NewGuid(),
+            StaffId = request.StaffId,
+            HomeShowroomId = homeShowroomId,
+            WorkingShowroomId = showroomId,
+            Date = targetDate,
+            SessionType = sessionType,
+            AttendanceStatus = attendanceStatus,
+            StartTime = startTime,
+            EndTime = endTime,
+            TransferReason = isTransfer ? (string.IsNullOrWhiteSpace(request.TransferReason) ? null : request.TransferReason.Trim()) : null,
+            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.ShowroomStaffWorkSessions.Add(session);
+
+        // Sync legacy ShowroomStaffAssignments
+        var existingAssignment = await _db.ShowroomStaffAssignments
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.StaffId == request.StaffId && a.Date == targetDate, ct);
 
-        if (existing != null)
+        if (existingAssignment == null)
         {
-            if (!existing.IsDeleted)
+            _db.ShowroomStaffAssignments.Add(new ShowroomStaffAssignment
             {
-                throw new InvalidOperationException($"Staff member '{staff.Name}' is already assigned to '{showroom.Name}' on {targetDate:dd-MMM-yyyy}.");
-            }
-
-            // Restore previously deleted assignment
-            existing.IsDeleted = false;
-            existing.VehiclesAttended = Math.Max(0, request.VehiclesAttended);
-            existing.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct);
-
-            return new DailyStaffAssignmentDto(
-                existing.Id,
-                showroomId,
-                showroom.Name,
-                staff.Id,
-                staff.Name,
-                staff.PhoneNumber,
-                staff.Role,
-                existing.Date,
-                existing.VehiclesAttended,
-                existing.CreatedAt
-            );
+                Id = Guid.NewGuid(),
+                ShowroomId = showroomId,
+                StaffId = request.StaffId,
+                Date = targetDate,
+                VehiclesAttended = Math.Max(0, request.VehiclesAttended),
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else if (existingAssignment.IsDeleted)
+        {
+            existingAssignment.IsDeleted = false;
+            existingAssignment.VehiclesAttended = Math.Max(0, request.VehiclesAttended);
+            existingAssignment.UpdatedAt = DateTime.UtcNow;
         }
 
-        var newAssignment = new ShowroomStaffAssignment
-        {
-            ShowroomId = showroomId,
-            StaffId = request.StaffId,
-            Date = targetDate,
-            VehiclesAttended = Math.Max(0, request.VehiclesAttended)
-        };
-
-        _db.ShowroomStaffAssignments.Add(newAssignment);
         await _db.SaveChangesAsync(ct);
 
+        var homeShowroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == homeShowroomId, ct);
+        var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(startTime, endTime);
+
         return new DailyStaffAssignmentDto(
-            newAssignment.Id,
+            session.Id,
             showroomId,
             showroom.Name,
             staff.Id,
+            staff.StaffMasterId,
             staff.Name,
             staff.PhoneNumber,
             staff.Role,
-            newAssignment.Date,
-            newAssignment.VehiclesAttended,
-            newAssignment.CreatedAt
+            session.Date,
+            0,
+            session.CreatedAt,
+            startTime,
+            endTime,
+            hours,
+            formatted,
+            attendanceStatus.ToString(),
+            isTransfer ? "TemporaryTransfer" : "Regular",
+            homeShowroomId,
+            homeShowroom?.MasterId ?? (homeShowroomId == showroomId ? showroom.MasterId : null),
+            homeShowroom?.Name ?? (homeShowroomId == showroomId ? showroom.Name : null),
+            session.TransferReason,
+            session.Notes
         );
     }
 
     public async Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, bool isOwner = false, CancellationToken ct = default)
     {
-        var assignment = await _db.ShowroomStaffAssignments
+        return await UpdateAssignmentAsync(assignmentId, new UpdateDailyStaffAssignmentRequest { VehiclesAttended = vehiclesAttended }, isOwner, ct);
+    }
+
+    public async Task<DailyStaffAssignmentDto?> UpdateAssignmentAsync(Guid assignmentId, UpdateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default)
+    {
+        var session = await _db.ShowroomStaffWorkSessions
+            .Include(s => s.Staff)
+            .Include(s => s.HomeShowroom)
+            .Include(s => s.WorkingShowroom)
+            .FirstOrDefaultAsync(s => s.Id == assignmentId, ct);
+
+        if (session != null)
+        {
+            await EnsureAttendanceNotLockedAsync(session.WorkingShowroomId, session.Date, isOwner, ct);
+
+            var startTime = string.IsNullOrWhiteSpace(request.StartTime) ? (session.StartTime ?? "09:00") : request.StartTime.Trim();
+            var endTime = string.IsNullOrWhiteSpace(request.EndTime) ? (session.EndTime ?? "18:00") : request.EndTime.Trim();
+
+            // Overlap Validation across all other active sessions for this staff member on targetDate
+            await AttendanceTimeHelper.ValidateNoSessionOverlapAsync(
+                _db,
+                session.StaffId,
+                session.Staff?.Name ?? "Staff",
+                session.Date,
+                startTime,
+                endTime,
+                excludeSessionId: session.Id,
+                ct: ct);
+
+            session.StartTime = startTime;
+            session.EndTime = endTime;
+
+            if (!string.IsNullOrWhiteSpace(request.Status))
+            {
+                if (Enum.TryParse<StaffAttendanceStatus>(request.Status, true, out var parsedStatus))
+                {
+                    session.AttendanceStatus = parsedStatus;
+                }
+            }
+
+            if (request.TransferReason != null)
+            {
+                session.TransferReason = string.IsNullOrWhiteSpace(request.TransferReason) ? null : request.TransferReason.Trim();
+            }
+
+            if (request.Notes != null)
+            {
+                session.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
+            }
+
+            session.UpdatedAt = DateTime.UtcNow;
+
+            // Sync legacy ShowroomStaffAssignment
+            var assignment = await _db.ShowroomStaffAssignments
+                .FirstOrDefaultAsync(a => a.ShowroomId == session.WorkingShowroomId && a.StaffId == session.StaffId && a.Date == session.Date && !a.IsDeleted, ct);
+
+            if (assignment != null)
+            {
+                if (request.VehiclesAttended.HasValue)
+                {
+                    assignment.VehiclesAttended = Math.Max(0, request.VehiclesAttended.Value);
+                }
+                assignment.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(session.StartTime, session.EndTime);
+            var isTransfer = session.HomeShowroomId != session.WorkingShowroomId || session.AttendanceStatus == StaffAttendanceStatus.TemporaryTransfer;
+
+            return new DailyStaffAssignmentDto(
+                session.Id,
+                session.WorkingShowroomId,
+                session.WorkingShowroom?.Name ?? "Showroom",
+                session.StaffId,
+                session.Staff?.StaffMasterId ?? string.Empty,
+                session.Staff?.Name ?? "Staff",
+                session.Staff?.PhoneNumber ?? string.Empty,
+                session.Staff?.Role,
+                session.Date,
+                assignment?.VehiclesAttended ?? (request.VehiclesAttended.HasValue ? Math.Max(0, request.VehiclesAttended.Value) : 0),
+                session.CreatedAt,
+                session.StartTime ?? "09:00",
+                session.EndTime ?? "18:00",
+                hours,
+                formatted,
+                session.AttendanceStatus.ToString(),
+                isTransfer ? "TemporaryTransfer" : "Regular",
+                session.HomeShowroomId,
+                session.HomeShowroom?.MasterId,
+                session.HomeShowroom?.Name,
+                session.TransferReason,
+                session.Notes
+            );
+        }
+
+        var legacyAssignment = await _db.ShowroomStaffAssignments
             .Include(a => a.Staff)
             .Include(a => a.Showroom)
             .FirstOrDefaultAsync(a => a.Id == assignmentId, ct);
 
-        if (assignment == null) return null;
+        if (legacyAssignment == null) return null;
 
-        await EnsureAttendanceNotLockedAsync(assignment.ShowroomId, assignment.Date, isOwner, ct);
+        await EnsureAttendanceNotLockedAsync(legacyAssignment.ShowroomId, legacyAssignment.Date, isOwner, ct);
 
-        assignment.VehiclesAttended = Math.Max(0, vehiclesAttended);
-        assignment.UpdatedAt = DateTime.UtcNow;
+        if (request.VehiclesAttended.HasValue)
+        {
+            legacyAssignment.VehiclesAttended = Math.Max(0, request.VehiclesAttended.Value);
+        }
+        legacyAssignment.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
 
         return new DailyStaffAssignmentDto(
-            assignment.Id,
-            assignment.ShowroomId,
-            assignment.Showroom?.Name ?? "Showroom",
-            assignment.StaffId,
-            assignment.Staff?.Name ?? "Staff",
-            assignment.Staff?.PhoneNumber ?? string.Empty,
-            assignment.Staff?.Role,
-            assignment.Date,
-            assignment.VehiclesAttended,
-            assignment.CreatedAt
+            legacyAssignment.Id,
+            legacyAssignment.ShowroomId,
+            legacyAssignment.Showroom?.Name ?? "Showroom",
+            legacyAssignment.StaffId,
+            legacyAssignment.Staff?.StaffMasterId ?? string.Empty,
+            legacyAssignment.Staff?.Name ?? "Staff",
+            legacyAssignment.Staff?.PhoneNumber ?? string.Empty,
+            legacyAssignment.Staff?.Role,
+            legacyAssignment.Date,
+            legacyAssignment.VehiclesAttended,
+            legacyAssignment.CreatedAt
         );
     }
 
     public async Task<bool> RemoveAssignmentAsync(Guid assignmentId, bool isOwner = false, CancellationToken ct = default)
     {
-        var assignment = await _db.ShowroomStaffAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, ct);
-        if (assignment == null) return false;
+        var session = await _db.ShowroomStaffWorkSessions.FirstOrDefaultAsync(s => s.Id == assignmentId, ct);
+        if (session != null)
+        {
+            await EnsureAttendanceNotLockedAsync(session.WorkingShowroomId, session.Date, isOwner, ct);
 
-        await EnsureAttendanceNotLockedAsync(assignment.ShowroomId, assignment.Date, isOwner, ct);
+            session.IsDeleted = true;
+            session.UpdatedAt = DateTime.UtcNow;
 
-        assignment.IsDeleted = true;
-        assignment.UpdatedAt = DateTime.UtcNow;
+            var otherSessions = await _db.ShowroomStaffWorkSessions
+                .AnyAsync(s => s.Id != assignmentId && s.WorkingShowroomId == session.WorkingShowroomId && s.StaffId == session.StaffId && s.Date == session.Date && !s.IsDeleted, ct);
 
-        await _db.SaveChangesAsync(ct);
-        return true;
+            if (!otherSessions)
+            {
+                var assignment = await _db.ShowroomStaffAssignments
+                    .FirstOrDefaultAsync(a => a.ShowroomId == session.WorkingShowroomId && a.StaffId == session.StaffId && a.Date == session.Date && !a.IsDeleted, ct);
+
+                if (assignment != null)
+                {
+                    assignment.IsDeleted = true;
+                    assignment.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        var legAssignment = await _db.ShowroomStaffAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, ct);
+        if (legAssignment != null)
+        {
+            await EnsureAttendanceNotLockedAsync(legAssignment.ShowroomId, legAssignment.Date, isOwner, ct);
+
+            legAssignment.IsDeleted = true;
+            legAssignment.UpdatedAt = DateTime.UtcNow;
+
+            var matchingSession = await _db.ShowroomStaffWorkSessions
+                .FirstOrDefaultAsync(s => s.WorkingShowroomId == legAssignment.ShowroomId && s.StaffId == legAssignment.StaffId && s.Date == legAssignment.Date && !s.IsDeleted, ct);
+
+            if (matchingSession != null)
+            {
+                matchingSession.IsDeleted = true;
+                matchingSession.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            return true;
+        }
+
+        return false;
     }
 
     // ── Daily Showroom Billing & Payments ───────────────────────────────────

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/phone_validator.dart';
+import '../../../../core/utils/uppercase_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
@@ -31,6 +33,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _addressController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _gstinController;
   late bool _isActive;
 
   bool _isSubmitting = false;
@@ -45,6 +48,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
     _nameController = TextEditingController(text: sr?.name ?? '');
     _addressController = TextEditingController(text: sr?.address ?? '');
     _phoneController = TextEditingController(text: sr?.phone ?? '');
+    _gstinController = TextEditingController(text: sr?.gstin ?? '');
     _isActive = sr?.isActive ?? true;
   }
 
@@ -53,6 +57,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
     _nameController.dispose();
     _addressController.dispose();
     _phoneController.dispose();
+    _gstinController.dispose();
     super.dispose();
   }
 
@@ -67,12 +72,15 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
     try {
       final phoneText = _phoneController.text.trim();
       final phone = phoneText.isEmpty ? null : PhoneValidator.clean(phoneText);
+      final gstinText = _gstinController.text.trim();
+      final gstin = gstinText.isEmpty ? null : gstinText.toUpperCase();
 
       if (_isEditing) {
         final request = UpdateShowroomRequest(
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
           phone: phone,
+          gstin: gstin,
           isActive: _isActive,
         );
         await widget.onUpdate!(widget.showroom!.id, request);
@@ -81,6 +89,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
           name: _nameController.text.trim(),
           address: _addressController.text.trim(),
           phone: phone,
+          gstin: gstin,
           isActive: _isActive,
         );
         await widget.onCreate!(request);
@@ -212,6 +221,34 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
                 inputFormatters: PhoneValidator.formatters,
                 maxLength: 10,
                 validator: (val) => PhoneValidator.validate(val, isRequired: false, fieldName: 'Contact phone'),
+              ),
+              const SizedBox(height: 14),
+
+              // GSTIN Field
+              AppTextField(
+                controller: _gstinController,
+                label: 'GSTIN (Optional)',
+                hintText: 'e.g. 33AAAAA0000A1Z5',
+                prefixIcon: const Icon(Icons.receipt_outlined),
+                textCapitalization: TextCapitalization.characters,
+                maxLength: 15,
+                inputFormatters: [
+                  const UpperCaseTextFormatter(),
+                  LengthLimitingTextInputFormatter(15),
+                ],
+                helperText: '15-character Indian Goods & Services Tax ID',
+                validator: (val) {
+                  if (val != null && val.trim().isNotEmpty) {
+                    final gstinRegex = RegExp(
+                      r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+                      caseSensitive: false,
+                    );
+                    if (!gstinRegex.hasMatch(val.trim())) {
+                      return 'Invalid GSTIN format (e.g. 33AAAAA0000A1Z5)';
+                    }
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 14),
 

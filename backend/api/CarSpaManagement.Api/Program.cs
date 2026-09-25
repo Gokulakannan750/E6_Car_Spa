@@ -87,6 +87,7 @@ builder.Services.AddScoped<IStaffAdvanceService, StaffAdvanceService>();
 builder.Services.AddScoped<IStaffAttendanceService, StaffAttendanceService>();
 builder.Services.AddScoped<IStaffSalaryService, StaffSalaryService>();
 builder.Services.AddScoped<IShowroomService, ShowroomService>();
+builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 
@@ -411,6 +412,7 @@ using (var scope = app.Services.CreateScope())
 			WHERE ""Reason"" IS NULL OR ""Reason"" = '';
 		");
 		await PermissionSeeder.SeedAsync(db);
+		await ShowroomOperationsSeeder.SeedAsync(db);
 
 		// ── Seed Default Business Profile (Singleton) ────────────────────────
 		var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");

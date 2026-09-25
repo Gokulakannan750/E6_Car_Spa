@@ -10,8 +10,6 @@ import {
 	Users,
 	Edit2,
 	Phone,
-	Mail,
-	MapPin,
 	Eye,
 	EyeOff,
 	Trash2,
@@ -23,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
+import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { useAuth } from '../auth/auth-context';
 import { capitalizeSentence } from '../../utils/text';
@@ -115,6 +114,11 @@ export function StaffDirectoryPage() {
 			}
 		},
 	});
+
+	const viewingHistoryStaff = useMemo(
+		() => staffList.find((s) => s.id === viewingHistoryStaffId),
+		[staffList, viewingHistoryStaffId]
+	);
 
 	const { data: staffHistoryData, isLoading: historyLoading } = useQuery({
 		queryKey: ['staff-advance-history', viewingHistoryStaffId],
@@ -329,7 +333,8 @@ export function StaffDirectoryPage() {
 				const matchPhone = staff.phoneNumber.includes(q);
 				const matchRole = (staff.role || '').toLowerCase().includes(q);
 				const matchEmail = (staff.email || '').toLowerCase().includes(q);
-				if (!matchName && !matchPhone && !matchRole && !matchEmail) return false;
+				const matchStaffId = (staff.staffMasterId || '').toLowerCase().includes(q);
+				if (!matchName && !matchPhone && !matchRole && !matchEmail && !matchStaffId) return false;
 			}
 			return true;
 		});
@@ -444,173 +449,190 @@ export function StaffDirectoryPage() {
 				</div>
 			</div>
 
-			{/* Staff Grid */}
-			{staffLoading ? (
-				<div className="py-20 text-center text-on-surface-variant">
-					<div className="inline-flex items-center gap-2">
-						<div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-						<span>Loading staff directory...</span>
-					</div>
-				</div>
-			) : filteredStaffList.length === 0 ? (
-				<div className="py-20 text-center bg-white border border-outline-variant rounded-2xl p-8">
-					<Users className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-					<h3 className="text-base font-bold text-on-surface">No staff members found</h3>
-					<p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
-						{staffSearch || staffStatusFilter !== 'all'
-							? 'No staff match your current search or filter criteria. Try resetting filters.'
-							: 'Get started by adding your first employee to the directory.'}
-					</p>
-					{canManageStaff && (
-						<Button
-							variant="secondary"
-							className="mt-4"
-							icon={<UserPlus className="w-4 h-4" />}
-							onClick={() => {
-								resetStaffForm();
-								setEditingStaff(null);
-								setShowStaffModal(true);
-							}}
-						>
-							Add Staff Member
-						</Button>
-					)}
-				</div>
-			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					{filteredStaffList.map((staff) => (
-						<div
-							key={staff.id}
-							className="p-5 rounded-2xl bg-white border border-outline-variant shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
-						>
-							<div>
-								{/* Header & Status */}
-								<div className="flex items-start justify-between gap-2">
-									<div className="flex items-center gap-3">
-										<div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-											{staff.name
-												.split(' ')
-												.map((n) => n[0])
-												.join('')
-												.slice(0, 2)
-												.toUpperCase()}
+			{/* Staff Table */}
+			<div className="card overflow-hidden p-0">
+				<div className="overflow-x-auto">
+					<table className="app-table">
+						<thead>
+							<tr>
+								<th>Staff</th>
+								<th>Staff ID</th>
+								<th>Role</th>
+								<th>Phone</th>
+								<th>Aadhaar</th>
+								<th>Status</th>
+								<th className="text-right">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{staffLoading && (
+								<tr>
+									<td colSpan={7} className="py-12 text-center text-xs text-on-surface-variant">
+										<div className="inline-flex items-center gap-2">
+											<div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+											<span>Loading staff directory...</span>
 										</div>
-										<div>
-											<h3 className="font-bold text-sm text-on-surface leading-tight">
-												{staff.name}
-											</h3>
-											<span className="text-xs text-blue-600 font-medium">
-												{staff.role || 'Staff Member'}
-											</span>
-										</div>
-									</div>
+									</td>
+								</tr>
+							)}
 
-									<span
-										className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-											staff.isActive
-												? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-												: 'bg-slate-100 text-slate-600 border border-slate-200'
-										}`}
-									>
-										{staff.isActive ? 'Active' : 'Inactive'}
-									</span>
-								</div>
-
-								{/* Contact details */}
-								<div className="mt-4 space-y-1.5 text-xs text-slate-600">
-									<div className="flex items-center gap-2">
-										<Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-										<span className="font-mono">{staff.phoneNumber}</span>
-									</div>
-									{staff.email && (
-										<div className="flex items-center gap-2">
-											<Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-											<span className="truncate">{staff.email}</span>
-										</div>
-									)}
-									{staff.address && (
-										<div className="flex items-center gap-2">
-											<MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-											<span className="truncate">{staff.address}</span>
-										</div>
-									)}
-								</div>
-
-								{/* Aadhaar Details Card */}
-								<div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5">
-									<div className="flex items-center justify-between text-xs">
-										<span className="text-slate-500 font-medium flex items-center gap-1">
-											<ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-											Aadhaar:
-										</span>
-										<span className="font-mono font-semibold text-slate-800">
-											{staff.aadhaarMasked ? (
-												staff.aadhaarMasked
-											) : (
-												<em className="text-slate-400 font-sans font-normal text-[11px]">Not Added</em>
+							{!staffLoading && filteredStaffList.length === 0 && (
+								<tr>
+									<td colSpan={7} className="py-16 text-center">
+										<div className="max-w-xs mx-auto text-center space-y-3">
+											<Users className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
+											<div>
+												<h3 className="text-base font-bold text-on-surface">No staff members found</h3>
+												<p className="text-xs text-on-surface-variant mt-1">
+													{staffSearch || staffStatusFilter !== 'all'
+														? 'No staff match your current search or filter criteria. Try resetting filters.'
+														: 'Get started by adding your first employee to the directory.'}
+												</p>
+											</div>
+											{!staffSearch && staffStatusFilter === 'all' && canManageStaff && (
+												<Button
+													variant="primary"
+													icon={<UserPlus className="w-4 h-4" />}
+													onClick={() => {
+														resetStaffForm();
+														setEditingStaff(null);
+														setShowStaffModal(true);
+													}}
+												>
+													Add Staff Member
+												</Button>
 											)}
-										</span>
-									</div>
-
-									{staff.hasAadhaarDocument && (
-										<div className="flex items-center justify-between text-[11px] text-blue-700 bg-blue-50/60 px-2 py-1 rounded-lg">
-											<span className="flex items-center gap-1 truncate font-medium">
-												<FileCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-												<span className="truncate">{staff.aadhaarDocumentFileName || 'Aadhaar Copy'}</span>
-											</span>
-											<span className="text-[10px] text-blue-600 font-semibold bg-blue-100/80 px-1.5 py-0.5 rounded shrink-0">
-												Attached
-											</span>
 										</div>
-									)}
-								</div>
-							</div>
+									</td>
+								</tr>
+							)}
 
-							{/* Actions */}
-							<div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-								<div className="flex items-center gap-1.5">
-									<button
-										type="button"
+							{!staffLoading &&
+								filteredStaffList.map((staff) => (
+									<tr
+										key={staff.id}
+										className="hover:bg-surface-container/40 transition-colors cursor-pointer group"
 										onClick={() => {
 											setRevealedAadhaar(null);
 											setRevealError(null);
 											setDocError(null);
 											setViewingDetailsStaff(staff);
 										}}
-										className="px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-										title="View Staff Profile & Details"
 									>
-										<Info className="w-3.5 h-3.5 text-slate-500" />
-										Details
-									</button>
+										{/* STAFF */}
+										<td className="font-semibold text-on-surface text-sm">
+											<div className="flex items-center gap-2.5">
+												<div className="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center font-bold text-xs shrink-0 group-hover:bg-secondary group-hover:text-white transition-colors">
+													{staff.name
+														.split(' ')
+														.map((n) => n[0])
+														.join('')
+														.slice(0, 2)
+														.toUpperCase()}
+												</div>
+												<div>
+													<p className="font-semibold text-xs text-on-surface group-hover:text-secondary transition-colors">
+														{staff.name}
+													</p>
+													{staff.email && (
+														<span className="text-[11px] text-on-surface-variant font-normal block truncate max-w-xs">
+															{staff.email}
+														</span>
+													)}
+												</div>
+											</div>
+										</td>
 
-									{canManageStaff && (
-										<button
-											type="button"
-											onClick={() => openEditStaffModal(staff)}
-											className="px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-blue-50/50 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-											title="Edit Staff Member"
-										>
-											<Edit2 className="w-3.5 h-3.5 text-slate-500" />
-											Edit
-										</button>
-									)}
-								</div>
+										{/* STAFF ID */}
+										<td>
+											<span className="font-mono text-xs font-semibold text-on-surface-variant bg-surface-container px-2 py-0.5 rounded border border-outline-variant">
+												#{staff.staffMasterId || '—'}
+											</span>
+										</td>
 
-								<button
-									type="button"
-									onClick={() => setViewingHistoryStaffId(staff.id)}
-									className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all cursor-pointer flex items-center gap-1"
-									title="View Advance History"
-								>
-									<History className="w-3.5 h-3.5 text-slate-500" />
-									History
-								</button>
-							</div>
-						</div>
-					))}
+										{/* ROLE */}
+										<td className="text-xs text-on-surface font-medium">
+											{staff.role || 'Staff Member'}
+										</td>
+
+										{/* PHONE */}
+										<td className="text-on-surface-variant text-xs font-mono">
+											<div className="flex items-center gap-1.5">
+												<Phone className="w-3.5 h-3.5 text-on-surface-variant/70 shrink-0" />
+												<span>{staff.phoneNumber}</span>
+											</div>
+										</td>
+
+										{/* AADHAAR */}
+										<td className="text-xs">
+											<div className="flex items-center gap-1.5">
+												<span className="font-mono font-medium text-on-surface">
+													{staff.aadhaarMasked ? (
+														staff.aadhaarMasked
+													) : (
+														<span className="text-on-surface-variant font-sans">Not Added</span>
+													)}
+												</span>
+												{staff.hasAadhaarDocument && (
+													<span title={staff.aadhaarDocumentFileName || 'Aadhaar Attached'}>
+														<FileCheck className="w-3.5 h-3.5 text-secondary shrink-0" />
+													</span>
+												)}
+											</div>
+										</td>
+
+										{/* STATUS */}
+										<td>
+											<StatusBadge status={staff.isActive ? 'Active' : 'Inactive'} />
+										</td>
+
+										{/* ACTIONS */}
+										<td className="text-right" onClick={(e) => e.stopPropagation()}>
+											<div className="flex items-center justify-end gap-1.5">
+												<Button
+													variant="secondary"
+													size="sm"
+													icon={<Info className="w-3.5 h-3.5 text-on-surface-variant" />}
+													onClick={() => {
+														setRevealedAadhaar(null);
+														setRevealError(null);
+														setDocError(null);
+														setViewingDetailsStaff(staff);
+													}}
+													title="View Staff Profile & Details"
+												>
+													Details
+												</Button>
+
+												{canManageStaff && (
+													<Button
+														variant="secondary"
+														size="sm"
+														icon={<Edit2 className="w-3.5 h-3.5 text-on-surface-variant" />}
+														onClick={() => openEditStaffModal(staff)}
+														title="Edit Staff Member"
+													>
+														Edit
+													</Button>
+												)}
+
+												<Button
+													variant="secondary"
+													size="sm"
+													icon={<History className="w-3.5 h-3.5 text-on-surface-variant" />}
+													onClick={() => setViewingHistoryStaffId(staff.id)}
+													title="View Advance History"
+												>
+													History
+												</Button>
+											</div>
+										</td>
+									</tr>
+								))}
+						</tbody>
+					</table>
 				</div>
-			)}
+			</div>
 
 			{/* ── MODAL: STAFF DETAILS ── */}
 			<Dialog
@@ -650,15 +672,20 @@ export function StaffDirectoryPage() {
 									<h4 className="font-bold text-sm text-slate-900 truncate">
 										{viewingDetailsStaff.name}
 									</h4>
-									<span
-										className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-											viewingDetailsStaff.isActive
-												? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-												: 'bg-slate-200 text-slate-700'
-										}`}
-									>
-										{viewingDetailsStaff.isActive ? 'Active' : 'Inactive'}
-									</span>
+									<div className="flex items-center gap-1.5 shrink-0">
+										<span className="font-mono text-[11px] font-semibold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded border border-slate-300">
+											#{viewingDetailsStaff.staffMasterId || '—'}
+										</span>
+										<span
+											className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+												viewingDetailsStaff.isActive
+													? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+													: 'bg-slate-200 text-slate-700'
+											}`}
+										>
+											{viewingDetailsStaff.isActive ? 'Active' : 'Inactive'}
+										</span>
+									</div>
 								</div>
 								<p className="text-blue-600 font-medium text-xs mt-0.5">
 									{viewingDetailsStaff.role || 'Staff Member'}
@@ -1041,7 +1068,7 @@ export function StaffDirectoryPage() {
 				onOpenChange={(open) => {
 					if (!open) setViewingHistoryStaffId(null);
 				}}
-				title={`${staffHistoryData?.staffName || 'Staff'} — Advance History`}
+				title={`${staffHistoryData?.staffName || viewingHistoryStaff?.name || 'Staff'}${viewingHistoryStaff?.staffMasterId ? ` (#${viewingHistoryStaff.staffMasterId})` : ''} — Advance History`}
 				description="Complete advance tracking and recovery log for this employee."
 			>
 				{historyLoading && (

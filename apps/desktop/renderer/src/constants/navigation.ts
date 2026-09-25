@@ -176,12 +176,6 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			icon: 'Wrench',
 			requiresPermission: 'catalogue.view',
 		},
-		{
-			label: 'Payments',
-			path: '/payments',
-			icon: 'CreditCard',
-			requiresPermission: 'invoices.view',
-		},
 	],
 	staff: [
 		{
@@ -227,20 +221,20 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'showroom.view',
 		},
 		{
-			label: 'Staff Requests',
-			path: '/showroom#staff-requests',
-			icon: 'Clock',
-			requiresPermission: 'showroom.view',
-		},
-		{
 			label: 'Showroom Attendance',
-			path: '/showroom#attendance',
+			path: '/showroom/attendance',
 			icon: 'CalendarCheck',
 			requiresPermission: 'showroom.view',
 		},
 		{
-			label: 'Showroom Billing',
-			path: '/showroom#billing',
+			label: 'Showroom Operations',
+			path: '/showroom/operations',
+			icon: 'ClipboardList',
+			requiresPermission: 'showroom.view',
+		},
+		{
+			label: 'Showroom Bill',
+			path: '/showroom/bill',
 			icon: 'Receipt',
 			requiresPermission: 'showroom.view',
 		},
@@ -408,8 +402,24 @@ export function isItemActive(
 	}
 
 	if (item.path === '/showroom') {
-		// Showrooms is active if on /showroom and no hash is targeting a specific sub-section
-		return normPath === '/showroom' && (!hash || hash === '#');
+		return normPath === '/showroom';
+	}
+
+	if (item.path === '/showroom/attendance') {
+		return normPath === '/showroom/attendance' || normPath.startsWith('/showroom/attendance/');
+	}
+
+	if (item.path === '/showroom/bill') {
+		return (
+			normPath === '/showroom/bill' ||
+			normPath.startsWith('/showroom/bill/') ||
+			normPath === '/showroom/billing' ||
+			normPath.startsWith('/showroom/billing/')
+		);
+	}
+
+	if (item.path === '/showroom/operations') {
+		return normPath === '/showroom/operations' || normPath.startsWith('/showroom/operations/');
 	}
 
 	// Exact match
@@ -418,8 +428,17 @@ export function isItemActive(
 	}
 
 	// Nested subroutes (e.g. /job-cards/new or /customers/123)
-	// Guard against /settings matching /settings/users
-	if (item.path !== '/' && item.path !== '/dashboard' && item.path !== '/settings' && normPath.startsWith(`${item.path}/`)) {
+	// Guard against /settings matching /settings/users, or /showroom matching /showroom/operations
+	if (
+		item.path !== '/' &&
+		item.path !== '/dashboard' &&
+		item.path !== '/settings' &&
+		item.path !== '/showroom' &&
+		item.path !== '/showroom/attendance' &&
+		item.path !== '/showroom/bill' &&
+		item.path !== '/showroom/operations' &&
+		normPath.startsWith(`${item.path}/`)
+	) {
 		return true;
 	}
 

@@ -6,6 +6,7 @@ class Showroom {
   final String name;
   final String address;
   final String? phone;
+  final String? gstin;
   final bool isActive;
   final int activeStaffCountToday;
   final int totalVehiclesToday;
@@ -17,6 +18,7 @@ class Showroom {
     required this.name,
     required this.address,
     this.phone,
+    this.gstin,
     this.isActive = true,
     this.activeStaffCountToday = 0,
     this.totalVehiclesToday = 0,
@@ -41,6 +43,7 @@ class Showroom {
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
       address: json['address'] as String? ?? json['Address'] as String? ?? '',
       phone: json['phone'] as String? ?? json['Phone'] as String?,
+      gstin: json['gstin'] as String? ?? json['Gstin'] as String?,
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
       activeStaffCountToday: (json['activeStaffCountToday'] ?? json['ActiveStaffCountToday'] ?? 0) as int,
       totalVehiclesToday: (json['totalVehiclesToday'] ?? json['TotalVehiclesToday'] ?? 0) as int,
@@ -60,6 +63,7 @@ class Showroom {
     'name': name,
     'address': address,
     'phone': phone,
+    'gstin': gstin,
     'isActive': isActive,
     'activeStaffCountToday': activeStaffCountToday,
     'totalVehiclesToday': totalVehiclesToday,
@@ -72,6 +76,8 @@ class Showroom {
     String? name,
     String? address,
     String? phone,
+    String? gstin,
+    bool clearGstin = false,
     bool? isActive,
     int? activeStaffCountToday,
     int? totalVehiclesToday,
@@ -83,6 +89,7 @@ class Showroom {
       name: name ?? this.name,
       address: address ?? this.address,
       phone: phone ?? this.phone,
+      gstin: clearGstin ? null : (gstin ?? this.gstin),
       isActive: isActive ?? this.isActive,
       activeStaffCountToday: activeStaffCountToday ?? this.activeStaffCountToday,
       totalVehiclesToday: totalVehiclesToday ?? this.totalVehiclesToday,
@@ -97,21 +104,27 @@ class CreateShowroomRequest {
   final String name;
   final String address;
   final String? phone;
+  final String? gstin;
   final bool isActive;
 
   const CreateShowroomRequest({
     required this.name,
     required this.address,
     this.phone,
+    this.gstin,
     this.isActive = true,
   });
 
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'address': address,
-    if (phone != null && phone!.isNotEmpty) 'phone': phone,
-    'isActive': isActive,
-  };
+  Map<String, dynamic> toJson() {
+    final cleanGstin = gstin?.trim().toUpperCase();
+    return {
+      'name': name,
+      'address': address,
+      if (phone != null && phone!.isNotEmpty) 'phone': phone,
+      if (cleanGstin != null && cleanGstin.isNotEmpty) 'gstin': cleanGstin,
+      'isActive': isActive,
+    };
+  }
 }
 
 @immutable
@@ -119,12 +132,14 @@ class UpdateShowroomRequest {
   final String? name;
   final String? address;
   final String? phone;
+  final String? gstin;
   final bool? isActive;
 
   const UpdateShowroomRequest({
     this.name,
     this.address,
     this.phone,
+    this.gstin,
     this.isActive,
   });
 
@@ -132,6 +147,7 @@ class UpdateShowroomRequest {
     if (name != null) 'name': name,
     if (address != null) 'address': address,
     if (phone != null) 'phone': phone,
+    'gstin': (gstin == null || gstin!.trim().isEmpty) ? null : gstin!.trim().toUpperCase(),
     if (isActive != null) 'isActive': isActive,
   };
 }

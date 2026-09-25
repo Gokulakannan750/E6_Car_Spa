@@ -28,14 +28,18 @@ public class ShowroomStaffAssignmentsController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [RequirePermission("showroom.edit_attendance")]
-    public async Task<IActionResult> UpdateVehicles(Guid id, [FromBody] UpdateDailyStaffAssignmentRequest request, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDailyStaffAssignmentRequest request, CancellationToken ct)
     {
         try
         {
             var isOwner = GetIsOwner();
-            var updated = await _service.UpdateAssignmentVehiclesAsync(id, request.VehiclesAttended, isOwner, ct);
+            var updated = await _service.UpdateAssignmentAsync(id, request, isOwner, ct);
             if (updated == null) return NotFound(new { message = $"Assignment with ID '{id}' was not found." });
             return Ok(updated);
+        }
+        catch (CarSpaManagement.Api.Application.Common.ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (CarSpaManagement.Api.Application.Common.ForbiddenException ex)
         {

@@ -25,6 +25,14 @@ public class Staff : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>
+    /// Human-readable, immutable business identifier. Format: [A-Z]{2}[0-9]{3}[A-Z] (e.g. GO001L).
+    /// Generated automatically on creation. Must not be changed after assignment.
+    /// </summary>
+    [Required]
+    [StringLength(6, MinimumLength = 6)]
+    public string StaffMasterId { get; set; } = string.Empty;
+
     [MaxLength(500)]
     public string? AadhaarNumberEncrypted { get; set; }
 
@@ -39,7 +47,15 @@ public class Staff : BaseEntity
 
     public long? AadhaarDocumentSize { get; set; }
 
+    public Guid? DefaultShowroomId { get; set; }
+
+    [ForeignKey(nameof(DefaultShowroomId))]
+    public Showroom? DefaultShowroom { get; set; }
+
     public List<StaffAdvance> StaffAdvances { get; set; } = new();
     public List<ShowroomStaffAssignment> ShowroomAssignments { get; set; } = new();
     public List<StaffAttendance> Attendances { get; set; } = new();
+    public List<ShowroomStaffWorkSession> ShowroomWorkSessions { get; set; } = new();
+    public List<ShowroomVehicleWork> ShowroomVehicleWorks { get; set; } = new();
 }
+

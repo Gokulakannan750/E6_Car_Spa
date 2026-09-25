@@ -773,6 +773,11 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MasterId")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -782,10 +787,17 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("Gstin")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MasterId")
+                        .IsUnique();
 
                     b.ToTable("Showrooms");
                 });
@@ -946,6 +958,303 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("ShowroomStaffAssignments");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffWorkSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttendanceStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EndTime")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid>("HomeShowroomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("SessionType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StartTime")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("TransferReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkingShowroomId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HomeShowroomId");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("WorkingShowroomId");
+
+                    b.HasIndex("StaffId", "Date");
+
+                    b.HasIndex("WorkingShowroomId", "Date");
+
+                    b.ToTable("ShowroomStaffWorkSessions", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("ShowroomVehicleTypes", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ShowroomId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ShowroomStaffWorkSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TimeRecorded")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("VehicleQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("VehicleTypeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShowroomId");
+
+                    b.HasIndex("ShowroomStaffWorkSessionId");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("VehicleTypeId");
+
+                    b.HasIndex("ShowroomId", "Date");
+
+                    b.HasIndex("StaffId", "Date");
+
+                    b.ToTable("ShowroomVehicleWorks", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWorkItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Quantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("ShowroomVehicleWorkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkTypeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShowroomVehicleWorkId");
+
+                    b.HasIndex("WorkTypeId");
+
+                    b.HasIndex("ShowroomVehicleWorkId", "WorkTypeId");
+
+                    b.ToTable("ShowroomVehicleWorkItems", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomWorkType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("ShowroomWorkTypes", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
                 {
                     b.Property<Guid>("Id")
@@ -977,6 +1286,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("DefaultShowroomId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -1003,13 +1315,23 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("StaffMasterId")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DefaultShowroomId");
+
                     b.HasIndex("PhoneNumber")
                         .HasDatabaseName("IX_Staff_PhoneNumber");
+
+                    b.HasIndex("StaffMasterId")
+                        .IsUnique();
 
                     b.ToTable("Staff", (string)null);
                 });
@@ -1625,6 +1947,96 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffWorkSession", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "HomeShowroom")
+                        .WithMany()
+                        .HasForeignKey("HomeShowroomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Staff", "Staff")
+                        .WithMany("ShowroomWorkSessions")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "WorkingShowroom")
+                        .WithMany()
+                        .HasForeignKey("WorkingShowroomId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("HomeShowroom");
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("WorkingShowroom");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
+                        .WithMany()
+                        .HasForeignKey("ShowroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomStaffWorkSession", "ShowroomStaffWorkSession")
+                        .WithMany("VehicleWorks")
+                        .HasForeignKey("ShowroomStaffWorkSessionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Staff", "Staff")
+                        .WithMany("ShowroomVehicleWorks")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleType", "VehicleType")
+                        .WithMany("VehicleWorks")
+                        .HasForeignKey("VehicleTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Showroom");
+
+                    b.Navigation("ShowroomStaffWorkSession");
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("VehicleType");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWorkItem", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", "ShowroomVehicleWork")
+                        .WithMany("ServiceItems")
+                        .HasForeignKey("ShowroomVehicleWorkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomWorkType", "WorkType")
+                        .WithMany("WorkItems")
+                        .HasForeignKey("WorkTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ShowroomVehicleWork");
+
+                    b.Navigation("WorkType");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "DefaultShowroom")
+                        .WithMany()
+                        .HasForeignKey("DefaultShowroomId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DefaultShowroom");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.StaffAdvance", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.User", "ObsoletedByUser")
@@ -1744,9 +2156,33 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Payments");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffWorkSession", b =>
+                {
+                    b.Navigation("VehicleWorks");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleType", b =>
+                {
+                    b.Navigation("VehicleWorks");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", b =>
+                {
+                    b.Navigation("ServiceItems");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomWorkType", b =>
+                {
+                    b.Navigation("WorkItems");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
                 {
                     b.Navigation("ShowroomAssignments");
+
+                    b.Navigation("ShowroomVehicleWorks");
+
+                    b.Navigation("ShowroomWorkSessions");
 
                     b.Navigation("StaffAdvances");
                 });

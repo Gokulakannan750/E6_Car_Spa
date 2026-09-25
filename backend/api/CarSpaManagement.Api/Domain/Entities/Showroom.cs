@@ -6,6 +6,10 @@ namespace CarSpaManagement.Api.Domain.Entities;
 public class Showroom : BaseEntity
 {
     [Required]
+    [StringLength(7, MinimumLength = 7)]
+    public string MasterId { get; set; } = string.Empty;
+
+    [Required]
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
 
@@ -15,6 +19,9 @@ public class Showroom : BaseEntity
 
     [MaxLength(20)]
     public string? Phone { get; set; }
+
+    [MaxLength(15)]
+    public string? Gstin { get; set; }
 
     public bool IsActive { get; set; } = true;
 

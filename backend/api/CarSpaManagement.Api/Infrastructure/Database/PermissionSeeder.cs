@@ -62,6 +62,9 @@ public static class PermissionSeeder
         ("showroom.record_payment", "Record Payment", "Showroom", "Allows recording payments from showrooms"),
         ("showroom.delete_payment", "Delete Showroom Payment", "Showroom", "Allows deleting showroom payment transactions"),
         ("showroom.view_history", "View History", "Showroom", "Allows viewing historical records and productivity"),
+        ("showroom.record_work", "Record Showroom Work", "Showroom", "Allows logging vehicle and service work performed at showrooms"),
+        ("showroom.edit_work", "Edit Showroom Work", "Showroom", "Allows modifying or deleting logged showroom vehicle work"),
+        ("showroom.manage_transfers", "Manage Staff Movement", "Showroom", "Allows recording staff transfers and partial-day showroom movements"),
 
         // Staff & Staff Advances
         ("staff.view", "View Staff", "Staff", "Allows viewing staff members"),

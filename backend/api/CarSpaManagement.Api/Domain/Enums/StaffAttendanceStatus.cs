@@ -4,5 +4,8 @@ public enum StaffAttendanceStatus
 {
     Present = 1,
     HalfDay = 3,
-    Leave = 4
+    Leave = 4,
+    TemporaryTransfer = 5,
+    Absent = 6
 }
+
