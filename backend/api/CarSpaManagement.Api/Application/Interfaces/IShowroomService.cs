@@ -9,7 +9,6 @@ public interface IShowroomService
     Task<ShowroomDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<ShowroomDto> CreateAsync(CreateShowroomRequest request, CancellationToken ct = default);
     Task<ShowroomDto?> UpdateAsync(Guid id, UpdateShowroomRequest request, CancellationToken ct = default);
-    Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
     Task<bool> ToggleActiveAsync(Guid id, CancellationToken ct = default);
 
     // Daily Staff Assignment & Attendance Confirmation
@@ -17,6 +16,7 @@ public interface IShowroomService
     Task<DailyStaffResponse> ConfirmAttendanceAsync(Guid showroomId, DateTime date, Guid userId, CancellationToken ct = default);
     Task<DailyStaffResponse> UnlockAttendanceAsync(Guid showroomId, DateTime date, Guid userId, bool isOwner, CancellationToken ct = default);
     Task<DailyStaffAssignmentDto> AssignStaffAsync(Guid showroomId, CreateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default);
+    Task<DailyStaffAssignmentDto?> UpdateAssignmentAsync(Guid assignmentId, UpdateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default);
     Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, bool isOwner = false, CancellationToken ct = default);
     Task<bool> RemoveAssignmentAsync(Guid assignmentId, bool isOwner = false, CancellationToken ct = default);
 

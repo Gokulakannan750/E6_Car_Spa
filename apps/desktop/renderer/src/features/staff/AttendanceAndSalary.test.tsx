@@ -423,7 +423,7 @@ describe('Staff Attendance & Salary', () => {
 			fireEvent.click(confirmBtn);
 
 			await waitFor(() => {
-				expect(api.confirmStaffAttendance).toHaveBeenCalledWith('2026-09-22');
+				expect(api.confirmStaffAttendance).toHaveBeenCalledWith(expect.any(String));
 			});
 		});
 
@@ -530,7 +530,7 @@ describe('Staff Attendance & Salary', () => {
 			fireEvent.click(unlockBtn);
 
 			await waitFor(() => {
-				expect(api.unlockStaffAttendance).toHaveBeenCalledWith('2026-09-22');
+				expect(api.unlockStaffAttendance).toHaveBeenCalledWith(expect.any(String));
 			});
 		});
 

@@ -31,6 +31,14 @@ public static class AuditActions
     public const string AttendanceUnlocked = "ATTENDANCE_UNLOCKED";
     public const string AttendanceCorrected = "ATTENDANCE_CORRECTED";
 
+    public const string ShowroomWorkRecorded = "SHOWROOM_WORK_RECORDED";
+    public const string ShowroomWorkUpdated = "SHOWROOM_WORK_UPDATED";
+    public const string ShowroomWorkDeleted = "SHOWROOM_WORK_DELETED";
+
+    public const string StaffMovementRecorded = "STAFF_MOVEMENT_RECORDED";
+    public const string StaffMovementUpdated = "STAFF_MOVEMENT_UPDATED";
+    public const string StaffMovementDeleted = "STAFF_MOVEMENT_DELETED";
+
     public const string AdvanceCreated = "ADVANCE_CREATED";
     public const string AdvanceSettled = "ADVANCE_SETTLED";
     public const string AdvanceObsoleted = "ADVANCE_OBSOLETED";

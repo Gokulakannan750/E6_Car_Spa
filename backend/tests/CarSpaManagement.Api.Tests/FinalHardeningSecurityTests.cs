@@ -104,6 +104,7 @@ public class FinalHardeningSecurityTests
         public Task<DailyStaffResponse?> GetDailyStaffAsync(Guid showroomId, DateTime date, CancellationToken ct = default) => Task.FromResult<DailyStaffResponse?>(null);
         public Task<DailyStaffAssignmentDto> AssignStaffAsync(Guid showroomId, CreateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<DailyStaffResponse> ConfirmAttendanceAsync(Guid showroomId, DateTime date, Guid userId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<DailyStaffAssignmentDto?> UpdateAssignmentAsync(Guid assignmentId, UpdateDailyStaffAssignmentRequest request, bool isOwner = false, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<DailyStaffAssignmentDto?> UpdateAssignmentVehiclesAsync(Guid assignmentId, int vehiclesAttended, bool isOwner = false, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<bool> RemoveAssignmentAsync(Guid assignmentId, bool isOwner = false, CancellationToken ct = default) => Task.FromResult(true);
         public Task<ShowroomDailyBillDto?> GetDailyBillAsync(Guid showroomId, DateTime date, CancellationToken ct = default) => Task.FromResult<ShowroomDailyBillDto?>(null);

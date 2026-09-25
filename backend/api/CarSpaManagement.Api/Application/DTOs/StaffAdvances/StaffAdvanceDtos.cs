@@ -77,6 +77,7 @@ public record StaffAdvanceHistoryDto(
 
 public record StaffDto(
     Guid Id,
+    string StaffMasterId,
     string Name,
     string PhoneNumber,
     string? Email,
@@ -89,7 +90,10 @@ public record StaffDto(
     bool HasAadhaarDocument = false,
     string? AadhaarDocumentFileName = null,
     string? AadhaarDocumentContentType = null,
-    long? AadhaarDocumentSize = null);
+    long? AadhaarDocumentSize = null,
+    Guid? DefaultShowroomId = null,
+    string? DefaultShowroomMasterId = null,
+    string? DefaultShowroomName = null);
 
 public record StaffAadhaarRevealDto(
     Guid StaffId,

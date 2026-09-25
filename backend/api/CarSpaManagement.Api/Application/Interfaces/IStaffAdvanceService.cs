@@ -23,4 +23,8 @@ public interface IStaffAdvanceService
     Task<(byte[] Bytes, string ContentType, string FileName)?> GetStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
     Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, Microsoft.AspNetCore.Http.IFormFile file, Guid requestingUserId, CancellationToken cancellationToken = default);
     Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
+
+    // Staff Default Showroom management
+    Task<CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto?> GetDefaultShowroomAsync(Guid staffId, CancellationToken cancellationToken = default);
+    Task<CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto> SetDefaultShowroomAsync(Guid staffId, Guid? defaultShowroomId, CancellationToken cancellationToken = default);
 }

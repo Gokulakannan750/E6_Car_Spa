@@ -1006,6 +1006,110 @@ describe('Showrooms & Daily Operations API Client', () => {
       })
     );
   });
+
+  it('calls showroom vehicle types and work types APIs', async () => {
+    const mockVehicleTypes = [
+      { id: 'vt-1', code: 'SEDAN', name: 'Sedan', displayOrder: 1, isActive: true, createdAt: '2026-01-01T00:00:00Z' },
+    ];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockVehicleTypes,
+    });
+
+    const vTypes = await api.getShowroomVehicleTypes(false);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/showroom-vehicle-types'),
+      expect.anything()
+    );
+    expect(vTypes).toHaveLength(1);
+    expect(vTypes[0].code).toBe('SEDAN');
+
+    const mockWorkTypes = [
+      { id: 'wt-1', code: 'BODYWASH', name: 'Body Wash', displayOrder: 1, isActive: true, createdAt: '2026-01-01T00:00:00Z' },
+    ];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockWorkTypes,
+    });
+
+    const wTypes = await api.getShowroomWorkTypes(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/showroom-work-types?includeInactive=true'),
+      expect.anything()
+    );
+    expect(wTypes).toHaveLength(1);
+    expect(wTypes[0].code).toBe('BODYWASH');
+  });
+
+  it('calls showroom operations (vehicle works, work sessions, summary) APIs', async () => {
+    const mockWorks = [
+      {
+        id: 'vw-1',
+        showroomId: 'sr-1',
+        showroomMasterId: 'PO10001',
+        showroomName: 'Popular Hyundai',
+        staffId: 'st-1',
+        staffMasterId: 'GO123L',
+        staffName: 'Gokul',
+        vehicleTypeId: 'vt-1',
+        vehicleTypeCode: 'SEDAN',
+        vehicleTypeName: 'Sedan',
+        vehicleQuantity: 1,
+        date: '2026-09-25T00:00:00Z',
+        serviceItems: [
+          { id: 'item-1', showroomVehicleWorkId: 'vw-1', workTypeId: 'wt-1', workTypeCode: 'BODYWASH', workTypeName: 'Body Wash', quantity: 1, createdAt: '2026-09-25T00:00:00Z' },
+        ],
+        createdAt: '2026-09-25T00:00:00Z',
+      },
+    ];
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockWorks,
+    });
+
+    const works = await api.getShowroomVehicleWorks('sr-1', { date: '2026-09-25' });
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/showrooms/sr-1/vehicle-works?date=2026-09-25'),
+      expect.anything()
+    );
+    expect(works).toHaveLength(1);
+    expect(works[0].vehicleTypeName).toBe('Sedan');
+
+    const mockSummary = {
+      showroomId: 'sr-1',
+      showroomMasterId: 'PO10001',
+      showroomName: 'Popular Hyundai',
+      fromDate: '2026-09-25T00:00:00Z',
+      toDate: '2026-09-25T00:00:00Z',
+      totalVehiclesHandled: 1,
+      totalServicesPerformed: 1,
+      totalActiveStaffSessions: 1,
+      vehicleTypeBreakdown: [{ vehicleTypeId: 'vt-1', vehicleTypeCode: 'SEDAN', vehicleTypeName: 'Sedan', totalVehicles: 1 }],
+      workTypeBreakdown: [{ workTypeId: 'wt-1', workTypeCode: 'BODYWASH', workTypeName: 'Body Wash', totalQuantity: 1 }],
+      staffProductivityBreakdown: [],
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockSummary,
+    });
+
+    const summary = await api.getShowroomOperationsSummary('sr-1', '2026-09-25');
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/showrooms/sr-1/operations-summary?date=2026-09-25'),
+      expect.anything()
+    );
+    expect(summary.totalVehiclesHandled).toBe(1);
+  });
 });
 
 describe('Staff Advances API Client', () => {

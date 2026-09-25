@@ -9,6 +9,7 @@ void main() {
         'name': 'Anna Nagar Hub',
         'address': 'Plot 10, 2nd Avenue, Anna Nagar, Chennai',
         'phone': '9840154321',
+        'gstin': '33AAAAA0000A1Z5',
         'isActive': true,
         'activeStaffCountToday': 4,
         'totalVehiclesToday': 12,
@@ -22,6 +23,7 @@ void main() {
       expect(showroom.name, 'Anna Nagar Hub');
       expect(showroom.address, 'Plot 10, 2nd Avenue, Anna Nagar, Chennai');
       expect(showroom.phone, '9840154321');
+      expect(showroom.gstin, '33AAAAA0000A1Z5');
       expect(showroom.isActive, true);
       expect(showroom.activeStaffCountToday, 4);
       expect(showroom.totalVehiclesToday, 12);
@@ -32,9 +34,23 @@ void main() {
       expect(serialized['name'], showroom.name);
       expect(serialized['address'], showroom.address);
       expect(serialized['phone'], showroom.phone);
+      expect(serialized['gstin'], showroom.gstin);
       expect(serialized['isActive'], showroom.isActive);
       expect(serialized['activeStaffCountToday'], 4);
       expect(serialized['totalVehiclesToday'], 12);
+    });
+
+    test('Showroom.fromJson supports PascalCase Gstin from backend', () {
+      final json = {
+        'Id': 'sr-1',
+        'Name': 'Erode Hub',
+        'Address': 'Brough Road',
+        'Gstin': '33BBBBB1111B2Z6',
+        'IsActive': true,
+      };
+
+      final showroom = Showroom.fromJson(json);
+      expect(showroom.gstin, '33BBBBB1111B2Z6');
     });
 
     test('initials computation handles single-word and multi-word names', () {
@@ -55,11 +71,12 @@ void main() {
       expect(s2.initials, 'EC');
     });
 
-    test('CreateShowroomRequest serializes accurately', () {
+    test('CreateShowroomRequest serializes accurately with optional GSTIN', () {
       const req = CreateShowroomRequest(
         name: 'Tambaram Hub',
         address: 'GST Road, Tambaram',
         phone: '9840112233',
+        gstin: '33aaaaa0000a1z5',
         isActive: true,
       );
 
@@ -67,7 +84,23 @@ void main() {
       expect(json['name'], 'Tambaram Hub');
       expect(json['address'], 'GST Road, Tambaram');
       expect(json['phone'], '9840112233');
+      expect(json['gstin'], '33AAAAA0000A1Z5');
       expect(json['isActive'], true);
+    });
+
+    test('CreateShowroomRequest omits GSTIN when null or empty', () {
+      const reqNull = CreateShowroomRequest(
+        name: 'Tambaram Hub',
+        address: 'GST Road',
+      );
+      expect(reqNull.toJson().containsKey('gstin'), false);
+
+      const reqEmpty = CreateShowroomRequest(
+        name: 'Tambaram Hub',
+        address: 'GST Road',
+        gstin: '   ',
+      );
+      expect(reqEmpty.toJson().containsKey('gstin'), false);
     });
 
     test('UpdateShowroomRequest excludes null fields', () {
@@ -81,6 +114,45 @@ void main() {
       expect(json['isActive'], false);
       expect(json.containsKey('address'), false);
       expect(json.containsKey('phone'), false);
+    });
+
+    test('UpdateShowroomRequest normalizes non-empty GSTIN to uppercase', () {
+      const req = UpdateShowroomRequest(
+        name: 'Tambaram Hub',
+        gstin: '33aaaaa0000a1z5',
+      );
+
+      final json = req.toJson();
+      expect(json['gstin'], '33AAAAA0000A1Z5');
+    });
+
+    test('UpdateShowroomRequest explicitly serializes "gstin": null when empty or cleared', () {
+      // 1. Cleared with empty string
+      const reqEmpty = UpdateShowroomRequest(
+        name: 'Tambaram Hub',
+        gstin: '',
+      );
+      final jsonEmpty = reqEmpty.toJson();
+      expect(jsonEmpty.containsKey('gstin'), true);
+      expect(jsonEmpty['gstin'], isNull);
+
+      // 2. Cleared with whitespace
+      const reqWhitespace = UpdateShowroomRequest(
+        name: 'Tambaram Hub',
+        gstin: '   ',
+      );
+      final jsonWhitespace = reqWhitespace.toJson();
+      expect(jsonWhitespace.containsKey('gstin'), true);
+      expect(jsonWhitespace['gstin'], isNull);
+
+      // 3. Cleared with null
+      const reqNull = UpdateShowroomRequest(
+        name: 'Tambaram Hub',
+        gstin: null,
+      );
+      final jsonNull = reqNull.toJson();
+      expect(jsonNull.containsKey('gstin'), true);
+      expect(jsonNull['gstin'], isNull);
     });
   });
 }

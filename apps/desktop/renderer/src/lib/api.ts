@@ -1010,6 +1010,7 @@ export interface StaffAdvanceDto {
 
 export interface StaffDto {
 	id: string;
+	staffMasterId?: string;
 	name: string;
 	phoneNumber: string;
 	email: string | null;
@@ -1023,6 +1024,9 @@ export interface StaffDto {
 	aadhaarDocumentFileName?: string | null;
 	aadhaarDocumentContentType?: string | null;
 	aadhaarDocumentSize?: number | null;
+	defaultShowroomId?: string | null;
+	defaultShowroomMasterId?: string | null;
+	defaultShowroomName?: string | null;
 }
 
 export interface StaffAadhaarRevealDto {
@@ -1588,9 +1592,11 @@ export async function getHealth() {
 
 export interface ShowroomDto {
 	id: string;
+	masterId: string;
 	name: string;
 	address: string;
 	phone?: string | null;
+	gstin?: string | null;
 	isActive: boolean;
 	activeStaffCountToday: number;
 	totalVehiclesToday: number;
@@ -1602,6 +1608,7 @@ export interface CreateShowroomInput {
 	name: string;
 	address: string;
 	phone?: string | null;
+	gstin?: string | null;
 	isActive?: boolean;
 }
 
@@ -1609,6 +1616,7 @@ export interface UpdateShowroomInput {
 	name?: string;
 	address?: string;
 	phone?: string | null;
+	gstin?: string | null;
 	isActive?: boolean;
 }
 
@@ -1617,12 +1625,24 @@ export interface DailyStaffAssignmentDto {
 	showroomId: string;
 	showroomName: string;
 	staffId: string;
+	staffMasterId?: string;
 	staffName: string;
 	staffPhone: string;
 	staffRole?: string | null;
 	date: string;
 	vehiclesAttended: number;
 	createdAt: string;
+	startTime?: string | null;
+	endTime?: string | null;
+	workingHours?: number | null;
+	workingHoursFormatted?: string | null;
+	status?: string | null;
+	assignmentType?: string | null;
+	homeShowroomId?: string | null;
+	homeShowroomMasterId?: string | null;
+	homeShowroomName?: string | null;
+	transferReason?: string | null;
+	notes?: string | null;
 }
 
 export interface DailyStaffResponse {
@@ -1641,6 +1661,11 @@ export interface CreateDailyStaffAssignmentInput {
 	staffId: string;
 	date: string;
 	vehiclesAttended?: number;
+	startTime?: string;
+	endTime?: string;
+	assignmentType?: string;
+	transferReason?: string;
+	notes?: string;
 }
 
 export async function getShowrooms(params?: { search?: string; isActive?: boolean }) {
@@ -1667,12 +1692,6 @@ export async function updateShowroom(id: string, data: UpdateShowroomInput) {
 		method: 'PUT',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'edit showrooms');
-}
-
-export async function deleteShowroom(id: string) {
-	return request<void>(`/api/showrooms/${encodeURIComponent(id)}`, {
-		method: 'DELETE',
-	}, 'delete showrooms');
 }
 
 export async function toggleShowroomActive(id: string) {
@@ -1707,16 +1726,30 @@ export async function assignDailyStaff(showroomId: string, data: CreateDailyStaf
 	}, 'assign showroom staff');
 }
 
-export async function updateDailyStaffVehicles(assignmentId: string, vehiclesAttended: number) {
+export interface UpdateDailyStaffAssignmentInput {
+	vehiclesAttended?: number;
+	startTime?: string;
+	endTime?: string;
+	status?: string;
+	transferReason?: string | null;
+	notes?: string | null;
+}
+
+export async function updateDailyStaffAssignment(assignmentId: string, data: UpdateDailyStaffAssignmentInput) {
 	return request<DailyStaffAssignmentDto>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
 		method: 'PUT',
-		body: JSON.stringify({ vehiclesAttended }),
+		body: JSON.stringify(data),
 	}, 'update showroom staff attendance');
+}
+
+export async function updateDailyStaffVehicles(assignmentId: string, vehiclesAttended: number) {
+	return updateDailyStaffAssignment(assignmentId, { vehiclesAttended });
 }
 
 export async function removeDailyStaff(assignmentId: string) {
 	return request<void>(`/api/showroom-staff-assignments/${encodeURIComponent(assignmentId)}`, {
 		method: 'DELETE',
+		body: JSON.stringify({}),
 	}, 'remove showroom staff');
 }
 
@@ -1838,6 +1871,8 @@ export interface ShowroomOutstandingOverviewDto {
 	unpaidDaysCount: number;
 }
 
+export type ShowroomOutstandingDto = ShowroomOutstandingOverviewDto;
+
 export async function getShowroomSummary(showroomId: string, fromDate?: string, toDate?: string) {
 	const qs = new URLSearchParams();
 	if (fromDate) qs.set('fromDate', fromDate);
@@ -1852,6 +1887,381 @@ export async function getShowroomsOutstanding(fromDate?: string, toDate?: string
 	if (toDate) qs.set('toDate', toDate);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
 	return request<ShowroomOutstandingOverviewDto[]>('/api/showrooms/outstanding' + suffix, {}, 'view showroom outstanding');
+}
+
+// ============================================================================
+// Showroom Operations (Vehicle Types, Work Types, Sessions, Vehicle Works)
+// ============================================================================
+
+export interface ShowroomVehicleTypeDto {
+	id: string;
+	code: string;
+	name: string;
+	displayOrder: number;
+	isActive: boolean;
+	createdAt: string;
+}
+
+export interface CreateShowroomVehicleTypeRequest {
+	code: string;
+	name: string;
+	displayOrder?: number;
+	isActive?: boolean;
+}
+
+export interface UpdateShowroomVehicleTypeRequest {
+	code?: string;
+	name?: string;
+	displayOrder?: number;
+	isActive?: boolean;
+}
+
+export async function getShowroomVehicleTypes(includeInactive = false) {
+	const qs = includeInactive ? '?includeInactive=true' : '';
+	return request<ShowroomVehicleTypeDto[]>('/api/showroom-vehicle-types' + qs, {}, 'view showroom vehicle types');
+}
+
+export async function getShowroomVehicleTypeById(id: string) {
+	return request<ShowroomVehicleTypeDto>(`/api/showroom-vehicle-types/${encodeURIComponent(id)}`, {}, 'view showroom vehicle types');
+}
+
+export async function createShowroomVehicleType(data: CreateShowroomVehicleTypeRequest) {
+	return request<ShowroomVehicleTypeDto>('/api/showroom-vehicle-types', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'create showroom vehicle type');
+}
+
+export async function updateShowroomVehicleType(id: string, data: UpdateShowroomVehicleTypeRequest) {
+	return request<ShowroomVehicleTypeDto>(`/api/showroom-vehicle-types/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'update showroom vehicle type');
+}
+
+export async function toggleShowroomVehicleTypeActive(id: string) {
+	return request<void>(`/api/showroom-vehicle-types/${encodeURIComponent(id)}/toggle-status`, {
+		method: 'PATCH',
+	}, 'manage showroom vehicle types');
+}
+
+export interface ShowroomWorkTypeDto {
+	id: string;
+	code: string;
+	name: string;
+	description?: string | null;
+	displayOrder: number;
+	isActive: boolean;
+	createdAt: string;
+}
+
+export interface CreateShowroomWorkTypeRequest {
+	code: string;
+	name: string;
+	description?: string | null;
+	displayOrder?: number;
+	isActive?: boolean;
+}
+
+export interface UpdateShowroomWorkTypeRequest {
+	code?: string;
+	name?: string;
+	description?: string | null;
+	displayOrder?: number;
+	isActive?: boolean;
+}
+
+export async function getShowroomWorkTypes(includeInactive = false) {
+	const qs = includeInactive ? '?includeInactive=true' : '';
+	return request<ShowroomWorkTypeDto[]>('/api/showroom-work-types' + qs, {}, 'view showroom work types');
+}
+
+export async function getShowroomWorkTypeById(id: string) {
+	return request<ShowroomWorkTypeDto>(`/api/showroom-work-types/${encodeURIComponent(id)}`, {}, 'view showroom work types');
+}
+
+export async function createShowroomWorkType(data: CreateShowroomWorkTypeRequest) {
+	return request<ShowroomWorkTypeDto>('/api/showroom-work-types', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'create showroom work type');
+}
+
+export async function updateShowroomWorkType(id: string, data: UpdateShowroomWorkTypeRequest) {
+	return request<ShowroomWorkTypeDto>(`/api/showroom-work-types/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'update showroom work type');
+}
+
+export async function toggleShowroomWorkTypeActive(id: string) {
+	return request<void>(`/api/showroom-work-types/${encodeURIComponent(id)}/toggle-status`, {
+		method: 'PATCH',
+	}, 'manage showroom work types');
+}
+
+export type ShowroomStaffSessionType = 'FullDay' | 'MorningHalf' | 'EveningHalf' | 'TransferShift';
+
+export interface ShowroomStaffWorkSessionDto {
+	id: string;
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	staffPhone?: string | null;
+	staffRole?: string | null;
+	homeShowroomId: string;
+	homeShowroomMasterId: string;
+	homeShowroomName: string;
+	workingShowroomId: string;
+	workingShowroomMasterId: string;
+	workingShowroomName: string;
+	date: string;
+	sessionType: ShowroomStaffSessionType;
+	sessionTypeName: string;
+	attendanceStatus: string;
+	attendanceStatusName: string;
+	startTime?: string | null;
+	endTime?: string | null;
+	transferReason?: string | null;
+	notes?: string | null;
+	vehicleWorkCount: number;
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface CreateShowroomStaffWorkSessionRequest {
+	staffId: string;
+	homeShowroomId?: string | null;
+	date: string;
+	sessionType?: ShowroomStaffSessionType;
+	attendanceStatus?: string;
+	startTime?: string | null;
+	endTime?: string | null;
+	transferReason?: string | null;
+	notes?: string | null;
+}
+
+export interface UpdateShowroomStaffWorkSessionRequest {
+	sessionType?: ShowroomStaffSessionType;
+	attendanceStatus?: string;
+	startTime?: string | null;
+	endTime?: string | null;
+	transferReason?: string | null;
+	notes?: string | null;
+}
+
+export async function getShowroomWorkSessions(showroomId: string, params?: { date?: string; staffId?: string }) {
+	const qs = new URLSearchParams();
+	if (params?.date) qs.set('date', params.date);
+	if (params?.staffId) qs.set('staffId', params.staffId);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomStaffWorkSessionDto[]>(`/api/showrooms/${encodeURIComponent(showroomId)}/work-sessions` + suffix, {}, 'view showroom work sessions');
+}
+
+export async function getShowroomWorkSessionById(showroomId: string, sessionId: string) {
+	return request<ShowroomStaffWorkSessionDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/work-sessions/${encodeURIComponent(sessionId)}`, {}, 'view showroom work sessions');
+}
+
+export async function createShowroomWorkSession(showroomId: string, data: CreateShowroomStaffWorkSessionRequest) {
+	return request<ShowroomStaffWorkSessionDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/work-sessions`, {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'create showroom work session');
+}
+
+export async function updateShowroomWorkSession(showroomId: string, sessionId: string, data: UpdateShowroomStaffWorkSessionRequest) {
+	return request<ShowroomStaffWorkSessionDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/work-sessions/${encodeURIComponent(sessionId)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'update showroom work session');
+}
+
+export async function closeShowroomWorkSession(showroomId: string, sessionId: string, data?: { endTime?: string; notes?: string }) {
+	return request<ShowroomStaffWorkSessionDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/work-sessions/${encodeURIComponent(sessionId)}/close`, {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data ?? {})),
+	}, 'close showroom work session');
+}
+
+export interface ShowroomVehicleWorkItemDto {
+	id: string;
+	showroomVehicleWorkId: string;
+	workTypeId: string;
+	workTypeCode: string;
+	workTypeName: string;
+	quantity: number;
+	notes?: string | null;
+	createdAt: string;
+}
+
+export interface ShowroomVehicleWorkItemRequest {
+	workTypeId: string;
+	quantity: number;
+	notes?: string | null;
+}
+
+export interface ShowroomVehicleWorkDto {
+	id: string;
+	showroomId: string;
+	showroomMasterId: string;
+	showroomName: string;
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	showroomStaffWorkSessionId?: string | null;
+	vehicleQuantity: number;
+	date: string;
+	timeRecorded?: string | null;
+	notes?: string | null;
+	serviceItems: ShowroomVehicleWorkItemDto[];
+	createdAt: string;
+	updatedAt?: string | null;
+}
+
+export interface CreateShowroomVehicleWorkRequest {
+	staffId: string;
+	vehicleTypeId: string;
+	showroomStaffWorkSessionId?: string | null;
+	vehicleQuantity: number;
+	date: string;
+	timeRecorded?: string | null;
+	notes?: string | null;
+	serviceItems?: ShowroomVehicleWorkItemRequest[];
+}
+
+export interface UpdateShowroomVehicleWorkRequest {
+	staffId?: string;
+	vehicleTypeId?: string;
+	showroomStaffWorkSessionId?: string | null;
+	vehicleQuantity?: number;
+	date?: string;
+	timeRecorded?: string | null;
+	notes?: string | null;
+	serviceItems?: ShowroomVehicleWorkItemRequest[];
+}
+
+export async function getShowroomVehicleWorks(
+	showroomId: string,
+	params?: { date?: string; staffId?: string; sessionId?: string; vehicleTypeId?: string }
+) {
+	const qs = new URLSearchParams();
+	if (params?.date) qs.set('date', params.date);
+	if (params?.staffId) qs.set('staffId', params.staffId);
+	if (params?.sessionId) qs.set('sessionId', params.sessionId);
+	if (params?.vehicleTypeId) qs.set('vehicleTypeId', params.vehicleTypeId);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomVehicleWorkDto[]>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works` + suffix, {}, 'view showroom vehicle works');
+}
+
+export async function getShowroomVehicleWorkById(showroomId: string, workId: string) {
+	return request<ShowroomVehicleWorkDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works/${encodeURIComponent(workId)}`, {}, 'view showroom vehicle works');
+}
+
+export interface IndividualVehicleWorkEntry {
+	vehicleTypeId: string;
+	workTypeIds: string[];
+	notes?: string | null;
+}
+
+export interface CreateBatchShowroomVehicleWorkRequest {
+	staffId: string;
+	showroomStaffWorkSessionId?: string | null;
+	date: string;
+	timeRecorded?: string | null;
+	notes?: string | null;
+	vehicles: IndividualVehicleWorkEntry[];
+}
+
+export async function createShowroomVehicleWork(showroomId: string, data: CreateShowroomVehicleWorkRequest) {
+	return request<ShowroomVehicleWorkDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works`, {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'log showroom vehicle work');
+}
+
+export async function createBatchShowroomVehicleWork(showroomId: string, data: CreateBatchShowroomVehicleWorkRequest) {
+	return request<ShowroomVehicleWorkDto[]>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works/batch`, {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'log showroom vehicle work batch');
+}
+
+export async function updateShowroomVehicleWork(showroomId: string, workId: string, data: UpdateShowroomVehicleWorkRequest) {
+	return request<ShowroomVehicleWorkDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works/${encodeURIComponent(workId)}`, {
+		method: 'PUT',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'update showroom vehicle work');
+}
+
+export async function deleteShowroomVehicleWork(showroomId: string, workId: string) {
+	return request<void>(`/api/showrooms/${encodeURIComponent(showroomId)}/vehicle-works/${encodeURIComponent(workId)}`, {
+		method: 'DELETE',
+	}, 'delete showroom vehicle work');
+}
+
+export interface VehicleTypeWorkSummaryDto {
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	totalVehicles: number;
+}
+
+export interface WorkTypeWorkSummaryDto {
+	workTypeId: string;
+	workTypeCode: string;
+	workTypeName: string;
+	totalQuantity: number;
+}
+
+export interface StaffWorkSummaryDto {
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	totalSessions: number;
+	totalVehiclesHandled: number;
+	totalServicesPerformed: number;
+}
+
+export interface ShowroomOperationsSummaryDto {
+	showroomId: string;
+	showroomMasterId: string;
+	showroomName: string;
+	fromDate: string;
+	toDate: string;
+	totalVehiclesHandled: number;
+	totalServicesPerformed: number;
+	totalActiveStaffSessions: number;
+	vehicleTypeBreakdown: VehicleTypeWorkSummaryDto[];
+	workTypeBreakdown: WorkTypeWorkSummaryDto[];
+	staffProductivityBreakdown: StaffWorkSummaryDto[];
+}
+
+export async function getShowroomOperationsSummary(showroomId: string, date: string) {
+	const qs = new URLSearchParams({ date });
+	return request<ShowroomOperationsSummaryDto>(`/api/showrooms/${encodeURIComponent(showroomId)}/operations-summary?` + qs.toString(), {}, 'view showroom operations summary');
+}
+
+export interface StaffDefaultShowroomDto {
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	defaultShowroomId?: string | null;
+	defaultShowroomMasterId?: string | null;
+	defaultShowroomName?: string | null;
+}
+
+export async function getStaffDefaultShowroom(staffId: string) {
+	return request<StaffDefaultShowroomDto>(`/api/staff/${encodeURIComponent(staffId)}/default-showroom`, {}, 'view staff default showroom');
+}
+
+export async function setStaffDefaultShowroom(staffId: string, defaultShowroomId?: string | null) {
+	return request<StaffDefaultShowroomDto>(`/api/staff/${encodeURIComponent(staffId)}/default-showroom`, {
+		method: 'PUT',
+		body: JSON.stringify({ defaultShowroomId }),
+	}, 'set staff default showroom');
 }
 
 // ============================================================================

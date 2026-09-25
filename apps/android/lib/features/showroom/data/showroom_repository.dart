@@ -53,13 +53,6 @@ class ShowroomRepository {
     }
   }
 
-  Future<void> deleteShowroom(String id) async {
-    try {
-      await _api.deleteShowroom(id);
-    } on DioException catch (e) {
-      throw ApiException.fromDio(e);
-    }
-  }
 
   Future<void> toggleShowroomActive(String id) async {
     try {

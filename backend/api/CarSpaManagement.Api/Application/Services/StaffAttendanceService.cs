@@ -455,7 +455,8 @@ public class StaffAttendanceService : IStaffAttendanceService
 
         await EnsureAttendanceNotLockedAsync(attDate, isOwner, ct);
 
-        if (!Enum.TryParse<StaffAttendanceStatus>(request.Status, true, out var parsedStatus))
+        if (!Enum.TryParse<StaffAttendanceStatus>(request.Status, true, out var parsedStatus) ||
+            (parsedStatus != StaffAttendanceStatus.Present && parsedStatus != StaffAttendanceStatus.HalfDay && parsedStatus != StaffAttendanceStatus.Leave))
         {
             throw new ValidationException($"Invalid attendance status '{request.Status}'. Valid statuses are: Present, HalfDay, Leave.");
         }

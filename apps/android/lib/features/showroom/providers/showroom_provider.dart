@@ -191,29 +191,6 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
     }
   }
 
-  Future<void> deleteShowroom(String id) async {
-    state = state.copyWith(isMutating: true, clearError: true);
-    try {
-      await _repository.deleteShowroom(id);
-      state = state.copyWith(
-        showrooms: state.showrooms.where((s) => s.id != id).toList(),
-        isMutating: false,
-        clearError: true,
-      );
-    } on ApiException catch (e) {
-      state = state.copyWith(
-        isMutating: false,
-        errorMessage: e.message,
-      );
-      rethrow;
-    } catch (e) {
-      state = state.copyWith(
-        isMutating: false,
-        errorMessage: 'Failed to delete showroom.',
-      );
-      rethrow;
-    }
-  }
 }
 
 final showroomsProvider =

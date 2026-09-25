@@ -234,6 +234,65 @@ void main() {
       expect(find.text('7'), findsWidgets);
     });
 
+    testWidgets('Displays GSTIN in header when present', (tester) async {
+      final showroomWithGstin = sampleShowroom.copyWith(
+        gstin: '33AAAAA0000A1Z5',
+      );
+      final mockRepo = MockShowroomRepository()
+        ..dailyStaffToReturn = DailyStaffResponse(
+          showroomId: 'sr-100',
+          showroomName: 'Anna Nagar Hub',
+          date: DateTime.now(),
+          totalVehiclesAttended: 0,
+          isAttendanceConfirmed: false,
+          staffAssignments: const [],
+        );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authNotifierProvider.overrideWith((ref) => _FakeShowroomAuthNotifier(ownerUser)),
+            showroomRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: ShowroomDetailScreen(showroom: showroomWithGstin),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('GSTIN: 33AAAAA0000A1Z5'), findsOneWidget);
+    });
+
+    testWidgets('Hides GSTIN row completely when gstin is null or empty', (tester) async {
+      final mockRepo = MockShowroomRepository()
+        ..dailyStaffToReturn = DailyStaffResponse(
+          showroomId: 'sr-100',
+          showroomName: 'Anna Nagar Hub',
+          date: DateTime.now(),
+          totalVehiclesAttended: 0,
+          isAttendanceConfirmed: false,
+          staffAssignments: const [],
+        );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authNotifierProvider.overrideWith((ref) => _FakeShowroomAuthNotifier(ownerUser)),
+            showroomRepositoryProvider.overrideWithValue(mockRepo),
+          ],
+          child: MaterialApp(
+            home: ShowroomDetailScreen(showroom: sampleShowroom),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('GSTIN:'), findsNothing);
+    });
+
     testWidgets('Confirm attendance flow prompts dialog and confirms successfully', (tester) async {
       final mockRepo = MockShowroomRepository()
         ..dailyStaffToReturn = DailyStaffResponse(

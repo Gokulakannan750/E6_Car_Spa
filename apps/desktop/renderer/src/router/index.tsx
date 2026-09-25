@@ -19,6 +19,9 @@ const loadAttendance = () => import('../features/staff/AttendancePage');
 const loadSalary = () => import('../features/staff/SalaryPage');
 const loadReports = () => import('../features/reports/ReportsPage');
 const loadShowroom = () => import('../features/showroom/ShowroomPage');
+const loadShowroomAttendance = () => import('../features/showroom/ShowroomAttendancePage');
+const loadShowroomBill = () => import('../features/showroom/ShowroomBillPage');
+const loadShowroomOperations = () => import('../features/showroom/ShowroomOperationsPage');
 const loadSettings = () => import('../features/settings/SettingsPage');
 const loadWhatsAppSettings = () => import('../features/settings/WhatsAppSettingsPage');
 const loadSystemPreferences = () => import('../features/settings/SystemPreferencesPage');
@@ -163,16 +166,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/payments',
-				lazy: async () => {
-					const m = await loadInvoices();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="invoices.view">
-								<m.Invoices />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/invoices" replace />,
 			},
 			{
 				path: '/catalogue',
@@ -286,6 +280,49 @@ export const router = createBrowserRouter([
 						Component: () => (
 							<RouteGuard requiredPermission="showroom.view">
 								<m.ShowroomPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/showroom/attendance',
+				lazy: async () => {
+					const m = await loadShowroomAttendance();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="showroom.view">
+								<m.ShowroomAttendancePage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/showroom/bill',
+				lazy: async () => {
+					const m = await loadShowroomBill();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="showroom.view">
+								<m.ShowroomBillPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/showroom/billing',
+				element: <Navigate to="/showroom/bill" replace />,
+			},
+			{
+				path: '/showroom/operations',
+				lazy: async () => {
+					const m = await loadShowroomOperations();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="showroom.view">
+								<m.ShowroomOperationsPage />
 							</RouteGuard>
 						),
 					};

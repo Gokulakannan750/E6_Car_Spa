@@ -1,4 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using CarSpaManagement.Api.Application.Common;
+using CarSpaManagement.Api.Domain.Entities;
+using CarSpaManagement.Api.Domain.Enums;
+using CarSpaManagement.Api.Infrastructure.Database;
+using Microsoft.EntityFrameworkCore;
+using ValidationException = CarSpaManagement.Api.Application.Common.ValidationException;
 
 namespace CarSpaManagement.Api.Application.DTOs.StaffAttendance;
 
@@ -151,4 +157,76 @@ public static class AttendanceTimeHelper
         }
         return (null, null);
     }
+
+    public static (string StartTime, string EndTime) ResolveSessionTimes(ShowroomStaffSessionType sessionType, string? startTime, string? endTime)
+    {
+        var s = !string.IsNullOrWhiteSpace(startTime)
+            ? startTime.Trim()
+            : sessionType switch
+            {
+                ShowroomStaffSessionType.Morning => "09:00",
+                ShowroomStaffSessionType.Afternoon => "14:00",
+                ShowroomStaffSessionType.Evening => "18:00",
+                _ => "09:00"
+            };
+
+        var e = !string.IsNullOrWhiteSpace(endTime)
+            ? endTime.Trim()
+            : sessionType switch
+            {
+                ShowroomStaffSessionType.Morning => "13:00",
+                ShowroomStaffSessionType.Afternoon => "18:00",
+                ShowroomStaffSessionType.Evening => "21:00",
+                _ => "18:00"
+            };
+
+        return (s, e);
+    }
+
+    public static async Task ValidateNoSessionOverlapAsync(
+        AppDbContext db,
+        Guid staffId,
+        string staffName,
+        DateTime date,
+        string startTime,
+        string endTime,
+        Guid? excludeSessionId = null,
+        CancellationToken ct = default)
+    {
+        var targetDate = ShowroomDateHelper.ToUtcDate(date);
+
+        if (!TimeSpan.TryParse(startTime, out var inTime) || !TimeSpan.TryParse(endTime, out var outTime))
+        {
+            throw new ValidationException("Start Time and End Time must be in valid 24-hour format (HH:mm).");
+        }
+
+        if (outTime <= inTime)
+        {
+            throw new ValidationException("End Time must be later than Start Time.");
+        }
+
+        var existingSessions = await db.ShowroomStaffWorkSessions
+            .AsNoTracking()
+            .Include(s => s.WorkingShowroom)
+            .Where(s => s.StaffId == staffId
+                     && s.Date == targetDate
+                     && !s.IsDeleted
+                     && (excludeSessionId == null || s.Id != excludeSessionId.Value))
+            .ToListAsync(ct);
+
+        foreach (var s in existingSessions)
+        {
+            var (existStartStr, existEndStr) = ResolveSessionTimes(s.SessionType, s.StartTime, s.EndTime);
+            if (TimeSpan.TryParse(existStartStr, out var existIn) && TimeSpan.TryParse(existEndStr, out var existOut))
+            {
+                // Overlap exists if inTime < existOut && existIn < outTime
+                if (inTime < existOut && existIn < outTime)
+                {
+                    var existingShowroomName = s.WorkingShowroom?.Name ?? "another showroom";
+                    throw new ValidationException($"Staff member '{staffName}' already has an active assignment at '{existingShowroomName}' from {existStartStr} to {existEndStr} on {targetDate:dd-MMM-yyyy}. Overlapping assignments are not allowed.");
+                }
+            }
+        }
+    }
 }
+

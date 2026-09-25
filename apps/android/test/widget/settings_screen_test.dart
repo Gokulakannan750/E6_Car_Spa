@@ -5,7 +5,7 @@ import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_state.dart';
 import 'package:e6_car_spa/features/settings/models/business_profile_model.dart';
-import 'package:e6_car_spa/features/settings/presentation/pages/settings_screen.dart';
+import 'package:e6_car_spa/features/settings/presentation/pages/company_settings_screen.dart';
 import 'package:e6_car_spa/features/settings/presentation/widgets/business_logo_card.dart';
 import 'package:e6_car_spa/features/settings/presentation/widgets/business_info_card.dart';
 import 'package:e6_car_spa/features/settings/presentation/widgets/address_info_card.dart';
@@ -103,12 +103,12 @@ void main() {
         ),
       ],
       child: const MaterialApp(
-        home: SettingsScreen(),
+        home: CompanySettingsScreen(),
       ),
     );
   }
 
-  group('SettingsScreen Widget Tests', () {
+  group('CompanySettingsScreen Widget Tests', () {
     testWidgets('Renders restricted access message when user lacks settings.view',
         (tester) async {
       await tester.pumpWidget(createTestWidget(user: unauthorizedUser));

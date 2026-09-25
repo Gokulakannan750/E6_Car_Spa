@@ -451,6 +451,28 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
                         ],
                       ),
                     ],
+                    if (_currentShowroom.gstin != null &&
+                        _currentShowroom.gstin!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.receipt_outlined,
+                            size: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'GSTIN: ${_currentShowroom.gstin!}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

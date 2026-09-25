@@ -118,10 +118,10 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			expect(screen.getByText('Job Cards')).toBeInTheDocument();
 			expect(screen.getByText('Invoices')).toBeInTheDocument();
 			expect(screen.getByText('Catalogue')).toBeInTheDocument();
-			expect(screen.getByText('Payments')).toBeInTheDocument();
 			expect(screen.getByText('Audit Trail')).toBeInTheDocument();
 
 			// Unrelated modules must NOT be present
+			expect(screen.queryByText('Payments')).not.toBeInTheDocument();
 			expect(screen.queryByText('Staff Advances')).not.toBeInTheDocument();
 			expect(screen.queryByText('Showrooms')).not.toBeInTheDocument();
 			expect(screen.queryByText('Business Reports')).not.toBeInTheDocument();
@@ -177,9 +177,9 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 
 			expect(screen.getByText('Suite Home')).toBeInTheDocument();
 			expect(screen.getByText('Showrooms')).toBeInTheDocument();
-			expect(screen.getByText('Staff Requests')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Attendance')).toBeInTheDocument();
-			expect(screen.getByText('Showroom Billing')).toBeInTheDocument();
+			expect(screen.getByText('Showroom Operations')).toBeInTheDocument();
+			expect(screen.getByText('Showroom Bill')).toBeInTheDocument();
 			expect(screen.getByText('Audit Trail')).toBeInTheDocument();
 
 			expect(screen.queryByText('Customers')).not.toBeInTheDocument();

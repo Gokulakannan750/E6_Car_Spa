@@ -372,6 +372,7 @@ public class StaffAdvanceService : IStaffAdvanceService
     public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
     {
         var staffList = await _db.Staff
+            .Include(s => s.DefaultShowroom)
             .Where(s => !s.IsDeleted)
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
@@ -396,7 +397,9 @@ public class StaffAdvanceService : IStaffAdvanceService
 
     public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
-        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        var staff = await _db.Staff
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
         if (staff is null) return null;
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
@@ -411,10 +414,14 @@ public class StaffAdvanceService : IStaffAdvanceService
         var normalizedAadhaar = NormalizeAndValidateAadhaar(request.AadhaarNumber, isRequired: true);
         var encryptedAadhaar = _encryptionService.Encrypt(normalizedAadhaar);
 
+        var trimmedName = request.Name.Trim();
+        var staffMasterId = await GenerateStaffMasterIdAsync(trimmedName, cancellationToken);
+
         var staff = new Staff
         {
             Id = Guid.NewGuid(),
-            Name = request.Name.Trim(),
+            StaffMasterId = staffMasterId,
+            Name = trimmedName,
             PhoneNumber = request.PhoneNumber.Trim(),
             Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
             Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim(),
@@ -474,7 +481,9 @@ public class StaffAdvanceService : IStaffAdvanceService
 
     public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
     {
-        var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+        var staff = await _db.Staff
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
         if (staff is null) return null;
 
         if (request.Name is not null) staff.Name = request.Name.Trim();
@@ -732,6 +741,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         return new StaffDto(
             Id: s.Id,
+            StaffMasterId: s.StaffMasterId,
             Name: s.Name,
             PhoneNumber: s.PhoneNumber,
             Email: s.Email,
@@ -744,8 +754,131 @@ public class StaffAdvanceService : IStaffAdvanceService
             HasAadhaarDocument: !string.IsNullOrWhiteSpace(s.AadhaarDocumentPath),
             AadhaarDocumentFileName: s.AadhaarDocumentFileName,
             AadhaarDocumentContentType: s.AadhaarDocumentContentType,
-            AadhaarDocumentSize: s.AadhaarDocumentSize
+            AadhaarDocumentSize: s.AadhaarDocumentSize,
+            DefaultShowroomId: s.DefaultShowroomId,
+            DefaultShowroomMasterId: s.DefaultShowroom?.MasterId,
+            DefaultShowroomName: s.DefaultShowroom?.Name
         );
+    }
+
+    public async Task<CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto?> GetDefaultShowroomAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff
+            .AsNoTracking()
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+
+        if (staff == null) return null;
+
+        return new CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto(
+            staff.Id,
+            staff.StaffMasterId,
+            staff.Name,
+            staff.DefaultShowroomId,
+            staff.DefaultShowroom?.MasterId,
+            staff.DefaultShowroom?.Name);
+    }
+
+    public async Task<CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto> SetDefaultShowroomAsync(Guid staffId, Guid? defaultShowroomId, CancellationToken cancellationToken = default)
+    {
+        var staff = await _db.Staff
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
+
+        if (staff == null)
+        {
+            throw new KeyNotFoundException($"Staff member with ID '{staffId}' was not found.");
+        }
+
+        Showroom? showroom = null;
+        if (defaultShowroomId.HasValue)
+        {
+            showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == defaultShowroomId.Value, cancellationToken);
+            if (showroom == null)
+            {
+                throw new KeyNotFoundException($"Showroom with ID '{defaultShowroomId.Value}' was not found.");
+            }
+        }
+
+        staff.DefaultShowroomId = defaultShowroomId;
+        staff.DefaultShowroom = showroom;
+        staff.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "staff.set_default_showroom",
+            module: "Staff",
+            description: showroom != null
+                ? $"Default showroom for staff '{staff.Name}' ({staff.StaffMasterId}) set to '{showroom.Name}' ({showroom.MasterId})."
+                : $"Default showroom for staff '{staff.Name}' ({staff.StaffMasterId}) cleared.",
+            entityType: "Staff",
+            entityId: staff.Id,
+            entityReference: staff.StaffMasterId,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        return new CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto(
+            staff.Id,
+            staff.StaffMasterId,
+            staff.Name,
+            staff.DefaultShowroomId,
+            showroom?.MasterId,
+            showroom?.Name);
+    }
+
+    /// <summary>
+    /// Derives the 2-character prefix and 1-character suffix for Staff Master ID generation from a name.
+    /// </summary>
+    public static (string Prefix, string Suffix) DerivePrefixAndSuffix(string name)
+    {
+        var alphaChars = new string((name ?? string.Empty).Where(char.IsLetter).ToArray()).ToUpperInvariant();
+
+        string prefix;
+        if (alphaChars.Length >= 2)
+            prefix = alphaChars[..2];
+        else if (alphaChars.Length == 1)
+            prefix = alphaChars + "X";
+        else
+            prefix = "XX";
+
+        string suffix;
+        if (alphaChars.Length >= 1)
+            suffix = alphaChars[^1].ToString();
+        else
+            suffix = "X";
+
+        return (prefix, suffix);
+    }
+
+    /// <summary>
+    /// Generates a unique 6-character Staff Master ID in the format [A-Z]{2}[0-9]{3}[A-Z].
+    /// Characters 1-2: First two alphabetic characters of the name (uppercase).
+    /// Characters 3-5: Three-digit unique sequence (001-999).
+    /// Character 6: Last alphabetic character of the name (uppercase).
+    /// </summary>
+    private async Task<string> GenerateStaffMasterIdAsync(string name, CancellationToken ct)
+    {
+        var (prefix, suffix) = DerivePrefixAndSuffix(name);
+
+        // Query existing IDs that match this prefix+suffix pattern
+        var existing = await _db.Staff
+            .IgnoreQueryFilters()
+            .Where(s => s.StaffMasterId.StartsWith(prefix) && s.StaffMasterId.EndsWith(suffix) && s.StaffMasterId.Length == 6)
+            .Select(s => s.StaffMasterId)
+            .ToListAsync(ct);
+
+        var existingSet = new HashSet<string>(existing, StringComparer.OrdinalIgnoreCase);
+
+        for (var seq = 1; seq <= 999; seq++)
+        {
+            var candidate = $"{prefix}{seq:D3}{suffix}";
+            if (!existingSet.Contains(candidate))
+                return candidate;
+        }
+
+        throw new InvalidOperationException(
+            $"All 999 Staff Master IDs for pattern '{prefix}####{suffix}' are exhausted.");
     }
 
     private static string NormalizeAndValidateAadhaar(string? rawAadhaar, bool isRequired)

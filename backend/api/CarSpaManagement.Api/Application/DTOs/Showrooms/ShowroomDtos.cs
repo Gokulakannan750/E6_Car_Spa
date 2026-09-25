@@ -11,7 +11,9 @@ public record ShowroomDto(
     int ActiveStaffCountToday,
     int TotalVehiclesToday,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    string? Gstin = null,
+    string MasterId = "");
 
 public record CreateShowroomRequest
 {
@@ -23,6 +25,9 @@ public record CreateShowroomRequest
 
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)]
     public string? Phone { get; init; }
+
+    [MaxLength(15)]
+    public string? Gstin { get; init; }
 
     public bool IsActive { get; init; } = true;
 }
@@ -38,6 +43,9 @@ public record UpdateShowroomRequest
     [RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)]
     public string? Phone { get; init; }
 
+    [MaxLength(15)]
+    public string? Gstin { get; init; }
+
     public bool? IsActive { get; init; }
 }
 
@@ -46,12 +54,24 @@ public record DailyStaffAssignmentDto(
     Guid ShowroomId,
     string ShowroomName,
     Guid StaffId,
+    string StaffMasterId,
     string StaffName,
     string StaffPhone,
     string? StaffRole,
     DateTime Date,
     int VehiclesAttended,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? StartTime = null,
+    string? EndTime = null,
+    double? WorkingHours = null,
+    string? WorkingHoursFormatted = null,
+    string? Status = "Present",
+    string? AssignmentType = "Regular",
+    Guid? HomeShowroomId = null,
+    string? HomeShowroomMasterId = null,
+    string? HomeShowroomName = null,
+    string? TransferReason = null,
+    string? Notes = null);
 
 public record DailyStaffResponse(
     Guid ShowroomId,
@@ -74,12 +94,40 @@ public record CreateDailyStaffAssignmentRequest
 
     [Range(0, 99999)]
     public int VehiclesAttended { get; init; } = 0;
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "StartTime must be in 24-hour format HH:mm.")]
+    public string? StartTime { get; init; }
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "EndTime must be in 24-hour format HH:mm.")]
+    public string? EndTime { get; init; }
+
+    public string? AssignmentType { get; init; }
+
+    [MaxLength(255)]
+    public string? TransferReason { get; init; }
+
+    [MaxLength(500)]
+    public string? Notes { get; init; }
 }
 
 public record UpdateDailyStaffAssignmentRequest
 {
     [Range(0, 99999)]
-    public int VehiclesAttended { get; init; }
+    public int? VehiclesAttended { get; init; }
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "StartTime must be in 24-hour format HH:mm.")]
+    public string? StartTime { get; init; }
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "EndTime must be in 24-hour format HH:mm.")]
+    public string? EndTime { get; init; }
+
+    public string? Status { get; init; }
+
+    [MaxLength(255)]
+    public string? TransferReason { get; init; }
+
+    [MaxLength(500)]
+    public string? Notes { get; init; }
 }
 
 public record ShowroomPaymentDto(

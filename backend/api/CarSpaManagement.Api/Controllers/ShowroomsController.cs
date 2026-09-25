@@ -50,26 +50,31 @@ public class ShowroomsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Address))
             return BadRequest(new { message = "Showroom address is required." });
 
-        var created = await _service.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        try
+        {
+            var created = await _service.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
     [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShowroomRequest request, CancellationToken ct)
     {
-        var updated = await _service.UpdateAsync(id, request, ct);
-        if (updated == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
-        return Ok(updated);
-    }
-
-    [HttpDelete("{id:guid}")]
-    [RequirePermission("showroom.manage")]
-    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
-    {
-        var deleted = await _service.DeleteAsync(id, ct);
-        if (!deleted) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
-        return NoContent();
+        try
+        {
+            var updated = await _service.UpdateAsync(id, request, ct);
+            if (updated == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPatch("{id:guid}/toggle-active")]
@@ -125,6 +130,10 @@ public class ShowroomsController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (CarSpaManagement.Api.Application.Common.ForbiddenException ex)
         {

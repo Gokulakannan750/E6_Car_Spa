@@ -312,4 +312,32 @@ public class StaffAdvancesController : ControllerBase
         if (!deleted) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return NoContent();
     }
+
+    // ── Staff Default Showroom Endpoints ────────────────────────────────────
+
+    [HttpGet("staff/{staffId:guid}/default-showroom")]
+    [HttpGet("/api/staff/{staffId:guid}/default-showroom")]
+    [RequirePermission("staff.view")]
+    public async Task<IActionResult> GetDefaultShowroom(Guid staffId, CancellationToken ct)
+    {
+        var result = await _service.GetDefaultShowroomAsync(staffId, ct);
+        if (result == null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
+        return Ok(result);
+    }
+
+    [HttpPut("staff/{staffId:guid}/default-showroom")]
+    [HttpPut("/api/staff/{staffId:guid}/default-showroom")]
+    [RequirePermission("staff.edit")]
+    public async Task<IActionResult> SetDefaultShowroom(Guid staffId, [FromBody] CarSpaManagement.Api.Application.DTOs.Showrooms.SetStaffDefaultShowroomRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _service.SetDefaultShowroomAsync(staffId, request.DefaultShowroomId, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

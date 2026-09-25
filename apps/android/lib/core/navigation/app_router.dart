@@ -28,6 +28,8 @@ import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
 import '../../features/staff/presentation/pages/staff_screen.dart';
 import '../../features/staffadvances/presentation/pages/staff_advances_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
+import '../../features/settings/presentation/pages/company_settings_screen.dart';
+import '../../features/settings/presentation/pages/system_preferences_screen.dart';
 import '../../features/users/presentation/pages/users_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
@@ -279,9 +281,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
             routes: [
               GoRoute(
+                path: 'company',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: CompanySettingsScreen(),
+                ),
+              ),
+              GoRoute(
                 path: 'users',
                 pageBuilder: (context, state) => const NoTransitionPage(
                   child: UsersScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'preferences',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: SystemPreferencesScreen(),
                 ),
               ),
             ],

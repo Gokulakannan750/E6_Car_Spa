@@ -30,7 +30,9 @@ class AppRoutes {
   static const String staffAdvancesReport = '/reports/staff-advances';
   static const String showroom = '/showroom';
   static const String settings = '/settings';
+  static const String companySettings = '/settings/company';
   static const String users = '/settings/users';
+  static const String systemPreferences = '/settings/preferences';
 
   static const List<BottomNavigationBarItem> bottomNavItems = [
     BottomNavigationBarItem(
