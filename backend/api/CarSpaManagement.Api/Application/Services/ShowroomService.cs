@@ -940,7 +940,7 @@ public class ShowroomService : IShowroomService
         }
 
         await _db.SaveChangesAsync(ct);
-        return ToBillDto(bill, showroom.Name);
+        return (await GetDailyBillAsync(showroomId, targetDate, ct))!;
     }
 
     public async Task<ShowroomDailyBillDto> RecordPaymentAsync(Guid showroomId, DateTime date, RecordShowroomPaymentRequest request, CancellationToken ct = default)
@@ -973,6 +973,7 @@ public class ShowroomService : IShowroomService
         var payment = new ShowroomPayment
         {
             ShowroomDailyBillId = bill.Id,
+            ShowroomDailyBill = bill,
             Amount = request.Amount,
             PaymentMethod = ParsePaymentMethod(request.PaymentMethod),
             Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
@@ -980,6 +981,7 @@ public class ShowroomService : IShowroomService
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
         };
 
+        bill.Payments.Add(payment);
         _db.ShowroomPayments.Add(payment);
         bill.UpdatedAt = DateTime.UtcNow;
 
@@ -995,7 +997,7 @@ public class ShowroomService : IShowroomService
             outcome: "Success",
             cancellationToken: ct);
 
-        return ToBillDto(bill, showroom.Name);
+        return (await GetDailyBillAsync(showroomId, targetDate, ct))!;
     }
 
     public async Task<bool> DeletePaymentAsync(Guid paymentId, CancellationToken ct = default)

@@ -1871,6 +1871,8 @@ export interface ShowroomOutstandingOverviewDto {
 	unpaidDaysCount: number;
 }
 
+export type ShowroomOutstandingDto = ShowroomOutstandingOverviewDto;
+
 export async function getShowroomSummary(showroomId: string, fromDate?: string, toDate?: string) {
 	const qs = new URLSearchParams();
 	if (fromDate) qs.set('fromDate', fromDate);

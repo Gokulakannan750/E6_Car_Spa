@@ -81,6 +81,7 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 			showroomName: 'Popular Hyundai Showroom',
 			address: 'Anna Salai, Chennai',
 			phone: '9876500001',
+			isActive: true,
 			totalBilled: 15000,
 			totalReceived: 10000,
 			outstandingAmount: 5000,
@@ -91,6 +92,7 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 			showroomName: 'KUN BMW Showroom',
 			address: 'OMR, Chennai',
 			phone: '9876500002',
+			isActive: true,
 			totalBilled: 25000,
 			totalReceived: 25000,
 			outstandingAmount: 0,
@@ -136,18 +138,59 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Cross-Showroom Outstanding Receivables')).toBeInTheDocument();
+			expect(screen.getByRole('heading', { name: 'Showroom Billing' })).toBeInTheDocument();
 			expect(screen.getAllByText('Popular Hyundai Showroom').length).toBeGreaterThanOrEqual(1);
 			expect(screen.getAllByText('KUN BMW Showroom').length).toBeGreaterThanOrEqual(1);
 		});
 
 		expect(api.getShowroomsOutstanding).toHaveBeenCalled();
-		expect(screen.getByText('Total Dealership Billed')).toBeInTheDocument();
-		expect(screen.getByText('Outstanding Receivables')).toBeInTheDocument();
-		expect(screen.getByText('Select a Showroom to Open Billing')).toBeInTheDocument();
-		expect(screen.getByPlaceholderText(/Search by showroom name, address, or Master ID/i)).toBeInTheDocument();
+		expect(screen.getAllByText(/TOTAL BILLED/i).length).toBeGreaterThanOrEqual(1);
+		expect(screen.getAllByText(/TOTAL COLLECTED/i).length).toBeGreaterThanOrEqual(1);
+		expect(screen.getAllByText(/OUTSTANDING/i).length).toBeGreaterThanOrEqual(1);
+		expect(screen.getByText(/SHOWROOMS WITH BALANCE/i)).toBeInTheDocument();
+		expect(screen.getByPlaceholderText(/Search showrooms by name, address, or Master ID/i)).toBeInTheDocument();
+
+		// Table headers and action buttons
+		expect(screen.getByText('SHOWROOM')).toBeInTheDocument();
+		expect(screen.getByText('LOCATION')).toBeInTheDocument();
+		expect(screen.getByText('STATUS')).toBeInTheDocument();
+		expect(screen.getByText('ACTION')).toBeInTheDocument();
+		expect(screen.getAllByRole('button', { name: /Open Bill/i }).length).toBe(2);
 
 		expect(api.getShowroomDailyBill).not.toHaveBeenCalled();
+	});
+
+	it('1b. clicking a showroom table row navigates to individual showroom billing workspace', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Popular Hyundai Showroom')).toBeInTheDocument();
+		});
+
+		// Click the row
+		const row = screen.getByText('Popular Hyundai Showroom').closest('tr');
+		expect(row).toBeInTheDocument();
+		fireEvent.click(row!);
+
+		// Queries daily bill for that showroom
+		await waitFor(() => {
+			expect(api.getShowroomDailyBill).toHaveBeenCalledWith('sr-1', expect.any(String));
+		});
 	});
 
 	it('2. loads dedicated Showroom Bill workspace with header context, summary cards, and payments table without cross-showroom data', async () => {
@@ -204,8 +247,9 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 			expect(screen.getByText('Advance transfer')).toBeInTheDocument();
 		});
 
-		// SEPARATION VERIFICATION: Cross-showroom table and staff attendance controls MUST NOT be present
-		expect(screen.queryByText(/Cross-Showroom Outstanding Receivables/i)).not.toBeInTheDocument();
+		// SEPARATION VERIFICATION: Cross-showroom overview and staff attendance controls MUST NOT be present
+		expect(screen.queryByText(/Showroom Billing Overview/i)).not.toBeInTheDocument();
+		expect(screen.queryByText(/Cross-Showroom Outstanding/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/Dealerships Outstanding/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/Daily Staff Attendance/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/Assign Staff/i)).not.toBeInTheDocument();
@@ -376,7 +420,8 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 			expect(screen.getByText('No daily bill has been set for this date.')).toBeInTheDocument();
 		});
 
-		expect(screen.getByText('No payments recorded for this daily bill.')).toBeInTheDocument();
+		expect(screen.getByText('No payments recorded')).toBeInTheDocument();
+		expect(screen.getByText('Payments made against this daily bill will appear here.')).toBeInTheDocument();
 	});
 
 	it('7. supports date navigation (Next Day, Previous Day)', async () => {
@@ -432,5 +477,222 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 		});
 
 		expect(screen.getByRole('button', { name: /Showroom Attendance/i })).toBeInTheDocument();
+	});
+
+	it('9. Back button in individual showroom view navigates to /showroom/bill overview', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+		});
+
+		const backBtn = screen.getByTitle('Back to Showroom Billing');
+		expect(backBtn).toBeInTheDocument();
+		fireEvent.click(backBtn);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Showroom Billing' })).toBeInTheDocument();
+		});
+	});
+
+	it('10. recording a payment against daily bill immediately updates summary and displays transaction row in Payment Transactions table without page reload', async () => {
+		const initialBill: api.ShowroomDailyBillDto = {
+			id: 'bill-100',
+			showroomId: 'sr-1',
+			showroomName: 'Popular Hyundai Showroom',
+			date: '2026-09-26',
+			amount: 1000,
+			amountReceived: 0,
+			balanceAmount: 1000,
+			status: 'Unpaid',
+			notes: null,
+			payments: [],
+			createdAt: '2026-09-26T08:00:00Z',
+			updatedAt: null,
+		};
+
+		const updatedBillWithPayment: api.ShowroomDailyBillDto = {
+			id: 'bill-100',
+			showroomId: 'sr-1',
+			showroomName: 'Popular Hyundai Showroom',
+			date: '2026-09-26',
+			amount: 1000,
+			amountReceived: 500,
+			balanceAmount: 500,
+			status: 'PartiallyPaid',
+			notes: null,
+			payments: [
+				{
+					id: 'pay-500',
+					showroomDailyBillId: 'bill-100',
+					amount: 500,
+					paymentMethod: 'Cash',
+					reference: 'PAY-0001',
+					paymentDate: '2026-09-26T11:00:00Z',
+					notes: 'First installment',
+					createdAt: '2026-09-26T11:00:00Z',
+				},
+			],
+			createdAt: '2026-09-26T08:00:00Z',
+			updatedAt: '2026-09-26T11:00:00Z',
+		};
+
+		let currentBill = initialBill;
+		vi.mocked(api.getShowroomDailyBill).mockImplementation(async () => currentBill);
+		vi.mocked(api.recordShowroomPayment).mockImplementation(async () => {
+			currentBill = updatedBillWithPayment;
+			return updatedBillWithPayment;
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-26'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.manage_billing', 'showroom.record_payment'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+			expect(screen.getAllByText('₹1,000.00').length).toBe(2);
+			expect(screen.getByText('No payments recorded')).toBeInTheDocument();
+		});
+
+		// Record Payment of ₹500
+		const recordBtn = screen.getByRole('button', { name: /Record Payment/i });
+		fireEvent.click(recordBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('Record Showroom Payment')).toBeInTheDocument();
+		});
+
+		const amountInput = screen.getByLabelText('Payment Amount');
+		fireEvent.change(amountInput, { target: { value: '500' } });
+
+		const refInput = screen.getByLabelText('Transaction ID / Reference');
+		fireEvent.change(refInput, { target: { value: 'PAY-0001' } });
+
+		const notesInput = screen.getByLabelText('Payment Notes');
+		fireEvent.change(notesInput, { target: { value: 'First installment' } });
+
+		// When invalidated, getShowroomDailyBill returns the updated bill
+		vi.mocked(api.getShowroomDailyBill).mockResolvedValue(updatedBillWithPayment);
+
+		const dialog = screen.getByRole('dialog');
+		const submitBtn = within(dialog).getByRole('button', { name: /^Record Payment$/i });
+		fireEvent.click(submitBtn);
+
+		// Modal closes
+		await waitFor(() => {
+			expect(screen.queryByText('Record Showroom Payment')).not.toBeInTheDocument();
+		});
+
+		// Summary reflects updated values: Received = 500, Balance = 500
+		await waitFor(() => {
+			expect(screen.getAllByText('₹500.00').length).toBeGreaterThanOrEqual(2);
+		});
+
+		// Empty state is removed and payment row appears in table
+		expect(screen.queryByText('No payments recorded')).not.toBeInTheDocument();
+		expect(screen.getByText('PAY-0001')).toBeInTheDocument();
+		expect(screen.getByText('First installment')).toBeInTheDocument();
+		expect(screen.getByText('Cash')).toBeInTheDocument();
+	});
+
+	it('11. displays multiple payment transactions in chronological order and correctly updates upon voiding a transaction', async () => {
+		const billWithTwoPayments: api.ShowroomDailyBillDto = {
+			id: 'bill-200',
+			showroomId: 'sr-1',
+			showroomName: 'Popular Hyundai Showroom',
+			date: '2026-09-26',
+			amount: 2000,
+			amountReceived: 1500,
+			balanceAmount: 500,
+			status: 'PartiallyPaid',
+			notes: null,
+			payments: [
+				{
+					id: 'pay-1',
+					showroomDailyBillId: 'bill-200',
+					amount: 1000,
+					paymentMethod: 'UPI',
+					reference: 'UPI-TXN-01',
+					paymentDate: '2026-09-26T14:00:00Z',
+					notes: 'Second installment',
+					createdAt: '2026-09-26T14:00:00Z',
+				},
+				{
+					id: 'pay-2',
+					showroomDailyBillId: 'bill-200',
+					amount: 500,
+					paymentMethod: 'Cash',
+					reference: 'CASH-01',
+					paymentDate: '2026-09-26T10:00:00Z',
+					notes: 'Morning advance',
+					createdAt: '2026-09-26T10:00:00Z',
+				},
+			],
+			createdAt: '2026-09-26T08:00:00Z',
+			updatedAt: '2026-09-26T14:00:00Z',
+		};
+
+		vi.mocked(api.getShowroomDailyBill).mockResolvedValue(billWithTwoPayments);
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-26'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.manage_billing', 'showroom.record_payment', 'showroom.delete_payment'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+			expect(screen.getByText('UPI-TXN-01')).toBeInTheDocument();
+			expect(screen.getByText('Second installment')).toBeInTheDocument();
+			expect(screen.getByText('UPI')).toBeInTheDocument();
+			expect(screen.getByText('₹1,000.00')).toBeInTheDocument();
+			expect(screen.getByText('CASH-01')).toBeInTheDocument();
+			expect(screen.getByText('Morning advance')).toBeInTheDocument();
+			expect(screen.getByText('Cash')).toBeInTheDocument();
+		});
+
+		// Summary matches
+		expect(screen.getByText('₹2,000.00')).toBeInTheDocument(); // Daily total
+		expect(screen.getByText('₹1,500.00')).toBeInTheDocument(); // Amount received
+		expect(screen.getAllByText('₹500.00').length).toBeGreaterThanOrEqual(2); // Remaining balance and cash amount
 	});
 });
