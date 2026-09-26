@@ -182,7 +182,98 @@ public class ReportService : IReportService
         // 8. Outstanding Summary (Separate Financial Concepts)
         var totalOutstandingCombined = Math.Round(totalInvoiceOutstanding + totalShowroomOutstanding + staffAdvanceOutstandingAmount, 2);
 
-        // 9. Recent Activity (Latest 10 activities)
+        // 9. Top Revenue Services
+        var rawServices = await _db.JobCardServices
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && !s.JobCard.IsDeleted && s.JobCard.Status != JobCardStatus.Cancelled && s.JobCard.CreatedAt >= startUtc && s.JobCard.CreatedAt < endOfDayExclusive)
+            .Select(s => new
+            {
+                ServiceName = s.ServiceName ?? (s.Service != null ? s.Service.Name : "Service"),
+                Category = (s.Service != null && s.Service.Category != null) ? s.Service.Category : "General Services",
+                s.Quantity,
+                Revenue = (s.UnitPrice * s.Quantity) - s.DiscountAmount
+            })
+            .ToListAsync(ct);
+
+        var topServices = rawServices
+            .GroupBy(s => new { s.ServiceName, s.Category })
+            .Select(g => new TopServiceItemDto(
+                g.Key.ServiceName,
+                g.Key.Category,
+                g.Sum(s => s.Quantity),
+                Math.Round(g.Sum(s => s.Revenue), 2)
+            ))
+            .OrderByDescending(s => s.Revenue)
+            .Take(5)
+            .ToList();
+
+        // 10. Revenue vs Collections Timeline
+        var invoiceDateAggregates = await _db.Invoices
+            .AsNoTracking()
+            .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= startUtc && i.InvoiceDate <= endUtc)
+            .GroupBy(i => i.InvoiceDate.Date)
+            .Select(g => new { Date = g.Key, Revenue = g.Sum(i => i.TotalAmount), Outstanding = g.Sum(i => i.BalanceAmount) })
+            .ToListAsync(ct);
+
+        var paymentDateAggregates = await _db.Payments
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted && p.PaymentDate >= startUtc && p.PaymentDate < endOfDayExclusive)
+            .GroupBy(p => p.PaymentDate.Date)
+            .Select(g => new { Date = g.Key, Collected = g.Sum(p => p.Amount) })
+            .ToListAsync(ct);
+
+        var allTimelineDates = invoiceDateAggregates.Select(i => i.Date)
+            .Union(paymentDateAggregates.Select(p => p.Date))
+            .Distinct()
+            .OrderBy(d => d)
+            .ToList();
+
+        var invMap = invoiceDateAggregates.ToDictionary(i => i.Date, i => i);
+        var payMap = paymentDateAggregates.ToDictionary(p => p.Date, p => p);
+
+        var diffDays = (endUtc - startUtc).TotalDays;
+        var isMonthly = diffDays > 35;
+
+        var timelinePoints = new List<DailyTrendPointDto>();
+        foreach (var d in allTimelineDates)
+        {
+            var inv = invMap.GetValueOrDefault(d);
+            var pay = payMap.GetValueOrDefault(d);
+
+            var key = isMonthly ? $"{d.Year}-{d.Month:D2}" : $"{d.Year}-{d.Month:D2}-{d.Day:D2}";
+            var label = isMonthly ? d.ToString("MMM yyyy") : d.ToString("d MMM");
+
+            timelinePoints.Add(new DailyTrendPointDto(
+                key,
+                label,
+                d,
+                Math.Round(inv?.Revenue ?? 0m, 2),
+                Math.Round(pay?.Collected ?? 0m, 2),
+                Math.Round(inv?.Outstanding ?? 0m, 2)
+            ));
+        }
+
+        // 11. Recent Advances in Period
+        var recentAdvances = await _db.StaffAdvances
+            .AsNoTracking()
+            .Include(a => a.Staff)
+            .Where(a => !a.IsDeleted && a.AdvanceDate >= startUtc && a.AdvanceDate <= endUtc)
+            .OrderByDescending(a => a.AdvanceDate)
+            .ThenByDescending(a => a.CreatedAt)
+            .Take(10)
+            .Select(a => new DashboardStaffAdvanceItemDto(
+                a.Id,
+                a.StaffId,
+                a.Staff.Name ?? a.StaffName ?? "Staff Member",
+                a.Staff.Role ?? a.StaffRole,
+                a.AdvanceDate,
+                Math.Round(a.Amount, 2),
+                !string.IsNullOrWhiteSpace(a.Reason) ? a.Reason : "Staff Advance",
+                a.Status.ToString()
+            ))
+            .ToListAsync(ct);
+
+        // 12. Recent Activity (Latest 10 activities)
         var recentActivities = new List<RecentActivityItemDto>();
 
         // Recent finalized invoices
@@ -258,6 +349,9 @@ public class ReportService : IReportService
             Showroom: new DashboardShowroomDto(activeShowroomsCount, staffAssignmentsCount, vehiclesAttended, Math.Round(totalShowroomBilled, 2), Math.Round(totalShowroomReceived, 2), Math.Round(totalShowroomOutstanding, 2), paidDaysCount, partiallyPaidDaysCount, unpaidDaysCount),
             StaffAdvances: new DashboardStaffAdvanceDto(outstandingAdvances.Count, staffAdvanceOutstandingAmount, settledAdvances.Count, staffAdvanceSettledAmount, obsoleteAdvances.Count),
             Outstanding: new DashboardOutstandingDto(Math.Round(totalInvoiceOutstanding, 2), Math.Round(totalShowroomOutstanding, 2), staffAdvanceOutstandingAmount, totalOutstandingCombined),
+            TopServices: topServices,
+            RevenueTimeline: timelinePoints,
+            RecentAdvances: recentAdvances,
             RecentActivity: sortedRecentActivity
         );
     }
@@ -967,5 +1061,256 @@ public class ReportService : IReportService
             .ToListAsync(ct);
 
         return new StaffAdvanceReportResponse(items, totalCount, page, pageSize, summary);
+    }
+
+    // ── 10. Monthly Showroom Report ─────────────────────────────────────────
+    public async Task<MonthlyShowroomReportResponse> GetMonthlyShowroomReportAsync(
+        int year,
+        int month,
+        Guid? showroomId = null,
+        CancellationToken ct = default)
+    {
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var fromDate = DateTime.SpecifyKind(new DateTime(year, month, 1, 0, 0, 0), DateTimeKind.Utc);
+        var toDate = DateTime.SpecifyKind(new DateTime(year, month, daysInMonth, 23, 59, 59, 999), DateTimeKind.Utc);
+        var fromDateOnly = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
+        var toDateOnly = DateTime.SpecifyKind(new DateTime(year, month, daysInMonth), DateTimeKind.Utc);
+        var monthName = new DateTime(year, month, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+        var showroomsQuery = _db.Showrooms.AsNoTracking().Where(s => !s.IsDeleted);
+        if (showroomId.HasValue)
+        {
+            showroomsQuery = showroomsQuery.Where(s => s.Id == showroomId.Value);
+        }
+
+        var showrooms = await showroomsQuery.OrderBy(s => s.Name).ToListAsync(ct);
+        var targetShowroomIds = showrooms.Select(s => s.Id).ToList();
+
+        // 1. Fetch vehicle works for target showrooms in month
+        var vehicleWorks = await _db.ShowroomVehicleWorks
+            .AsNoTracking()
+            .Include(w => w.Showroom)
+            .Include(w => w.Staff)
+                .ThenInclude(st => st.DefaultShowroom)
+            .Include(w => w.VehicleType)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.HomeShowroom)
+            .Include(w => w.ServiceItems)
+                .ThenInclude(i => i.WorkType)
+            .Where(w => !w.IsDeleted && targetShowroomIds.Contains(w.ShowroomId) && w.Date >= fromDateOnly && w.Date <= toDateOnly)
+            .OrderBy(w => w.Date)
+            .ThenBy(w => w.CreatedAt)
+            .ToListAsync(ct);
+
+        // 2. Fetch daily bills and payments for target showrooms in month
+        var dailyBills = await _db.ShowroomDailyBills
+            .AsNoTracking()
+            .Include(b => b.Payments)
+            .Where(b => !b.IsDeleted && targetShowroomIds.Contains(b.ShowroomId) && b.Date >= fromDateOnly && b.Date <= toDateOnly)
+            .OrderBy(b => b.Date)
+            .ToListAsync(ct);
+
+        // 3. Fetch staff work sessions for target showrooms in month
+        var staffSessions = await _db.ShowroomStaffWorkSessions
+            .AsNoTracking()
+            .Include(s => s.Staff)
+                .ThenInclude(st => st.DefaultShowroom)
+            .Include(s => s.HomeShowroom)
+            .Include(s => s.WorkingShowroom)
+            .Where(s => !s.IsDeleted && targetShowroomIds.Contains(s.WorkingShowroomId) && s.Date >= fromDateOnly && s.Date <= toDateOnly)
+            .ToListAsync(ct);
+
+        var showroomDetails = new List<MonthlyShowroomDetailDto>();
+
+        foreach (var sr in showrooms)
+        {
+            var srWorks = vehicleWorks.Where(w => w.ShowroomId == sr.Id).ToList();
+            var srBills = dailyBills.Where(b => b.ShowroomId == sr.Id).ToList();
+            var srSessions = staffSessions.Where(s => s.WorkingShowroomId == sr.Id).ToList();
+
+            var billsByDate = srBills.ToDictionary(b => b.Date.Date, b => b);
+
+            var mappedWorks = srWorks.Select(w =>
+            {
+                var workDate = w.Date.Date;
+                var bill = billsByDate.GetValueOrDefault(workDate);
+
+                decimal? dailyBilled = bill != null ? Math.Round(bill.Amount, 2) : null;
+                decimal? dailyCollected = bill != null
+                    ? Math.Round(bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount), 2)
+                    : null;
+
+                string paymentStatus;
+                if (bill == null)
+                {
+                    paymentStatus = "NoBill";
+                }
+                else if ((dailyCollected ?? 0m) == 0m)
+                {
+                    paymentStatus = "Unpaid";
+                }
+                else if ((dailyCollected ?? 0m) < (dailyBilled ?? 0m))
+                {
+                    paymentStatus = "PartiallyPaid";
+                }
+                else
+                {
+                    paymentStatus = "Paid";
+                }
+
+                var serviceDtos = w.ServiceItems.Select(si => new MonthlyShowroomServiceItemDto(
+                    si.WorkTypeId,
+                    si.WorkType?.Code ?? "SRV",
+                    si.WorkType?.Name ?? "Service",
+                    si.Quantity,
+                    si.Notes
+                )).ToList();
+
+                var servicesSummary = serviceDtos.Count > 0
+                    ? string.Join(", ", serviceDtos.Select(s => $"{s.WorkTypeName} ({s.Quantity})"))
+                    : "General Service";
+
+                var homeShowroom = w.ShowroomStaffWorkSession?.HomeShowroom ?? w.Staff?.DefaultShowroom ?? sr;
+                var homeSrName = homeShowroom?.Name ?? sr.Name;
+                var homeSrMasterId = homeShowroom?.MasterId ?? sr.MasterId;
+                var isTransfer = (w.ShowroomStaffWorkSession != null && w.ShowroomStaffWorkSession.HomeShowroomId != w.ShowroomId)
+                    || (w.ShowroomStaffWorkSession == null && w.Staff?.DefaultShowroomId.HasValue == true && w.Staff.DefaultShowroomId.Value != sr.Id);
+                var assignmentType = isTransfer ? "Temporary Transfer" : "Regular";
+                var sessionType = w.ShowroomStaffWorkSession != null ? w.ShowroomStaffWorkSession.SessionType.ToString() : "FullDay";
+                var startTime = w.ShowroomStaffWorkSession?.StartTime ?? "09:00";
+                var endTime = w.ShowroomStaffWorkSession?.EndTime ?? "18:00";
+
+                decimal workingHours = 9.0m;
+                if (sessionType == "FullDay") workingHours = 9.0m;
+                else if (sessionType == "Morning" || sessionType == "Afternoon") workingHours = 4.5m;
+                else if (sessionType == "Evening") workingHours = 4.0m;
+                else if (sessionType == "Custom")
+                {
+                    if (TimeSpan.TryParse(startTime, out var st) && TimeSpan.TryParse(endTime, out var et) && et > st)
+                    {
+                        workingHours = Math.Round((decimal)(et - st).TotalHours, 1);
+                    }
+                    else
+                    {
+                        workingHours = 8.0m;
+                    }
+                }
+
+                return new MonthlyShowroomVehicleWorkRowDto(
+                    w.Id,
+                    w.Date,
+                    w.ShowroomId,
+                    w.Showroom?.MasterId ?? sr.MasterId,
+                    w.Showroom?.Name ?? sr.Name,
+                    w.StaffId,
+                    w.Staff?.StaffMasterId ?? string.Empty,
+                    w.Staff?.Name ?? "Unknown Staff",
+                    w.Staff?.PhoneNumber,
+                    w.Staff?.Role ?? "Technician",
+                    homeSrName,
+                    homeSrMasterId,
+                    assignmentType,
+                    sessionType,
+                    startTime,
+                    endTime,
+                    workingHours,
+                    w.VehicleTypeId,
+                    w.VehicleType?.Code ?? string.Empty,
+                    w.VehicleType?.Name ?? "Standard Vehicle",
+                    w.VehicleQuantity,
+                    servicesSummary,
+                    serviceDtos,
+                    w.TimeRecorded,
+                    w.Notes,
+                    dailyBilled,
+                    dailyCollected,
+                    paymentStatus
+                );
+            }).ToList();
+
+            var mappedBills = srBills.Select(b =>
+            {
+                var collected = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+                var balance = Math.Max(0m, b.Amount - collected);
+                string status;
+                if (collected == 0m) status = "Unpaid";
+                else if (collected < b.Amount) status = "PartiallyPaid";
+                else status = "Paid";
+
+                return new MonthlyShowroomDailyBillDto(
+                    b.Id,
+                    b.Date,
+                    Math.Round(b.Amount, 2),
+                    Math.Round(collected, 2),
+                    Math.Round(balance, 2),
+                    status,
+                    b.Payments.Count(p => !p.IsDeleted),
+                    b.Notes
+                );
+            }).ToList();
+
+            var totalVehiclesServiced = mappedWorks.Sum(w => w.VehicleQuantity);
+            var totalWorkEntries = mappedWorks.Count;
+            var totalServicesPerformed = mappedWorks.Sum(w => w.ServiceItems.Sum(si => si.Quantity));
+
+            var activeStaffIds = mappedWorks.Select(w => w.StaffId)
+                .Union(srSessions.Select(s => s.StaffId))
+                .Distinct()
+                .Count();
+
+            var totalBilled = Math.Round(mappedBills.Sum(b => b.Amount), 2);
+            var totalCollected = Math.Round(mappedBills.Sum(b => b.PaidAmount), 2);
+            var totalOutstanding = Math.Max(0m, Math.Round(totalBilled - totalCollected, 2));
+
+            var paidDays = mappedBills.Count(b => b.Status == "Paid");
+            var partialDays = mappedBills.Count(b => b.Status == "PartiallyPaid");
+            var unpaidDays = mappedBills.Count(b => b.Status == "Unpaid");
+
+            var summary = new MonthlyShowroomSummaryDto(
+                TotalVehiclesServiced: totalVehiclesServiced,
+                TotalWorkEntries: totalWorkEntries,
+                TotalServicesPerformed: totalServicesPerformed,
+                TotalActiveStaff: activeStaffIds,
+                TotalBilledAmount: totalBilled,
+                TotalCollectedAmount: totalCollected,
+                TotalOutstandingAmount: totalOutstanding,
+                TotalBillingDays: mappedBills.Count,
+                PaidDaysCount: paidDays,
+                PartiallyPaidDaysCount: partialDays,
+                UnpaidDaysCount: unpaidDays
+            );
+
+            showroomDetails.Add(new MonthlyShowroomDetailDto(
+                sr.Id,
+                sr.MasterId,
+                sr.Name,
+                sr.Address,
+                sr.Phone,
+                sr.Gstin,
+                summary,
+                mappedWorks,
+                mappedBills
+            ));
+        }
+
+        var overallSummary = new MonthlyShowroomReportOverallSummaryDto(
+            TotalShowrooms: showroomDetails.Count,
+            TotalVehiclesServiced: showroomDetails.Sum(s => s.Summary.TotalVehiclesServiced),
+            TotalWorkEntries: showroomDetails.Sum(s => s.Summary.TotalWorkEntries),
+            TotalServicesPerformed: showroomDetails.Sum(s => s.Summary.TotalServicesPerformed),
+            TotalBilledAmount: Math.Round(showroomDetails.Sum(s => s.Summary.TotalBilledAmount), 2),
+            TotalCollectedAmount: Math.Round(showroomDetails.Sum(s => s.Summary.TotalCollectedAmount), 2),
+            TotalOutstandingAmount: Math.Max(0m, Math.Round(showroomDetails.Sum(s => s.Summary.TotalOutstandingAmount), 2))
+        );
+
+        return new MonthlyShowroomReportResponse(
+            Year: year,
+            Month: month,
+            MonthName: monthName,
+            FromDate: fromDate,
+            ToDate: toDate,
+            OverallSummary: overallSummary,
+            Showrooms: showroomDetails
+        );
     }
 }

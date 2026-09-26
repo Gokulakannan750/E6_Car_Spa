@@ -273,6 +273,84 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: '/reports/business',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/reports/billing',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/reports/staff',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/reports/showroom',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/reports/custom',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/reports/audit',
+				lazy: async () => {
+					const m = await loadAudit();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="audit.view">
+								<m.AuditLogPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
 				path: '/showroom',
 				lazy: async () => {
 					const m = await loadShowroom();

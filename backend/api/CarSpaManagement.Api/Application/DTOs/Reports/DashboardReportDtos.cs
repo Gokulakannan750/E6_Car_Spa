@@ -72,11 +72,38 @@ public record DashboardStaffAdvanceDto(
     int ObsoleteCount
 );
 
+public record DashboardStaffAdvanceItemDto(
+    Guid Id,
+    Guid StaffId,
+    string StaffName,
+    string? StaffRole,
+    DateTime AdvanceDate,
+    decimal Amount,
+    string Reason,
+    string Status
+);
+
 public record DashboardOutstandingDto(
     decimal InvoiceOutstanding,
     decimal ShowroomOutstanding,
     decimal StaffAdvanceOutstanding,
     decimal TotalOutstandingCombined
+);
+
+public record TopServiceItemDto(
+    string Name,
+    string Category,
+    int Count,
+    decimal Revenue
+);
+
+public record DailyTrendPointDto(
+    string Key,
+    string Label,
+    DateTime DateObj,
+    decimal Revenue,
+    decimal Collected,
+    decimal Outstanding
 );
 
 public record RecentActivityItemDto(
@@ -99,5 +126,8 @@ public record DashboardSummaryDto(
     DashboardShowroomDto Showroom,
     DashboardStaffAdvanceDto StaffAdvances,
     DashboardOutstandingDto Outstanding,
+    List<TopServiceItemDto> TopServices,
+    List<DailyTrendPointDto> RevenueTimeline,
+    List<DashboardStaffAdvanceItemDto> RecentAdvances,
     List<RecentActivityItemDto> RecentActivity
 );

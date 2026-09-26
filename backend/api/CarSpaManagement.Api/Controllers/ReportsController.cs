@@ -174,4 +174,29 @@ public class ReportsController : ControllerBase
         var result = await _reportService.GetStaffAdvancesReportAsync(fromDate, toDate, staffId, status, page, pageSize, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Detailed monthly showroom operational, staff activity, and financial report.
+    /// </summary>
+    [HttpGet("showroom/monthly")]
+    [RequirePermission("reports.showrooms")]
+    [EnableRateLimiting("reports-heavy")]
+    public async Task<IActionResult> GetMonthlyShowroomReport(
+        [FromQuery] int year,
+        [FromQuery] int month,
+        [FromQuery] Guid? showroomId = null,
+        CancellationToken ct = default)
+    {
+        if (year < 2000 || year > 2100)
+        {
+            return BadRequest(new { message = "Invalid year specified. Must be between 2000 and 2100." });
+        }
+        if (month < 1 || month > 12)
+        {
+            return BadRequest(new { message = "Invalid month specified. Must be between 1 and 12." });
+        }
+
+        var result = await _reportService.GetMonthlyShowroomReportAsync(year, month, showroomId, ct);
+        return Ok(result);
+    }
 }

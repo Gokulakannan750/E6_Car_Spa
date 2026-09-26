@@ -14,4 +14,5 @@ public interface IReportService
     Task<ShowroomReportResponse> GetShowroomReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? showroomId = null, int page = 1, int pageSize = 20, CancellationToken ct = default);
     Task<StaffProductivityReportResponse> GetStaffProductivityReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? staffId = null, Guid? showroomId = null, CancellationToken ct = default);
     Task<StaffAdvanceReportResponse> GetStaffAdvancesReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? staffId = null, StaffAdvanceStatus? status = null, int page = 1, int pageSize = 20, CancellationToken ct = default);
+    Task<MonthlyShowroomReportResponse> GetMonthlyShowroomReportAsync(int year, int month, Guid? showroomId = null, CancellationToken ct = default);
 }

@@ -2840,12 +2840,62 @@ export interface DashboardSummaryDto {
 		outstanding: number;
 	};
 	paymentCollection: {
-		totalCollected: number;
-		cash: number;
-		upi: number;
-		card: number;
-		bankTransfer: number;
+		totalReceived: number;
+		transactionCount: number;
+		breakdownByMethod: {
+			method: string;
+			transactionCount: number;
+			amount: number;
+		}[];
 	};
+	showroom: {
+		activeShowroomsCount: number;
+		staffAssignmentsCount: number;
+		vehiclesAttended: number;
+		totalBilled: number;
+		totalReceived: number;
+		totalOutstanding: number;
+		paidDaysCount: number;
+		partiallyPaidDaysCount: number;
+		unpaidDaysCount: number;
+	};
+	staffAdvances: {
+		outstandingCount: number;
+		outstandingAmount: number;
+		settledCount: number;
+		settledAmount: number;
+		obsoleteCount: number;
+	};
+	outstanding: {
+		invoiceOutstanding: number;
+		showroomOutstanding: number;
+		staffAdvanceOutstanding: number;
+		totalOutstandingCombined: number;
+	};
+	topServices: {
+		name: string;
+		category: string;
+		count: number;
+		revenue: number;
+	}[];
+	revenueTimeline: {
+		key: string;
+		label: string;
+		dateObj: string;
+		revenue: number;
+		collected: number;
+		outstanding: number;
+	}[];
+	recentAdvances: {
+		id: string;
+		staffId: string;
+		staffName: string;
+		staffRole: string | null;
+		advanceDate: string;
+		amount: number;
+		reason: string;
+		status: string;
+	}[];
 	recentActivity: {
 		activityType: string;
 		title: string;
@@ -2864,5 +2914,122 @@ export async function getDashboardSummary(params?: { fromDate?: string; toDate?:
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
 	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix, {}, 'view reports');
 }
+
+// ── Monthly Showroom Report ─────────────────────────────────────────────────
+
+export interface MonthlyShowroomServiceItemDto {
+	workTypeId: string;
+	workTypeCode: string;
+	workTypeName: string;
+	quantity: number;
+	notes?: string | null;
+}
+
+export interface MonthlyShowroomVehicleWorkRowDto {
+	id: string;
+	date: string;
+	showroomId: string;
+	showroomMasterId: string;
+	showroomName: string;
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	staffPhone?: string | null;
+	staffRole?: string | null;
+	homeShowroomName?: string | null;
+	homeShowroomMasterId?: string | null;
+	assignmentType?: string | null;
+	sessionType?: string | null;
+	startTime?: string | null;
+	endTime?: string | null;
+	workingHours?: number | null;
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	vehicleQuantity: number;
+	servicesSummary: string;
+	serviceItems: MonthlyShowroomServiceItemDto[];
+	timeRecorded?: string | null;
+	notes?: string | null;
+	dailyBilledAmount?: number | null;
+	dailyCollectedAmount?: number | null;
+	paymentStatus: 'Paid' | 'PartiallyPaid' | 'Unpaid' | 'NoBill' | string;
+}
+
+export interface MonthlyShowroomDailyBillDto {
+	id: string;
+	date: string;
+	amount: number;
+	paidAmount: number;
+	balanceAmount: number;
+	status: 'Paid' | 'PartiallyPaid' | 'Unpaid' | string;
+	paymentCount: number;
+	notes?: string | null;
+}
+
+export interface MonthlyShowroomSummaryDto {
+	totalVehiclesServiced: number;
+	totalWorkEntries: number;
+	totalServicesPerformed: number;
+	totalActiveStaff: number;
+	totalBilledAmount: number;
+	totalCollectedAmount: number;
+	totalOutstandingAmount: number;
+	totalBillingDays: number;
+	paidDaysCount: number;
+	partiallyPaidDaysCount: number;
+	unpaidDaysCount: number;
+}
+
+export interface MonthlyShowroomDetailDto {
+	showroomId: string;
+	showroomMasterId: string;
+	showroomName: string;
+	showroomAddress: string;
+	showroomPhone?: string | null;
+	showroomGstin?: string | null;
+	summary: MonthlyShowroomSummaryDto;
+	vehicleWorks: MonthlyShowroomVehicleWorkRowDto[];
+	dailyBills: MonthlyShowroomDailyBillDto[];
+}
+
+export interface MonthlyShowroomReportOverallSummaryDto {
+	totalShowrooms: number;
+	totalVehiclesServiced: number;
+	totalWorkEntries: number;
+	totalServicesPerformed: number;
+	totalBilledAmount: number;
+	totalCollectedAmount: number;
+	totalOutstandingAmount: number;
+}
+
+export interface MonthlyShowroomReportResponse {
+	year: number;
+	month: number;
+	monthName: string;
+	fromDate: string;
+	toDate: string;
+	overallSummary: MonthlyShowroomReportOverallSummaryDto;
+	showrooms: MonthlyShowroomDetailDto[];
+}
+
+export async function getMonthlyShowroomReport(params: {
+	year: number;
+	month: number;
+	showroomId?: string;
+}) {
+	const qs = new URLSearchParams();
+	qs.set('year', String(params.year));
+	qs.set('month', String(params.month));
+	if (params.showroomId && params.showroomId !== 'all') {
+		qs.set('showroomId', params.showroomId);
+	}
+	return request<MonthlyShowroomReportResponse>(
+		'/api/reports/showroom/monthly?' + qs.toString(),
+		{},
+		'view monthly showroom report'
+	);
+}
+
 
 

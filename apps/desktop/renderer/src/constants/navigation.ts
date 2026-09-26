@@ -247,31 +247,31 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 		},
 		{
 			label: 'Business Reports',
-			path: '/reports',
+			path: '/reports/business',
 			icon: 'TrendingUp',
 			requiresPermission: 'reports.view',
 		},
 		{
 			label: 'Billing Reports',
-			path: '/reports?type=billing',
+			path: '/reports/billing',
 			icon: 'FileSpreadsheet',
 			requiresPermission: 'reports.view',
 		},
 		{
 			label: 'Staff Reports',
-			path: '/reports?type=staff',
+			path: '/reports/staff',
 			icon: 'Users',
 			requiresPermission: 'reports.view',
 		},
 		{
 			label: 'Showroom Reports',
-			path: '/reports?type=showroom',
+			path: '/reports/showroom',
 			icon: 'Store',
 			requiresPermission: 'reports.view',
 		},
 		{
 			label: 'Custom Reports',
-			path: '/reports?type=custom',
+			path: '/reports/custom',
 			icon: 'SlidersHorizontal',
 			requiresPermission: 'reports.view',
 		},
@@ -334,7 +334,16 @@ export function isItemActive(
 	// Query-param-based items (e.g. /staff-advances?tab=staff, /reports?type=billing)
 	if (item.path.includes('?')) {
 		const [targetPath, targetQuery] = item.path.split('?');
-		return normPath === targetPath && search === `?${targetQuery}`;
+		if (normPath === targetPath && search === `?${targetQuery}`) {
+			return true;
+		}
+		if (item.path.startsWith('/reports?type=')) {
+			const typeVal = item.path.split('=')[1];
+			if (normPath === `/reports/${typeVal}`) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// Specific checks for base items that have query-param siblings or sub-routes:
@@ -397,8 +406,43 @@ export function isItemActive(
 	}
 
 	if (item.path === '/reports') {
-		// Business Reports is active if on /reports without competing query
+		// Reports Dashboard is active on /reports without competing sub-routes or queries
 		return normPath === '/reports' && (!search || !search.includes('type='));
+	}
+
+	if (item.path === '/reports/business') {
+		return (
+			normPath === '/reports/business' ||
+			(normPath === '/reports' && search.includes('type=business'))
+		);
+	}
+
+	if (item.path === '/reports/billing') {
+		return (
+			normPath === '/reports/billing' ||
+			(normPath === '/reports' && search.includes('type=billing'))
+		);
+	}
+
+	if (item.path === '/reports/staff') {
+		return (
+			normPath === '/reports/staff' ||
+			(normPath === '/reports' && search.includes('type=staff'))
+		);
+	}
+
+	if (item.path === '/reports/showroom') {
+		return (
+			normPath === '/reports/showroom' ||
+			(normPath === '/reports' && search.includes('type=showroom'))
+		);
+	}
+
+	if (item.path === '/reports/custom') {
+		return (
+			normPath === '/reports/custom' ||
+			(normPath === '/reports' && search.includes('type=custom'))
+		);
 	}
 
 	if (item.path === '/showroom') {
@@ -433,6 +477,7 @@ export function isItemActive(
 		item.path !== '/' &&
 		item.path !== '/dashboard' &&
 		item.path !== '/settings' &&
+		item.path !== '/reports' &&
 		item.path !== '/showroom' &&
 		item.path !== '/showroom/attendance' &&
 		item.path !== '/showroom/bill' &&
