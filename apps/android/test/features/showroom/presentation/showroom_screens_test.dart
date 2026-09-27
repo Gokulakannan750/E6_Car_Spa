@@ -49,7 +49,7 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('DailyStaffAssignmentCard displays staff details and vehicles', (tester) async {
+    testWidgets('DailyStaffAssignmentCard displays staff details and work session timings', (tester) async {
       final assignment = DailyStaffAssignment(
         id: 'assign-1',
         showroomId: 'sr-001',
@@ -59,7 +59,10 @@ void main() {
         staffPhone: '9876543210',
         staffRole: 'Detailer',
         date: DateTime(2026, 8, 26),
-        vehiclesAttended: 4,
+        startTime: '09:00',
+        endTime: '14:00',
+        workingHours: 5.0,
+        assignmentType: 'Regular',
         createdAt: DateTime(2026, 8, 26),
       );
 
@@ -77,7 +80,9 @@ void main() {
       expect(find.text('Ramesh Detailer'), findsOneWidget);
       expect(find.text('Detailer'), findsOneWidget);
       expect(find.text('9876543210'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
+      expect(find.text('09:00 – 14:00'), findsOneWidget);
+      expect(find.text('5h'), findsOneWidget);
+      expect(find.text('Regular'), findsOneWidget);
       expect(find.byIcon(Icons.delete_outline), findsOneWidget);
     });
 

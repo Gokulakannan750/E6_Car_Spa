@@ -90,6 +90,7 @@ builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
+builder.Services.AddScoped<ISystemPreferenceService, SystemPreferenceService>();
 
 // WhatsApp Options & Startup Validation
 var whatsAppOptions = new WhatsAppOptions();
@@ -461,6 +462,26 @@ using (var scope = app.Services.CreateScope())
 			db.BusinessProfiles.Add(profile);
 			await db.SaveChangesAsync();
 			Log.Information("Seeded verified default E6 Car Spa business profile");
+		}
+
+		if (!await db.SystemPreferences.AnyAsync())
+		{
+			var prefs = new SystemPreference
+			{
+				Id = Guid.NewGuid(),
+				SingletonKey = 1,
+				DateFormat = "DD/MM/YYYY",
+				TimeFormat = "12h",
+				CurrencySymbol = "₹",
+				DecimalPrecision = 2,
+				DefaultPrintCopies = 1,
+				AutoPrintReceipt = true,
+				RefreshInterval = 30,
+				CreatedAt = DateTime.UtcNow
+			};
+			db.SystemPreferences.Add(prefs);
+			await db.SaveChangesAsync();
+			Log.Information("Seeded canonical default System Preferences");
 		}
 	}
  catch (Exception ex)

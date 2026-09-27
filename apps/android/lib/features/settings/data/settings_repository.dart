@@ -8,6 +8,7 @@ import '../models/business_profile_model.dart';
 import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import '../models/logo_upload_response.dart';
+import '../models/system_preferences_model.dart';
 import 'settings_api.dart';
 
 final settingsApiProvider = Provider<SettingsApi>((ref) {
@@ -125,5 +126,63 @@ class SettingsRepository {
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
+  }
+
+  // ============================================================================
+  // System Preferences (Synchronized with Backend)
+  // ============================================================================
+  static const String _cachedSystemPreferencesKey = 'e6_system_preferences';
+
+  Future<SystemPreferencesModel?> getCachedSystemPreferences() async {
+    try {
+      final jsonStr = await _storage.read(key: _cachedSystemPreferencesKey);
+      if (jsonStr == null || jsonStr.isEmpty) return null;
+      final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+      return SystemPreferencesModel.fromJson(map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveCachedSystemPreferences(SystemPreferencesModel prefs) async {
+    try {
+      final jsonStr = jsonEncode(prefs.toJson());
+      await _storage.write(key: _cachedSystemPreferencesKey, value: jsonStr);
+    } catch (_) {}
+  }
+
+  Future<SystemPreferencesModel> getSystemPreferences() async {
+    try {
+      final prefs = await _api.getSystemPreferences();
+      await saveCachedSystemPreferences(prefs);
+      return prefs;
+    } on DioException catch (e) {
+      final cached = await getCachedSystemPreferences();
+      if (cached != null) return cached;
+      if (e.response == null) {
+        // Network offline / unreachable fallback to default
+        return SystemPreferencesModel.defaultPreferences;
+      }
+      throw ApiException.fromDio(e);
+    } catch (_) {
+      final cached = await getCachedSystemPreferences();
+      return cached ?? SystemPreferencesModel.defaultPreferences;
+    }
+  }
+
+  Future<SystemPreferencesModel> updateSystemPreferences(
+    SystemPreferencesModel preferences,
+  ) async {
+    try {
+      final updated = await _api.updateSystemPreferences(preferences);
+      await saveCachedSystemPreferences(updated);
+      return updated;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<SystemPreferencesModel> resetSystemPreferences() async {
+    return updateSystemPreferences(SystemPreferencesModel.defaultPreferences);
   }
 }

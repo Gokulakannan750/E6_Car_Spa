@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:e6_car_spa/core/errors/api_exception.dart';
 import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 import 'package:e6_car_spa/features/showroom/data/showroom_api.dart';
@@ -20,26 +21,35 @@ class _FakeStaffRepository extends StaffRepository {
 
   @override
   Future<List<Staff>> getStaff() async {
-    return [
-      const Staff(
+    return const [
+      Staff(
         id: 'staff-1',
+        staffMasterId: 'STF-01',
         name: 'Arun Kumar',
         phoneNumber: '9876543210',
         role: 'Technician',
+        defaultShowroomId: 'sr-honda',
+        defaultShowroomName: 'Honda Showroom',
         isActive: true,
       ),
-      const Staff(
+      Staff(
         id: 'staff-2',
+        staffMasterId: 'STF-02',
         name: 'Bala Chandran',
         phoneNumber: '9876543211',
         role: 'Washer',
+        defaultShowroomId: 'sr-skoda',
+        defaultShowroomName: 'Skoda Showroom',
         isActive: true,
       ),
-      const Staff(
+      Staff(
         id: 'staff-3',
+        staffMasterId: 'STF-03',
         name: 'Dinesh Karthik',
         phoneNumber: '9876543212',
         role: 'Detailer',
+        defaultShowroomId: 'sr-skoda',
+        defaultShowroomName: 'Skoda Showroom',
         isActive: true,
       ),
     ];
@@ -51,14 +61,17 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  group('Showroom Multi-Staff & Vehicles Attended Widget Tests', () {
-    testWidgets('AssignStaffModalSheet allows selecting multiple staff and entering vehicles attended', (tester) async {
+  group('Showroom Work Sessions Widget Tests', () {
+    testWidgets('AssignStaffModalSheet handles selection, presets, and auto-calculates hours', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      List<String>? assignedStaffIds;
-      int? assignedVehicles;
+      String? assignedStaffId;
+      String? assignedStart;
+      String? assignedEnd;
+      String? assignedType;
+      String? assignedReason;
 
       await tester.pumpWidget(
         ProviderScope(
@@ -72,13 +85,25 @@ void main() {
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
+                      isScrollControlled: true,
                       builder: (_) => AssignStaffModalSheet(
-                        showroomName: 'Erode Showroom',
-                        selectedDate: DateTime(2026, 9, 5),
-                        alreadyAssignedStaffIds: const {'staff-3'}, // staff-3 already assigned
-                        onAssign: (staffIds, initialVehicles) async {
-                          assignedStaffIds = staffIds;
-                          assignedVehicles = initialVehicles;
+                        showroomId: 'sr-skoda',
+                        showroomName: 'Skoda Showroom',
+                        selectedDate: DateTime(2026, 10, 19),
+                        alreadyAssignedStaffIds: const {'staff-3'},
+                        onAssign: ({
+                          required staffId,
+                          required startTime,
+                          required endTime,
+                          required assignmentType,
+                          transferReason,
+                          notes,
+                        }) async {
+                          assignedStaffId = staffId;
+                          assignedStart = startTime;
+                          assignedEnd = endTime;
+                          assignedType = assignmentType;
+                          assignedReason = transferReason;
                         },
                       ),
                     );
@@ -95,51 +120,71 @@ void main() {
       await tester.pumpAndSettle();
 
       // Check header and initial UI
-      expect(find.text('Assign Staff Members'), findsOneWidget);
-      expect(find.text('Showroom: Erode Showroom'), findsOneWidget);
+      expect(find.text('Assign Staff Work Session'), findsOneWidget);
+      expect(find.text('Showroom: Skoda Showroom'), findsOneWidget);
       expect(find.text('Arun Kumar'), findsOneWidget);
       expect(find.text('Bala Chandran'), findsOneWidget);
       expect(find.text('Dinesh Karthik'), findsOneWidget);
-      expect(find.text('Already Assigned'), findsOneWidget); // staff-3 is disabled
+      expect(find.text('Assigned'), findsOneWidget); // staff-3 already assigned
 
-      // Vehicles attended defaults to 0
-      expect(find.byKey(const Key('vehicles_attended_input')), findsOneWidget);
-      expect(find.text('0'), findsWidgets);
-
-      // Select staff-1 (Arun Kumar)
+      // Select staff-1 (Arun Kumar whose home showroom is Honda -> Temporary Transfer to Skoda)
       await tester.tap(find.widgetWithText(ListTile, 'Arun Kumar'));
       await tester.pumpAndSettle();
 
-      // Verify chip appeared
-      expect(find.text('Selected Staff (1):'), findsOneWidget);
-      expect(find.text('Assign Staff'), findsOneWidget);
+      // Verify Temporary Transfer detection and home showroom display
+      expect(find.text('Temporary Transfer'), findsWidgets);
+      expect(find.text('Home: Honda Showroom'), findsOneWidget);
 
-      // Select staff-2 (Bala Chandran)
-      await tester.tap(find.widgetWithText(ListTile, 'Bala Chandran'));
+      // Verify default Full Day preset hours (09:00 to 18:00 = 9h)
+      expect(find.text('09:00'), findsOneWidget);
+      expect(find.text('18:00'), findsOneWidget);
+      expect(find.text('9h'), findsOneWidget);
+
+      // Select Morning preset (09:00 to 14:00 = 5h)
+      await tester.tap(find.text('Morning (09:00 – 14:00)'));
       await tester.pumpAndSettle();
 
-      // Verify multiple selection
-      expect(find.text('Selected Staff (2):'), findsOneWidget);
-      expect(find.text('Assign (2) Staff'), findsOneWidget);
+      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('5h'), findsOneWidget);
 
-      // Change vehicles attended to 4
-      await tester.enterText(find.byKey(const Key('vehicles_attended_input')), '4');
+      // Select Afternoon preset (14:00 to 18:00 = 4h)
+      await tester.tap(find.text('Afternoon (14:00 – 18:00)'));
       await tester.pumpAndSettle();
 
-      // Submit
+      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('18:00'), findsOneWidget);
+      expect(find.text('4h'), findsOneWidget);
+
+      // Re-select Morning preset (09:00 to 14:00 = 5h) for submission
+      await tester.tap(find.text('Morning (09:00 – 14:00)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('09:00'), findsOneWidget);
+      expect(find.text('14:00'), findsOneWidget);
+      expect(find.text('5h'), findsOneWidget);
+
+      // Enter transfer reason
+      await tester.enterText(
+        find.widgetWithText(TextField, 'e.g. Covering shift / Cross-showroom support'),
+        'Covering morning shift',
+      );
+      await tester.pumpAndSettle();
+
+      // Submit assignment
       await tester.tap(find.byKey(const Key('modal_assign_button')));
       await tester.pumpAndSettle();
 
-      expect(assignedStaffIds, containsAll(['staff-1', 'staff-2']));
-      expect(assignedVehicles, 4);
+      expect(assignedStaffId, 'staff-1');
+      expect(assignedStart, '09:00');
+      expect(assignedEnd, '14:00');
+      expect(assignedType, 'TemporaryTransfer');
+      expect(assignedReason, 'Covering morning shift');
     });
 
-    testWidgets('AssignStaffModalSheet allows removing selected staff chip before submission', (tester) async {
+    testWidgets('AssignStaffModalSheet displays error banner when backend returns 409 conflict', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
-
-      List<String>? assignedStaffIds;
 
       await tester.pumpWidget(
         ProviderScope(
@@ -153,12 +198,23 @@ void main() {
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
+                      isScrollControlled: true,
                       builder: (_) => AssignStaffModalSheet(
-                        showroomName: 'Erode Showroom',
-                        selectedDate: DateTime(2026, 9, 5),
+                        showroomId: 'sr-skoda',
+                        showroomName: 'Skoda Showroom',
+                        selectedDate: DateTime(2026, 10, 19),
                         alreadyAssignedStaffIds: const {},
-                        onAssign: (staffIds, initialVehicles) async {
-                          assignedStaffIds = staffIds;
+                        onAssign: ({
+                          required staffId,
+                          required startTime,
+                          required endTime,
+                          required assignmentType,
+                          transferReason,
+                          notes,
+                        }) async {
+                          throw const ConflictException(
+                            message: 'Ramesh is already assigned to Skoda from 09:00 to 14:00 on this date.',
+                          );
                         },
                       ),
                     );
@@ -174,42 +230,40 @@ void main() {
       await tester.tap(find.text('Open Sheet'));
       await tester.pumpAndSettle();
 
-      // Select two staff
-      await tester.tap(find.widgetWithText(ListTile, 'Arun Kumar'));
-      await tester.pumpAndSettle();
+      // Select staff-2 (Bala Chandran)
       await tester.tap(find.widgetWithText(ListTile, 'Bala Chandran'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Selected Staff (2):'), findsOneWidget);
-
-      // Delete Arun Kumar chip
-      final closeIcons = find.byIcon(Icons.close);
-      expect(closeIcons, findsWidgets);
-      await tester.tap(closeIcons.first);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Selected Staff (1):'), findsOneWidget);
-
-      // Submit
+      // Tap Assign
       await tester.tap(find.byKey(const Key('modal_assign_button')));
       await tester.pumpAndSettle();
 
-      expect(assignedStaffIds, equals(['staff-2']));
+      // Modal must stay open and display conflict error
+      expect(find.textContaining('Ramesh is already assigned to Skoda from 09:00 to 14:00'), findsOneWidget);
+      expect(find.byKey(const Key('modal_assign_button')), findsOneWidget);
     });
 
-    testWidgets('DailyStaffAssignmentCard displays vehicles attended and opens edit dialog', (tester) async {
-      int? editedVehicles;
+    testWidgets('DailyStaffAssignmentCard displays staff work session details without vehicle counts', (tester) async {
+      bool editCalled = false;
+      bool removeCalled = false;
 
       final assignment = DailyStaffAssignment(
         id: 'assign-1',
-        showroomId: 'sr-1',
-        showroomName: 'Erode Showroom',
+        showroomId: 'sr-skoda',
+        showroomName: 'Skoda Showroom',
         staffId: 'staff-1',
-        staffName: 'Arun Kumar',
+        staffMasterId: 'STF-01',
+        staffName: 'Ramesh Detailer',
         staffPhone: '9876543210',
-        staffRole: 'Technician',
-        date: DateTime.now(),
-        vehiclesAttended: 3,
+        staffRole: 'Detailer',
+        date: DateTime(2026, 10, 19),
+        startTime: '09:00',
+        endTime: '14:00',
+        workingHours: 5.0,
+        assignmentType: 'TemporaryTransfer',
+        homeShowroomId: 'sr-honda',
+        homeShowroomName: 'Honda Showroom',
+        transferReason: 'Covering Ramesh shift',
         createdAt: DateTime.now(),
       );
 
@@ -218,49 +272,61 @@ void main() {
           home: Scaffold(
             body: DailyStaffAssignmentCard(
               assignment: assignment,
-              onEditVehicles: (newCount) async {
-                editedVehicles = newCount;
-              },
+              onEdit: () => editCalled = true,
+              onRemove: () => removeCalled = true,
             ),
           ),
         ),
       );
 
-      expect(find.text('Arun Kumar'), findsOneWidget);
-      expect(find.text('Technician'), findsOneWidget);
-      expect(find.text('3'), findsOneWidget); // vehicles attended badge
+      // Verify staff info
+      expect(find.text('Ramesh Detailer'), findsOneWidget);
+      expect(find.text('Detailer'), findsOneWidget);
+      expect(find.text('#STF-01'), findsOneWidget);
 
-      // Tap on the vehicles badge to edit
-      await tester.tap(find.text('3'));
+      // Verify timing & hours
+      expect(find.text('09:00 – 14:00'), findsOneWidget);
+      expect(find.text('5h'), findsOneWidget);
+
+      // Verify Temporary Transfer and Home showroom
+      expect(find.text('Temporary Transfer'), findsOneWidget);
+      expect(find.text('Home: Honda Showroom'), findsOneWidget);
+      expect(find.textContaining('Covering Ramesh shift'), findsOneWidget);
+
+      // Verify NO vehicle counters
+      expect(find.byIcon(Icons.directions_car_outlined), findsNothing);
+
+      // Test Edit button
+      final editBtn = find.byTooltip('Edit Session');
+      expect(editBtn, findsOneWidget);
+      await tester.tap(editBtn);
+      expect(editCalled, isTrue);
+
+      // Test Remove button
+      final removeBtn = find.byTooltip('Remove Session');
+      expect(removeBtn, findsOneWidget);
+      await tester.tap(removeBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit Vehicles Attended'), findsOneWidget);
-      expect(find.byKey(const Key('edit_vehicles_attended_input')), findsOneWidget);
-
-      // Change value to 8
-      await tester.enterText(find.byKey(const Key('edit_vehicles_attended_input')), '8');
+      // Dialog confirmation
+      expect(find.text('Remove Staff Assignment'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
       await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      expect(editedVehicles, 8);
+      expect(removeCalled, isTrue);
     });
 
-    testWidgets('DailyStaffAssignmentCard respects isLocked: true (no edit, no delete, lock icon visible)', (tester) async {
-      bool removeCalled = false;
-      bool editCalled = false;
-
+    testWidgets('DailyStaffAssignmentCard respects isLocked: true (hides edit and remove buttons)', (tester) async {
       final assignment = DailyStaffAssignment(
         id: 'assign-1',
-        showroomId: 'sr-1',
-        showroomName: 'Erode Showroom',
+        showroomId: 'sr-skoda',
+        showroomName: 'Skoda Showroom',
         staffId: 'staff-1',
         staffName: 'Arun Kumar',
         staffPhone: '9876543210',
-        staffRole: 'Technician',
         date: DateTime.now(),
-        vehiclesAttended: 5,
+        startTime: '09:00',
+        endTime: '18:00',
+        workingHours: 9.0,
         createdAt: DateTime.now(),
       );
 
@@ -270,32 +336,22 @@ void main() {
             body: DailyStaffAssignmentCard(
               assignment: assignment,
               isLocked: true,
-              onRemove: () => removeCalled = true,
-              onEditVehicles: (newCount) async {
-                editCalled = true;
-              },
             ),
           ),
         ),
       );
 
       expect(find.text('Arun Kumar'), findsOneWidget);
-      expect(find.text('5'), findsOneWidget);
-      expect(find.byIcon(Icons.lock_outline), findsOneWidget); // Lock icon shown
+      expect(find.text('09:00 – 18:00'), findsOneWidget);
+      expect(find.text('9h'), findsOneWidget);
+      expect(find.text('Locked'), findsOneWidget);
 
-      // Delete icon button should NOT exist when isLocked is true
+      // Edit and remove buttons must not exist
+      expect(find.byIcon(Icons.edit_outlined), findsNothing);
       expect(find.byIcon(Icons.delete_outline), findsNothing);
-
-      // Tapping badge should not open dialog
-      await tester.tap(find.text('5'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Edit Vehicles Attended'), findsNothing);
-      expect(editCalled, isFalse);
-      expect(removeCalled, isFalse);
     });
 
-    testWidgets('ShowroomDetailScreen renders unconfirmed attendance banner on narrow 320px width without overflow', (tester) async {
+    testWidgets('ShowroomDetailScreen renders unconfirmed and confirmed banners on narrow 320px screen', (tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -303,12 +359,12 @@ void main() {
       final fakeShowroomRepo = _FakeShowroomRepositoryForWidget();
       final showroom = Showroom(
         id: 'showroom-1',
-        name: 'Erode Prime Hub',
-        address: '142 Brough Road, Erode',
+        name: 'Skoda Prime Hub',
+        address: '142 Brough Road',
         phone: '9840154321',
         isActive: true,
-        activeStaffCountToday: 2,
-        createdAt: DateTime(2026, 9, 5),
+        activeStaffCountToday: 1,
+        createdAt: DateTime(2026, 10, 19),
       );
 
       const user = AuthUser(
@@ -338,14 +394,14 @@ void main() {
       // No RenderFlex overflow
       expect(tester.takeException(), isNull);
 
-      // Verify Unconfirmed banner elements
+      // Verify Work Session metrics and unconfirmed banner
+      expect(find.text('Staff on Duty'), findsWidgets);
+      expect(find.text('Scheduled Hours'), findsOneWidget);
       expect(find.text('Attendance Not Confirmed'), findsOneWidget);
-      expect(find.text('Open for edits'), findsOneWidget);
       expect(find.text('Confirm Attendance'), findsOneWidget);
-      expect(find.byKey(const Key('confirm_attendance_button')), findsOneWidget);
     });
 
-    testWidgets('ShowroomDetailScreen renders confirmed attendance banner on narrow 320px width without overflow', (tester) async {
+    testWidgets('ShowroomDetailScreen renders confirmed locked banner on narrow 320px screen', (tester) async {
       tester.view.physicalSize = const Size(320, 800);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -353,12 +409,12 @@ void main() {
       final fakeShowroomRepo = _FakeShowroomRepositoryForWidget(isConfirmed: true);
       final showroom = Showroom(
         id: 'showroom-1',
-        name: 'Erode Prime Hub',
-        address: '142 Brough Road, Erode',
+        name: 'Skoda Prime Hub',
+        address: '142 Brough Road',
         phone: '9840154321',
         isActive: true,
-        activeStaffCountToday: 2,
-        createdAt: DateTime(2026, 9, 5),
+        activeStaffCountToday: 1,
+        createdAt: DateTime(2026, 10, 19),
       );
 
       const user = AuthUser(
@@ -388,9 +444,9 @@ void main() {
       // No RenderFlex overflow
       expect(tester.takeException(), isNull);
 
-      // Verify Confirmed banner elements
+      // Verify Confirmed banner and card locked status
       expect(find.text('Attendance Confirmed'), findsOneWidget);
-      expect(find.text('Locked'), findsOneWidget);
+      expect(find.text('Locked'), findsNWidgets(2)); // 1 in banner, 1 in staff assignment card
       expect(find.byKey(const Key('unlock_attendance_button')), findsOneWidget);
     });
   });
@@ -407,12 +463,12 @@ class _FakeShowroomRepositoryForWidget extends ShowroomRepository {
     return [
       Showroom(
         id: 'showroom-1',
-        name: 'Erode Prime Hub',
-        address: '142 Brough Road, Erode',
+        name: 'Skoda Prime Hub',
+        address: '142 Brough Road',
         phone: '9840154321',
         isActive: true,
-        activeStaffCountToday: 2,
-        createdAt: DateTime(2026, 9, 5),
+        activeStaffCountToday: 1,
+        createdAt: DateTime(2026, 10, 19),
       ),
     ];
   }
@@ -421,26 +477,28 @@ class _FakeShowroomRepositoryForWidget extends ShowroomRepository {
   Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
     return DailyStaffResponse(
       showroomId: showroomId,
-      showroomName: 'Erode Prime Hub',
+      showroomName: 'Skoda Prime Hub',
       date: date,
       isAttendanceConfirmed: isConfirmed,
       attendanceConfirmedByName: isConfirmed ? 'Admin User' : null,
-      attendanceConfirmedAt: isConfirmed ? DateTime(2026, 9, 5, 14, 30) : null,
+      attendanceConfirmedAt: isConfirmed ? DateTime(2026, 10, 19, 14, 30) : null,
       staffAssignments: [
         DailyStaffAssignment(
           id: 'assign-1',
           showroomId: showroomId,
-          showroomName: 'Erode Prime Hub',
+          showroomName: 'Skoda Prime Hub',
           staffId: 'staff-1',
           staffName: 'Arun Kumar',
           staffPhone: '9876543210',
           staffRole: 'Technician',
           date: date,
-          vehiclesAttended: 4,
-          createdAt: DateTime(2026, 9, 5),
+          startTime: '09:00',
+          endTime: '18:00',
+          workingHours: 9.0,
+          createdAt: DateTime(2026, 10, 19),
         ),
       ],
-      totalVehiclesAttended: 4,
+      totalVehiclesAttended: 0,
     );
   }
 }

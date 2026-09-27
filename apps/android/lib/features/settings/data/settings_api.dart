@@ -3,6 +3,7 @@ import '../models/business_profile_model.dart';
 import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import '../models/logo_upload_response.dart';
+import '../models/system_preferences_model.dart';
 
 class SettingsApi {
   final Dio _dio;
@@ -62,5 +63,22 @@ class SettingsApi {
   Future<BusinessProfileModel> removeLogo() async {
     final response = await _dio.delete('/settings/business/logo');
     return BusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Retrieves the current canonical System Preferences
+  Future<SystemPreferencesModel> getSystemPreferences() async {
+    final response = await _dio.get('/settings/system');
+    return SystemPreferencesModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Updates the canonical System Preferences
+  Future<SystemPreferencesModel> updateSystemPreferences(
+    SystemPreferencesModel preferences,
+  ) async {
+    final response = await _dio.put(
+      '/settings/system',
+      data: preferences.toJson(),
+    );
+    return SystemPreferencesModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

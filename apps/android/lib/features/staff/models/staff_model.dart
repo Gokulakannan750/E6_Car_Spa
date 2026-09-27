@@ -16,9 +16,14 @@ class Staff {
   final String? aadhaarDocumentFileName;
   final String? aadhaarDocumentContentType;
   final int? aadhaarDocumentSize;
+  final String? staffMasterId;
+  final String? defaultShowroomId;
+  final String? defaultShowroomMasterId;
+  final String? defaultShowroomName;
 
   const Staff({
     required this.id,
+    this.staffMasterId,
     required this.name,
     required this.phoneNumber,
     this.email,
@@ -32,6 +37,9 @@ class Staff {
     this.aadhaarDocumentFileName,
     this.aadhaarDocumentContentType,
     this.aadhaarDocumentSize,
+    this.defaultShowroomId,
+    this.defaultShowroomMasterId,
+    this.defaultShowroomName,
   });
 
   String get initials {
@@ -44,6 +52,7 @@ class Staff {
   factory Staff.fromJson(Map<String, dynamic> json) {
     return Staff(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
+      staffMasterId: json['staffMasterId'] as String? ?? json['StaffMasterId'] as String?,
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
       phoneNumber: json['phoneNumber'] as String? ?? json['PhoneNumber'] as String? ?? '',
       email: json['email'] as String? ?? json['Email'] as String?,
@@ -57,11 +66,15 @@ class Staff {
       aadhaarDocumentFileName: json['aadhaarDocumentFileName'] as String? ?? json['AadhaarDocumentFileName'] as String?,
       aadhaarDocumentContentType: json['aadhaarDocumentContentType'] as String? ?? json['AadhaarDocumentContentType'] as String?,
       aadhaarDocumentSize: json['aadhaarDocumentSize'] as int? ?? json['AadhaarDocumentSize'] as int?,
+      defaultShowroomId: json['defaultShowroomId'] as String? ?? json['DefaultShowroomId'] as String?,
+      defaultShowroomMasterId: json['defaultShowroomMasterId'] as String? ?? json['DefaultShowroomMasterId'] as String?,
+      defaultShowroomName: json['defaultShowroomName'] as String? ?? json['DefaultShowroomName'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'staffMasterId': staffMasterId,
     'name': name,
     'phoneNumber': phoneNumber,
     'email': email,
@@ -75,5 +88,8 @@ class Staff {
     'aadhaarDocumentFileName': aadhaarDocumentFileName,
     'aadhaarDocumentContentType': aadhaarDocumentContentType,
     'aadhaarDocumentSize': aadhaarDocumentSize,
+    'defaultShowroomId': defaultShowroomId,
+    'defaultShowroomMasterId': defaultShowroomMasterId,
+    'defaultShowroomName': defaultShowroomName,
   };
 }

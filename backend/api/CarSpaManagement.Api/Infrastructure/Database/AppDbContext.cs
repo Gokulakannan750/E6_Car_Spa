@@ -37,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<InvoicePublicLink> InvoicePublicLinks => Set<InvoicePublicLink>();
     public DbSet<WhatsAppConfiguration> WhatsAppConfigurations => Set<WhatsAppConfiguration>();
     public DbSet<WhatsAppMessage> WhatsAppMessages => Set<WhatsAppMessage>();
+    public DbSet<SystemPreference> SystemPreferences => Set<SystemPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

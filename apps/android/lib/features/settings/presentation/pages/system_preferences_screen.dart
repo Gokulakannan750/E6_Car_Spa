@@ -181,6 +181,37 @@ class _SystemPreferencesScreenState
               const SizedBox(height: 16),
             ],
 
+            // Error Banner if present
+            if (state.errorMessage != null) ...[
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.errorLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.error.withAlpha(50)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: AppColors.error, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        state.errorMessage!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.errorDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // 1. Date & Time Card
             _buildSectionCard(
               title: 'Date & Time',
@@ -457,49 +488,55 @@ class _SystemPreferencesScreenState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Backend Connectivity',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Backend Connectivity',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: state.connectivityStatus == 'Online'
-                                    ? AppColors.success
-                                    : state.connectivityStatus == 'Unreachable'
-                                        ? AppColors.error
-                                        : Colors.amber,
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: state.connectivityStatus == 'Online'
+                                      ? AppColors.success
+                                      : state.connectivityStatus == 'Unreachable'
+                                          ? AppColors.error
+                                          : Colors.amber,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              state.connectivityStatus,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: state.connectivityStatus == 'Online'
-                                    ? AppColors.success
-                                    : state.connectivityStatus == 'Unreachable'
-                                        ? AppColors.error
-                                        : Colors.amber.shade800,
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  state.connectivityStatus,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: state.connectivityStatus == 'Online'
+                                        ? AppColors.success
+                                        : state.connectivityStatus == 'Unreachable'
+                                            ? AppColors.error
+                                            : Colors.amber.shade800,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       key: const Key('test_connectivity_button'),
                       onPressed: state.isCheckingConnectivity

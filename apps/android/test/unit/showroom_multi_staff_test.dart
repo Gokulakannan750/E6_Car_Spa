@@ -11,9 +11,17 @@ import 'package:e6_car_spa/features/showroom/providers/daily_staff_provider.dart
 class _FakeShowroomRepository extends ShowroomRepository {
   final List<DailyStaffAssignment> assignments = [];
   final List<CreateDailyStaffAssignmentRequest> createRequests = [];
-  final Map<String, int> updatedVehicles = {};
+  final List<UpdateDailyStaffAssignmentRequest> updateRequests = [];
   final List<String> removedAssignments = [];
   int loadDailyStaffCount = 0;
+
+  bool shouldThrowConflictOnAssign = false;
+  String conflictMessage = 'Ramesh is already assigned to Skoda from 09:00 to 14:00 on this date.';
+
+  bool shouldFailConfirmation = false;
+  int confirmAttendanceCallCount = 0;
+  int unlockAttendanceCallCount = 0;
+  bool isConfirmed = false;
 
   _FakeShowroomRepository() : super(ShowroomApi(Dio()));
 
@@ -21,37 +29,44 @@ class _FakeShowroomRepository extends ShowroomRepository {
   Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async {
     return [
       Showroom(
-        id: 'showroom-1',
-        name: 'Showroom Alpha',
+        id: 'showroom-skoda',
+        name: 'Skoda Showroom',
         address: 'Main Road',
         phone: '9876543210',
         isActive: true,
         activeStaffCountToday: 2,
         createdAt: DateTime.now(),
       ),
+      Showroom(
+        id: 'showroom-honda',
+        name: 'Honda Showroom',
+        address: 'Ring Road',
+        phone: '9876543211',
+        isActive: true,
+        activeStaffCountToday: 1,
+        createdAt: DateTime.now(),
+      ),
     ];
   }
-
-  bool shouldFailConfirmation = false;
-  int confirmAttendanceCallCount = 0;
-  int unlockAttendanceCallCount = 0;
-  bool isConfirmed = false;
 
   @override
   Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
     loadDailyStaffCount++;
+    final filtered = assignments.where((a) =>
+        a.showroomId == showroomId &&
+        a.date.year == date.year &&
+        a.date.month == date.month &&
+        a.date.day == date.day).toList();
+
     return DailyStaffResponse(
       showroomId: showroomId,
-      showroomName: 'Showroom Alpha',
+      showroomName: showroomId == 'showroom-skoda' ? 'Skoda Showroom' : 'Honda Showroom',
       date: date,
       isAttendanceConfirmed: isConfirmed,
       attendanceConfirmedByName: isConfirmed ? 'Admin User' : null,
       attendanceConfirmedAt: isConfirmed ? DateTime.now() : null,
-      staffAssignments: List.unmodifiable(assignments),
-      totalVehiclesAttended: assignments.fold<int>(
-        0,
-        (sum, a) => sum + a.vehiclesAttended,
-      ),
+      staffAssignments: List.unmodifiable(filtered),
+      totalVehiclesAttended: 0,
     );
   }
 
@@ -59,21 +74,24 @@ class _FakeShowroomRepository extends ShowroomRepository {
   Future<DailyStaffResponse> confirmDailyStaffAttendance(String showroomId, DateTime date) async {
     confirmAttendanceCallCount++;
     if (shouldFailConfirmation) {
-      throw ApiException(message: 'Server error confirming attendance');
+      throw const ApiException(message: 'Server error confirming attendance');
     }
     isConfirmed = true;
+    final filtered = assignments.where((a) =>
+        a.showroomId == showroomId &&
+        a.date.year == date.year &&
+        a.date.month == date.month &&
+        a.date.day == date.day).toList();
+
     return DailyStaffResponse(
       showroomId: showroomId,
-      showroomName: 'Showroom Alpha',
+      showroomName: 'Skoda Showroom',
       date: date,
       isAttendanceConfirmed: true,
       attendanceConfirmedByName: 'Admin User',
       attendanceConfirmedAt: DateTime.now(),
-      staffAssignments: List.unmodifiable(assignments),
-      totalVehiclesAttended: assignments.fold<int>(
-        0,
-        (sum, a) => sum + a.vehiclesAttended,
-      ),
+      staffAssignments: List.unmodifiable(filtered),
+      totalVehiclesAttended: 0,
     );
   }
 
@@ -81,16 +99,19 @@ class _FakeShowroomRepository extends ShowroomRepository {
   Future<DailyStaffResponse> unlockDailyStaffAttendance(String showroomId, DateTime date) async {
     unlockAttendanceCallCount++;
     isConfirmed = false;
+    final filtered = assignments.where((a) =>
+        a.showroomId == showroomId &&
+        a.date.year == date.year &&
+        a.date.month == date.month &&
+        a.date.day == date.day).toList();
+
     return DailyStaffResponse(
       showroomId: showroomId,
-      showroomName: 'Showroom Alpha',
+      showroomName: 'Skoda Showroom',
       date: date,
       isAttendanceConfirmed: false,
-      staffAssignments: List.unmodifiable(assignments),
-      totalVehiclesAttended: assignments.fold<int>(
-        0,
-        (sum, a) => sum + a.vehiclesAttended,
-      ),
+      staffAssignments: List.unmodifiable(filtered),
+      totalVehiclesAttended: 0,
     );
   }
 
@@ -99,16 +120,25 @@ class _FakeShowroomRepository extends ShowroomRepository {
     String showroomId,
     CreateDailyStaffAssignmentRequest request,
   ) async {
+    if (shouldThrowConflictOnAssign) {
+      throw ConflictException(message: conflictMessage);
+    }
     createRequests.add(request);
+    final hours = calculateSessionHours(request.startTime, request.endTime);
     final assignment = DailyStaffAssignment(
       id: 'assign-${assignments.length + 1}',
       showroomId: showroomId,
-      showroomName: 'Showroom Alpha',
+      showroomName: showroomId == 'showroom-skoda' ? 'Skoda Showroom' : 'Honda Showroom',
       staffId: request.staffId,
       staffName: 'Staff ${request.staffId}',
       staffPhone: '9876543210',
       date: request.date,
-      vehiclesAttended: request.vehiclesAttended,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      workingHours: hours,
+      assignmentType: request.assignmentType,
+      transferReason: request.transferReason,
+      notes: request.notes,
       createdAt: DateTime.now(),
     );
     assignments.add(assignment);
@@ -116,14 +146,16 @@ class _FakeShowroomRepository extends ShowroomRepository {
   }
 
   @override
-  Future<DailyStaffAssignment> updateDailyStaffVehicles(
+  Future<DailyStaffAssignment> updateDailyStaffAssignment(
     String assignmentId,
     UpdateDailyStaffAssignmentRequest request,
   ) async {
-    updatedVehicles[assignmentId] = request.vehiclesAttended;
+    updateRequests.add(request);
     final index = assignments.indexWhere((a) => a.id == assignmentId);
     if (index >= 0) {
       final existing = assignments[index];
+      final newStart = request.startTime ?? existing.startTime;
+      final newEnd = request.endTime ?? existing.endTime;
       final updated = DailyStaffAssignment(
         id: existing.id,
         showroomId: existing.showroomId,
@@ -133,13 +165,21 @@ class _FakeShowroomRepository extends ShowroomRepository {
         staffPhone: existing.staffPhone,
         staffRole: existing.staffRole,
         date: existing.date,
-        vehiclesAttended: request.vehiclesAttended,
+        startTime: newStart,
+        endTime: newEnd,
+        workingHours: calculateSessionHours(newStart, newEnd),
+        status: request.status ?? existing.status,
+        assignmentType: existing.assignmentType,
+        homeShowroomId: existing.homeShowroomId,
+        homeShowroomName: existing.homeShowroomName,
+        transferReason: request.transferReason ?? existing.transferReason,
+        notes: request.notes ?? existing.notes,
         createdAt: existing.createdAt,
       );
       assignments[index] = updated;
       return updated;
     }
-    throw Exception('Assignment not found');
+    throw const ApiException(message: 'Assignment not found');
   }
 
   @override
@@ -150,7 +190,7 @@ class _FakeShowroomRepository extends ShowroomRepository {
 }
 
 void main() {
-  group('Task 2 — Showroom Multiple Staff & Vehicles Attended Tests', () {
+  group('Showroom Work Sessions Provider & Repository Tests', () {
     late ProviderContainer container;
     late _FakeShowroomRepository fakeRepo;
 
@@ -167,130 +207,244 @@ void main() {
       container.dispose();
     });
 
-    test('Assigning multiple staff creates assignments sequentially and updates roster & counts', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
+    test('1. Load work sessions loads date-specific sessions', () async {
+      final targetDate = DateTime(2026, 10, 19);
+      final otherDate = DateTime(2026, 10, 20);
 
-      // Initially 0 assignments
-      expect(container.read(dailyStaffProvider('showroom-1')).totalStaffCount, 0);
-      expect(container.read(dailyStaffProvider('showroom-1')).totalVehiclesAttended, 0);
+      // Preload sessions on two different dates
+      fakeRepo.assignments.addAll([
+        DailyStaffAssignment(
+          id: 'asg-1',
+          showroomId: 'showroom-skoda',
+          showroomName: 'Skoda Showroom',
+          staffId: 'staff-1',
+          staffName: 'Ramesh',
+          staffPhone: '9876543210',
+          date: targetDate,
+          startTime: '09:00',
+          endTime: '14:00',
+          workingHours: 5.0,
+          createdAt: DateTime.now(),
+        ),
+        DailyStaffAssignment(
+          id: 'asg-2',
+          showroomId: 'showroom-skoda',
+          showroomName: 'Skoda Showroom',
+          staffId: 'staff-2',
+          staffName: 'Suresh',
+          staffPhone: '9876543211',
+          date: otherDate,
+          startTime: '09:00',
+          endTime: '18:00',
+          workingHours: 9.0,
+          createdAt: DateTime.now(),
+        ),
+      ]);
 
-      // Assign multiple staff with initial vehicles count = 3
-      await notifier.assignMultipleStaff(
-        staffIds: ['staff-1', 'staff-2', 'staff-3'],
-        vehiclesAttended: 3,
-      );
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+      await notifier.loadDailyStaff(date: targetDate);
 
-      expect(fakeRepo.createRequests.length, 3);
-      expect(fakeRepo.createRequests[0].staffId, 'staff-1');
-      expect(fakeRepo.createRequests[0].vehiclesAttended, 3);
-      expect(fakeRepo.createRequests[1].staffId, 'staff-2');
-      expect(fakeRepo.createRequests[2].staffId, 'staff-3');
-
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.totalStaffCount, 3);
-      expect(state.totalVehiclesAttended, 9); // 3 staff * 3 vehicles = 9
-      expect(state.staffAssignments.length, 3);
-    });
-
-    test('Single staff assignment works and preserves individual vehicles count', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
-
-      await notifier.assignStaff(staffId: 'staff-4', vehiclesAttended: 5);
-
-      final state = container.read(dailyStaffProvider('showroom-1'));
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
       expect(state.totalStaffCount, 1);
-      expect(state.totalVehiclesAttended, 5);
-      expect(state.staffAssignments.first.vehiclesAttended, 5);
+      expect(state.staffAssignments.first.staffName, 'Ramesh');
+      expect(state.totalScheduledHours, 5.0);
     });
 
-    test('Updating vehicles attended updates count and recalculates total summary', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
+    test('2. Assign regular staff with Full Day preset (09:00 – 18:00)', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
 
-      await notifier.assignMultipleStaff(
-        staffIds: ['staff-1', 'staff-2'],
-        vehiclesAttended: 2,
+      final assignment = await notifier.assignWorkSession(
+        staffId: 'staff-101',
+        startTime: '09:00',
+        endTime: '18:00',
+        assignmentType: 'Regular',
       );
 
-      final initialAssignment = container.read(dailyStaffProvider('showroom-1')).staffAssignments.first;
-      expect(initialAssignment.vehiclesAttended, 2);
+      expect(assignment, isNotNull);
+      expect(fakeRepo.createRequests.length, 1);
+      expect(fakeRepo.createRequests.first.assignmentType, 'Regular');
+      expect(fakeRepo.createRequests.first.startTime, '09:00');
+      expect(fakeRepo.createRequests.first.endTime, '18:00');
 
-      // Update vehicles attended for staff-1 to 7
-      final updated = await notifier.updateVehicles(
-        assignmentId: initialAssignment.id,
-        vehiclesAttended: 7,
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalStaffCount, 1);
+      expect(state.totalScheduledHours, 9.0);
+    });
+
+    test('3. Assign temporary transfer staff with transfer reason', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+
+      final assignment = await notifier.assignWorkSession(
+        staffId: 'staff-102',
+        startTime: '14:00',
+        endTime: '18:00',
+        assignmentType: 'TemporaryTransfer',
+        transferReason: 'Covering afternoon shift',
+        notes: 'Transferred from Honda',
+      );
+
+      expect(assignment, isNotNull);
+      expect(fakeRepo.createRequests.first.assignmentType, 'TemporaryTransfer');
+      expect(fakeRepo.createRequests.first.transferReason, 'Covering afternoon shift');
+      expect(fakeRepo.createRequests.first.notes, 'Transferred from Honda');
+
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalStaffCount, 1);
+      expect(state.totalScheduledHours, 4.0);
+    });
+
+    test('4. Support Morning (09:00 – 14:00, 5h) and Afternoon (14:00 – 18:00, 4h) sessions', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+
+      // Morning session (5h)
+      await notifier.assignWorkSession(
+        staffId: 'staff-m',
+        startTime: '09:00',
+        endTime: '14:00',
+        assignmentType: 'Regular',
+      );
+
+      // Afternoon session (4h)
+      await notifier.assignWorkSession(
+        staffId: 'staff-a',
+        startTime: '14:00',
+        endTime: '18:00',
+        assignmentType: 'Regular',
+      );
+
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalStaffCount, 2);
+      expect(state.totalScheduledHours, 9.0); // 5.0h + 4.0h = 9.0h
+    });
+
+    test('5. Support Custom session timing (10:15 – 15:45, 5.5h)', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+
+      await notifier.assignWorkSession(
+        staffId: 'staff-c',
+        startTime: '10:15',
+        endTime: '15:45',
+        assignmentType: 'Regular',
+      );
+
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalStaffCount, 1);
+      expect(state.totalScheduledHours, 5.5);
+    });
+
+    test('6. Edit session updates timing, status, and recalculates working hours', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+
+      await notifier.assignWorkSession(
+        staffId: 'staff-edit',
+        startTime: '09:00',
+        endTime: '14:00',
+        assignmentType: 'Regular',
+      );
+
+      final initial = container.read(dailyStaffProvider('showroom-skoda')).staffAssignments.first;
+      expect(initial.workingHours, 5.0);
+
+      // Edit session to extended hours (09:00 to 18:00) with status 'HalfDay'
+      final updated = await notifier.updateWorkSession(
+        assignmentId: initial.id,
+        startTime: '09:00',
+        endTime: '18:00',
+        status: 'HalfDay',
+        notes: 'Extended shift',
       );
 
       expect(updated, isNotNull);
-      expect(updated!.vehiclesAttended, 7);
+      expect(updated!.workingHours, 9.0);
+      expect(updated.status, 'HalfDay');
 
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.staffAssignments.first.vehiclesAttended, 7);
-      expect(state.totalVehiclesAttended, 9); // 7 + 2 = 9
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalScheduledHours, 9.0);
+      expect(state.staffAssignments.first.status, 'HalfDay');
     });
 
-    test('Removing staff assignment immediately updates roster and summary metrics', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
+    test('7. Delete / remove session removes record from roster', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
 
-      await notifier.assignMultipleStaff(
-        staffIds: ['staff-1', 'staff-2'],
-        vehiclesAttended: 4,
+      await notifier.assignWorkSession(
+        staffId: 'staff-del',
+        startTime: '09:00',
+        endTime: '18:00',
+        assignmentType: 'Regular',
       );
 
-      expect(container.read(dailyStaffProvider('showroom-1')).totalStaffCount, 2);
-      expect(container.read(dailyStaffProvider('showroom-1')).totalVehiclesAttended, 8);
+      expect(container.read(dailyStaffProvider('showroom-skoda')).totalStaffCount, 1);
 
-      final firstAssignment = container.read(dailyStaffProvider('showroom-1')).staffAssignments.first;
-      await notifier.removeAssignment(firstAssignment.id);
+      final assignment = container.read(dailyStaffProvider('showroom-skoda')).staffAssignments.first;
+      await notifier.removeAssignment(assignment.id);
 
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.totalStaffCount, 1);
-      expect(state.totalVehiclesAttended, 4);
-      expect(fakeRepo.removedAssignments, contains(firstAssignment.id));
+      expect(container.read(dailyStaffProvider('showroom-skoda')).totalStaffCount, 0);
+      expect(fakeRepo.removedAssignments, contains(assignment.id));
     });
 
-    test('Confirming attendance updates confirmed state, locks roster, and populates confirmed metadata', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
+    test('8. Handles HTTP 409 Conflict error on overlapping assignments', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
+      fakeRepo.shouldThrowConflictOnAssign = true;
+      fakeRepo.conflictMessage = 'Ramesh is already assigned to Skoda from 09:00 to 14:00 on this date.';
 
-      await notifier.assignStaff(staffId: 'staff-1', vehiclesAttended: 4);
-      expect(container.read(dailyStaffProvider('showroom-1')).isAttendanceConfirmed, isFalse);
+      await expectLater(
+        () => notifier.assignWorkSession(
+          staffId: 'staff-conflict',
+          startTime: '12:00',
+          endTime: '16:00',
+          assignmentType: 'TemporaryTransfer',
+        ),
+        throwsA(isA<ConflictException>()),
+      );
 
-      final res = await notifier.confirmAttendance();
-      expect(res, isNotNull);
-      expect(res!.isAttendanceConfirmed, isTrue);
-      expect(fakeRepo.confirmAttendanceCallCount, 1);
-
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.isAttendanceConfirmed, isTrue);
-      expect(state.attendanceConfirmedByName, 'Admin User');
-      expect(state.attendanceConfirmedAt, isNotNull);
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.errorMessage, contains('Ramesh is already assigned to Skoda from 09:00 to 14:00'));
+      expect(state.totalStaffCount, 0);
     });
 
-    test('Failed attendance confirmation does not mark state as confirmed and sets error message', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
-      fakeRepo.shouldFailConfirmation = true;
+    test('9. Back-to-back sessions on exact boundary (09:00–14:00 and 14:00–18:00) are allowed', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
 
-      try {
-        await notifier.confirmAttendance();
-      } catch (_) {}
+      await notifier.assignWorkSession(
+        staffId: 'staff-1',
+        startTime: '09:00',
+        endTime: '14:00',
+        assignmentType: 'Regular',
+      );
 
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.isAttendanceConfirmed, isFalse);
-      expect(state.errorMessage, contains('Server error confirming attendance'));
+      await notifier.assignWorkSession(
+        staffId: 'staff-2',
+        startTime: '14:00',
+        endTime: '18:00',
+        assignmentType: 'TemporaryTransfer',
+      );
+
+      final state = container.read(dailyStaffProvider('showroom-skoda'));
+      expect(state.totalStaffCount, 2);
+      expect(state.totalScheduledHours, 9.0);
     });
 
-    test('Unlocking attendance resets confirmation state to unconfirmed (owner correction mode)', () async {
-      final notifier = container.read(dailyStaffProvider('showroom-1').notifier);
+    test('10. Confirm and unlock attendance transitions locked state correctly', () async {
+      final notifier = container.read(dailyStaffProvider('showroom-skoda').notifier);
 
-      await notifier.confirmAttendance();
-      expect(container.read(dailyStaffProvider('showroom-1')).isAttendanceConfirmed, isTrue);
+      await notifier.assignWorkSession(
+        staffId: 'staff-lock',
+        startTime: '09:00',
+        endTime: '18:00',
+        assignmentType: 'Regular',
+      );
 
-      final unlockedRes = await notifier.unlockAttendance();
-      expect(unlockedRes, isNotNull);
-      expect(unlockedRes!.isAttendanceConfirmed, isFalse);
-      expect(fakeRepo.unlockAttendanceCallCount, 1);
+      expect(container.read(dailyStaffProvider('showroom-skoda')).isAttendanceConfirmed, isFalse);
 
-      final state = container.read(dailyStaffProvider('showroom-1'));
-      expect(state.isAttendanceConfirmed, isFalse);
+      // Confirm attendance
+      final confirmed = await notifier.confirmAttendance();
+      expect(confirmed!.isAttendanceConfirmed, isTrue);
+      expect(container.read(dailyStaffProvider('showroom-skoda')).isAttendanceConfirmed, isTrue);
+
+      // Unlock attendance (owner correction)
+      final unlocked = await notifier.unlockAttendance();
+      expect(unlocked!.isAttendanceConfirmed, isFalse);
+      expect(container.read(dailyStaffProvider('showroom-skoda')).isAttendanceConfirmed, isFalse);
     });
   });
 }

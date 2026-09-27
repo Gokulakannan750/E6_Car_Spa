@@ -3,18 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/status_badge.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/showroom_model.dart';
 import '../../models/showroom_staff_assignment_model.dart';
 import '../../providers/daily_staff_provider.dart';
+import '../../providers/showroom_billing_provider.dart';
+import '../../providers/showroom_operations_provider.dart';
 import '../../providers/showroom_provider.dart';
 import '../widgets/assign_staff_modal_sheet.dart';
-import '../widgets/daily_staff_assignment_card.dart';
+import '../widgets/edit_staff_session_modal_sheet.dart';
+import '../widgets/log_vehicle_work_modal_sheet.dart';
+import '../widgets/showroom_attendance_tab.dart';
+import '../widgets/showroom_billing_tab.dart';
 import '../widgets/showroom_date_selector.dart';
 import '../widgets/showroom_form_sheet.dart';
+import '../widgets/showroom_operations_tab.dart';
 
 class ShowroomDetailScreen extends ConsumerStatefulWidget {
   final Showroom showroom;
@@ -28,13 +35,53 @@ class ShowroomDetailScreen extends ConsumerStatefulWidget {
   ConsumerState<ShowroomDetailScreen> createState() => _ShowroomDetailScreenState();
 }
 
-class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
+class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutoRefreshMixin<ShowroomDetailScreen> {
   late Showroom _currentShowroom;
+  late final TabController _tabController;
+
+  @override
+  void onAutoRefresh() {
+    ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+    final id = _currentShowroom.id;
+    if (_tabController.index == 0) {
+      ref.read(dailyStaffProvider(id).notifier).loadDailyStaff(silent: true);
+    } else if (_tabController.index == 1) {
+      ref.read(showroomOperationsProvider(id).notifier).loadOperationsData(silent: true);
+    } else if (_tabController.index == 2) {
+      ref.read(showroomBillingProvider(id).notifier).loadDailyBill(silent: true);
+    }
+  }
+
+  static const List<Tab> _tabs = [
+    Tab(
+      icon: Icon(Icons.fact_check_outlined, size: 18),
+      text: 'Attendance',
+    ),
+    Tab(
+      icon: Icon(Icons.directions_car_outlined, size: 18),
+      text: 'Operations',
+    ),
+    Tab(
+      icon: Icon(Icons.receipt_long_outlined, size: 18),
+      text: 'Billing',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
     _currentShowroom = widget.showroom;
+    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   bool _hasPermission(String permission) {
@@ -45,33 +92,37 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
   }
 
   void _openAssignStaffSheet(DailyStaffState dailyState) {
-    final assignedStaffIds =
-        dailyState.staffAssignments.map((a) => a.staffId).toSet();
+    final assignedStaffIds = dailyState.staffAssignments.map((a) => a.staffId).toSet();
 
     showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => AssignStaffModalSheet(
+        showroomId: _currentShowroom.id,
         showroomName: _currentShowroom.name,
         selectedDate: dailyState.selectedDate,
         alreadyAssignedStaffIds: assignedStaffIds,
-        onAssign: (staffIds, initialVehicles) async {
-          await ref
-              .read(dailyStaffProvider(_currentShowroom.id).notifier)
-              .assignMultipleStaff(
-                staffIds: staffIds,
-                vehiclesAttended: initialVehicles,
+        onAssign: ({
+          required staffId,
+          required startTime,
+          required endTime,
+          required assignmentType,
+          transferReason,
+          notes,
+        }) async {
+          await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).assignWorkSession(
+                staffId: staffId,
+                startTime: startTime,
+                endTime: endTime,
+                assignmentType: assignmentType,
+                transferReason: transferReason,
+                notes: notes,
               );
           if (mounted) {
-            final count = staffIds.length;
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  count > 1
-                      ? '$count staff members assigned successfully!'
-                      : 'Staff member assigned successfully!',
-                ),
+              const SnackBar(
+                content: Text('Staff work session assigned successfully!'),
                 backgroundColor: AppColors.success,
               ),
             );
@@ -81,35 +132,62 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
     );
   }
 
-  Future<void> _handleUpdateVehicles(
-    DailyStaffAssignment assignment,
-    int newVehicles,
-  ) async {
-    try {
-      await ref
-          .read(dailyStaffProvider(_currentShowroom.id).notifier)
-          .updateVehicles(
-            assignmentId: assignment.id,
-            vehiclesAttended: newVehicles,
-          );
-      if (mounted) {
+  void _openEditStaffSessionSheet(DailyStaffAssignment assignment) {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => EditStaffSessionModalSheet(
+        assignment: assignment,
+        showroomName: _currentShowroom.name,
+        onUpdate: ({
+          required startTime,
+          required endTime,
+          status,
+          transferReason,
+          notes,
+        }) async {
+          await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).updateWorkSession(
+                assignmentId: assignment.id,
+                startTime: startTime,
+                endTime: endTime,
+                status: status,
+                transferReason: transferReason,
+                notes: notes,
+              );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Work session updated successfully!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _openLogVehicleWorkSheet() {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => LogVehicleWorkModalSheet(
+        showroomId: _currentShowroom.id,
+        showroomName: _currentShowroom.name,
+        selectedDate: ref.read(dailyStaffProvider(_currentShowroom.id)).selectedDate,
+      ),
+    ).then((result) {
+      if (result == true && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vehicles attended updated successfully!'),
+            content: Text('Vehicle work logged successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update vehicles attended: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
+    });
   }
 
   void _openEditShowroomSheet() {
@@ -120,9 +198,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
       builder: (sheetContext) => ShowroomFormSheet(
         showroom: _currentShowroom,
         onUpdate: (id, request) async {
-          final updated = await ref
-              .read(showroomsProvider.notifier)
-              .updateShowroom(id, request);
+          final updated = await ref.read(showroomsProvider.notifier).updateShowroom(id, request);
           if (updated != null && mounted) {
             setState(() {
               _currentShowroom = updated;
@@ -141,13 +217,11 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
 
   Future<void> _handleRemoveAssignment(DailyStaffAssignment assignment) async {
     try {
-      await ref
-          .read(dailyStaffProvider(_currentShowroom.id).notifier)
-          .removeAssignment(assignment.id);
+      await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).removeAssignment(assignment.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Staff assignment removed successfully!'),
+            content: Text('Staff work session removed successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -156,7 +230,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to remove assignment: $e'),
+            content: Text('Failed to remove work session: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -177,7 +251,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
           ),
         ),
         content: const Text(
-          'Once attendance is confirmed, staff assignments and vehicle counts for this day cannot be edited.',
+          'Once attendance is confirmed, staff work sessions and schedule timings for this day cannot be edited.',
           style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
@@ -197,9 +271,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await ref
-            .read(dailyStaffProvider(_currentShowroom.id).notifier)
-            .confirmAttendance();
+        await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).confirmAttendance();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -254,9 +326,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
 
     if (confirmed == true && mounted) {
       try {
-        await ref
-            .read(dailyStaffProvider(_currentShowroom.id).notifier)
-            .unlockAttendance();
+        await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).unlockAttendance();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -280,15 +350,55 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
+
+    final allShowrooms = ref.watch(showroomsProvider).showrooms;
+    final updated = allShowrooms.where((s) => s.id == widget.showroom.id).firstOrNull;
+    if (updated != null) {
+      _currentShowroom = updated;
+    }
+
     final dailyState = ref.watch(dailyStaffProvider(_currentShowroom.id));
     final canAssignStaff = _hasPermission('showroom.assign_staff');
     final canConfirmAttendance = _hasPermission('showroom.confirm_attendance');
     final canManage = _hasPermission('showroom.manage');
     final user = ref.watch(currentUserProvider);
     final isOwner = user?.isOwner ?? false;
+    final canLogWork = canAssignStaff || canManage || isOwner;
     final isLocked = dailyState.isAttendanceConfirmed;
 
-    final dateHeading = DateFormat('dd MMM yyyy').format(dailyState.selectedDate);
+    // FAB selection based on active tab
+    Widget? activeFab;
+    if (_tabController.index == 0 && canAssignStaff && !isLocked) {
+      activeFab = FloatingActionButton.extended(
+        key: const Key('assign_staff_fab'),
+        onPressed: () => _openAssignStaffSheet(dailyState),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.person_add_alt_1_outlined, color: Colors.white),
+        label: const Text(
+          'Assign Staff',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    } else if (_tabController.index == 1 && canLogWork) {
+      activeFab = FloatingActionButton.extended(
+        key: const Key('log_vehicle_work_fab'),
+        onPressed: _openLogVehicleWorkSheet,
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.directions_car_filled_outlined, color: Colors.white),
+        label: const Text(
+          'Log Vehicle Work',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -306,644 +416,261 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen> {
         scrolledUnderElevation: 1,
         actions: [
           IconButton(
-            onPressed: () => ref
-                .read(dailyStaffProvider(_currentShowroom.id).notifier)
-                .loadDailyStaff(),
+            onPressed: () {
+              ref.read(dailyStaffProvider(_currentShowroom.id).notifier).loadDailyStaff();
+              ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).loadOperationsData();
+              ref.read(showroomBillingProvider(_currentShowroom.id).notifier).refresh();
+            },
             icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
-            tooltip: 'Refresh Roster',
+            tooltip: 'Refresh',
           ),
           const AppLogoutAction(),
         ],
       ),
-      floatingActionButton: (canAssignStaff && !isLocked)
-          ? FloatingActionButton.extended(
-              onPressed: () => _openAssignStaffSheet(dailyState),
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.person_add_alt_1_outlined, color: Colors.white),
-              label: const Text(
-                'Assign Staff',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+      floatingActionButton: activeFab,
+      body: Column(
+        children: [
+          // 1. Compact Showroom Master Header Card
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(4),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-            )
-          : null,
-      body: RefreshIndicator(
-        onRefresh: () => ref
-            .read(dailyStaffProvider(_currentShowroom.id).notifier)
-            .loadDailyStaff(),
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // 1. Showroom Master Header Card
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(4),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: _currentShowroom.isActive
-                              ? AppColors.primary.withAlpha(25)
-                              : AppColors.surfaceAlt,
-                          child: Text(
-                            _currentShowroom.initials,
-                            style: AppTextStyles.headingSmall.copyWith(
-                              color: _currentShowroom.isActive
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary,
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: _currentShowroom.isActive
+                          ? AppColors.primary.withAlpha(25)
+                          : AppColors.surfaceAlt,
+                      child: Text(
+                        _currentShowroom.initials,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: _currentShowroom.isActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _currentShowroom.name,
+                            style: AppTextStyles.bodyLarge.copyWith(
                               fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 2),
+                          Row(
                             children: [
-                              Text(
-                                _currentShowroom.name,
-                                style: AppTextStyles.headingSmall.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 12,
+                                color: AppColors.textSecondary,
                               ),
-                              const SizedBox(height: 2),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 13,
+                              const SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  _currentShowroom.address,
+                                  style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.textSecondary,
+                                    fontSize: 11,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      _currentShowroom.address,
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        StatusBadge(
-                          label: _currentShowroom.isActive ? 'Active' : 'Inactive',
-                          type: _currentShowroom.isActive
-                              ? StatusType.completed
-                              : StatusType.cancelled,
-                          isCompact: true,
-                        ),
-                        if (canManage) ...[
-                          const SizedBox(width: 4),
-                          IconButton(
-                            onPressed: _openEditShowroomSheet,
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            color: AppColors.textSecondary,
-                            tooltip: 'Edit Showroom',
-                            visualDensity: VisualDensity.compact,
-                          ),
                         ],
-                      ],
+                      ),
                     ),
-                    if (_currentShowroom.phone != null &&
-                        _currentShowroom.phone!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                    const SizedBox(width: 8),
+                    StatusBadge(
+                      label: _currentShowroom.isActive ? 'Active' : 'Inactive',
+                      type: _currentShowroom.isActive
+                          ? StatusType.completed
+                          : StatusType.cancelled,
+                      isCompact: true,
+                    ),
+                    if (canManage) ...[
+                      const SizedBox(width: 2),
+                      IconButton(
+                        onPressed: _openEditShowroomSheet,
+                        icon: const Icon(Icons.edit_outlined, size: 15),
+                        color: AppColors.textSecondary,
+                        tooltip: 'Edit Showroom',
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (_currentShowroom.phone != null && _currentShowroom.phone!.isNotEmpty)
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
                             Icons.phone_outlined,
-                            size: 13,
+                            size: 12,
                             color: AppColors.textSecondary,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             _currentShowroom.phone!,
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textPrimary,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               fontFamily: 'monospace',
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    if (_currentShowroom.phone != null &&
+                        _currentShowroom.phone!.isNotEmpty &&
+                        _currentShowroom.gstin != null &&
+                        _currentShowroom.gstin!.trim().isNotEmpty)
+                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
                     if (_currentShowroom.gstin != null &&
-                        _currentShowroom.gstin!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                        _currentShowroom.gstin!.trim().isNotEmpty)
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(
                             Icons.receipt_outlined,
-                            size: 13,
+                            size: 12,
                             color: AppColors.textSecondary,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             'GSTIN: ${_currentShowroom.gstin!}',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.textPrimary,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                               fontFamily: 'monospace',
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-            // 2. Interactive Date Selector
-            SliverToBoxAdapter(
-              child: ShowroomDateSelector(
-                selectedDate: dailyState.selectedDate,
-                onDateSelected: (newDate) {
-                  ref
-                      .read(dailyStaffProvider(_currentShowroom.id).notifier)
-                      .setDate(newDate);
-                },
-              ),
-            ),
-
-            // 3. Daily Summary Metrics Banner
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Row(
-                  children: [
-                    _buildMetricCard(
-                      title: 'Staff on Duty',
-                      value: '${dailyState.totalStaffCount}',
-                      icon: Icons.people_alt_outlined,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildMetricCard(
-                      title: 'Vehicles Attended',
-                      value: '${dailyState.totalVehiclesAttended}',
-                      icon: Icons.directions_car_outlined,
-                      color: AppColors.info,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 4. Attendance Confirmation Status Banner
-            SliverToBoxAdapter(
-              child: _buildAttendanceBanner(
-                dailyState: dailyState,
-                canConfirm: canConfirmAttendance,
-                isOwner: isOwner,
-              ),
-            ),
-
-            // 5. Section Heading: "Staff on Duty"
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Staff on Duty',
-                              style: AppTextStyles.headingSmall.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withAlpha(25),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${dailyState.totalStaffCount}',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      dateHeading,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // 6. Daily Staff Assignments List / States
-            if (dailyState.isLoading)
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              )
-            else if (dailyState.errorMessage != null)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    if (_currentShowroom.gstin != null &&
+                        _currentShowroom.gstin!.trim().isNotEmpty)
+                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                        const SizedBox(height: 12),
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 3),
                         Text(
-                          dailyState.errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: () => ref
-                              .read(dailyStaffProvider(_currentShowroom.id).notifier)
-                              .loadDailyStaff(),
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Try Again'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            else if (dailyState.staffAssignments.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: AppEmptyState(
-                    title: 'No staff assigned for $dateHeading',
-                    message: isLocked
-                        ? 'Attendance is confirmed and locked for this date.'
-                        : 'Tap "+ Assign Staff" below to schedule staff members to this showroom for this date.',
-                    icon: Icons.people_outline,
-                    actionLabel: (canAssignStaff && !isLocked) ? 'Assign Staff' : null,
-                    onAction: (canAssignStaff && !isLocked)
-                        ? () => _openAssignStaffSheet(dailyState)
-                        : null,
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.only(bottom: 88, top: 2),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (itemContext, index) {
-                      final assignment = dailyState.staffAssignments[index];
-                      return DailyStaffAssignmentCard(
-                        assignment: assignment,
-                        canManage: canAssignStaff,
-                        isLocked: isLocked,
-                        onRemove: () => _handleRemoveAssignment(assignment),
-                        onEditVehicles: (newVehicles) =>
-                            _handleUpdateVehicles(assignment, newVehicles),
-                      );
-                    },
-                    childCount: dailyState.staffAssignments.length,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAttendanceBanner({
-    required DailyStaffState dailyState,
-    required bool canConfirm,
-    required bool isOwner,
-  }) {
-    final isConfirmed = dailyState.isAttendanceConfirmed;
-
-    if (isConfirmed) {
-      final confirmedByName = dailyState.attendanceConfirmedByName ?? 'Authorized User';
-      final confirmedAtStr = dailyState.attendanceConfirmedAt != null
-          ? DateFormat('dd MMM yyyy, hh:mm a').format(dailyState.attendanceConfirmedAt!.toLocal())
-          : null;
-
-      return Container(
-        margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.readyBg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.readyBorder),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.readyBorder.withAlpha(60),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                size: 20,
-                color: AppColors.readyText,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Attendance Confirmed',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.readyText,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.readyBorder.withAlpha(60),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.lock_outline, size: 10, color: AppColors.readyText),
-                            const SizedBox(width: 2),
-                            Text(
-                              'Locked',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.readyText,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    confirmedAtStr != null
-                        ? 'Confirmed by $confirmedByName • $confirmedAtStr'
-                        : 'Confirmed by $confirmedByName',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.readyText,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isOwner) ...[
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                key: const Key('unlock_attendance_button'),
-                onPressed: dailyState.isUnlocking ? null : () => _confirmUnlockAttendance(),
-                icon: dailyState.isUnlocking
-                    ? const SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.lock_open_outlined, size: 14),
-                label: const Text('Correct', style: TextStyle(fontSize: 11)),
-                style: OutlinedButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  side: const BorderSide(color: AppColors.readyBorder),
-                  foregroundColor: AppColors.readyText,
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
-
-    // Unconfirmed state
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.qualityCheckBg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.qualityCheckBorder),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.qualityCheckBorder.withAlpha(60),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.schedule_rounded,
-                  size: 20,
-                  color: AppColors.qualityCheckText,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          'Attendance Not Confirmed',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.qualityCheckText,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.qualityCheckBorder.withAlpha(60),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Open for edits',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.qualityCheckText,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          'Since ${DateFormat('MMM yyyy').format(_currentShowroom.createdAt)}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontSize: 10.5,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      'Attendance and vehicle counts can still be edited.',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.warningDark,
-                        fontSize: 11,
-                      ),
-                    ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          if (canConfirm) ...[
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                key: const Key('confirm_attendance_button'),
-                onPressed: dailyState.isConfirming ? null : () => _confirmSubmitAttendance(),
-                icon: dailyState.isConfirming
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline_rounded, size: 14),
-                label: const Text(
-                  'Confirm Attendance',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
 
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(4),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+          // 2. Shared Interactive Date Selector
+          ShowroomDateSelector(
+            selectedDate: dailyState.selectedDate,
+            onDateSelected: (newDate) {
+              ref.read(dailyStaffProvider(_currentShowroom.id).notifier).setDate(newDate);
+              ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).setDate(newDate);
+              ref.read(showroomBillingProvider(_currentShowroom.id).notifier).setDate(newDate);
+            },
+          ),
+
+          // 3. Workspace TabBar
+          Container(
+            color: Colors.white,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.primary,
+              indicatorWeight: 2.5,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.textSecondary,
+              labelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700),
+              unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w500),
+              tabs: _tabs,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: color),
+          ),
+
+          // 4. TabBar Content Views
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: Attendance
+                ShowroomAttendanceTab(
+                  showroomId: _currentShowroom.id,
+                  canAssignStaff: canAssignStaff,
+                  canConfirmAttendance: canConfirmAttendance,
+                  isOwner: isOwner,
+                  onOpenAssignStaffSheet: () => _openAssignStaffSheet(dailyState),
+                  onOpenEditStaffSessionSheet: _openEditStaffSessionSheet,
+                  onRemoveAssignment: _handleRemoveAssignment,
+                  onConfirmSubmitAttendance: _confirmSubmitAttendance,
+                  onConfirmUnlockAttendance: _confirmUnlockAttendance,
+                ),
+
+                // Tab 2: Operations
+                ShowroomOperationsTab(
+                  showroomId: _currentShowroom.id,
+                  showroomName: _currentShowroom.name,
+                  selectedDate: dailyState.selectedDate,
+                  canLogWork: canLogWork,
+                  onOpenLogWorkSheet: _openLogVehicleWorkSheet,
+                ),
+
+                // Tab 3: Billing
+                ShowroomBillingTab(
+                  showroom: _currentShowroom,
+                  selectedDate: dailyState.selectedDate,
+                  onSelectDate: (newDate) {
+                    ref.read(dailyStaffProvider(_currentShowroom.id).notifier).setDate(newDate);
+                    ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).setDate(newDate);
+                    ref.read(showroomBillingProvider(_currentShowroom.id).notifier).setDate(newDate);
+                  },
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: AppTextStyles.headingSmall.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

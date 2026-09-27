@@ -615,9 +615,9 @@ export function ShowroomAttendancePage() {
 				<div className="flex items-center gap-3">
 					<button
 						type="button"
-						onClick={() => navigate('/showroom')}
+						onClick={() => navigate('/showroom/attendance')}
 						className="p-2 rounded-lg bg-white border border-outline-variant/80 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all cursor-pointer shadow-2xs"
-						title="Back to Showrooms Master"
+						title="Back to Showroom Attendance"
 					>
 						<ArrowLeft className="w-4 h-4" />
 					</button>

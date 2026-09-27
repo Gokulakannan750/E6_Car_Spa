@@ -133,7 +133,10 @@ void main() {
       staffPhone: '9840111111',
       staffRole: 'Detailer',
       date: DateTime(2026, 9, 9),
-      vehiclesAttended: 4,
+      startTime: '09:00',
+      endTime: '14:00',
+      workingHours: 5.0,
+      assignmentType: 'Regular',
       createdAt: DateTime(2026, 9, 9),
     ),
     DailyStaffAssignment(
@@ -145,7 +148,10 @@ void main() {
       staffPhone: '9840222222',
       staffRole: 'Detailer',
       date: DateTime(2026, 9, 9),
-      vehiclesAttended: 3,
+      startTime: '14:00',
+      endTime: '18:00',
+      workingHours: 4.0,
+      assignmentType: 'Regular',
       createdAt: DateTime(2026, 9, 9),
     ),
   ];
@@ -203,13 +209,19 @@ void main() {
   });
 
   group('ShowroomDetailScreen Operations & Attendance Locking', () {
-    testWidgets('Renders staff assignments list and vehicle counts', (tester) async {
+    testWidgets('Renders staff assignments list and work session timings', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final mockRepo = MockShowroomRepository()
         ..dailyStaffToReturn = DailyStaffResponse(
           showroomId: 'sr-100',
           showroomName: 'Anna Nagar Hub',
           date: DateTime.now(),
-          totalVehiclesAttended: 7,
           isAttendanceConfirmed: false,
           staffAssignments: sampleAssignments,
         );
@@ -231,7 +243,10 @@ void main() {
       expect(find.widgetWithText(AppBar, 'Anna Nagar Hub'), findsOneWidget);
       expect(find.text('Ramesh Kumar'), findsOneWidget);
       expect(find.text('Suresh Raina'), findsOneWidget);
-      expect(find.text('7'), findsWidgets);
+      expect(find.text('09:00 – 14:00'), findsOneWidget);
+      expect(find.text('14:00 – 18:00'), findsOneWidget);
+      expect(find.text('Scheduled Hours'), findsOneWidget);
+      expect(find.text('9.0h'), findsOneWidget);
     });
 
     testWidgets('Displays GSTIN in header when present', (tester) async {

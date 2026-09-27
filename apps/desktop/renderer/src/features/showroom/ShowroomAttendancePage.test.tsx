@@ -1274,4 +1274,76 @@ describe('ShowroomAttendancePage Component (Phase 2A — Dedicated Showroom Atte
 			expect(screen.queryByText('Assign Staff to Showroom')).not.toBeInTheDocument();
 		});
 	});
+
+	it('18. Back button inside showroom attendance workspace returns to /showroom/attendance (not /showroom)', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+				<Route path="/showroom" element={<div data-testid="showroom-master-page">Showrooms Master Page</div>} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		// Workspace header for Popular Hyundai Showroom is visible
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+		});
+
+		// Find the back button in the workspace header
+		const backBtn = screen.getByTitle('Back to Showroom Attendance');
+		expect(backBtn).toBeInTheDocument();
+
+		// Click the back button
+		fireEvent.click(backBtn);
+
+		// Verify we are back on the Showroom Attendance landing/selector page
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Showroom Attendance' })).toBeInTheDocument();
+			expect(screen.getByText('Manage daily staff roster, working hours, and cross-showroom temporary assignments')).toBeInTheDocument();
+		});
+
+		// Verify that we did NOT navigate to /showroom
+		expect(screen.queryByTestId('showroom-master-page')).not.toBeInTheDocument();
+	});
+
+	it('19. Back to Showrooms button on attendance landing page returns to /showroom', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+				<Route path="/showroom" element={<div data-testid="showroom-master-page">Showrooms Master Page</div>} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Showroom Attendance' })).toBeInTheDocument();
+		});
+
+		const backToMasterBtn = screen.getByRole('button', { name: /Back to Showrooms/i });
+		fireEvent.click(backToMasterBtn);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('showroom-master-page')).toBeInTheDocument();
+		});
+	});
 });

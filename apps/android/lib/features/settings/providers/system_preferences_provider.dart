@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/network/dio_client.dart';
+import '../data/settings_repository.dart';
 import '../models/system_preferences_model.dart';
 
 const String kSystemPreferencesStorageKey = 'e6_system_preferences';
@@ -12,6 +12,7 @@ class SystemPreferencesState {
   final bool isLoading;
   final bool isSaving;
   final String? message;
+  final String? errorMessage;
   final String connectivityStatus; // 'Online', 'Unreachable', 'Checking', 'Unknown'
   final bool isCheckingConnectivity;
   final DateTime? lastCheckedAt;
@@ -21,6 +22,7 @@ class SystemPreferencesState {
     this.isLoading = false,
     this.isSaving = false,
     this.message,
+    this.errorMessage,
     this.connectivityStatus = 'Unknown',
     this.isCheckingConnectivity = false,
     this.lastCheckedAt,
@@ -31,7 +33,9 @@ class SystemPreferencesState {
     bool? isLoading,
     bool? isSaving,
     String? message,
+    String? errorMessage,
     bool clearMessage = false,
+    bool clearErrorMessage = false,
     String? connectivityStatus,
     bool? isCheckingConnectivity,
     DateTime? lastCheckedAt,
@@ -41,6 +45,7 @@ class SystemPreferencesState {
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       message: clearMessage ? null : (message ?? this.message),
+      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
       connectivityStatus: connectivityStatus ?? this.connectivityStatus,
       isCheckingConnectivity: isCheckingConnectivity ?? this.isCheckingConnectivity,
       lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
@@ -54,75 +59,90 @@ final systemPreferencesStorageProvider = Provider<FlutterSecureStorage>((ref) {
 
 final systemPreferencesNotifierProvider =
     StateNotifierProvider<SystemPreferencesNotifier, SystemPreferencesState>((ref) {
-  final storage = ref.watch(systemPreferencesStorageProvider);
+  final repository = ref.watch(settingsRepositoryProvider);
   final dio = ref.watch(dioProvider);
-  return SystemPreferencesNotifier(storage: storage, dio: dio);
+  return SystemPreferencesNotifier(repository: repository, dio: dio);
+});
+
+final systemPreferencesProvider = Provider<SystemPreferencesModel>((ref) {
+  return ref.watch(systemPreferencesNotifierProvider.select((s) => s.preferences));
 });
 
 class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
-  final FlutterSecureStorage _storage;
+  final SettingsRepository _repository;
   final Dio _dio;
 
   SystemPreferencesNotifier({
-    required FlutterSecureStorage storage,
+    required SettingsRepository repository,
     required Dio dio,
-  })  : _storage = storage,
+  })  : _repository = repository,
         _dio = dio,
         super(const SystemPreferencesState()) {
     loadPreferences();
   }
 
   Future<void> loadPreferences() async {
-    state = state.copyWith(isLoading: true, clearMessage: true);
-    try {
-      final jsonStr = await _storage.read(key: kSystemPreferencesStorageKey);
-      if (jsonStr != null && jsonStr.isNotEmpty) {
-        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
-        final prefs = SystemPreferencesModel.fromJson(map);
-        state = state.copyWith(
-          preferences: prefs,
-          isLoading: false,
-        );
-        return;
-      }
-    } catch (_) {}
-
     state = state.copyWith(
-      preferences: SystemPreferencesModel.defaultPreferences,
-      isLoading: false,
+      isLoading: true,
+      clearMessage: true,
+      clearErrorMessage: true,
     );
+    try {
+      final prefs = await _repository.getSystemPreferences();
+      state = state.copyWith(
+        preferences: prefs,
+        isLoading: false,
+      );
+    } catch (_) {
+      final cached = await _repository.getCachedSystemPreferences();
+      state = state.copyWith(
+        preferences: cached ?? SystemPreferencesModel.defaultPreferences,
+        isLoading: false,
+      );
+    }
   }
 
   Future<bool> savePreferences(SystemPreferencesModel newPreferences) async {
-    state = state.copyWith(isSaving: true, clearMessage: true);
+    state = state.copyWith(
+      isSaving: true,
+      clearMessage: true,
+      clearErrorMessage: true,
+    );
     try {
-      final jsonStr = jsonEncode(newPreferences.toJson());
-      await _storage.write(key: kSystemPreferencesStorageKey, value: jsonStr);
+      final updated = await _repository.updateSystemPreferences(newPreferences);
       state = state.copyWith(
-        preferences: newPreferences,
+        preferences: updated,
         isSaving: false,
         message: 'System preferences saved successfully.',
       );
       return true;
     } catch (e) {
+      // Still write to local cache as offline fallback
+      await _repository.saveCachedSystemPreferences(newPreferences);
       state = state.copyWith(
+        preferences: newPreferences,
         isSaving: false,
-        message: 'Failed to save system preferences.',
+        errorMessage: 'Failed to save preferences to server. Cached locally.',
       );
       return false;
     }
   }
 
   Future<void> resetToDefaults() async {
-    state = state.copyWith(isSaving: true, clearMessage: true);
+    state = state.copyWith(
+      isSaving: true,
+      clearMessage: true,
+      clearErrorMessage: true,
+    );
     try {
-      await _storage.delete(key: kSystemPreferencesStorageKey);
+      final reset = await _repository.resetSystemPreferences();
       state = state.copyWith(
-        preferences: SystemPreferencesModel.defaultPreferences,
+        preferences: reset,
         isSaving: false,
         message: 'Preferences reset to standard defaults.',
       );
     } catch (_) {
+      await _repository.saveCachedSystemPreferences(SystemPreferencesModel.defaultPreferences);
       state = state.copyWith(
         preferences: SystemPreferencesModel.defaultPreferences,
         isSaving: false,
@@ -136,6 +156,7 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
       isCheckingConnectivity: true,
       connectivityStatus: 'Checking',
       clearMessage: true,
+      clearErrorMessage: true,
     );
 
     try {

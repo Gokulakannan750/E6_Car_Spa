@@ -51,6 +51,15 @@ class MockErrorShowroomApi extends ShowroomApi {
   }
 
   @override
+  Future<DailyStaffAssignment> updateDailyStaffAssignment(
+    String assignmentId,
+    UpdateDailyStaffAssignmentRequest request,
+  ) async {
+    if (exceptionToThrow != null) throw exceptionToThrow!;
+    throw UnimplementedError();
+  }
+
+  @override
   Future<DailyStaffAssignment> updateDailyStaffVehicles(
     String assignmentId,
     UpdateDailyStaffAssignmentRequest request,

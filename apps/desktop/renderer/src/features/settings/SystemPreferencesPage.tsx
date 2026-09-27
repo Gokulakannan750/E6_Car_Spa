@@ -1,21 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
 	Calendar,
 	Printer,
 	RefreshCw,
 	Save,
 	CheckCircle2,
+	AlertCircle,
 	Laptop,
 	ShieldCheck,
 	Keyboard,
 } from 'lucide-react';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
+import {
+	getSystemPreferences,
+	updateSystemPreferences,
+	type SystemPreferencesDto,
+} from '../../lib/api';
 
 export interface SystemPreferences {
 	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 	timeFormat: '12h' | '24h';
 	currencySymbol: '₹' | '$' | '€';
+	decimalPrecision: number;
 	defaultPrintCopies: number;
 	autoPrintReceipt: boolean;
 	refreshInterval: number; // in seconds, 0 = manual
@@ -27,6 +35,7 @@ export const DEFAULT_SYSTEM_PREFERENCES: SystemPreferences = {
 	dateFormat: 'DD/MM/YYYY',
 	timeFormat: '12h',
 	currencySymbol: '₹',
+	decimalPrecision: 2,
 	defaultPrintCopies: 1,
 	autoPrintReceipt: true,
 	refreshInterval: 30,
@@ -43,34 +52,97 @@ export function getStoredPreferences(): SystemPreferences {
 	}
 }
 
+export function saveStoredPreferences(prefs: SystemPreferences): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		localStorage.setItem(SYSTEM_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs));
+	} catch {
+		// Ignore storage quota errors
+	}
+}
+
 export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);
+	const queryClient = useQueryClient();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
-	const [saving, setSaving] = useState(false);
 	const [savedMsg, setSavedMsg] = useState<string | null>(null);
+	const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+	// Fetch authoritative preferences from server
+	const { data: serverPrefs, isLoading, isError } = useQuery<SystemPreferencesDto>({
+		queryKey: ['system-preferences'],
+		queryFn: getSystemPreferences,
+	});
+
+	// Synchronize server data when loaded
+	useEffect(() => {
+		if (serverPrefs) {
+			const loaded: SystemPreferences = {
+				dateFormat: serverPrefs.dateFormat,
+				timeFormat: serverPrefs.timeFormat,
+				currencySymbol: serverPrefs.currencySymbol,
+				decimalPrecision: serverPrefs.decimalPrecision ?? 2,
+				defaultPrintCopies: serverPrefs.defaultPrintCopies ?? 1,
+				autoPrintReceipt: serverPrefs.autoPrintReceipt ?? true,
+				refreshInterval: serverPrefs.refreshInterval ?? 30,
+			};
+			setPreferences(loaded);
+			saveStoredPreferences(loaded);
+		}
+	}, [serverPrefs]);
+
+	const saveMutation = useMutation({
+		mutationFn: async (updated: SystemPreferences) => {
+			return await updateSystemPreferences({
+				dateFormat: updated.dateFormat,
+				timeFormat: updated.timeFormat,
+				currencySymbol: updated.currencySymbol,
+				decimalPrecision: updated.decimalPrecision,
+				defaultPrintCopies: updated.defaultPrintCopies,
+				autoPrintReceipt: updated.autoPrintReceipt,
+				refreshInterval: updated.refreshInterval,
+			});
+		},
+		onSuccess: (data) => {
+			const saved: SystemPreferences = {
+				dateFormat: data.dateFormat,
+				timeFormat: data.timeFormat,
+				currencySymbol: data.currencySymbol,
+				decimalPrecision: data.decimalPrecision ?? 2,
+				defaultPrintCopies: data.defaultPrintCopies ?? 1,
+				autoPrintReceipt: data.autoPrintReceipt ?? true,
+				refreshInterval: data.refreshInterval ?? 30,
+			};
+			setPreferences(saved);
+			saveStoredPreferences(saved);
+			queryClient.setQueryData(['system-preferences'], data);
+			setErrorMsg(null);
+			setSavedMsg('System preferences saved successfully.');
+			setTimeout(() => setSavedMsg(null), 3000);
+		},
+		onError: (err: Error) => {
+			// Save to local cache as offline fallback
+			saveStoredPreferences(preferences);
+			setErrorMsg(err.message || 'Failed to save system preferences to server.');
+			setTimeout(() => setErrorMsg(null), 5000);
+		},
+	});
 
 	const handleSave = (e: React.FormEvent) => {
 		e.preventDefault();
-		setSaving(true);
-		try {
-			if (typeof localStorage !== 'undefined') {
-				localStorage.setItem(SYSTEM_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
-			}
-			setSavedMsg('System preferences saved successfully.');
-			setTimeout(() => setSavedMsg(null), 3000);
-		} finally {
-			setSaving(false);
-		}
+		setErrorMsg(null);
+		saveMutation.mutate(preferences);
 	};
 
 	const handleReset = () => {
-		setPreferences(DEFAULT_SYSTEM_PREFERENCES);
-		if (typeof localStorage !== 'undefined') {
-			localStorage.setItem(SYSTEM_PREFERENCES_STORAGE_KEY, JSON.stringify(DEFAULT_SYSTEM_PREFERENCES));
-		}
-		setSavedMsg('Preferences reset to standard defaults.');
-		setTimeout(() => setSavedMsg(null), 3000);
+		setErrorMsg(null);
+		saveMutation.mutate(DEFAULT_SYSTEM_PREFERENCES, {
+			onSuccess: () => {
+				setSavedMsg('Preferences reset to standard defaults.');
+				setTimeout(() => setSavedMsg(null), 3000);
+			},
+		});
 	};
 
 	return (
@@ -90,27 +162,52 @@ export function SystemPreferencesPage() {
 					<button
 						type="button"
 						onClick={handleReset}
-						className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-all cursor-pointer"
+						disabled={saveMutation.isPending}
+						className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
 					>
 						Reset Defaults
 					</button>
 					<button
 						type="submit"
 						form="system-preferences-form"
-						disabled={saving}
+						disabled={saveMutation.isPending}
 						className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
 					>
 						<Save className="w-4 h-4" />
-						{saving ? 'Saving...' : 'Save Preferences'}
+						{saveMutation.isPending ? 'Saving...' : 'Save Preferences'}
 					</button>
 				</div>
 			</div>
+
+			{/* Loading banner */}
+			{isLoading && (
+				<div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
+					<RefreshCw className="w-4 h-4 text-blue-600 animate-spin shrink-0" />
+					Loading canonical system preferences from server...
+				</div>
+			)}
+
+			{/* Offline Fallback Warning banner */}
+			{isError && (
+				<div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2">
+					<AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+					Server currently unavailable. Displaying local cached preferences.
+				</div>
+			)}
 
 			{/* Notification Toast */}
 			{savedMsg && (
 				<div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
 					<CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
 					{savedMsg}
+				</div>
+			)}
+
+			{/* Error Toast */}
+			{errorMsg && (
+				<div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-xs font-medium flex items-center gap-2 animate-in fade-in duration-200">
+					<AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+					{errorMsg}
 				</div>
 			)}
 
@@ -170,7 +267,7 @@ export function SystemPreferencesPage() {
 								</select>
 							</div>
 
-							<div className="sm:col-span-2">
+							<div>
 								<label htmlFor="pref-currency-symbol" className="block text-xs font-semibold text-slate-700 mb-1.5">
 									Default Currency Symbol
 								</label>
@@ -191,6 +288,29 @@ export function SystemPreferencesPage() {
 								</select>
 								<p className="text-[11px] text-slate-400 mt-1">
 									Used for monetary figures, customer invoices, and financial reports across all workspaces.
+								</p>
+							</div>
+
+							<div>
+								<label htmlFor="pref-decimal-precision" className="block text-xs font-semibold text-slate-700 mb-1.5">
+									Decimal Precision
+								</label>
+								<select
+									id="pref-decimal-precision"
+									value={preferences.decimalPrecision}
+									onChange={(e) =>
+										setPreferences((p) => ({
+											...p,
+											decimalPrecision: Number(e.target.value),
+										}))
+									}
+									className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+								>
+									<option value={2}>2 Decimals (.00)</option>
+									<option value={0}>0 Decimals (Whole numbers)</option>
+								</select>
+								<p className="text-[11px] text-slate-400 mt-1">
+									Determines fractional decimal display on financial totals and print receipts.
 								</p>
 							</div>
 						</div>
@@ -227,7 +347,9 @@ export function SystemPreferencesPage() {
 
 							<div className="flex items-center justify-between sm:pt-6">
 								<div>
-									<span className="block text-xs font-semibold text-slate-700">Auto-Print on Settlement</span>
+									<label htmlFor="pref-auto-print" className="block text-xs font-semibold text-slate-700 cursor-pointer">
+										Auto-Print on Settlement
+									</label>
 									<span className="text-[11px] text-slate-400">Trigger print modal when balance hits ₹0</span>
 								</div>
 								<input
@@ -240,7 +362,7 @@ export function SystemPreferencesPage() {
 											autoPrintReceipt: e.target.checked,
 										}))
 									}
-									className="h-4 w-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500"
+									className="h-4 w-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500 cursor-pointer"
 								/>
 							</div>
 						</div>
@@ -307,7 +429,7 @@ export function SystemPreferencesPage() {
 							</div>
 							<div className="flex justify-between py-1 border-b border-slate-100">
 								<span className="text-slate-500">Storage Layer</span>
-								<span className="font-semibold text-slate-800">SQLite + Singleton Config</span>
+								<span className="font-semibold text-slate-800">Server Synchronized + SQLite</span>
 							</div>
 							<div className="flex justify-between py-1">
 								<span className="text-slate-500">Print Foundation</span>

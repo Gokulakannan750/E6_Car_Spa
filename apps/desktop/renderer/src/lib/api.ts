@@ -3031,5 +3031,44 @@ export async function getMonthlyShowroomReport(params: {
 	);
 }
 
+// ============================================================================
+// System Preferences
+// ============================================================================
 
+export interface SystemPreferencesDto {
+	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+	timeFormat: '12h' | '24h';
+	currencySymbol: '₹' | '$' | '€';
+	decimalPrecision: number;
+	defaultPrintCopies: number;
+	autoPrintReceipt: boolean;
+	refreshInterval: number;
+	updatedAt?: string | null;
+}
 
+export interface UpdateSystemPreferencesRequest {
+	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
+	timeFormat: '12h' | '24h';
+	currencySymbol: '₹' | '$' | '€';
+	decimalPrecision: number;
+	defaultPrintCopies: number;
+	autoPrintReceipt: boolean;
+	refreshInterval: number;
+}
+
+export async function getSystemPreferences(): Promise<SystemPreferencesDto> {
+	return request<SystemPreferencesDto>('/api/settings/system', {}, 'load system preferences');
+}
+
+export async function updateSystemPreferences(
+	data: UpdateSystemPreferencesRequest
+): Promise<SystemPreferencesDto> {
+	return request<SystemPreferencesDto>(
+		'/api/settings/system',
+		{
+			method: 'PUT',
+			body: JSON.stringify(data),
+		},
+		'update system preferences'
+	);
+}

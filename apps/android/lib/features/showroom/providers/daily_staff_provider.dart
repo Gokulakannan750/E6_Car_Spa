@@ -33,6 +33,12 @@ class DailyStaffState {
       dailyStaffResponse?.staffAssignments ?? const [];
 
   int get totalStaffCount => staffAssignments.length;
+  double get totalScheduledHours =>
+      dailyStaffResponse?.totalScheduledHours ??
+      staffAssignments.fold<double>(0.0, (sum, a) {
+        final hours = a.workingHours ?? calculateSessionHours(a.startTime, a.endTime) ?? 0.0;
+        return sum + hours;
+      });
   int get totalVehiclesAttended => dailyStaffResponse?.totalVehiclesAttended ?? 0;
   bool get isAttendanceConfirmed => dailyStaffResponse?.isAttendanceConfirmed ?? false;
   DateTime? get attendanceConfirmedAt => dailyStaffResponse?.attendanceConfirmedAt;
@@ -77,13 +83,15 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
     loadDailyStaff();
   }
 
-  Future<void> loadDailyStaff({DateTime? date}) async {
+  Future<void> loadDailyStaff({DateTime? date, bool silent = false}) async {
     final targetDate = date ?? state.selectedDate;
-    state = state.copyWith(
-      selectedDate: targetDate,
-      isLoading: true,
-      clearError: true,
-    );
+    if (!silent) {
+      state = state.copyWith(
+        selectedDate: targetDate,
+        isLoading: true,
+        clearError: true,
+      );
+    }
 
     try {
       final response = await _repository.getDailyStaff(
@@ -98,16 +106,20 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: e.message,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Failed to load daily staff assignments.',
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Failed to load daily staff assignments.',
+        );
+      }
     }
   }
 
@@ -125,16 +137,24 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
     loadDailyStaff(date: next);
   }
 
-  Future<DailyStaffAssignment?> assignStaff({
+  Future<DailyStaffAssignment?> assignWorkSession({
     required String staffId,
-    int vehiclesAttended = 0,
+    required String startTime,
+    required String endTime,
+    required String assignmentType,
+    String? transferReason,
+    String? notes,
   }) async {
     state = state.copyWith(isAssigning: true, clearError: true);
     try {
       final request = CreateDailyStaffAssignmentRequest(
         staffId: staffId,
         date: state.selectedDate,
-        vehiclesAttended: vehiclesAttended,
+        startTime: startTime,
+        endTime: endTime,
+        assignmentType: assignmentType,
+        transferReason: transferReason,
+        notes: notes,
       );
       final assignment = await _repository.assignDailyStaff(
         state.showroomId,
@@ -161,15 +181,81 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       if (!mounted) rethrow;
       state = state.copyWith(
         isAssigning: false,
-        errorMessage: 'Failed to assign staff member.',
+        errorMessage: 'Failed to assign staff work session.',
       );
       rethrow;
     }
   }
 
+  Future<DailyStaffAssignment?> updateWorkSession({
+    required String assignmentId,
+    required String startTime,
+    required String endTime,
+    String? status,
+    String? transferReason,
+    String? notes,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final request = UpdateDailyStaffAssignmentRequest(
+        startTime: startTime,
+        endTime: endTime,
+        status: status,
+        transferReason: transferReason,
+        notes: notes,
+      );
+      final updated = await _repository.updateDailyStaffAssignment(
+        assignmentId,
+        request,
+      );
+
+      await loadDailyStaff(date: state.selectedDate);
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      if (!mounted) return updated;
+      state = state.copyWith(isLoading: false, clearError: true);
+      return updated;
+    } on ApiException catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to update work session.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<DailyStaffAssignment?> assignStaff({
+    required String staffId,
+    int vehiclesAttended = 0,
+    String startTime = '09:00',
+    String endTime = '18:00',
+    String assignmentType = 'Regular',
+    String? transferReason,
+    String? notes,
+  }) async {
+    return assignWorkSession(
+      staffId: staffId,
+      startTime: startTime,
+      endTime: endTime,
+      assignmentType: assignmentType,
+      transferReason: transferReason,
+      notes: notes,
+    );
+  }
+
   Future<void> assignMultipleStaff({
     required List<String> staffIds,
     int vehiclesAttended = 0,
+    String startTime = '09:00',
+    String endTime = '18:00',
+    String assignmentType = 'Regular',
   }) async {
     if (staffIds.isEmpty) return;
     state = state.copyWith(isAssigning: true, clearError: true);
@@ -178,7 +264,9 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
         final request = CreateDailyStaffAssignmentRequest(
           staffId: staffId,
           date: state.selectedDate,
-          vehiclesAttended: vehiclesAttended,
+          startTime: startTime,
+          endTime: endTime,
+          assignmentType: assignmentType,
         );
         await _repository.assignDailyStaff(state.showroomId, request);
       }

@@ -8,12 +8,15 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/e6_brand_badge.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/showroom_model.dart';
 import '../../providers/showroom_provider.dart';
 import '../widgets/showroom_card.dart';
 import '../widgets/showroom_form_sheet.dart';
 import 'showroom_detail_screen.dart';
+import 'showroom_receivables_screen.dart';
 
 class ShowroomListScreen extends ConsumerStatefulWidget {
   const ShowroomListScreen({super.key});
@@ -22,8 +25,14 @@ class ShowroomListScreen extends ConsumerStatefulWidget {
   ConsumerState<ShowroomListScreen> createState() => _ShowroomListScreenState();
 }
 
-class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
+class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<ShowroomListScreen> {
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+  }
 
   @override
   void dispose() {
@@ -138,6 +147,8 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(showroomsProvider);
     final canManage = _hasPermission('showroom.manage');
 
@@ -178,6 +189,19 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen> {
           elevation: 0,
           scrolledUnderElevation: 1,
           actions: [
+            IconButton(
+              key: const Key('showroom_receivables_button'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ShowroomReceivablesScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.account_balance_wallet_outlined,
+                  color: AppColors.textPrimary),
+              tooltip: 'Showroom Receivables',
+            ),
             IconButton(
               onPressed: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
               icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),

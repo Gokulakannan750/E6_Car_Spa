@@ -16,7 +16,11 @@ class AppEnvironment {
       return AppConstants.defaultProdApiUrl;
     }
 
-    if (!kIsWeb && Platform.isAndroid) {
+    if (kIsWeb) {
+      return AppConstants.defaultLocalhostApiUrl;
+    }
+
+    if (Platform.isAndroid) {
       return AppConstants.defaultEmulatorApiUrl;
     }
 

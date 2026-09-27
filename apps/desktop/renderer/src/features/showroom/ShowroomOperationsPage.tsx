@@ -812,9 +812,9 @@ export function ShowroomOperationsPage() {
 				<div className="flex items-center gap-3">
 					<button
 						type="button"
-						onClick={() => handleShowroomSelect('')}
+						onClick={() => navigate('/showroom/operations')}
 						className="p-2 rounded-lg bg-white border border-outline-variant/80 text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all cursor-pointer shadow-2xs"
-						title="Back to Showrooms List"
+						title="Back to Showroom Operations"
 					>
 						<ArrowLeft className="w-4 h-4" />
 					</button>

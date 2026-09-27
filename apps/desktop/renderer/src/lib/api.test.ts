@@ -1705,5 +1705,67 @@ describe('Audit Logs API Client', () => {
       expect.objectContaining({ method: 'POST' })
     );
   });
+
+  it('calls getSystemPreferences and updateSystemPreferences endpoints with correct payload and method', async () => {
+    const mockPrefs = {
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: '12h',
+      currencySymbol: '₹',
+      decimalPrecision: 2,
+      defaultPrintCopies: 1,
+      autoPrintReceipt: true,
+      refreshInterval: 30,
+      updatedAt: null,
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => mockPrefs,
+    });
+
+    const result = await api.getSystemPreferences();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/system'),
+      expect.anything()
+    );
+    expect(result.currencySymbol).toBe('₹');
+
+    const updatedMock = {
+      ...mockPrefs,
+      currencySymbol: '$',
+      decimalPrecision: 0,
+      refreshInterval: 60,
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => updatedMock,
+    });
+
+    const updatedResult = await api.updateSystemPreferences({
+      dateFormat: 'DD/MM/YYYY',
+      timeFormat: '12h',
+      currencySymbol: '$',
+      decimalPrecision: 0,
+      defaultPrintCopies: 1,
+      autoPrintReceipt: true,
+      refreshInterval: 60,
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/system'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: expect.stringContaining('"currencySymbol":"$"'),
+      })
+    );
+    expect(updatedResult.currencySymbol).toBe('$');
+    expect(updatedResult.decimalPrecision).toBe(0);
+    expect(updatedResult.refreshInterval).toBe(60);
+  });
 });
 
