@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../models/showroom_operations_model.dart';
+import '../../models/showroom_staff_assignment_model.dart';
 import '../../providers/daily_staff_provider.dart';
 import '../../providers/showroom_operations_provider.dart';
 
@@ -64,16 +65,24 @@ class _LogVehicleWorkModalSheetState
     super.initState();
     _configs.add(VehicleConfigItem(isExpanded: true));
 
-    // Initialize with default staff if available
+    // Ensure daily staff is loaded for the target date and initialize defaults
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final dailyState = ref.read(dailyStaffProvider(widget.showroomId));
-      if (dailyState.staffAssignments.isNotEmpty && _configs.isNotEmpty) {
-        if (_configs[0].staffId == null) {
-          setState(() {
-            _configs[0].staffId = dailyState.staffAssignments.first.staffId;
-          });
-        }
+      final dailyNotifier =
+          ref.read(dailyStaffProvider(widget.showroomId).notifier);
+      final currentDailyState =
+          ref.read(dailyStaffProvider(widget.showroomId));
+
+      final isSameDate = currentDailyState.selectedDate.year ==
+              widget.selectedDate.year &&
+          currentDailyState.selectedDate.month ==
+              widget.selectedDate.month &&
+          currentDailyState.selectedDate.day ==
+              widget.selectedDate.day;
+
+      if (!isSameDate || currentDailyState.dailyStaffResponse == null) {
+        dailyNotifier.loadDailyStaff(date: widget.selectedDate);
       }
+
       final opsState =
           ref.read(showroomOperationsProvider(widget.showroomId));
       if (opsState.vehicleTypes.isNotEmpty && _configs.isNotEmpty) {
@@ -169,8 +178,10 @@ class _LogVehicleWorkModalSheetState
     }
 
     final dailyState = ref.read(dailyStaffProvider(widget.showroomId));
-    final eligibleStaffIds =
-        dailyState.staffAssignments.map((a) => a.staffId).toSet();
+    final eligibleStaffIds = dailyState.staffAssignments
+        .where((a) => a.status != 'Leave' && a.status != 'Absent')
+        .map((a) => a.staffId)
+        .toSet();
 
     // Validate each vehicle config
     for (int i = 0; i < _configs.length; i++) {
@@ -280,11 +291,28 @@ class _LogVehicleWorkModalSheetState
     final opsState =
         ref.watch(showroomOperationsProvider(widget.showroomId));
 
-    final staffList = dailyState.staffAssignments;
+    // Deduplicate and filter eligible on-duty staff
+    final seenIds = <String>{};
+    final eligibleStaff = <DailyStaffAssignment>[];
+    for (final assignment in dailyState.staffAssignments) {
+      if (assignment.status == 'Leave' || assignment.status == 'Absent') {
+        continue;
+      }
+      if (!seenIds.contains(assignment.staffId)) {
+        seenIds.add(assignment.staffId);
+        eligibleStaff.add(assignment);
+      }
+    }
+
+    // Auto-select first staff for config if not selected
+    if (eligibleStaff.isNotEmpty && _configs.isNotEmpty && _configs[0].staffId == null) {
+      _configs[0].staffId = eligibleStaff.first.staffId;
+    }
+
     final vehicleTypes = opsState.vehicleTypes;
     final workTypes = opsState.workTypes;
 
-    final hasNoStaff = staffList.isEmpty;
+    final hasNoStaff = !dailyState.isLoading && eligibleStaff.isEmpty;
 
     return Container(
       decoration: const BoxDecoration(
@@ -446,6 +474,16 @@ class _LogVehicleWorkModalSheetState
                   ),
                   const SizedBox(height: 16),
 
+                  // Loading State
+                  if (dailyState.isLoading) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                    ),
+                  ],
+
                   // Vehicle Configurations List
                   ..._configs.asMap().entries.map((entry) {
                     final index = entry.key;
@@ -453,7 +491,7 @@ class _LogVehicleWorkModalSheetState
                     return _buildVehicleConfigCard(
                       index: index,
                       config: config,
-                      staffList: staffList,
+                      staffList: eligibleStaff,
                       vehicleTypes: vehicleTypes,
                       workTypes: workTypes,
                     );
@@ -504,7 +542,7 @@ class _LogVehicleWorkModalSheetState
   Widget _buildVehicleConfigCard({
     required int index,
     required VehicleConfigItem config,
-    required List<dynamic> staffList,
+    required List<DailyStaffAssignment> staffList,
     required List<ShowroomVehicleType> vehicleTypes,
     required List<ShowroomWorkType> workTypes,
   }) {
@@ -590,10 +628,23 @@ class _LogVehicleWorkModalSheetState
                         value: config.staffId,
                         hint: const Text('Select on-duty staff'),
                         items: staffList.map((assignment) {
+                          final buffer = StringBuffer(assignment.staffName);
+                          if (assignment.staffMasterId.isNotEmpty) {
+                            buffer.write(' (#${assignment.staffMasterId})');
+                          }
+                          if (assignment.staffRole != null &&
+                              assignment.staffRole!.isNotEmpty) {
+                            buffer.write(' • ${assignment.staffRole}');
+                          }
+                          if (assignment.isTemporaryTransfer &&
+                              assignment.homeShowroomName != null &&
+                              assignment.homeShowroomName!.isNotEmpty) {
+                            buffer.write(' [Transfer: ${assignment.homeShowroomName}]');
+                          }
                           return DropdownMenuItem<String>(
-                            value: assignment.staffId as String,
+                            value: assignment.staffId,
                             child: Text(
-                              assignment.staffName as String,
+                              buffer.toString(),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textPrimary,

@@ -4,9 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
+import '../../providers/staff_attendance_providers.dart';
+import '../../providers/staff_provider.dart';
 import 'monthly_attendance_report_tab.dart';
 import 'staff_attendance_tab.dart';
 import 'staff_directory_tab.dart';
@@ -25,8 +29,22 @@ class StaffScreen extends ConsumerStatefulWidget {
 }
 
 class _StaffScreenState extends ConsumerState<StaffScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutoRefreshMixin<StaffScreen> {
   late final TabController _tabController;
+
+  @override
+  void onAutoRefresh() {
+    final authState = ref.read(authNotifierProvider);
+    final user = authState is Authenticated ? authState.user : null;
+    final canViewStaff = user?.isOwner == true ||
+        user?.permissions.contains('staff.view') == true;
+    if (!canViewStaff) return;
+
+    ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+    final date = ref.read(selectedAttendanceDateProvider);
+    ref.invalidate(dailyAttendanceProvider(date));
+    ref.invalidate(monthlyAttendanceReportProvider);
+  }
 
   static const List<Tab> _tabs = [
     Tab(
@@ -83,6 +101,8 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
 

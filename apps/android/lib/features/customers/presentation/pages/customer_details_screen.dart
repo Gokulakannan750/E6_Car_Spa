@@ -14,6 +14,7 @@ import '../../../vehicles/presentation/widgets/add_vehicle_dialog.dart';
 import '../../../vehicles/presentation/widgets/vehicle_card.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../widgets/edit_customer_dialog.dart';
 
 class CustomerDetailsScreen extends ConsumerStatefulWidget {
@@ -54,6 +55,8 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(customerDetailsProvider(widget.customerId));
     final notifier = ref.read(customerDetailsProvider(widget.customerId).notifier);
     final authUser = ref.watch(currentUserProvider);

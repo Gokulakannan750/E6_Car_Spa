@@ -379,14 +379,12 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       if (!mounted) return null;
       state = state.copyWith(
         isConfirming: false,
-        errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
       if (!mounted) return null;
       state = state.copyWith(
         isConfirming: false,
-        errorMessage: 'Failed to confirm attendance.',
       );
       rethrow;
     }
@@ -413,17 +411,113 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       if (!mounted) return null;
       state = state.copyWith(
         isUnlocking: false,
-        errorMessage: e.message,
       );
       rethrow;
     } catch (e) {
       if (!mounted) return null;
       state = state.copyWith(
         isUnlocking: false,
-        errorMessage: 'Failed to unlock attendance.',
       );
       rethrow;
     }
+  }
+
+  // --- Staff Swap Actions ---
+
+  Future<ShowroomStaffSwap> swapStaff({
+    required String staffAId,
+    required String staffBId,
+    required String showroomBId,
+    String? coverageStartTime,
+    String? coverageEndTime,
+    String? reason,
+    String? notes,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final request = CreateStaffSwapRequest(
+        date: state.selectedDate,
+        staffAId: staffAId,
+        showroomAId: state.showroomId,
+        staffBId: staffBId,
+        showroomBId: showroomBId,
+        coverageStartTime: coverageStartTime,
+        coverageEndTime: coverageEndTime,
+        reason: reason,
+        notes: notes,
+      );
+      final swapResult = await _repository.swapStaff(request);
+
+      // Refresh daily roster
+      await loadDailyStaff(date: state.selectedDate);
+
+      // Invalidate master showrooms list
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+
+      if (!mounted) return swapResult;
+      state = state.copyWith(isLoading: false, clearError: true);
+      return swapResult;
+    } on ApiException catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to complete staff swap.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<ShowroomStaffSwap> reverseSwap({
+    required String swapId,
+    String? reason,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final request = ReverseStaffSwapRequest(reason: reason);
+      final result = await _repository.reverseSwap(swapId, request);
+
+      // Refresh daily roster
+      await loadDailyStaff(date: state.selectedDate);
+
+      // Invalidate master showrooms list
+      _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+
+      if (!mounted) return result;
+      state = state.copyWith(isLoading: false, clearError: true);
+      return result;
+    } on ApiException catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.message,
+      );
+      rethrow;
+    } catch (e) {
+      if (!mounted) rethrow;
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Failed to reverse staff swap.',
+      );
+      rethrow;
+    }
+  }
+
+  Future<ShowroomStaffSwap> getSwapDetails(String swapId) async {
+    return await _repository.getSwapById(swapId);
+  }
+
+  Future<List<ShowroomStaffSwap>> getSwapHistory() async {
+    return await _repository.getShowroomSwapHistory(
+      state.showroomId,
+      date: state.selectedDate,
+    );
   }
 }
 

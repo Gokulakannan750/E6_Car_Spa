@@ -25,15 +25,18 @@ public class ShowroomOperationsController : ControllerBase
     [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetWorkSessions(
         Guid showroomId,
-        [FromQuery] DateTime? date = null,
-        [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? date = null,
+        [FromQuery] string? fromDate = null,
+        [FromQuery] string? toDate = null,
         [FromQuery] Guid? staffId = null,
         CancellationToken ct = default)
     {
         try
         {
-            var sessions = await _service.GetWorkSessionsAsync(showroomId, date, fromDate, toDate, staffId, ct);
+            var targetDate = ShowroomDateHelper.ParseDateOrNull(date);
+            var start = ShowroomDateHelper.ParseDateOrNull(fromDate);
+            var end = ShowroomDateHelper.ParseDateOrNull(toDate);
+            var sessions = await _service.GetWorkSessionsAsync(showroomId, targetDate, start, end, staffId, ct);
             return Ok(sessions);
         }
         catch (KeyNotFoundException ex)
@@ -146,16 +149,19 @@ public class ShowroomOperationsController : ControllerBase
     [RequirePermission("showroom.view")]
     public async Task<IActionResult> GetVehicleWorks(
         Guid showroomId,
-        [FromQuery] DateTime? date = null,
-        [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null,
+        [FromQuery] string? date = null,
+        [FromQuery] string? fromDate = null,
+        [FromQuery] string? toDate = null,
         [FromQuery] Guid? staffId = null,
         [FromQuery] Guid? vehicleTypeId = null,
         CancellationToken ct = default)
     {
         try
         {
-            var works = await _service.GetVehicleWorksAsync(showroomId, date, fromDate, toDate, staffId, vehicleTypeId, ct);
+            var targetDate = ShowroomDateHelper.ParseDateOrNull(date);
+            var start = ShowroomDateHelper.ParseDateOrNull(fromDate);
+            var end = ShowroomDateHelper.ParseDateOrNull(toDate);
+            var works = await _service.GetVehicleWorksAsync(showroomId, targetDate, start, end, staffId, vehicleTypeId, ct);
             return Ok(works);
         }
         catch (KeyNotFoundException ex)

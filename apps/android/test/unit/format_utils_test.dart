@@ -9,14 +9,13 @@ void main() {
       expect(FormatUtils.formatCurrency(500), '₹500.00');
     });
 
-    test('formatCurrency respects custom currencySymbol and 0 decimal precision', () {
+    test('formatCurrency formats with 0 decimal precision and Rupee symbol', () {
       const prefs = SystemPreferencesModel(
-        currencySymbol: '\$',
         decimalPrecision: 0,
       );
 
-      expect(FormatUtils.formatCurrency(1250.5, prefs), '\$1,251');
-      expect(FormatUtils.formatCurrency(500, prefs), '\$500');
+      expect(FormatUtils.formatCurrency(1250.5, prefs), '₹1,251');
+      expect(FormatUtils.formatCurrency(500, prefs), '₹500');
     });
 
     test('formatDate formats DD/MM/YYYY, MM/DD/YYYY, and YYYY-MM-DD', () {

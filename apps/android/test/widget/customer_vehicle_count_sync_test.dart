@@ -7,6 +7,8 @@ import 'package:e6_car_spa/features/customers/data/customer_repository.dart';
 import 'package:e6_car_spa/features/customers/models/customer_model.dart';
 import 'package:e6_car_spa/features/customers/presentation/pages/customer_details_screen.dart';
 import 'package:e6_car_spa/features/customers/presentation/pages/customers_screen.dart';
+import 'package:e6_car_spa/features/settings/models/system_preferences_model.dart';
+import 'package:e6_car_spa/features/settings/providers/system_preferences_provider.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_api.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_repository.dart';
 import 'package:e6_car_spa/features/vehicles/models/vehicle_model.dart';
@@ -167,6 +169,7 @@ void main() {
   Widget createCustomerListWidget({
     required _MockCustomerRepository custRepo,
     required _MockVehicleRepository vehRepo,
+    int refreshInterval = 12,
   }) {
     return ProviderScope(
       overrides: [
@@ -174,6 +177,9 @@ void main() {
         vehicleRepositoryProvider.overrideWithValue(vehRepo),
         authNotifierProvider.overrideWith(
           (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
+        ),
+        systemPreferencesProvider.overrideWithValue(
+          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
         ),
       ],
       child: const MaterialApp(
@@ -186,6 +192,7 @@ void main() {
     required String customerId,
     required _MockCustomerRepository custRepo,
     required _MockVehicleRepository vehRepo,
+    int refreshInterval = 12,
   }) {
     return ProviderScope(
       overrides: [
@@ -193,6 +200,9 @@ void main() {
         vehicleRepositoryProvider.overrideWithValue(vehRepo),
         authNotifierProvider.overrideWith(
           (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
+        ),
+        systemPreferencesProvider.overrideWithValue(
+          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
         ),
       ],
       child: MaterialApp(

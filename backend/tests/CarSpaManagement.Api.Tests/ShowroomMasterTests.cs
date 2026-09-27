@@ -10,6 +10,7 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Application.Services;
 using CarSpaManagement.Api.Controllers;
 using CarSpaManagement.Api.Domain.Entities;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -231,4 +232,156 @@ public class ShowroomMasterTests
         // Must NOT have any HttpDelete showroom endpoint
         Assert.Empty(httpDeleteMethods);
     }
+
+    [Fact]
+    public async Task GetAllAsync_And_GetByIdAsync_CalculateActiveStaffAndVehicles_FromWorkSessions()
+    {
+        var (db, service) = CreateTestContext();
+
+        var showroom = await service.CreateAsync(new CreateShowroomRequest
+        {
+            Name = "Maruti Nexa",
+            Address = "MG Road, Bangalore"
+        });
+
+        var today = CarSpaManagement.Api.Application.Common.ShowroomDateHelper.GetTodayUtc();
+        var dummyVehicleTypeId = Guid.NewGuid();
+
+        // Add 6 active staff work sessions on today
+        for (int i = 1; i <= 6; i++)
+        {
+            db.ShowroomStaffWorkSessions.Add(new ShowroomStaffWorkSession
+            {
+                Id = Guid.NewGuid(),
+                StaffId = Guid.NewGuid(),
+                HomeShowroomId = showroom.Id,
+                WorkingShowroomId = showroom.Id,
+                Date = today,
+                AttendanceStatus = StaffAttendanceStatus.Present,
+                StartTime = "09:00",
+                EndTime = "18:00"
+            });
+        }
+
+        // Add 1 Leave and 1 Absent (must be excluded)
+        db.ShowroomStaffWorkSessions.Add(new ShowroomStaffWorkSession
+        {
+            Id = Guid.NewGuid(),
+            StaffId = Guid.NewGuid(),
+            HomeShowroomId = showroom.Id,
+            WorkingShowroomId = showroom.Id,
+            Date = today,
+            AttendanceStatus = StaffAttendanceStatus.Leave,
+            StartTime = "09:00",
+            EndTime = "18:00"
+        });
+        db.ShowroomStaffWorkSessions.Add(new ShowroomStaffWorkSession
+        {
+            Id = Guid.NewGuid(),
+            StaffId = Guid.NewGuid(),
+            HomeShowroomId = showroom.Id,
+            WorkingShowroomId = showroom.Id,
+            Date = today,
+            AttendanceStatus = StaffAttendanceStatus.Absent,
+            StartTime = "09:00",
+            EndTime = "18:00"
+        });
+
+        // Add work session for a different date (must be excluded)
+        db.ShowroomStaffWorkSessions.Add(new ShowroomStaffWorkSession
+        {
+            Id = Guid.NewGuid(),
+            StaffId = Guid.NewGuid(),
+            HomeShowroomId = showroom.Id,
+            WorkingShowroomId = showroom.Id,
+            Date = today.AddDays(-1),
+            AttendanceStatus = StaffAttendanceStatus.Present,
+            StartTime = "09:00",
+            EndTime = "18:00"
+        });
+
+        // Add 2 vehicle work logs for today (3 + 4 = 7 vehicles)
+        db.ShowroomVehicleWorks.Add(new ShowroomVehicleWork
+        {
+            Id = Guid.NewGuid(),
+            ShowroomId = showroom.Id,
+            StaffId = Guid.NewGuid(),
+            VehicleTypeId = dummyVehicleTypeId,
+            Date = today,
+            VehicleQuantity = 3
+        });
+        db.ShowroomVehicleWorks.Add(new ShowroomVehicleWork
+        {
+            Id = Guid.NewGuid(),
+            ShowroomId = showroom.Id,
+            StaffId = Guid.NewGuid(),
+            VehicleTypeId = dummyVehicleTypeId,
+            Date = today,
+            VehicleQuantity = 4
+        });
+
+        // Add vehicle work log for yesterday (must be excluded)
+        db.ShowroomVehicleWorks.Add(new ShowroomVehicleWork
+        {
+            Id = Guid.NewGuid(),
+            ShowroomId = showroom.Id,
+            StaffId = Guid.NewGuid(),
+            VehicleTypeId = dummyVehicleTypeId,
+            Date = today.AddDays(-1),
+            VehicleQuantity = 10
+        });
+
+        await db.SaveChangesAsync();
+
+        // 1. Check GetAllAsync
+        var allShowrooms = await service.GetAllAsync();
+        var maruti = allShowrooms.FirstOrDefault(s => s.Id == showroom.Id);
+
+        Assert.NotNull(maruti);
+        Assert.Equal(6, maruti.ActiveStaffCountToday);
+        Assert.Equal(7, maruti.TotalVehiclesToday);
+
+        // 2. Check GetByIdAsync
+        var byId = await service.GetByIdAsync(showroom.Id);
+        Assert.NotNull(byId);
+        Assert.Equal(6, byId.ActiveStaffCountToday);
+        Assert.Equal(7, byId.TotalVehiclesToday);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_FallsBackToLegacyStaffAssignments_WhenNoWorkSessions()
+    {
+        var (db, service) = CreateTestContext();
+
+        var showroom = await service.CreateAsync(new CreateShowroomRequest
+        {
+            Name = "Hyundai Motor Plaza",
+            Address = "Guindy, Chennai"
+        });
+
+        var today = CarSpaManagement.Api.Application.Common.ShowroomDateHelper.GetTodayUtc();
+
+        // Add 3 legacy staff assignments
+        for (int i = 1; i <= 3; i++)
+        {
+            db.ShowroomStaffAssignments.Add(new ShowroomStaffAssignment
+            {
+                Id = Guid.NewGuid(),
+                ShowroomId = showroom.Id,
+                StaffId = Guid.NewGuid(),
+                Date = today,
+                VehiclesAttended = 2
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var allShowrooms = await service.GetAllAsync();
+        var hyundai = allShowrooms.FirstOrDefault(s => s.Id == showroom.Id);
+
+        Assert.NotNull(hyundai);
+        Assert.Equal(3, hyundai.ActiveStaffCountToday);
+        Assert.Equal(6, hyundai.TotalVehiclesToday); // 3 * 2 vehicles attended from legacy assignments
+    }
 }
+

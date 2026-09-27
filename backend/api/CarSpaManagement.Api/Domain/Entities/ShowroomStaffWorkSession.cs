@@ -44,5 +44,23 @@ public class ShowroomStaffWorkSession : BaseEntity
     [MaxLength(500)]
     public string? Notes { get; set; }
 
+    public Guid? StaffSwapId { get; set; }
+
+    [ForeignKey(nameof(StaffSwapId))]
+    public ShowroomStaffSwap? StaffSwap { get; set; }
+
+    [MaxLength(50)]
+    public string? SwapId { get; set; }
+
+    public Guid? SwappedWithStaffId { get; set; }
+
+    [ForeignKey(nameof(SwappedWithStaffId))]
+    public Staff? SwappedWithStaff { get; set; }
+
+    public Guid? OriginalShowroomId { get; set; }
+
+    [ForeignKey(nameof(OriginalShowroomId))]
+    public Showroom? OriginalShowroom { get; set; }
+
     public List<ShowroomVehicleWork> VehicleWorks { get; set; } = new();
 }

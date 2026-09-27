@@ -130,6 +130,62 @@ class ShowroomRepository {
     }
   }
 
+  // --- Staff Swap Methods ---
+
+  Future<ShowroomStaffSwap> swapStaff(CreateStaffSwapRequest request) async {
+    try {
+      return await _api.swapStaff(request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<ShowroomStaffSwap>> getSwaps({
+    String? showroomId,
+    String? staffId,
+    DateTime? date,
+  }) async {
+    try {
+      return await _api.getSwaps(
+        showroomId: showroomId,
+        staffId: staffId,
+        date: date,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<ShowroomStaffSwap>> getShowroomSwapHistory(
+    String showroomId, {
+    DateTime? date,
+  }) async {
+    try {
+      return await _api.getShowroomSwapHistory(showroomId, date: date);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomStaffSwap> getSwapById(String swapId) async {
+    try {
+      return await _api.getSwapById(swapId);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomStaffSwap> reverseSwap(
+    String swapId,
+    ReverseStaffSwapRequest request,
+  ) async {
+    try {
+      return await _api.reverseSwap(swapId, request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   // --- Operations Methods ---
 
   Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async {

@@ -48,6 +48,7 @@ class FakeFullShowroomRepository implements ShowroomRepository {
 
   final List<ShowroomVehicleWork> vehicleWorks = [];
   bool closeSessionCalled = false;
+  List<DailyStaffAssignment>? customStaffAssignments;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -60,7 +61,7 @@ class FakeFullShowroomRepository implements ShowroomRepository {
       date: date,
       totalVehiclesAttended: vehicleWorks.fold(0, (s, w) => s + w.vehicleQuantity),
       isAttendanceConfirmed: false,
-      staffAssignments: [
+      staffAssignments: customStaffAssignments ?? [
         DailyStaffAssignment(
           id: 'assign-1',
           showroomId: showroomId,
@@ -550,7 +551,7 @@ void main() {
       // Explicitly select staff and vehicle type
       await tester.tap(find.byKey(const Key('staff_dropdown_0')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ramesh Kumar').last);
+      await tester.tap(find.textContaining('Ramesh Kumar').last);
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('vehicle_type_dropdown_0')));
@@ -584,7 +585,7 @@ void main() {
       // Select staff
       await tester.tap(find.byKey(const Key('staff_dropdown_0')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Ramesh Kumar').last);
+      await tester.tap(find.textContaining('Ramesh Kumar').last);
       await tester.pumpAndSettle();
 
       // Select vehicle type
@@ -602,6 +603,172 @@ void main() {
 
       expect(fakeRepo.vehicleWorks.length, 1);
       expect(fakeRepo.vehicleWorks.first.vehicleTypeName, 'Sedan');
+    });
+
+    testWidgets('displays all 6 eligible staff on Maruti Nexa for 27 Sept 2026 in dropdown', (tester) async {
+      fakeRepo.customStaffAssignments = [
+        DailyStaffAssignment(
+          id: 'assign-1',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-1',
+          staffMasterId: 'AT01',
+          staffName: 'Aadhaar Test 2',
+          staffPhone: '9840000001',
+          staffRole: 'Detailer',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-2',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-2',
+          staffMasterId: 'AT02',
+          staffName: 'Aadhaar test',
+          staffPhone: '9840000002',
+          staffRole: 'Technician',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-3',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-3',
+          staffMasterId: 'DC01',
+          staffName: 'Decoupling Test Staff 1790094580',
+          staffPhone: '9840000003',
+          staffRole: 'Washer',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-4',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-4',
+          staffMasterId: 'DC02',
+          staffName: 'Decoupling Test Staff 1790094670',
+          staffPhone: '9840000004',
+          staffRole: 'Detailer',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-5',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-5',
+          staffMasterId: 'DC03',
+          staffName: 'Decoupling Test Staff 1790094600',
+          staffPhone: '9840000005',
+          staffRole: 'Technician',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-6',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-6',
+          staffMasterId: 'MT01',
+          staffName: 'Monthly Test Staff 1790095541',
+          staffPhone: '9840000006',
+          staffRole: 'Detailer',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: LogVehicleWorkModalSheet(
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            selectedDate: DateTime(2026, 9, 27),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('staff_dropdown_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Aadhaar Test 2'), findsWidgets);
+      expect(find.textContaining('Aadhaar test (#AT02)'), findsWidgets);
+      expect(find.textContaining('Decoupling Test Staff 1790094580'), findsWidgets);
+      expect(find.textContaining('Decoupling Test Staff 1790094670'), findsWidgets);
+      expect(find.textContaining('Decoupling Test Staff 1790094600'), findsWidgets);
+      expect(find.textContaining('Monthly Test Staff 1790095541'), findsWidgets);
+    });
+
+    testWidgets('excludes staff with Leave or Absent status from dropdown', (tester) async {
+      fakeRepo.customStaffAssignments = [
+        DailyStaffAssignment(
+          id: 'assign-1',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-1',
+          staffMasterId: 'AT01',
+          staffName: 'Aadhaar Test 2',
+          staffPhone: '9840000001',
+          staffRole: 'Detailer',
+          date: DateTime(2026, 9, 27),
+          status: 'Present',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-2',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-2',
+          staffMasterId: 'AT02',
+          staffName: 'On Leave Staff',
+          staffPhone: '9840000002',
+          staffRole: 'Technician',
+          date: DateTime(2026, 9, 27),
+          status: 'Leave',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+        DailyStaffAssignment(
+          id: 'assign-3',
+          showroomId: 'sr-1',
+          showroomName: 'Maruti Nexa',
+          staffId: 'staff-3',
+          staffMasterId: 'AT03',
+          staffName: 'Absent Staff',
+          staffPhone: '9840000003',
+          staffRole: 'Washer',
+          date: DateTime(2026, 9, 27),
+          status: 'Absent',
+          createdAt: DateTime(2026, 9, 27),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createTestWidget(
+          child: LogVehicleWorkModalSheet(
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            selectedDate: DateTime(2026, 9, 27),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('staff_dropdown_0')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Aadhaar Test 2'), findsWidgets);
+      expect(find.textContaining('On Leave Staff'), findsNothing);
+      expect(find.textContaining('Absent Staff'), findsNothing);
     });
   });
 

@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ShowroomVehicleType> ShowroomVehicleTypes => Set<ShowroomVehicleType>();
     public DbSet<ShowroomWorkType> ShowroomWorkTypes => Set<ShowroomWorkType>();
     public DbSet<ShowroomStaffWorkSession> ShowroomStaffWorkSessions => Set<ShowroomStaffWorkSession>();
+    public DbSet<ShowroomStaffSwap> ShowroomStaffSwaps => Set<ShowroomStaffSwap>();
     public DbSet<ShowroomVehicleWork> ShowroomVehicleWorks => Set<ShowroomVehicleWork>();
     public DbSet<ShowroomVehicleWorkItem> ShowroomVehicleWorkItems => Set<ShowroomVehicleWorkItem>();
     public DbSet<Invoice> Invoices => Set<Invoice>();

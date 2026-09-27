@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/customer_model.dart';
 import '../../providers/customer_providers.dart';
 import '../widgets/add_customer_dialog.dart';
@@ -41,6 +42,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(customerListProvider);
     final notifier = ref.read(customerListProvider.notifier);
 

@@ -13,6 +13,7 @@ import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../providers/catalogue_providers.dart';
 import '../widgets/add_service_bottom_sheet.dart';
 import '../widgets/edit_service_bottom_sheet.dart';
@@ -47,6 +48,8 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final authState = ref.watch(authNotifierProvider);
     final currentUser = authState is Authenticated ? authState.user : null;
     final canView = currentUser?.hasPermission('catalogue.view') ?? false;

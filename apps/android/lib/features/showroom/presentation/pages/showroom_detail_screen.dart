@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/status_badge.dart';
@@ -22,6 +23,9 @@ import '../widgets/showroom_billing_tab.dart';
 import '../widgets/showroom_date_selector.dart';
 import '../widgets/showroom_form_sheet.dart';
 import '../widgets/showroom_operations_tab.dart';
+import '../widgets/swap_staff_modal_sheet.dart';
+import '../widgets/swap_details_modal_sheet.dart';
+import '../widgets/showroom_swap_history_modal_sheet.dart';
 
 class ShowroomDetailScreen extends ConsumerStatefulWidget {
   final Showroom showroom;
@@ -282,9 +286,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         }
       } catch (e) {
         if (mounted) {
+          final msg = e is ApiException ? e.message : 'Failed to confirm attendance: $e';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to confirm attendance: $e'),
+              content: Text(msg),
               backgroundColor: AppColors.error,
             ),
           );
@@ -337,15 +342,57 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         }
       } catch (e) {
         if (mounted) {
+          final msg = e is ApiException ? e.message : 'Failed to unlock attendance: $e';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to unlock attendance: $e'),
+              content: Text(msg),
               backgroundColor: AppColors.error,
             ),
           );
         }
       }
     }
+  }
+
+  void _openSwapStaffSheet(DailyStaffState dailyState, [DailyStaffAssignment? assignment]) {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SwapStaffModalSheet(
+        showroomId: _currentShowroom.id,
+        showroomName: _currentShowroom.name,
+        selectedDate: dailyState.selectedDate,
+        initialStaffA: assignment,
+        currentShowroomStaff: dailyState.staffAssignments,
+      ),
+    );
+  }
+
+  void _openSwapDetailsSheet(String swapId, bool canReverse) {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SwapDetailsModalSheet(
+        showroomId: _currentShowroom.id,
+        swapId: swapId,
+        canReverse: canReverse,
+      ),
+    );
+  }
+
+  void _openSwapHistorySheet(bool canReverse) {
+    showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => ShowroomSwapHistoryModalSheet(
+        showroomId: _currentShowroom.id,
+        showroomName: _currentShowroom.name,
+        canReverse: canReverse,
+      ),
+    );
   }
 
   @override
@@ -644,6 +691,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                   onOpenAssignStaffSheet: () => _openAssignStaffSheet(dailyState),
                   onOpenEditStaffSessionSheet: _openEditStaffSessionSheet,
                   onRemoveAssignment: _handleRemoveAssignment,
+                  onOpenSwapStaffSheet: (assignment) => _openSwapStaffSheet(dailyState, assignment),
+                  onOpenSwapDetailsSheet: (swapId) => _openSwapDetailsSheet(swapId, !isLocked && (isOwner || canAssignStaff)),
+                  onOpenSwapHistorySheet: () => _openSwapHistorySheet(!isLocked && (isOwner || canAssignStaff)),
                   onConfirmSubmitAttendance: _confirmSubmitAttendance,
                   onConfirmUnlockAttendance: _confirmUnlockAttendance,
                 ),

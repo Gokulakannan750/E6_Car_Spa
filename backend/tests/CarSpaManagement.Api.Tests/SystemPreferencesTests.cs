@@ -94,7 +94,7 @@ public class SystemPreferencesTests
         {
             DateFormat = "YYYY-MM-DD",
             TimeFormat = "24h",
-            CurrencySymbol = "$",
+            CurrencySymbol = "₹",
             DecimalPrecision = 0,
             DefaultPrintCopies = 3,
             AutoPrintReceipt = false,
@@ -105,7 +105,7 @@ public class SystemPreferencesTests
 
         Assert.Equal("YYYY-MM-DD", updated.DateFormat);
         Assert.Equal("24h", updated.TimeFormat);
-        Assert.Equal("$", updated.CurrencySymbol);
+        Assert.Equal("₹", updated.CurrencySymbol);
         Assert.Equal(0, updated.DecimalPrecision);
         Assert.Equal(3, updated.DefaultPrintCopies);
         Assert.False(updated.AutoPrintReceipt);
@@ -116,7 +116,7 @@ public class SystemPreferencesTests
         var dbRecord = await db.SystemPreferences.FirstAsync();
         Assert.Equal("YYYY-MM-DD", dbRecord.DateFormat);
         Assert.Equal("24h", dbRecord.TimeFormat);
-        Assert.Equal("$", dbRecord.CurrencySymbol);
+        Assert.Equal("₹", dbRecord.CurrencySymbol);
         Assert.Equal(0, dbRecord.DecimalPrecision);
         Assert.Equal(3, dbRecord.DefaultPrintCopies);
         Assert.False(dbRecord.AutoPrintReceipt);
@@ -175,8 +175,9 @@ public class SystemPreferencesTests
 
     [Theory]
     [InlineData("₹", true)]
-    [InlineData("$", true)]
-    [InlineData("€", true)]
+    [InlineData("INR", false)]
+    [InlineData("$", false)]
+    [InlineData("€", false)]
     [InlineData("£", false)]
     [InlineData("¥", false)]
     public void UpdateSystemPreferenceRequest_ValidatesCurrencySymbols(string symbol, bool isValid)

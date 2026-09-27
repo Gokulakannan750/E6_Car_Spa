@@ -43,7 +43,7 @@ class SystemPreferencesModel {
     return {
       'dateFormat': dateFormat,
       'timeFormat': timeFormat,
-      'currencySymbol': currencySymbol,
+      'currencySymbol': '₹',
       'decimalPrecision': decimalPrecision,
       'defaultPrintCopies': defaultPrintCopies,
       'autoPrintReceipt': autoPrintReceipt,
@@ -55,7 +55,7 @@ class SystemPreferencesModel {
     return SystemPreferencesModel(
       dateFormat: json['dateFormat'] as String? ?? 'DD/MM/YYYY',
       timeFormat: json['timeFormat'] as String? ?? '12h',
-      currencySymbol: json['currencySymbol'] as String? ?? '₹',
+      currencySymbol: '₹', // Always fallback and migrate stored values to INR
       decimalPrecision: json['decimalPrecision'] as int? ?? 2,
       defaultPrintCopies: json['defaultPrintCopies'] as int? ?? 1,
       autoPrintReceipt: json['autoPrintReceipt'] as bool? ?? true,

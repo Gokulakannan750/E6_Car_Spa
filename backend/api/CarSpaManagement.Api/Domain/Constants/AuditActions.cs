@@ -38,6 +38,8 @@ public static class AuditActions
     public const string StaffMovementRecorded = "STAFF_MOVEMENT_RECORDED";
     public const string StaffMovementUpdated = "STAFF_MOVEMENT_UPDATED";
     public const string StaffMovementDeleted = "STAFF_MOVEMENT_DELETED";
+    public const string StaffSwap = "STAFF_SWAP";
+    public const string StaffSwapReversed = "STAFF_SWAP_REVERSED";
 
     public const string AdvanceCreated = "ADVANCE_CREATED";
     public const string AdvanceSettled = "ADVANCE_SETTLED";

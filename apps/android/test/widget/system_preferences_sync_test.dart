@@ -79,7 +79,7 @@ void main() {
     // Controls
     expect(find.text('DD/MM/YYYY'), findsOneWidget);
     expect(find.text('12 Hours (AM/PM)'), findsOneWidget);
-    expect(find.text('₹ (INR)'), findsOneWidget);
+    expect(find.text('₹ (INR) — Indian Rupee'), findsOneWidget);
     expect(find.text('2 Decimals (.00)'), findsOneWidget);
     expect(find.text('1 Copy'), findsOneWidget);
     expect(find.text('Auto-Print Receipts'), findsOneWidget);
@@ -116,10 +116,10 @@ void main() {
     await tester.tap(ymdChip);
     await tester.pumpAndSettle();
 
-    // Select $ (USD)
-    final usdButton = find.text('\$ (USD)');
-    await tester.ensureVisible(usdButton);
-    await tester.tap(usdButton);
+    // Select 15 Seconds
+    final intervalChip = find.text('15 Seconds');
+    await tester.ensureVisible(intervalChip);
+    await tester.tap(intervalChip);
     await tester.pumpAndSettle();
 
     // Click Save Preferences
@@ -133,7 +133,8 @@ void main() {
     // Verify feedback and repository state
     expect(find.text('System preferences saved successfully.'), findsWidgets);
     expect(mockRepo.currentPreferences.dateFormat, 'YYYY-MM-DD');
-    expect(mockRepo.currentPreferences.currencySymbol, '\$');
+    expect(mockRepo.currentPreferences.currencySymbol, '₹');
+    expect(mockRepo.currentPreferences.refreshInterval, 15);
   });
 
   testWidgets('SystemPreferencesScreen reset to defaults restores canonical values',

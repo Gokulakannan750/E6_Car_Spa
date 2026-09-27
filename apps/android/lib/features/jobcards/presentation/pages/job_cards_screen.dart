@@ -12,6 +12,7 @@ import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 
@@ -41,6 +42,8 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(jobCardListProvider);
     final notifier = ref.read(jobCardListProvider.notifier);
 

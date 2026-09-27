@@ -50,11 +50,11 @@ public class UpdateSystemPreferenceRequest : IValidatableObject
                 [nameof(TimeFormat)]);
         }
 
-        var validCurrencySymbols = new[] { "₹", "$", "€" };
+        var validCurrencySymbols = new[] { "₹" };
         if (!validCurrencySymbols.Contains(CurrencySymbol))
         {
             yield return new ValidationResult(
-                $"Currency symbol must be one of: {string.Join(", ", validCurrencySymbols)}.",
+                "Currency symbol must be ₹ (INR).",
                 [nameof(CurrencySymbol)]);
         }
 

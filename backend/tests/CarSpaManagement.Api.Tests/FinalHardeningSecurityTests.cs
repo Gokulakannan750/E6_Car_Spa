@@ -113,6 +113,10 @@ public class FinalHardeningSecurityTests
         public Task<bool> DeletePaymentAsync(Guid paymentId, CancellationToken ct = default) => Task.FromResult(true);
         public Task<ShowroomSummaryDto?> GetShowroomSummaryAsync(Guid showroomId, DateTime fromDate, DateTime toDate, CancellationToken ct = default) => Task.FromResult<ShowroomSummaryDto?>(null);
         public Task<IReadOnlyList<ShowroomOutstandingOverviewDto>> GetOutstandingOverviewAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ShowroomOutstandingOverviewDto>>(Array.Empty<ShowroomOutstandingOverviewDto>());
+        public Task<ShowroomStaffSwapDto> SwapStaffAsync(CreateStaffSwapRequest request, Guid? userId = null, bool isOwner = false, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<ShowroomStaffSwapDto?> GetSwapByIdAsync(string swapId, CancellationToken ct = default) => Task.FromResult<ShowroomStaffSwapDto?>(null);
+        public Task<IReadOnlyList<ShowroomStaffSwapDto>> GetSwapHistoryAsync(Guid? showroomId = null, Guid? staffId = null, DateTime? date = null, CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ShowroomStaffSwapDto>>(Array.Empty<ShowroomStaffSwapDto>());
+        public Task<ShowroomStaffSwapDto> ReverseSwapAsync(string swapId, ReverseStaffSwapRequest? request = null, Guid? userId = null, bool isOwner = false, CancellationToken ct = default) => throw new NotImplementedException();
     }
 
     private class PassThroughAuthService : IAuthorizationService
@@ -257,7 +261,7 @@ public class FinalHardeningSecurityTests
             }
         };
 
-        var result = await controller.UnlockAttendance(Guid.NewGuid(), DateTime.UtcNow, null, CancellationToken.None);
+        var result = await controller.UnlockAttendance(Guid.NewGuid(), "2026-09-27", null, CancellationToken.None);
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(okResult.Value);
     }
@@ -294,7 +298,7 @@ public class FinalHardeningSecurityTests
             }
         };
 
-        var result = await controller.UnlockAttendance(Guid.NewGuid(), DateTime.UtcNow, null, CancellationToken.None);
+        var result = await controller.UnlockAttendance(Guid.NewGuid(), "2026-09-27", null, CancellationToken.None);
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }
@@ -331,7 +335,7 @@ public class FinalHardeningSecurityTests
             }
         };
 
-        var result = await controller.UnlockAttendance(Guid.NewGuid(), DateTime.UtcNow, null, CancellationToken.None);
+        var result = await controller.UnlockAttendance(Guid.NewGuid(), "2026-09-27", null, CancellationToken.None);
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }
@@ -368,7 +372,7 @@ public class FinalHardeningSecurityTests
             }
         };
 
-        var result = await controller.UnlockAttendance(Guid.NewGuid(), DateTime.UtcNow, null, CancellationToken.None);
+        var result = await controller.UnlockAttendance(Guid.NewGuid(), "2026-09-27", null, CancellationToken.None);
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }
@@ -405,7 +409,7 @@ public class FinalHardeningSecurityTests
             }
         };
 
-        var result = await controller.UnlockAttendance(Guid.NewGuid(), DateTime.UtcNow, null, CancellationToken.None);
+        var result = await controller.UnlockAttendance(Guid.NewGuid(), "2026-09-27", null, CancellationToken.None);
         var objectResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, objectResult.StatusCode);
     }

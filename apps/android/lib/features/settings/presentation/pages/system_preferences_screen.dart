@@ -27,6 +27,11 @@ class _SystemPreferencesScreenState
   void initState() {
     super.initState();
     _currentPrefs = SystemPreferencesModel.defaultPreferences;
+    Future.microtask(() {
+      if (mounted) {
+        ref.read(systemPreferencesNotifierProvider.notifier).loadPreferences();
+      }
+    });
   }
 
   void _handleBackNavigation() {
@@ -297,28 +302,28 @@ class _SystemPreferencesScreenState
                   ),
                 ),
                 const SizedBox(height: 8),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: '₹',
-                      label: Text('₹ (INR)'),
-                    ),
-                    ButtonSegment(
-                      value: '\$',
-                      label: Text('\$ (USD)'),
-                    ),
-                    ButtonSegment(
-                      value: '€',
-                      label: Text('€ (EUR)'),
-                    ),
-                  ],
-                  selected: {_currentPrefs.currencySymbol},
-                  onSelectionChanged: (set) {
-                    setState(() {
-                      _currentPrefs =
-                          _currentPrefs.copyWith(currencySymbol: set.first);
-                    });
-                  },
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.currency_rupee_rounded, size: 20, color: AppColors.success),
+                      SizedBox(width: 10),
+                      Text(
+                        '₹ (INR) — Indian Rupee',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(

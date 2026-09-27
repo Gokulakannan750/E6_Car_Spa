@@ -91,7 +91,15 @@ public class SystemPreferenceService : ISystemPreferenceService
         var prefs = await _db.SystemPreferences
             .FirstOrDefaultAsync(s => s.SingletonKey == 1 && !s.IsDeleted, ct);
 
-        if (prefs != null) return prefs;
+        if (prefs != null)
+        {
+            if (prefs.CurrencySymbol != "₹")
+            {
+                prefs.CurrencySymbol = "₹";
+                await _db.SaveChangesAsync(ct);
+            }
+            return prefs;
+        }
 
         // Initialize canonical default system preferences
         prefs = new SystemPreference
@@ -117,7 +125,7 @@ public class SystemPreferenceService : ISystemPreferenceService
     private static SystemPreferenceDto ToDto(SystemPreference s) => new(
         s.DateFormat,
         s.TimeFormat,
-        s.CurrencySymbol,
+        "₹", // Canonical currency strictly enforced as Indian Rupee
         s.DecimalPrecision,
         s.DefaultPrintCopies,
         s.AutoPrintReceipt,

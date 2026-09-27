@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
@@ -11,6 +12,7 @@ import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../../staff/models/staff_model.dart';
 import '../../../staff/presentation/widgets/add_edit_staff_bottom_sheet.dart';
 import '../../../staff/presentation/widgets/staff_card.dart';
@@ -32,10 +34,18 @@ class StaffAdvancesScreen extends ConsumerStatefulWidget {
 }
 
 class _StaffAdvancesScreenState extends ConsumerState<StaffAdvancesScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutoRefreshMixin<StaffAdvancesScreen> {
   late final TabController _tabController;
   final TextEditingController _advancesSearchController = TextEditingController();
   final TextEditingController _staffSearchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final canViewAdvances = _hasPermission('staff_advances.view') || _hasPermission('staff.view');
+    if (!canViewAdvances) return;
+    ref.read(staffAdvancesProvider.notifier).loadAdvances(silent: true);
+    ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+  }
 
   static const List<Map<String, String>> _statusFilters = [
     {'label': 'Active', 'value': 'active'},
@@ -199,6 +209,8 @@ class _StaffAdvancesScreenState extends ConsumerState<StaffAdvancesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final advancesState = ref.watch(staffAdvancesProvider);
     final staffState = ref.watch(staffProvider);
 

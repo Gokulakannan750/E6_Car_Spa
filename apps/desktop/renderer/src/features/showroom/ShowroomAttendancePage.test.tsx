@@ -18,6 +18,11 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		updateDailyStaffVehicles: vi.fn(),
 		removeDailyStaff: vi.fn(),
 		getStaffList: vi.fn(),
+		swapStaff: vi.fn(),
+		getSwaps: vi.fn(),
+		getShowroomSwapHistory: vi.fn(),
+		getSwapById: vi.fn(),
+		reverseSwap: vi.fn(),
 	};
 });
 
@@ -1344,6 +1349,567 @@ describe('ShowroomAttendancePage Component (Phase 2A — Dedicated Showroom Atte
 
 		await waitFor(() => {
 			expect(screen.getByTestId('showroom-master-page')).toBeInTheDocument();
+		});
+	});
+
+	it('20. Renders purple Swapped badge on staff row when assignment contains a swapId', async () => {
+		const swappedDailyStaff: api.DailyStaffResponse = {
+			...mockDailyStaff,
+			staffAssignments: [
+				{
+					...mockDailyStaff.staffAssignments[0],
+					swapId: 'SWP-20260924-0001',
+					swappedWithStaffId: 'st-2',
+					swappedWithStaffName: 'Suresh Babu',
+					originalShowroomId: 'sr-2',
+					originalShowroomName: 'KUN BMW Showroom',
+				},
+			],
+		};
+
+		vi.mocked(api.getDailyStaff).mockResolvedValueOnce(swappedDailyStaff);
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText(/Swapped with/i)).toBeInTheDocument();
+			expect(screen.getByText(/Suresh Babu/i)).toBeInTheDocument();
+			expect(screen.getByText(/Orig: KUN BMW Showroom/i)).toBeInTheDocument();
+		});
+	});
+
+	it('21. Clicking Swapped badge opens Staff Swap Details Modal with full traceability', async () => {
+		const mockSwapDetails: api.ShowroomStaffSwapDto = {
+			id: 'swap-uuid-1',
+			swapId: 'SWP-20260924-0001',
+			date: '2026-09-24',
+			staffAId: 'st-1',
+			staffAMasterId: 'RA101H',
+			staffAName: 'Ramesh Kumar',
+			staffARole: 'Detailer',
+			showroomAId: 'sr-1',
+			showroomAMasterId: 'PO10001',
+			showroomAName: 'Popular Hyundai Showroom',
+			staffBId: 'st-2',
+			staffBMasterId: 'SU102B',
+			staffBName: 'Suresh Babu',
+			staffBRole: 'Technician',
+			showroomBId: 'sr-2',
+			showroomBMasterId: 'KU10001',
+			showroomBName: 'KUN BMW Showroom',
+			performedByUserId: 'usr-1',
+			performedByName: 'Gokula Kannan',
+			reason: 'Cross-brand specialist support',
+			notes: 'Authorized by manager',
+			status: 'Completed',
+			createdAt: '2026-09-24T09:30:00Z',
+		};
+
+		const swappedDailyStaff: api.DailyStaffResponse = {
+			...mockDailyStaff,
+			staffAssignments: [
+				{
+					...mockDailyStaff.staffAssignments[0],
+					swapId: 'SWP-20260924-0001',
+					swappedWithStaffId: 'st-2',
+					swappedWithStaffName: 'Suresh Babu',
+					originalShowroomId: 'sr-2',
+					originalShowroomName: 'KUN BMW Showroom',
+				},
+			],
+		};
+
+		vi.mocked(api.getDailyStaff).mockResolvedValueOnce(swappedDailyStaff);
+		vi.mocked(api.getSwapById).mockResolvedValueOnce(mockSwapDetails);
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText(/Swapped with/i)).toBeInTheDocument();
+		});
+
+		// Click the swap badge
+		const swapBadge = screen.getByTitle(/Swapped with Suresh Babu/i);
+		fireEvent.click(swapBadge);
+
+		// Details modal should open and display all fields
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: /Staff Swap Details & Traceability/i })).toBeInTheDocument();
+			expect(screen.getByText('#SWP-20260924-0001')).toBeInTheDocument();
+			expect(screen.getByText('Gokula Kannan')).toBeInTheDocument();
+			expect(screen.getByText('Cross-brand specialist support')).toBeInTheDocument();
+			expect(screen.getByText('Authorized by manager')).toBeInTheDocument();
+		});
+	});
+
+	it('22. Executing Staff Swap calls api.swapStaff with valid parameters and refreshes roster', async () => {
+		const targetShowroomDailyStaff: api.DailyStaffResponse = {
+			showroomId: 'sr-2',
+			showroomName: 'KUN BMW Showroom',
+			date: '2026-09-24',
+			totalVehiclesAttended: 0,
+			isAttendanceConfirmed: false,
+			attendanceConfirmedAt: null,
+			attendanceConfirmedByUserId: null,
+			attendanceConfirmedByName: null,
+			staffAssignments: [
+				{
+					id: 'assign-kun-1',
+					showroomId: 'sr-2',
+					showroomName: 'KUN BMW Showroom',
+					staffId: 'st-2',
+					staffMasterId: 'SU102B',
+					staffName: 'Suresh Babu',
+					staffPhone: '9876543211',
+					staffRole: 'Technician',
+					date: '2026-09-24',
+					startTime: '09:00',
+					endTime: '18:00',
+					workingHours: 9,
+					workingHoursFormatted: '9h',
+					status: 'Present',
+					assignmentType: 'Regular',
+					homeShowroomId: 'sr-2',
+					homeShowroomMasterId: 'KU10001',
+					homeShowroomName: 'KUN BMW Showroom',
+					transferReason: null,
+					notes: null,
+					vehiclesAttended: 0,
+					createdAt: '2026-09-24T08:00:00Z',
+				},
+			],
+		};
+
+		vi.mocked(api.getDailyStaff).mockImplementation(async (showroomId) => {
+			if (showroomId === 'sr-2') return targetShowroomDailyStaff;
+			return mockDailyStaff;
+		});
+
+		vi.mocked(api.swapStaff).mockResolvedValueOnce({
+			id: 'swap-created-1',
+			swapId: 'SWP-20260924-0001',
+			date: '2026-09-24',
+			staffAId: 'st-1',
+			staffAMasterId: 'RA101H',
+			staffAName: 'Ramesh Kumar',
+			staffARole: 'Detailer',
+			showroomAId: 'sr-1',
+			showroomAMasterId: 'PO10001',
+			showroomAName: 'Popular Hyundai Showroom',
+			staffBId: 'st-2',
+			staffBMasterId: 'SU102B',
+			staffBName: 'Suresh Babu',
+			staffBRole: 'Technician',
+			showroomBId: 'sr-2',
+			showroomBMasterId: 'KU10001',
+			showroomBName: 'KUN BMW Showroom',
+			performedByUserId: 'usr-1',
+			performedByName: 'Admin',
+			reason: 'Special assignment',
+			status: 'Completed',
+			createdAt: '2026-09-24T09:30:00Z',
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Ramesh Kumar')).toBeInTheDocument();
+		});
+
+		// Click "Swap Staff" button in header
+		const swapStaffBtn = screen.getByRole('button', { name: /Swap Staff/i });
+		fireEvent.click(swapStaffBtn);
+
+		// Modal should open
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: /Swap Staff Assignment/i })).toBeInTheDocument();
+		});
+
+		// Select Staff A
+		const staffASelect = screen.getByLabelText(/Primary Staff Member/i);
+		fireEvent.change(staffASelect, { target: { value: 'assign-1' } });
+
+		// Select Target Showroom
+		const targetShowroomSelect = screen.getByLabelText(/Target Showroom/i);
+		fireEvent.change(targetShowroomSelect, { target: { value: 'sr-2' } });
+
+		// Wait for target showroom staff to load and select Staff B
+		await waitFor(() => {
+			expect(screen.getByLabelText(/Replacement Staff/i)).toBeInTheDocument();
+		});
+
+		const staffBSelect = screen.getByLabelText(/Replacement Staff/i);
+		fireEvent.change(staffBSelect, { target: { value: 'st-2' } });
+
+		// Enter Coverage times
+		const startTimeInput = screen.getByLabelText(/Coverage Start Time/i);
+		const endTimeInput = screen.getByLabelText(/Coverage End Time/i);
+		fireEvent.change(startTimeInput, { target: { value: '14:00' } });
+		fireEvent.change(endTimeInput, { target: { value: '18:00' } });
+
+		// Verify duration badge
+		expect(screen.getByText(/Duration: 4 hours/i)).toBeInTheDocument();
+
+		// Enter Reason
+		const reasonInput = screen.getByLabelText(/Reason for Swap/i);
+		fireEvent.change(reasonInput, { target: { value: 'Special assignment' } });
+
+		// Submit
+		const submitBtn = screen.getByRole('button', { name: /Execute Staff Swap/i });
+		fireEvent.click(submitBtn);
+
+		await waitFor(() => {
+			expect(api.swapStaff).toHaveBeenCalledWith({
+				date: '2026-09-24',
+				staffAId: 'st-1',
+				showroomAId: 'sr-1',
+				staffBId: 'st-2',
+				showroomBId: 'sr-2',
+				coverageStartTime: '14:00',
+				coverageEndTime: '18:00',
+				reason: 'Special assignment',
+				notes: undefined,
+			});
+			expect(screen.getByText(/Staff swap completed successfully/i)).toBeInTheDocument();
+		});
+	});
+
+	it('22b. Live updates duration and blocks execution on invalid time period (end <= start)', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Ramesh Kumar')).toBeInTheDocument();
+		});
+
+		// Click "Swap Staff" button in header
+		const swapStaffBtn = screen.getByRole('button', { name: /Swap Staff/i });
+		fireEvent.click(swapStaffBtn);
+
+		// Modal should open
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: /Swap Staff Assignment/i })).toBeInTheDocument();
+		});
+
+		// Select Staff A & Target Showroom
+		const staffASelect = screen.getByLabelText(/Primary Staff Member/i);
+		fireEvent.change(staffASelect, { target: { value: 'assign-1' } });
+		const targetShowroomSelect = screen.getByLabelText(/Target Showroom/i);
+		fireEvent.change(targetShowroomSelect, { target: { value: 'sr-2' } });
+
+		await waitFor(() => {
+			expect(screen.getByLabelText(/Replacement Staff/i)).toBeInTheDocument();
+		});
+
+		const staffBSelect = screen.getByLabelText(/Replacement Staff/i);
+		fireEvent.change(staffBSelect, { target: { value: 'st-2' } });
+
+		// Enter Reason
+		const reasonInput = screen.getByLabelText(/Reason for Swap/i);
+		fireEvent.change(reasonInput, { target: { value: 'Afternoon swap' } });
+
+		// 1. Change to 10:00 - 15:30 -> Duration should show 5.5 hours
+		const startTimeInput = screen.getByLabelText(/Coverage Start Time/i);
+		const endTimeInput = screen.getByLabelText(/Coverage End Time/i);
+		fireEvent.change(startTimeInput, { target: { value: '10:00' } });
+		fireEvent.change(endTimeInput, { target: { value: '15:30' } });
+		expect(screen.getByText(/Duration: 5.5 hours/i)).toBeInTheDocument();
+
+		// 2. Change to invalid period: 18:00 - 14:00 -> Duration should show Invalid Period and disable button
+		fireEvent.change(startTimeInput, { target: { value: '18:00' } });
+		fireEvent.change(endTimeInput, { target: { value: '14:00' } });
+		expect(screen.getByText(/Invalid Period/i)).toBeInTheDocument();
+
+		const submitBtn = screen.getByRole('button', { name: /Execute Staff Swap/i });
+		expect(submitBtn).toBeDisabled();
+	});
+
+	it('23. Opens Showroom Swap History Modal and displays historical records', async () => {
+		const mockHistory: api.ShowroomStaffSwapDto[] = [
+			{
+				id: 'swp-hist-1',
+				swapId: 'SWP-20260924-0001',
+				date: '2026-09-24',
+				staffAId: 'st-1',
+				staffAMasterId: 'RA101H',
+				staffAName: 'Ramesh Kumar',
+				staffARole: 'Detailer',
+				showroomAId: 'sr-1',
+				showroomAMasterId: 'PO10001',
+				showroomAName: 'Popular Hyundai Showroom',
+				staffBId: 'st-2',
+				staffBMasterId: 'SU102B',
+				staffBName: 'Suresh Babu',
+				staffBRole: 'Technician',
+				showroomBId: 'sr-2',
+				showroomBMasterId: 'KU10001',
+				showroomBName: 'KUN BMW Showroom',
+				performedByUserId: 'usr-1',
+				performedByName: 'Admin',
+				status: 'Completed',
+				createdAt: '2026-09-24T09:30:00Z',
+			},
+		];
+
+		vi.mocked(api.getShowroomSwapHistory).mockResolvedValueOnce(mockHistory);
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /Swap History/i })).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByRole('button', { name: /Swap History/i }));
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: /Swap History — Popular Hyundai Showroom/i })).toBeInTheDocument();
+			expect(screen.getByText('#SWP-20260924-0001')).toBeInTheDocument();
+		});
+	});
+
+	it('24. Allows reversing a completed swap and calls api.reverseSwap', async () => {
+		const mockSwapDetails: api.ShowroomStaffSwapDto = {
+			id: 'swap-uuid-1',
+			swapId: 'SWP-20260924-0001',
+			date: '2026-09-24',
+			staffAId: 'st-1',
+			staffAMasterId: 'RA101H',
+			staffAName: 'Ramesh Kumar',
+			staffARole: 'Detailer',
+			showroomAId: 'sr-1',
+			showroomAMasterId: 'PO10001',
+			showroomAName: 'Popular Hyundai Showroom',
+			staffBId: 'st-2',
+			staffBMasterId: 'SU102B',
+			staffBName: 'Suresh Babu',
+			staffBRole: 'Technician',
+			showroomBId: 'sr-2',
+			showroomBMasterId: 'KU10001',
+			showroomBName: 'KUN BMW Showroom',
+			performedByUserId: 'usr-1',
+			performedByName: 'Admin',
+			status: 'Completed',
+			createdAt: '2026-09-24T09:30:00Z',
+		};
+
+		const swappedDailyStaff: api.DailyStaffResponse = {
+			...mockDailyStaff,
+			staffAssignments: [
+				{
+					...mockDailyStaff.staffAssignments[0],
+					swapId: 'SWP-20260924-0001',
+					swappedWithStaffId: 'st-2',
+					swappedWithStaffName: 'Suresh Babu',
+					originalShowroomId: 'sr-2',
+					originalShowroomName: 'KUN BMW Showroom',
+				},
+			],
+		};
+
+		vi.mocked(api.getDailyStaff).mockResolvedValueOnce(swappedDailyStaff);
+		vi.mocked(api.getSwapById).mockResolvedValueOnce(mockSwapDetails);
+		vi.mocked(api.reverseSwap).mockResolvedValueOnce({
+			...mockSwapDetails,
+			status: 'Reversed',
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText(/Swapped with/i)).toBeInTheDocument();
+		});
+
+		// Open swap details
+		fireEvent.click(screen.getByTitle(/Swapped with Suresh Babu/i));
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /Reverse Swap/i })).toBeInTheDocument();
+		});
+
+		// Click "Reverse Swap"
+		fireEvent.click(screen.getByRole('button', { name: /Reverse Swap/i }));
+
+		// Reversal confirmation modal should open
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: /Reverse Staff Swap/i })).toBeInTheDocument();
+		});
+
+		// Type reason and confirm
+		const reasonInput = screen.getByLabelText(/Reason for Reversal/i);
+		fireEvent.change(reasonInput, { target: { value: 'Customer rescheduled' } });
+
+		const confirmBtn = screen.getByRole('button', { name: /Confirm Reversal/i });
+		fireEvent.click(confirmBtn);
+
+		await waitFor(() => {
+			expect(api.reverseSwap).toHaveBeenCalledWith('SWP-20260924-0001', {
+				reason: 'Customer rescheduled',
+			});
+		});
+	});
+
+	it('25. Disables Reverse Swap button and displays locked notice when attendance is confirmed', async () => {
+		const mockSwapDetails: api.ShowroomStaffSwapDto = {
+			id: 'swap-uuid-1',
+			swapId: 'SWP-20260924-0001',
+			date: '2026-09-24',
+			staffAId: 'st-1',
+			staffAMasterId: 'RA101H',
+			staffAName: 'Ramesh Kumar',
+			staffARole: 'Detailer',
+			showroomAId: 'sr-1',
+			showroomAMasterId: 'PO10001',
+			showroomAName: 'Popular Hyundai Showroom',
+			staffBId: 'st-2',
+			staffBMasterId: 'SU102B',
+			staffBName: 'Suresh Babu',
+			staffBRole: 'Technician',
+			showroomBId: 'sr-2',
+			showroomBMasterId: 'KU10001',
+			showroomBName: 'KUN BMW Showroom',
+			performedByUserId: 'usr-1',
+			performedByName: 'Admin',
+			status: 'Completed',
+			createdAt: '2026-09-24T09:30:00Z',
+		};
+
+		const lockedDailyStaff: api.DailyStaffResponse = {
+			...mockDailyStaff,
+			isAttendanceConfirmed: true,
+			attendanceConfirmedAt: '2026-09-24T18:00:00Z',
+			attendanceConfirmedByName: 'Gokula Kannan',
+			staffAssignments: [
+				{
+					...mockDailyStaff.staffAssignments[0],
+					swapId: 'SWP-20260924-0001',
+					swappedWithStaffId: 'st-2',
+					swappedWithStaffName: 'Suresh Babu',
+					originalShowroomId: 'sr-2',
+					originalShowroomName: 'KUN BMW Showroom',
+				},
+			],
+		};
+
+		vi.mocked(api.getDailyStaff).mockResolvedValueOnce(lockedDailyStaff);
+		vi.mocked(api.getSwapById).mockResolvedValueOnce(mockSwapDetails);
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/attendance" element={<ShowroomAttendancePage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/attendance?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-1',
+					fullName: 'Admin User',
+					username: 'admin',
+					role: 'Owner',
+					isOwner: true,
+					permissions: ['showroom.view', 'showroom.assign_staff'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText(/Swapped with/i)).toBeInTheDocument();
+		});
+
+		// Open swap details
+		fireEvent.click(screen.getByTitle(/Swapped with Suresh Babu/i));
+
+		// Verify Reverse Swap button is NOT rendered, and locked message is displayed
+		await waitFor(() => {
+			expect(screen.queryByRole('button', { name: /Reverse Swap/i })).not.toBeInTheDocument();
+			expect(screen.getByText(/Locked after attendance confirmation\. Unlock for Correction before reversing this swap\./i)).toBeInTheDocument();
 		});
 	});
 });

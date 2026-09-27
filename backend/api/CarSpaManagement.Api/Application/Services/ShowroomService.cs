@@ -2,6 +2,7 @@ using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.DTOs.StaffAttendance;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Constants;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
@@ -95,42 +96,72 @@ public class ShowroomService : IShowroomService
                                      (s.Phone != null && s.Phone.ToLower().Contains(term)));
         }
 
-        var today = ToUtcDate(DateTime.UtcNow);
+        var today = ShowroomDateHelper.GetTodayUtc();
 
-        var showrooms = await query
-            .OrderBy(s => s.Name)
-            .Select(s => new
+        var activeSessionsToday = await _db.ShowroomStaffWorkSessions
+            .AsNoTracking()
+            .Where(s => s.Date == today && !s.IsDeleted && s.AttendanceStatus != StaffAttendanceStatus.Leave && s.AttendanceStatus != StaffAttendanceStatus.Absent)
+            .Select(s => new { s.WorkingShowroomId, s.StaffId })
+            .ToListAsync(ct);
+
+        var legacyAssignmentsToday = await _db.ShowroomStaffAssignments
+            .AsNoTracking()
+            .Where(a => a.Date == today && !a.IsDeleted)
+            .Select(a => new { a.ShowroomId, a.StaffId, a.VehiclesAttended })
+            .ToListAsync(ct);
+
+        var vehicleWorksToday = await _db.ShowroomVehicleWorks
+            .AsNoTracking()
+            .Where(w => w.Date == today)
+            .Select(w => new { w.ShowroomId, w.VehicleQuantity })
+            .ToListAsync(ct);
+
+        var rawShowrooms = await query.OrderBy(s => s.Name).ToListAsync(ct);
+
+        var list = new List<ShowroomDto>(rawShowrooms.Count);
+
+        foreach (var s in rawShowrooms)
+        {
+            var sessionStaff = activeSessionsToday
+                .Where(x => x.WorkingShowroomId == s.Id)
+                .Select(x => x.StaffId)
+                .ToHashSet();
+
+            var legacyStaff = legacyAssignmentsToday
+                .Where(x => x.ShowroomId == s.Id)
+                .Select(x => x.StaffId);
+
+            foreach (var staffId in legacyStaff)
             {
+                sessionStaff.Add(staffId);
+            }
+
+            var vehiclesFromWorks = vehicleWorksToday
+                .Where(x => x.ShowroomId == s.Id)
+                .Sum(x => x.VehicleQuantity);
+
+            var vehiclesFromLegacy = legacyAssignmentsToday
+                .Where(x => x.ShowroomId == s.Id)
+                .Sum(x => x.VehiclesAttended);
+
+            var totalVehicles = Math.Max(vehiclesFromWorks, vehiclesFromLegacy);
+
+            list.Add(new ShowroomDto(
                 s.Id,
-                s.MasterId,
                 s.Name,
                 s.Address,
                 s.Phone,
-                s.Gstin,
                 s.IsActive,
+                sessionStaff.Count,
+                totalVehicles,
                 s.CreatedAt,
                 s.UpdatedAt,
-                ActiveStaffToday = _db.ShowroomStaffAssignments
-                    .Count(a => a.ShowroomId == s.Id && a.Date == today && !a.IsDeleted),
-                VehiclesToday = _db.ShowroomStaffAssignments
-                    .Where(a => a.ShowroomId == s.Id && a.Date == today && !a.IsDeleted)
-                    .Sum(a => (int?)a.VehiclesAttended) ?? 0
-            })
-            .ToListAsync(ct);
+                s.Gstin,
+                s.MasterId
+            ));
+        }
 
-        return showrooms.Select(s => new ShowroomDto(
-            s.Id,
-            s.Name,
-            s.Address,
-            s.Phone,
-            s.IsActive,
-            s.ActiveStaffToday,
-            s.VehiclesToday,
-            s.CreatedAt,
-            s.UpdatedAt,
-            s.Gstin,
-            s.MasterId
-        )).ToList();
+        return list;
     }
 
     public async Task<ShowroomDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
@@ -138,10 +169,33 @@ public class ShowroomService : IShowroomService
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (showroom == null) return null;
 
-        var today = ToUtcDate(DateTime.UtcNow);
-        var assignmentsToday = await _db.ShowroomStaffAssignments
-            .Where(a => a.ShowroomId == id && a.Date == today && !a.IsDeleted)
+        var today = ShowroomDateHelper.GetTodayUtc();
+
+        var activeSessionsToday = await _db.ShowroomStaffWorkSessions
+            .AsNoTracking()
+            .Where(s => s.WorkingShowroomId == id && s.Date == today && !s.IsDeleted && s.AttendanceStatus != StaffAttendanceStatus.Leave && s.AttendanceStatus != StaffAttendanceStatus.Absent)
+            .Select(s => s.StaffId)
             .ToListAsync(ct);
+
+        var legacyAssignmentsToday = await _db.ShowroomStaffAssignments
+            .AsNoTracking()
+            .Where(a => a.ShowroomId == id && a.Date == today && !a.IsDeleted)
+            .Select(a => new { a.StaffId, a.VehiclesAttended })
+            .ToListAsync(ct);
+
+        var vehicleWorksToday = await _db.ShowroomVehicleWorks
+            .AsNoTracking()
+            .Where(w => w.ShowroomId == id && w.Date == today)
+            .SumAsync(w => (int?)w.VehicleQuantity, ct) ?? 0;
+
+        var staffSet = new HashSet<Guid>(activeSessionsToday);
+        foreach (var leg in legacyAssignmentsToday)
+        {
+            staffSet.Add(leg.StaffId);
+        }
+
+        var legacyVehicles = legacyAssignmentsToday.Sum(a => a.VehiclesAttended);
+        var totalVehicles = Math.Max(vehicleWorksToday, legacyVehicles);
 
         return new ShowroomDto(
             showroom.Id,
@@ -149,8 +203,8 @@ public class ShowroomService : IShowroomService
             showroom.Address,
             showroom.Phone,
             showroom.IsActive,
-            assignmentsToday.Count,
-            assignmentsToday.Sum(a => a.VehiclesAttended),
+            staffSet.Count,
+            totalVehicles,
             showroom.CreatedAt,
             showroom.UpdatedAt,
             showroom.Gstin,
@@ -260,11 +314,7 @@ public class ShowroomService : IShowroomService
 
         if (isConfirmed)
         {
-            if (!isOwner)
-            {
-                throw new ForbiddenException("Showroom attendance is confirmed and locked for this date.");
-            }
-            throw new ConflictException("Showroom attendance is confirmed and locked for this date. Please unlock attendance to make corrections.");
+            throw new ValidationException("Attendance is confirmed for this date. Staff roster changes are locked. Unlock for Correction before making changes.");
         }
     }
 
@@ -280,6 +330,9 @@ public class ShowroomService : IShowroomService
             .Include(s => s.Staff)
             .Include(s => s.HomeShowroom)
             .Include(s => s.WorkingShowroom)
+            .Include(s => s.StaffSwap)
+            .Include(s => s.SwappedWithStaff)
+            .Include(s => s.OriginalShowroom)
             .Where(s => s.WorkingShowroomId == showroomId && s.Date == targetDate && !s.IsDeleted)
             .OrderBy(s => s.StartTime)
             .ThenBy(s => s.Staff.Name)
@@ -301,7 +354,8 @@ public class ShowroomService : IShowroomService
         {
             mappedStaffIds.Add(s.StaffId);
             var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(s.StartTime, s.EndTime);
-            var isTransfer = s.HomeShowroomId != showroomId || s.AttendanceStatus == StaffAttendanceStatus.TemporaryTransfer;
+            var isTransfer = s.HomeShowroomId != showroomId || s.AttendanceStatus == StaffAttendanceStatus.TemporaryTransfer || s.StaffSwapId != null;
+            var legacyVehicles = assignments.FirstOrDefault(a => a.StaffId == s.StaffId)?.VehiclesAttended ?? 0;
 
             list.Add(new DailyStaffAssignmentDto(
                 s.Id,
@@ -313,7 +367,7 @@ public class ShowroomService : IShowroomService
                 s.Staff?.PhoneNumber ?? string.Empty,
                 s.Staff?.Role,
                 s.Date,
-                0,
+                legacyVehicles,
                 s.CreatedAt,
                 s.StartTime ?? "09:00",
                 s.EndTime ?? "18:00",
@@ -325,7 +379,17 @@ public class ShowroomService : IShowroomService
                 s.HomeShowroom?.MasterId,
                 s.HomeShowroom?.Name,
                 s.TransferReason,
-                s.Notes
+                s.Notes,
+                s.StaffSwapId,
+                s.SwapId,
+                s.SwappedWithStaffId,
+                s.SwappedWithStaff?.StaffMasterId,
+                s.SwappedWithStaff?.Name,
+                s.OriginalShowroomId,
+                s.OriginalShowroom?.MasterId,
+                s.OriginalShowroom?.Name,
+                s.StaffSwap?.CreatedAt,
+                s.StaffSwap?.PerformedByName
             ));
         }
 
@@ -342,6 +406,7 @@ public class ShowroomService : IShowroomService
         {
             if (!globalAssignedStaffSet.Contains(a.StaffId) && !mappedStaffIds.Contains(a.StaffId))
             {
+                mappedStaffIds.Add(a.StaffId);
                 var homeShowroom = a.Staff?.DefaultShowroom;
                 var isTransfer = homeShowroom != null && homeShowroom.Id != showroomId;
 
@@ -366,6 +431,46 @@ public class ShowroomService : IShowroomService
                     homeShowroom?.Id ?? showroomId,
                     homeShowroom?.MasterId ?? showroom.MasterId,
                     homeShowroom?.Name ?? showroom.Name,
+                    null,
+                    null
+                ));
+            }
+        }
+
+        // 3. Query active staff whose Home Showroom is this showroom (DefaultShowroomId == showroomId)
+        // who have not been assigned/transferred elsewhere on targetDate and not already in mappedStaffIds
+        var homeStaff = await _db.Staff
+            .Include(st => st.DefaultShowroom)
+            .Where(st => st.DefaultShowroomId == showroomId && st.IsActive && !st.IsDeleted)
+            .OrderBy(st => st.Name)
+            .ToListAsync(ct);
+
+        foreach (var st in homeStaff)
+        {
+            if (!globalAssignedStaffSet.Contains(st.Id) && !mappedStaffIds.Contains(st.Id))
+            {
+                mappedStaffIds.Add(st.Id);
+                list.Add(new DailyStaffAssignmentDto(
+                    st.Id,
+                    showroomId,
+                    showroom.Name,
+                    st.Id,
+                    st.StaffMasterId ?? string.Empty,
+                    st.Name,
+                    st.PhoneNumber ?? string.Empty,
+                    st.Role,
+                    targetDate,
+                    0,
+                    st.CreatedAt,
+                    "09:00",
+                    "18:00",
+                    9.0,
+                    "9h",
+                    "Present",
+                    "Regular",
+                    showroomId,
+                    showroom.MasterId,
+                    showroom.Name,
                     null,
                     null
                 ));
@@ -403,15 +508,55 @@ public class ShowroomService : IShowroomService
 
         var targetDate = ToUtcDate(date);
 
+        var dailyRoster = await GetDailyStaffAsync(showroomId, targetDate, ct);
+        if (dailyRoster == null || dailyRoster.StaffAssignments.Count == 0)
+        {
+            throw new InvalidOperationException("Please assign at least one staff member before confirming attendance.");
+        }
+
+        // Materialize persistent work sessions and legacy assignments for any default roster staff
+        foreach (var item in dailyRoster.StaffAssignments)
+        {
+            var hasSession = await _db.ShowroomStaffWorkSessions
+                .AnyAsync(s => s.WorkingShowroomId == showroomId && s.StaffId == item.StaffId && s.Date == targetDate && !s.IsDeleted, ct);
+            if (!hasSession)
+            {
+                _db.ShowroomStaffWorkSessions.Add(new ShowroomStaffWorkSession
+                {
+                    Id = Guid.NewGuid(),
+                    StaffId = item.StaffId,
+                    WorkingShowroomId = showroomId,
+                    HomeShowroomId = item.HomeShowroomId ?? showroomId,
+                    Date = targetDate,
+                    SessionType = ShowroomStaffSessionType.FullDay,
+                    AttendanceStatus = StaffAttendanceStatus.Present,
+                    StartTime = item.StartTime ?? "09:00",
+                    EndTime = item.EndTime ?? "18:00",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            var hasAssignment = await _db.ShowroomStaffAssignments
+                .AnyAsync(a => a.ShowroomId == showroomId && a.StaffId == item.StaffId && a.Date == targetDate && !a.IsDeleted, ct);
+            if (!hasAssignment)
+            {
+                _db.ShowroomStaffAssignments.Add(new ShowroomStaffAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    ShowroomId = showroomId,
+                    StaffId = item.StaffId,
+                    Date = targetDate,
+                    VehiclesAttended = 0,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+        await _db.SaveChangesAsync(ct);
+
         // Validate non-negative vehicles attended on existing assignments
         var assignments = await _db.ShowroomStaffAssignments
             .Where(a => a.ShowroomId == showroomId && a.Date == targetDate && !a.IsDeleted)
             .ToListAsync(ct);
-
-        if (assignments.Count == 0)
-        {
-            throw new InvalidOperationException("Please assign at least one staff member before confirming attendance.");
-        }
 
         if (assignments.Any(a => a.VehiclesAttended < 0))
         {
@@ -1209,5 +1354,549 @@ public class ShowroomService : IShowroomService
         }
 
         return list;
+    }
+
+    public async Task<ShowroomStaffSwapDto> SwapStaffAsync(CreateStaffSwapRequest request, Guid? userId = null, bool isOwner = false, CancellationToken ct = default)
+    {
+        if (request.StaffAId == request.StaffBId)
+        {
+            throw new ValidationException("Cannot swap a staff member with themselves.");
+        }
+
+        var targetDate = ToUtcDate(request.Date);
+
+        // 1. Validate Staff A and Staff B
+        var staffA = await _db.Staff
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == request.StaffAId && !s.IsDeleted, ct);
+        if (staffA == null || !staffA.IsActive)
+        {
+            throw new ValidationException($"Staff member A with ID '{request.StaffAId}' is invalid or inactive.");
+        }
+
+        var staffB = await _db.Staff
+            .Include(s => s.DefaultShowroom)
+            .FirstOrDefaultAsync(s => s.Id == request.StaffBId && !s.IsDeleted, ct);
+        if (staffB == null || !staffB.IsActive)
+        {
+            throw new ValidationException($"Staff member B with ID '{request.StaffBId}' is invalid or inactive.");
+        }
+
+        // 2. Validate Showroom A and Showroom B
+        var showroomA = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == request.ShowroomAId && !s.IsDeleted, ct);
+        if (showroomA == null || !showroomA.IsActive)
+        {
+            throw new ValidationException($"Showroom A with ID '{request.ShowroomAId}' is invalid or inactive.");
+        }
+
+        var showroomB = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == request.ShowroomBId && !s.IsDeleted, ct);
+        if (showroomB == null || !showroomB.IsActive)
+        {
+            throw new ValidationException($"Showroom B with ID '{request.ShowroomBId}' is invalid or inactive.");
+        }
+
+        // 3. Check attendance locking on both showrooms
+        await EnsureAttendanceNotLockedAsync(showroomA.Id, targetDate, isOwner, ct);
+        await EnsureAttendanceNotLockedAsync(showroomB.Id, targetDate, isOwner, ct);
+
+        // 4. Resolve caller name
+        string? performedByName = null;
+        if (userId.HasValue)
+        {
+            var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value, ct);
+            performedByName = user?.FullName ?? user?.Username;
+        }
+
+        // 5. Validate Coverage Time Period
+        string covStart = !string.IsNullOrWhiteSpace(request.CoverageStartTime) ? request.CoverageStartTime.Trim() : "09:00";
+        string covEnd = !string.IsNullOrWhiteSpace(request.CoverageEndTime) ? request.CoverageEndTime.Trim() : "18:00";
+
+        if (!TimeSpan.TryParse(covStart, out var inTime) || !TimeSpan.TryParse(covEnd, out var outTime))
+        {
+            throw new ValidationException("Coverage Start Time and End Time must be in valid 24-hour format (HH:mm).");
+        }
+
+        if (outTime <= inTime)
+        {
+            throw new ValidationException("Coverage End Time must be later than Coverage Start Time.");
+        }
+
+        var durationHours = Math.Round((outTime - inTime).TotalHours, 2);
+        if (durationHours <= 0)
+        {
+            throw new ValidationException("Coverage duration must be greater than zero.");
+        }
+
+        // 6. Generate SwapId e.g. "SWP-20260927-0001"
+        var datePrefix = $"SWP-{targetDate:yyyyMMdd}-";
+        var existingSwapsCount = await _db.ShowroomStaffSwaps
+            .IgnoreQueryFilters()
+            .CountAsync(s => s.SwapId.StartsWith(datePrefix), ct);
+        var swapId = $"{datePrefix}{(existingSwapsCount + 1):D4}";
+
+        while (await _db.ShowroomStaffSwaps.IgnoreQueryFilters().AnyAsync(s => s.SwapId == swapId, ct))
+        {
+            existingSwapsCount++;
+            swapId = $"{datePrefix}{(existingSwapsCount + 1):D4}";
+        }
+
+        var isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        using var tx = isInMemory ? null : await _db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            // 7. Create Swap entity
+            var swap = new ShowroomStaffSwap
+            {
+                Id = Guid.NewGuid(),
+                SwapId = swapId,
+                Date = targetDate,
+                StaffAId = staffA.Id,
+                ShowroomAId = showroomA.Id,
+                StaffBId = staffB.Id,
+                ShowroomBId = showroomB.Id,
+                CoverageStartTime = covStart,
+                CoverageEndTime = covEnd,
+                CoverageDurationHours = (decimal)durationHours,
+                PerformedByUserId = userId,
+                PerformedByName = performedByName,
+                Reason = request.Reason?.Trim(),
+                Notes = request.Notes?.Trim(),
+                Status = "Completed"
+            };
+            _db.ShowroomStaffSwaps.Add(swap);
+
+            // 8. Update or Create Work Session for Staff A (now at Showroom B)
+            var existingSessionsA = await _db.ShowroomStaffWorkSessions
+                .Where(s => s.StaffId == staffA.Id && s.Date == targetDate && !s.IsDeleted)
+                .ToListAsync(ct);
+
+            var homeA = staffA.DefaultShowroomId ?? showroomA.Id;
+            var transferReasonA = $"Swapped with {staffB.Name} (#{staffB.StaffMasterId}) [Swap ID: {swapId}] (Coverage: {covStart}–{covEnd})";
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+            {
+                transferReasonA += $" - {request.Reason.Trim()}";
+            }
+
+            ShowroomStaffWorkSession sessionA;
+            if (existingSessionsA.Count > 0)
+            {
+                sessionA = existingSessionsA[0];
+                sessionA.WorkingShowroomId = showroomB.Id;
+                sessionA.HomeShowroomId = homeA;
+                sessionA.AttendanceStatus = StaffAttendanceStatus.Present;
+                sessionA.StaffSwapId = swap.Id;
+                sessionA.SwapId = swapId;
+                sessionA.SwappedWithStaffId = staffB.Id;
+                sessionA.OriginalShowroomId = showroomA.Id;
+                sessionA.TransferReason = transferReasonA;
+                if (!string.IsNullOrWhiteSpace(request.Notes)) sessionA.Notes = request.Notes.Trim();
+
+                for (int i = 1; i < existingSessionsA.Count; i++)
+                {
+                    existingSessionsA[i].IsDeleted = true;
+                }
+            }
+            else
+            {
+                sessionA = new ShowroomStaffWorkSession
+                {
+                    Id = Guid.NewGuid(),
+                    StaffId = staffA.Id,
+                    HomeShowroomId = homeA,
+                    WorkingShowroomId = showroomB.Id,
+                    Date = targetDate,
+                    SessionType = ShowroomStaffSessionType.FullDay,
+                    AttendanceStatus = StaffAttendanceStatus.Present,
+                    StartTime = "09:00",
+                    EndTime = "18:00",
+                    StaffSwapId = swap.Id,
+                    SwapId = swapId,
+                    SwappedWithStaffId = staffB.Id,
+                    OriginalShowroomId = showroomA.Id,
+                    TransferReason = transferReasonA,
+                    Notes = request.Notes?.Trim()
+                };
+                _db.ShowroomStaffWorkSessions.Add(sessionA);
+            }
+
+            // 9. Update or Create Work Session for Staff B (now at Showroom A)
+            var existingSessionsB = await _db.ShowroomStaffWorkSessions
+                .Where(s => s.StaffId == staffB.Id && s.Date == targetDate && !s.IsDeleted)
+                .ToListAsync(ct);
+
+            var homeB = staffB.DefaultShowroomId ?? showroomB.Id;
+            var transferReasonB = $"Swapped with {staffA.Name} (#{staffA.StaffMasterId}) [Swap ID: {swapId}] (Coverage: {covStart}–{covEnd})";
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+            {
+                transferReasonB += $" - {request.Reason.Trim()}";
+            }
+
+            ShowroomStaffWorkSession sessionB;
+            if (existingSessionsB.Count > 0)
+            {
+                sessionB = existingSessionsB[0];
+                sessionB.WorkingShowroomId = showroomA.Id;
+                sessionB.HomeShowroomId = homeB;
+                sessionB.AttendanceStatus = StaffAttendanceStatus.Present;
+                sessionB.StaffSwapId = swap.Id;
+                sessionB.SwapId = swapId;
+                sessionB.SwappedWithStaffId = staffA.Id;
+                sessionB.OriginalShowroomId = showroomB.Id;
+                sessionB.TransferReason = transferReasonB;
+                if (!string.IsNullOrWhiteSpace(request.Notes)) sessionB.Notes = request.Notes.Trim();
+
+                for (int i = 1; i < existingSessionsB.Count; i++)
+                {
+                    existingSessionsB[i].IsDeleted = true;
+                }
+            }
+            else
+            {
+                sessionB = new ShowroomStaffWorkSession
+                {
+                    Id = Guid.NewGuid(),
+                    StaffId = staffB.Id,
+                    HomeShowroomId = homeB,
+                    WorkingShowroomId = showroomA.Id,
+                    Date = targetDate,
+                    SessionType = ShowroomStaffSessionType.FullDay,
+                    AttendanceStatus = StaffAttendanceStatus.Present,
+                    StartTime = "09:00",
+                    EndTime = "18:00",
+                    StaffSwapId = swap.Id,
+                    SwapId = swapId,
+                    SwappedWithStaffId = staffA.Id,
+                    OriginalShowroomId = showroomB.Id,
+                    TransferReason = transferReasonB,
+                    Notes = request.Notes?.Trim()
+                };
+                _db.ShowroomStaffWorkSessions.Add(sessionB);
+            }
+
+            swap.SessionAId = sessionA.Id;
+            swap.SessionBId = sessionB.Id;
+
+            // Also clean up any legacy assignments on either showroom to keep pure sync
+            var legacyA = await _db.ShowroomStaffAssignments
+                .Where(a => a.StaffId == staffA.Id && a.Date == targetDate && !a.IsDeleted)
+                .ToListAsync(ct);
+            foreach (var la in legacyA) la.IsDeleted = true;
+
+            var legacyB = await _db.ShowroomStaffAssignments
+                .Where(a => a.StaffId == staffB.Id && a.Date == targetDate && !a.IsDeleted)
+                .ToListAsync(ct);
+            foreach (var lb in legacyB) lb.IsDeleted = true;
+
+            await _db.SaveChangesAsync(ct);
+
+            // 10. Record Audit Log
+            var metadata = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                SwapId = swapId,
+                Date = targetDate.ToString("yyyy-MM-dd"),
+                StaffA = new { staffA.Id, staffA.Name, staffA.StaffMasterId, OriginalShowroom = showroomA.Name, NewShowroom = showroomB.Name },
+                StaffB = new { staffB.Id, staffB.Name, staffB.StaffMasterId, OriginalShowroom = showroomB.Name, NewShowroom = showroomA.Name },
+                Coverage = new { StartTime = covStart, EndTime = covEnd, DurationHours = durationHours },
+                Reason = request.Reason,
+                PerformedBy = performedByName
+            });
+
+            await _auditLogService.RecordAsync(
+                action: AuditActions.StaffSwap,
+                module: AuditModules.Showrooms,
+                description: $"Staff swap {swapId}: {staffA.Name} ({showroomA.Name}) <-> {staffB.Name} ({showroomB.Name}) on {targetDate:yyyy-MM-dd} ({covStart}-{covEnd})",
+                userId: userId,
+                userName: performedByName,
+                entityType: nameof(ShowroomStaffSwap),
+                entityId: swap.Id,
+                entityReference: swapId,
+                metadata: metadata,
+                cancellationToken: ct
+            );
+
+            if (tx != null) await tx.CommitAsync(ct);
+
+            return new ShowroomStaffSwapDto(
+                swap.Id,
+                swap.SwapId,
+                swap.Date,
+                staffA.Id,
+                staffA.StaffMasterId,
+                staffA.Name,
+                staffA.Role,
+                showroomA.Id,
+                showroomA.MasterId,
+                showroomA.Name,
+                staffB.Id,
+                staffB.StaffMasterId,
+                staffB.Name,
+                staffB.Role,
+                showroomB.Id,
+                showroomB.MasterId,
+                showroomB.Name,
+                sessionA.Id,
+                sessionB.Id,
+                swap.PerformedByUserId,
+                swap.PerformedByName,
+                swap.Reason,
+                swap.Notes,
+                swap.Status,
+                swap.CreatedAt,
+                swap.CoverageStartTime,
+                swap.CoverageEndTime,
+                (double?)swap.CoverageDurationHours,
+                FormatCoverageDuration((double?)swap.CoverageDurationHours)
+            );
+        }
+        catch
+        {
+            if (tx != null) await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    public async Task<ShowroomStaffSwapDto?> GetSwapByIdAsync(string swapId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(swapId)) return null;
+        var swap = await _db.ShowroomStaffSwaps
+            .Include(s => s.StaffA)
+            .Include(s => s.ShowroomA)
+            .Include(s => s.StaffB)
+            .Include(s => s.ShowroomB)
+            .FirstOrDefaultAsync(s => s.SwapId == swapId.Trim(), ct);
+
+        if (swap == null) return null;
+
+        return new ShowroomStaffSwapDto(
+            swap.Id,
+            swap.SwapId,
+            swap.Date,
+            swap.StaffAId,
+            swap.StaffA?.StaffMasterId ?? string.Empty,
+            swap.StaffA?.Name ?? "Unknown Staff",
+            swap.StaffA?.Role,
+            swap.ShowroomAId,
+            swap.ShowroomA?.MasterId ?? string.Empty,
+            swap.ShowroomA?.Name ?? "Unknown Showroom",
+            swap.StaffBId,
+            swap.StaffB?.StaffMasterId ?? string.Empty,
+            swap.StaffB?.Name ?? "Unknown Staff",
+            swap.StaffB?.Role,
+            swap.ShowroomBId,
+            swap.ShowroomB?.MasterId ?? string.Empty,
+            swap.ShowroomB?.Name ?? "Unknown Showroom",
+            swap.SessionAId,
+            swap.SessionBId,
+            swap.PerformedByUserId,
+            swap.PerformedByName,
+            swap.Reason,
+            swap.Notes,
+            swap.Status,
+            swap.CreatedAt,
+            swap.CoverageStartTime,
+            swap.CoverageEndTime,
+            (double?)swap.CoverageDurationHours,
+            FormatCoverageDuration((double?)swap.CoverageDurationHours)
+        );
+    }
+
+    public async Task<IReadOnlyList<ShowroomStaffSwapDto>> GetSwapHistoryAsync(Guid? showroomId = null, Guid? staffId = null, DateTime? date = null, CancellationToken ct = default)
+    {
+        var query = _db.ShowroomStaffSwaps
+            .Include(s => s.StaffA)
+            .Include(s => s.ShowroomA)
+            .Include(s => s.StaffB)
+            .Include(s => s.ShowroomB)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (showroomId.HasValue)
+        {
+            query = query.Where(s => s.ShowroomAId == showroomId.Value || s.ShowroomBId == showroomId.Value);
+        }
+
+        if (staffId.HasValue)
+        {
+            query = query.Where(s => s.StaffAId == staffId.Value || s.StaffBId == staffId.Value);
+        }
+
+        if (date.HasValue)
+        {
+            var targetDate = ToUtcDate(date.Value);
+            query = query.Where(s => s.Date == targetDate);
+        }
+
+        var list = await query.OrderByDescending(s => s.Date).ThenByDescending(s => s.CreatedAt).ToListAsync(ct);
+
+        return list.Select(swap => new ShowroomStaffSwapDto(
+            swap.Id,
+            swap.SwapId,
+            swap.Date,
+            swap.StaffAId,
+            swap.StaffA?.StaffMasterId ?? string.Empty,
+            swap.StaffA?.Name ?? "Unknown Staff",
+            swap.StaffA?.Role,
+            swap.ShowroomAId,
+            swap.ShowroomA?.MasterId ?? string.Empty,
+            swap.ShowroomA?.Name ?? "Unknown Showroom",
+            swap.StaffBId,
+            swap.StaffB?.StaffMasterId ?? string.Empty,
+            swap.StaffB?.Name ?? "Unknown Staff",
+            swap.StaffB?.Role,
+            swap.ShowroomBId,
+            swap.ShowroomB?.MasterId ?? string.Empty,
+            swap.ShowroomB?.Name ?? "Unknown Showroom",
+            swap.SessionAId,
+            swap.SessionBId,
+            swap.PerformedByUserId,
+            swap.PerformedByName,
+            swap.Reason,
+            swap.Notes,
+            swap.Status,
+            swap.CreatedAt,
+            swap.CoverageStartTime,
+            swap.CoverageEndTime,
+            (double?)swap.CoverageDurationHours,
+            FormatCoverageDuration((double?)swap.CoverageDurationHours)
+        )).ToList();
+    }
+
+    public async Task<ShowroomStaffSwapDto> ReverseSwapAsync(string swapId, ReverseStaffSwapRequest? request = null, Guid? userId = null, bool isOwner = false, CancellationToken ct = default)
+    {
+        var swap = await _db.ShowroomStaffSwaps
+            .Include(s => s.StaffA)
+            .Include(s => s.ShowroomA)
+            .Include(s => s.StaffB)
+            .Include(s => s.ShowroomB)
+            .FirstOrDefaultAsync(s => s.SwapId == swapId.Trim(), ct);
+
+        if (swap == null)
+        {
+            throw new KeyNotFoundException($"Staff swap with ID '{swapId}' was not found.");
+        }
+
+        if (swap.Status == "Reversed")
+        {
+            throw new ValidationException($"Staff swap '{swapId}' has already been reversed.");
+        }
+
+        // Check attendance lock on both showrooms
+        await EnsureAttendanceNotLockedAsync(swap.ShowroomAId, swap.Date, isOwner, ct);
+        await EnsureAttendanceNotLockedAsync(swap.ShowroomBId, swap.Date, isOwner, ct);
+
+        string? performedByName = null;
+        if (userId.HasValue)
+        {
+            var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value, ct);
+            performedByName = user?.FullName ?? user?.Username;
+        }
+
+        var isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        using var tx = isInMemory ? null : await _db.Database.BeginTransactionAsync(ct);
+
+        try
+        {
+            var sessionsA = await _db.ShowroomStaffWorkSessions
+                .Where(s => s.StaffId == swap.StaffAId && s.Date == swap.Date && !s.IsDeleted)
+                .ToListAsync(ct);
+            foreach (var s in sessionsA)
+            {
+                s.WorkingShowroomId = swap.ShowroomAId;
+                s.StaffSwapId = null;
+                s.SwapId = null;
+                s.SwappedWithStaffId = null;
+                s.OriginalShowroomId = null;
+                s.TransferReason = string.IsNullOrWhiteSpace(request?.Reason)
+                    ? $"Swap {swap.SwapId} reversed"
+                    : $"Swap {swap.SwapId} reversed: {request.Reason.Trim()}";
+            }
+
+            var sessionsB = await _db.ShowroomStaffWorkSessions
+                .Where(s => s.StaffId == swap.StaffBId && s.Date == swap.Date && !s.IsDeleted)
+                .ToListAsync(ct);
+            foreach (var s in sessionsB)
+            {
+                s.WorkingShowroomId = swap.ShowroomBId;
+                s.StaffSwapId = null;
+                s.SwapId = null;
+                s.SwappedWithStaffId = null;
+                s.OriginalShowroomId = null;
+                s.TransferReason = string.IsNullOrWhiteSpace(request?.Reason)
+                    ? $"Swap {swap.SwapId} reversed"
+                    : $"Swap {swap.SwapId} reversed: {request.Reason.Trim()}";
+            }
+
+            swap.Status = "Reversed";
+            if (!string.IsNullOrWhiteSpace(request?.Reason))
+            {
+                swap.Notes = string.IsNullOrWhiteSpace(swap.Notes)
+                    ? $"Reversal reason: {request.Reason.Trim()}"
+                    : $"{swap.Notes} | Reversal reason: {request.Reason.Trim()}";
+            }
+
+            await _db.SaveChangesAsync(ct);
+
+            await _auditLogService.RecordAsync(
+                action: AuditActions.StaffSwapReversed,
+                module: AuditModules.Showrooms,
+                description: $"Staff swap {swap.SwapId} reversed by {performedByName ?? "system"}",
+                userId: userId,
+                userName: performedByName,
+                entityType: nameof(ShowroomStaffSwap),
+                entityId: swap.Id,
+                entityReference: swap.SwapId,
+                metadata: System.Text.Json.JsonSerializer.Serialize(new { swap.SwapId, swap.Date, Reason = request?.Reason }),
+                cancellationToken: ct
+            );
+
+            if (tx != null) await tx.CommitAsync(ct);
+
+            return new ShowroomStaffSwapDto(
+                swap.Id,
+                swap.SwapId,
+                swap.Date,
+                swap.StaffAId,
+                swap.StaffA?.StaffMasterId ?? string.Empty,
+                swap.StaffA?.Name ?? "Unknown Staff",
+                swap.StaffA?.Role,
+                swap.ShowroomAId,
+                swap.ShowroomA?.MasterId ?? string.Empty,
+                swap.ShowroomA?.Name ?? "Unknown Showroom",
+                swap.StaffBId,
+                swap.StaffB?.StaffMasterId ?? string.Empty,
+                swap.StaffB?.Name ?? "Unknown Staff",
+                swap.StaffB?.Role,
+                swap.ShowroomBId,
+                swap.ShowroomB?.MasterId ?? string.Empty,
+                swap.ShowroomB?.Name ?? "Unknown Showroom",
+                swap.SessionAId,
+                swap.SessionBId,
+                swap.PerformedByUserId,
+                performedByName ?? swap.PerformedByName,
+                swap.Reason,
+                swap.Notes,
+                swap.Status,
+                swap.CreatedAt,
+                swap.CoverageStartTime,
+                swap.CoverageEndTime,
+                (double?)swap.CoverageDurationHours,
+                FormatCoverageDuration((double?)swap.CoverageDurationHours)
+            );
+        }
+        catch
+        {
+            if (tx != null) await tx.RollbackAsync(ct);
+            throw;
+        }
+    }
+
+    private static string? FormatCoverageDuration(double? hours)
+    {
+        if (!hours.HasValue) return null;
+        var h = hours.Value;
+        if (Math.Abs(h - 1.0) < 0.01) return "1 hour";
+        if (Math.Abs(h % 1) < 0.01) return $"{(int)h} hours";
+        return $"{h:0.#} hours";
     }
 }

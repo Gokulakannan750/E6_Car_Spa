@@ -1643,6 +1643,64 @@ export interface DailyStaffAssignmentDto {
 	homeShowroomName?: string | null;
 	transferReason?: string | null;
 	notes?: string | null;
+	staffSwapId?: string | null;
+	swapId?: string | null;
+	swappedWithStaffId?: string | null;
+	swappedWithStaffMasterId?: string | null;
+	swappedWithStaffName?: string | null;
+	originalShowroomId?: string | null;
+	originalShowroomMasterId?: string | null;
+	originalShowroomName?: string | null;
+	swappedAt?: string | null;
+	swappedByName?: string | null;
+}
+
+export interface ShowroomStaffSwapDto {
+	id: string;
+	swapId: string;
+	date: string;
+	staffAId: string;
+	staffAMasterId: string;
+	staffAName: string;
+	staffARole?: string | null;
+	showroomAId: string;
+	showroomAMasterId: string;
+	showroomAName: string;
+	staffBId: string;
+	staffBMasterId: string;
+	staffBName: string;
+	staffBRole?: string | null;
+	showroomBId: string;
+	showroomBMasterId: string;
+	showroomBName: string;
+	sessionAId?: string | null;
+	sessionBId?: string | null;
+	performedByUserId?: string | null;
+	performedByName?: string | null;
+	reason?: string | null;
+	notes?: string | null;
+	status: string;
+	createdAt: string;
+	coverageStartTime?: string | null;
+	coverageEndTime?: string | null;
+	coverageDurationHours?: number | null;
+	coverageDurationFormatted?: string | null;
+}
+
+export interface CreateStaffSwapInput {
+	date: string;
+	staffAId: string;
+	showroomAId: string;
+	staffBId: string;
+	showroomBId: string;
+	coverageStartTime?: string;
+	coverageEndTime?: string;
+	reason?: string;
+	notes?: string;
+}
+
+export interface ReverseStaffSwapInput {
+	reason?: string;
 }
 
 export interface DailyStaffResponse {
@@ -1724,6 +1782,40 @@ export async function assignDailyStaff(showroomId: string, data: CreateDailyStaf
 		method: 'POST',
 		body: JSON.stringify(data),
 	}, 'assign showroom staff');
+}
+
+export async function swapStaff(data: CreateStaffSwapInput) {
+	return request<ShowroomStaffSwapDto>('/api/showrooms/swap-staff', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'swap staff members');
+}
+
+export async function getSwaps(params?: { showroomId?: string; staffId?: string; date?: string }) {
+	const qs = new URLSearchParams();
+	if (params?.showroomId) qs.set('showroomId', params.showroomId);
+	if (params?.staffId) qs.set('staffId', params.staffId);
+	if (params?.date) qs.set('date', params.date);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomStaffSwapDto[]>('/api/showrooms/swaps' + suffix, {}, 'view staff swaps');
+}
+
+export async function getShowroomSwapHistory(showroomId: string, date?: string) {
+	const qs = new URLSearchParams();
+	if (date) qs.set('date', date);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<ShowroomStaffSwapDto[]>(`/api/showrooms/${encodeURIComponent(showroomId)}/swap-history` + suffix, {}, 'view showroom swap history');
+}
+
+export async function getSwapById(swapId: string) {
+	return request<ShowroomStaffSwapDto>(`/api/showrooms/swaps/${encodeURIComponent(swapId)}`, {}, 'view swap details');
+}
+
+export async function reverseSwap(swapId: string, data?: ReverseStaffSwapInput) {
+	return request<ShowroomStaffSwapDto>(`/api/showrooms/swaps/${encodeURIComponent(swapId)}/reverse`, {
+		method: 'POST',
+		body: JSON.stringify(data || {}),
+	}, 'reverse staff swap');
 }
 
 export interface UpdateDailyStaffAssignmentInput {
@@ -3038,7 +3130,7 @@ export async function getMonthlyShowroomReport(params: {
 export interface SystemPreferencesDto {
 	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 	timeFormat: '12h' | '24h';
-	currencySymbol: '₹' | '$' | '€';
+	currencySymbol: '₹';
 	decimalPrecision: number;
 	defaultPrintCopies: number;
 	autoPrintReceipt: boolean;
@@ -3049,7 +3141,7 @@ export interface SystemPreferencesDto {
 export interface UpdateSystemPreferencesRequest {
 	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 	timeFormat: '12h' | '24h';
-	currencySymbol: '₹' | '$' | '€';
+	currencySymbol: '₹';
 	decimalPrecision: number;
 	defaultPrintCopies: number;
 	autoPrintReceipt: boolean;

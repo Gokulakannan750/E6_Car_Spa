@@ -142,7 +142,11 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
       MaterialPageRoute(
         builder: (context) => ShowroomDetailScreen(showroom: showroom),
       ),
-    );
+    ).then((_) {
+      if (mounted) {
+        ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+      }
+    });
   }
 
   @override

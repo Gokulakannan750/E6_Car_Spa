@@ -16,6 +16,9 @@ class ShowroomAttendanceTab extends ConsumerWidget {
   final VoidCallback onOpenAssignStaffSheet;
   final void Function(DailyStaffAssignment assignment) onOpenEditStaffSessionSheet;
   final void Function(DailyStaffAssignment assignment) onRemoveAssignment;
+  final void Function(DailyStaffAssignment? assignment)? onOpenSwapStaffSheet;
+  final void Function(String swapId)? onOpenSwapDetailsSheet;
+  final VoidCallback? onOpenSwapHistorySheet;
   final VoidCallback onConfirmSubmitAttendance;
   final VoidCallback onConfirmUnlockAttendance;
 
@@ -28,6 +31,9 @@ class ShowroomAttendanceTab extends ConsumerWidget {
     required this.onOpenAssignStaffSheet,
     required this.onOpenEditStaffSessionSheet,
     required this.onRemoveAssignment,
+    this.onOpenSwapStaffSheet,
+    this.onOpenSwapDetailsSheet,
+    this.onOpenSwapHistorySheet,
     required this.onConfirmSubmitAttendance,
     required this.onConfirmUnlockAttendance,
   });
@@ -79,54 +85,84 @@ class ShowroomAttendanceTab extends ConsumerWidget {
             ),
           ),
 
-          // 3. Section Heading: "Staff on Duty"
+          // 3. Section Heading: "Staff on Duty" & Actions
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'Staff on Duty',
-                            style: AppTextStyles.headingSmall.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Staff on Duty',
+                                style: AppTextStyles.headingSmall.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withAlpha(25),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${dailyState.totalStaffCount}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withAlpha(25),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${dailyState.totalStaffCount}',
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (onOpenSwapHistorySheet != null)
+                            IconButton(
+                              key: const Key('swap_history_button'),
+                              onPressed: onOpenSwapHistorySheet,
+                              icon: const Icon(Icons.history, size: 20, color: Colors.purple),
+                              tooltip: 'Swap History',
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                          if (canAssignStaff && !isLocked && onOpenSwapStaffSheet != null)
+                            IconButton(
+                              key: const Key('swap_staff_button'),
+                              onPressed: () => onOpenSwapStaffSheet!(null),
+                              icon: const Icon(Icons.swap_horiz, size: 20, color: Colors.purple),
+                              tooltip: 'Swap Staff',
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                          const SizedBox(width: 4),
+                          Text(
+                            dateHeading,
                             style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    dateHeading,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -204,6 +240,12 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                           : null,
                       onRemove: (canAssignStaff && !isLocked)
                           ? () => onRemoveAssignment(assignment)
+                          : null,
+                      onSwap: (canAssignStaff && !isLocked && onOpenSwapStaffSheet != null)
+                          ? () => onOpenSwapStaffSheet!(assignment)
+                          : null,
+                      onViewSwap: (assignment.swapId != null && onOpenSwapDetailsSheet != null)
+                          ? () => onOpenSwapDetailsSheet!(assignment.swapId!)
                           : null,
                     );
                   },

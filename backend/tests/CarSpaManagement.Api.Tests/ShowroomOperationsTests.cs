@@ -751,7 +751,9 @@ public class ShowroomOperationsTests
     public void Architecture_ControllersAndEntities_RespectSecurityAndRelationalIntegrity()
     {
         // 1. Verify that internal Guid IDs are used for all foreign keys
-        var sessionFkProps = typeof(ShowroomStaffWorkSession).GetProperties().Where(p => p.Name.EndsWith("Id")).Select(p => p.PropertyType);
+        var sessionFkProps = typeof(ShowroomStaffWorkSession).GetProperties()
+            .Where(p => p.Name.EndsWith("Id") && p.Name != "SwapId")
+            .Select(p => p.PropertyType);
         foreach (var propType in sessionFkProps)
         {
             Assert.True(propType == typeof(Guid) || propType == typeof(Guid?));

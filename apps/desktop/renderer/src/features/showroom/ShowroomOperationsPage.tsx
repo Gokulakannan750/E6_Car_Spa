@@ -291,28 +291,22 @@ export function ShowroomOperationsPage() {
 
 	const eligibleAttendanceStaff = useMemo(() => {
 		const rawAssignments = dailyStaffData?.staffAssignments || [];
-		const isToday = selectedDate === getTodayStr();
-		const nowTime = getCurrentTimeStr();
+		const seenStaffIds = new Set<string>();
+		const uniqueEligible: api.DailyStaffAssignmentDto[] = [];
 
-		return rawAssignments.filter((s) => {
+		for (const s of rawAssignments) {
 			// Exclude staff with non-working status
 			if (s.status === 'Leave' || s.status === 'Absent') {
-				return false;
+				continue;
 			}
-
-			// If viewing today's operational log, filter by active working hours
-			if (isToday) {
-				if (s.startTime && nowTime < s.startTime) {
-					return false;
-				}
-				if (s.endTime && nowTime >= s.endTime) {
-					return false;
-				}
+			if (!seenStaffIds.has(s.staffId)) {
+				seenStaffIds.add(s.staffId);
+				uniqueEligible.push(s);
 			}
+		}
 
-			return true;
-		});
-	}, [dailyStaffData, selectedDate]);
+		return uniqueEligible;
+	}, [dailyStaffData]);
 
 	// List of staff to display in Log / Edit Vehicle Work dropdown
 	const displayStaffList = useMemo(() => {

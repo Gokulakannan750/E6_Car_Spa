@@ -29,4 +29,10 @@ public interface IShowroomService
     // History & Financial Summary
     Task<ShowroomSummaryDto?> GetShowroomSummaryAsync(Guid showroomId, DateTime fromDate, DateTime toDate, CancellationToken ct = default);
     Task<IReadOnlyList<ShowroomOutstandingOverviewDto>> GetOutstandingOverviewAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default);
+
+    // Staff Swap Traceability & History
+    Task<ShowroomStaffSwapDto> SwapStaffAsync(CreateStaffSwapRequest request, Guid? userId = null, bool isOwner = false, CancellationToken ct = default);
+    Task<ShowroomStaffSwapDto?> GetSwapByIdAsync(string swapId, CancellationToken ct = default);
+    Task<IReadOnlyList<ShowroomStaffSwapDto>> GetSwapHistoryAsync(Guid? showroomId = null, Guid? staffId = null, DateTime? date = null, CancellationToken ct = default);
+    Task<ShowroomStaffSwapDto> ReverseSwapAsync(string swapId, ReverseStaffSwapRequest? request = null, Guid? userId = null, bool isOwner = false, CancellationToken ct = default);
 }

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
@@ -109,9 +110,9 @@ public class ShowroomsController : ControllerBase
 
     [HttpGet("{id:guid}/daily-staff")]
     [RequirePermission("showroom.view")]
-    public async Task<IActionResult> GetDailyStaff(Guid id, [FromQuery] DateTime? date, CancellationToken ct)
+    public async Task<IActionResult> GetDailyStaff(Guid id, [FromQuery] string? date, CancellationToken ct)
     {
-        var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+        var targetDate = ShowroomDateHelper.ParseDateOrDefault(date);
         var response = await _service.GetDailyStaffAsync(id, targetDate, ct);
         if (response == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
         return Ok(response);
@@ -149,14 +150,14 @@ public class ShowroomsController : ControllerBase
         }
     }
 
-    [HttpPost("{id:guid}/daily-staff/{date:datetime}/confirm")]
+    [HttpPost("{id:guid}/daily-staff/{date}/confirm")]
     [HttpPost("{id:guid}/daily-staff/confirm")]
     [RequirePermission("showroom.confirm_attendance")]
-    public async Task<IActionResult> ConfirmAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
+    public async Task<IActionResult> ConfirmAttendance(Guid id, [FromRoute] string? date, [FromQuery(Name = "date")] string? queryDate, CancellationToken ct)
     {
         try
         {
-            var targetDate = date ?? queryDate ?? DateTime.UtcNow.Date;
+            var targetDate = ShowroomDateHelper.ParseDateOrDefault(date ?? queryDate);
             var (userId, _) = await GetCallerInfoAsync(ct);
             var res = await _service.ConfirmAttendanceAsync(id, targetDate, userId, ct);
             return Ok(res);
@@ -171,10 +172,10 @@ public class ShowroomsController : ControllerBase
         }
     }
 
-    [HttpPost("{id:guid}/daily-staff/{date:datetime}/unlock")]
+    [HttpPost("{id:guid}/daily-staff/{date}/unlock")]
     [HttpPost("{id:guid}/daily-staff/unlock")]
     [Authorize]
-    public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] DateTime? date, [FromQuery(Name = "date")] DateTime? queryDate, CancellationToken ct)
+    public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] string? date, [FromQuery(Name = "date")] string? queryDate, CancellationToken ct)
     {
         var (userId, isOwner) = await GetCallerInfoAsync(ct);
         if (!isOwner)
@@ -184,7 +185,7 @@ public class ShowroomsController : ControllerBase
 
         try
         {
-            var targetDate = date ?? queryDate ?? DateTime.UtcNow.Date;
+            var targetDate = ShowroomDateHelper.ParseDateOrDefault(date ?? queryDate);
             var res = await _service.UnlockAttendanceAsync(id, targetDate, userId, isOwner, ct);
             return Ok(res);
         }
@@ -198,9 +199,9 @@ public class ShowroomsController : ControllerBase
 
     [HttpGet("{id:guid}/daily-bill")]
     [RequirePermission("showroom.view")]
-    public async Task<IActionResult> GetDailyBill(Guid id, [FromQuery] DateTime? date, CancellationToken ct)
+    public async Task<IActionResult> GetDailyBill(Guid id, [FromQuery] string? date, CancellationToken ct)
     {
-        var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+        var targetDate = ShowroomDateHelper.ParseDateOrDefault(date);
         var bill = await _service.GetDailyBillAsync(id, targetDate, ct);
         if (bill == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
         return Ok(bill);
@@ -208,11 +209,11 @@ public class ShowroomsController : ControllerBase
 
     [HttpPost("{id:guid}/daily-bill")]
     [RequirePermission("showroom.manage_billing")]
-    public async Task<IActionResult> SetDailyBill(Guid id, [FromQuery] DateTime? date, [FromBody] SetShowroomDailyBillRequest request, CancellationToken ct)
+    public async Task<IActionResult> SetDailyBill(Guid id, [FromQuery] string? date, [FromBody] SetShowroomDailyBillRequest request, CancellationToken ct)
     {
         try
         {
-            var targetDate = date?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = ShowroomDateHelper.ParseDateOrDefault(date);
             var bill = await _service.SetDailyBillAsync(id, targetDate, request, ct);
             return Ok(bill);
         }
@@ -232,11 +233,11 @@ public class ShowroomsController : ControllerBase
 
     [HttpPost("{id:guid}/daily-bill/payments")]
     [RequirePermission("showroom.record_payment")]
-    public async Task<IActionResult> RecordDailyPayment(Guid id, [FromQuery] DateTime? date, [FromBody] RecordShowroomPaymentRequest request, CancellationToken ct)
+    public async Task<IActionResult> RecordDailyPayment(Guid id, [FromQuery] string? date, [FromBody] RecordShowroomPaymentRequest request, CancellationToken ct)
     {
         try
         {
-            var targetDate = date?.Date ?? request.PaymentDate?.Date ?? DateTime.UtcNow.Date;
+            var targetDate = ShowroomDateHelper.ParseDateOrDefault(date ?? request.PaymentDate?.ToString("yyyy-MM-dd"));
             var bill = await _service.RecordPaymentAsync(id, targetDate, request, ct);
             return Ok(bill);
         }
@@ -258,10 +259,10 @@ public class ShowroomsController : ControllerBase
 
     [HttpGet("{id:guid}/summary")]
     [RequirePermission("showroom.view_history")]
-    public async Task<IActionResult> GetSummary(Guid id, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
+    public async Task<IActionResult> GetSummary(Guid id, [FromQuery] string? fromDate, [FromQuery] string? toDate, CancellationToken ct)
     {
-        var start = fromDate?.Date ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        var end = toDate?.Date ?? start.AddMonths(1).AddDays(-1);
+        var start = ShowroomDateHelper.ParseDateOrNull(fromDate) ?? new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var end = ShowroomDateHelper.ParseDateOrNull(toDate) ?? start.AddMonths(1).AddDays(-1);
         var summary = await _service.GetShowroomSummaryAsync(id, start, end, ct);
         if (summary == null) return NotFound(new { message = $"Showroom with ID '{id}' was not found." });
         return Ok(summary);
@@ -269,9 +270,89 @@ public class ShowroomsController : ControllerBase
 
     [HttpGet("outstanding")]
     [RequirePermission("showroom.view")]
-    public async Task<IActionResult> GetOutstanding([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, CancellationToken ct)
+    public async Task<IActionResult> GetOutstanding([FromQuery] string? fromDate, [FromQuery] string? toDate, CancellationToken ct)
     {
-        var list = await _service.GetOutstandingOverviewAsync(fromDate, toDate, ct);
+        var start = ShowroomDateHelper.ParseDateOrNull(fromDate);
+        var end = ShowroomDateHelper.ParseDateOrNull(toDate);
+        var list = await _service.GetOutstandingOverviewAsync(start, end, ct);
         return Ok(list);
+    }
+
+    // ── Staff Swap Traceability Endpoints ────────────────────────────────────
+
+    [HttpPost("swap-staff")]
+    [HttpPost("{id:guid}/swap-staff")]
+    [RequirePermission("showroom.assign_staff")]
+    public async Task<IActionResult> SwapStaff([FromBody] CreateStaffSwapRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var (userId, isOwner) = await GetCallerInfoAsync(ct);
+            var result = await _service.SwapStaffAsync(request, userId, isOwner, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("swaps")]
+    [RequirePermission("showroom.view")]
+    public async Task<IActionResult> GetSwaps([FromQuery] Guid? showroomId, [FromQuery] Guid? staffId, [FromQuery] string? date, CancellationToken ct)
+    {
+        var targetDate = ShowroomDateHelper.ParseDateOrNull(date);
+        var result = await _service.GetSwapHistoryAsync(showroomId, staffId, targetDate, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/swap-history")]
+    [RequirePermission("showroom.view")]
+    public async Task<IActionResult> GetShowroomSwapHistory(Guid id, [FromQuery] string? date, CancellationToken ct)
+    {
+        var targetDate = ShowroomDateHelper.ParseDateOrNull(date);
+        var result = await _service.GetSwapHistoryAsync(id, null, targetDate, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("swaps/{swapId}")]
+    [RequirePermission("showroom.view")]
+    public async Task<IActionResult> GetSwapById(string swapId, CancellationToken ct)
+    {
+        var result = await _service.GetSwapByIdAsync(swapId, ct);
+        if (result == null) return NotFound(new { message = $"Staff swap with ID '{swapId}' was not found." });
+        return Ok(result);
+    }
+
+    [HttpPost("swaps/{swapId}/reverse")]
+    [RequirePermission("showroom.assign_staff")]
+    public async Task<IActionResult> ReverseSwap(string swapId, [FromBody] ReverseStaffSwapRequest? request, CancellationToken ct)
+    {
+        try
+        {
+            var (userId, isOwner) = await GetCallerInfoAsync(ct);
+            var result = await _service.ReverseSwapAsync(swapId, request, userId, isOwner, ct);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (CarSpaManagement.Api.Application.Common.ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
     }
 }

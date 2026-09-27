@@ -43,6 +43,24 @@ class _EditVehicleWorkModalSheetState
     _selectedVehicleTypeId = widget.work.vehicleTypeId;
     _selectedWorkTypeIds = widget.work.serviceItems.map((e) => e.workTypeId).toSet();
     _notesController = TextEditingController(text: widget.work.notes ?? '');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final dailyNotifier =
+          ref.read(dailyStaffProvider(widget.showroomId).notifier);
+      final currentDailyState =
+          ref.read(dailyStaffProvider(widget.showroomId));
+
+      final isSameDate = currentDailyState.selectedDate.year ==
+              widget.work.date.year &&
+          currentDailyState.selectedDate.month ==
+              widget.work.date.month &&
+          currentDailyState.selectedDate.day ==
+              widget.work.date.day;
+
+      if (!isSameDate || currentDailyState.dailyStaffResponse == null) {
+        dailyNotifier.loadDailyStaff(date: widget.work.date);
+      }
+    });
   }
 
   @override
@@ -122,12 +140,28 @@ class _EditVehicleWorkModalSheetState
     final seenIds = <String>{};
 
     for (final assignment in dailyState.staffAssignments) {
+      if (assignment.status == 'Leave' || assignment.status == 'Absent') {
+        continue;
+      }
       seenIds.add(assignment.staffId);
+      final buffer = StringBuffer(assignment.staffName);
+      if (assignment.staffMasterId.isNotEmpty) {
+        buffer.write(' (#${assignment.staffMasterId})');
+      }
+      if (assignment.staffRole != null && assignment.staffRole!.isNotEmpty) {
+        buffer.write(' • ${assignment.staffRole}');
+      }
+      if (assignment.isTemporaryTransfer &&
+          assignment.homeShowroomName != null &&
+          assignment.homeShowroomName!.isNotEmpty) {
+        buffer.write(' [Transfer: ${assignment.homeShowroomName}]');
+      }
+
       staffItems.add(
         DropdownMenuItem<String>(
           value: assignment.staffId,
           child: Text(
-            assignment.staffName,
+            buffer.toString(),
             style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             overflow: TextOverflow.ellipsis,
           ),

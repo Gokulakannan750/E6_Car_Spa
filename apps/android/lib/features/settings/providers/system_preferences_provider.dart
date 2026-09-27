@@ -77,9 +77,7 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
     required Dio dio,
   })  : _repository = repository,
         _dio = dio,
-        super(const SystemPreferencesState()) {
-    loadPreferences();
-  }
+        super(const SystemPreferencesState());
 
   Future<void> loadPreferences() async {
     state = state.copyWith(

@@ -7,6 +7,8 @@ import 'package:e6_car_spa/features/catalogue/data/service_repository.dart';
 import 'package:e6_car_spa/features/catalogue/models/service_model.dart';
 import 'package:e6_car_spa/features/catalogue/presentation/pages/catalogue_screen.dart';
 import 'package:e6_car_spa/features/catalogue/presentation/providers/catalogue_providers.dart';
+import 'package:e6_car_spa/features/settings/models/system_preferences_model.dart';
+import 'package:e6_car_spa/features/settings/providers/system_preferences_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -94,11 +96,14 @@ void main() {
     permissions: ['catalogue.view', 'catalogue.create', 'catalogue.edit'],
   );
 
-  Widget createTestWidget(ServiceRepository repo) {
+  Widget createTestWidget(ServiceRepository repo, {int refreshInterval = 12}) {
     return ProviderScope(
       overrides: [
         serviceRepositoryProvider.overrideWithValue(repo),
         authNotifierProvider.overrideWith((ref) => _TestAuthNotifier(const Authenticated(managerUser))),
+        systemPreferencesProvider.overrideWithValue(
+          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
+        ),
       ],
       child: const MaterialApp(
         home: CatalogueScreen(),

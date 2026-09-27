@@ -1,20 +1,25 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Mixin for [ConsumerState] widgets that enables automatic data synchronization:
-/// 1. Auto-sync on screen resume / app foregrounding.
+/// 1. Immediate auto-sync on screen resume / app foregrounding.
 /// 2. Periodic background refresh respecting SystemPreferences [refreshInterval] (0 = Off, 15s, 30s, 60s).
 /// 3. Pauses polling when the app is backgrounded to preserve battery/network.
+/// 4. Guards against overlapping / concurrent refresh operations.
+/// 5. Resilient against transient lifecycle events (inactive state during window focus / system dialogs / keyboard).
 mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, WidgetsBindingObserver {
   Timer? _refreshTimer;
   int _lastConfiguredSeconds = -1;
+  bool _isRefreshing = false;
 
   /// Override to customize the default interval if needed (default: 12 seconds).
   Duration get defaultAutoRefreshInterval => const Duration(seconds: 12);
 
   /// Callback executed on periodic interval and when the app resumes.
-  void onAutoRefresh();
+  /// May return void or a `Future<void>`.
+  dynamic onAutoRefresh();
 
   @override
   void initState() {
@@ -31,9 +36,7 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, Wi
       return;
     }
     _refreshTimer = Timer.periodic(effectiveInterval, (_) {
-      if (mounted) {
-        onAutoRefresh();
-      }
+      _triggerAutoRefresh();
     });
   }
 
@@ -56,18 +59,37 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, Wi
     }
   }
 
+  Future<void> _triggerAutoRefresh() async {
+    if (!mounted || _isRefreshing) return;
+    _isRefreshing = true;
+    try {
+      final res = onAutoRefresh();
+      if (res is Future) {
+        await res;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('AutoRefresh error in $runtimeType: $e');
+      }
+    } finally {
+      if (mounted) {
+        _isRefreshing = false;
+      }
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (mounted) {
-        onAutoRefresh();
-      }
+      _triggerAutoRefresh();
       if (_lastConfiguredSeconds > 0) {
         _startTimer(Duration(seconds: _lastConfiguredSeconds));
       } else if (_lastConfiguredSeconds == -1) {
         _startTimer();
       }
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
       _stopTimer();
     }
   }
@@ -79,4 +101,5 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, Wi
     super.dispose();
   }
 }
+
 

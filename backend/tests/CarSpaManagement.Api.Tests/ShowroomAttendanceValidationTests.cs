@@ -276,7 +276,7 @@ public class ShowroomAttendanceValidationTests
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         // Act
-        var result = await controller.ConfirmAttendance(showroomId, date, null, CancellationToken.None);
+        var result = await controller.ConfirmAttendance(showroomId, date.ToString("yyyy-MM-dd"), null, CancellationToken.None);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -917,5 +917,109 @@ public class ShowroomAttendanceValidationTests
         Assert.NotNull(dailyA);
         Assert.Single(dailyA.StaffAssignments);
         Assert.Equal(staffId, dailyA.StaffAssignments[0].StaffId);
+    }
+
+    [Fact]
+    public async Task GetDailyStaffAsync_MarutiNexa_AllSixAssignedStaffAppearOn27Sept2026()
+    {
+        // Arrange
+        var (db, service) = CreateTestContext();
+        var marutiNexaId = Guid.NewGuid();
+        var targetDate = new DateTime(2026, 9, 27, 0, 0, 0, DateTimeKind.Utc);
+
+        var marutiNexa = new Showroom
+        {
+            Id = marutiNexaId,
+            MasterId = "MA10001",
+            Name = "Maruti Nexa",
+            Address = "Perundurai Road, Erode",
+            Phone = "9876500001",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Showrooms.Add(marutiNexa);
+
+        var staff1 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "AT01", Name = "Aadhaar Test 2", PhoneNumber = "9840000001", Role = "Detailer", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+        var staff2 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "AT02", Name = "Aadhaar test", PhoneNumber = "9840000002", Role = "Technician", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+        var staff3 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "DC01", Name = "Decoupling Test Staff 1790094580", PhoneNumber = "9840000003", Role = "Washer", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+        var staff4 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "DC02", Name = "Decoupling Test Staff 1790094670", PhoneNumber = "9840000004", Role = "Detailer", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+        var staff5 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "DC03", Name = "Decoupling Test Staff 1790094600", PhoneNumber = "9840000005", Role = "Technician", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+        var staff6 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "MT01", Name = "Monthly Test Staff 1790095541", PhoneNumber = "9840000006", Role = "Detailer", IsActive = true, DefaultShowroomId = marutiNexaId, CreatedAt = DateTime.UtcNow };
+
+        db.Staff.AddRange(staff1, staff2, staff3, staff4, staff5, staff6);
+        await db.SaveChangesAsync();
+
+        // Act
+        var result = await service.GetDailyStaffAsync(marutiNexaId, targetDate);
+
+        // Assert: All 6 staff members appear with accurate metadata
+        Assert.NotNull(result);
+        Assert.Equal("Maruti Nexa", result.ShowroomName);
+        Assert.Equal(targetDate, result.Date);
+        Assert.Equal(6, result.StaffAssignments.Count);
+
+        var names = result.StaffAssignments.Select(s => s.StaffName).ToList();
+        Assert.Contains("Aadhaar Test 2", names);
+        Assert.Contains("Aadhaar test", names);
+        Assert.Contains("Decoupling Test Staff 1790094580", names);
+        Assert.Contains("Decoupling Test Staff 1790094670", names);
+        Assert.Contains("Decoupling Test Staff 1790094600", names);
+        Assert.Contains("Monthly Test Staff 1790095541", names);
+
+        foreach (var assignment in result.StaffAssignments)
+        {
+            Assert.Equal("Maruti Nexa", assignment.HomeShowroomName);
+            Assert.Equal("MA10001", assignment.HomeShowroomMasterId);
+            Assert.Equal("Present", assignment.Status);
+            Assert.Equal("09:00", assignment.StartTime);
+            Assert.Equal("18:00", assignment.EndTime);
+            Assert.Equal(9.0, assignment.WorkingHours);
+        }
+    }
+
+    [Theory]
+    [InlineData("2026-09-27")]
+    [InlineData("27-09-2026")]
+    [InlineData("27/09/2026")]
+    [InlineData("2026/09/27")]
+    [InlineData("2026-09-27T00:00:00Z")]
+    [InlineData("2026-09-27T18:30:00.000Z")]
+    public void ShowroomDateHelper_MultiFormatDateParsing_NormalizesToExactUtcDate(string inputDate)
+    {
+        var parsed = CarSpaManagement.Api.Application.Common.ShowroomDateHelper.ParseDateOrDefault(inputDate);
+        Assert.Equal(2026, parsed.Year);
+        Assert.Equal(9, parsed.Month);
+        Assert.Equal(27, parsed.Day);
+        Assert.Equal(DateTimeKind.Utc, parsed.Kind);
+    }
+
+    [Fact]
+    public async Task ConfirmAttendanceAsync_MaterializesWorkSessionsAndLocksAttendance()
+    {
+        // Arrange
+        var (db, service) = CreateTestContext();
+        var showroomId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var targetDate = new DateTime(2026, 9, 27, 0, 0, 0, DateTimeKind.Utc);
+
+        var showroom = new Showroom { Id = showroomId, MasterId = "MA10001", Name = "Maruti Nexa", Address = "Erode", IsActive = true, CreatedAt = DateTime.UtcNow };
+        var staff1 = new Staff { Id = Guid.NewGuid(), StaffMasterId = "AT01", Name = "Aadhaar Test 2", IsActive = true, DefaultShowroomId = showroomId, CreatedAt = DateTime.UtcNow };
+        db.Showrooms.Add(showroom);
+        db.Staff.Add(staff1);
+        await db.SaveChangesAsync();
+
+        // Act: Confirm attendance
+        var confirmed = await service.ConfirmAttendanceAsync(showroomId, targetDate, userId);
+
+        // Assert
+        Assert.NotNull(confirmed);
+        Assert.True(confirmed.IsAttendanceConfirmed);
+        Assert.NotNull(confirmed.AttendanceConfirmedAt);
+        Assert.Equal(userId, confirmed.AttendanceConfirmedByUserId);
+
+        // Verify sessions were materialized into the database
+        var session = await db.ShowroomStaffWorkSessions.FirstOrDefaultAsync(s => s.WorkingShowroomId == showroomId && s.StaffId == staff1.Id && s.Date == targetDate);
+        Assert.NotNull(session);
+        Assert.Equal(StaffAttendanceStatus.Present, session.AttendanceStatus);
     }
 }

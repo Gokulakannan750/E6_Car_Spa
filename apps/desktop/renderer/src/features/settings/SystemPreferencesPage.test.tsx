@@ -75,7 +75,7 @@ describe('SystemPreferencesPage Component', () => {
 		vi.mocked(api.getSystemPreferences).mockResolvedValueOnce({
 			dateFormat: 'YYYY-MM-DD',
 			timeFormat: '24h',
-			currencySymbol: '$',
+			currencySymbol: '₹',
 			decimalPrecision: 0,
 			defaultPrintCopies: 3,
 			autoPrintReceipt: false,
@@ -96,18 +96,18 @@ describe('SystemPreferencesPage Component', () => {
 		});
 
 		await waitFor(() => {
-			const currencySelect = screen.getByLabelText('Default Currency Symbol') as HTMLSelectElement;
-			expect(currencySelect.value).toBe('$');
+			const dateSelect = screen.getByLabelText('Date Display Format') as HTMLSelectElement;
+			expect(dateSelect.value).toBe('YYYY-MM-DD');
 		});
 
-		const dateSelect = screen.getByLabelText('Date Display Format') as HTMLSelectElement;
-		expect(dateSelect.value).toBe('YYYY-MM-DD');
+		const currencySelect = screen.getByLabelText('Default Currency Symbol') as HTMLSelectElement;
+		expect(currencySelect.value).toBe('₹');
 
 		const decimalSelect = screen.getByLabelText('Decimal Precision') as HTMLSelectElement;
 		expect(decimalSelect.value).toBe('0');
 
 		const saved = JSON.parse(localStorage.getItem(SYSTEM_PREFERENCES_STORAGE_KEY) || '{}');
-		expect(saved.currencySymbol).toBe('$');
+		expect(saved.currencySymbol).toBe('₹');
 		expect(saved.decimalPrecision).toBe(0);
 	});
 
@@ -124,13 +124,13 @@ describe('SystemPreferencesPage Component', () => {
 			},
 		});
 
-		// Change currency symbol to €
-		const currencySelect = screen.getByLabelText('Default Currency Symbol');
-		fireEvent.change(currencySelect, { target: { value: '€' } });
-
 		// Change decimal precision to 0
 		const decimalSelect = screen.getByLabelText('Decimal Precision');
 		fireEvent.change(decimalSelect, { target: { value: '0' } });
+
+		// Change refresh interval to 15
+		const refreshSelect = screen.getByLabelText('Live Operational Data Refresh Rate');
+		fireEvent.change(refreshSelect, { target: { value: '15' } });
 
 		// Click Save Preferences
 		const saveButton = screen.getByRole('button', { name: /save preferences/i });
@@ -139,8 +139,9 @@ describe('SystemPreferencesPage Component', () => {
 		await waitFor(() => {
 			expect(api.updateSystemPreferences).toHaveBeenCalledWith(
 				expect.objectContaining({
-					currencySymbol: '€',
+					currencySymbol: '₹',
 					decimalPrecision: 0,
+					refreshInterval: 15,
 				})
 			);
 		});
@@ -150,14 +151,15 @@ describe('SystemPreferencesPage Component', () => {
 		});
 
 		const saved = JSON.parse(localStorage.getItem(SYSTEM_PREFERENCES_STORAGE_KEY) || '{}');
-		expect(saved.currencySymbol).toBe('€');
+		expect(saved.currencySymbol).toBe('₹');
 		expect(saved.decimalPrecision).toBe(0);
+		expect(saved.refreshInterval).toBe(15);
 	});
 
 	it('resets preferences to canonical defaults via API and updates cache', async () => {
 		localStorage.setItem(
 			SYSTEM_PREFERENCES_STORAGE_KEY,
-			JSON.stringify({ ...DEFAULT_SYSTEM_PREFERENCES, currencySymbol: '€', refreshInterval: 60 })
+			JSON.stringify({ ...DEFAULT_SYSTEM_PREFERENCES, refreshInterval: 60 })
 		);
 
 		renderWithProviders(<SystemPreferencesPage />, {
@@ -200,7 +202,7 @@ describe('SystemPreferencesPage Component', () => {
 			JSON.stringify({
 				dateFormat: 'MM/DD/YYYY',
 				timeFormat: '24h',
-				currencySymbol: '$',
+				currencySymbol: '₹',
 				decimalPrecision: 0,
 				defaultPrintCopies: 2,
 				autoPrintReceipt: false,
@@ -227,7 +229,7 @@ describe('SystemPreferencesPage Component', () => {
 		});
 
 		const currencySelect = screen.getByLabelText('Default Currency Symbol') as HTMLSelectElement;
-		expect(currencySelect.value).toBe('$');
+		expect(currencySelect.value).toBe('₹');
 
 		const dateSelect = screen.getByLabelText('Date Display Format') as HTMLSelectElement;
 		expect(dateSelect.value).toBe('MM/DD/YYYY');

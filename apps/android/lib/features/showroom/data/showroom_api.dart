@@ -117,6 +117,65 @@ class ShowroomApi {
     return DailyStaffResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  // ── Showroom Staff Swaps & Traceability ─────────────────────────────────────
+
+  Future<ShowroomStaffSwap> swapStaff(CreateStaffSwapRequest request) async {
+    final response = await _dio.post(
+      '/showrooms/swap-staff',
+      data: request.toJson(),
+    );
+    return ShowroomStaffSwap.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<ShowroomStaffSwap>> getSwaps({
+    String? showroomId,
+    String? staffId,
+    DateTime? date,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (showroomId != null) queryParameters['showroomId'] = showroomId;
+    if (staffId != null) queryParameters['staffId'] = staffId;
+    if (date != null) queryParameters['date'] = date.toIso8601String().split('T').first;
+
+    final response = await _dio.get(
+      '/showrooms/swaps',
+      queryParameters: queryParameters,
+    );
+    final rawList = response.data as List<dynamic>? ?? [];
+    return rawList.map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<ShowroomStaffSwap>> getShowroomSwapHistory(
+    String showroomId, {
+    DateTime? date,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (date != null) queryParameters['date'] = date.toIso8601String().split('T').first;
+
+    final response = await _dio.get(
+      '/showrooms/$showroomId/swap-history',
+      queryParameters: queryParameters,
+    );
+    final rawList = response.data as List<dynamic>? ?? [];
+    return rawList.map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<ShowroomStaffSwap> getSwapById(String swapId) async {
+    final response = await _dio.get('/showrooms/swaps/$swapId');
+    return ShowroomStaffSwap.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ShowroomStaffSwap> reverseSwap(
+    String swapId,
+    ReverseStaffSwapRequest request,
+  ) async {
+    final response = await _dio.post(
+      '/showrooms/swaps/$swapId/reverse',
+      data: request.toJson(),
+    );
+    return ShowroomStaffSwap.fromJson(response.data as Map<String, dynamic>);
+  }
+
   // ── Showroom Operations (Vehicle Types & Work Types) ─────────────────────
 
   Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async {

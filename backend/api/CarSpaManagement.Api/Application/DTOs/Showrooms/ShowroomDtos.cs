@@ -71,7 +71,84 @@ public record DailyStaffAssignmentDto(
     string? HomeShowroomMasterId = null,
     string? HomeShowroomName = null,
     string? TransferReason = null,
-    string? Notes = null);
+    string? Notes = null,
+    Guid? StaffSwapId = null,
+    string? SwapId = null,
+    Guid? SwappedWithStaffId = null,
+    string? SwappedWithStaffMasterId = null,
+    string? SwappedWithStaffName = null,
+    Guid? OriginalShowroomId = null,
+    string? OriginalShowroomMasterId = null,
+    string? OriginalShowroomName = null,
+    DateTime? SwappedAt = null,
+    string? SwappedByName = null);
+
+public record ShowroomStaffSwapDto(
+    Guid Id,
+    string SwapId,
+    DateTime Date,
+    Guid StaffAId,
+    string StaffAMasterId,
+    string StaffAName,
+    string? StaffARole,
+    Guid ShowroomAId,
+    string ShowroomAMasterId,
+    string ShowroomAName,
+    Guid StaffBId,
+    string StaffBMasterId,
+    string StaffBName,
+    string? StaffBRole,
+    Guid ShowroomBId,
+    string ShowroomBMasterId,
+    string ShowroomBName,
+    Guid? SessionAId,
+    Guid? SessionBId,
+    Guid? PerformedByUserId,
+    string? PerformedByName,
+    string? Reason,
+    string? Notes,
+    string Status,
+    DateTime CreatedAt,
+    string? CoverageStartTime = null,
+    string? CoverageEndTime = null,
+    double? CoverageDurationHours = null,
+    string? CoverageDurationFormatted = null);
+
+public record CreateStaffSwapRequest
+{
+    [Required]
+    public DateTime Date { get; init; }
+
+    [Required]
+    public Guid StaffAId { get; init; }
+
+    [Required]
+    public Guid ShowroomAId { get; init; }
+
+    [Required]
+    public Guid StaffBId { get; init; }
+
+    [Required]
+    public Guid ShowroomBId { get; init; }
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "CoverageStartTime must be in 24-hour format HH:mm.")]
+    public string? CoverageStartTime { get; init; }
+
+    [RegularExpression(@"^([01]\d|2[0-3]):[0-5]\d$", ErrorMessage = "CoverageEndTime must be in 24-hour format HH:mm.")]
+    public string? CoverageEndTime { get; init; }
+
+    [MaxLength(500)]
+    public string? Reason { get; init; }
+
+    [MaxLength(500)]
+    public string? Notes { get; init; }
+}
+
+public record ReverseStaffSwapRequest
+{
+    [MaxLength(500)]
+    public string? Reason { get; init; }
+}
 
 public record DailyStaffResponse(
     Guid ShowroomId,

@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/invoice_model.dart';
 import '../../providers/invoice_providers.dart';
 import '../widgets/invoice_card.dart';
@@ -41,6 +42,8 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(invoiceListProvider);
     final notifier = ref.read(invoiceListProvider.notifier);
 

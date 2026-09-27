@@ -101,28 +101,28 @@ void main() {
     test('getSystemPreferences loads from API and saves to cache', () async {
       fakeApi.remotePreferences = const SystemPreferencesModel(
         dateFormat: 'YYYY-MM-DD',
-        currencySymbol: '\$',
+        currencySymbol: '₹',
         decimalPrecision: 0,
       );
 
       final result = await repository.getSystemPreferences();
 
       expect(result.dateFormat, 'YYYY-MM-DD');
-      expect(result.currencySymbol, '\$');
+      expect(result.currencySymbol, '₹');
       expect(result.decimalPrecision, 0);
 
       // Verify cached in secure storage
       final cachedJson = await fakeStorage.read(key: 'e6_system_preferences');
       expect(cachedJson, isNotNull);
       final cachedMap = jsonDecode(cachedJson!) as Map<String, dynamic>;
-      expect(cachedMap['currencySymbol'], '\$');
+      expect(cachedMap['currencySymbol'], '₹');
     });
 
     test('getSystemPreferences falls back to local cache when API throws connection error', () async {
       // Seed cache
       const cached = SystemPreferencesModel(
         dateFormat: 'MM/DD/YYYY',
-        currencySymbol: '€',
+        currencySymbol: '₹',
       );
       await fakeStorage.write(
         key: 'e6_system_preferences',
@@ -135,7 +135,7 @@ void main() {
       final result = await repository.getSystemPreferences();
 
       expect(result.dateFormat, 'MM/DD/YYYY');
-      expect(result.currencySymbol, '€');
+      expect(result.currencySymbol, '₹');
     });
 
     test('updateSystemPreferences updates backend and persists to cache', () async {

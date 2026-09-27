@@ -8,7 +8,7 @@ class FormatUtils {
     SystemPreferencesModel? preferences,
   ]) {
     final prefs = preferences ?? SystemPreferencesModel.defaultPreferences;
-    final symbol = prefs.currencySymbol;
+    const symbol = '₹';
     final decimals = prefs.decimalPrecision;
 
     final suffix = decimals > 0 ? '.${'0' * decimals}' : '';

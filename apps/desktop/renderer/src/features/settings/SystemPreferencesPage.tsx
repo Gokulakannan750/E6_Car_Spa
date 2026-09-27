@@ -22,7 +22,7 @@ import {
 export interface SystemPreferences {
 	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 	timeFormat: '12h' | '24h';
-	currencySymbol: '₹' | '$' | '€';
+	currencySymbol: '₹';
 	decimalPrecision: number;
 	defaultPrintCopies: number;
 	autoPrintReceipt: boolean;
@@ -46,7 +46,12 @@ export function getStoredPreferences(): SystemPreferences {
 	try {
 		const raw = localStorage.getItem(SYSTEM_PREFERENCES_STORAGE_KEY);
 		if (!raw) return DEFAULT_SYSTEM_PREFERENCES;
-		return { ...DEFAULT_SYSTEM_PREFERENCES, ...JSON.parse(raw) };
+		const parsed = JSON.parse(raw);
+		return {
+			...DEFAULT_SYSTEM_PREFERENCES,
+			...parsed,
+			currencySymbol: '₹', // Fallback/migrate to INR strictly
+		};
 	} catch {
 		return DEFAULT_SYSTEM_PREFERENCES;
 	}
@@ -277,14 +282,12 @@ export function SystemPreferencesPage() {
 									onChange={(e) =>
 										setPreferences((p) => ({
 											...p,
-											currencySymbol: e.target.value as SystemPreferences['currencySymbol'],
+											currencySymbol: '₹',
 										}))
 									}
 									className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
 								>
-									<option value="₹">₹ — Indian Rupee (Default)</option>
-									<option value="$">$ — US Dollar</option>
-									<option value="€">€ — Euro</option>
+									<option value="₹">₹ — Indian Rupee (INR)</option>
 								</select>
 								<p className="text-[11px] text-slate-400 mt-1">
 									Used for monetary figures, customer invoices, and financial reports across all workspaces.

@@ -1016,4 +1016,215 @@ describe('ShowroomOperationsPage', () => {
 		expect(newStaffSelect.value).toBe('');
 		expect(newStaffSelect).toBeDisabled();
 	});
+
+	// ── 28. All 6 Assigned/Confirmed Staff are Available in Selector (Bug Regression) ──
+	it('28. accurately populates all 6 assigned staff members for the selected date regardless of clock time', async () => {
+		const sixStaffAssignments: api.DailyStaffAssignmentDto[] = [
+			{
+				id: 'assign-1',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000001',
+				staffMasterId: 'AT01',
+				staffName: 'Aadhaar Test 2',
+				staffPhone: '9876543201',
+				staffRole: 'Detailer',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-2',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000002',
+				staffMasterId: 'AT02',
+				staffName: 'Aadhaar test',
+				staffPhone: '9876543202',
+				staffRole: 'Technician',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-3',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000003',
+				staffMasterId: 'DC01',
+				staffName: 'Decoupling Test Staff 1790094580',
+				staffPhone: '9876543203',
+				staffRole: 'Washer',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-4',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000004',
+				staffMasterId: 'DC02',
+				staffName: 'Decoupling Test Staff 1790094670',
+				staffPhone: '9876543204',
+				staffRole: 'Detailer',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-5',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000005',
+				staffMasterId: 'DC03',
+				staffName: 'Decoupling Test Staff 1790094600',
+				staffPhone: '9876543205',
+				staffRole: 'Technician',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-6',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000006',
+				staffMasterId: 'MT01',
+				staffName: 'Monthly Test Staff 1790095541',
+				staffPhone: '9876543206',
+				staffRole: 'Detailer',
+				date: '2026-09-27T00:00:00Z',
+				startTime: '09:00',
+				endTime: '18:00',
+				workingHours: 9,
+				workingHoursFormatted: '9h',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+		];
+
+		vi.mocked(api.getDailyStaff).mockResolvedValue({
+			...mockDailyStaff,
+			date: '2026-09-27T00:00:00Z',
+			staffAssignments: sixStaffAssignments,
+		});
+
+		renderOperations('/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-27');
+		await screen.findByText('Popular Hyundai');
+
+		const logBtn = screen.getAllByRole('button', { name: /Log Vehicle Work/i })[0];
+		fireEvent.click(logBtn);
+
+		const staffSelect = await screen.findByLabelText(/Staff Member/i);
+
+		// Verify all 6 staff are present in the dropdown
+		expect(within(staffSelect).getByRole('option', { name: /Aadhaar Test 2/i })).toBeInTheDocument();
+		expect(within(staffSelect).getByRole('option', { name: /Aadhaar test \(AT02\)/i })).toBeInTheDocument();
+		expect(within(staffSelect).getByRole('option', { name: /Decoupling Test Staff 1790094580/i })).toBeInTheDocument();
+		expect(within(staffSelect).getByRole('option', { name: /Decoupling Test Staff 1790094670/i })).toBeInTheDocument();
+		expect(within(staffSelect).getByRole('option', { name: /Decoupling Test Staff 1790094600/i })).toBeInTheDocument();
+		expect(within(staffSelect).getByRole('option', { name: /Monthly Test Staff 1790095541/i })).toBeInTheDocument();
+	});
+
+	// ── 29. Excludes Absent and On-Leave Staff from Selector ─────────────────
+	it('29. filters out staff with Leave or Absent status from the vehicle work staff selector', async () => {
+		const mixedStaffAssignments: api.DailyStaffAssignmentDto[] = [
+			{
+				id: 'assign-1',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000001',
+				staffMasterId: 'AT01',
+				staffName: 'Aadhaar Test 2',
+				staffPhone: '9876543201',
+				staffRole: 'Detailer',
+				date: '2026-09-27T00:00:00Z',
+				status: 'Present',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-2',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000002',
+				staffMasterId: 'AT02',
+				staffName: 'On Leave Staff',
+				staffPhone: '9876543202',
+				staffRole: 'Technician',
+				date: '2026-09-27T00:00:00Z',
+				status: 'Leave',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+			{
+				id: 'assign-3',
+				showroomId: '11111111-1111-1111-1111-111111111111',
+				showroomName: 'Popular Hyundai',
+				staffId: '10000000-0000-0000-0000-000000000003',
+				staffMasterId: 'AT03',
+				staffName: 'Absent Staff',
+				staffPhone: '9876543203',
+				staffRole: 'Washer',
+				date: '2026-09-27T00:00:00Z',
+				status: 'Absent',
+				assignmentType: 'Regular',
+				vehiclesAttended: 0,
+				createdAt: '2026-09-27T00:00:00Z',
+			},
+		];
+
+		vi.mocked(api.getDailyStaff).mockResolvedValue({
+			...mockDailyStaff,
+			date: '2026-09-27T00:00:00Z',
+			staffAssignments: mixedStaffAssignments,
+		});
+
+		renderOperations('/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-27');
+		await screen.findByText('Popular Hyundai');
+
+		const logBtn = screen.getAllByRole('button', { name: /Log Vehicle Work/i })[0];
+		fireEvent.click(logBtn);
+
+		const staffSelect = await screen.findByLabelText(/Staff Member/i);
+
+		expect(within(staffSelect).getByRole('option', { name: /Aadhaar Test 2/i })).toBeInTheDocument();
+		expect(within(staffSelect).queryByRole('option', { name: /On Leave Staff/i })).not.toBeInTheDocument();
+		expect(within(staffSelect).queryByRole('option', { name: /Absent Staff/i })).not.toBeInTheDocument();
+	});
 });

@@ -57,6 +57,16 @@ class DailyStaffAssignment {
   final String? transferReason;
   final String? notes;
   final int vehiclesAttended;
+  final String? staffSwapId;
+  final String? swapId;
+  final String? swappedWithStaffId;
+  final String? swappedWithStaffMasterId;
+  final String? swappedWithStaffName;
+  final String? originalShowroomId;
+  final String? originalShowroomMasterId;
+  final String? originalShowroomName;
+  final DateTime? swappedAt;
+  final String? swappedByName;
   final DateTime createdAt;
 
   const DailyStaffAssignment({
@@ -81,6 +91,16 @@ class DailyStaffAssignment {
     this.transferReason,
     this.notes,
     this.vehiclesAttended = 0,
+    this.staffSwapId,
+    this.swapId,
+    this.swappedWithStaffId,
+    this.swappedWithStaffMasterId,
+    this.swappedWithStaffName,
+    this.originalShowroomId,
+    this.originalShowroomMasterId,
+    this.originalShowroomName,
+    this.swappedAt,
+    this.swappedByName,
     required this.createdAt,
   });
 
@@ -90,6 +110,8 @@ class DailyStaffAssignment {
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
   }
+
+  bool get isSwapped => swapId != null && swapId!.isNotEmpty;
 
   bool get isTemporaryTransfer =>
       assignmentType.toLowerCase().contains('transfer') ||
@@ -154,6 +176,18 @@ class DailyStaffAssignment {
       transferReason: json['transferReason'] as String? ?? json['TransferReason'] as String?,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
       vehiclesAttended: (json['vehiclesAttended'] ?? json['VehiclesAttended'] ?? 0) as int,
+      staffSwapId: json['staffSwapId'] as String? ?? json['StaffSwapId'] as String?,
+      swapId: json['swapId'] as String? ?? json['SwapId'] as String?,
+      swappedWithStaffId: json['swappedWithStaffId'] as String? ?? json['SwappedWithStaffId'] as String?,
+      swappedWithStaffMasterId: json['swappedWithStaffMasterId'] as String? ?? json['SwappedWithStaffMasterId'] as String?,
+      swappedWithStaffName: json['swappedWithStaffName'] as String? ?? json['SwappedWithStaffName'] as String?,
+      originalShowroomId: json['originalShowroomId'] as String? ?? json['OriginalShowroomId'] as String?,
+      originalShowroomMasterId: json['originalShowroomMasterId'] as String? ?? json['OriginalShowroomMasterId'] as String?,
+      originalShowroomName: json['originalShowroomName'] as String? ?? json['OriginalShowroomName'] as String?,
+      swappedAt: json['swappedAt'] != null
+          ? DateTime.tryParse(json['swappedAt'].toString())
+          : (json['SwappedAt'] != null ? DateTime.tryParse(json['SwappedAt'].toString()) : null),
+      swappedByName: json['swappedByName'] as String? ?? json['SwappedByName'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
@@ -184,6 +218,16 @@ class DailyStaffAssignment {
     'transferReason': transferReason,
     'notes': notes,
     'vehiclesAttended': vehiclesAttended,
+    'staffSwapId': staffSwapId,
+    'swapId': swapId,
+    'swappedWithStaffId': swappedWithStaffId,
+    'swappedWithStaffMasterId': swappedWithStaffMasterId,
+    'swappedWithStaffName': swappedWithStaffName,
+    'originalShowroomId': originalShowroomId,
+    'originalShowroomMasterId': originalShowroomMasterId,
+    'originalShowroomName': originalShowroomName,
+    'swappedAt': swappedAt?.toIso8601String(),
+    'swappedByName': swappedByName,
     'createdAt': createdAt.toIso8601String(),
   };
 }
@@ -317,6 +361,191 @@ class UpdateDailyStaffAssignmentRequest {
     if (transferReason != null) 'transferReason': transferReason,
     if (notes != null) 'notes': notes,
     if (vehiclesAttended != null) 'vehiclesAttended': vehiclesAttended,
+  };
+}
+
+@immutable
+class ShowroomStaffSwap {
+  final String id;
+  final String swapId;
+  final DateTime date;
+  final String staffAId;
+  final String staffAMasterId;
+  final String staffAName;
+  final String? staffARole;
+  final String showroomAId;
+  final String showroomAMasterId;
+  final String showroomAName;
+  final String staffBId;
+  final String staffBMasterId;
+  final String staffBName;
+  final String? staffBRole;
+  final String showroomBId;
+  final String showroomBMasterId;
+  final String showroomBName;
+  final String? sessionAId;
+  final String? sessionBId;
+  final String? coverageStartTime;
+  final String? coverageEndTime;
+  final double? coverageDurationHours;
+  final String? coverageDurationFormatted;
+  final String? performedByUserId;
+  final String? performedByName;
+  final String? reason;
+  final String? notes;
+  final String status;
+  final DateTime createdAt;
+
+  const ShowroomStaffSwap({
+    required this.id,
+    required this.swapId,
+    required this.date,
+    required this.staffAId,
+    required this.staffAMasterId,
+    required this.staffAName,
+    this.staffARole,
+    required this.showroomAId,
+    required this.showroomAMasterId,
+    required this.showroomAName,
+    required this.staffBId,
+    required this.staffBMasterId,
+    required this.staffBName,
+    this.staffBRole,
+    required this.showroomBId,
+    required this.showroomBMasterId,
+    required this.showroomBName,
+    this.sessionAId,
+    this.sessionBId,
+    this.coverageStartTime,
+    this.coverageEndTime,
+    this.coverageDurationHours,
+    this.coverageDurationFormatted,
+    this.performedByUserId,
+    this.performedByName,
+    this.reason,
+    this.notes,
+    this.status = 'Completed',
+    required this.createdAt,
+  });
+
+  factory ShowroomStaffSwap.fromJson(Map<String, dynamic> json) {
+    return ShowroomStaffSwap(
+      id: json['id'] as String? ?? json['Id'] as String? ?? '',
+      swapId: json['swapId'] as String? ?? json['SwapId'] as String? ?? '',
+      date: json['date'] != null
+          ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
+          : (json['Date'] != null ? DateTime.tryParse(json['Date'].toString()) ?? DateTime.now() : DateTime.now()),
+      staffAId: json['staffAId'] as String? ?? json['StaffAId'] as String? ?? '',
+      staffAMasterId: json['staffAMasterId'] as String? ?? json['StaffAMasterId'] as String? ?? '',
+      staffAName: json['staffAName'] as String? ?? json['StaffAName'] as String? ?? '',
+      staffARole: json['staffARole'] as String? ?? json['StaffARole'] as String?,
+      showroomAId: json['showroomAId'] as String? ?? json['ShowroomAId'] as String? ?? '',
+      showroomAMasterId: json['showroomAMasterId'] as String? ?? json['ShowroomAMasterId'] as String? ?? '',
+      showroomAName: json['showroomAName'] as String? ?? json['ShowroomAName'] as String? ?? '',
+      staffBId: json['staffBId'] as String? ?? json['StaffBId'] as String? ?? '',
+      staffBMasterId: json['staffBMasterId'] as String? ?? json['StaffBMasterId'] as String? ?? '',
+      staffBName: json['staffBName'] as String? ?? json['StaffBName'] as String? ?? '',
+      staffBRole: json['staffBRole'] as String? ?? json['StaffBRole'] as String?,
+      showroomBId: json['showroomBId'] as String? ?? json['ShowroomBId'] as String? ?? '',
+      showroomBMasterId: json['showroomBMasterId'] as String? ?? json['ShowroomBMasterId'] as String? ?? '',
+      showroomBName: json['showroomBName'] as String? ?? json['ShowroomBName'] as String? ?? '',
+      sessionAId: json['sessionAId'] as String? ?? json['SessionAId'] as String?,
+      sessionBId: json['sessionBId'] as String? ?? json['SessionBId'] as String?,
+      coverageStartTime: json['coverageStartTime'] as String? ?? json['CoverageStartTime'] as String?,
+      coverageEndTime: json['coverageEndTime'] as String? ?? json['CoverageEndTime'] as String?,
+      coverageDurationHours: (json['coverageDurationHours'] ?? json['CoverageDurationHours']) != null
+          ? ((json['coverageDurationHours'] ?? json['CoverageDurationHours']) as num).toDouble()
+          : null,
+      coverageDurationFormatted: json['coverageDurationFormatted'] as String? ?? json['CoverageDurationFormatted'] as String?,
+      performedByUserId: json['performedByUserId'] as String? ?? json['PerformedByUserId'] as String?,
+      performedByName: json['performedByName'] as String? ?? json['PerformedByName'] as String?,
+      reason: json['reason'] as String? ?? json['Reason'] as String?,
+      notes: json['notes'] as String? ?? json['Notes'] as String?,
+      status: json['status'] as String? ?? json['Status'] as String? ?? 'Completed',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : (json['CreatedAt'] != null ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now() : DateTime.now()),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'swapId': swapId,
+    'date': date.toIso8601String().split('T').first,
+    'staffAId': staffAId,
+    'staffAMasterId': staffAMasterId,
+    'staffAName': staffAName,
+    'staffARole': staffARole,
+    'showroomAId': showroomAId,
+    'showroomAMasterId': showroomAMasterId,
+    'showroomAName': showroomAName,
+    'staffBId': staffBId,
+    'staffBMasterId': staffBMasterId,
+    'staffBName': staffBName,
+    'staffBRole': staffBRole,
+    'showroomBId': showroomBId,
+    'showroomBMasterId': showroomBMasterId,
+    'showroomBName': showroomBName,
+    'sessionAId': sessionAId,
+    'sessionBId': sessionBId,
+    if (coverageStartTime != null) 'coverageStartTime': coverageStartTime,
+    if (coverageEndTime != null) 'coverageEndTime': coverageEndTime,
+    if (coverageDurationHours != null) 'coverageDurationHours': coverageDurationHours,
+    if (coverageDurationFormatted != null) 'coverageDurationFormatted': coverageDurationFormatted,
+    'performedByUserId': performedByUserId,
+    'performedByName': performedByName,
+    'reason': reason,
+    'notes': notes,
+    'status': status,
+    'createdAt': createdAt.toIso8601String(),
+  };
+}
+
+@immutable
+class CreateStaffSwapRequest {
+  final DateTime date;
+  final String staffAId;
+  final String showroomAId;
+  final String staffBId;
+  final String showroomBId;
+  final String? coverageStartTime;
+  final String? coverageEndTime;
+  final String? reason;
+  final String? notes;
+
+  const CreateStaffSwapRequest({
+    required this.date,
+    required this.staffAId,
+    required this.showroomAId,
+    required this.staffBId,
+    required this.showroomBId,
+    this.coverageStartTime,
+    this.coverageEndTime,
+    this.reason,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'date': date.toIso8601String().split('T').first,
+    'staffAId': staffAId,
+    'showroomAId': showroomAId,
+    'staffBId': staffBId,
+    'showroomBId': showroomBId,
+    if (coverageStartTime != null && coverageStartTime!.trim().isNotEmpty) 'coverageStartTime': coverageStartTime!.trim(),
+    if (coverageEndTime != null && coverageEndTime!.trim().isNotEmpty) 'coverageEndTime': coverageEndTime!.trim(),
+    if (reason != null && reason!.trim().isNotEmpty) 'reason': reason!.trim(),
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+  };
+}
+
+@immutable
+class ReverseStaffSwapRequest {
+  final String? reason;
+
+  const ReverseStaffSwapRequest({this.reason});
+
+  Map<String, dynamic> toJson() => {
+    if (reason != null && reason!.trim().isNotEmpty) 'reason': reason!.trim(),
   };
 }
 

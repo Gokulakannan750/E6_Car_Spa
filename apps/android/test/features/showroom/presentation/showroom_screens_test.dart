@@ -49,6 +49,35 @@ void main() {
       expect(tapped, true);
     });
 
+    testWidgets('ShowroomCard displays Staff Today: 6 for Maruti Nexa with 6 assigned staff', (tester) async {
+      final marutiNexa = Showroom(
+        id: 'ma-10001',
+        name: 'Maruti Nexa',
+        address: 'MG Road, Bangalore',
+        phone: '9840112233',
+        isActive: true,
+        activeStaffCountToday: 6,
+        totalVehiclesToday: 15,
+        createdAt: DateTime(2026, 9, 27),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ShowroomCard(
+              showroom: marutiNexa,
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Maruti Nexa'), findsOneWidget);
+      expect(find.text('Staff Today: '), findsOneWidget);
+      expect(find.text('6'), findsOneWidget);
+      expect(find.text('15'), findsOneWidget);
+    });
+
     testWidgets('DailyStaffAssignmentCard displays staff details and work session timings', (tester) async {
       final assignment = DailyStaffAssignment(
         id: 'assign-1',

@@ -7,6 +7,8 @@ class DailyStaffAssignmentCard extends StatelessWidget {
   final DailyStaffAssignment assignment;
   final VoidCallback? onRemove;
   final VoidCallback? onEdit;
+  final VoidCallback? onSwap;
+  final VoidCallback? onViewSwap;
   final bool canManage;
   final bool isLocked;
 
@@ -15,6 +17,8 @@ class DailyStaffAssignmentCard extends StatelessWidget {
     required this.assignment,
     this.onRemove,
     this.onEdit,
+    this.onSwap,
+    this.onViewSwap,
     this.canManage = true,
     this.isLocked = false,
   });
@@ -145,6 +149,40 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                             ),
                         ],
                       ),
+                      if (assignment.isSwapped) ...[
+                        const SizedBox(height: 4),
+                        InkWell(
+                          onTap: onViewSwap,
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withAlpha(25),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.purple.withAlpha(80)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.swap_horiz, size: 12, color: Colors.purple),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'Swapped with ${assignment.swappedWithStaffName ?? "Staff"} (#${assignment.swapId})',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.purple.shade900,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -152,6 +190,26 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                 // Action buttons or Locked badge at top right
                 if (canManage && !isLocked) ...[
                   const SizedBox(width: 4),
+                  if (assignment.isSwapped && onViewSwap != null)
+                    IconButton(
+                      onPressed: onViewSwap,
+                      icon: const Icon(Icons.info_outline, size: 18),
+                      color: Colors.purple,
+                      tooltip: 'View Swap Traceability',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    ),
+                  if (onSwap != null)
+                    IconButton(
+                      onPressed: onSwap,
+                      icon: const Icon(Icons.swap_horiz, size: 18),
+                      color: Colors.purple.shade700,
+                      tooltip: 'Swap Staff',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    ),
                   if (onEdit != null)
                     IconButton(
                       onPressed: onEdit,
@@ -174,6 +232,16 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                     ),
                 ] else if (isLocked) ...[
                   const SizedBox(width: 4),
+                  if (assignment.isSwapped && onViewSwap != null)
+                    IconButton(
+                      onPressed: onViewSwap,
+                      icon: const Icon(Icons.info_outline, size: 18),
+                      color: Colors.purple,
+                      tooltip: 'View Swap Traceability',
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -257,22 +325,30 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: isTransfer
-                        ? Colors.purple.withAlpha(20)
-                        : AppColors.surfaceAlt,
+                    color: assignment.isSwapped
+                        ? Colors.purple.withAlpha(25)
+                        : isTransfer
+                            ? Colors.purple.withAlpha(20)
+                            : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
-                      color: isTransfer
-                          ? Colors.purple.withAlpha(60)
-                          : AppColors.border,
+                      color: assignment.isSwapped
+                          ? Colors.purple.withAlpha(80)
+                          : isTransfer
+                              ? Colors.purple.withAlpha(60)
+                              : AppColors.border,
                     ),
                   ),
                   child: Text(
-                    isTransfer ? 'Temporary Transfer' : 'Regular',
+                    assignment.isSwapped
+                        ? 'Swapped'
+                        : isTransfer
+                            ? 'Temporary Transfer'
+                            : 'Regular',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: isTransfer
+                      color: (assignment.isSwapped || isTransfer)
                           ? Colors.purple.shade700
                           : AppColors.textSecondary,
                     ),
@@ -281,8 +357,28 @@ class DailyStaffAssignmentCard extends StatelessWidget {
               ],
             ),
 
-            // Row 3: Home Showroom & Transfer Details (if Transfer)
-            if (isTransfer || (assignment.homeShowroomName != null && assignment.homeShowroomName!.isNotEmpty)) ...[
+            // Row 3: Home Showroom & Transfer / Swap Details
+            if (assignment.isSwapped) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.history_edu_outlined,
+                    size: 13,
+                    color: Colors.purple.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Orig: ${assignment.originalShowroomName ?? "Other Showroom"} → Now: ${assignment.showroomName}',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.purple.shade700,
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (isTransfer || (assignment.homeShowroomName != null && assignment.homeShowroomName!.isNotEmpty)) ...[
               const SizedBox(height: 6),
               Row(
                 children: [
