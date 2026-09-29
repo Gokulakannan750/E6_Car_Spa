@@ -3007,7 +3007,115 @@ export async function getDashboardSummary(params?: { fromDate?: string; toDate?:
 	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix, {}, 'view reports');
 }
 
-// ── Monthly Showroom Report ─────────────────────────────────────────────────
+// ── Staff Productivity Report ───────────────────────────────────────────────
+
+export interface StaffProductivityServiceItemDto {
+	workTypeId: string;
+	workTypeCode: string;
+	workTypeName: string;
+	serviceCategory?: string | null;
+	vehicleCount: number;
+	serviceQuantity: number;
+	hours: number;
+	assignmentType: string;
+	swapId?: string | null;
+	originalStaffName?: string | null;
+	replacementStaffName?: string | null;
+}
+
+export interface StaffProductivityVehicleTypeGroupDto {
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	vehicleCount: number;
+	serviceQuantity: number;
+	hours: number;
+	services: StaffProductivityServiceItemDto[];
+}
+
+export interface StaffProductivityWorkRecordDto {
+	id: string;
+	date: string;
+	showroomId: string;
+	showroomMasterId: string;
+	showroomName: string;
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	role?: string | null;
+	homeShowroomName?: string | null;
+	workingShowroomName?: string | null;
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	workTypeId: string;
+	workTypeCode: string;
+	workTypeName: string;
+	serviceCategory?: string | null;
+	vehicleQuantity: number;
+	serviceQuantity: number;
+	startTime?: string | null;
+	endTime?: string | null;
+	workingHours: number;
+	assignmentType: string;
+	swapId?: string | null;
+	originalStaffName?: string | null;
+	replacementStaffName?: string | null;
+	notes?: string | null;
+}
+
+export interface StaffProductivityRowDto {
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	staffPhone: string;
+	role?: string | null;
+	homeShowroomName?: string | null;
+	workingShowroomName?: string | null;
+	daysAssigned: number;
+	totalVehiclesAttended: number;
+	totalServicesPerformed: number;
+	totalWorkingHours: number;
+	dailyAverage: number;
+	vehicleTypes: StaffProductivityVehicleTypeGroupDto[];
+	workRecords: StaffProductivityWorkRecordDto[];
+}
+
+export interface StaffProductivityReportResponse {
+	items: StaffProductivityRowDto[];
+	granularRecords: StaffProductivityWorkRecordDto[];
+	totalStaff: number;
+	totalVehiclesAttended: number;
+	totalServicesPerformed: number;
+	totalStaffHours: number;
+	totalDaysAssigned: number;
+	overallDailyAverage: number;
+	averageVehiclesPerStaff: number;
+	averageServicesPerStaff: number;
+}
+
+export async function getStaffProductivityReport(params?: {
+	fromDate?: string;
+	toDate?: string;
+	staffId?: string;
+	showroomId?: string;
+	vehicleTypeId?: string;
+	workTypeId?: string;
+	assignmentType?: string;
+}) {
+	const qs = new URLSearchParams();
+	if (params?.fromDate) qs.set('fromDate', params.fromDate);
+	if (params?.toDate) qs.set('toDate', params.toDate);
+	if (params?.staffId && params.staffId !== 'all') qs.set('staffId', params.staffId);
+	if (params?.showroomId && params.showroomId !== 'all') qs.set('showroomId', params.showroomId);
+	if (params?.vehicleTypeId && params.vehicleTypeId !== 'all') qs.set('vehicleTypeId', params.vehicleTypeId);
+	if (params?.workTypeId && params.workTypeId !== 'all') qs.set('workTypeId', params.workTypeId);
+	if (params?.assignmentType && params.assignmentType !== 'all') qs.set('assignmentType', params.assignmentType);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<StaffProductivityReportResponse>('/api/reports/staff-productivity' + suffix, {}, 'view staff productivity report');
+}
+
+// ── Monthly / Date-Range Showroom Report ────────────────────────────────────
 
 export interface MonthlyShowroomServiceItemDto {
 	workTypeId: string;
@@ -3046,6 +3154,10 @@ export interface MonthlyShowroomVehicleWorkRowDto {
 	dailyBilledAmount?: number | null;
 	dailyCollectedAmount?: number | null;
 	paymentStatus: 'Paid' | 'PartiallyPaid' | 'Unpaid' | 'NoBill' | string;
+	swapId?: string | null;
+	originalStaffName?: string | null;
+	replacementStaffName?: string | null;
+	serviceCategory?: string | null;
 }
 
 export interface MonthlyShowroomDailyBillDto {
@@ -3057,6 +3169,84 @@ export interface MonthlyShowroomDailyBillDto {
 	status: 'Paid' | 'PartiallyPaid' | 'Unpaid' | string;
 	paymentCount: number;
 	notes?: string | null;
+}
+
+export interface ShowroomAttendanceReportRowDto {
+	date: string;
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	role?: string | null;
+	homeShowroomName: string;
+	workingShowroomName: string;
+	attendanceStatus: string;
+	scheduledStart?: string | null;
+	scheduledEnd?: string | null;
+	scheduledHours: number;
+	actualHours: number;
+	confirmationStatus: string;
+	confirmedByName?: string | null;
+	confirmedAt?: string | null;
+}
+
+export interface ShowroomStaffSwapReportRowDto {
+	swapId: string;
+	date: string;
+	showroomName: string;
+	staffAId: string;
+	staffAMasterId: string;
+	staffAName: string;
+	staffBId: string;
+	staffBMasterId: string;
+	staffBName: string;
+	originalWorkingTime?: string | null;
+	replacementWorkingTime?: string | null;
+	swapStartTime?: string | null;
+	swapEndTime?: string | null;
+	swapHours: number;
+	reason?: string | null;
+	notes?: string | null;
+	createdByName?: string | null;
+	createdAt: string;
+	status: string;
+	reversedByName?: string | null;
+	reversedAt?: string | null;
+	reversalReason?: string | null;
+}
+
+export interface ShowroomVehicleTypeSummaryRowDto {
+	vehicleTypeId: string;
+	vehicleTypeCode: string;
+	vehicleTypeName: string;
+	totalVehicles: number;
+	totalServices: number;
+	totalStaffHours: number;
+	sharePercentage: number;
+}
+
+export interface ShowroomServiceSummaryRowDto {
+	workTypeId: string;
+	serviceCategory: string;
+	serviceCode: string;
+	serviceName: string;
+	totalVehicles: number;
+	totalQuantity: number;
+	totalStaffHours: number;
+	sharePercentage: number;
+}
+
+export interface ShowroomStaffSummaryRowDto {
+	staffId: string;
+	staffMasterId: string;
+	staffName: string;
+	role?: string | null;
+	homeShowroom: string;
+	assignmentType: string;
+	totalVehicles: number;
+	totalServices: number;
+	totalHours: number;
+	attendanceDays: number;
+	workloadSharePercent: number;
 }
 
 export interface MonthlyShowroomSummaryDto {
@@ -3071,6 +3261,9 @@ export interface MonthlyShowroomSummaryDto {
 	paidDaysCount: number;
 	partiallyPaidDaysCount: number;
 	unpaidDaysCount: number;
+	totalStaffHours?: number;
+	totalAttendanceDays?: number;
+	totalSwaps?: number;
 }
 
 export interface MonthlyShowroomDetailDto {
@@ -3083,6 +3276,11 @@ export interface MonthlyShowroomDetailDto {
 	summary: MonthlyShowroomSummaryDto;
 	vehicleWorks: MonthlyShowroomVehicleWorkRowDto[];
 	dailyBills: MonthlyShowroomDailyBillDto[];
+	attendanceRecords: ShowroomAttendanceReportRowDto[];
+	swaps: ShowroomStaffSwapReportRowDto[];
+	vehicleTypeSummary: ShowroomVehicleTypeSummaryRowDto[];
+	serviceSummary: ShowroomServiceSummaryRowDto[];
+	staffSummary: ShowroomStaffSummaryRowDto[];
 }
 
 export interface MonthlyShowroomReportOverallSummaryDto {
@@ -3093,6 +3291,9 @@ export interface MonthlyShowroomReportOverallSummaryDto {
 	totalBilledAmount: number;
 	totalCollectedAmount: number;
 	totalOutstandingAmount: number;
+	totalStaffHours?: number;
+	totalAttendanceDays?: number;
+	totalSwaps?: number;
 }
 
 export interface MonthlyShowroomReportResponse {
@@ -3106,16 +3307,20 @@ export interface MonthlyShowroomReportResponse {
 }
 
 export async function getMonthlyShowroomReport(params: {
-	year: number;
-	month: number;
+	year?: number;
+	month?: number;
 	showroomId?: string;
+	fromDate?: string;
+	toDate?: string;
 }) {
 	const qs = new URLSearchParams();
-	qs.set('year', String(params.year));
-	qs.set('month', String(params.month));
+	if (params.year != null) qs.set('year', String(params.year));
+	if (params.month != null) qs.set('month', String(params.month));
 	if (params.showroomId && params.showroomId !== 'all') {
 		qs.set('showroomId', params.showroomId);
 	}
+	if (params.fromDate) qs.set('fromDate', params.fromDate);
+	if (params.toDate) qs.set('toDate', params.toDate);
 	return request<MonthlyShowroomReportResponse>(
 		'/api/reports/showroom/monthly?' + qs.toString(),
 		{},

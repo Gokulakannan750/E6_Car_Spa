@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { formatCurrency, formatDate, formatTime, formatDateTime, calculateCoverageDuration } from './format';
+import { formatCurrency, formatDate, formatTime, calculateCoverageDuration } from './format';
 import {
 	SYSTEM_PREFERENCES_STORAGE_KEY,
 	DEFAULT_SYSTEM_PREFERENCES,

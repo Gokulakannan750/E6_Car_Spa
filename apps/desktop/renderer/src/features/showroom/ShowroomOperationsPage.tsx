@@ -5,7 +5,6 @@ import {
 	Building2,
 	Calendar,
 	Users,
-	UserPlus,
 	Clock,
 	ChevronLeft,
 	ChevronRight,
@@ -40,12 +39,13 @@ import {
 	getShowroomWorkSessions,
 	getShowroomVehicleWorks,
 	getShowroomOperationsSummary,
+	getStaffProductivityReport,
 	createBatchShowroomVehicleWork,
 	updateShowroomVehicleWork,
-	createShowroomWorkSession,
 	updateShowroomWorkSession,
 	closeShowroomWorkSession,
 	type StaffDto,
+	type DailyStaffAssignmentDto,
 	type ShowroomStaffWorkSessionDto,
 	type ShowroomVehicleWorkDto,
 	type ShowroomStaffSessionType,
@@ -249,6 +249,56 @@ export function ShowroomOperationsPage() {
 	const [vwStaffFilter, setVwStaffFilter] = useState<string>('all');
 	const [vwVehicleTypeFilter, setVwVehicleTypeFilter] = useState<string>('all');
 
+	// ── Enhanced Staff Productivity State ──────────────────────────────────────
+	const [prodDatePreset, setProdDatePreset] = useState<'day' | 'today' | 'this_week' | 'this_month' | 'custom'>('day');
+	const [prodFromDate, setProdFromDate] = useState<string>(selectedDate);
+	const [prodToDate, setProdToDate] = useState<string>(selectedDate);
+	const [prodStaffFilter, setProdStaffFilter] = useState<string>('all');
+	const [prodVehicleTypeFilter, setProdVehicleTypeFilter] = useState<string>('all');
+	const [prodWorkTypeFilter, setProdWorkTypeFilter] = useState<string>('all');
+	const [prodAssignFilter, setProdAssignFilter] = useState<string>('all');
+	const [expandedStaffList, setExpandedStaffList] = useState<Record<string, boolean>>({});
+	const [expandedWorkRecords, setExpandedWorkRecords] = useState<Record<string, boolean>>({});
+
+	// Synchronize productivity date when selectedDate changes and preset is 'day'
+	useEffect(() => {
+		if (prodDatePreset === 'day') {
+			setProdFromDate(selectedDate);
+			setProdToDate(selectedDate);
+		}
+	}, [selectedDate, prodDatePreset]);
+
+	const handleProdPresetChange = (preset: 'day' | 'today' | 'this_week' | 'this_month' | 'custom') => {
+		setProdDatePreset(preset);
+		const today = getTodayStr();
+		const now = new Date();
+
+		if (preset === 'day') {
+			setProdFromDate(selectedDate);
+			setProdToDate(selectedDate);
+		} else if (preset === 'today') {
+			setProdFromDate(today);
+			setProdToDate(today);
+		} else if (preset === 'this_week') {
+			const dayOfWeek = now.getDay();
+			const diffToMonday = (dayOfWeek + 6) % 7;
+			const monday = new Date(now);
+			monday.setDate(now.getDate() - diffToMonday);
+			const sunday = new Date(monday);
+			sunday.setDate(monday.getDate() + 6);
+
+			const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			setProdFromDate(fmt(monday));
+			setProdToDate(fmt(sunday));
+		} else if (preset === 'this_month') {
+			const y = now.getFullYear();
+			const m = now.getMonth() + 1;
+			const lastDay = new Date(y, m, 0).getDate();
+			setProdFromDate(`${y}-${String(m).padStart(2, '0')}-01`);
+			setProdToDate(`${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`);
+		}
+	};
+
 	// ── Queries ───────────────────────────────────────────────────────────────
 	const { data: showrooms = [], isLoading: showroomsLoading } = useQuery({
 		queryKey: ['showrooms'],
@@ -292,7 +342,7 @@ export function ShowroomOperationsPage() {
 	const eligibleAttendanceStaff = useMemo(() => {
 		const rawAssignments = dailyStaffData?.staffAssignments || [];
 		const seenStaffIds = new Set<string>();
-		const uniqueEligible: api.DailyStaffAssignmentDto[] = [];
+		const uniqueEligible: DailyStaffAssignmentDto[] = [];
 
 		for (const s of rawAssignments) {
 			// Exclude staff with non-working status
@@ -362,13 +412,40 @@ export function ShowroomOperationsPage() {
 	});
 
 	// Fetch daily operations summary
-	const { data: opsSummary, isLoading: summaryLoading } = useQuery({
+	const { data: opsSummary } = useQuery({
 		queryKey: ['showroom-operations-summary', selectedShowroom?.id, selectedDate],
 		queryFn: () => {
 			if (!selectedShowroom) return null;
 			return getShowroomOperationsSummary(selectedShowroom.id, selectedDate);
 		},
 		enabled: !!selectedShowroom,
+	});
+
+	// Fetch enhanced staff productivity report
+	const { data: staffProductivityReport, isLoading: staffProductivityLoading } = useQuery({
+		queryKey: [
+			'staff-productivity-report',
+			selectedShowroom?.id,
+			prodFromDate,
+			prodToDate,
+			prodStaffFilter,
+			prodVehicleTypeFilter,
+			prodWorkTypeFilter,
+			prodAssignFilter,
+		],
+		queryFn: () => {
+			if (!selectedShowroom) return null;
+			return getStaffProductivityReport({
+				showroomId: selectedShowroom.id,
+				fromDate: prodFromDate,
+				toDate: prodToDate,
+				staffId: prodStaffFilter === 'all' ? undefined : prodStaffFilter,
+				vehicleTypeId: prodVehicleTypeFilter === 'all' ? undefined : prodVehicleTypeFilter,
+				workTypeId: prodWorkTypeFilter === 'all' ? undefined : prodWorkTypeFilter,
+				assignmentType: prodAssignFilter === 'all' ? undefined : prodAssignFilter,
+			});
+		},
+		enabled: Boolean(selectedShowroom?.id && activeTab === 'history'),
 	});
 
 	// ── Mutations ─────────────────────────────────────────────────────────────
@@ -457,35 +534,21 @@ export function ShowroomOperationsPage() {
 		},
 	});
 
-	// 2. Create / Update Staff Work Session
+	// 2. Update Staff Work Session
 	const saveSessionMutation = useMutation({
 		mutationFn: async () => {
 			if (!selectedShowroom) throw new Error('No showroom selected');
+			if (!editingSession) throw new Error('No work session selected for editing');
 			if (!sessStaffId) throw new Error('Please select a staff member.');
 
-			if (editingSession) {
-				return updateShowroomWorkSession(selectedShowroom.id, editingSession.id, {
-					sessionType: sessType,
-					attendanceStatus: sessAttendanceStatus,
-					startTime: sessStartTime || null,
-					endTime: sessEndTime || null,
-					transferReason: sessTransferReason || null,
-					notes: sessNotes || null,
-				});
-			} else {
-				const staff = staffList.find((s) => s.id === sessStaffId);
-				return createShowroomWorkSession(selectedShowroom.id, {
-					staffId: sessStaffId,
-					homeShowroomId: staff?.defaultShowroomId || null,
-					date: selectedDate,
-					sessionType: sessType,
-					attendanceStatus: sessAttendanceStatus,
-					startTime: sessStartTime || null,
-					endTime: sessEndTime || null,
-					transferReason: sessTransferReason || null,
-					notes: sessNotes || null,
-				});
-			}
+			return updateShowroomWorkSession(selectedShowroom.id, editingSession.id, {
+				sessionType: sessType,
+				attendanceStatus: sessAttendanceStatus,
+				startTime: sessStartTime || null,
+				endTime: sessEndTime || null,
+				transferReason: sessTransferReason || null,
+				notes: sessNotes || null,
+			});
 		},
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ['showroom-work-sessions', selectedShowroom?.id, selectedDate] });
@@ -564,11 +627,6 @@ export function ShowroomOperationsPage() {
 		setSessTransferReason('');
 		setSessNotes('');
 		setSessFormError('');
-	};
-
-	const openStartSessionModal = () => {
-		resetSessionForm();
-		setShowSessionModal(true);
 	};
 
 	const openEditSessionModal = (session: ShowroomStaffWorkSessionDto) => {
@@ -852,24 +910,14 @@ export function ShowroomOperationsPage() {
 					</Button>
 
 					{canManage && (
-						<>
-							<Button
-								variant="secondary"
-								size="sm"
-								icon={<Users className="w-3.5 h-3.5" />}
-								onClick={openStartSessionModal}
-							>
-								Start Session
-							</Button>
-							<Button
-								variant="primary"
-								size="sm"
-								icon={<Plus className="w-3.5 h-3.5" />}
-								onClick={openAddVehicleWorkModal}
-							>
-								Log Vehicle Work
-							</Button>
-						</>
+						<Button
+							variant="primary"
+							size="sm"
+							icon={<Plus className="w-3.5 h-3.5" />}
+							onClick={openAddVehicleWorkModal}
+						>
+							Log Vehicle Work
+						</Button>
 					)}
 				</div>
 			</div>
@@ -1269,17 +1317,6 @@ export function ShowroomOperationsPage() {
 								Track staff shifts, transfers between showrooms, and active operational sessions
 							</p>
 						</div>
-
-						{canManage && (
-							<Button
-								variant="primary"
-								size="sm"
-								icon={<UserPlus className="w-3.5 h-3.5" />}
-								onClick={openStartSessionModal}
-							>
-								Start Staff Session
-							</Button>
-						)}
 					</div>
 
 					<div className="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-xs">
@@ -1314,19 +1351,9 @@ export function ShowroomOperationsPage() {
 													<div>
 														<p className="text-sm font-medium text-on-surface">No staff sessions recorded</p>
 														<p className="text-xs text-on-surface-variant mt-0.5">
-															No staff work sessions have been opened at this showroom for this date.
+															No staff work sessions have been recorded at this showroom for this date.
 														</p>
 													</div>
-													{canManage && (
-														<Button
-															variant="secondary"
-															size="sm"
-															icon={<UserPlus className="w-3.5 h-3.5" />}
-															onClick={openStartSessionModal}
-														>
-															Start First Session
-														</Button>
-													)}
 												</div>
 											</td>
 										</tr>
@@ -1453,44 +1480,385 @@ export function ShowroomOperationsPage() {
 			{/* ── TAB 3: Staff Productivity & Operations Breakdown ──────────────────── */}
 			{activeTab === 'history' && (
 				<div className="space-y-4">
-					<div>
-						<h3 className="text-sm font-semibold text-on-surface">Staff Productivity Summary</h3>
-						<p className="text-xs text-on-surface-variant">
-							Staff activity breakdown for {selectedShowroom.name} on {formatDateHeading(selectedDate)}
-						</p>
+					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+						<div>
+							<h3 className="text-sm font-semibold text-on-surface">Staff Productivity Summary</h3>
+							<p className="text-xs text-on-surface-variant">
+								Staff activity breakdown for {selectedShowroom.name} {prodDatePreset === 'day' ? `on ${formatDateHeading(selectedDate)}` : `from ${formatDateHeading(prodFromDate)} to ${formatDateHeading(prodToDate)}`}
+							</p>
+						</div>
+
+						{/* Quick preset buttons */}
+						<div className="flex items-center gap-1.5 flex-wrap">
+							{[
+								{ id: 'day', label: 'Selected Day' },
+								{ id: 'today', label: 'Today' },
+								{ id: 'this_week', label: 'This Week' },
+								{ id: 'this_month', label: 'This Month' },
+								{ id: 'custom', label: 'Custom' },
+							].map((p) => (
+								<button
+									key={p.id}
+									type="button"
+									onClick={() => handleProdPresetChange(p.id as any)}
+									className={`px-2.5 py-1 text-2xs font-semibold rounded-md border transition-all cursor-pointer ${
+										prodDatePreset === p.id
+											? 'bg-primary text-on-primary border-primary shadow-2xs'
+											: 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:bg-surface-container'
+									}`}
+								>
+									{p.label}
+								</button>
+							))}
+						</div>
 					</div>
 
+					{/* ── Productivity Filter Toolbar ─────────────────────────────────── */}
+					<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+						{prodDatePreset === 'custom' && (
+							<>
+								<div>
+									<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+										From Date
+									</label>
+									<input
+										type="date"
+										value={prodFromDate}
+										onChange={(e) => setProdFromDate(e.target.value)}
+										className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary"
+									/>
+								</div>
+								<div>
+									<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+										To Date
+									</label>
+									<input
+										type="date"
+										value={prodToDate}
+										onChange={(e) => setProdToDate(e.target.value)}
+										className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary"
+									/>
+								</div>
+							</>
+						)}
+
+						{/* Staff Filter */}
+						<div>
+							<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+								Staff Member
+							</label>
+							<select
+								value={prodStaffFilter}
+								onChange={(e) => setProdStaffFilter(e.target.value)}
+								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
+							>
+								<option value="all">All Staff Members</option>
+								{activeStaffMembers.map((s) => (
+									<option key={s.id} value={s.id}>
+										{s.name} {s.staffMasterId ? `(${s.staffMasterId})` : ''}
+									</option>
+								))}
+							</select>
+						</div>
+
+						{/* Vehicle Type Filter */}
+						<div>
+							<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+								Vehicle Type
+							</label>
+							<select
+								value={prodVehicleTypeFilter}
+								onChange={(e) => setProdVehicleTypeFilter(e.target.value)}
+								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
+							>
+								<option value="all">All Vehicle Types</option>
+								{vehicleTypes.map((vt) => (
+									<option key={vt.id} value={vt.id}>
+										{vt.name} ({vt.code})
+									</option>
+								))}
+							</select>
+						</div>
+
+						{/* Service Filter */}
+						<div>
+							<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+								Service
+							</label>
+							<select
+								value={prodWorkTypeFilter}
+								onChange={(e) => setProdWorkTypeFilter(e.target.value)}
+								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
+							>
+								<option value="all">All Services</option>
+								{workTypes.map((wt) => (
+									<option key={wt.id} value={wt.id}>
+										{wt.name} ({wt.code})
+									</option>
+								))}
+							</select>
+						</div>
+
+						{/* Assignment Filter */}
+						<div>
+							<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
+								Assignment Type
+							</label>
+							<select
+								value={prodAssignFilter}
+								onChange={(e) => setProdAssignFilter(e.target.value)}
+								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
+							>
+								<option value="all">All Work (Regular & Swapped)</option>
+								<option value="regular">Regular Work Only</option>
+								<option value="swapped">Swapped Work Only</option>
+							</select>
+						</div>
+					</div>
+
+					{/* ── Summary KPI Cards ────────────────────────────────────────────── */}
+					{staffProductivityReport && (
+						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Total Staff</span>
+								<div className="text-lg font-bold text-on-surface mt-1">{staffProductivityReport.totalStaff}</div>
+							</div>
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Vehicles Handled</span>
+								<div className="text-lg font-bold text-primary mt-1">{staffProductivityReport.totalVehiclesAttended}</div>
+							</div>
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Services Done</span>
+								<div className="text-lg font-bold text-secondary mt-1">{staffProductivityReport.totalServicesPerformed}</div>
+							</div>
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Staff Hours</span>
+								<div className="text-lg font-bold text-purple-600 mt-1">{staffProductivityReport.totalStaffHours}h</div>
+							</div>
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Avg Veh / Staff</span>
+								<div className="text-lg font-bold text-amber-600 mt-1">{staffProductivityReport.averageVehiclesPerStaff}</div>
+							</div>
+							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Avg Srv / Staff</span>
+								<div className="text-lg font-bold text-emerald-600 mt-1">{staffProductivityReport.averageServicesPerStaff}</div>
+							</div>
+						</div>
+					)}
+
+					{/* ── Main Hierarchy Table / List ──────────────────────────────────── */}
 					<div className="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden shadow-xs">
-						<div className="overflow-x-auto">
-							<table className="app-table w-full">
-								<thead>
-									<tr>
-										<th>Staff Member</th>
-										<th>Master ID</th>
-										<th>Sessions</th>
-										<th>Vehicles Handled</th>
-										<th>Services Completed</th>
-									</tr>
-								</thead>
-								<tbody>
-									{summaryLoading && (
-										<tr>
-											<td colSpan={5} className="py-12 text-center text-xs text-on-surface-variant">
-												Loading staff productivity summary...
-											</td>
-										</tr>
-									)}
+						{staffProductivityLoading && (
+							<div className="py-12 text-center text-xs text-on-surface-variant">
+								Loading staff productivity summary...
+							</div>
+						)}
 
-									{!summaryLoading && (!opsSummary?.staffProductivityBreakdown || opsSummary.staffProductivityBreakdown.length === 0) && (
-										<tr>
-											<td colSpan={5} className="py-16 text-center text-xs text-on-surface-variant">
-												No staff activity recorded for this showroom on this date.
-											</td>
-										</tr>
-									)}
+						{!staffProductivityLoading && staffProductivityReport && staffProductivityReport.items.length > 0 && (
+							<div className="divide-y divide-outline-variant">
+								{staffProductivityReport.items.map((st) => {
+									const isStaffExpanded = expandedStaffList[st.staffId] ?? true;
+									const isRecordsExpanded = expandedWorkRecords[st.staffId] ?? false;
 
-									{!summaryLoading &&
-										opsSummary?.staffProductivityBreakdown?.map((sp) => (
+									return (
+										<div key={st.staffId} className="p-3 hover:bg-surface-container/20 transition-colors">
+											{/* Staff Header Row */}
+											<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+												<div className="flex items-center gap-2.5">
+													<button
+														type="button"
+														onClick={() =>
+															setExpandedStaffList((prev) => ({
+																...prev,
+																[st.staffId]: !isStaffExpanded,
+															}))
+														}
+														className="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-md cursor-pointer transition-colors"
+														title="Toggle vehicle breakdown"
+													>
+														{isStaffExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+													</button>
+													<div>
+														<div className="flex items-center gap-2">
+															<span className="font-bold text-xs text-on-surface">{st.staffName}</span>
+															{st.staffMasterId && (
+																<span className="font-mono text-2xs font-semibold text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded border border-outline-variant">
+																	#{st.staffMasterId}
+																</span>
+															)}
+															<span className="text-2xs text-on-surface-variant font-medium">({st.role || 'Technician'})</span>
+														</div>
+														<div className="text-2xs text-on-surface-variant flex items-center gap-2 mt-0.5">
+															<span>Home: {st.homeShowroomName || '—'}</span>
+															<span>•</span>
+															<span>Working Days: {st.daysAssigned}</span>
+														</div>
+													</div>
+												</div>
+
+												{/* Staff Metrics Bar */}
+												<div className="flex items-center gap-3 self-end sm:self-center text-xs font-semibold">
+													<span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md">
+														{st.totalVehiclesAttended} Vehicles
+													</span>
+													<span className="px-2 py-0.5 bg-secondary/10 text-secondary rounded-md">
+														{st.totalServicesPerformed} Services
+													</span>
+													<span className="px-2 py-0.5 bg-purple-500/10 text-purple-600 rounded-md">
+														{st.totalWorkingHours}h Work
+													</span>
+													<span className="px-2 py-0.5 bg-surface-container text-on-surface-variant rounded-md">
+														{st.dailyAverage} avg/day
+													</span>
+												</div>
+											</div>
+
+											{/* Expandable Hierarchical Breakdown: Vehicle Types -> Services */}
+											{isStaffExpanded && (
+												<div className="mt-3 ml-6 pl-3 border-l-2 border-outline-variant space-y-2.5">
+													{st.vehicleTypes.length === 0 ? (
+														<p className="text-2xs text-on-surface-variant italic py-1">
+															No vehicle service work logged for this staff member in this period.
+														</p>
+													) : (
+														st.vehicleTypes.map((vt) => (
+															<div key={vt.vehicleTypeId} className="p-2.5 bg-surface-container/30 rounded-lg border border-outline-variant/60">
+																{/* Vehicle Type Header */}
+																<div className="flex items-center justify-between text-xs font-semibold text-on-surface mb-2 pb-1.5 border-b border-outline-variant/40">
+																	<div className="flex items-center gap-1.5 text-primary">
+																		<Car className="w-3.5 h-3.5" />
+																		<span>{vt.vehicleTypeName}</span>
+																		<span className="font-mono text-2xs text-on-surface-variant bg-surface-container px-1 rounded">
+																			{vt.vehicleTypeCode}
+																		</span>
+																	</div>
+																	<div className="flex items-center gap-2 text-2xs text-on-surface-variant font-medium">
+																		<span>{vt.vehicleCount} vehicles</span>
+																		<span>•</span>
+																		<span>{vt.serviceQuantity} services</span>
+																		<span>•</span>
+																		<span>{vt.hours}h</span>
+																	</div>
+																</div>
+
+																{/* Services under this Vehicle Type */}
+																<div className="space-y-1">
+																	{vt.services.map((srv) => (
+																		<div
+																			key={srv.workTypeId}
+																			className="flex items-center justify-between text-2xs text-on-surface py-1 px-2 rounded-md hover:bg-surface-container/50 transition-colors"
+																		>
+																			<div className="flex items-center gap-2">
+																				<Wrench className="w-3 h-3 text-secondary" />
+																				<span className="font-medium">{srv.workTypeName}</span>
+																				<span className="text-on-surface-variant text-[10px]">({srv.serviceCategory})</span>
+																				{srv.assignmentType === 'Swapped' && (
+																					<span className="px-1.5 py-0.2 bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded font-semibold text-[10px]">
+																						Swapped {srv.swapId ? `(#${srv.swapId})` : ''} {srv.originalStaffName ? `for ${srv.originalStaffName}` : ''}
+																					</span>
+																				)}
+																			</div>
+																			<div className="flex items-center gap-3 font-semibold text-on-surface-variant">
+																				<span>{srv.vehicleCount} vehicles</span>
+																				<span>{srv.serviceQuantity} qty</span>
+																				<span className="text-on-surface">{srv.hours}h</span>
+																			</div>
+																		</div>
+																	))}
+																</div>
+															</div>
+														))
+													)}
+
+													{/* Toggle Granular Work Records Drilldown */}
+													{st.workRecords && st.workRecords.length > 0 && (
+														<div className="pt-1">
+															<button
+																type="button"
+																onClick={() =>
+																	setExpandedWorkRecords((prev) => ({
+																		...prev,
+																		[st.staffId]: !isRecordsExpanded,
+																	}))
+																}
+																className="text-2xs font-semibold text-secondary hover:underline cursor-pointer flex items-center gap-1"
+															>
+																{isRecordsExpanded ? 'Hide Work Log Details' : `View ${st.workRecords.length} Detailed Work Log Entries`}
+															</button>
+
+															{isRecordsExpanded && (
+																<div className="mt-2 overflow-x-auto rounded-lg border border-outline-variant bg-surface-container-lowest">
+																	<table className="app-table w-full text-2xs">
+																		<thead>
+																			<tr>
+																				<th>Date</th>
+																				<th>Vehicle Type</th>
+																				<th>Service</th>
+																				<th>Qty</th>
+																				<th>Hours</th>
+																				<th>Type</th>
+																				<th>Swap Details</th>
+																			</tr>
+																		</thead>
+																		<tbody>
+																			{st.workRecords.map((r, rIdx) => (
+																				<tr key={`${r.id}-${rIdx}`} className="hover:bg-surface-container/30">
+																					<td>{formatDateHeading(r.date)}</td>
+																					<td>{r.vehicleTypeName}</td>
+																					<td>{r.workTypeName}</td>
+																					<td>{r.serviceQuantity}</td>
+																					<td>{r.workingHours}h</td>
+																					<td>
+																						<span
+																							className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
+																								r.assignmentType === 'Swapped'
+																									? 'bg-amber-500/10 text-amber-600'
+																									: 'bg-surface-container text-on-surface-variant'
+																							}`}
+																						>
+																							{r.assignmentType}
+																						</span>
+																					</td>
+																					<td>
+																						{r.assignmentType === 'Swapped' ? (
+																							<span className="text-[10px] text-on-surface-variant">
+																								{r.swapId ? `#${r.swapId}` : ''} {r.originalStaffName ? `(Orig: ${r.originalStaffName})` : ''}
+																							</span>
+																						) : (
+																							'—'
+																						)}
+																					</td>
+																				</tr>
+																			))}
+																		</tbody>
+																	</table>
+																</div>
+															)}
+														</div>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})}
+							</div>
+						)}
+
+						{/* Fallback to legacy opsSummary table if no report items */}
+						{!staffProductivityLoading && (!staffProductivityReport || staffProductivityReport.items.length === 0) && opsSummary?.staffProductivityBreakdown && opsSummary.staffProductivityBreakdown.length > 0 && (
+							<div className="overflow-x-auto">
+								<table className="app-table w-full">
+									<thead>
+										<tr>
+											<th>Staff Member</th>
+											<th>Master ID</th>
+											<th>Sessions</th>
+											<th>Vehicles Handled</th>
+											<th>Services Completed</th>
+										</tr>
+									</thead>
+									<tbody>
+										{opsSummary.staffProductivityBreakdown.map((sp) => (
 											<tr key={sp.staffId} className="hover:bg-surface-container/30 transition-colors">
 												<td className="font-semibold text-xs text-on-surface">{sp.staffName}</td>
 												<td>
@@ -1509,9 +1877,19 @@ export function ShowroomOperationsPage() {
 												</td>
 											</tr>
 										))}
-								</tbody>
-							</table>
-						</div>
+									</tbody>
+								</table>
+							</div>
+						)}
+
+						{/* Empty state */}
+						{!staffProductivityLoading &&
+							(!staffProductivityReport || staffProductivityReport.items.length === 0) &&
+							(!opsSummary?.staffProductivityBreakdown || opsSummary.staffProductivityBreakdown.length === 0) && (
+								<div className="py-16 text-center text-xs text-on-surface-variant">
+									No staff activity recorded for this showroom on this date.
+								</div>
+							)}
 					</div>
 				</div>
 			)}
@@ -1769,12 +2147,12 @@ export function ShowroomOperationsPage() {
 				</Dialog>
 			)}
 
-			{/* ── MODAL 2: Start / Edit Staff Work Session ──────────────────────────── */}
+			{/* ── MODAL 2: Edit Staff Work Session ─────────────────────────────────── */}
 			{showSessionModal && (
 				<Dialog
 					open={showSessionModal}
 					onOpenChange={setShowSessionModal}
-					title={editingSession ? 'Edit Staff Session' : 'Start Staff Work Session'}
+					title="Edit Staff Work Session"
 				>
 					<form
 						onSubmit={(e) => {
@@ -1910,7 +2288,7 @@ export function ShowroomOperationsPage() {
 								type="submit"
 								disabled={saveSessionMutation.isPending}
 							>
-								{saveSessionMutation.isPending ? 'Saving...' : editingSession ? 'Update Session' : 'Start Session'}
+								{saveSessionMutation.isPending ? 'Saving...' : 'Update Session'}
 							</Button>
 						</div>
 					</form>

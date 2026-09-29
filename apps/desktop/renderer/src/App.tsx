@@ -3,15 +3,18 @@ import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { queryClient } from './lib/query-client';
-import { AuthProvider } from './features/auth';
+import { AuthProvider, useAuth } from './features/auth';
 import { getSystemPreferences } from './lib/api';
 import { saveStoredPreferences, type SystemPreferences } from './features/settings/SystemPreferencesPage';
 
 function PreferencesSync() {
+	const { isAuthenticated, token, hasPermission } = useAuth();
 	const { data: serverPrefs } = useQuery({
 		queryKey: ['system-preferences'],
 		queryFn: getSystemPreferences,
 		staleTime: 1000 * 30,
+		enabled: Boolean(isAuthenticated && token && hasPermission('settings.view')),
+		retry: false,
 	});
 
 	useEffect(() => {
@@ -35,8 +38,8 @@ function PreferencesSync() {
 export default function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<PreferencesSync />
 			<AuthProvider>
+				<PreferencesSync />
 				<RouterProvider router={router} future={{ v7_startTransition: true }} />
 			</AuthProvider>
 		</QueryClientProvider>

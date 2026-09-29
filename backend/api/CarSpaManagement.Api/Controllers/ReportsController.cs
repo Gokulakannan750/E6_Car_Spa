@@ -150,9 +150,12 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? toDate = null,
         [FromQuery] Guid? staffId = null,
         [FromQuery] Guid? showroomId = null,
+        [FromQuery] Guid? vehicleTypeId = null,
+        [FromQuery] Guid? workTypeId = null,
+        [FromQuery] string? assignmentType = null,
         CancellationToken ct = default)
     {
-        var result = await _reportService.GetStaffProductivityReportAsync(fromDate, toDate, staffId, showroomId, ct);
+        var result = await _reportService.GetStaffProductivityReportAsync(fromDate, toDate, staffId, showroomId, vehicleTypeId, workTypeId, assignmentType, ct);
         return Ok(result);
     }
 
@@ -176,27 +179,29 @@ public class ReportsController : ControllerBase
     }
 
     /// <summary>
-    /// Detailed monthly showroom operational, staff activity, and financial report.
+    /// Detailed monthly / date-range showroom operational, staff activity, and financial report.
     /// </summary>
     [HttpGet("showroom/monthly")]
     [RequirePermission("reports.showrooms")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetMonthlyShowroomReport(
-        [FromQuery] int year,
-        [FromQuery] int month,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
         [FromQuery] Guid? showroomId = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        if (year < 2000 || year > 2100)
+        if (year.HasValue && (year < 2000 || year > 2100))
         {
             return BadRequest(new { message = "Invalid year specified. Must be between 2000 and 2100." });
         }
-        if (month < 1 || month > 12)
+        if (month.HasValue && (month < 1 || month > 12))
         {
             return BadRequest(new { message = "Invalid month specified. Must be between 1 and 12." });
         }
 
-        var result = await _reportService.GetMonthlyShowroomReportAsync(year, month, showroomId, ct);
+        var result = await _reportService.GetMonthlyShowroomReportAsync(year, month, showroomId, fromDate, toDate, ct);
         return Ok(result);
     }
 }

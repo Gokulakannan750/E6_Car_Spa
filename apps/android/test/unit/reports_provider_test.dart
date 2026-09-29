@@ -5,7 +5,7 @@ void main() {
   group('Reports Provider & Date Filter Tests', () {
     test('ReportDateFilterState computes correct date ranges for presets', () {
       final state7d = ReportDateFilterState.fromPreset(ReportDatePreset.sevenDays);
-      expect(state7d.label, 'Last 7 Days');
+      expect(state7d.label, 'This Week');
       expect(state7d.endDate.difference(state7d.startDate).inDays, 6);
 
       final state30d = ReportDateFilterState.fromPreset(ReportDatePreset.thirtyDays);
@@ -36,11 +36,11 @@ void main() {
     test('ReportDateFilterNotifier updates presets and custom ranges', () {
       final notifier = ReportDateFilterNotifier();
 
-      expect(notifier.state.preset, ReportDatePreset.thirtyDays);
+      expect(notifier.state.preset, ReportDatePreset.thisMonth);
 
       notifier.setPreset(ReportDatePreset.sevenDays);
       expect(notifier.state.preset, ReportDatePreset.sevenDays);
-      expect(notifier.state.label, 'Last 7 Days');
+      expect(notifier.state.label, 'This Week');
 
       notifier.setCustomRange(DateTime(2026, 1, 1), DateTime(2026, 1, 31));
       expect(notifier.state.preset, ReportDatePreset.custom);

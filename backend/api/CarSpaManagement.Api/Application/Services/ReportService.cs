@@ -916,7 +916,15 @@ public class ReportService : IReportService
     }
 
     // ── 8. Staff Productivity Report ────────────────────────────────────────
-    public async Task<StaffProductivityReportResponse> GetStaffProductivityReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? staffId = null, Guid? showroomId = null, CancellationToken ct = default)
+    public async Task<StaffProductivityReportResponse> GetStaffProductivityReportAsync(
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        Guid? staffId = null,
+        Guid? showroomId = null,
+        Guid? vehicleTypeId = null,
+        Guid? workTypeId = null,
+        string? assignmentType = null,
+        CancellationToken ct = default)
     {
         var startUtc = fromDate.HasValue ? ToUtcDate(fromDate.Value) : ToUtcDate(DateTime.UtcNow.AddDays(-30));
         var endUtc = toDate.HasValue ? ToUtcDate(toDate.Value) : ToUtcDate(DateTime.UtcNow);
@@ -926,56 +934,391 @@ public class ReportService : IReportService
             (startUtc, endUtc) = (endUtc, startUtc);
         }
 
-        var query = _db.ShowroomStaffAssignments
+        // 1. Fetch vehicle works from actual operations
+        var query = _db.ShowroomVehicleWorks
             .AsNoTracking()
-            .Include(a => a.Staff)
-            .Where(a => !a.IsDeleted && a.Date >= startUtc && a.Date <= endUtc);
+            .Include(w => w.Showroom)
+            .Include(w => w.Staff)
+                .ThenInclude(st => st.DefaultShowroom)
+            .Include(w => w.VehicleType)
+            .Include(w => w.ServiceItems)
+                .ThenInclude(si => si.WorkType)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.HomeShowroom)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.WorkingShowroom)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.StaffSwap)
+                    .ThenInclude(swp => swp!.StaffA)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.StaffSwap)
+                    .ThenInclude(swp => swp!.StaffB)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.SwappedWithStaff)
+            .Where(w => !w.IsDeleted && w.Date >= startUtc && w.Date <= endUtc);
 
         if (staffId.HasValue)
         {
-            query = query.Where(a => a.StaffId == staffId.Value);
+            query = query.Where(w => w.StaffId == staffId.Value);
         }
 
         if (showroomId.HasValue)
         {
-            query = query.Where(a => a.ShowroomId == showroomId.Value);
+            query = query.Where(w => w.ShowroomId == showroomId.Value);
         }
 
-        var assignments = await query.ToListAsync(ct);
+        if (vehicleTypeId.HasValue)
+        {
+            query = query.Where(w => w.VehicleTypeId == vehicleTypeId.Value);
+        }
 
-        var staffGroups = assignments
-            .GroupBy(a => a.StaffId)
-            .Select(g =>
+        if (workTypeId.HasValue)
+        {
+            query = query.Where(w => w.ServiceItems.Any(si => si.WorkTypeId == workTypeId.Value));
+        }
+
+        if (!string.IsNullOrWhiteSpace(assignmentType) && !string.Equals(assignmentType, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.Equals(assignmentType, "swapped", StringComparison.OrdinalIgnoreCase))
             {
-                var first = g.First();
-                var totalVehicles = g.Sum(a => a.VehiclesAttended);
-                var daysAssigned = g.Select(a => a.Date).Distinct().Count();
-                var avg = daysAssigned > 0 ? Math.Round((decimal)totalVehicles / daysAssigned, 1) : 0m;
+                query = query.Where(w => w.ShowroomStaffWorkSession != null && (w.ShowroomStaffWorkSession.StaffSwapId != null || w.ShowroomStaffWorkSession.SwapId != null));
+            }
+            else if (string.Equals(assignmentType, "regular", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(w => w.ShowroomStaffWorkSession == null || (w.ShowroomStaffWorkSession.StaffSwapId == null && w.ShowroomStaffWorkSession.SwapId == null));
+            }
+        }
 
-                return new StaffProductivityRowDto(
-                    g.Key,
-                    first.Staff?.Name ?? "Unknown Staff",
-                    first.Staff?.PhoneNumber ?? string.Empty,
-                    first.Staff?.Role,
-                    daysAssigned,
-                    totalVehicles,
-                    avg
-                );
-            })
-            .OrderByDescending(p => p.TotalVehiclesAttended)
+        var works = await query
+            .OrderByDescending(w => w.Date)
+            .ThenByDescending(w => w.CreatedAt)
+            .ToListAsync(ct);
+
+        // 2. Fetch staff work sessions for scheduling, days active and hours
+        var sessionsQuery = _db.ShowroomStaffWorkSessions
+            .AsNoTracking()
+            .Include(s => s.Staff)
+                .ThenInclude(st => st.DefaultShowroom)
+            .Include(s => s.HomeShowroom)
+            .Include(s => s.WorkingShowroom)
+            .Include(s => s.StaffSwap)
+                .ThenInclude(swp => swp!.StaffA)
+            .Include(s => s.StaffSwap)
+                .ThenInclude(swp => swp!.StaffB)
+            .Include(s => s.SwappedWithStaff)
+            .Where(s => !s.IsDeleted && s.Date >= startUtc && s.Date <= endUtc);
+
+        if (staffId.HasValue)
+        {
+            sessionsQuery = sessionsQuery.Where(s => s.StaffId == staffId.Value);
+        }
+
+        if (showroomId.HasValue)
+        {
+            sessionsQuery = sessionsQuery.Where(s => s.WorkingShowroomId == showroomId.Value);
+        }
+
+        var sessions = await sessionsQuery.ToListAsync(ct);
+
+        // Also fetch legacy assignments if needed as fallback
+        var legacyQuery = _db.ShowroomStaffAssignments
+            .AsNoTracking()
+            .Include(a => a.Staff)
+            .Include(a => a.Showroom)
+            .Where(a => !a.IsDeleted && a.Date >= startUtc && a.Date <= endUtc);
+        if (staffId.HasValue) legacyQuery = legacyQuery.Where(a => a.StaffId == staffId.Value);
+        if (showroomId.HasValue) legacyQuery = legacyQuery.Where(a => a.ShowroomId == showroomId.Value);
+        var legacyAssignments = await legacyQuery.ToListAsync(ct);
+
+        // Map helper for work sessions / staff hours
+        static decimal CalculateSessionHours(ShowroomStaffWorkSession? session, string? startTime, string? endTime)
+        {
+            if (session == null) return 8.0m;
+            var sType = session.SessionType.ToString();
+            if (sType == "FullDay") return 9.0m;
+            if (sType == "Morning" || sType == "Afternoon") return 4.5m;
+            if (sType == "Evening") return 4.0m;
+            if (sType == "Custom")
+            {
+                var stStr = startTime ?? session.StartTime ?? "09:00";
+                var etStr = endTime ?? session.EndTime ?? "18:00";
+                if (TimeSpan.TryParse(stStr, out var st) && TimeSpan.TryParse(etStr, out var et) && et > st)
+                {
+                    return Math.Round((decimal)(et - st).TotalHours, 1);
+                }
+                return 8.0m;
+            }
+            return 8.0m;
+        }
+
+        // Build granular work records
+        var granularRecords = new List<StaffProductivityWorkRecordDto>();
+
+        foreach (var w in works)
+        {
+            var session = w.ShowroomStaffWorkSession;
+            var isSwapped = session != null && (session.StaffSwapId != null || !string.IsNullOrWhiteSpace(session.SwapId));
+            var swapId = session?.SwapId ?? session?.StaffSwap?.SwapId;
+            var isTransfer = (session != null && session.HomeShowroomId != session.WorkingShowroomId)
+                || (session == null && w.Staff?.DefaultShowroomId.HasValue == true && w.Staff.DefaultShowroomId.Value != w.ShowroomId);
+
+            string assignType;
+            if (isSwapped) assignType = "Swapped";
+            else if (isTransfer) assignType = "Temporary Transfer";
+            else assignType = "Regular";
+
+            string? origStaffName = null;
+            string? replStaffName = null;
+            if (isSwapped && session?.StaffSwap != null)
+            {
+                origStaffName = session.StaffSwap.StaffA?.Name;
+                replStaffName = session.StaffSwap.StaffB?.Name;
+            }
+            else if (isSwapped && session?.SwappedWithStaff != null)
+            {
+                origStaffName = session.SwappedWithStaff.Name;
+                replStaffName = w.Staff?.Name;
+            }
+
+            var startTime = session?.StartTime ?? "09:00";
+            var endTime = session?.EndTime ?? "18:00";
+            var workingHours = CalculateSessionHours(session, startTime, endTime);
+
+            var homeSr = session?.HomeShowroom?.Name ?? w.Staff?.DefaultShowroom?.Name ?? w.Showroom?.Name ?? "Main Showroom";
+            var workingSr = session?.WorkingShowroom?.Name ?? w.Showroom?.Name ?? "Main Showroom";
+
+            if (w.ServiceItems != null && w.ServiceItems.Count > 0)
+            {
+                foreach (var si in w.ServiceItems)
+                {
+                    granularRecords.Add(new StaffProductivityWorkRecordDto(
+                        Id: w.Id,
+                        Date: w.Date,
+                        ShowroomId: w.ShowroomId,
+                        ShowroomMasterId: w.Showroom?.MasterId ?? string.Empty,
+                        ShowroomName: w.Showroom?.Name ?? string.Empty,
+                        StaffId: w.StaffId,
+                        StaffMasterId: w.Staff?.StaffMasterId ?? string.Empty,
+                        StaffName: w.Staff?.Name ?? "Unknown Staff",
+                        Role: w.Staff?.Role ?? "Technician",
+                        HomeShowroomName: homeSr,
+                        WorkingShowroomName: workingSr,
+                        VehicleTypeId: w.VehicleTypeId,
+                        VehicleTypeCode: w.VehicleType?.Code ?? "VEH",
+                        VehicleTypeName: w.VehicleType?.Name ?? "Standard Vehicle",
+                        WorkTypeId: si.WorkTypeId,
+                        WorkTypeCode: si.WorkType?.Code ?? "SRV",
+                        WorkTypeName: si.WorkType?.Name ?? "Service",
+                        ServiceCategory: si.WorkType?.Description ?? "General",
+                        VehicleQuantity: w.VehicleQuantity,
+                        ServiceQuantity: si.Quantity,
+                        StartTime: startTime,
+                        EndTime: endTime,
+                        WorkingHours: workingHours,
+                        AssignmentType: assignType,
+                        SwapId: swapId,
+                        OriginalStaffName: origStaffName,
+                        ReplacementStaffName: replStaffName,
+                        Notes: w.Notes ?? si.Notes
+                    ));
+                }
+            }
+            else
+            {
+                granularRecords.Add(new StaffProductivityWorkRecordDto(
+                    Id: w.Id,
+                    Date: w.Date,
+                    ShowroomId: w.ShowroomId,
+                    ShowroomMasterId: w.Showroom?.MasterId ?? string.Empty,
+                    ShowroomName: w.Showroom?.Name ?? string.Empty,
+                    StaffId: w.StaffId,
+                    StaffMasterId: w.Staff?.StaffMasterId ?? string.Empty,
+                    StaffName: w.Staff?.Name ?? "Unknown Staff",
+                    Role: w.Staff?.Role ?? "Technician",
+                    HomeShowroomName: homeSr,
+                    WorkingShowroomName: workingSr,
+                    VehicleTypeId: w.VehicleTypeId,
+                    VehicleTypeCode: w.VehicleType?.Code ?? "VEH",
+                    VehicleTypeName: w.VehicleType?.Name ?? "Standard Vehicle",
+                    WorkTypeId: Guid.Empty,
+                    WorkTypeCode: "GEN",
+                    WorkTypeName: "General Service",
+                    ServiceCategory: "General",
+                    VehicleQuantity: w.VehicleQuantity,
+                    ServiceQuantity: 1,
+                    StartTime: startTime,
+                    EndTime: endTime,
+                    WorkingHours: workingHours,
+                    AssignmentType: assignType,
+                    SwapId: swapId,
+                    OriginalStaffName: origStaffName,
+                    ReplacementStaffName: replStaffName,
+                    Notes: w.Notes
+                ));
+            }
+        }
+
+        // Build grouped staff productivity list
+        var allStaffIds = works.Select(w => w.StaffId)
+            .Union(sessions.Select(s => s.StaffId))
+            .Union(legacyAssignments.Select(a => a.StaffId))
+            .Distinct()
             .ToList();
 
-        var totalStaff = staffGroups.Count;
-        var totalDaysAssigned = staffGroups.Sum(p => p.DaysAssigned);
-        var totalVehiclesAttended = staffGroups.Sum(p => p.TotalVehiclesAttended);
-        var overallDailyAvg = totalDaysAssigned > 0 ? Math.Round((decimal)totalVehiclesAttended / totalDaysAssigned, 1) : 0m;
+        var staffEntities = await _db.Staff
+            .AsNoTracking()
+            .Include(s => s.DefaultShowroom)
+            .Where(s => allStaffIds.Contains(s.Id))
+            .ToListAsync(ct);
+
+        var staffLookup = staffEntities.ToDictionary(s => s.Id, s => s);
+
+        var staffRows = new List<StaffProductivityRowDto>();
+
+        foreach (var sId in allStaffIds)
+        {
+            var st = staffLookup.GetValueOrDefault(sId);
+            var stName = st?.Name ?? "Unknown Staff";
+            var stMasterId = st?.StaffMasterId ?? string.Empty;
+            var stPhone = st?.PhoneNumber ?? string.Empty;
+            var stRole = st?.Role ?? "Technician";
+
+            var stWorks = works.Where(w => w.StaffId == sId).ToList();
+            var stSessions = sessions.Where(s => s.StaffId == sId).ToList();
+            var stLegacy = legacyAssignments.Where(a => a.StaffId == sId).ToList();
+            var stGranular = granularRecords.Where(r => r.StaffId == sId).ToList();
+
+            var homeSr = stSessions.FirstOrDefault()?.HomeShowroom?.Name
+                ?? st?.DefaultShowroom?.Name
+                ?? stWorks.FirstOrDefault()?.Showroom?.Name
+                ?? "Main Showroom";
+
+            var workingSr = stSessions.FirstOrDefault()?.WorkingShowroom?.Name
+                ?? stWorks.FirstOrDefault()?.Showroom?.Name
+                ?? stLegacy.FirstOrDefault()?.Showroom?.Name
+                ?? "Main Showroom";
+
+            var distinctDays = stWorks.Select(w => w.Date.Date)
+                .Union(stSessions.Select(s => s.Date.Date))
+                .Union(stLegacy.Select(a => a.Date.Date))
+                .Distinct()
+                .Count();
+
+            var totalVehicles = stWorks.Count > 0
+                ? stWorks.Sum(w => w.VehicleQuantity)
+                : stLegacy.Sum(a => a.VehiclesAttended);
+
+            var totalServices = stWorks.SelectMany(w => w.ServiceItems).Sum(si => si.Quantity);
+            if (totalServices == 0 && totalVehicles > 0) totalServices = totalVehicles;
+
+            decimal totalHours = 0m;
+            if (stSessions.Count > 0)
+            {
+                totalHours = stSessions.Sum(s => CalculateSessionHours(s, s.StartTime, s.EndTime));
+            }
+            else if (distinctDays > 0)
+            {
+                totalHours = distinctDays * 8.0m;
+            }
+
+            var dailyAvg = distinctDays > 0 ? Math.Round((decimal)totalVehicles / distinctDays, 1) : 0m;
+
+            // Build hierarchical groups: Vehicle Type -> Services
+            var vehicleTypeGroups = stWorks
+                .GroupBy(w => new { w.VehicleTypeId, Code = w.VehicleType?.Code ?? "VEH", Name = w.VehicleType?.Name ?? "Standard Vehicle" })
+                .Select(vg =>
+                {
+                    var vtVehicles = vg.Sum(w => w.VehicleQuantity);
+                    var vtServicesCount = vg.SelectMany(w => w.ServiceItems).Sum(si => si.Quantity);
+                    var vtHours = Math.Round((decimal)vtVehicles * 0.75m, 1);
+
+                    var serviceItems = vg
+                        .SelectMany(w => w.ServiceItems.Select(si => new { Work = w, Item = si }))
+                        .GroupBy(x => new { x.Item.WorkTypeId, Code = x.Item.WorkType?.Code ?? "SRV", Name = x.Item.WorkType?.Name ?? "Service", Cat = x.Item.WorkType?.Description })
+                        .Select(sg =>
+                        {
+                            var sVehicles = sg.Select(x => x.Work.Id).Distinct().Count();
+                            var sQuantity = sg.Sum(x => x.Item.Quantity);
+                            var sHours = Math.Round((decimal)sQuantity * 0.5m, 1);
+
+                            var firstEntry = sg.First();
+                            var session = firstEntry.Work.ShowroomStaffWorkSession;
+                            var isSwp = session != null && (session.StaffSwapId != null || !string.IsNullOrWhiteSpace(session.SwapId));
+                            var swpId = session?.SwapId ?? session?.StaffSwap?.SwapId;
+                            var aType = isSwp ? "Swapped" : "Regular";
+                            var origStaff = isSwp ? (session?.StaffSwap?.StaffA?.Name ?? session?.SwappedWithStaff?.Name) : null;
+                            var replStaff = isSwp ? (session?.StaffSwap?.StaffB?.Name ?? stName) : null;
+
+                            return new StaffProductivityServiceItemDto(
+                                WorkTypeId: sg.Key.WorkTypeId,
+                                WorkTypeCode: sg.Key.Code,
+                                WorkTypeName: sg.Key.Name,
+                                ServiceCategory: sg.Key.Cat ?? "General",
+                                VehicleCount: sVehicles,
+                                ServiceQuantity: sQuantity,
+                                Hours: sHours,
+                                AssignmentType: aType,
+                                SwapId: swpId,
+                                OriginalStaffName: origStaff,
+                                ReplacementStaffName: replStaff
+                            );
+                        })
+                        .OrderByDescending(s => s.ServiceQuantity)
+                        .ToList();
+
+                    return new StaffProductivityVehicleTypeGroupDto(
+                        VehicleTypeId: vg.Key.VehicleTypeId,
+                        VehicleTypeCode: vg.Key.Code,
+                        VehicleTypeName: vg.Key.Name,
+                        VehicleCount: vtVehicles,
+                        ServiceQuantity: vtServicesCount,
+                        Hours: vtHours,
+                        Services: serviceItems
+                    );
+                })
+                .OrderByDescending(v => v.VehicleCount)
+                .ToList();
+
+            staffRows.Add(new StaffProductivityRowDto(
+                StaffId: sId,
+                StaffMasterId: stMasterId,
+                StaffName: stName,
+                StaffPhone: stPhone,
+                Role: stRole,
+                HomeShowroomName: homeSr,
+                WorkingShowroomName: workingSr,
+                DaysAssigned: distinctDays,
+                TotalVehiclesAttended: totalVehicles,
+                TotalServicesPerformed: totalServices,
+                TotalWorkingHours: Math.Round(totalHours, 1),
+                DailyAverage: dailyAvg,
+                VehicleTypes: vehicleTypeGroups,
+                WorkRecords: stGranular
+            ));
+        }
+
+        staffRows = staffRows.OrderByDescending(s => s.TotalVehiclesAttended).ThenByDescending(s => s.TotalServicesPerformed).ToList();
+
+        var totalStaff = staffRows.Count;
+        var totalVehiclesAttended = staffRows.Sum(s => s.TotalVehiclesAttended);
+        var totalServicesPerformed = staffRows.Sum(s => s.TotalServicesPerformed);
+        var totalStaffHours = Math.Round(staffRows.Sum(s => s.TotalWorkingHours), 1);
+        var totalDaysAssigned = staffRows.Sum(s => s.DaysAssigned);
+        var overallDailyAverage = totalDaysAssigned > 0 ? Math.Round((decimal)totalVehiclesAttended / totalDaysAssigned, 1) : 0m;
+        var avgVehiclesPerStaff = totalStaff > 0 ? Math.Round((decimal)totalVehiclesAttended / totalStaff, 1) : 0m;
+        var avgServicesPerStaff = totalStaff > 0 ? Math.Round((decimal)totalServicesPerformed / totalStaff, 1) : 0m;
 
         return new StaffProductivityReportResponse(
-            Items: staffGroups,
+            Items: staffRows,
+            GranularRecords: granularRecords,
             TotalStaff: totalStaff,
-            TotalDaysAssigned: totalDaysAssigned,
             TotalVehiclesAttended: totalVehiclesAttended,
-            OverallDailyAverage: overallDailyAvg
+            TotalServicesPerformed: totalServicesPerformed,
+            TotalStaffHours: totalStaffHours,
+            TotalDaysAssigned: totalDaysAssigned,
+            OverallDailyAverage: overallDailyAverage,
+            AverageVehiclesPerStaff: avgVehiclesPerStaff,
+            AverageServicesPerStaff: avgServicesPerStaff
         );
     }
 
@@ -1063,19 +1406,42 @@ public class ReportService : IReportService
         return new StaffAdvanceReportResponse(items, totalCount, page, pageSize, summary);
     }
 
-    // ── 10. Monthly Showroom Report ─────────────────────────────────────────
+    // ── 10. Monthly / Date-Range Showroom Report ─────────────────────────────
     public async Task<MonthlyShowroomReportResponse> GetMonthlyShowroomReportAsync(
-        int year,
-        int month,
+        int? year = null,
+        int? month = null,
         Guid? showroomId = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        var daysInMonth = DateTime.DaysInMonth(year, month);
-        var fromDate = DateTime.SpecifyKind(new DateTime(year, month, 1, 0, 0, 0), DateTimeKind.Utc);
-        var toDate = DateTime.SpecifyKind(new DateTime(year, month, daysInMonth, 23, 59, 59, 999), DateTimeKind.Utc);
-        var fromDateOnly = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
-        var toDateOnly = DateTime.SpecifyKind(new DateTime(year, month, daysInMonth), DateTimeKind.Utc);
-        var monthName = new DateTime(year, month, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        DateTime startUtc;
+        DateTime endUtc;
+        int repYear;
+        int repMonth;
+        string monthName;
+
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            startUtc = ToUtcDate(fromDate.Value);
+            endUtc = ToUtcDate(toDate.Value);
+            if (startUtc > endUtc) (startUtc, endUtc) = (endUtc, startUtc);
+            repYear = startUtc.Year;
+            repMonth = startUtc.Month;
+            monthName = $"{startUtc:dd-MMM-yyyy} to {endUtc:dd-MMM-yyyy}";
+        }
+        else
+        {
+            repYear = year ?? DateTime.UtcNow.Year;
+            repMonth = month ?? DateTime.UtcNow.Month;
+            var daysInMonth = DateTime.DaysInMonth(repYear, repMonth);
+            startUtc = DateTime.SpecifyKind(new DateTime(repYear, repMonth, 1, 0, 0, 0), DateTimeKind.Utc);
+            endUtc = DateTime.SpecifyKind(new DateTime(repYear, repMonth, daysInMonth, 23, 59, 59, 999), DateTimeKind.Utc);
+            monthName = new DateTime(repYear, repMonth, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        var fromDateOnly = DateTime.SpecifyKind(startUtc.Date, DateTimeKind.Utc);
+        var toDateOnly = DateTime.SpecifyKind(endUtc.Date, DateTimeKind.Utc);
 
         var showroomsQuery = _db.Showrooms.AsNoTracking().Where(s => !s.IsDeleted);
         if (showroomId.HasValue)
@@ -1086,7 +1452,7 @@ public class ReportService : IReportService
         var showrooms = await showroomsQuery.OrderBy(s => s.Name).ToListAsync(ct);
         var targetShowroomIds = showrooms.Select(s => s.Id).ToList();
 
-        // 1. Fetch vehicle works for target showrooms in month
+        // 1. Fetch vehicle works for target showrooms in period
         var vehicleWorks = await _db.ShowroomVehicleWorks
             .AsNoTracking()
             .Include(w => w.Showroom)
@@ -1095,6 +1461,14 @@ public class ReportService : IReportService
             .Include(w => w.VehicleType)
             .Include(w => w.ShowroomStaffWorkSession)
                 .ThenInclude(sw => sw!.HomeShowroom)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.StaffSwap)
+                    .ThenInclude(swp => swp!.StaffA)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.StaffSwap)
+                    .ThenInclude(swp => swp!.StaffB)
+            .Include(w => w.ShowroomStaffWorkSession)
+                .ThenInclude(sw => sw!.SwappedWithStaff)
             .Include(w => w.ServiceItems)
                 .ThenInclude(i => i.WorkType)
             .Where(w => !w.IsDeleted && targetShowroomIds.Contains(w.ShowroomId) && w.Date >= fromDateOnly && w.Date <= toDateOnly)
@@ -1102,7 +1476,7 @@ public class ReportService : IReportService
             .ThenBy(w => w.CreatedAt)
             .ToListAsync(ct);
 
-        // 2. Fetch daily bills and payments for target showrooms in month
+        // 2. Fetch daily bills and payments for target showrooms in period
         var dailyBills = await _db.ShowroomDailyBills
             .AsNoTracking()
             .Include(b => b.Payments)
@@ -1110,14 +1484,39 @@ public class ReportService : IReportService
             .OrderBy(b => b.Date)
             .ToListAsync(ct);
 
-        // 3. Fetch staff work sessions for target showrooms in month
+        // 3. Fetch staff work sessions for target showrooms in period
         var staffSessions = await _db.ShowroomStaffWorkSessions
             .AsNoTracking()
             .Include(s => s.Staff)
                 .ThenInclude(st => st.DefaultShowroom)
             .Include(s => s.HomeShowroom)
             .Include(s => s.WorkingShowroom)
+            .Include(s => s.StaffSwap)
+                .ThenInclude(swp => swp!.StaffA)
+            .Include(s => s.StaffSwap)
+                .ThenInclude(swp => swp!.StaffB)
+            .Include(s => s.SwappedWithStaff)
             .Where(s => !s.IsDeleted && targetShowroomIds.Contains(s.WorkingShowroomId) && s.Date >= fromDateOnly && s.Date <= toDateOnly)
+            .ToListAsync(ct);
+
+        // 4. Fetch daily attendance confirmations
+        var dailyAttendances = await _db.ShowroomDailyAttendances
+            .AsNoTracking()
+            .Include(a => a.AttendanceConfirmedByUser)
+            .Where(a => !a.IsDeleted && targetShowroomIds.Contains(a.ShowroomId) && a.Date >= fromDateOnly && a.Date <= toDateOnly)
+            .ToListAsync(ct);
+
+        // 5. Fetch staff swaps involving target showrooms in period
+        var staffSwaps = await _db.ShowroomStaffSwaps
+            .AsNoTracking()
+            .Include(s => s.StaffA)
+            .Include(s => s.StaffB)
+            .Include(s => s.ShowroomA)
+            .Include(s => s.ShowroomB)
+            .Include(s => s.PerformedByUser)
+            .Where(s => !s.IsDeleted && (targetShowroomIds.Contains(s.ShowroomAId) || targetShowroomIds.Contains(s.ShowroomBId)) && s.Date >= fromDateOnly && s.Date <= toDateOnly)
+            .OrderByDescending(s => s.Date)
+            .ThenByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
 
         var showroomDetails = new List<MonthlyShowroomDetailDto>();
@@ -1127,9 +1526,13 @@ public class ReportService : IReportService
             var srWorks = vehicleWorks.Where(w => w.ShowroomId == sr.Id).ToList();
             var srBills = dailyBills.Where(b => b.ShowroomId == sr.Id).ToList();
             var srSessions = staffSessions.Where(s => s.WorkingShowroomId == sr.Id).ToList();
+            var srAttendances = dailyAttendances.Where(a => a.ShowroomId == sr.Id).ToList();
+            var srSwaps = staffSwaps.Where(s => s.ShowroomAId == sr.Id || s.ShowroomBId == sr.Id).ToList();
 
             var billsByDate = srBills.ToDictionary(b => b.Date.Date, b => b);
+            var attByDate = srAttendances.ToDictionary(a => a.Date.Date, a => a);
 
+            // ── SHEET 2: Vehicle Service Details ────────────────────────────
             var mappedWorks = srWorks.Select(w =>
             {
                 var workDate = w.Date.Date;
@@ -1170,15 +1573,36 @@ public class ReportService : IReportService
                     ? string.Join(", ", serviceDtos.Select(s => $"{s.WorkTypeName} ({s.Quantity})"))
                     : "General Service";
 
-                var homeShowroom = w.ShowroomStaffWorkSession?.HomeShowroom ?? w.Staff?.DefaultShowroom ?? sr;
+                var session = w.ShowroomStaffWorkSession;
+                var isSwapped = session != null && (session.StaffSwapId != null || !string.IsNullOrWhiteSpace(session.SwapId));
+                var swapId = session?.SwapId ?? session?.StaffSwap?.SwapId;
+                var homeShowroom = session?.HomeShowroom ?? w.Staff?.DefaultShowroom ?? sr;
                 var homeSrName = homeShowroom?.Name ?? sr.Name;
                 var homeSrMasterId = homeShowroom?.MasterId ?? sr.MasterId;
-                var isTransfer = (w.ShowroomStaffWorkSession != null && w.ShowroomStaffWorkSession.HomeShowroomId != w.ShowroomId)
-                    || (w.ShowroomStaffWorkSession == null && w.Staff?.DefaultShowroomId.HasValue == true && w.Staff.DefaultShowroomId.Value != sr.Id);
-                var assignmentType = isTransfer ? "Temporary Transfer" : "Regular";
-                var sessionType = w.ShowroomStaffWorkSession != null ? w.ShowroomStaffWorkSession.SessionType.ToString() : "FullDay";
-                var startTime = w.ShowroomStaffWorkSession?.StartTime ?? "09:00";
-                var endTime = w.ShowroomStaffWorkSession?.EndTime ?? "18:00";
+                var isTransfer = (session != null && session.HomeShowroomId != w.ShowroomId)
+                    || (session == null && w.Staff?.DefaultShowroomId.HasValue == true && w.Staff.DefaultShowroomId.Value != sr.Id);
+
+                string assignmentType;
+                if (isSwapped) assignmentType = "Swapped";
+                else if (isTransfer) assignmentType = "Temporary Transfer";
+                else assignmentType = "Regular";
+
+                string? origStaff = null;
+                string? replStaff = null;
+                if (isSwapped && session?.StaffSwap != null)
+                {
+                    origStaff = session.StaffSwap.StaffA?.Name;
+                    replStaff = session.StaffSwap.StaffB?.Name;
+                }
+                else if (isSwapped && session?.SwappedWithStaff != null)
+                {
+                    origStaff = session.SwappedWithStaff.Name;
+                    replStaff = w.Staff?.Name;
+                }
+
+                var sessionType = session != null ? session.SessionType.ToString() : "FullDay";
+                var startTime = session?.StartTime ?? "09:00";
+                var endTime = session?.EndTime ?? "18:00";
 
                 decimal workingHours = 9.0m;
                 if (sessionType == "FullDay") workingHours = 9.0m;
@@ -1195,6 +1619,8 @@ public class ReportService : IReportService
                         workingHours = 8.0m;
                     }
                 }
+
+                var serviceCat = w.ServiceItems.FirstOrDefault()?.WorkType?.Description ?? "General";
 
                 return new MonthlyShowroomVehicleWorkRowDto(
                     w.Id,
@@ -1224,10 +1650,15 @@ public class ReportService : IReportService
                     w.Notes,
                     dailyBilled,
                     dailyCollected,
-                    paymentStatus
+                    paymentStatus,
+                    swapId,
+                    origStaff,
+                    replStaff,
+                    serviceCat
                 );
             }).ToList();
 
+            // ── SHEET 7: Daily Bills ────────────────────────────────────────
             var mappedBills = srBills.Select(b =>
             {
                 var collected = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
@@ -1249,10 +1680,157 @@ public class ReportService : IReportService
                 );
             }).ToList();
 
+            // ── SHEET 4: Attendance Records ─────────────────────────────────
+            var attendanceRecords = srSessions.Select(s =>
+            {
+                var att = attByDate.GetValueOrDefault(s.Date.Date);
+                var isConfirmed = att?.IsAttendanceConfirmed ?? false;
+                var confirmedAt = att?.AttendanceConfirmedAt;
+                var confirmedBy = att?.AttendanceConfirmedByUser?.FullName ?? att?.AttendanceConfirmedByUser?.Username;
+
+                var startTime = s.StartTime ?? "09:00";
+                var endTime = s.EndTime ?? "18:00";
+                decimal schedHours = 9.0m;
+                if (s.SessionType == Domain.Enums.ShowroomStaffSessionType.Morning || s.SessionType == Domain.Enums.ShowroomStaffSessionType.Afternoon) schedHours = 4.5m;
+                else if (s.SessionType == Domain.Enums.ShowroomStaffSessionType.Evening) schedHours = 4.0m;
+                else if (TimeSpan.TryParse(startTime, out var st) && TimeSpan.TryParse(endTime, out var et) && et > st)
+                {
+                    schedHours = Math.Round((decimal)(et - st).TotalHours, 1);
+                }
+
+                decimal actualHours = s.AttendanceStatus == Domain.Enums.StaffAttendanceStatus.Present ? schedHours : (s.AttendanceStatus == Domain.Enums.StaffAttendanceStatus.HalfDay ? schedHours / 2m : 0m);
+
+                return new ShowroomAttendanceReportRowDto(
+                    Date: s.Date,
+                    StaffId: s.StaffId,
+                    StaffMasterId: s.Staff?.StaffMasterId ?? string.Empty,
+                    StaffName: s.Staff?.Name ?? "Unknown Staff",
+                    Role: s.Staff?.Role ?? "Technician",
+                    HomeShowroomName: s.HomeShowroom?.Name ?? sr.Name,
+                    WorkingShowroomName: sr.Name,
+                    AttendanceStatus: s.AttendanceStatus.ToString(),
+                    ScheduledStart: startTime,
+                    ScheduledEnd: endTime,
+                    ScheduledHours: schedHours,
+                    ActualHours: actualHours,
+                    ConfirmationStatus: isConfirmed ? "Confirmed" : "Pending",
+                    ConfirmedByName: confirmedBy,
+                    ConfirmedAt: confirmedAt
+                );
+            }).OrderByDescending(a => a.Date).ThenBy(a => a.StaffName).ToList();
+
+            // ── SHEET 5: Staff Swaps ────────────────────────────────────────
+            var swapRecords = srSwaps.Select(swp =>
+            {
+                var swapShowroom = swp.ShowroomAId == sr.Id ? swp.ShowroomA?.Name ?? sr.Name : swp.ShowroomB?.Name ?? sr.Name;
+                var creatorName = swp.PerformedByUser?.FullName ?? swp.PerformedByName ?? "Admin";
+
+                return new ShowroomStaffSwapReportRowDto(
+                    SwapId: swp.SwapId,
+                    Date: swp.Date,
+                    ShowroomName: swapShowroom,
+                    StaffAId: swp.StaffAId,
+                    StaffAMasterId: swp.StaffA?.StaffMasterId ?? string.Empty,
+                    StaffAName: swp.StaffA?.Name ?? "Unknown Staff A",
+                    StaffBId: swp.StaffBId,
+                    StaffBMasterId: swp.StaffB?.StaffMasterId ?? string.Empty,
+                    StaffBName: swp.StaffB?.Name ?? "Unknown Staff B",
+                    OriginalWorkingTime: "09:00–18:00",
+                    ReplacementWorkingTime: $"{swp.CoverageStartTime ?? "09:00"}–{swp.CoverageEndTime ?? "18:00"}",
+                    SwapStartTime: swp.CoverageStartTime ?? "09:00",
+                    SwapEndTime: swp.CoverageEndTime ?? "18:00",
+                    SwapHours: swp.CoverageDurationHours ?? 9.0m,
+                    Reason: swp.Reason,
+                    Notes: swp.Notes,
+                    CreatedByName: creatorName,
+                    CreatedAt: swp.CreatedAt,
+                    Status: swp.Status,
+                    ReversedByName: swp.Status == "Reversed" ? creatorName : null,
+                    ReversedAt: swp.Status == "Reversed" ? swp.UpdatedAt : null,
+                    ReversalReason: swp.Notes
+                );
+            }).OrderByDescending(s => s.Date).ToList();
+
+            // ── SHEET 6: Vehicle Type Summary ───────────────────────────────
             var totalVehiclesServiced = mappedWorks.Sum(w => w.VehicleQuantity);
-            var totalWorkEntries = mappedWorks.Count;
             var totalServicesPerformed = mappedWorks.Sum(w => w.ServiceItems.Sum(si => si.Quantity));
 
+            var vehicleTypeSummary = mappedWorks
+                .GroupBy(w => new { w.VehicleTypeId, w.VehicleTypeCode, w.VehicleTypeName })
+                .Select(g =>
+                {
+                    var vCount = g.Sum(x => x.VehicleQuantity);
+                    var sCount = g.Sum(x => x.ServiceItems.Sum(si => si.Quantity));
+                    var hours = g.Sum(x => x.WorkingHours ?? 0m);
+                    var share = totalVehiclesServiced > 0 ? Math.Round(((decimal)vCount / totalVehiclesServiced) * 100m, 1) : 0m;
+
+                    return new ShowroomVehicleTypeSummaryRowDto(
+                        VehicleTypeId: g.Key.VehicleTypeId,
+                        VehicleTypeCode: g.Key.VehicleTypeCode,
+                        VehicleTypeName: g.Key.VehicleTypeName,
+                        TotalVehicles: vCount,
+                        TotalServices: sCount,
+                        TotalStaffHours: Math.Round(hours, 1),
+                        SharePercentage: share
+                    );
+                })
+                .OrderByDescending(v => v.TotalVehicles)
+                .ToList();
+
+            // ── SHEET 7: Service Summary ────────────────────────────────────
+            var serviceSummary = mappedWorks
+                .SelectMany(w => w.ServiceItems.Select(si => new { Work = w, Item = si }))
+                .GroupBy(x => new { x.Item.WorkTypeId, Code = x.Item.WorkTypeCode, Name = x.Item.WorkTypeName })
+                .Select(g =>
+                {
+                    var vehiclesAttended = g.Select(x => x.Work.Id).Distinct().Count();
+                    var qty = g.Sum(x => x.Item.Quantity);
+                    var hours = Math.Round((decimal)qty * 0.5m, 1);
+                    var share = totalServicesPerformed > 0 ? Math.Round(((decimal)qty / totalServicesPerformed) * 100m, 1) : 0m;
+
+                    return new ShowroomServiceSummaryRowDto(
+                        WorkTypeId: g.Key.WorkTypeId,
+                        ServiceCategory: "General Service",
+                        ServiceCode: g.Key.Code,
+                        ServiceName: g.Key.Name,
+                        TotalVehicles: vehiclesAttended,
+                        TotalQuantity: qty,
+                        TotalStaffHours: hours,
+                        SharePercentage: share
+                    );
+                })
+                .OrderByDescending(s => s.TotalQuantity)
+                .ToList();
+
+            // ── Staff Summary ───────────────────────────────────────────────
+            var staffSummary = mappedWorks
+                .GroupBy(w => new { w.StaffId, w.StaffMasterId, w.StaffName, w.StaffRole, w.HomeShowroomName, w.AssignmentType })
+                .Select(g =>
+                {
+                    var vCount = g.Sum(x => x.VehicleQuantity);
+                    var sCount = g.Sum(x => x.ServiceItems.Sum(si => si.Quantity));
+                    var hours = g.Sum(x => x.WorkingHours ?? 0m);
+                    var attDays = g.Select(x => x.Date.Date).Distinct().Count();
+                    var share = totalVehiclesServiced > 0 ? Math.Round(((decimal)vCount / totalVehiclesServiced) * 100m, 1) : 0m;
+
+                    return new ShowroomStaffSummaryRowDto(
+                        StaffId: g.Key.StaffId,
+                        StaffMasterId: g.Key.StaffMasterId,
+                        StaffName: g.Key.StaffName,
+                        Role: g.Key.StaffRole,
+                        HomeShowroom: g.Key.HomeShowroomName ?? sr.Name,
+                        AssignmentType: g.Key.AssignmentType ?? "Regular",
+                        TotalVehicles: vCount,
+                        TotalServices: sCount,
+                        TotalHours: Math.Round(hours, 1),
+                        AttendanceDays: attDays,
+                        WorkloadSharePercent: share
+                    );
+                })
+                .OrderByDescending(st => st.TotalVehicles)
+                .ToList();
+
+            var totalWorkEntries = mappedWorks.Count;
             var activeStaffIds = mappedWorks.Select(w => w.StaffId)
                 .Union(srSessions.Select(s => s.StaffId))
                 .Distinct()
@@ -1265,6 +1843,9 @@ public class ReportService : IReportService
             var paidDays = mappedBills.Count(b => b.Status == "Paid");
             var partialDays = mappedBills.Count(b => b.Status == "PartiallyPaid");
             var unpaidDays = mappedBills.Count(b => b.Status == "Unpaid");
+            var totalStaffHours = Math.Round(mappedWorks.Sum(w => w.WorkingHours ?? 0m), 1);
+            var totalAttendanceDays = attendanceRecords.Select(a => a.Date.Date).Distinct().Count();
+            var totalSwaps = swapRecords.Count;
 
             var summary = new MonthlyShowroomSummaryDto(
                 TotalVehiclesServiced: totalVehiclesServiced,
@@ -1277,7 +1858,10 @@ public class ReportService : IReportService
                 TotalBillingDays: mappedBills.Count,
                 PaidDaysCount: paidDays,
                 PartiallyPaidDaysCount: partialDays,
-                UnpaidDaysCount: unpaidDays
+                UnpaidDaysCount: unpaidDays,
+                TotalStaffHours: totalStaffHours,
+                TotalAttendanceDays: totalAttendanceDays,
+                TotalSwaps: totalSwaps
             );
 
             showroomDetails.Add(new MonthlyShowroomDetailDto(
@@ -1289,7 +1873,12 @@ public class ReportService : IReportService
                 sr.Gstin,
                 summary,
                 mappedWorks,
-                mappedBills
+                mappedBills,
+                attendanceRecords,
+                swapRecords,
+                vehicleTypeSummary,
+                serviceSummary,
+                staffSummary
             ));
         }
 
@@ -1300,17 +1889,21 @@ public class ReportService : IReportService
             TotalServicesPerformed: showroomDetails.Sum(s => s.Summary.TotalServicesPerformed),
             TotalBilledAmount: Math.Round(showroomDetails.Sum(s => s.Summary.TotalBilledAmount), 2),
             TotalCollectedAmount: Math.Round(showroomDetails.Sum(s => s.Summary.TotalCollectedAmount), 2),
-            TotalOutstandingAmount: Math.Max(0m, Math.Round(showroomDetails.Sum(s => s.Summary.TotalOutstandingAmount), 2))
+            TotalOutstandingAmount: Math.Max(0m, Math.Round(showroomDetails.Sum(s => s.Summary.TotalOutstandingAmount), 2)),
+            TotalStaffHours: Math.Round(showroomDetails.Sum(s => s.Summary.TotalStaffHours), 1),
+            TotalAttendanceDays: showroomDetails.Sum(s => s.Summary.TotalAttendanceDays),
+            TotalSwaps: showroomDetails.Sum(s => s.Summary.TotalSwaps)
         );
 
         return new MonthlyShowroomReportResponse(
-            Year: year,
-            Month: month,
+            Year: repYear,
+            Month: repMonth,
             MonthName: monthName,
-            FromDate: fromDate,
-            ToDate: toDate,
+            FromDate: startUtc,
+            ToDate: endUtc,
             OverallSummary: overallSummary,
             Showrooms: showroomDetails
         );
     }
 }
+

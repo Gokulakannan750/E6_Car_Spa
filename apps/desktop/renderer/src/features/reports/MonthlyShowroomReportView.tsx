@@ -16,6 +16,8 @@ import {
 	PieChart as PieChartIcon,
 	BarChart3,
 	Eye,
+	ArrowRightLeft,
+	CalendarCheck,
 } from 'lucide-react';
 import {
 	ResponsiveContainer,
@@ -82,14 +84,57 @@ function formatDateStr(dStr: string): string {
 	return `${day}-${month}-${year}`;
 }
 
+function getTodayIso(): string {
+	const now = new Date();
+	const y = now.getFullYear();
+	const m = String(now.getMonth() + 1).padStart(2, '0');
+	const d = String(now.getDate()).padStart(2, '0');
+	return `${y}-${m}-${d}`;
+}
+
 export function MonthlyShowroomReportView() {
 	const currentDate = new Date();
 	const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
 	const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
+	const [datePreset, setDatePreset] = useState<'this_month' | 'today' | 'this_week' | 'prev_month' | 'custom'>('this_month');
+	const [customFromDate, setCustomFromDate] = useState<string>('');
+	const [customToDate, setCustomToDate] = useState<string>('');
 	const [selectedShowroomId, setSelectedShowroomId] = useState<string>('all');
 	const [activeTabShowroomId, setActiveTabShowroomId] = useState<string>('all');
-	const [activeSection, setActiveSection] = useState<'summary' | 'daily' | 'staff' | 'services' | 'vehicles' | 'detail' | 'billing'>('summary');
+	const [activeSection, setActiveSection] = useState<'summary' | 'daily' | 'staff' | 'attendance' | 'swaps' | 'services' | 'vehicles' | 'detail' | 'billing'>('summary');
 	const [previewOpen, setPreviewOpen] = useState<boolean>(true);
+
+	const handlePresetChange = (preset: 'this_month' | 'today' | 'this_week' | 'prev_month' | 'custom') => {
+		setDatePreset(preset);
+		const now = new Date();
+		const todayStr = getTodayIso();
+
+		if (preset === 'today') {
+			setCustomFromDate(todayStr);
+			setCustomToDate(todayStr);
+		} else if (preset === 'this_week') {
+			const dayOfWeek = now.getDay();
+			const diffToMonday = (dayOfWeek + 6) % 7;
+			const monday = new Date(now);
+			monday.setDate(now.getDate() - diffToMonday);
+			const sunday = new Date(monday);
+			sunday.setDate(monday.getDate() + 6);
+			const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			setCustomFromDate(fmt(monday));
+			setCustomToDate(fmt(sunday));
+		} else if (preset === 'this_month') {
+			setSelectedYear(now.getFullYear());
+			setSelectedMonth(now.getMonth() + 1);
+			setCustomFromDate('');
+			setCustomToDate('');
+		} else if (preset === 'prev_month') {
+			const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+			setSelectedYear(prevMonthDate.getFullYear());
+			setSelectedMonth(prevMonthDate.getMonth() + 1);
+			setCustomFromDate('');
+			setCustomToDate('');
+		}
+	};
 
 	// Fetch Showrooms for filter dropdown
 	const { data: showrooms = [] } = useQuery<ShowroomDto[]>({
@@ -97,7 +142,7 @@ export function MonthlyShowroomReportView() {
 		queryFn: () => getShowrooms(),
 	});
 
-	// Fetch Monthly Report Data from backend
+	// Fetch Monthly / Range Report Data from backend
 	const {
 		data: report,
 		isLoading,
@@ -106,13 +151,21 @@ export function MonthlyShowroomReportView() {
 		refetch,
 		isFetching,
 	} = useQuery<MonthlyShowroomReportResponse>({
-		queryKey: ['monthly-showroom-report', selectedYear, selectedMonth, selectedShowroomId],
-		queryFn: () =>
-			getMonthlyShowroomReport({
+		queryKey: ['monthly-showroom-report', selectedYear, selectedMonth, selectedShowroomId, datePreset, customFromDate, customToDate],
+		queryFn: () => {
+			if (datePreset === 'today' || datePreset === 'this_week' || (datePreset === 'custom' && customFromDate && customToDate)) {
+				return getMonthlyShowroomReport({
+					fromDate: customFromDate,
+					toDate: customToDate,
+					showroomId: selectedShowroomId === 'all' ? undefined : selectedShowroomId,
+				});
+			}
+			return getMonthlyShowroomReport({
 				year: selectedYear,
 				month: selectedMonth,
 				showroomId: selectedShowroomId === 'all' ? undefined : selectedShowroomId,
-			}),
+			});
+		},
 	});
 
 	// Currently displayed showroom (single or first available)
@@ -142,6 +195,26 @@ export function MonthlyShowroomReportView() {
 			return found ? found.dailyBills : [];
 		}
 		return report.showrooms.flatMap((s) => s.dailyBills);
+	}, [report, activeTabShowroomId]);
+
+	// Flat list of attendance records
+	const displayAttendances = useMemo(() => {
+		if (!report) return [];
+		if (activeTabShowroomId !== 'all') {
+			const found = report.showrooms.find((s) => s.showroomId === activeTabShowroomId);
+			return found ? (found.attendanceRecords || []) : [];
+		}
+		return report.showrooms.flatMap((s) => s.attendanceRecords || []);
+	}, [report, activeTabShowroomId]);
+
+	// Flat list of swaps
+	const displaySwaps = useMemo(() => {
+		if (!report) return [];
+		if (activeTabShowroomId !== 'all') {
+			const found = report.showrooms.find((s) => s.showroomId === activeTabShowroomId);
+			return found ? (found.swaps || []) : [];
+		}
+		return report.showrooms.flatMap((s) => s.swaps || []);
 	}, [report, activeTabShowroomId]);
 
 	// Aggregated / Active Summary
@@ -393,12 +466,41 @@ export function MonthlyShowroomReportView() {
 							<h2 className="text-lg font-bold text-on-surface">Monthly Showroom Performance Report</h2>
 						</div>
 						<p className="text-xs text-on-surface-variant mt-1">
-							Executive management operations and financial audit report for showroom branches.
+							Executive management operations, staff productivity, attendance, and Excel audit reports for showroom branches.
 						</p>
 					</div>
 
 					{/* Generation Filter Controls */}
 					<div className="flex items-center gap-3 flex-wrap">
+						{/* Preset Selector */}
+						<div className="flex flex-col">
+							<label className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+								Date Preset
+							</label>
+							<div className="flex items-center gap-1">
+								{[
+									{ id: 'today', label: 'Today' },
+									{ id: 'this_week', label: 'This Week' },
+									{ id: 'this_month', label: 'This Month' },
+									{ id: 'prev_month', label: 'Prev Month' },
+									{ id: 'custom', label: 'Custom' },
+								].map((p) => (
+									<button
+										key={p.id}
+										type="button"
+										onClick={() => handlePresetChange(p.id as any)}
+										className={`px-2.5 py-1 text-2xs font-semibold rounded-md border transition-all cursor-pointer ${
+											datePreset === p.id
+												? 'bg-secondary text-white border-secondary shadow-2xs'
+												: 'bg-surface-container text-on-surface-variant border-outline-variant hover:bg-surface-container-high'
+										}`}
+									>
+										{p.label}
+									</button>
+								))}
+							</div>
+						</div>
+
 						{/* Showroom Selector */}
 						<div className="flex flex-col">
 							<label htmlFor="showroom-select" className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
@@ -422,43 +524,73 @@ export function MonthlyShowroomReportView() {
 							</select>
 						</div>
 
-						{/* Month Selector */}
-						<div className="flex flex-col">
-							<label htmlFor="month-select" className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
-								Month
-							</label>
-							<select
-								id="month-select"
-								value={selectedMonth}
-								onChange={(e) => setSelectedMonth(Number(e.target.value))}
-								className="h-9 px-3 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary min-w-[130px]"
-							>
-								{MONTH_NAMES.map((name, idx) => (
-									<option key={name} value={idx + 1}>
-										{name}
-									</option>
-								))}
-							</select>
-						</div>
+						{/* Custom Date Pickers or Month/Year Selectors */}
+						{datePreset === 'custom' ? (
+							<>
+								<div className="flex flex-col">
+									<label className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+										From Date
+									</label>
+									<input
+										type="date"
+										value={customFromDate}
+										onChange={(e) => setCustomFromDate(e.target.value)}
+										className="h-9 px-2.5 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary"
+									/>
+								</div>
+								<div className="flex flex-col">
+									<label className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+										To Date
+									</label>
+									<input
+										type="date"
+										value={customToDate}
+										onChange={(e) => setCustomToDate(e.target.value)}
+										className="h-9 px-2.5 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary"
+									/>
+								</div>
+							</>
+						) : (
+							<>
+								{/* Month Selector */}
+								<div className="flex flex-col">
+									<label htmlFor="month-select" className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+										Month
+									</label>
+									<select
+										id="month-select"
+										value={selectedMonth}
+										onChange={(e) => setSelectedMonth(Number(e.target.value))}
+										className="h-9 px-3 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary min-w-[130px]"
+									>
+										{MONTH_NAMES.map((name, idx) => (
+											<option key={name} value={idx + 1}>
+												{name}
+											</option>
+										))}
+									</select>
+								</div>
 
-						{/* Year Selector */}
-						<div className="flex flex-col">
-							<label htmlFor="year-select" className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
-								Year
-							</label>
-							<select
-								id="year-select"
-								value={selectedYear}
-								onChange={(e) => setSelectedYear(Number(e.target.value))}
-								className="h-9 px-3 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary min-w-[90px]"
-							>
-								{[2024, 2025, 2026, 2027].map((y) => (
-									<option key={y} value={y}>
-										{y}
-									</option>
-								))}
-							</select>
-						</div>
+								{/* Year Selector */}
+								<div className="flex flex-col">
+									<label htmlFor="year-select" className="text-[11px] font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">
+										Year
+									</label>
+									<select
+										id="year-select"
+										value={selectedYear}
+										onChange={(e) => setSelectedYear(Number(e.target.value))}
+										className="h-9 px-3 text-xs bg-surface-container border border-outline-variant rounded-md text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary min-w-[90px]"
+									>
+										{[2024, 2025, 2026, 2027].map((y) => (
+											<option key={y} value={y}>
+												{y}
+											</option>
+										))}
+									</select>
+								</div>
+							</>
+						)}
 
 						{/* Generate Report Action */}
 						<div className="flex flex-col justify-end pt-5">
@@ -486,7 +618,7 @@ export function MonthlyShowroomReportView() {
 							</div>
 
 							<div className="text-xs font-semibold text-on-surface">
-								{selectedShowroomObj ? `${selectedShowroomObj.name} (${selectedShowroomObj.masterId})` : 'All Active Showrooms'} — {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+								{selectedShowroomObj ? `${selectedShowroomObj.name} (${selectedShowroomObj.masterId})` : 'All Active Showrooms'} — {report.monthName}
 							</div>
 
 							<div className="flex items-center gap-1.5 text-xs text-on-surface-variant">
@@ -635,7 +767,7 @@ export function MonthlyShowroomReportView() {
 						</div>
 					</div>
 
-					{/* ── 7 EXECUTIVE KPI CARDS ─────────────────────────────────── */}
+					{/* ── EXECUTIVE KPI CARDS ─────────────────────────────────── */}
 					{activeSummary && (
 						<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
 							{/* 1. Vehicles Serviced */}
@@ -869,10 +1001,12 @@ export function MonthlyShowroomReportView() {
 							{ id: 'summary', label: '1. Executive Summary', icon: Building2 },
 							{ id: 'daily', label: '2. Daily Operations', icon: TrendingUp },
 							{ id: 'staff', label: '3. Staff Performance', icon: Users },
-							{ id: 'services', label: '4. Service Analysis', icon: Wrench },
-							{ id: 'vehicles', label: '5. Vehicle Analysis', icon: Layers },
-							{ id: 'detail', label: '6. Detailed Work Log', icon: FileSpreadsheet },
-							{ id: 'billing', label: '7. Billing & Collections', icon: IndianRupee },
+							{ id: 'attendance', label: '4. Attendance', icon: CalendarCheck },
+							{ id: 'swaps', label: '5. Staff Swaps', icon: ArrowRightLeft },
+							{ id: 'services', label: '6. Service Analysis', icon: Wrench },
+							{ id: 'vehicles', label: '7. Vehicle Analysis', icon: Layers },
+							{ id: 'detail', label: '8. Detailed Work Log', icon: FileSpreadsheet },
+							{ id: 'billing', label: '9. Billing & Collections', icon: IndianRupee },
 						].map((tab) => {
 							const Icon = tab.icon;
 							const isActive = activeSection === tab.id;
@@ -1052,7 +1186,143 @@ export function MonthlyShowroomReportView() {
 						</div>
 					)}
 
-					{/* ── TAB 4: SERVICE ANALYSIS ──────────────────────────────── */}
+					{/* ── TAB 4: ATTENDANCE AUDIT ──────────────────────────────── */}
+					{activeSection === 'attendance' && (
+						<div className="app-card border border-outline-variant overflow-hidden">
+							<div className="p-3.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
+								<h4 className="text-xs font-bold text-on-surface">Attendance & Confirmation Status</h4>
+								<span className="text-[11px] text-on-surface-variant">{displayAttendances.length} attendance records</span>
+							</div>
+							<div className="overflow-x-auto">
+								<table className="w-full text-left text-xs border-collapse">
+									<thead>
+										<tr className="bg-surface-container border-b border-outline-variant text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
+											<th className="py-2.5 px-3">Date</th>
+											<th className="py-2.5 px-3">Staff ID</th>
+											<th className="py-2.5 px-3">Staff Name</th>
+											<th className="py-2.5 px-3">Role</th>
+											<th className="py-2.5 px-3">Home Showroom</th>
+											<th className="py-2.5 px-3">Status</th>
+											<th className="py-2.5 px-3 text-right">Scheduled (h)</th>
+											<th className="py-2.5 px-3 text-right">Actual (h)</th>
+											<th className="py-2.5 px-3 text-center">Confirmation</th>
+											<th className="py-2.5 px-3">Confirmed By</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-outline-variant">
+										{displayAttendances.length === 0 ? (
+											<tr>
+												<td colSpan={10} className="py-6 text-center text-on-surface-variant">
+													No attendance records found for this period.
+												</td>
+											</tr>
+										) : (
+											displayAttendances.map((att, attIdx) => (
+												<tr key={`att-${attIdx}`} className="hover:bg-surface-container/50">
+													<td className="py-2 px-3 font-semibold text-on-surface">{formatDateStr(att.date)}</td>
+													<td className="py-2 px-3 font-mono text-secondary font-medium">{att.staffMasterId}</td>
+													<td className="py-2 px-3 font-semibold text-on-surface">{att.staffName}</td>
+													<td className="py-2 px-3 text-on-surface-variant">{att.role || 'Technician'}</td>
+													<td className="py-2 px-3 text-on-surface-variant">{att.homeShowroomName}</td>
+													<td className="py-2 px-3">
+														<span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success-container/30 text-success">
+															{att.attendanceStatus}
+														</span>
+													</td>
+													<td className="py-2 px-3 text-right font-medium">{att.scheduledHours}h</td>
+													<td className="py-2 px-3 text-right font-bold text-primary">{att.actualHours}h</td>
+													<td className="py-2 px-3 text-center">
+														<span
+															className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+																att.confirmationStatus === 'Confirmed'
+																	? 'bg-success-container text-success'
+																	: 'bg-amber-100 text-amber-800'
+															}`}
+														>
+															{att.confirmationStatus}
+														</span>
+													</td>
+													<td className="py-2 px-3 text-on-surface-variant text-[11px]">{att.confirmedByName || '—'}</td>
+												</tr>
+											))
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+
+					{/* ── TAB 5: STAFF SWAPS AUDIT ──────────────────────────────── */}
+					{activeSection === 'swaps' && (
+						<div className="app-card border border-outline-variant overflow-hidden">
+							<div className="p-3.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
+								<h4 className="text-xs font-bold text-on-surface">Staff Swaps & Coverage History</h4>
+								<span className="text-[11px] text-on-surface-variant">{displaySwaps.length} swap records</span>
+							</div>
+							<div className="overflow-x-auto">
+								<table className="w-full text-left text-xs border-collapse">
+									<thead>
+										<tr className="bg-surface-container border-b border-outline-variant text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">
+											<th className="py-2.5 px-3">Swap ID</th>
+											<th className="py-2.5 px-3">Date</th>
+											<th className="py-2.5 px-3">Original Staff</th>
+											<th className="py-2.5 px-3">Replacement Staff</th>
+											<th className="py-2.5 px-3">Coverage Period</th>
+											<th className="py-2.5 px-3 text-right">Hours</th>
+											<th className="py-2.5 px-3">Reason</th>
+											<th className="py-2.5 px-3 text-center">Status</th>
+											<th className="py-2.5 px-3">Reversal Details</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-outline-variant">
+										{displaySwaps.length === 0 ? (
+											<tr>
+												<td colSpan={9} className="py-6 text-center text-on-surface-variant">
+													No staff swaps recorded for this period.
+												</td>
+											</tr>
+										) : (
+											displaySwaps.map((swp, swpIdx) => (
+												<tr key={`swp-${swpIdx}`} className="hover:bg-surface-container/50">
+													<td className="py-2 px-3 font-mono font-bold text-secondary">{swp.swapId}</td>
+													<td className="py-2 px-3 font-semibold text-on-surface">{formatDateStr(swp.date)}</td>
+													<td className="py-2 px-3 font-semibold text-error">
+														{swp.staffAName} {swp.staffAMasterId ? `(#${swp.staffAMasterId})` : ''}
+													</td>
+													<td className="py-2 px-3 font-semibold text-success">
+														{swp.staffBName} {swp.staffBMasterId ? `(#${swp.staffBMasterId})` : ''}
+													</td>
+													<td className="py-2 px-3 text-on-surface-variant font-mono text-[11px]">
+														{swp.swapStartTime || '09:00'} – {swp.swapEndTime || '18:00'}
+													</td>
+													<td className="py-2 px-3 text-right font-bold text-primary">{swp.swapHours}h</td>
+													<td className="py-2 px-3 text-on-surface-variant text-[11px]">{swp.reason || 'Operational Coverage'}</td>
+													<td className="py-2 px-3 text-center">
+														<span
+															className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+																swp.status === 'Reversed'
+																	? 'bg-error-container text-error'
+																	: 'bg-success-container text-success'
+															}`}
+														>
+															{swp.status}
+														</span>
+													</td>
+													<td className="py-2 px-3 text-on-surface-variant text-[11px]">
+														{swp.status === 'Reversed'
+															? `Reversed by ${swp.reversedByName || 'Admin'} ${swp.reversalReason ? `(${swp.reversalReason})` : ''}`
+															: 'Active'}
+													</td>
+												</tr>
+											))
+										)}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					)}
+
+					{/* ── TAB 6: SERVICE ANALYSIS ──────────────────────────────── */}
 					{activeSection === 'services' && (
 						<div className="app-card border border-outline-variant overflow-hidden">
 							<div className="p-3.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
@@ -1098,7 +1368,7 @@ export function MonthlyShowroomReportView() {
 						</div>
 					)}
 
-					{/* ── TAB 5: VEHICLE ANALYSIS ──────────────────────────────── */}
+					{/* ── TAB 7: VEHICLE ANALYSIS ──────────────────────────────── */}
 					{activeSection === 'vehicles' && (
 						<div className="app-card border border-outline-variant overflow-hidden">
 							<div className="p-3.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
@@ -1142,7 +1412,7 @@ export function MonthlyShowroomReportView() {
 						</div>
 					)}
 
-					{/* ── TAB 6: DETAILED WORK LOG ─────────────────────────────── */}
+					{/* ── TAB 8: DETAILED WORK LOG ─────────────────────────────── */}
 					{activeSection === 'detail' && (
 						<div className="app-card border border-outline-variant overflow-hidden">
 							<div className="p-3.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
@@ -1200,7 +1470,7 @@ export function MonthlyShowroomReportView() {
 						</div>
 					)}
 
-					{/* ── TAB 7: BILLING & COLLECTIONS ─────────────────────────── */}
+					{/* ── TAB 9: BILLING & COLLECTIONS ─────────────────────────── */}
 					{activeSection === 'billing' && (
 						<div className="space-y-4">
 							<div className="app-card border border-outline-variant overflow-hidden">

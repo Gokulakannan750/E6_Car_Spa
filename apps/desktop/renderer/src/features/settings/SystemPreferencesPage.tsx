@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
+import { useAuth } from '../auth';
 import {
 	getSystemPreferences,
 	updateSystemPreferences,
@@ -69,6 +70,7 @@ export function saveStoredPreferences(prefs: SystemPreferences): void {
 export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);
 	const queryClient = useQueryClient();
+	const { isAuthenticated, token, hasPermission } = useAuth();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
 	const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -78,6 +80,7 @@ export function SystemPreferencesPage() {
 	const { data: serverPrefs, isLoading, isError } = useQuery<SystemPreferencesDto>({
 		queryKey: ['system-preferences'],
 		queryFn: getSystemPreferences,
+		enabled: Boolean(isAuthenticated && token && hasPermission('settings.view')),
 	});
 
 	// Synchronize server data when loaded
@@ -279,7 +282,7 @@ export function SystemPreferencesPage() {
 								<select
 									id="pref-currency-symbol"
 									value={preferences.currencySymbol}
-									onChange={(e) =>
+									onChange={() =>
 										setPreferences((p) => ({
 											...p,
 											currencySymbol: '₹',

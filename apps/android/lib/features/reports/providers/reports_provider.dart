@@ -11,6 +11,7 @@ import '../models/staff_productivity_report_model.dart';
 import '../models/staff_advances_report_model.dart';
 
 enum ReportDatePreset {
+  today,
   sevenDays,
   thirtyDays,
   thisMonth,
@@ -41,13 +42,20 @@ class ReportDateFilterState {
     final today = DateTime(now.year, now.month, now.day);
 
     switch (preset) {
+      case ReportDatePreset.today:
+        return ReportDateFilterState(
+          preset: preset,
+          startDate: today,
+          endDate: today,
+          label: 'Today',
+        );
       case ReportDatePreset.sevenDays:
         final start = today.subtract(const Duration(days: 6));
         return ReportDateFilterState(
           preset: preset,
           startDate: start,
           endDate: today,
-          label: 'Last 7 Days',
+          label: 'This Week',
         );
       case ReportDatePreset.thirtyDays:
         final start = today.subtract(const Duration(days: 29));
@@ -59,10 +67,11 @@ class ReportDateFilterState {
         );
       case ReportDatePreset.thisMonth:
         final start = DateTime(now.year, now.month, 1);
+        final end = DateTime(now.year, now.month + 1, 0);
         return ReportDateFilterState(
           preset: preset,
           startDate: start,
-          endDate: today,
+          endDate: end,
           label: 'This Month',
         );
       case ReportDatePreset.lastMonth:
@@ -72,7 +81,7 @@ class ReportDateFilterState {
           preset: preset,
           startDate: start,
           endDate: end,
-          label: 'Last Month',
+          label: 'Previous Month',
         );
       case ReportDatePreset.ytd:
         final start = DateTime(now.year, 1, 1);
@@ -111,7 +120,7 @@ class ReportDateFilterState {
 
 class ReportDateFilterNotifier extends StateNotifier<ReportDateFilterState> {
   ReportDateFilterNotifier()
-      : super(ReportDateFilterState.fromPreset(ReportDatePreset.thirtyDays));
+      : super(ReportDateFilterState.fromPreset(ReportDatePreset.thisMonth));
 
   void setPreset(ReportDatePreset preset) {
     state = ReportDateFilterState.fromPreset(preset);
@@ -130,6 +139,15 @@ final reportDateFilterProvider =
     StateNotifierProvider<ReportDateFilterNotifier, ReportDateFilterState>((ref) {
   return ReportDateFilterNotifier();
 });
+
+/// Selected Showroom Filter Provider
+final selectedReportShowroomIdProvider = StateProvider<String?>((ref) => null);
+
+/// Staff Productivity Filters
+final staffProductivityStaffFilterProvider = StateProvider<String?>((ref) => null);
+final staffProductivityVehicleTypeFilterProvider = StateProvider<String?>((ref) => null);
+final staffProductivityWorkTypeFilterProvider = StateProvider<String?>((ref) => null);
+final staffProductivityAssignmentFilterProvider = StateProvider<String?>((ref) => null);
 
 /// 1. Dashboard Summary Provider
 final reportsDashboardProvider = FutureProvider.autoDispose<DashboardSummaryModel>((ref) async {
@@ -210,10 +228,12 @@ final jobCardsReportProvider = FutureProvider.autoDispose<JobCardReportResponseM
 final showroomReportProvider = FutureProvider.autoDispose<ShowroomReportResponseModel>((ref) async {
   final repository = ref.watch(reportsRepositoryProvider);
   final filter = ref.watch(reportDateFilterProvider);
+  final showroomId = ref.watch(selectedReportShowroomIdProvider);
 
   return repository.getShowroomReport(
     fromDate: filter.startDate,
     toDate: filter.endDate,
+    showroomId: showroomId,
     page: 1,
     pageSize: 100,
   );
@@ -223,10 +243,20 @@ final showroomReportProvider = FutureProvider.autoDispose<ShowroomReportResponse
 final staffProductivityProvider = FutureProvider.autoDispose<StaffProductivityReportResponseModel>((ref) async {
   final repository = ref.watch(reportsRepositoryProvider);
   final filter = ref.watch(reportDateFilterProvider);
+  final showroomId = ref.watch(selectedReportShowroomIdProvider);
+  final staffId = ref.watch(staffProductivityStaffFilterProvider);
+  final vehicleTypeId = ref.watch(staffProductivityVehicleTypeFilterProvider);
+  final workTypeId = ref.watch(staffProductivityWorkTypeFilterProvider);
+  final assignmentType = ref.watch(staffProductivityAssignmentFilterProvider);
 
   return repository.getStaffProductivityReport(
     fromDate: filter.startDate,
     toDate: filter.endDate,
+    showroomId: showroomId,
+    staffId: staffId,
+    vehicleTypeId: vehicleTypeId,
+    workTypeId: workTypeId,
+    assignmentType: assignmentType,
   );
 });
 
@@ -240,5 +270,18 @@ final staffAdvancesReportProvider = FutureProvider.autoDispose<StaffAdvanceRepor
     toDate: filter.endDate,
     page: 1,
     pageSize: 100,
+  );
+});
+
+/// 10. Monthly / Range Showroom Report Provider
+final monthlyShowroomReportProvider = FutureProvider.autoDispose<MonthlyShowroomReportResponseModel>((ref) async {
+  final repository = ref.watch(reportsRepositoryProvider);
+  final filter = ref.watch(reportDateFilterProvider);
+  final showroomId = ref.watch(selectedReportShowroomIdProvider);
+
+  return repository.getMonthlyShowroomReport(
+    fromDate: filter.startDate,
+    toDate: filter.endDate,
+    showroomId: showroomId,
   );
 });

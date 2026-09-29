@@ -568,16 +568,15 @@ describe('ShowroomOperationsPage', () => {
 		expect(screen.getByText('1 work')).toBeInTheDocument();
 	});
 
-	// ── 15. Staff Can Work Without Permanent Assignment ───────────────────────
-	it('15. allows roaming/freelance staff to work without permanent assignment', async () => {
+	// ── 15. Header Contains Attendance, Daily Bill, Log Vehicle Work (No Start Session) ────
+	it('15. verifies Start Session button is removed from header and only Attendance, Daily Bill, and Log Vehicle Work remain', async () => {
 		renderOperations('/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-25');
 
 		await screen.findByText('Popular Hyundai');
-		const startSessBtn = screen.getByRole('button', { name: /Start Session/i });
-		fireEvent.click(startSessBtn);
-
-		expect(await screen.findByText('Start Staff Work Session')).toBeInTheDocument();
-		expect(screen.getAllByText(/Kumar Raja \(KU456R\)/i).length).toBeGreaterThanOrEqual(1);
+		expect(screen.queryByRole('button', { name: /^Start Session$/i })).not.toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /Attendance/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /Daily Bill/i })).toBeInTheDocument();
+		expect(screen.getAllByRole('button', { name: /Log Vehicle Work/i }).length).toBeGreaterThanOrEqual(1);
 	});
 
 	// ── 16. Staff Productivity Summary ────────────────────────────────────────

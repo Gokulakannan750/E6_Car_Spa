@@ -14,6 +14,7 @@ import 'package:e6_car_spa/features/showroom/presentation/widgets/vehicle_work_c
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 
 class FakeFullShowroomRepository implements ShowroomRepository {
   final List<ShowroomVehicleType> vehicleTypes = [
@@ -428,7 +429,9 @@ void main() {
       expect(find.text('Services Done'), findsOneWidget);
       expect(find.text('Active Sessions'), findsOneWidget);
       expect(find.text('Staff on Duty (1)'), findsOneWidget);
-      expect(find.text('No vehicle work recorded for 27 Sep 2026'), findsOneWidget);
+      // The provider initializes with DateTime.now() as selectedDate, so dateHeading uses today
+      final expectedDateHeading = DateFormat('dd MMM yyyy').format(DateTime.now());
+      expect(find.text('No vehicle work recorded for $expectedDateHeading'), findsOneWidget);
     });
 
     testWidgets('renders recorded vehicle works and breakdowns when data exists',

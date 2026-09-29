@@ -33,7 +33,7 @@ public record ShowroomReportResponse(
     ShowroomReportSummaryDto Summary
 );
 
-// ── Monthly Showroom Report DTOs ────────────────────────────────────────────
+// ── Monthly / Date-Range Showroom Report DTOs ───────────────────────────────
 
 public record MonthlyShowroomServiceItemDto(
     Guid WorkTypeId,
@@ -71,7 +71,11 @@ public record MonthlyShowroomVehicleWorkRowDto(
     string? Notes,
     decimal? DailyBilledAmount,
     decimal? DailyCollectedAmount,
-    string PaymentStatus
+    string PaymentStatus,
+    string? SwapId = null,
+    string? OriginalStaffName = null,
+    string? ReplacementStaffName = null,
+    string? ServiceCategory = null
 );
 
 public record MonthlyShowroomDailyBillDto(
@@ -85,6 +89,84 @@ public record MonthlyShowroomDailyBillDto(
     string? Notes
 );
 
+public record ShowroomAttendanceReportRowDto(
+    DateTime Date,
+    Guid StaffId,
+    string StaffMasterId,
+    string StaffName,
+    string? Role,
+    string HomeShowroomName,
+    string WorkingShowroomName,
+    string AttendanceStatus,
+    string? ScheduledStart,
+    string? ScheduledEnd,
+    decimal ScheduledHours,
+    decimal ActualHours,
+    string ConfirmationStatus,
+    string? ConfirmedByName,
+    DateTime? ConfirmedAt
+);
+
+public record ShowroomStaffSwapReportRowDto(
+    string SwapId,
+    DateTime Date,
+    string ShowroomName,
+    Guid StaffAId,
+    string StaffAMasterId,
+    string StaffAName,
+    Guid StaffBId,
+    string StaffBMasterId,
+    string StaffBName,
+    string? OriginalWorkingTime,
+    string? ReplacementWorkingTime,
+    string? SwapStartTime,
+    string? SwapEndTime,
+    decimal SwapHours,
+    string? Reason,
+    string? Notes,
+    string? CreatedByName,
+    DateTime CreatedAt,
+    string Status,
+    string? ReversedByName,
+    DateTime? ReversedAt,
+    string? ReversalReason
+);
+
+public record ShowroomVehicleTypeSummaryRowDto(
+    Guid VehicleTypeId,
+    string VehicleTypeCode,
+    string VehicleTypeName,
+    int TotalVehicles,
+    int TotalServices,
+    decimal TotalStaffHours,
+    decimal SharePercentage
+);
+
+public record ShowroomServiceSummaryRowDto(
+    Guid WorkTypeId,
+    string ServiceCategory,
+    string ServiceCode,
+    string ServiceName,
+    int TotalVehicles,
+    int TotalQuantity,
+    decimal TotalStaffHours,
+    decimal SharePercentage
+);
+
+public record ShowroomStaffSummaryRowDto(
+    Guid StaffId,
+    string StaffMasterId,
+    string StaffName,
+    string? Role,
+    string HomeShowroom,
+    string AssignmentType,
+    int TotalVehicles,
+    int TotalServices,
+    decimal TotalHours,
+    int AttendanceDays,
+    decimal WorkloadSharePercent
+);
+
 public record MonthlyShowroomSummaryDto(
     int TotalVehiclesServiced,
     int TotalWorkEntries,
@@ -96,7 +178,10 @@ public record MonthlyShowroomSummaryDto(
     int TotalBillingDays,
     int PaidDaysCount,
     int PartiallyPaidDaysCount,
-    int UnpaidDaysCount
+    int UnpaidDaysCount,
+    decimal TotalStaffHours = 0m,
+    int TotalAttendanceDays = 0,
+    int TotalSwaps = 0
 );
 
 public record MonthlyShowroomDetailDto(
@@ -108,7 +193,12 @@ public record MonthlyShowroomDetailDto(
     string? ShowroomGstin,
     MonthlyShowroomSummaryDto Summary,
     IReadOnlyList<MonthlyShowroomVehicleWorkRowDto> VehicleWorks,
-    IReadOnlyList<MonthlyShowroomDailyBillDto> DailyBills
+    IReadOnlyList<MonthlyShowroomDailyBillDto> DailyBills,
+    IReadOnlyList<ShowroomAttendanceReportRowDto> AttendanceRecords,
+    IReadOnlyList<ShowroomStaffSwapReportRowDto> Swaps,
+    IReadOnlyList<ShowroomVehicleTypeSummaryRowDto> VehicleTypeSummary,
+    IReadOnlyList<ShowroomServiceSummaryRowDto> ServiceSummary,
+    IReadOnlyList<ShowroomStaffSummaryRowDto> StaffSummary
 );
 
 public record MonthlyShowroomReportOverallSummaryDto(
@@ -118,7 +208,10 @@ public record MonthlyShowroomReportOverallSummaryDto(
     int TotalServicesPerformed,
     decimal TotalBilledAmount,
     decimal TotalCollectedAmount,
-    decimal TotalOutstandingAmount
+    decimal TotalOutstandingAmount,
+    decimal TotalStaffHours = 0m,
+    int TotalAttendanceDays = 0,
+    int TotalSwaps = 0
 );
 
 public record MonthlyShowroomReportResponse(

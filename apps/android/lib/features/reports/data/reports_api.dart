@@ -175,12 +175,18 @@ class ReportsApi {
     DateTime? toDate,
     String? staffId,
     String? showroomId,
+    String? vehicleTypeId,
+    String? workTypeId,
+    String? assignmentType,
   }) async {
     final queryParameters = <String, dynamic>{};
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
     if (staffId != null && staffId.isNotEmpty) queryParameters['staffId'] = staffId;
     if (showroomId != null && showroomId.isNotEmpty) queryParameters['showroomId'] = showroomId;
+    if (vehicleTypeId != null && vehicleTypeId.isNotEmpty) queryParameters['vehicleTypeId'] = vehicleTypeId;
+    if (workTypeId != null && workTypeId.isNotEmpty) queryParameters['workTypeId'] = workTypeId;
+    if (assignmentType != null && assignmentType.isNotEmpty) queryParameters['assignmentType'] = assignmentType;
 
     final response = await _dio.get(
       '/reports/staff-productivity',
@@ -212,5 +218,29 @@ class ReportsApi {
       queryParameters: queryParameters,
     );
     return StaffAdvanceReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// 10. Monthly / Date-Range Showroom Report
+  Future<MonthlyShowroomReportResponseModel> getMonthlyShowroomReport({
+    int? year,
+    int? month,
+    String? showroomId,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (year != null) queryParameters['year'] = year;
+    if (month != null) queryParameters['month'] = month;
+    if (showroomId != null && showroomId.isNotEmpty && showroomId != 'all') {
+      queryParameters['showroomId'] = showroomId;
+    }
+    if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
+    if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
+
+    final response = await _dio.get(
+      '/reports/showroom/monthly',
+      queryParameters: queryParameters,
+    );
+    return MonthlyShowroomReportResponseModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

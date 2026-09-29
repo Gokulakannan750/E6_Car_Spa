@@ -127,6 +127,11 @@ describe('MonthlyShowroomReportView Component', () => {
 						notes: 'Settled via Bank Transfer',
 					},
 				],
+				attendanceRecords: [],
+				swaps: [],
+				vehicleTypeSummary: [],
+				serviceSummary: [],
+				staffSummary: [],
 			},
 			{
 				showroomId: 'sr-2',
@@ -187,6 +192,11 @@ describe('MonthlyShowroomReportView Component', () => {
 						notes: null,
 					},
 				],
+				attendanceRecords: [],
+				swaps: [],
+				vehicleTypeSummary: [],
+				serviceSummary: [],
+				staffSummary: [],
 			},
 		],
 	};
@@ -248,11 +258,11 @@ describe('MonthlyShowroomReportView Component', () => {
 		expect(XLSX.utils.book_append_sheet).toHaveBeenCalled();
 		expect(XLSX.writeFile).toHaveBeenCalledWith(
 			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Monthly_Report_September_2026\.xlsx/)
+			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Report_September_2026\.xlsx/)
 		);
 		expect(XLSX.writeFile).toHaveBeenCalledWith(
 			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Skoda_Dealership_Monthly_Report_September_2026\.xlsx/)
+			expect.stringMatching(/E6_Car_Spa_Skoda_Dealership_Report_September_2026\.xlsx/)
 		);
 	});
 
@@ -271,20 +281,20 @@ describe('MonthlyShowroomReportView Component', () => {
 		fireEvent.click(exportThisBtn);
 
 		expect(XLSX.utils.book_new).toHaveBeenCalled();
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Executive Summary');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Daily Operations');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Staff Performance');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Service Analysis');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Vehicle Analysis');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Detailed Work Log');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Billing & Collections');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Summary');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Vehicle Service Details');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Staff Productivity');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Attendance');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Staff Swaps');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Vehicle Type Summary');
+		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Service Summary');
 		expect(XLSX.writeFile).toHaveBeenCalledWith(
 			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Monthly_Report_September_2026\.xlsx/)
+			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Report_September_2026\.xlsx/)
 		);
 	});
 
-	it('switches between Executive Summary, Daily Operations, Staff Performance, Service Analysis, Vehicle Analysis, Detailed Log, and Billing Ledger', async () => {
+	it('switches between Executive Summary, Daily Operations, Staff Performance, Attendance, Staff Swaps, Service Analysis, Vehicle Analysis, Detailed Log, and Billing Ledger', async () => {
 		renderWithProviders(<MonthlyShowroomReportView />);
 
 		await waitFor(() => {
@@ -309,8 +319,24 @@ describe('MonthlyShowroomReportView Component', () => {
 			expect(screen.getByText('Ramesh')).toBeInTheDocument();
 		});
 
+		// Switch to Attendance section
+		const attBtn = screen.getByRole('button', { name: /4\. attendance/i });
+		fireEvent.click(attBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('Attendance & Confirmation Status')).toBeInTheDocument();
+		});
+
+		// Switch to Staff Swaps section
+		const swapsBtn = screen.getByRole('button', { name: /5\. staff swaps/i });
+		fireEvent.click(swapsBtn);
+
+		await waitFor(() => {
+			expect(screen.getByText('Staff Swaps & Coverage History')).toBeInTheDocument();
+		});
+
 		// Switch to Service Analysis section
-		const servicesBtn = screen.getByRole('button', { name: /4\. service analysis/i });
+		const servicesBtn = screen.getByRole('button', { name: /6\. service analysis/i });
 		fireEvent.click(servicesBtn);
 
 		await waitFor(() => {
@@ -319,7 +345,7 @@ describe('MonthlyShowroomReportView Component', () => {
 		});
 
 		// Switch to Vehicle Analysis section
-		const vehiclesBtn = screen.getByRole('button', { name: /5\. vehicle analysis/i });
+		const vehiclesBtn = screen.getByRole('button', { name: /7\. vehicle analysis/i });
 		fireEvent.click(vehiclesBtn);
 
 		await waitFor(() => {
@@ -328,7 +354,7 @@ describe('MonthlyShowroomReportView Component', () => {
 		});
 
 		// Switch to Detailed Work Log section
-		const detailBtn = screen.getByRole('button', { name: /6\. detailed work log/i });
+		const detailBtn = screen.getByRole('button', { name: /8\. detailed work log/i });
 		fireEvent.click(detailBtn);
 
 		await waitFor(() => {
@@ -336,7 +362,7 @@ describe('MonthlyShowroomReportView Component', () => {
 		});
 
 		// Switch to Billing & Collections section
-		const billingBtn = screen.getByRole('button', { name: /7\. billing & collections/i });
+		const billingBtn = screen.getByRole('button', { name: /9\. billing & collections/i });
 		fireEvent.click(billingBtn);
 
 		await waitFor(() => {

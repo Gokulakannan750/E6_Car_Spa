@@ -1734,7 +1734,7 @@ describe('Audit Logs API Client', () => {
 
     const updatedMock = {
       ...mockPrefs,
-      currencySymbol: '$',
+      currencySymbol: '₹',
       decimalPrecision: 0,
       refreshInterval: 60,
     };
@@ -1749,7 +1749,7 @@ describe('Audit Logs API Client', () => {
     const updatedResult = await api.updateSystemPreferences({
       dateFormat: 'DD/MM/YYYY',
       timeFormat: '12h',
-      currencySymbol: '$',
+      currencySymbol: '₹',
       decimalPrecision: 0,
       defaultPrintCopies: 1,
       autoPrintReceipt: true,
@@ -1760,10 +1760,10 @@ describe('Audit Logs API Client', () => {
       expect.stringContaining('/api/settings/system'),
       expect.objectContaining({
         method: 'PUT',
-        body: expect.stringContaining('"currencySymbol":"$"'),
+        body: expect.stringContaining('"currencySymbol":"₹"'),
       })
     );
-    expect(updatedResult.currencySymbol).toBe('$');
+    expect(updatedResult.currencySymbol).toBe('₹');
     expect(updatedResult.decimalPrecision).toBe(0);
     expect(updatedResult.refreshInterval).toBe(60);
   });

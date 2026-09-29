@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
@@ -19,6 +20,8 @@ public class PermissionPolicyProvider(IOptions<AuthorizationOptions> options) : 
         {
             var permission = policyName[RequirePermissionAttribute.PolicyPrefix.Length..];
             var policy = new AuthorizationPolicyBuilder();
+            policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+            policy.RequireAuthenticatedUser();
             policy.AddRequirements(new PermissionRequirement(permission));
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }

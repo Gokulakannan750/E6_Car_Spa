@@ -89,7 +89,6 @@ Desktop App Sidebar & Router
  │         │    │    ├── Vehicle Work Table (Time, Staff, Vehicle Type, Count, Services, Notes)
  │         │    │    └── [Edit Vehicle Work] ───> Opens Edit Vehicle Work Dialog
  │         │    ├── Tab 2: Staff Work Sessions
- │         │    │    ├── [+ Start Session] ────> Opens Start Session Dialog
  │         │    │    ├── [Close Session] ──────> Opens Clock-out Modal (End Time, Notes)
  │         │    │    └── [Edit Session] ───────> Opens Edit Work Session Dialog
  │         │    └── Tab 3: Staff Productivity (Daily summary of services per staff member)

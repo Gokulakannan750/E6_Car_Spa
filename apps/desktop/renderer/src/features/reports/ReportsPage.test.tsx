@@ -208,6 +208,11 @@ describe('ReportsPage Component', () => {
 						},
 					],
 					dailyBills: [],
+					attendanceRecords: [],
+					swaps: [],
+					vehicleTypeSummary: [],
+					serviceSummary: [],
+					staffSummary: [],
 				},
 			],
 		});

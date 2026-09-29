@@ -167,6 +167,9 @@ class ReportsRepository {
     DateTime? toDate,
     String? staffId,
     String? showroomId,
+    String? vehicleTypeId,
+    String? workTypeId,
+    String? assignmentType,
   }) async {
     try {
       return await _api.getStaffProductivityReport(
@@ -174,6 +177,9 @@ class ReportsRepository {
         toDate: toDate,
         staffId: staffId,
         showroomId: showroomId,
+        vehicleTypeId: vehicleTypeId,
+        workTypeId: workTypeId,
+        assignmentType: assignmentType,
       );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
@@ -196,6 +202,26 @@ class ReportsRepository {
         status: status,
         page: page,
         pageSize: pageSize,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<MonthlyShowroomReportResponseModel> getMonthlyShowroomReport({
+    int? year,
+    int? month,
+    String? showroomId,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    try {
+      return await _api.getMonthlyShowroomReport(
+        year: year,
+        month: month,
+        showroomId: showroomId,
+        fromDate: fromDate,
+        toDate: toDate,
       );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

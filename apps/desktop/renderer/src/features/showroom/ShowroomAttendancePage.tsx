@@ -22,7 +22,6 @@ import {
 	History,
 	Info,
 	RotateCcw,
-	RefreshCw,
 	Lock,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -40,13 +39,11 @@ import {
 	unlockDailyStaffAttendance,
 	getStaffList,
 	swapStaff,
-	getSwaps,
 	getShowroomSwapHistory,
 	getSwapById,
 	reverseSwap,
 	type DailyStaffAssignmentDto,
 	type StaffDto,
-	type ShowroomStaffSwapDto,
 	type CreateStaffSwapInput,
 } from '../../lib/api';
 import { calculateCoverageDuration } from '../../lib/format';

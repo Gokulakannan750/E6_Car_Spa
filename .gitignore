@@ -54,3 +54,5 @@ logs/backup/
 *.pfx
 *.p12
 *.crt
+
+.commandcode/
