@@ -20,11 +20,7 @@ public class CustomerService : ICustomerService
 
 	public async Task<CustomerDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
 	{
-		var c = await _db.Customers
-			.Where(x => x.Id == id)
-			.Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
-			.FirstOrDefaultAsync(cancellationToken);
-		return c;
+		return await ProjectCustomerDtoQuery(_db.Customers.Where(x => x.Id == id)).FirstOrDefaultAsync(cancellationToken);
 	}
 
 	public async Task<CustomerDto?> GetByPhoneAsync(string phoneNumber, CancellationToken cancellationToken = default)
@@ -34,19 +30,13 @@ public class CustomerService : ICustomerService
 		var digits = new string(phoneNumber.Where(char.IsDigit).ToArray());
 		if (digits.Length == 0) return null;
 
-		var c = await _db.Customers
-			.Where(x => x.PhoneNumber == phoneNumber.Trim())
-			.Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
-			.FirstOrDefaultAsync(cancellationToken);
+		var baseQuery = _db.Customers.Where(x => x.PhoneNumber == phoneNumber.Trim());
+		var c = await ProjectCustomerDtoQuery(baseQuery).FirstOrDefaultAsync(cancellationToken);
 
 		if (c is not null) return c;
 
-		c = await _db.Customers
-			.Where(x => x.PhoneNumber.Contains(digits))
-			.Select(x => new CustomerDto(x.Id, x.Name, x.PhoneNumber, x.Email, x.Address, x.CreatedAt, x.Vehicles.Count, x.JobCards.Count, x.JobCards.Sum(j => j.TotalAmount), x.Vehicles.Select(v => v.RegistrationNumber).ToList()))
-			.FirstOrDefaultAsync(cancellationToken);
-
-		return c;
+		baseQuery = _db.Customers.Where(x => x.PhoneNumber.Contains(digits));
+		return await ProjectCustomerDtoQuery(baseQuery).FirstOrDefaultAsync(cancellationToken);
 	}
 
 	public async Task<CustomerDto?> GetByRegistrationAsync(string registrationNumber, CancellationToken cancellationToken = default)
@@ -54,24 +44,17 @@ public class CustomerService : ICustomerService
 		var reg = VehicleService.NormalizeRegistration(registrationNumber);
 		if (string.IsNullOrEmpty(reg)) return null;
 
-		return await _db.Vehicles
+		var customerId = await _db.Vehicles
 			.Where(v => v.RegistrationNumber == reg)
-			.Select(v => new CustomerDto(
-				v.Customer.Id,
-				v.Customer.Name,
-				v.Customer.PhoneNumber,
-				v.Customer.Email,
-				v.Customer.Address,
-				v.Customer.CreatedAt,
-				v.Customer.Vehicles.Count,
-				v.Customer.JobCards.Count,
-				v.Customer.JobCards.Sum(j => j.TotalAmount),
-				v.Customer.Vehicles.Select(x => x.RegistrationNumber).ToList()
-			))
+			.Select(v => (Guid?)v.CustomerId)
 			.FirstOrDefaultAsync(cancellationToken);
+
+		if (!customerId.HasValue) return null;
+
+		return await GetByIdAsync(customerId.Value, cancellationToken);
 	}
 
-	public async Task<IReadOnlyList<CustomerDto>> GetAllAsync(int page, int pageSize, string? search = null, CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<CustomerDto>> GetAllAsync(int page, int pageSize, string? search = null, string? paymentStatus = null, CancellationToken cancellationToken = default)
 	{
 		var query = _db.Customers.AsQueryable();
 
@@ -81,26 +64,74 @@ public class CustomerService : ICustomerService
 			query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)) || c.Vehicles.Any(v => v.RegistrationNumber.ToLower().Contains(search)));
 		}
 
-		return await query
-			.OrderByDescending(c => c.CreatedAt)
+		var customerSummaries = query.Select(c => new
+		{
+			Customer = c,
+			VehicleCount = c.Vehicles.Count,
+			JobCardCount = c.JobCards.Count,
+			TotalRevenue = c.JobCards.Sum(j => j.TotalAmount),
+			VehicleRegistrationNumbers = c.Vehicles.Select(v => v.RegistrationNumber).ToList(),
+			InvoiceCount = _db.Invoices.Count(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled),
+			TotalInvoicedAmount = _db.Invoices
+				.Where(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.TotalAmount) ?? 0m,
+			TotalPaidAmount = _db.Invoices
+				.Where(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.PaidAmount) ?? 0m,
+			TotalOutstandingAmount = _db.Invoices
+				.Where(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.BalanceAmount) ?? 0m,
+			HasUnpaidInvoice = _db.Invoices
+				.Any(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.BalanceAmount > 0 && i.PaidAmount == 0)
+		});
+
+		if (!string.IsNullOrWhiteSpace(paymentStatus) && !paymentStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+		{
+			var status = paymentStatus.Trim().ToLowerInvariant();
+			if (status == "no invoices" || status == "no-invoices" || status == "noinvoices")
+			{
+				customerSummaries = customerSummaries.Where(x => x.InvoiceCount == 0);
+			}
+			else if (status == "paid")
+			{
+				customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount <= 0m);
+			}
+			else if (status == "payment due" || status == "payment-due" || status == "due")
+			{
+				customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount > 0m && x.HasUnpaidInvoice);
+			}
+			else if (status == "payment pending" || status == "payment-pending" || status == "pending" || status == "partially paid" || status == "partially-paid")
+			{
+				customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount > 0m && !x.HasUnpaidInvoice);
+			}
+		}
+
+		var items = await customerSummaries
+			.OrderByDescending(x => x.Customer.CreatedAt)
 			.Skip((page - 1) * pageSize)
 			.Take(pageSize)
-			.Select(c => new CustomerDto(
-				c.Id,
-				c.Name,
-				c.PhoneNumber,
-				c.Email,
-				c.Address,
-				c.CreatedAt,
-				c.Vehicles.Count,
-				c.JobCards.Count,
-				c.JobCards.Sum(j => j.TotalAmount),
-				c.Vehicles.Select(v => v.RegistrationNumber).ToList()
-			))
 			.ToListAsync(cancellationToken);
+
+		return items.Select(x => new CustomerDto(
+			x.Customer.Id,
+			x.Customer.Name,
+			x.Customer.PhoneNumber,
+			x.Customer.Email,
+			x.Customer.Address,
+			x.Customer.CreatedAt,
+			x.VehicleCount,
+			x.JobCardCount,
+			x.TotalRevenue,
+			x.VehicleRegistrationNumbers,
+			x.InvoiceCount,
+			x.TotalInvoicedAmount,
+			x.TotalPaidAmount,
+			x.TotalOutstandingAmount,
+			CalculatePaymentStatus(x.InvoiceCount, x.TotalOutstandingAmount, x.HasUnpaidInvoice)
+		)).ToList();
 	}
 
-	public async Task<int> GetTotalCountAsync(string? search = null, CancellationToken cancellationToken = default)
+	public async Task<int> GetTotalCountAsync(string? search = null, string? paymentStatus = null, CancellationToken cancellationToken = default)
 	{
 		var query = _db.Customers.AsQueryable();
 		if (!string.IsNullOrWhiteSpace(search))
@@ -108,7 +139,89 @@ public class CustomerService : ICustomerService
 			search = search.Trim().ToLower();
 			query = query.Where(c => c.Name.ToLower().Contains(search) || c.PhoneNumber.Contains(search) || (c.Email != null && c.Email.ToLower().Contains(search)) || c.Vehicles.Any(v => v.RegistrationNumber.ToLower().Contains(search)));
 		}
-		return await query.CountAsync(cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(paymentStatus) || paymentStatus.Equals("all", StringComparison.OrdinalIgnoreCase))
+		{
+			return await query.CountAsync(cancellationToken);
+		}
+
+		var customerSummaries = query.Select(c => new
+		{
+			InvoiceCount = _db.Invoices.Count(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled),
+			TotalOutstandingAmount = _db.Invoices
+				.Where(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.BalanceAmount) ?? 0m,
+			HasUnpaidInvoice = _db.Invoices
+				.Any(i => i.CustomerId == c.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.BalanceAmount > 0 && i.PaidAmount == 0)
+		});
+
+		var status = paymentStatus.Trim().ToLowerInvariant();
+		if (status == "no invoices" || status == "no-invoices" || status == "noinvoices")
+		{
+			customerSummaries = customerSummaries.Where(x => x.InvoiceCount == 0);
+		}
+		else if (status == "paid")
+		{
+			customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount <= 0m);
+		}
+		else if (status == "payment due" || status == "payment-due" || status == "due")
+		{
+			customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount > 0m && x.HasUnpaidInvoice);
+		}
+		else if (status == "payment pending" || status == "payment-pending" || status == "pending" || status == "partially paid" || status == "partially-paid")
+		{
+			customerSummaries = customerSummaries.Where(x => x.InvoiceCount > 0 && x.TotalOutstandingAmount > 0m && !x.HasUnpaidInvoice);
+		}
+
+		return await customerSummaries.CountAsync(cancellationToken);
+	}
+
+	private static string CalculatePaymentStatus(int invoiceCount, decimal totalOutstandingAmount, bool hasUnpaidInvoice)
+	{
+		if (invoiceCount == 0) return "No Invoices";
+		if (totalOutstandingAmount <= 0m) return "Paid";
+		if (hasUnpaidInvoice) return "Payment Due";
+		return "Payment Pending";
+	}
+
+	private IQueryable<CustomerDto> ProjectCustomerDtoQuery(IQueryable<Customer> query)
+	{
+		return query.Select(x => new
+		{
+			Customer = x,
+			VehicleCount = x.Vehicles.Count,
+			JobCardCount = x.JobCards.Count,
+			TotalRevenue = x.JobCards.Sum(j => j.TotalAmount),
+			VehicleRegistrationNumbers = x.Vehicles.Select(v => v.RegistrationNumber).ToList(),
+			InvoiceCount = _db.Invoices.Count(i => i.CustomerId == x.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled),
+			TotalInvoicedAmount = _db.Invoices
+				.Where(i => i.CustomerId == x.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.TotalAmount) ?? 0m,
+			TotalPaidAmount = _db.Invoices
+				.Where(i => i.CustomerId == x.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.PaidAmount) ?? 0m,
+			TotalOutstandingAmount = _db.Invoices
+				.Where(i => i.CustomerId == x.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled)
+				.Sum(i => (decimal?)i.BalanceAmount) ?? 0m,
+			HasUnpaidInvoice = _db.Invoices
+				.Any(i => i.CustomerId == x.Id && !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.BalanceAmount > 0 && i.PaidAmount == 0)
+		}).Select(c => new CustomerDto(
+			c.Customer.Id,
+			c.Customer.Name,
+			c.Customer.PhoneNumber,
+			c.Customer.Email,
+			c.Customer.Address,
+			c.Customer.CreatedAt,
+			c.VehicleCount,
+			c.JobCardCount,
+			c.TotalRevenue,
+			c.VehicleRegistrationNumbers,
+			c.InvoiceCount,
+			c.TotalInvoicedAmount,
+			c.TotalPaidAmount,
+			c.TotalOutstandingAmount,
+			CalculatePaymentStatus(c.InvoiceCount, c.TotalOutstandingAmount, c.HasUnpaidInvoice)
+		));
 	}
 
 	public async Task<CustomerDto> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
@@ -327,6 +440,16 @@ public class CustomerService : ICustomerService
 		});
 
 		var totalInvoicedAmount = finalizedInvoices.Sum(i => i.TotalAmount);
+		var invoiceCount = finalizedInvoices.Count;
+		var hasUnpaidInvoice = finalizedInvoices.Any(i =>
+		{
+			var validPayments = i.Payments.Where(p => !p.IsDeleted).ToList();
+			var pSum = validPayments.Sum(p => p.Amount);
+			var pPaid = validPayments.Count > 0 || pSum > 0m ? pSum : i.PaidAmount;
+			var bal = Math.Max(0m, i.TotalAmount - pPaid);
+			return bal > 0 && pPaid == 0;
+		});
+		var paymentStatus = CalculatePaymentStatus(invoiceCount, totalOutstandingAmount, hasUnpaidInvoice);
 
 		return new CustomerHistoryResponse(
 			CustomerId: customer.Id,
@@ -337,7 +460,9 @@ public class CustomerService : ICustomerService
 			JobCards: invoiceItems,
 			TotalOutstandingAmount: totalOutstandingAmount,
 			TotalPaidAmount: totalPaidAmount,
-			TotalInvoicedAmount: totalInvoicedAmount
+			TotalInvoicedAmount: totalInvoicedAmount,
+			PaymentStatus: paymentStatus,
+			InvoiceCount: invoiceCount
 		);
 	}
 

@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.JobCards;
+using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
@@ -28,6 +29,8 @@ public class JobCardService : IJobCardService
 			.Include(j => j.Customer)
 			.Include(j => j.Vehicle)
 			.Include(j => j.JobCardServices)
+			.Include(j => j.OutsideJobs)
+				.ThenInclude(o => o.Vendor)
 			.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
 
 		if (jobCard is null) return null;
@@ -46,6 +49,8 @@ public class JobCardService : IJobCardService
 			.Include(j => j.Customer)
 			.Include(j => j.Vehicle)
 			.Include(j => j.JobCardServices)
+			.Include(j => j.OutsideJobs)
+				.ThenInclude(o => o.Vendor)
 			.FirstOrDefaultAsync(j => j.JobCardNumber == jobCardNumber, cancellationToken);
 
 		if (jobCard is null) return null;
@@ -113,20 +118,31 @@ public class JobCardService : IJobCardService
 			})
 			.ToListAsync(cancellationToken);
 
-		return paged.Select(x => new JobCardListDto(
-			x.JobCard.Id,
-			x.JobCard.JobCardNumber,
-			x.JobCard.Customer.Name,
-			x.JobCard.Customer.PhoneNumber,
-			x.JobCard.Vehicle.RegistrationNumber,
-			x.JobCard.Vehicle.Make,
-			x.JobCard.Vehicle.Model,
-			x.JobCard.Status,
-			x.JobCard.TotalAmount,
-			x.Invoice != null ? x.Invoice.Id : null,
-			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
-			x.Invoice != null ? x.Invoice.Status.ToString() : null,
-			x.JobCard.CreatedAt)).ToList();
+		var cardIds = paged.Select(x => x.JobCard.Id).ToList();
+		var activeOutsideJobs = await _db.OutsideJobs
+			.Include(o => o.Vendor)
+			.Where(o => cardIds.Contains(o.JobCardId) && o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+			.ToDictionaryAsync(o => o.JobCardId, cancellationToken);
+
+		return paged.Select(x => {
+			var activeJob = activeOutsideJobs.GetValueOrDefault(x.JobCard.Id);
+			var location = BuildVehicleLocationDto(activeJob);
+			return new JobCardListDto(
+				x.JobCard.Id,
+				x.JobCard.JobCardNumber,
+				x.JobCard.Customer.Name,
+				x.JobCard.Customer.PhoneNumber,
+				x.JobCard.Vehicle.RegistrationNumber,
+				x.JobCard.Vehicle.Make,
+				x.JobCard.Vehicle.Model,
+				x.JobCard.Status,
+				x.JobCard.TotalAmount,
+				x.Invoice != null ? x.Invoice.Id : null,
+				x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+				x.Invoice != null ? x.Invoice.Status.ToString() : null,
+				x.JobCard.CreatedAt,
+				location);
+		}).ToList();
 	}
 
 	public async Task<int> GetTotalCountAsync(JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
@@ -169,20 +185,31 @@ public class JobCardService : IJobCardService
 			})
 			.ToListAsync(cancellationToken);
 
-		return paged.Select(x => new JobCardListDto(
-			x.JobCard.Id,
-			x.JobCard.JobCardNumber,
-			x.JobCard.Customer.Name,
-			x.JobCard.Customer.PhoneNumber,
-			x.JobCard.Vehicle.RegistrationNumber,
-			x.JobCard.Vehicle.Make,
-			x.JobCard.Vehicle.Model,
-			x.JobCard.Status,
-			x.JobCard.TotalAmount,
-			x.Invoice != null ? x.Invoice.Id : null,
-			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
-			x.Invoice != null ? x.Invoice.Status.ToString() : null,
-			x.JobCard.CreatedAt)).ToList();
+		var cardIds = paged.Select(x => x.JobCard.Id).ToList();
+		var activeOutsideJobs = await _db.OutsideJobs
+			.Include(o => o.Vendor)
+			.Where(o => cardIds.Contains(o.JobCardId) && o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+			.ToDictionaryAsync(o => o.JobCardId, cancellationToken);
+
+		return paged.Select(x => {
+			var activeJob = activeOutsideJobs.GetValueOrDefault(x.JobCard.Id);
+			var location = BuildVehicleLocationDto(activeJob);
+			return new JobCardListDto(
+				x.JobCard.Id,
+				x.JobCard.JobCardNumber,
+				x.JobCard.Customer.Name,
+				x.JobCard.Customer.PhoneNumber,
+				x.JobCard.Vehicle.RegistrationNumber,
+				x.JobCard.Vehicle.Make,
+				x.JobCard.Vehicle.Model,
+				x.JobCard.Status,
+				x.JobCard.TotalAmount,
+				x.Invoice != null ? x.Invoice.Id : null,
+				x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+				x.Invoice != null ? x.Invoice.Status.ToString() : null,
+				x.JobCard.CreatedAt,
+				location);
+		}).ToList();
 	}
 
 	public async Task<IReadOnlyList<JobCardListDto>> GetByVehicleIdAsync(Guid vehicleId, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -200,20 +227,31 @@ public class JobCardService : IJobCardService
 			})
 			.ToListAsync(cancellationToken);
 
-		return paged.Select(x => new JobCardListDto(
-			x.JobCard.Id,
-			x.JobCard.JobCardNumber,
-			x.JobCard.Customer.Name,
-			x.JobCard.Customer.PhoneNumber,
-			x.JobCard.Vehicle.RegistrationNumber,
-			x.JobCard.Vehicle.Make,
-			x.JobCard.Vehicle.Model,
-			x.JobCard.Status,
-			x.JobCard.TotalAmount,
-			x.Invoice != null ? x.Invoice.Id : null,
-			x.Invoice != null ? x.Invoice.InvoiceNumber : null,
-			x.Invoice != null ? x.Invoice.Status.ToString() : null,
-			x.JobCard.CreatedAt)).ToList();
+		var cardIds = paged.Select(x => x.JobCard.Id).ToList();
+		var activeOutsideJobs = await _db.OutsideJobs
+			.Include(o => o.Vendor)
+			.Where(o => cardIds.Contains(o.JobCardId) && o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+			.ToDictionaryAsync(o => o.JobCardId, cancellationToken);
+
+		return paged.Select(x => {
+			var activeJob = activeOutsideJobs.GetValueOrDefault(x.JobCard.Id);
+			var location = BuildVehicleLocationDto(activeJob);
+			return new JobCardListDto(
+				x.JobCard.Id,
+				x.JobCard.JobCardNumber,
+				x.JobCard.Customer.Name,
+				x.JobCard.Customer.PhoneNumber,
+				x.JobCard.Vehicle.RegistrationNumber,
+				x.JobCard.Vehicle.Make,
+				x.JobCard.Vehicle.Model,
+				x.JobCard.Status,
+				x.JobCard.TotalAmount,
+				x.Invoice != null ? x.Invoice.Id : null,
+				x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+				x.Invoice != null ? x.Invoice.Status.ToString() : null,
+				x.JobCard.CreatedAt,
+				location);
+		}).ToList();
 	}
 
 	public async Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default)
@@ -552,33 +590,107 @@ public class JobCardService : IJobCardService
 		}
 	}
 
-	private static JobCardDto ToDetailDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null) => new(
-		j.Id,
-		j.JobCardNumber,
-		new CustomerSummaryDto(j.Customer.Id, j.Customer.Name, j.Customer.PhoneNumber),
-		new VehicleSummaryDto(j.Vehicle.Id, j.Vehicle.RegistrationNumber, j.Vehicle.Make, j.Vehicle.Model, j.Vehicle.Variant, j.Vehicle.Color),
-		j.Status,
-		j.Notes,
-		j.JobCardServices.Select(s => new JobCardServiceDto(
-			s.Id,
-			s.ServiceId,
-			s.ServiceName,
-			s.UnitPrice,
-			s.Quantity,
-			s.TaxPercentage,
-			s.DiscountAmount,
-			s.LineTotal)).ToList(),
-		j.Subtotal,
-		j.TaxAmount,
-		j.DiscountAmount,
-		j.TotalAmount,
-		invoiceId,
-		invoiceNumber,
-		invoiceStatus,
-		j.CreatedAt,
-		j.UpdatedAt);
+	private static VehicleLocationDto BuildVehicleLocationDto(OutsideJob? activeJob)
+	{
+		if (activeJob == null)
+		{
+			return new VehicleLocationDto(
+				Location: "At Showroom",
+				IsOutside: false,
+				ActiveOutsideJobId: null,
+				VendorId: null,
+				VendorName: null,
+				ServiceName: null,
+				SentAt: null,
+				ExpectedReturnAt: null,
+				IsOverdue: false);
+		}
 
-	private static JobCardListDto ToListDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null) => new(
+		var isOverdue = DateTime.UtcNow > activeJob.ExpectedReturnAt;
+		return new VehicleLocationDto(
+			Location: "At Outside Shop",
+			IsOutside: true,
+			ActiveOutsideJobId: activeJob.Id,
+			VendorId: activeJob.VendorId,
+			VendorName: activeJob.Vendor?.Name ?? string.Empty,
+			ServiceName: activeJob.ServiceName,
+			SentAt: activeJob.SentAt,
+			ExpectedReturnAt: activeJob.ExpectedReturnAt,
+			IsOverdue: isOverdue);
+	}
+
+	private static JobCardDto ToDetailDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null)
+	{
+		var activeJob = j.OutsideJobs?.FirstOrDefault(o => o.Status == OutsideJobStatus.Outside && !o.IsDeleted);
+		var vehicleLocation = BuildVehicleLocationDto(activeJob);
+
+		var outsideJobDtos = j.OutsideJobs?
+			.Where(o => !o.IsDeleted)
+			.OrderByDescending(o => o.SentAt)
+			.Select(o => new OutsideJobDto(
+				Id: o.Id,
+				JobCardId: o.JobCardId,
+				JobCardNumber: j.JobCardNumber,
+				VehicleId: j.Vehicle.Id,
+				VehicleRegistrationNumber: j.Vehicle.RegistrationNumber,
+				VehicleMake: j.Vehicle.Make,
+				VehicleModel: j.Vehicle.Model,
+				CustomerId: j.Customer.Id,
+				CustomerName: j.Customer.Name,
+				CustomerPhone: j.Customer.PhoneNumber,
+				VendorId: o.VendorId,
+				VendorName: o.Vendor?.Name ?? string.Empty,
+				VendorPhone: o.Vendor?.Phone,
+				ServiceId: o.ServiceId,
+				ServiceName: o.ServiceName,
+				Status: o.Status,
+				StatusName: o.Status.ToString(),
+				SentAt: o.SentAt,
+				ExpectedReturnAt: o.ExpectedReturnAt,
+				ReturnedAt: o.ReturnedAt,
+				IsOverdue: o.Status == OutsideJobStatus.Outside && DateTime.UtcNow > o.ExpectedReturnAt,
+				SentByUserId: o.SentByUserId,
+				SentByUserName: o.SentByUserName,
+				ReturnedByUserId: o.ReturnedByUserId,
+				ReturnedByUserName: o.ReturnedByUserName,
+				VendorCost: o.VendorCost,
+				Notes: o.Notes,
+				ReturnNotes: o.ReturnNotes,
+				CancellationReason: o.CancellationReason,
+				CreatedAt: o.CreatedAt,
+				UpdatedAt: o.UpdatedAt))
+			.ToList();
+
+		return new(
+			j.Id,
+			j.JobCardNumber,
+			new CustomerSummaryDto(j.Customer.Id, j.Customer.Name, j.Customer.PhoneNumber),
+			new VehicleSummaryDto(j.Vehicle.Id, j.Vehicle.RegistrationNumber, j.Vehicle.Make, j.Vehicle.Model, j.Vehicle.Variant, j.Vehicle.Color),
+			j.Status,
+			j.Notes,
+			j.JobCardServices.Select(s => new JobCardServiceDto(
+				s.Id,
+				s.ServiceId,
+				s.ServiceName,
+				s.UnitPrice,
+				s.Quantity,
+				s.TaxPercentage,
+				s.DiscountAmount,
+				s.LineTotal)).ToList(),
+			j.Subtotal,
+			j.TaxAmount,
+			j.DiscountAmount,
+			j.TotalAmount,
+			invoiceId,
+			invoiceNumber,
+			invoiceStatus,
+			j.CreatedAt,
+			j.UpdatedAt,
+			vehicleLocation,
+			outsideJobDtos);
+	}
+
+	private static JobCardListDto ToListDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null, VehicleLocationDto? vehicleLocation = null) => new(
 		j.Id,
 		j.JobCardNumber,
 		j.Customer.Name,
@@ -591,5 +703,6 @@ public class JobCardService : IJobCardService
 		invoiceId,
 		invoiceNumber,
 		invoiceStatus,
-		j.CreatedAt);
+		j.CreatedAt,
+		vehicleLocation);
 }

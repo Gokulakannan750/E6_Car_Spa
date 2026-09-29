@@ -278,6 +278,11 @@ export interface CustomerDto {
 	vehicleCount?: number;
 	jobCardCount?: number;
 	totalRevenue?: number;
+	invoiceCount?: number;
+	totalInvoicedAmount?: number;
+	totalPaidAmount?: number;
+	totalOutstandingAmount?: number;
+	paymentStatus?: string;
 }
 
 export interface CustomerListResponse {
@@ -318,6 +323,8 @@ export interface CustomerHistoryResponse {
 	totalOutstandingAmount: number;
 	totalPaidAmount: number;
 	totalInvoicedAmount: number;
+	paymentStatus?: string;
+	invoiceCount?: number;
 }
 
 export interface CreateCustomerInput {
@@ -389,6 +396,8 @@ export interface JobCardDto {
  invoiceStatus?: string | null;
  createdAt: string;
  updatedAt: string | null;
+ vehicleLocation?: VehicleLocationDto;
+ outsideJobs?: OutsideJobDto[];
 }
 
 export interface JobCardServiceDto {
@@ -415,6 +424,7 @@ export interface JobCardListDto {
  invoiceNumber?: string | null;
  invoiceStatus?: string | null;
  createdAt: string;
+ vehicleLocation?: VehicleLocationDto;
 }
 
 export interface JobCardListResponse {
@@ -423,6 +433,192 @@ export interface JobCardListResponse {
  page: number;
  pageSize: number;
 }
+
+export interface VehicleLocationDto {
+ location: string;
+ isOutside: boolean;
+ activeOutsideJobId?: string | null;
+ vendorId?: string | null;
+ vendorName?: string | null;
+ serviceName?: string | null;
+ sentAt?: string | null;
+ expectedReturnAt?: string | null;
+ isOverdue: boolean;
+}
+
+export interface OutsideJobDto {
+ id: string;
+ jobCardId: string;
+ jobCardNumber: string;
+ vehicleId: string;
+ vehicleRegistrationNumber: string;
+ vehicleMake: string;
+ vehicleModel: string;
+ customerId: string;
+ customerName: string;
+ customerPhone: string;
+ vendorId: string;
+ vendorName: string;
+ vendorPhone?: string | null;
+ serviceId?: string | null;
+ serviceName: string;
+ status: number; // 0: Pending, 1: Outside, 2: Returned, 3: Cancelled
+ statusName: string;
+ sentAt: string;
+ expectedReturnAt: string;
+ returnedAt?: string | null;
+ isOverdue: boolean;
+ sentByUserId?: string | null;
+ sentByUserName?: string | null;
+ returnedByUserId?: string | null;
+ returnedByUserName?: string | null;
+ vendorCost?: number | null;
+ notes?: string | null;
+ returnNotes?: string | null;
+ cancellationReason?: string | null;
+ createdAt: string;
+ updatedAt?: string | null;
+}
+
+export interface CreateOutsideJobRequest {
+ vendorId: string;
+ serviceName: string;
+ serviceId?: string | null;
+ sentAt?: string | null;
+ expectedReturnAt?: string | null;
+ sentByType?: string | null;
+ sentByStaffId?: string | null;
+ sentByStaffName?: string | null;
+ vendorCost?: number | null;
+ notes?: string | null;
+}
+
+export interface MarkOutsideJobReturnedRequest {
+ returnedAt?: string | null;
+ vendorCost?: number | null;
+ returnNotes?: string | null;
+}
+
+export interface CancelOutsideJobRequest {
+ reason: string;
+}
+
+export interface UpdateOutsideJobRequest {
+ vendorId: string;
+ serviceName: string;
+ serviceId?: string | null;
+ expectedReturnAt: string;
+ vendorCost?: number | null;
+ notes?: string | null;
+}
+
+export interface OutsideJobListResponse {
+ items: OutsideJobDto[];
+ totalCount: number;
+ page: number;
+ pageSize: number;
+}
+
+export interface VendorDto {
+ id: string;
+ name: string;
+ phone?: string | null;
+ contactPerson?: string | null;
+ address?: string | null;
+ serviceSpecialty?: string | null;
+ isActive: boolean;
+ createdAt: string;
+ updatedAt?: string | null;
+}
+
+export interface CreateVendorRequest {
+ name: string;
+ phone?: string | null;
+ contactPerson?: string | null;
+ address?: string | null;
+ serviceSpecialty?: string | null;
+}
+
+export interface UpdateVendorRequest {
+ name: string;
+ phone?: string | null;
+ contactPerson?: string | null;
+ address?: string | null;
+ serviceSpecialty?: string | null;
+ isActive: boolean;
+}
+
+export interface CurrentlyOutsideJobDto {
+ id: string;
+ jobCardId: string;
+ jobCardNumber: string;
+ vehicleId: string;
+ vehicleRegistration: string;
+ vehicleModel: string;
+ customerId: string;
+ customerName: string;
+ customerPhone: string;
+ vendorId: string;
+ vendorName: string;
+ vendorPhone?: string | null;
+ serviceName: string;
+ sentAt: string;
+ expectedReturnAt: string;
+ isOverdue: boolean;
+ overdueHours: number;
+ vendorCost?: number | null;
+ notes?: string | null;
+}
+
+export interface OutsideJobHistoryReportDto {
+ id: string;
+ jobCardId: string;
+ jobCardNumber: string;
+ vehicleId: string;
+ vehicleRegistration: string;
+ vehicleModel: string;
+ customerId: string;
+ customerName: string;
+ customerPhone: string;
+ vendorId: string;
+ vendorName: string;
+ serviceName: string;
+ status: number;
+ statusName: string;
+ sentAt: string;
+ returnedAt?: string | null;
+ expectedReturnAt: string;
+ durationHours?: number | null;
+ vendorCost?: number | null;
+ sentByUserName?: string | null;
+ returnedByUserName?: string | null;
+ notes?: string | null;
+ returnNotes?: string | null;
+}
+
+export interface OutsideJobVendorSummaryDto {
+ vendorId: string;
+ vendorName: string;
+ phone?: string | null;
+ totalJobs: number;
+ completedJobs: number;
+ currentlyOutside: number;
+ overdueJobs: number;
+ cancelledJobs: number;
+ totalVendorCost: number;
+}
+
+export interface OutsideJobReportResponse {
+ currentlyOutside: CurrentlyOutsideJobDto[];
+ history: OutsideJobHistoryReportDto[];
+ vendorSummary: OutsideJobVendorSummaryDto[];
+ totalOutsideCount: number;
+ totalOverdueCount: number;
+ totalActiveCost: number;
+ totalHistoricalCost: number;
+}
+
+export type OutsideJobsReportDto = OutsideJobReportResponse;
 
 export interface ServiceItemDto {
  id: string;
@@ -478,7 +674,8 @@ export type InvoiceStatus = 'Draft' | 'Generated' | 'PartiallyPaid' | 'Paid' | '
 
 export interface InvoiceItemDto {
   id: string;
-  serviceId: string | null;
+  serviceId?: string | null;
+  outsideJobId?: string | null;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -665,11 +862,12 @@ export interface HealthResponse {
 // Customers
 // ============================================================================
 
-export async function getCustomers(params?: { page?: number; pageSize?: number; search?: string }) {
+export async function getCustomers(params?: { page?: number; pageSize?: number; search?: string; paymentStatus?: string }) {
 	const qs = new URLSearchParams();
 	if (params?.page) qs.set('page', String(params.page));
 	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
 	if (params?.search) qs.set('search', params.search);
+	if (params?.paymentStatus && params.paymentStatus !== 'all') qs.set('paymentStatus', params.paymentStatus);
 	const suffix = qs.toString() ? '?' + qs.toString() : '';
 	return request<CustomerListResponse>('/api/customers' + suffix, {}, 'view customers');
 }
@@ -812,6 +1010,124 @@ export function isJobCardLocked(jc: {
 		return true;
 	}
 	return false;
+}
+
+// ============================================================================
+// Vendors & Outside Jobs
+// ============================================================================
+
+export async function getVendors(activeOnly: boolean = true) {
+	return request<VendorDto[]>(`/api/vendors?activeOnly=${activeOnly}`, {}, 'view vendors');
+}
+
+export async function getVendorById(id: string) {
+	return request<VendorDto>(`/api/vendors/${encodeURIComponent(id)}`, {}, 'view vendors');
+}
+
+export async function createVendor(data: CreateVendorRequest) {
+	return request<VendorDto>('/api/vendors', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'create vendor');
+}
+
+export async function updateVendor(id: string, data: UpdateVendorRequest) {
+	return request<VendorDto>(`/api/vendors/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'edit vendor');
+}
+
+export async function deleteVendor(id: string) {
+	return request<void>(`/api/vendors/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	}, 'delete vendor');
+}
+
+export async function getOutsideJobsByJobCardId(jobCardId: string) {
+	return request<OutsideJobDto[]>(`/api/job-cards/${encodeURIComponent(jobCardId)}/outside-jobs`, {}, 'view outside jobs');
+}
+
+export async function getOutsideJobById(id: string) {
+	return request<OutsideJobDto>(`/api/outside-jobs/${encodeURIComponent(id)}`, {}, 'view outside job');
+}
+
+export async function createOutsideJob(jobCardId: string, data: CreateOutsideJobRequest) {
+	return request<OutsideJobDto>(`/api/job-cards/${encodeURIComponent(jobCardId)}/outside-jobs`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'send vehicle outside');
+}
+
+export async function updateOutsideJob(id: string, data: UpdateOutsideJobRequest) {
+	return request<OutsideJobDto>(`/api/outside-jobs/${encodeURIComponent(id)}`, {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'edit outside job');
+}
+
+export async function markOutsideJobReturned(id: string, data: MarkOutsideJobReturnedRequest) {
+	return request<OutsideJobDto>(`/api/outside-jobs/${encodeURIComponent(id)}/return`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'mark vehicle returned');
+}
+
+export async function cancelOutsideJob(id: string, data: CancelOutsideJobRequest) {
+	return request<OutsideJobDto>(`/api/outside-jobs/${encodeURIComponent(id)}/cancel`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'cancel outside job');
+}
+
+export async function getOutsideJobs(params?: {
+	page?: number;
+	pageSize?: number;
+	status?: number;
+	isOverdue?: boolean;
+	vendorId?: string;
+	vehicleId?: string;
+	search?: string;
+	fromDate?: string;
+	toDate?: string;
+}) {
+	const qs = new URLSearchParams();
+	if (params?.page) qs.set('page', String(params.page));
+	if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+	if (params?.status !== undefined) qs.set('status', String(params.status));
+	if (params?.isOverdue !== undefined) qs.set('isOverdue', String(params.isOverdue));
+	if (params?.vendorId) qs.set('vendorId', params.vendorId);
+	if (params?.vehicleId) qs.set('vehicleId', params.vehicleId);
+	if (params?.search) qs.set('search', params.search);
+	if (params?.fromDate) qs.set('fromDate', params.fromDate);
+	if (params?.toDate) qs.set('toDate', params.toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<OutsideJobListResponse>(`/api/outside-jobs${suffix}`, {}, 'view outside jobs');
+}
+
+export async function getVehicleLocationByJobCardId(jobCardId: string) {
+	return request<VehicleLocationDto>(`/api/job-cards/${encodeURIComponent(jobCardId)}/location`, {}, 'view vehicle location');
+}
+
+export async function getVehicleLocationByVehicleId(vehicleId: string) {
+	return request<VehicleLocationDto>(`/api/vehicles/${encodeURIComponent(vehicleId)}/location`, {}, 'view vehicle location');
+}
+
+export async function getOutsideJobsReport(params?: {
+	fromDate?: string;
+	toDate?: string;
+	vendorId?: string;
+	vehicleId?: string;
+	status?: number;
+}) {
+	const qs = new URLSearchParams();
+	if (params?.fromDate) qs.set('fromDate', params.fromDate);
+	if (params?.toDate) qs.set('toDate', params.toDate);
+	if (params?.vendorId) qs.set('vendorId', params.vendorId);
+	if (params?.vehicleId) qs.set('vehicleId', params.vehicleId);
+	if (params?.status !== undefined) qs.set('status', String(params.status));
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<OutsideJobReportResponse>(`/api/reports/outside-jobs${suffix}`, {}, 'view outside jobs report');
 }
 
 // ============================================================================

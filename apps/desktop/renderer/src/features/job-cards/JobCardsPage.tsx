@@ -54,8 +54,6 @@ export function JobCardsPage() {
 		if (jobCardsData && page > totalPages) setPage(totalPages);
 	}, [page, totalPages, jobCardsData]);
 
-	const formatCurrency = (value: number) => `₹${value.toLocaleString('en-IN')}`;
-
 	const formatDate = (iso: string) => {
 		const d = new Date(iso);
 		if (Number.isNaN(d.getTime())) return iso;
@@ -181,7 +179,7 @@ export function JobCardsPage() {
 								<th>Job Card</th>
 								<th>Customer</th>
 								<th>Vehicle</th>
-								<th>Total</th>
+								<th>Vehicle Location</th>
 								<th>Date</th>
 								<th className="text-right">Actions</th>
 							</tr>
@@ -245,9 +243,47 @@ export function JobCardsPage() {
 										</div>
 									</td>
 									<td>
-										<span className="font-medium text-on-surface">
-											{formatCurrency(jc.totalAmount)}
-										</span>
+										{jc.vehicleLocation?.isOutside ? (
+											jc.vehicleLocation.isOverdue ? (
+												<div
+													className="inline-flex flex-col gap-0.5 px-2.5 py-1 rounded text-[11px] font-medium bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 max-w-[200px]"
+													title={`Overdue at ${jc.vehicleLocation.vendorName || 'Outside Shop'}`}
+												>
+													<div className="inline-flex items-center gap-1 font-semibold whitespace-nowrap">
+														<span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+														<span>Outside Workshop</span>
+														<span className="text-[9px] bg-red-600 text-white px-1 rounded font-bold uppercase tracking-wider ml-0.5">
+															Overdue
+														</span>
+													</div>
+													{jc.vehicleLocation.vendorName && (
+														<div className="pl-2.5 text-[10px] text-red-800/80 dark:text-red-300 font-normal truncate">
+															{jc.vehicleLocation.vendorName}
+														</div>
+													)}
+												</div>
+											) : (
+												<div
+													className="inline-flex flex-col gap-0.5 px-2.5 py-1 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 max-w-[200px]"
+													title={`Sent to ${jc.vehicleLocation.vendorName || 'Outside Shop'}`}
+												>
+													<div className="inline-flex items-center gap-1 font-semibold whitespace-nowrap">
+														<span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+														<span>Outside Workshop</span>
+													</div>
+													{jc.vehicleLocation.vendorName && (
+														<div className="pl-2.5 text-[10px] text-amber-800/80 dark:text-amber-300 font-normal truncate">
+															{jc.vehicleLocation.vendorName}
+														</div>
+													)}
+												</div>
+											)
+										) : (
+											<span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+												<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+												Our Showroom
+											</span>
+										)}
 									</td>
 									<td className="text-sm text-on-surface-variant whitespace-nowrap">
 										<div className="flex items-center gap-1">

@@ -44,17 +44,57 @@ function CustomerVehiclesCell({ customerId, initialVehicles }: { customerId: str
 	);
 }
 
+export function CustomerPaymentStatusBadge({ status }: { status?: string }) {
+	const normalized = (status || 'No Invoices').trim().toLowerCase();
+
+	if (normalized === 'paid') {
+		return (
+			<span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+				Paid
+			</span>
+		);
+	}
+
+	if (normalized === 'payment pending' || normalized === 'payment-pending' || normalized === 'partially paid') {
+		return (
+			<span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 whitespace-nowrap">
+				Payment Pending
+			</span>
+		);
+	}
+
+	if (normalized === 'payment due' || normalized === 'payment-due') {
+		return (
+			<span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 whitespace-nowrap">
+				Payment Due
+			</span>
+		);
+	}
+
+	return (
+		<span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant/60 whitespace-nowrap">
+			No Invoices
+		</span>
+	);
+}
+
+export function formatCustomerCurrency(amount?: number | null): string {
+	const val = amount ?? 0;
+	return `₹${val.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
 export function CustomersPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const globalSearch = useAppStore((s) => s.globalSearch);
 	const [localSearch, setLocalSearch] = useState('');
+	const [paymentFilter, setPaymentFilter] = useState<'all' | 'Paid' | 'Payment Pending' | 'Payment Due' | 'No Invoices'>('all');
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingCustomer, setEditingCustomer] = useState<CustomerDto | null>(null);
 
 	const activeSearch = (localSearch || globalSearch).trim();
 
-	// Fetch real customers from API
+	// Fetch real customers from API with server-side payment aggregation and filtering
 	const {
 		data: customersData,
 		isLoading: isLoadingCustomers,
@@ -62,8 +102,14 @@ export function CustomersPage() {
 		error: customersError,
 		refetch: refetchCustomers,
 	} = useQuery({
-		queryKey: ['customers', activeSearch],
-		queryFn: () => getCustomers({ page: 1, pageSize: 100, search: activeSearch || undefined }),
+		queryKey: ['customers', activeSearch, paymentFilter],
+		queryFn: () =>
+			getCustomers({
+				page: 1,
+				pageSize: 100,
+				search: activeSearch || undefined,
+				paymentStatus: paymentFilter !== 'all' ? paymentFilter : undefined,
+			}),
 	});
 
 	const customers: CustomerDto[] = customersData?.items ?? [];
@@ -85,7 +131,7 @@ export function CustomersPage() {
 				</Button>
 			</div>
 
-			{/* Search & Stats Bar */}
+			{/* Search & Status Filters Bar */}
 			<div className="app-card p-4 space-y-3">
 				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
 					<div className="flex items-center gap-2 flex-1 max-w-md">
@@ -113,6 +159,27 @@ export function CustomersPage() {
 					<div className="ml-auto text-sm text-on-surface-variant">
 						{totalCount} customer{totalCount !== 1 ? 's' : ''}
 					</div>
+				</div>
+
+				{/* Payment Status Filter Chips */}
+				<div className="flex items-center gap-1.5 overflow-x-auto pt-1 border-t border-outline-variant/60">
+					{(['all', 'Paid', 'Payment Pending', 'Payment Due', 'No Invoices'] as const).map((status) => {
+						const isSelected = paymentFilter === status;
+						return (
+							<button
+								key={status}
+								type="button"
+								onClick={() => setPaymentFilter(status)}
+								className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap ${
+									isSelected
+										? 'bg-secondary text-white shadow-xs'
+										: 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+								}`}
+							>
+								{status === 'all' ? 'All' : status}
+							</button>
+						);
+					})}
 				</div>
 			</div>
 
@@ -142,9 +209,11 @@ export function CustomersPage() {
 					<div className="p-12 text-center text-on-surface-variant">
 						<p className="text-base font-medium text-on-surface">No customers found</p>
 						<p className="text-sm text-on-surface-variant mt-1">
-							{activeSearch ? 'Try a different search term.' : 'Get started by creating your first customer.'}
+							{activeSearch || paymentFilter !== 'all'
+								? 'Try a different search term or filter.'
+								: 'Get started by creating your first customer.'}
 						</p>
-						{!activeSearch && (
+						{!activeSearch && paymentFilter === 'all' && (
 							<Button
 								icon={<Plus className="w-4 h-4" />}
 								className="mt-4"
@@ -162,6 +231,9 @@ export function CustomersPage() {
 									<th>Customer</th>
 									<th>Phone</th>
 									<th>Vehicles</th>
+									<th className="text-center">Invoices</th>
+									<th className="text-right">Outstanding</th>
+									<th className="text-center">Payment Status</th>
 									<th>Registered On</th>
 									<th className="text-right">Actions</th>
 								</tr>
@@ -197,6 +269,39 @@ export function CustomersPage() {
 												customerId={c.id}
 												initialVehicles={c.vehicleRegistrationNumbers}
 											/>
+										</td>
+										<td className="text-center font-mono text-sm">
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/customers/${c.id}`);
+												}}
+												className="font-medium text-secondary hover:underline cursor-pointer px-2 py-0.5 rounded hover:bg-secondary/10"
+												title="View Customer Invoices"
+											>
+												{c.invoiceCount ?? 0}
+											</button>
+										</td>
+										<td className="text-right font-mono text-sm whitespace-nowrap">
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													navigate(`/customers/${c.id}`);
+												}}
+												className={`font-semibold cursor-pointer px-2 py-0.5 rounded hover:bg-surface-container ${
+													(c.totalOutstandingAmount ?? 0) > 0
+														? 'text-amber-600 dark:text-amber-400'
+														: 'text-on-surface'
+												}`}
+												title="View Customer Balance & Invoices"
+											>
+												{formatCustomerCurrency(c.totalOutstandingAmount)}
+											</button>
+										</td>
+										<td className="text-center">
+											<CustomerPaymentStatusBadge status={c.paymentStatus} />
 										</td>
 										<td className="text-on-surface-variant whitespace-nowrap">
 											<div className="flex items-center gap-1.5 text-sm">

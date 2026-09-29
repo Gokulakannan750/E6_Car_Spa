@@ -290,6 +290,73 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
             ),
             const SizedBox(height: 20),
 
+            // ── Payment Summary Card ─────────────────────────────────────────
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: AppColors.border, width: 1),
+              ),
+              color: AppColors.card,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Payment Summary',
+                              style: AppTextStyles.headingMedium,
+                            ),
+                          ],
+                        ),
+                        _PaymentStatusBadge(
+                          status: state.history?.paymentStatus ?? customer.paymentStatus,
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24, color: AppColors.borderLight),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryMetric(
+                            'Total Invoiced',
+                            _formatSummaryCurrency(state.history?.totalInvoicedAmount ?? customer.totalInvoicedAmount),
+                            AppColors.textPrimary,
+                          ),
+                        ),
+                        Container(height: 36, width: 1, color: AppColors.borderLight),
+                        Expanded(
+                          child: _buildSummaryMetric(
+                            'Total Paid',
+                            _formatSummaryCurrency(state.history?.totalPaidAmount ?? customer.totalPaidAmount),
+                            Colors.green.shade800,
+                          ),
+                        ),
+                        Container(height: 36, width: 1, color: AppColors.borderLight),
+                        Expanded(
+                          child: _buildSummaryMetric(
+                            'Outstanding',
+                            _formatSummaryCurrency(state.history?.totalOutstandingAmount ?? customer.totalOutstandingAmount),
+                            (state.history?.totalOutstandingAmount ?? customer.totalOutstandingAmount) > 0
+                                ? Colors.amber.shade900
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // ── Vehicles Section ────────────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -706,6 +773,92 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isSelected ? AppColors.primary : AppColors.border,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryMetric(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: AppTextStyles.headingSmall.copyWith(
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  String _formatSummaryCurrency(double amount) {
+    if (amount <= 0) return '₹0';
+    if (amount == amount.truncateToDouble()) {
+      return '₹${amount.toInt().toString().replaceAllMapped(RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))(\.\d+)?'), (m) => '${m[1]},')}';
+    }
+    return '₹${amount.toStringAsFixed(2)}';
+  }
+}
+
+class _PaymentStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _PaymentStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color border;
+    Color text;
+
+    switch (status) {
+      case 'Paid':
+        bg = Colors.green.shade50;
+        border = Colors.green.shade300;
+        text = Colors.green.shade800;
+        break;
+      case 'Payment Pending':
+        bg = Colors.amber.shade50;
+        border = Colors.amber.shade300;
+        text = Colors.amber.shade900;
+        break;
+      case 'Payment Due':
+        bg = Colors.red.shade50;
+        border = Colors.red.shade300;
+        text = Colors.red.shade800;
+        break;
+      case 'No Invoices':
+      default:
+        bg = Colors.grey.shade100;
+        border = Colors.grey.shade300;
+        text = Colors.grey.shade700;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: text,
         ),
       ),
     );

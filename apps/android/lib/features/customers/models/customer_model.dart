@@ -11,6 +11,11 @@ class Customer {
   final int vehicleCount;
   final int jobCardCount;
   final double totalRevenue;
+  final int invoiceCount;
+  final double totalInvoicedAmount;
+  final double totalPaidAmount;
+  final double totalOutstandingAmount;
+  final String paymentStatus;
 
   const Customer({
     required this.id,
@@ -22,6 +27,11 @@ class Customer {
     this.vehicleCount = 0,
     this.jobCardCount = 0,
     this.totalRevenue = 0.0,
+    this.invoiceCount = 0,
+    this.totalInvoicedAmount = 0.0,
+    this.totalPaidAmount = 0.0,
+    this.totalOutstandingAmount = 0.0,
+    this.paymentStatus = 'No Invoices',
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) {
@@ -39,6 +49,11 @@ class Customer {
       vehicleCount: (json['vehicleCount'] ?? json['VehicleCount'] ?? 0) as int,
       jobCardCount: (json['jobCardCount'] ?? json['JobCardCount'] ?? 0) as int,
       totalRevenue: ((json['totalRevenue'] ?? json['TotalRevenue'] ?? 0.0) as num).toDouble(),
+      invoiceCount: (json['invoiceCount'] ?? json['InvoiceCount'] ?? 0) as int,
+      totalInvoicedAmount: ((json['totalInvoicedAmount'] ?? json['TotalInvoicedAmount'] ?? 0.0) as num).toDouble(),
+      totalPaidAmount: ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num).toDouble(),
+      totalOutstandingAmount: ((json['totalOutstandingAmount'] ?? json['TotalOutstandingAmount'] ?? 0.0) as num).toDouble(),
+      paymentStatus: json['paymentStatus'] as String? ?? json['PaymentStatus'] as String? ?? 'No Invoices',
     );
   }
 
@@ -53,6 +68,11 @@ class Customer {
       'vehicleCount': vehicleCount,
       'jobCardCount': jobCardCount,
       'totalRevenue': totalRevenue,
+      'invoiceCount': invoiceCount,
+      'totalInvoicedAmount': totalInvoicedAmount,
+      'totalPaidAmount': totalPaidAmount,
+      'totalOutstandingAmount': totalOutstandingAmount,
+      'paymentStatus': paymentStatus,
     };
   }
 
@@ -221,6 +241,8 @@ class CustomerHistoryResponse {
   final double totalOutstandingAmount;
   final double totalPaidAmount;
   final double totalInvoicedAmount;
+  final int invoiceCount;
+  final String paymentStatus;
 
   const CustomerHistoryResponse({
     required this.customerId,
@@ -232,6 +254,8 @@ class CustomerHistoryResponse {
     this.totalOutstandingAmount = 0.0,
     this.totalPaidAmount = 0.0,
     this.totalInvoicedAmount = 0.0,
+    this.invoiceCount = 0,
+    this.paymentStatus = 'No Invoices',
   });
 
   factory CustomerHistoryResponse.fromJson(Map<String, dynamic> json) {
@@ -246,6 +270,8 @@ class CustomerHistoryResponse {
       totalOutstandingAmount: ((json['totalOutstandingAmount'] ?? json['TotalOutstandingAmount'] ?? 0.0) as num).toDouble(),
       totalPaidAmount: ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num).toDouble(),
       totalInvoicedAmount: ((json['totalInvoicedAmount'] ?? json['TotalInvoicedAmount'] ?? 0.0) as num).toDouble(),
+      invoiceCount: (json['invoiceCount'] ?? json['InvoiceCount'] ?? 0) as int,
+      paymentStatus: json['paymentStatus'] as String? ?? json['PaymentStatus'] as String? ?? 'No Invoices',
     );
   }
 }

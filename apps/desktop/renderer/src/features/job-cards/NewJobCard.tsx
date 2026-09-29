@@ -8,7 +8,6 @@ import {
 	createVehicle,
 	transferVehicleOwnership,
 	getServices,
-	createService,
 	createJobCard,
 	getServiceById,
 	getCustomerById,
@@ -21,8 +20,8 @@ import {
 } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
-import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
 import { capitalizeSentence } from '../../utils/text';
+import { CreateCustomServiceDialog } from './CreateCustomServiceDialog';
 import {
 	Search,
 	Plus,
@@ -82,14 +81,6 @@ interface NewVehicleForm {
 	make: string;
 	model: string;
 	variant: string;
-}
-
-interface NewServiceForm {
-	name: string;
-	category: string;
-	description: string;
-	price: string;
-	isActive: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,8 +162,6 @@ export default function NewJobCard() {
 	const [serviceSearch, setServiceSearch] = useState('');
 	const [searchResults, setSearchResults] = useState<ServiceDto[]>([]);
 	const [showNewService, setShowNewService] = useState(false);
-	const [newService, setNewService] = useState<NewServiceForm>({ name: '', category: '', description: '', price: '', isActive: true });
-	const [isCreatingService, setIsCreatingService] = useState(false);
 	const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -662,33 +651,6 @@ export default function NewJobCard() {
 		searchInputRef.current?.focus();
 	};
 
-	// ── Create new service ────────────────────────────────────────────────────
-	const handleCreateService = async () => {
-		if (!newService.name.trim() || !newService.price) return;
-		setIsCreatingService(true);
-		setCustomerError(null);
-		try {
-			const created = await createService({
-				name: capitalizeSentence(newService.name.trim()),
-				category: newService.category || CATALOGUE_CATEGORIES[0],
-				price: parseFloat(newService.price),
-				taxPercentage: 18,
-				description: newService.description ? capitalizeSentence(newService.description.trim()) : undefined,
-				isActive: newService.isActive,
-			});
-			handleAddService(created);
-			setShowNewService(false);
-			setNewService({ name: '', category: '', description: '', price: '', isActive: true });
-		} catch (err: unknown) {
-			console.error('Failed to create service:', err);
-			const msg = err instanceof Error && !err.message.startsWith('HTTP ')
-				? err.message
-				: 'Failed to create service. Please try again.';
-			setCustomerError(msg);
-		} finally {
-			setIsCreatingService(false);
-		}
-	};
 
 	// ── Update/remove services ────────────────────────────────────────────────
 	const updateQuantity = (id: string, quantity: number) => {
@@ -767,7 +729,6 @@ export default function NewJobCard() {
 		setTransferError('');
 		setNewCustomer({ name: '', phone: '', email: '', address: '' });
 		setNewVehicle({ registrationNumber: '', make: '', model: '', variant: '' });
-		setNewService({ name: '', category: '', description: '', price: '', isActive: true });
 		setStep(0);
 		setCustomerError(null);
 		setInfoMessage(null);
@@ -1479,86 +1440,14 @@ export default function NewJobCard() {
 							</div>
 
 							{/* ── Add Custom Service Dialog Popup ──────────────────────── */}
-							<Dialog
+							<CreateCustomServiceDialog
 								open={showNewService}
-								onOpenChange={(open) => {
-									setShowNewService(open);
-									if (!open) {
-										setNewService({ name: '', category: CATALOGUE_CATEGORIES[0], description: '', price: '', isActive: true });
-									}
-								}}
+								onOpenChange={setShowNewService}
+								onServiceCreated={handleAddService}
 								title="Add Custom / Quick Service"
-								description="Create and add a custom service to this job card"
-								size="md"
-								footer={
-									<>
-										<Button
-											type="button"
-											variant="secondary"
-											onClick={() => {
-												setShowNewService(false);
-												setNewService({ name: '', category: CATALOGUE_CATEGORIES[0], description: '', price: '', isActive: true });
-											}}
-										>
-											Cancel
-										</Button>
-										<Button
-											type="button"
-											onClick={() => handleCreateService()}
-											disabled={isCreatingService || !newService.name.trim() || !newService.price}
-											loading={isCreatingService}
-										>
-											Add to Selected Services
-										</Button>
-									</>
-								}
-							>
-								<div className="space-y-4 py-1">
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1">
-											Service Name <span className="text-error">*</span>
-										</label>
-										<input
-											required
-											value={newService.name}
-											onChange={(e) => setNewService((p) => ({ ...p, name: e.target.value }))}
-											onBlur={() => setNewService((p) => ({ ...p, name: capitalizeSentence(p.name) }))}
-											className="form-input w-full"
-											placeholder="e.g. Custom Scratch Removal"
-											autoFocus
-										/>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1">Category</label>
-										<select
-											value={newService.category || CATALOGUE_CATEGORIES[0]}
-											onChange={(e) => setNewService((p) => ({ ...p, category: e.target.value }))}
-											className="form-input w-full"
-										>
-											{CATALOGUE_CATEGORIES.map((cat) => (
-												<option key={cat} value={cat}>
-													{cat}
-												</option>
-											))}
-										</select>
-									</div>
-									<div>
-										<label className="block text-sm font-medium text-on-surface mb-1">
-											Price (₹) <span className="text-error">*</span>
-										</label>
-										<input
-											required
-											type="number"
-											step="0.01"
-											min="0"
-											value={newService.price}
-											onChange={(e) => setNewService((p) => ({ ...p, price: e.target.value }))}
-											className="form-input w-full"
-											placeholder="0.00"
-										/>
-									</div>
-								</div>
-							</Dialog>
+								descriptionText="Create and add a custom service to this job card"
+								submitLabel="Add to Selected Services"
+							/>
 
 							{/* ── Selected Services Table ────────────────────────────────── */}
 							{services.length > 0 && (

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Audit;
 using CarSpaManagement.Api.Application.DTOs.Customers;
@@ -53,525 +52,609 @@ public class CustomerPaymentStatusTests
         return new AppDbContext(options);
     }
 
-    [Fact]
-    public async Task Case1_FullyPaidInvoice_ReturnsPaidStatusAndZeroOutstanding()
+    private static Customer CreateCustomer(AppDbContext db, string name, string phone)
     {
-        using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000001", Status = JobCardStatus.Invoiced, TotalAmount = 5000m };
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000001",
-            TotalAmount = 5000m,
-            PaidAmount = 5000m,
-            BalanceAmount = 0m,
-            Status = InvoiceStatus.Paid
-        };
-        var payment = new Payment
+        var customer = new Customer
         {
             Id = Guid.NewGuid(),
-            InvoiceId = invoiceId,
-            Amount = 5000m,
-            PaymentMethod = PaymentMethod.UPI,
-            IsDeleted = false
+            Name = name,
+            PhoneNumber = phone,
+            CreatedAt = DateTime.UtcNow
         };
-        invoice.Payments.Add(payment);
-
         db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
+        return customer;
+    }
+
+    private static Vehicle EnsureVehicle(AppDbContext db, Guid customerId)
+    {
+        var existing = db.Vehicles.Local.FirstOrDefault(v => v.CustomerId == customerId)
+            ?? db.Vehicles.FirstOrDefault(v => v.CustomerId == customerId);
+        if (existing != null) return existing;
+
+        var v = new Vehicle
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = customerId,
+            RegistrationNumber = $"TN01AB{Random.Shared.Next(1000, 9999)}",
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Vehicles.Add(v);
+        return v;
+    }
+
+    private static Invoice AddInvoice(
+        AppDbContext db,
+        Guid customerId,
+        decimal totalAmount,
+        decimal paidAmount,
+        InvoiceStatus status = InvoiceStatus.Generated,
+        bool isDeleted = false)
+    {
+        var vehicle = EnsureVehicle(db, customerId);
+        var invoice = new Invoice
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = customerId,
+            JobCardId = Guid.NewGuid(),
+            VehicleId = vehicle.Id,
+            Vehicle = vehicle,
+            InvoiceNumber = $"INV-{DateTime.UtcNow.Year}-{Random.Shared.Next(100000, 999999)}",
+            InvoiceDate = DateTime.UtcNow.Date,
+            Subtotal = totalAmount,
+            TotalAmount = totalAmount,
+            PaidAmount = paidAmount,
+            BalanceAmount = Math.Max(0m, totalAmount - paidAmount),
+            Status = status,
+            IsDeleted = isDeleted,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (paidAmount > 0)
+        {
+            invoice.Payments.Add(new Payment
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                Amount = paidAmount,
+                PaymentMethod = PaymentMethod.Cash,
+                PaymentDate = DateTime.UtcNow,
+                IsDeleted = false
+            });
+        }
+
         db.Invoices.Add(invoice);
-        await db.SaveChangesAsync();
-
-        var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
-
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Paid", item.PaymentStatus);
-        Assert.Equal(5000m, item.InvoiceTotal);
-        Assert.Equal(5000m, item.PaidAmount);
-        Assert.Equal(0m, item.OutstandingAmount);
-        Assert.Equal(0m, history.TotalOutstandingAmount);
+        return invoice;
     }
 
     [Fact]
-    public async Task Case2_PartiallyPaidInvoice_ReturnsPendingStatusAndCorrectOutstanding()
+    public async Task EdgeCase1_CustomerWithNoInvoices_ReturnsNoInvoicesStatus()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000002", Status = JobCardStatus.Invoiced, TotalAmount = 5000m };
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000002",
-            TotalAmount = 5000m,
-            PaidAmount = 2000m,
-            BalanceAmount = 3000m,
-            Status = InvoiceStatus.PartiallyPaid
-        };
-        var payment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            InvoiceId = invoiceId,
-            Amount = 2000m,
-            PaymentMethod = PaymentMethod.Cash,
-            IsDeleted = false
-        };
-        invoice.Payments.Add(payment);
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
+        var customer = CreateCustomer(db, "Alice NoInvoices", "9876543210");
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
+        var result = await service.GetByIdAsync(customer.Id);
 
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Partially Paid", item.PaymentStatus);
-        Assert.Equal(5000m, item.InvoiceTotal);
-        Assert.Equal(2000m, item.PaidAmount);
-        Assert.Equal(3000m, item.OutstandingAmount);
+        Assert.NotNull(result);
+        Assert.Equal("No Invoices", result.PaymentStatus);
+        Assert.Equal(0, result.InvoiceCount);
+        Assert.Equal(0m, result.TotalInvoicedAmount);
+        Assert.Equal(0m, result.TotalPaidAmount);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase2_CustomerWithOneFullyPaidInvoice_ReturnsPaid()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Bob Paid", "9876543211");
+        AddInvoice(db, customer.Id, 2500m, 2500m, InvoiceStatus.Paid);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Paid", result.PaymentStatus);
+        Assert.Equal(1, result.InvoiceCount);
+        Assert.Equal(2500m, result.TotalInvoicedAmount);
+        Assert.Equal(2500m, result.TotalPaidAmount);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase3_CustomerWith10FullyPaidInvoices_ReturnsPaid()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Charlie 10Paid", "9876543212");
+        for (int i = 0; i < 10; i++)
+        {
+            AddInvoice(db, customer.Id, 1000m, 1000m, InvoiceStatus.Paid);
+        }
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Paid", result.PaymentStatus);
+        Assert.Equal(10, result.InvoiceCount);
+        Assert.Equal(10000m, result.TotalInvoicedAmount);
+        Assert.Equal(10000m, result.TotalPaidAmount);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase4_NinePaidPlusOneUnpaid_ReturnsPaymentDue()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "David 9Paid1Due", "9876543213");
+        for (int i = 0; i < 9; i++)
+        {
+            AddInvoice(db, customer.Id, 1000m, 1000m, InvoiceStatus.Paid);
+        }
+        // 1 completely unpaid invoice
+        AddInvoice(db, customer.Id, 2000m, 0m, InvoiceStatus.Generated);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Payment Due", result.PaymentStatus);
+        Assert.Equal(10, result.InvoiceCount);
+        Assert.Equal(11000m, result.TotalInvoicedAmount);
+        Assert.Equal(9000m, result.TotalPaidAmount);
+        Assert.Equal(2000m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase5_NinePaidPlusOnePartiallyPaid_ReturnsPaymentPending()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Emma 9Paid1Partial", "9876543214");
+        for (int i = 0; i < 9; i++)
+        {
+            AddInvoice(db, customer.Id, 1000m, 1000m, InvoiceStatus.Paid);
+        }
+        // 1 partially paid invoice (paid 500 of 2000)
+        AddInvoice(db, customer.Id, 2000m, 500m, InvoiceStatus.PartiallyPaid);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Payment Pending", result.PaymentStatus);
+        Assert.Equal(10, result.InvoiceCount);
+        Assert.Equal(11000m, result.TotalInvoicedAmount);
+        Assert.Equal(9500m, result.TotalPaidAmount);
+        Assert.Equal(1500m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase6_MultiplePartiallyPaidInvoices_ReturnsPaymentPending()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Frank MultiPartial", "9876543215");
+        AddInvoice(db, customer.Id, 2000m, 1000m, InvoiceStatus.PartiallyPaid);
+        AddInvoice(db, customer.Id, 3000m, 1500m, InvoiceStatus.PartiallyPaid);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Payment Pending", result.PaymentStatus);
+        Assert.Equal(2, result.InvoiceCount);
+        Assert.Equal(5000m, result.TotalInvoicedAmount);
+        Assert.Equal(2500m, result.TotalPaidAmount);
+        Assert.Equal(2500m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase7_MultipleUnpaidInvoices_ReturnsPaymentDue()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Grace MultiUnpaid", "9876543216");
+        AddInvoice(db, customer.Id, 1500m, 0m, InvoiceStatus.Generated);
+        AddInvoice(db, customer.Id, 2500m, 0m, InvoiceStatus.Generated);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Payment Due", result.PaymentStatus);
+        Assert.Equal(2, result.InvoiceCount);
+        Assert.Equal(4000m, result.TotalInvoicedAmount);
+        Assert.Equal(0m, result.TotalPaidAmount);
+        Assert.Equal(4000m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase8_OnePaidAndOneUnpaid_ReturnsPaymentDue()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Henry OnePaidOneUnpaid", "9876543217");
+        AddInvoice(db, customer.Id, 3000m, 3000m, InvoiceStatus.Paid);
+        AddInvoice(db, customer.Id, 2000m, 0m, InvoiceStatus.Generated);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Payment Due", result.PaymentStatus);
+        Assert.Equal(2, result.InvoiceCount);
+        Assert.Equal(5000m, result.TotalInvoicedAmount);
+        Assert.Equal(3000m, result.TotalPaidAmount);
+        Assert.Equal(2000m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase9_TotalTenThousandAndPaymentsTenThousand_ReturnsPaidZeroOutstanding()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Ivy TotalMatch", "9876543218");
+        AddInvoice(db, customer.Id, 6000m, 6000m, InvoiceStatus.Paid);
+        AddInvoice(db, customer.Id, 4000m, 4000m, InvoiceStatus.Paid);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Paid", result.PaymentStatus);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase10_TenThousandInvoicedSevenThousandFiveHundredPaid_ReturnsCorrectPendingOrDue()
+    {
+        using var db = CreateInMemoryDb();
+        // Case A: 1 partially paid invoice (10,000 with 7,500 paid) -> Payment Pending
+        var custA = CreateCustomer(db, "Jack Partial10k", "9876543219");
+        AddInvoice(db, custA.Id, 10000m, 7500m, InvoiceStatus.PartiallyPaid);
+
+        // Case B: 7,500 fully paid + 2,500 completely unpaid -> Payment Due
+        var custB = CreateCustomer(db, "Karen Due10k", "9876543220");
+        AddInvoice(db, custB.Id, 7500m, 7500m, InvoiceStatus.Paid);
+        AddInvoice(db, custB.Id, 2500m, 0m, InvoiceStatus.Generated);
+
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var resA = await service.GetByIdAsync(custA.Id);
+        var resB = await service.GetByIdAsync(custB.Id);
+
+        Assert.NotNull(resA);
+        Assert.Equal("Payment Pending", resA.PaymentStatus);
+        Assert.Equal(2500m, resA.TotalOutstandingAmount);
+
+        Assert.NotNull(resB);
+        Assert.Equal("Payment Due", resB.PaymentStatus);
+        Assert.Equal(2500m, resB.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase11_DeletedInvoices_DoNotAffectCustomerPaymentStatus()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Leo DeletedInv", "9876543221");
+        AddInvoice(db, customer.Id, 2000m, 2000m, InvoiceStatus.Paid);
+        // Deleted invoice with unpaid balance
+        AddInvoice(db, customer.Id, 5000m, 0m, InvoiceStatus.Generated, isDeleted: true);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("Paid", result.PaymentStatus);
+        Assert.Equal(1, result.InvoiceCount);
+        Assert.Equal(2000m, result.TotalInvoicedAmount);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task EdgeCase12_CancelledAndDraftInvoices_DoNotCreateOutstandingBalance()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "Mia CancelledDraft", "9876543222");
+        // Cancelled invoice with balance
+        AddInvoice(db, customer.Id, 5000m, 0m, InvoiceStatus.Cancelled);
+        // Draft invoice with balance
+        AddInvoice(db, customer.Id, 3000m, 0m, InvoiceStatus.Draft);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var result = await service.GetByIdAsync(customer.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("No Invoices", result.PaymentStatus);
+        Assert.Equal(0, result.InvoiceCount);
+        Assert.Equal(0m, result.TotalOutstandingAmount);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_FilteringByPaymentStatus_WorksCorrectly()
+    {
+        using var db = CreateInMemoryDb();
+        var cNoInv = CreateCustomer(db, "Filter NoInvoices", "9111111111");
+        var cPaid = CreateCustomer(db, "Filter Paid", "9222222222");
+        AddInvoice(db, cPaid.Id, 1000m, 1000m, InvoiceStatus.Paid);
+
+        var cPending = CreateCustomer(db, "Filter Pending", "9333333333");
+        AddInvoice(db, cPending.Id, 2000m, 1000m, InvoiceStatus.PartiallyPaid);
+
+        var cDue = CreateCustomer(db, "Filter Due", "9444444444");
+        AddInvoice(db, cDue.Id, 3000m, 0m, InvoiceStatus.Generated);
+
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+
+        // Test All
+        var all = await service.GetAllAsync(1, 10, null, "all");
+        Assert.Equal(4, all.Count);
+        var totalAll = await service.GetTotalCountAsync(null, "all");
+        Assert.Equal(4, totalAll);
+
+        // Test No Invoices
+        var noInv = await service.GetAllAsync(1, 10, null, "No Invoices");
+        Assert.Single(noInv);
+        Assert.Equal("Filter NoInvoices", noInv[0].Name);
+        var totalNoInv = await service.GetTotalCountAsync(null, "No Invoices");
+        Assert.Equal(1, totalNoInv);
+
+        // Test Paid
+        var paidList = await service.GetAllAsync(1, 10, null, "Paid");
+        Assert.Single(paidList);
+        Assert.Equal("Filter Paid", paidList[0].Name);
+        var totalPaid = await service.GetTotalCountAsync(null, "Paid");
+        Assert.Equal(1, totalPaid);
+
+        // Test Payment Pending
+        var pendingList = await service.GetAllAsync(1, 10, null, "Payment Pending");
+        Assert.Single(pendingList);
+        Assert.Equal("Filter Pending", pendingList[0].Name);
+        var totalPending = await service.GetTotalCountAsync(null, "Payment Pending");
+        Assert.Equal(1, totalPending);
+
+        // Test Payment Due
+        var dueList = await service.GetAllAsync(1, 10, null, "Payment Due");
+        Assert.Single(dueList);
+        Assert.Equal("Filter Due", dueList[0].Name);
+        var totalDue = await service.GetTotalCountAsync(null, "Payment Due");
+        Assert.Equal(1, totalDue);
+    }
+
+    [Fact]
+    public async Task GetHistoryAsync_ReturnsCalculatedPaymentStatusAndInvoiceCount()
+    {
+        using var db = CreateInMemoryDb();
+        var customer = CreateCustomer(db, "History Customer", "9998887776");
+        AddInvoice(db, customer.Id, 5000m, 2000m, InvoiceStatus.PartiallyPaid);
+        await db.SaveChangesAsync();
+
+        var service = new CustomerService(db, new DummyAuditLogService());
+        var history = await service.GetHistoryAsync(customer.Id);
+
+        Assert.Equal("History Customer", history.CustomerName);
+        Assert.Equal("Payment Pending", history.PaymentStatus);
+        Assert.Equal(1, history.InvoiceCount);
+        Assert.Equal(5000m, history.TotalInvoicedAmount);
+        Assert.Equal(2000m, history.TotalPaidAmount);
         Assert.Equal(3000m, history.TotalOutstandingAmount);
     }
 
     [Fact]
-    public async Task Case3_UnpaidInvoice_ReturnsPendingStatusAndFullOutstanding()
+    public async Task Scenario1_CustomerWithNoInvoices_ListAndDetailMatch()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000003", Status = JobCardStatus.Invoiced, TotalAmount = 5000m };
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000003",
-            TotalAmount = 5000m,
-            PaidAmount = 0m,
-            BalanceAmount = 5000m,
-            Status = InvoiceStatus.Generated
-        };
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
+        var customer = CreateCustomer(db, "Scenario1 ZeroInv", "9000000001");
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
 
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Payment Pending", item.PaymentStatus);
-        Assert.Equal(5000m, item.InvoiceTotal);
-        Assert.Equal(0m, item.PaidAmount);
-        Assert.Equal(5000m, item.OutstandingAmount);
-        Assert.Equal(5000m, history.TotalOutstandingAmount);
+        // Verify GET /api/customers (list)
+        var list = await service.GetAllAsync(1, 10);
+        var fromList = Assert.Single(list);
+        Assert.Equal(0, fromList.InvoiceCount);
+        Assert.Equal(0m, fromList.TotalInvoicedAmount);
+        Assert.Equal(0m, fromList.TotalPaidAmount);
+        Assert.Equal(0m, fromList.TotalOutstandingAmount);
+        Assert.Equal("No Invoices", fromList.PaymentStatus);
+
+        // Verify GET /api/customers/{id} (detail)
+        var detail = await service.GetByIdAsync(customer.Id);
+        Assert.NotNull(detail);
+        Assert.Equal(fromList.InvoiceCount, detail.InvoiceCount);
+        Assert.Equal(fromList.TotalInvoicedAmount, detail.TotalInvoicedAmount);
+        Assert.Equal(fromList.TotalPaidAmount, detail.TotalPaidAmount);
+        Assert.Equal(fromList.TotalOutstandingAmount, detail.TotalOutstandingAmount);
+        Assert.Equal(fromList.PaymentStatus, detail.PaymentStatus);
     }
 
     [Fact]
-    public async Task Case4_MultipleInvoices_CalculatesCustomerTotalOutstandingAccurately()
+    public async Task Scenario2_FullyPaidTenInvoices_ListAndDetailMatch()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-
-        var jcAId = Guid.NewGuid();
-        var jcBId = Guid.NewGuid();
-        var jcA = new JobCard { Id = jcAId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000004", Status = JobCardStatus.Invoiced, TotalAmount = 5000m };
-        var jcB = new JobCard { Id = jcBId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000005", Status = JobCardStatus.Invoiced, TotalAmount = 7000m };
-
-        var invAId = Guid.NewGuid();
-        var invBId = Guid.NewGuid();
-        var invA = new Invoice
+        var customer = CreateCustomer(db, "Scenario2 FullyPaid", "9000000002");
+        for (int i = 0; i < 10; i++)
         {
-            Id = invAId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jcAId,
-            InvoiceNumber = "INV-2026-000004",
-            TotalAmount = 5000m,
-            PaidAmount = 5000m,
-            BalanceAmount = 0m,
-            Status = InvoiceStatus.Paid
-        };
-        invA.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invAId, Amount = 5000m, PaymentMethod = PaymentMethod.UPI, IsDeleted = false });
-
-        var invB = new Invoice
-        {
-            Id = invBId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jcBId,
-            InvoiceNumber = "INV-2026-000005",
-            TotalAmount = 7000m,
-            PaidAmount = 3000m,
-            BalanceAmount = 4000m,
-            Status = InvoiceStatus.PartiallyPaid
-        };
-        invB.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invBId, Amount = 3000m, PaymentMethod = PaymentMethod.Cash, IsDeleted = false });
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.AddRange(jcA, jcB);
-        db.Invoices.AddRange(invA, invB);
+            AddInvoice(db, customer.Id, 1500m, 1500m, InvoiceStatus.Paid);
+        }
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
 
-        Assert.Equal(2, history.JobCards.Count);
-        Assert.Equal(4000m, history.TotalOutstandingAmount);
-        Assert.Equal(8000m, history.TotalPaidAmount);
-        Assert.Equal(12000m, history.TotalInvoicedAmount);
+        var list = await service.GetAllAsync(1, 10);
+        var fromList = Assert.Single(list);
+        Assert.Equal(10, fromList.InvoiceCount);
+        Assert.Equal(15000m, fromList.TotalInvoicedAmount);
+        Assert.Equal(15000m, fromList.TotalPaidAmount);
+        Assert.Equal(0m, fromList.TotalOutstandingAmount);
+        Assert.Equal("Paid", fromList.PaymentStatus);
+
+        var detail = await service.GetByIdAsync(customer.Id);
+        Assert.NotNull(detail);
+        Assert.Equal(10, detail.InvoiceCount);
+        Assert.Equal(15000m, detail.TotalInvoicedAmount);
+        Assert.Equal(15000m, detail.TotalPaidAmount);
+        Assert.Equal(0m, detail.TotalOutstandingAmount);
+        Assert.Equal("Paid", detail.PaymentStatus);
     }
 
     [Fact]
-    public async Task Case5_NoOutstandingInvoices_ReturnsZeroTotalOutstanding()
+    public async Task Scenario3_TenInvoicesWithOneCompletelyUnpaid_ListAndDetailReturnPaymentDue()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        db.Customers.Add(customer);
+        var customer = CreateCustomer(db, "Scenario3 Unpaid", "9000000003");
+        for (int i = 0; i < 9; i++)
+        {
+            AddInvoice(db, customer.Id, 1000m, 1000m, InvoiceStatus.Paid);
+        }
+        // Total outstanding 5000 with PaidAmount = 0
+        AddInvoice(db, customer.Id, 5000m, 0m, InvoiceStatus.Generated);
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
 
-        Assert.Empty(history.JobCards);
-        Assert.Equal(0m, history.TotalOutstandingAmount);
-        Assert.Equal(0m, history.TotalPaidAmount);
-        Assert.Equal(0m, history.TotalInvoicedAmount);
+        var list = await service.GetAllAsync(1, 10);
+        var fromList = Assert.Single(list);
+        Assert.Equal(10, fromList.InvoiceCount);
+        Assert.Equal(14000m, fromList.TotalInvoicedAmount);
+        Assert.Equal(9000m, fromList.TotalPaidAmount);
+        Assert.Equal(5000m, fromList.TotalOutstandingAmount);
+        Assert.Equal("Payment Due", fromList.PaymentStatus);
+
+        var detail = await service.GetByIdAsync(customer.Id);
+        Assert.NotNull(detail);
+        Assert.Equal("Payment Due", detail.PaymentStatus);
+        Assert.Equal(5000m, detail.TotalOutstandingAmount);
     }
 
     [Fact]
-    public async Task Case6_SoftDeletedPayment_DoesNotReduceOutstandingAmount()
+    public async Task Scenario4_TenInvoicesWithOnePartiallyPaid_ListAndDetailReturnPaymentPending()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000006", Status = JobCardStatus.Invoiced, TotalAmount = 5000m };
-        var invoice = new Invoice
+        var customer = CreateCustomer(db, "Scenario4 Partial", "9000000004");
+        // 9 invoices of 700 fully paid = 6,300 invoiced, 6,300 paid
+        // 1 invoice of 2,200 with 700 paid = 1,500 outstanding
+        // Total: 10 invoices, 8,500 invoiced, 7,000 paid, 1,500 outstanding, no completely unpaid invoice
+        for (int i = 0; i < 9; i++)
         {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000006",
-            TotalAmount = 5000m,
-            PaidAmount = 0m,
-            BalanceAmount = 5000m,
-            Status = InvoiceStatus.Generated
-        };
-        var deletedPayment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            InvoiceId = invoiceId,
-            Amount = 5000m,
-            PaymentMethod = PaymentMethod.UPI,
-            IsDeleted = true // Soft-deleted/voided
-        };
-        invoice.Payments.Add(deletedPayment);
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
+            AddInvoice(db, customer.Id, 700m, 700m, InvoiceStatus.Paid);
+        }
+        AddInvoice(db, customer.Id, 2200m, 700m, InvoiceStatus.PartiallyPaid);
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
 
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Payment Pending", item.PaymentStatus);
-        Assert.Equal(0m, item.PaidAmount);
-        Assert.Equal(5000m, item.OutstandingAmount);
-        Assert.Equal(5000m, history.TotalOutstandingAmount);
+        var list = await service.GetAllAsync(1, 10);
+        var fromList = Assert.Single(list);
+        Assert.Equal(10, fromList.InvoiceCount);
+        Assert.Equal(8500m, fromList.TotalInvoicedAmount);
+        Assert.Equal(7000m, fromList.TotalPaidAmount);
+        Assert.Equal(1500m, fromList.TotalOutstandingAmount);
+        Assert.Equal("Payment Pending", fromList.PaymentStatus);
+
+        var detail = await service.GetByIdAsync(customer.Id);
+        Assert.NotNull(detail);
+        Assert.Equal("Payment Pending", detail.PaymentStatus);
+        Assert.Equal(8500m, detail.TotalInvoicedAmount);
+        Assert.Equal(7000m, detail.TotalPaidAmount);
+        Assert.Equal(1500m, detail.TotalOutstandingAmount);
     }
 
     [Fact]
-    public async Task Case7_JobCardWithNoInvoice_IsNotReturnedInFinancialHistory()
+    public async Task Scenario5_RealBugRegression_Rahul3Invoices_ListAndDetailReconcileIdenticalTotals()
     {
         using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
+        var rahul = CreateCustomer(db, "Rahul", "1234567890");
+        var vehicle = EnsureVehicle(db, rahul.Id);
 
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000007", Status = JobCardStatus.InProgress, TotalAmount = 4500m };
+        // Invoice 1: 4,897.00 invoiced, 4,897.00 paid
+        AddInvoice(db, rahul.Id, 4897.00m, 4897.00m, InvoiceStatus.Paid);
 
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
+        // Invoice 2: 7,852.90 invoiced, 0.00 paid (Generated, completely unpaid)
+        AddInvoice(db, rahul.Id, 7852.90m, 0.00m, InvoiceStatus.Generated);
+
+        // Invoice 3: 7,085.90 invoiced, 7,085.90 paid
+        AddInvoice(db, rahul.Id, 7085.90m, 7085.90m, InvoiceStatus.Paid);
+
         await db.SaveChangesAsync();
 
         var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
 
-        // Invoices only: Uninvoiced JobCard is NOT returned as a financial history record
-        Assert.Empty(history.JobCards);
-        Assert.Equal(1, history.TotalJobCards);
-        Assert.Equal(0m, history.TotalOutstandingAmount);
-        Assert.Equal(0m, history.TotalPaidAmount);
-        Assert.Equal(0m, history.TotalInvoicedAmount);
-    }
+        // 1. Verify GET /api/customers (list endpoint)
+        var list = await service.GetAllAsync(1, 10);
+        Assert.Single(list);
+        var fromList = list[0];
 
-    [Fact]
-    public async Task Case8_CancelledInvoice_ReturnsCancelledStatusAndZeroOutstanding()
-    {
-        using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
+        Assert.Equal(3, fromList.InvoiceCount);
+        Assert.Equal(19835.80m, fromList.TotalInvoicedAmount);
+        Assert.Equal(11982.90m, fromList.TotalPaidAmount);
+        Assert.Equal(7852.90m, fromList.TotalOutstandingAmount);
+        Assert.Equal("Payment Due", fromList.PaymentStatus);
 
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000008", Status = JobCardStatus.Ready, TotalAmount = 5000m };
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000008",
-            TotalAmount = 5000m,
-            PaidAmount = 0m,
-            BalanceAmount = 5000m,
-            Status = InvoiceStatus.Cancelled
-        };
+        // Must never return 0/default values on the list
+        Assert.NotEqual(0, fromList.InvoiceCount);
+        Assert.NotEqual(0m, fromList.TotalOutstandingAmount);
+        Assert.NotEqual("No Invoices", fromList.PaymentStatus);
 
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
-        await db.SaveChangesAsync();
+        // 2. Verify GET /api/customers/{id} (detail endpoint)
+        var fromDetail = await service.GetByIdAsync(rahul.Id);
+        Assert.NotNull(fromDetail);
+        Assert.Equal(fromList.InvoiceCount, fromDetail.InvoiceCount);
+        Assert.Equal(fromList.TotalInvoicedAmount, fromDetail.TotalInvoicedAmount);
+        Assert.Equal(fromList.TotalPaidAmount, fromDetail.TotalPaidAmount);
+        Assert.Equal(fromList.TotalOutstandingAmount, fromDetail.TotalOutstandingAmount);
+        Assert.Equal(fromList.PaymentStatus, fromDetail.PaymentStatus);
 
-        var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
+        // 3. Verify GET /api/customers/by-phone/{phoneNumber}
+        var fromPhone = await service.GetByPhoneAsync(rahul.PhoneNumber);
+        Assert.NotNull(fromPhone);
+        Assert.Equal(fromList.InvoiceCount, fromPhone.InvoiceCount);
+        Assert.Equal(fromList.TotalOutstandingAmount, fromPhone.TotalOutstandingAmount);
+        Assert.Equal(fromList.PaymentStatus, fromPhone.PaymentStatus);
 
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Cancelled", item.PaymentStatus);
-        Assert.Equal(invoiceId, item.InvoiceId);
-        Assert.Equal(0m, history.TotalOutstandingAmount);
-    }
+        // 4. Verify GET /api/customers/by-registration/{reg}
+        var fromReg = await service.GetByRegistrationAsync(vehicle.RegistrationNumber);
+        Assert.NotNull(fromReg);
+        Assert.Equal(fromList.InvoiceCount, fromReg.InvoiceCount);
+        Assert.Equal(fromList.TotalOutstandingAmount, fromReg.TotalOutstandingAmount);
+        Assert.Equal(fromList.PaymentStatus, fromReg.PaymentStatus);
 
-    [Fact]
-    public async Task Case9_InvoiceLinkedViaJobCardId_ResolvedCorrectlyEvenIfCustomerIdDiffers()
-    {
-        using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var otherCustomerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
+        // 5. Verify GET /api/customers/{id}/history
+        var fromHistory = await service.GetHistoryAsync(rahul.Id);
+        Assert.Equal(fromList.InvoiceCount, fromHistory.InvoiceCount);
+        Assert.Equal(fromList.TotalInvoicedAmount, fromHistory.TotalInvoicedAmount);
+        Assert.Equal(fromList.TotalPaidAmount, fromHistory.TotalPaidAmount);
+        Assert.Equal(fromList.TotalOutstandingAmount, fromHistory.TotalOutstandingAmount);
+        Assert.Equal(fromList.PaymentStatus, fromHistory.PaymentStatus);
 
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN01AB1234", Make = "Hyundai", Model = "Creta" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000009", Status = JobCardStatus.Invoiced, TotalAmount = 6000m };
-        
-        // Invoice was created referencing the JobCardId, but CustomerId had previous owner
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = otherCustomerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000009",
-            TotalAmount = 6000m,
-            PaidAmount = 2000m,
-            BalanceAmount = 4000m,
-            Status = InvoiceStatus.PartiallyPaid
-        };
-        invoice.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invoiceId, Amount = 2000m, PaymentMethod = PaymentMethod.Cash, IsDeleted = false });
+        // 6. Verify Filters
+        // A customer with outstanding balance must NOT appear in the Paid filter
+        var paidResults = await service.GetAllAsync(1, 10, paymentStatus: "Paid");
+        Assert.Empty(paidResults);
+        var paidCount = await service.GetTotalCountAsync(paymentStatus: "Paid");
+        Assert.Equal(0, paidCount);
 
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
-        await db.SaveChangesAsync();
+        // Rahul must appear in Payment Due
+        var dueResults = await service.GetAllAsync(1, 10, paymentStatus: "Payment Due");
+        Assert.Single(dueResults);
+        Assert.Equal("Rahul", dueResults[0].Name);
+        var dueCount = await service.GetTotalCountAsync(paymentStatus: "Payment Due");
+        Assert.Equal(1, dueCount);
 
-        var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
-
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("Partially Paid", item.PaymentStatus);
-        Assert.Equal(invoiceId, item.InvoiceId);
-        Assert.Equal("INV-2026-000009", item.InvoiceNumber);
-        Assert.Equal(6000m, item.InvoiceTotal);
-        Assert.Equal(2000m, item.PaidAmount);
-        Assert.Equal(4000m, item.OutstandingAmount);
-        Assert.Equal(4000m, history.TotalOutstandingAmount);
-    }
-
-    [Fact]
-    public async Task Case10_ExactScenario_Rahul_JC2026000028_INV2026000023_PartiallyPaid()
-    {
-        using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var jobCardId = Guid.NewGuid();
-        var invoiceId = Guid.NewGuid();
-
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN12A1234", Make = "Maruti", Model = "Swift" };
-        var jobCard = new JobCard { Id = jobCardId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000028", Status = JobCardStatus.Invoiced, TotalAmount = 7085.90m };
-        var invoice = new Invoice
-        {
-            Id = invoiceId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jobCardId,
-            InvoiceNumber = "INV-2026-000023",
-            TotalAmount = 7085.90m,
-            PaidAmount = 2000.00m,
-            BalanceAmount = 5085.90m,
-            Status = InvoiceStatus.PartiallyPaid
-        };
-        invoice.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invoiceId, Amount = 2000.00m, PaymentMethod = PaymentMethod.UPI, IsDeleted = false });
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.Add(jobCard);
-        db.Invoices.Add(invoice);
-        await db.SaveChangesAsync();
-
-        var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
-
-        Assert.Single(history.JobCards);
-        var item = history.JobCards[0];
-        Assert.Equal("JC-2026-000028", item.JobCardNumber);
-        Assert.Equal("INV-2026-000023", item.InvoiceNumber);
-        Assert.Equal(invoiceId, item.InvoiceId);
-        Assert.Equal("Partially Paid", item.PaymentStatus);
-        Assert.Equal(7085.90m, item.InvoiceTotal);
-        Assert.Equal(2000.00m, item.PaidAmount);
-        Assert.Equal(5085.90m, item.OutstandingAmount);
-        Assert.Equal(5085.90m, history.TotalOutstandingAmount);
-    }
-
-    [Fact]
-    public async Task Case11_CustomerWithBothInvoicedAndUninvoicedJobCards_ReturnsOnlyInvoicedItems()
-    {
-        using var db = CreateInMemoryDb();
-        var customerId = Guid.NewGuid();
-        var vehicleId = Guid.NewGuid();
-        var customer = new Customer { Id = customerId, Name = "Rahul", PhoneNumber = "9876543210" };
-        var vehicle = new Vehicle { Id = vehicleId, CustomerId = customerId, RegistrationNumber = "TN12A1234", Make = "Maruti", Model = "Swift" };
-
-        var jcAId = Guid.NewGuid();
-        var jcBId = Guid.NewGuid();
-        var jcCId = Guid.NewGuid();
-
-        var jcA = new JobCard { Id = jcAId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000028", Status = JobCardStatus.Invoiced, TotalAmount = 7085.90m };
-        var jcB = new JobCard { Id = jcBId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000015", Status = JobCardStatus.Invoiced, TotalAmount = 104030.01m };
-        var jcC = new JobCard { Id = jcCId, CustomerId = customerId, VehicleId = vehicleId, JobCardNumber = "JC-2026-000014", Status = JobCardStatus.InProgress, TotalAmount = 4897.00m };
-
-        var invAId = Guid.NewGuid();
-        var invBId = Guid.NewGuid();
-
-        var invA = new Invoice
-        {
-            Id = invAId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jcAId,
-            InvoiceNumber = "INV-2026-000023",
-            TotalAmount = 7085.90m,
-            PaidAmount = 1000.00m,
-            BalanceAmount = 6085.90m,
-            Status = InvoiceStatus.PartiallyPaid
-        };
-        invA.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invAId, Amount = 1000.00m, PaymentMethod = PaymentMethod.Cash, IsDeleted = false });
-
-        var invB = new Invoice
-        {
-            Id = invBId,
-            CustomerId = customerId,
-            VehicleId = vehicleId,
-            JobCardId = jcBId,
-            InvoiceNumber = "INV-2026-000022",
-            TotalAmount = 104030.01m,
-            PaidAmount = 104030.01m,
-            BalanceAmount = 0.00m,
-            Status = InvoiceStatus.Paid
-        };
-        invB.Payments.Add(new Payment { Id = Guid.NewGuid(), InvoiceId = invBId, Amount = 104030.01m, PaymentMethod = PaymentMethod.UPI, IsDeleted = false });
-
-        db.Customers.Add(customer);
-        db.Vehicles.Add(vehicle);
-        db.JobCards.AddRange(jcA, jcB, jcC);
-        db.Invoices.AddRange(invA, invB);
-        await db.SaveChangesAsync();
-
-        var service = new CustomerService(db, new DummyAuditLogService());
-        var history = await service.GetHistoryAsync(customerId);
-
-        // TotalJobCards reflects all 3 job cards
-        Assert.Equal(3, history.TotalJobCards);
-        // Financial history contains ONLY the 2 invoices, Job Card C (uninvoiced) is NOT present
-        Assert.Equal(2, history.JobCards.Count);
-
-        var inv23 = history.JobCards.FirstOrDefault(i => i.InvoiceNumber == "INV-2026-000023");
-        Assert.NotNull(inv23);
-        Assert.Equal("Partially Paid", inv23.PaymentStatus);
-        Assert.Equal(7085.90m, inv23.TotalAmount);
-        Assert.Equal(1000.00m, inv23.PaidAmount);
-        Assert.Equal(6085.90m, inv23.OutstandingAmount);
-
-        var inv22 = history.JobCards.FirstOrDefault(i => i.InvoiceNumber == "INV-2026-000022");
-        Assert.NotNull(inv22);
-        Assert.Equal("Paid", inv22.PaymentStatus);
-        Assert.Equal(104030.01m, inv22.TotalAmount);
-        Assert.Equal(104030.01m, inv22.PaidAmount);
-        Assert.Equal(0.00m, inv22.OutstandingAmount);
-
-        Assert.Equal(6085.90m, history.TotalOutstandingAmount);
-        Assert.Equal(105030.01m, history.TotalPaidAmount);
-        Assert.Equal(111115.91m, history.TotalInvoicedAmount);
+        // Must not appear in Payment Pending or No Invoices
+        var pendingResults = await service.GetAllAsync(1, 10, paymentStatus: "Payment Pending");
+        Assert.Empty(pendingResults);
+        var noInvResults = await service.GetAllAsync(1, 10, paymentStatus: "No Invoices");
+        Assert.Empty(noInvResults);
     }
 }

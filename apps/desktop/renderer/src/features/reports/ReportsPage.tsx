@@ -12,6 +12,7 @@ import {
 	Download,
 	RefreshCw,
 	AlertCircle,
+	Truck,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { getDashboardSummary } from '../../lib/api';
@@ -21,9 +22,10 @@ import { BillingReportsView } from './BillingReportsView';
 import { StaffReportsView } from './StaffReportsView';
 import { ShowroomReportsView } from './ShowroomReportsView';
 import { CustomReportsView } from './CustomReportsView';
+import { OutsideJobsReportsView } from './OutsideJobsReportsView';
 import * as XLSX from 'xlsx';
 
-export type ReportType = 'dashboard' | 'business' | 'billing' | 'staff' | 'showroom' | 'custom';
+export type ReportType = 'dashboard' | 'business' | 'billing' | 'staff' | 'showroom' | 'outside-jobs' | 'custom';
 export type DatePreset = 'today' | '7d' | '30d' | 'month' | 'year' | 'custom';
 
 function formatINR(val?: number | null): string {
@@ -91,13 +93,14 @@ export function ReportsPage() {
 	// Determine active report type from query param or pathname
 	const activeType: ReportType = useMemo(() => {
 		const param = searchParams.get('type');
-		if (param === 'business' || param === 'billing' || param === 'staff' || param === 'showroom' || param === 'custom') {
+		if (param === 'business' || param === 'billing' || param === 'staff' || param === 'showroom' || param === 'outside-jobs' || param === 'custom') {
 			return param;
 		}
 		if (location.pathname.endsWith('/business')) return 'business';
 		if (location.pathname.endsWith('/billing')) return 'billing';
 		if (location.pathname.endsWith('/staff')) return 'staff';
 		if (location.pathname.endsWith('/showroom')) return 'showroom';
+		if (location.pathname.endsWith('/outside-jobs')) return 'outside-jobs';
 		if (location.pathname.endsWith('/custom')) return 'custom';
 		return 'dashboard';
 	}, [searchParams, location.pathname]);
@@ -360,6 +363,19 @@ export function ReportsPage() {
 
 				<button
 					type="button"
+					onClick={() => handleTabSelect('outside-jobs')}
+					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+						activeType === 'outside-jobs'
+							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+					}`}
+				>
+					<Truck className="w-4 h-4" />
+					<span>Outside Jobs</span>
+				</button>
+
+				<button
+					type="button"
 					onClick={() => handleTabSelect('custom')}
 					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
 						activeType === 'custom'
@@ -428,6 +444,13 @@ export function ReportsPage() {
 				<ShowroomReportsView
 					data={dashboardData}
 					isLoading={isLoading}
+					bounds={bounds}
+					formatINR={formatINR}
+				/>
+			)}
+
+			{activeType === 'outside-jobs' && (
+				<OutsideJobsReportsView
 					bounds={bounds}
 					formatINR={formatINR}
 				/>

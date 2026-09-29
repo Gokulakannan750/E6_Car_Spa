@@ -14,6 +14,7 @@ import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/job_card_model.dart';
+import '../widgets/vehicle_location_badge.dart';
 import '../../providers/job_card_providers.dart';
 
 class JobCardsScreen extends ConsumerStatefulWidget {
@@ -284,15 +285,22 @@ class _JobCardCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              '(${jobCard.vehicleDisplayName})',
-                              style: AppTextStyles.bodySmall,
+                            Flexible(
+                              child: Text(
+                                '(${jobCard.vehicleDisplayName})',
+                                style: AppTextStyles.bodySmall,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        VehicleLocationBadge(location: jobCard.vehicleLocation),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 12),
                   // Total Amount
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -319,3 +327,4 @@ class _JobCardCard extends StatelessWidget {
     );
   }
 }
+

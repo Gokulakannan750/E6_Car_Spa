@@ -17,6 +17,7 @@ class CustomerListState {
   final int page;
   final int pageSize;
   final String searchQuery;
+  final String? paymentStatus;
   final String? errorMessage;
 
   const CustomerListState({
@@ -27,6 +28,7 @@ class CustomerListState {
     this.page = 1,
     this.pageSize = 20,
     this.searchQuery = '',
+    this.paymentStatus,
     this.errorMessage,
   });
 
@@ -38,6 +40,8 @@ class CustomerListState {
     int? page,
     int? pageSize,
     String? searchQuery,
+    String? paymentStatus,
+    bool clearPaymentStatus = false,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -49,6 +53,7 @@ class CustomerListState {
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
       searchQuery: searchQuery ?? this.searchQuery,
+      paymentStatus: clearPaymentStatus ? null : (paymentStatus ?? this.paymentStatus),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -65,6 +70,7 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
     bool refresh = false,
     bool silent = false,
     String? search,
+    String? paymentStatus,
   }) async {
     if (!mounted) return;
     if (silent) {
@@ -77,10 +83,12 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
 
     try {
       final effectiveSearch = search ?? (state.searchQuery.isEmpty ? null : state.searchQuery);
+      final effectivePaymentStatus = paymentStatus ?? state.paymentStatus;
       final response = await _repository.getCustomers(
         page: state.page,
         pageSize: state.pageSize,
         search: effectiveSearch,
+        paymentStatus: effectivePaymentStatus,
       );
 
       if (!mounted) return;
@@ -114,6 +122,17 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
     if (!mounted) return;
     state = state.copyWith(searchQuery: query);
     loadCustomers(search: query.trim().isEmpty ? null : query.trim());
+  }
+
+  void filterByPaymentStatus(String? status) {
+    if (!mounted) return;
+    if (status == null || status.isEmpty || status == 'All') {
+      state = state.copyWith(clearPaymentStatus: true);
+      loadCustomers(paymentStatus: '');
+    } else {
+      state = state.copyWith(paymentStatus: status);
+      loadCustomers(paymentStatus: status);
+    }
   }
 
   Future<Customer> createCustomer(CreateCustomerRequest request) async {

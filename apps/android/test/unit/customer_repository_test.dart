@@ -27,6 +27,7 @@ class FakeCustomerApi extends CustomerApi {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     lastPage = page;
     lastPageSize = pageSize;

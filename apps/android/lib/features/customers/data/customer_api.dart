@@ -10,11 +10,13 @@ class CustomerApi {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     final queryParameters = <String, dynamic>{
       'page': page,
       'pageSize': pageSize,
       if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      if (paymentStatus != null && paymentStatus.trim().isNotEmpty) 'paymentStatus': paymentStatus.trim(),
     };
 
     final response = await _dio.get(

@@ -17,6 +17,8 @@ import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/edit_job_card_sheet.dart';
+import '../widgets/outside_jobs_section.dart';
+import '../widgets/vehicle_location_badge.dart';
 
 class JobCardDetailsScreen extends ConsumerStatefulWidget {
   final String jobCardId;
@@ -396,6 +398,8 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                                 jc.vehicle.displayName,
                                 style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
                               ),
+                              const SizedBox(height: 8),
+                              VehicleLocationBadge(location: jc.vehicleLocation),
                             ],
                           ),
                         ),
@@ -526,6 +530,15 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 16),
+
+            // ── Outside Jobs Section ────────────────────────────────────
+            OutsideJobsSection(
+              jobCardId: widget.jobCardId,
+              vehicleRegistration: jc.vehicle.registrationNumber,
+              vehicleModel: jc.vehicle.displayName,
+              isLocked: jc.isLocked,
+            ),
             const SizedBox(height: 24),
           ],
         ),

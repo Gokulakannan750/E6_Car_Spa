@@ -18,6 +18,7 @@ class _FakeCustomerRepo extends CustomerRepository {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     return const CustomerListResponse(
       items: [],
@@ -33,7 +34,7 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false;
   });
 
-  testWidgets('CustomersScreen renders header, search field and customer cards', (tester) async {
+  testWidgets('CustomersScreen renders header, search field, filter chips, and customer cards with payment status', (tester) async {
     const mockCustomers = [
       Customer(
         id: 'c-1',
@@ -41,6 +42,11 @@ void main() {
         phoneNumber: '9876543210',
         email: 'ramesh@example.com',
         vehicleCount: 2,
+        invoiceCount: 10,
+        totalInvoicedAmount: 15000,
+        totalPaidAmount: 15000,
+        totalOutstandingAmount: 0,
+        paymentStatus: 'Paid',
       ),
       Customer(
         id: 'c-2',
@@ -48,6 +54,11 @@ void main() {
         phoneNumber: '9876543211',
         email: null,
         vehicleCount: 1,
+        invoiceCount: 6,
+        totalInvoicedAmount: 8500,
+        totalPaidAmount: 7000,
+        totalOutstandingAmount: 1500,
+        paymentStatus: 'Payment Pending',
       ),
     ];
 
@@ -81,14 +92,25 @@ void main() {
     expect(find.text('Customers'), findsWidgets);
     expect(find.text('2 customers'), findsOneWidget);
 
+    // Verify Filter Chips
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Payment Pending'), findsWidgets);
+    expect(find.text('Payment Due'), findsOneWidget);
+    expect(find.text('No Invoices'), findsOneWidget);
+
     // Verify Customer Cards
     expect(find.text('Ramesh Kumar'), findsOneWidget);
     expect(find.text('9876543210'), findsOneWidget);
     expect(find.text('2 vehicles'), findsOneWidget);
+    expect(find.text('10 inv'), findsOneWidget);
+    expect(find.text('₹0'), findsOneWidget);
+    expect(find.text('Paid'), findsWidgets);
 
     expect(find.text('Suresh Babu'), findsOneWidget);
     expect(find.text('9876543211'), findsOneWidget);
     expect(find.text('1 vehicle'), findsOneWidget);
+    expect(find.text('6 inv'), findsOneWidget);
+    expect(find.text('₹1,500'), findsOneWidget);
 
     // Verify Floating Action Button
     expect(find.text('Add Customer'), findsOneWidget);
@@ -135,6 +157,7 @@ class _StubCustomerListNotifier extends CustomerListNotifier {
     bool refresh = false,
     bool silent = false,
     String? search,
+    String? paymentStatus,
   }) async {
     // Stubbed
   }

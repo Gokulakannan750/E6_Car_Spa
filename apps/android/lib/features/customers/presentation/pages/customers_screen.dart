@@ -82,6 +82,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
               color: AppColors.card,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AppSearchField(
                     controller: _searchController,
@@ -92,6 +93,44 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
                       notifier.search('');
                     },
                   ),
+                  const SizedBox(height: 10),
+                  // Payment Status Filter Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildStatusChip(
+                          'All',
+                          state.paymentStatus == null || state.paymentStatus!.isEmpty,
+                          () => notifier.filterByPaymentStatus(null),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildStatusChip(
+                          'Paid',
+                          state.paymentStatus == 'Paid',
+                          () => notifier.filterByPaymentStatus('Paid'),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildStatusChip(
+                          'Payment Pending',
+                          state.paymentStatus == 'Payment Pending',
+                          () => notifier.filterByPaymentStatus('Payment Pending'),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildStatusChip(
+                          'Payment Due',
+                          state.paymentStatus == 'Payment Due',
+                          () => notifier.filterByPaymentStatus('Payment Due'),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildStatusChip(
+                          'No Invoices',
+                          state.paymentStatus == 'No Invoices',
+                          () => notifier.filterByPaymentStatus('No Invoices'),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,7 +138,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
                       Text(
                         state.searchQuery.isNotEmpty
                             ? 'Search results for "${state.searchQuery}"'
-                            : 'All Customers',
+                            : (state.paymentStatus != null && state.paymentStatus!.isNotEmpty
+                                ? '${state.paymentStatus} Customers'
+                                : 'All Customers'),
                         style: AppTextStyles.labelMedium,
                       ),
                       Text(
@@ -134,6 +175,30 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
     );
   }
 
+  Widget _buildStatusChip(String label, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTextStyles.labelSmall.copyWith(
+            color: isSelected ? AppColors.textOnPrimary : AppColors.textPrimary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody(CustomerListState state, CustomerListNotifier notifier) {
     if (state.isLoading && !state.isRefreshing) {
       return const AppLoadingState(message: 'Loading customers...');
@@ -151,7 +216,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
         title: 'No customers found',
         message: state.searchQuery.isNotEmpty
             ? 'No customer records matching "${state.searchQuery}".'
-            : 'Customers are automatically registered when creating a job card.',
+            : (state.paymentStatus != null && state.paymentStatus!.isNotEmpty
+                ? 'No customers with payment status "${state.paymentStatus}".'
+                : 'Customers are automatically registered when creating a job card.'),
         icon: Icons.people_outline,
       );
     }
@@ -179,6 +246,14 @@ class _CustomerCard extends StatelessWidget {
     required this.customer,
     required this.onTap,
   });
+
+  String _formatOutstanding(double amount) {
+    if (amount <= 0) return '₹0';
+    if (amount == amount.truncateToDouble()) {
+      return '₹${amount.toInt().toString().replaceAllMapped(RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))(\.\d+)?'), (m) => '${m[1]},')}';
+    }
+    return '₹${amount.toStringAsFixed(2)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,31 +332,120 @@ class _CustomerCard extends StatelessWidget {
                 ),
               ),
 
-              // Badges & Arrow
+              // Badges & Financial Info
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Text(
-                      '${customer.vehicleCount} vehicle${customer.vehicleCount != 1 ? 's' : ''}',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
+                  _CustomerPaymentStatusBadge(status: customer.paymentStatus),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatOutstanding(customer.totalOutstandingAmount),
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: customer.totalOutstandingAmount > 0
+                          ? Colors.amber.shade900
+                          : AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
+                  const SizedBox(height: 3),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(
+                          '${customer.invoiceCount} inv',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(
+                          '${customer.vehicleCount} vehicle${customer.vehicleCount != 1 ? 's' : ''}',
+                          style: AppTextStyles.labelSmall.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomerPaymentStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _CustomerPaymentStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color bg;
+    Color border;
+    Color text;
+
+    switch (status) {
+      case 'Paid':
+        bg = Colors.green.shade50;
+        border = Colors.green.shade300;
+        text = Colors.green.shade800;
+        break;
+      case 'Payment Pending':
+        bg = Colors.amber.shade50;
+        border = Colors.amber.shade300;
+        text = Colors.amber.shade900;
+        break;
+      case 'Payment Due':
+        bg = Colors.red.shade50;
+        border = Colors.red.shade300;
+        text = Colors.red.shade800;
+        break;
+      case 'No Invoices':
+      default:
+        bg = Colors.grey.shade100;
+        border = Colors.grey.shade300;
+        text = Colors.grey.shade700;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: text,
         ),
       ),
     );

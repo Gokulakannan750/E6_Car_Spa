@@ -204,4 +204,22 @@ public class ReportsController : ControllerBase
         var result = await _reportService.GetMonthlyShowroomReportAsync(year, month, showroomId, fromDate, toDate, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Outside Jobs and External Vehicle Movement operational and vendor summary report.
+    /// </summary>
+    [HttpGet("outside-jobs")]
+    [RequirePermission("reports.view")]
+    [EnableRateLimiting("reports-heavy")]
+    public async Task<IActionResult> GetOutsideJobsReport(
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        [FromQuery] Guid? vendorId = null,
+        [FromQuery] Guid? vehicleId = null,
+        [FromQuery] OutsideJobStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var result = await _reportService.GetOutsideJobsReportAsync(fromDate, toDate, vendorId, vehicleId, status, ct);
+        return Ok(result);
+    }
 }

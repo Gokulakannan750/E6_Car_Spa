@@ -5,6 +5,7 @@ namespace CarSpaManagement.Api.Application.DTOs.Invoices;
 public record InvoiceItemDto(
  Guid Id,
  Guid? ServiceId,
+ Guid? OutsideJobId,
  string Description,
  int Quantity,
  decimal UnitPrice,

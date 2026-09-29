@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'outside_job_model.dart';
 
 enum JobCardStatus {
   draft(0, 'Draft'),
@@ -175,6 +176,7 @@ class JobCard {
   final String? invoiceStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final VehicleLocation? vehicleLocation;
 
   const JobCard({
     required this.id,
@@ -193,6 +195,7 @@ class JobCard {
     this.invoiceStatus,
     this.createdAt,
     this.updatedAt,
+    this.vehicleLocation,
   });
 
   bool get isLocked {
@@ -241,6 +244,11 @@ class JobCard {
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())
           : (json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt'].toString()) : null),
+      vehicleLocation: (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
+          ? VehicleLocation.fromJson(
+              Map<String, dynamic>.from(
+                  (json['vehicleLocation'] ?? json['VehicleLocation']) as Map))
+          : null,
     );
   }
 }
@@ -261,6 +269,7 @@ class JobCardListItem {
   final String? invoiceNumber;
   final String? invoiceStatus;
   final DateTime? createdAt;
+  final VehicleLocation? vehicleLocation;
 
   const JobCardListItem({
     required this.id,
@@ -277,6 +286,7 @@ class JobCardListItem {
     this.invoiceNumber,
     this.invoiceStatus,
     this.createdAt,
+    this.vehicleLocation,
   }) : _vehicleDisplayName = vehicleDisplayName;
 
   String get vehicleDisplayName =>
@@ -324,6 +334,11 @@ class JobCardListItem {
           : (json['CreatedAt'] != null
               ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
               : DateTime.now()),
+      vehicleLocation: (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
+          ? VehicleLocation.fromJson(
+              Map<String, dynamic>.from(
+                  (json['vehicleLocation'] ?? json['VehicleLocation']) as Map))
+          : null,
     );
   }
 }

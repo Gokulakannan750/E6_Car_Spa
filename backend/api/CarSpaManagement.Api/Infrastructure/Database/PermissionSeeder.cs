@@ -29,6 +29,10 @@ public static class PermissionSeeder
         ("jobcards.edit", "Edit Job Cards", "Job Cards", "Allows editing and updating job cards"),
         ("jobcards.delete", "Delete Job Cards", "Job Cards", "Allows deleting job cards"),
         ("jobcards.print", "Print Job Cards", "Job Cards", "Allows printing job cards"),
+        ("outsidejobs.view", "View Outside Jobs", "Job Cards", "Allows viewing outside jobs and external vehicle movement"),
+        ("outsidejobs.manage", "Manage Outside Jobs", "Job Cards", "Allows sending vehicles outside, recording returns, and managing outside jobs"),
+        ("vendors.view", "View Vendors", "Vendors", "Allows viewing external service providers and vendors"),
+        ("vendors.manage", "Manage Vendors", "Vendors", "Allows creating and managing external vendors"),
 
         // Catalogue
         ("catalogue.view", "View Catalogue", "Catalogue", "Allows viewing services and catalogue items"),

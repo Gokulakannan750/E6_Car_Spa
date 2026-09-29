@@ -66,5 +66,15 @@ public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
 			.WithMany()
 			.HasForeignKey(ii => ii.ServiceId)
 			.OnDelete(DeleteBehavior.Restrict);
+
+		builder.Property(ii => ii.OutsideJobId);
+
+		builder.HasIndex(ii => ii.OutsideJobId)
+			.HasDatabaseName("IX_InvoiceItems_OutsideJobId");
+
+		builder.HasOne(ii => ii.OutsideJob)
+			.WithMany()
+			.HasForeignKey(ii => ii.OutsideJobId)
+			.OnDelete(DeleteBehavior.Restrict);
 	}
 }

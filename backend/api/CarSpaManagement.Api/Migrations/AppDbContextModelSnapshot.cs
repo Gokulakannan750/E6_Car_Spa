@@ -607,6 +607,113 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("JobCardServices", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OutsideJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpectedReturnAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("JobCardId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ReturnNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReturnedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReturnedByUserName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("SentAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("SentByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SentByUserName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("VendorCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("SentAt")
+                        .HasDatabaseName("IX_OutsideJobs_SentAt");
+
+                    b.HasIndex("ServiceId");
+
+                    b.HasIndex("ExpectedReturnAt", "Status")
+                        .HasDatabaseName("IX_OutsideJobs_ExpectedReturnAt_Status");
+
+                    b.HasIndex("JobCardId", "Status")
+                        .HasDatabaseName("IX_OutsideJobs_JobCardId_Status");
+
+                    b.HasIndex("VehicleId", "Status")
+                        .HasDatabaseName("IX_OutsideJobs_VehicleId_Status");
+
+                    b.HasIndex("VendorId", "Status")
+                        .HasDatabaseName("IX_OutsideJobs_VendorId_Status");
+
+                    b.ToTable("OutsideJobs", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1909,6 +2016,61 @@ namespace CarSpaManagement.Api.Migrations
                     b.ToTable("Vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vendor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ServiceSpecialty")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_Vendors_IsActive");
+
+                    b.HasIndex("Name")
+                        .HasDatabaseName("IX_Vendors_Name");
+
+                    b.ToTable("Vendors", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppConfiguration", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2194,6 +2356,48 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("JobCard");
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OutsideJob", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.JobCard", "JobCard")
+                        .WithMany("OutsideJobs")
+                        .HasForeignKey("JobCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Vendor", "Vendor")
+                        .WithMany("OutsideJobs")
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("JobCard");
+
+                    b.Navigation("Service");
+
+                    b.Navigation("Vehicle");
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Payment", b =>
@@ -2571,6 +2775,8 @@ namespace CarSpaManagement.Api.Migrations
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.JobCard", b =>
                 {
                     b.Navigation("JobCardServices");
+
+                    b.Navigation("OutsideJobs");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Permission", b =>
@@ -2641,6 +2847,11 @@ namespace CarSpaManagement.Api.Migrations
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vehicle", b =>
                 {
                     b.Navigation("JobCards");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vendor", b =>
+                {
+                    b.Navigation("OutsideJobs");
                 });
 #pragma warning restore 612, 618
         }

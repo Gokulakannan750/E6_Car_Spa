@@ -33,13 +33,13 @@ public class CustomersController : ControllerBase
 
  [HttpGet]
  [RequirePermission("customers.view")]
- public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, CancellationToken ct = default)
+ public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? paymentStatus = null, CancellationToken ct = default)
  {
  if (page < 1) page = 1;
  if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
- var items = await _service.GetAllAsync(page, pageSize, search, ct);
- var total = await _service.GetTotalCountAsync(search, ct);
+ var items = await _service.GetAllAsync(page, pageSize, search, paymentStatus, ct);
+ var total = await _service.GetTotalCountAsync(search, paymentStatus, ct);
  return Ok(new CustomerListResponse(items, total, page, pageSize));
  }
 

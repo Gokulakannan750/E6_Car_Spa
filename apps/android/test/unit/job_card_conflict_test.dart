@@ -105,6 +105,7 @@ class StubCustomerRepo extends CustomerRepository {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     return const CustomerListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
   }

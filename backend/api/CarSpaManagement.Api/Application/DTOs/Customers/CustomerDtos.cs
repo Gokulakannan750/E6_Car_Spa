@@ -2,7 +2,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Application.DTOs.Customers;
 
-public record CustomerDto(Guid Id, string Name, string PhoneNumber, string? Email, string? Address, DateTime CreatedAt, int VehicleCount, int JobCardCount, decimal TotalRevenue, IReadOnlyList<string>? VehicleRegistrationNumbers = null);
+public record CustomerDto(
+	Guid Id,
+	string Name,
+	string PhoneNumber,
+	string? Email,
+	string? Address,
+	DateTime CreatedAt,
+	int VehicleCount,
+	int JobCardCount,
+	decimal TotalRevenue,
+	IReadOnlyList<string>? VehicleRegistrationNumbers = null,
+	int InvoiceCount = 0,
+	decimal TotalInvoicedAmount = 0m,
+	decimal TotalPaidAmount = 0m,
+	decimal TotalOutstandingAmount = 0m,
+	string PaymentStatus = "No Invoices"
+);
 
 public record CreateCustomerRequest
 {
@@ -61,5 +77,7 @@ public record CustomerHistoryResponse(
  IReadOnlyList<CustomerJobCardHistoryItemDto> JobCards,
  decimal TotalOutstandingAmount = 0m,
  decimal TotalPaidAmount = 0m,
- decimal TotalInvoicedAmount = 0m
+ decimal TotalInvoicedAmount = 0m,
+ string PaymentStatus = "No Invoices",
+ int InvoiceCount = 0
 );

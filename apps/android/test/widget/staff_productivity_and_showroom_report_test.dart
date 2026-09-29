@@ -6,8 +6,6 @@ import 'package:e6_car_spa/features/reports/models/showroom_report_model.dart';
 import 'package:e6_car_spa/features/reports/presentation/pages/staff_productivity_screen.dart';
 import 'package:e6_car_spa/features/reports/presentation/pages/showroom_report_screen.dart';
 import 'package:e6_car_spa/features/reports/providers/reports_provider.dart';
-import 'package:e6_car_spa/features/showroom/models/showroom_model.dart';
-import 'package:e6_car_spa/features/showroom/providers/showroom_provider.dart';
 
 void main() {
   final testStaffProductivityData = StaffProductivityReportResponseModel(

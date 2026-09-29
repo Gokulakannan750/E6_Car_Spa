@@ -46,6 +46,7 @@ class _MockCustomerRepository extends CustomerRepository {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     getCustomersCalls++;
     var list = customers;

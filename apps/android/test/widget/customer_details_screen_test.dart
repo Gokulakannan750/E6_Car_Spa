@@ -742,9 +742,14 @@ void main() {
       // Verify breakdown text
       expect(find.text('Paid: ₹5000.00 · Pending: ₹2852.90'), findsOneWidget);
 
+      // Verify Payment Summary Card
+      expect(find.text('Payment Summary'), findsOneWidget);
+      expect(find.text('Total Invoiced'), findsOneWidget);
+      expect(find.text('Total Paid'), findsOneWidget);
+
       // Verify Outstanding Amount Card
       expect(find.text('Outstanding Amount'), findsOneWidget);
-      expect(find.text('₹2852.90'), findsOneWidget);
+      expect(find.text('₹2852.90'), findsWidgets);
       expect(find.text('Pending Payment'), findsOneWidget);
 
       // Verify filter chips

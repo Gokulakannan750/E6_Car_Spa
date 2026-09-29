@@ -29,6 +29,11 @@ describe('JobCardsPage Component', () => {
 			invoiceNumber: null,
 			invoiceStatus: null,
 			createdAt: '2026-02-01T10:00:00Z',
+			vehicleLocation: {
+				location: 'At Showroom',
+				isOutside: false,
+				isOverdue: false,
+			},
 		},
 		{
 			id: 'jc-2',
@@ -44,6 +49,12 @@ describe('JobCardsPage Component', () => {
 			invoiceNumber: 'INV-2026-0001',
 			invoiceStatus: 'Generated',
 			createdAt: '2026-02-02T11:00:00Z',
+			vehicleLocation: {
+				location: 'At Outside Shop',
+				isOutside: true,
+				isOverdue: false,
+				vendorName: 'Sri Lakshmi Auto Works',
+			},
 		},
 		{
 			id: 'jc-3',
@@ -59,6 +70,12 @@ describe('JobCardsPage Component', () => {
 			invoiceNumber: '',
 			invoiceStatus: 'Draft',
 			createdAt: '2026-02-03T12:00:00Z',
+			vehicleLocation: {
+				location: 'At Outside Shop',
+				isOutside: true,
+				isOverdue: true,
+				vendorName: 'Speedy Windshield Specialists',
+			},
 		},
 	];
 
@@ -82,10 +99,14 @@ describe('JobCardsPage Component', () => {
 			expect(screen.getByText('Gokul Sharma')).toBeInTheDocument();
 			expect(screen.getByText('Hyundai Creta')).toBeInTheDocument();
 			expect(screen.getByText('TN01AB1234')).toBeInTheDocument();
-			expect(screen.getByText('₹2,500')).toBeInTheDocument();
+			expect(screen.getByText('Our Showroom')).toBeInTheDocument();
+			expect(screen.queryByText('₹2,500')).not.toBeInTheDocument();
 
 			expect(screen.getByText('JC-2026-0002')).toBeInTheDocument();
 			expect(screen.getByText('Anand Kumar')).toBeInTheDocument();
+			expect(screen.getAllByText(/Outside Workshop/).length).toBe(2);
+			expect(screen.getByText(/Overdue/)).toBeInTheDocument();
+			expect(screen.getByText(/Sri Lakshmi Auto Works/)).toBeInTheDocument();
 		});
 	});
 

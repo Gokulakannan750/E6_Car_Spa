@@ -375,7 +375,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
 
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
       return response;
-    } on ApiException catch (e) {
+    } on ApiException {
       if (!mounted) return null;
       state = state.copyWith(
         isConfirming: false,
@@ -407,7 +407,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
 
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
       return response;
-    } on ApiException catch (e) {
+    } on ApiException {
       if (!mounted) return null;
       state = state.copyWith(
         isUnlocking: false,

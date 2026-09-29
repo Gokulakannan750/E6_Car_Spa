@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Edit2, Download, X, Lock, FileText } from 'lucide-react';
+import { ArrowLeft, Printer, Edit2, Download, X, Lock, FileText, Truck, CheckCircle2, Plus } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +11,8 @@ import {
 	type JobCardDto,
 	type ServiceDto,
 } from '../../lib/api';
+import { OutsideJobsSection, type OutsideJobsSectionHandle } from './OutsideJobsSection';
+import { ServicePickerDialog } from './ServicePickerDialog';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 function getJobCardStatusColor(status: number): { bg: string; text: string; border: string } {
@@ -290,10 +292,10 @@ export default function JobCardDetails() {
 	const [editingServices, setEditingServices] = useState<ServiceRow[]>([]);
 	const [editingNotes, setEditingNotes] = useState('');
 	const [showServicePicker, setShowServicePicker] = useState(false);
-	const [serviceSearch, setServiceSearch] = useState('');
 	const [isSaving, setIsSaving] = useState(false);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
 
+	const outsideJobsRef = useRef<OutsideJobsSectionHandle>(null);
 	const savedServicesRef = useRef<ServiceRow[]>([]);
 	const savedNotesRef = useRef<string>('');
 
@@ -322,6 +324,8 @@ export default function JobCardDetails() {
 			}));
 			setEditingServices(mapped);
 			setEditingNotes(jobCard.notes ?? '');
+			savedServicesRef.current = mapped;
+			savedNotesRef.current = jobCard.notes ?? '';
 		}
 	}, [jobCard, isEditing]);
 
@@ -330,12 +334,17 @@ export default function JobCardDetails() {
 		[editingServices],
 	);
 
-	const taxTotal = useMemo(
-		() => editingServices.reduce((sum, s) => sum + s.unitPrice * s.quantity * (s.taxPercentage / 100), 0),
+	const discountTotal = useMemo(
+		() => editingServices.reduce((sum, s) => sum + (s.discountAmount || 0), 0),
 		[editingServices],
 	);
 
-	const total = subtotal + taxTotal;
+	const taxTotal = useMemo(
+		() => editingServices.reduce((sum, s) => sum + (s.unitPrice * s.quantity * (s.taxPercentage / 100)), 0),
+		[editingServices],
+	);
+
+	const total = subtotal - discountTotal + taxTotal;
 
 	const isLocked = useMemo(() => (jobCard ? isJobCardLocked(jobCard) : false), [jobCard]);
 
@@ -352,7 +361,7 @@ export default function JobCardDetails() {
 			await updateJobCardServices(id, editingServices.map((s) => ({
 				serviceId: s.serviceId,
 				quantity: s.quantity,
-				discountAmount: 0,
+				discountAmount: s.discountAmount ?? 0,
 			})));
 			await queryClient.invalidateQueries({ queryKey: ['job-card', id] });
 			await queryClient.invalidateQueries({ queryKey: ['job-cards'] });
@@ -388,9 +397,16 @@ export default function JobCardDetails() {
 
 	const addService = useCallback(
 		(svc: ServiceDto) => {
-			setEditingServices((prev) => [...prev, emptyServiceRow(svc)]);
+			setEditingServices((prev) => {
+				const existingIndex = prev.findIndex((s) => s.serviceId === svc.id);
+				if (existingIndex >= 0) {
+					return prev.map((s, idx) =>
+						idx === existingIndex ? { ...s, quantity: s.quantity + 1 } : s,
+					);
+				}
+				return [...prev, emptyServiceRow(svc)];
+			});
 			setShowServicePicker(false);
-			setServiceSearch('');
 		},
 		[],
 	);
@@ -402,15 +418,6 @@ export default function JobCardDetails() {
 	const updateServiceQty = useCallback((index: number, qty: number) => {
 		setEditingServices((prev) => prev.map((s, i) => (i === index ? { ...s, quantity: Math.max(1, qty) } : s)));
 	}, []);
-
-	const filteredServices = useMemo(() => {
-		if (!serviceCatalog) return [];
-		if (!serviceSearch.trim()) return serviceCatalog.items;
-		const lower = serviceSearch.toLowerCase();
-		return serviceCatalog.items.filter(
-			(s) => (s.category?.toLowerCase().includes(lower) || s.name.toLowerCase().includes(lower)),
-		);
-	}, [serviceCatalog, serviceSearch]);
 
 	if (!id) return <div className="p-8 text-center text-error">Invalid job card ID</div>;
 
@@ -462,6 +469,33 @@ export default function JobCardDetails() {
 									Locked
 								</span>
 							)}
+							{/* Location Badge */}
+							{jobCard.vehicleLocation?.isOutside ? (
+								<span
+									className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold border ${
+										jobCard.vehicleLocation.isOverdue
+											? 'bg-red-500/10 border-red-500/30 text-red-800'
+											: 'bg-amber-500/10 border-amber-500/30 text-amber-800'
+									}`}
+									data-testid="header-location-badge"
+								>
+									<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+									At Outside Shop ({jobCard.vehicleLocation.vendorName || 'External'})
+									{jobCard.vehicleLocation.isOverdue && (
+										<span className="text-[10px] bg-red-600 text-white px-1.5 rounded font-bold">
+											OVERDUE
+										</span>
+									)}
+								</span>
+							) : (
+								<span
+									className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-800"
+									data-testid="header-location-badge"
+								>
+									<span className="w-2 h-2 rounded-full bg-emerald-500" />
+									At Showroom
+								</span>
+							)}
 						</div>
 						<p className="font-medium text-sm text-on-surface-variant">
 							Created {formatDate(jobCard.createdAt)}
@@ -473,7 +507,11 @@ export default function JobCardDetails() {
 							<>
 								{!isLocked ? (
 									<button
-										onClick={() => setIsEditing(true)}
+										onClick={() => {
+											savedServicesRef.current = [...editingServices];
+											savedNotesRef.current = editingNotes;
+											setIsEditing(true);
+										}}
 										className="flex items-center gap-1.5 border border-on-surface text-on-surface font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-surface-variant transition-colors"
 									>
 										<Edit2 className="w-4 h-4" />
@@ -492,6 +530,25 @@ export default function JobCardDetails() {
 									>
 										<FileText className="w-4 h-4 text-secondary" />
 										View Invoice {jobCard.invoiceNumber ? `(#${jobCard.invoiceNumber})` : ''}
+									</button>
+								)}
+								{jobCard.vehicleLocation?.isOutside ? (
+									<button
+										onClick={() => outsideJobsRef.current?.openReturnModal()}
+										className="flex items-center gap-1.5 bg-emerald-600 text-white font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-emerald-700 transition-colors shadow-sm"
+										data-testid="header-btn-mark-returned"
+									>
+										<CheckCircle2 className="w-4 h-4" />
+										Mark Vehicle Returned
+									</button>
+								) : (
+									<button
+										onClick={() => outsideJobsRef.current?.openSendModal()}
+										className="flex items-center gap-1.5 border border-secondary text-secondary font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-secondary/10 transition-colors"
+										data-testid="header-btn-send-outside"
+									>
+										<Truck className="w-4 h-4" />
+										Send Vehicle Outside
 									</button>
 								)}
 								<button
@@ -530,8 +587,10 @@ export default function JobCardDetails() {
 								<h2 className="text-lg font-semibold text-headline-sm text-on-surface">Services</h2>
 								{isEditing && (
 									<button
+										type="button"
 										onClick={() => setShowServicePicker(true)}
-										className="text-sm font-semibold text-secondary hover:underline flex items-center gap-1"
+										className="text-sm font-semibold text-secondary hover:underline flex items-center gap-1 cursor-pointer"
+										data-testid="header-btn-add-service"
 									>
 										<span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
 										Add Service
@@ -590,7 +649,48 @@ export default function JobCardDetails() {
 									))}
 								</tbody>
 							</table>
+
+							{editingServices.length === 0 ? (
+								<div className="p-8 text-center text-on-surface-variant">
+									<p className="text-sm mb-3">No services added to this job card yet.</p>
+									{isEditing && (
+										<Button
+											type="button"
+											variant="secondary"
+											size="sm"
+											icon={<Plus className="w-3.5 h-3.5" />}
+											onClick={() => setShowServicePicker(true)}
+											data-testid="btn-add-service-empty"
+										>
+											+ Add Service
+										</Button>
+									)}
+								</div>
+							) : isEditing ? (
+								<div className="p-4 border-t border-outline-variant bg-surface-container-lowest/50 flex justify-start">
+									<Button
+										type="button"
+										variant="secondary"
+										size="sm"
+										icon={<Plus className="w-3.5 h-3.5" />}
+										onClick={() => setShowServicePicker(true)}
+										data-testid="btn-add-service-bottom"
+									>
+										+ Add Service
+									</Button>
+								</div>
+							) : null}
 						</div>
+
+						{/* Outside Jobs & Movement Lifecycle */}
+						<OutsideJobsSection
+							ref={outsideJobsRef}
+							jobCardId={jobCard.id}
+							vehicleRegistration={jobCard.vehicle?.registrationNumber || ''}
+							vehicleModel={`${jobCard.vehicle?.make || ''} ${jobCard.vehicle?.model || ''}`.trim()}
+							isLocked={isLocked}
+							onUpdated={refetch}
+						/>
 
 						{/* Notes Section */}
 						<div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-6">
@@ -635,19 +735,31 @@ export default function JobCardDetails() {
 						)}
 
 						<div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-6">
-							<h2 className="text-lg font-semibold text-headline-sm text-on-surface mb-4">Customer & Vehicle</h2>
+							<div className="flex items-center justify-between mb-4">
+								<h2 className="text-lg font-semibold text-headline-sm text-on-surface">Customer & Vehicle</h2>
+								{jobCard.vehicleLocation?.isOutside ? (
+									<span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-800 border border-amber-500/30">
+										Outside
+									</span>
+								) : (
+									<span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-800 border border-emerald-500/30">
+										Showroom
+									</span>
+								)}
+							</div>
 							<div className="space-y-3">
 								<div className="flex items-center gap-2">
 									<span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>person</span>
-									<span className="text-sm text-on-surface">{jobCard.customer.name}</span>
+									<span className="text-sm text-on-surface">{jobCard.customer?.name}</span>
 								</div>
-								{jobCard.vehicle.registrationNumber && (
+								{jobCard.vehicle?.registrationNumber && (
 									<div className="flex items-center gap-2">
 										<span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>directions_car</span>
 										<span className="text-sm text-on-surface-variant font-mono">{jobCard.vehicle.registrationNumber}</span>
+										<span className="text-xs text-on-surface-variant font-medium">({jobCard.vehicle.make} {jobCard.vehicle.model})</span>
 									</div>
 								)}
-								{(jobCard.customer.phoneNumber || jobCard.customer.phone) && (
+								{(jobCard.customer?.phoneNumber || jobCard.customer?.phone) && (
 									<div className="flex items-center gap-2">
 										<span className="material-symbols-outlined text-outline" style={{ fontSize: '18px' }}>phone</span>
 										<span className="text-sm text-on-surface-variant">
@@ -655,6 +767,60 @@ export default function JobCardDetails() {
 										</span>
 									</div>
 								)}
+
+								{/* Vehicle Movement Location Section */}
+								<div className="pt-3 border-t border-outline-variant mt-2">
+									<div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+										<Truck className="w-3.5 h-3.5 text-secondary" />
+										Vehicle Location
+									</div>
+									{jobCard.vehicleLocation?.isOutside ? (
+										<div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2.5 text-xs text-amber-900 space-y-1">
+											<div className="flex items-center justify-between font-semibold">
+												<span className="flex items-center gap-1">
+													<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+													At Outside Shop
+												</span>
+												{jobCard.vehicleLocation.isOverdue && (
+													<span className="bg-red-600 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">OVERDUE</span>
+												)}
+											</div>
+											<div><strong>Vendor:</strong> {jobCard.vehicleLocation.vendorName || 'Outside Shop'}</div>
+											{jobCard.vehicleLocation.serviceName && <div><strong>Service:</strong> {jobCard.vehicleLocation.serviceName}</div>}
+											<button
+												type="button"
+												onClick={() => outsideJobsRef.current?.openReturnModal()}
+												className="mt-1.5 w-full bg-emerald-600 text-white text-xs font-semibold py-1.5 px-2.5 rounded hover:bg-emerald-700 transition-colors text-center block cursor-pointer"
+											>
+												Mark Vehicle Returned
+											</button>
+										</div>
+									) : (
+										<div className="bg-surface-container-low border border-outline-variant rounded-lg p-2.5 text-xs text-on-surface flex items-center justify-between">
+											<span className="flex items-center gap-1.5 font-medium text-emerald-700">
+												<span className="w-2 h-2 rounded-full bg-emerald-500" />
+												At Showroom
+											</span>
+											<button
+												type="button"
+												disabled={isLocked}
+												onClick={() => {
+													if (isLocked) return;
+													outsideJobsRef.current?.openSendModal();
+												}}
+												className={
+													isLocked
+														? 'text-on-surface-variant/40 cursor-not-allowed text-xs font-semibold'
+														: 'text-secondary font-semibold hover:underline cursor-pointer'
+												}
+												title={isLocked ? 'Job Card is locked because an invoice has been generated.' : undefined}
+												data-testid="btn-vehicle-location-send-outside"
+											>
+												Send Outside &rarr;
+											</button>
+										</div>
+									)}
+								</div>
 							</div>
 						</div>
 
@@ -666,8 +832,14 @@ export default function JobCardDetails() {
 									<span className="text-on-surface-variant">Subtotal</span>
 									<span className="text-on-surface">{formatCurrency(subtotal)}</span>
 								</div>
+								{discountTotal > 0 && (
+									<div className="flex justify-between text-sm">
+										<span className="text-on-surface-variant">Discount</span>
+										<span className="text-emerald-700 font-medium">-{formatCurrency(discountTotal)}</span>
+									</div>
+								)}
 								<div className="flex justify-between text-sm">
-									<span className="text-on-surface-variant">Tax</span>
+									<span className="text-on-surface-variant">Tax (18%)</span>
 									<span className="text-on-surface">{formatCurrency(taxTotal)}</span>
 								</div>
 								<div className="border-t border-outline-variant pt-3 flex justify-between">
@@ -679,48 +851,13 @@ export default function JobCardDetails() {
 					</div>
 				</div>
 
-				{/* Service Picker Modal */}
-				{showServicePicker && (
-					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowServicePicker(false)}>
-						<div className="bg-surface rounded-xl shadow-xl p-6 max-w-lg w-full mx-4 max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-							<h3 className="text-lg font-semibold text-headline-sm text-on-surface mb-3">Add Service</h3>
-							<div className="relative mb-3">
-								<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" style={{ fontSize: '18px' }}>search</span>
-								<input
-									className="w-full bg-surface-container-low border border-outline-variant rounded-lg pl-10 pr-3 py-2 text-sm focus:border-secondary focus:ring-1 focus:ring-secondary"
-									placeholder="Search services…"
-									value={serviceSearch}
-									onChange={(e) => setServiceSearch(e.target.value)}
-									autoFocus
-								/>
-							</div>
-							<div className="overflow-y-auto flex-1 border border-outline-variant rounded-lg">
-								{filteredServices.length === 0 ? (
-									<p className="p-4 text-center text-on-surface-variant text-sm">No services found</p>
-								) : (
-									filteredServices.map((svc) => (
-										<button
-											key={svc.id}
-											onClick={() => addService(svc)}
-											className="w-full text-left px-4 py-3 hover:bg-surface-variant transition-colors border-b border-outline-variant last:border-b-0"
-										>
-											<div className="text-sm font-medium text-on-surface">{svc.name}</div>
-											<div className="flex items-center justify-between mt-1">
-												<span className="text-xs text-on-surface-variant">{svc.category}</span>
-												<span className="text-sm font-semibold text-secondary">{formatCurrency(svc.price)}</span>
-											</div>
-										</button>
-									))
-								)}
-							</div>
-							<div className="flex justify-end mt-3">
-								<button onClick={() => setShowServicePicker(false)} className="px-4 py-2 border border-outline-variant rounded text-on-surface text-sm hover:bg-surface-variant transition-colors">
-									Cancel
-								</button>
-							</div>
-						</div>
-					</div>
-				)}
+				{/* Service Picker Dialog */}
+				<ServicePickerDialog
+					open={showServicePicker}
+					onOpenChange={setShowServicePicker}
+					onSelectService={addService}
+					initialCatalog={serviceCatalog?.items}
+				/>
 			</div>
 
 			{/* ═════════════════════════════════════════════════════════════════ */}

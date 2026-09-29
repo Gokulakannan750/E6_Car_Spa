@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Service> Services => Set<Service>();
     public DbSet<JobCard> JobCards => Set<JobCard>();
     public DbSet<JobCardService> JobCardServices => Set<JobCardService>();
+    public DbSet<OutsideJob> OutsideJobs => Set<OutsideJob>();
+    public DbSet<Vendor> Vendors => Set<Vendor>();
     public DbSet<Staff> Staff => Set<Staff>();
     public DbSet<StaffAdvance> StaffAdvances => Set<StaffAdvance>();
     public DbSet<StaffSalarySettlement> StaffSalarySettlements => Set<StaffSalarySettlement>();

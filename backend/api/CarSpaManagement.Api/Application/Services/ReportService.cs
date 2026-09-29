@@ -1905,5 +1905,135 @@ public class ReportService : IReportService
             Showrooms: showroomDetails
         );
     }
+
+    public async Task<OutsideJobReportResponse> GetOutsideJobsReportAsync(
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        Guid? vendorId = null,
+        Guid? vehicleId = null,
+        OutsideJobStatus? status = null,
+        CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var query = _db.OutsideJobs
+            .Include(o => o.JobCard)
+            .Include(o => o.Vehicle)
+            .Include(o => o.Customer)
+            .Include(o => o.Vendor)
+            .Where(o => !o.IsDeleted)
+            .AsQueryable();
+
+        if (status.HasValue) query = query.Where(o => o.Status == status.Value);
+        if (vendorId.HasValue) query = query.Where(o => o.VendorId == vendorId.Value);
+        if (vehicleId.HasValue) query = query.Where(o => o.VehicleId == vehicleId.Value);
+
+        if (fromDate.HasValue)
+        {
+            var fromUtc = DateTime.SpecifyKind(fromDate.Value.Date, DateTimeKind.Utc);
+            query = query.Where(o => o.SentAt >= fromUtc);
+        }
+
+        if (toDate.HasValue)
+        {
+            var toUtc = DateTime.SpecifyKind(toDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+            query = query.Where(o => o.SentAt <= toUtc);
+        }
+
+        var allJobs = await query
+            .OrderByDescending(o => o.SentAt)
+            .ToListAsync(ct);
+
+        // 1. Currently Outside
+        var currentlyOutsideList = allJobs
+            .Where(o => o.Status == OutsideJobStatus.Outside)
+            .Select(o => {
+                var isOverdue = now > o.ExpectedReturnAt;
+                var overdueHours = isOverdue ? Math.Round((now - o.ExpectedReturnAt).TotalHours, 1) : 0;
+                return new CurrentlyOutsideJobDto(
+                    o.Id,
+                    o.JobCardId,
+                    o.JobCard?.JobCardNumber ?? string.Empty,
+                    o.VehicleId,
+                    o.Vehicle?.RegistrationNumber ?? string.Empty,
+                    $"{o.Vehicle?.Make} {o.Vehicle?.Model}".Trim(),
+                    o.CustomerId,
+                    o.Customer?.Name ?? string.Empty,
+                    o.Customer?.PhoneNumber ?? string.Empty,
+                    o.VendorId,
+                    o.Vendor?.Name ?? string.Empty,
+                    o.Vendor?.Phone,
+                    o.ServiceName,
+                    o.SentAt,
+                    o.ExpectedReturnAt,
+                    isOverdue,
+                    overdueHours,
+                    o.VendorCost,
+                    o.Notes);
+            })
+            .ToList();
+
+        // 2. History
+        var historyList = allJobs
+            .Select(o => {
+                double? durationHours = null;
+                if (o.ReturnedAt.HasValue)
+                {
+                    durationHours = Math.Round((o.ReturnedAt.Value - o.SentAt).TotalHours, 1);
+                }
+                return new OutsideJobHistoryReportDto(
+                    o.Id,
+                    o.JobCardId,
+                    o.JobCard?.JobCardNumber ?? string.Empty,
+                    o.VehicleId,
+                    o.Vehicle?.RegistrationNumber ?? string.Empty,
+                    $"{o.Vehicle?.Make} {o.Vehicle?.Model}".Trim(),
+                    o.CustomerId,
+                    o.Customer?.Name ?? string.Empty,
+                    o.Customer?.PhoneNumber ?? string.Empty,
+                    o.VendorId,
+                    o.Vendor?.Name ?? string.Empty,
+                    o.ServiceName,
+                    o.Status,
+                    o.Status.ToString(),
+                    o.SentAt,
+                    o.ReturnedAt,
+                    o.ExpectedReturnAt,
+                    durationHours,
+                    o.VendorCost,
+                    o.SentByUserName,
+                    o.ReturnedByUserName,
+                    o.Notes,
+                    o.ReturnNotes);
+            })
+            .ToList();
+
+        // 3. Vendor Summary
+        var vendorGroups = allJobs
+            .GroupBy(o => new { o.VendorId, VendorName = o.Vendor?.Name ?? "Unknown", Phone = o.Vendor?.Phone })
+            .Select(g => new OutsideJobVendorSummaryDto(
+                VendorId: g.Key.VendorId,
+                VendorName: g.Key.VendorName,
+                Phone: g.Key.Phone,
+                TotalJobs: g.Count(),
+                CompletedJobs: g.Count(x => x.Status == OutsideJobStatus.Returned),
+                CurrentlyOutside: g.Count(x => x.Status == OutsideJobStatus.Outside),
+                OverdueJobs: g.Count(x => x.Status == OutsideJobStatus.Outside && now > x.ExpectedReturnAt),
+                CancelledJobs: g.Count(x => x.Status == OutsideJobStatus.Cancelled),
+                TotalVendorCost: g.Sum(x => x.VendorCost ?? 0m)))
+            .OrderByDescending(v => v.TotalJobs)
+            .ToList();
+
+        var totalActiveCost = currentlyOutsideList.Sum(x => x.VendorCost ?? 0m);
+        var totalHistoricalCost = allJobs.Sum(x => x.VendorCost ?? 0m);
+
+        return new OutsideJobReportResponse(
+            CurrentlyOutside: currentlyOutsideList,
+            History: historyList,
+            VendorSummary: vendorGroups,
+            TotalOutsideCount: currentlyOutsideList.Count,
+            TotalOverdueCount: currentlyOutsideList.Count(x => x.IsOverdue),
+            TotalActiveCost: totalActiveCost,
+            TotalHistoricalCost: totalHistoricalCost);
+    }
 }
 

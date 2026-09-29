@@ -199,7 +199,7 @@ class _ShowroomSwapHistoryModalSheetState
                         : ListView.separated(
                             padding: const EdgeInsets.all(16),
                             itemCount: _swaps.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, _) => const SizedBox(height: 10),
                             itemBuilder: (ctx, index) {
                               final swap = _swaps[index];
                               return InkWell(

@@ -90,6 +90,8 @@ builder.Services.AddScoped<IShowroomService, ShowroomService>();
 builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
+builder.Services.AddScoped<IVendorService, VendorService>();
+builder.Services.AddScoped<IOutsideJobService, OutsideJobService>();
 builder.Services.AddScoped<ISystemPreferenceService, SystemPreferenceService>();
 
 // WhatsApp Options & Startup Validation
@@ -482,6 +484,52 @@ using (var scope = app.Services.CreateScope())
 			db.SystemPreferences.Add(prefs);
 			await db.SaveChangesAsync();
 			Log.Information("Seeded canonical default System Preferences");
+		}
+
+		if (!await db.Vendors.AnyAsync())
+		{
+			var defaultVendors = new List<Vendor>
+			{
+				new Vendor
+				{
+					Id = Guid.NewGuid(),
+					Name = "Sri Lakshmi Auto Works",
+					Phone = "9842712345",
+					ContactPerson = "Ramesh Kumar",
+					Address = "Perundurai Road, Erode",
+					ServiceSpecialty = "Denting & Painting",
+					IsActive = true,
+					CreatedAt = DateTime.UtcNow,
+					UpdatedAt = DateTime.UtcNow
+				},
+				new Vendor
+				{
+					Id = Guid.NewGuid(),
+					Name = "Sri Krishna Wheel Alignment & Tyres",
+					Phone = "9443356789",
+					ContactPerson = "Senthil Nathan",
+					Address = "Bhavani Main Road, Erode",
+					ServiceSpecialty = "Wheel Alignment & Balancing",
+					IsActive = true,
+					CreatedAt = DateTime.UtcNow,
+					UpdatedAt = DateTime.UtcNow
+				},
+				new Vendor
+				{
+					Id = Guid.NewGuid(),
+					Name = "Erode Auto Electricians & AC",
+					Phone = "9842498765",
+					ContactPerson = "Murugan",
+					Address = "Sathy Road, Erode",
+					ServiceSpecialty = "Electrical & AC Work",
+					IsActive = true,
+					CreatedAt = DateTime.UtcNow,
+					UpdatedAt = DateTime.UtcNow
+				}
+			};
+			db.Vendors.AddRange(defaultVendors);
+			await db.SaveChangesAsync();
+			Log.Information("Seeded default external service providers/vendors");
 		}
 	}
  catch (Exception ex)

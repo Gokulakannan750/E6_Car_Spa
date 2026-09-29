@@ -325,6 +325,19 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: '/reports/outside-jobs',
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="reports.view">
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
 				path: '/reports/custom',
 				lazy: async () => {
 					const m = await loadReports();

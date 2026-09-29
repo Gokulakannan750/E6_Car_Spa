@@ -24,9 +24,15 @@ class CustomerRepository {
     int page = 1,
     int pageSize = 20,
     String? search,
+    String? paymentStatus,
   }) async {
     try {
-      return await _api.getCustomers(page: page, pageSize: pageSize, search: search);
+      return await _api.getCustomers(
+        page: page,
+        pageSize: pageSize,
+        search: search,
+        paymentStatus: paymentStatus,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

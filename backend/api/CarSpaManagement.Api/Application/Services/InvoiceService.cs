@@ -120,6 +120,7 @@ public class InvoiceService : IInvoiceService
 			.Include(j => j.Customer)
 			.Include(j => j.Vehicle)
 			.Include(j => j.JobCardServices)
+			.Include(j => j.OutsideJobs)
 			.FirstOrDefaultAsync(j => j.Id == request.JobCardId, cancellationToken);
 
 		if (jobCard is null)
@@ -162,6 +163,38 @@ public class InvoiceService : IInvoiceService
 				};
 			})
 			.ToList();
+
+		// Add billable outside jobs (Returned status with a final vendor cost)
+		var eligibleOutsideJobs = (jobCard.OutsideJobs ?? Enumerable.Empty<OutsideJob>())
+			.Where(oj => !oj.IsDeleted
+				&& oj.Status == OutsideJobStatus.Returned
+				&& oj.VendorCost.HasValue
+				&& oj.VendorCost.Value > 0)
+			.ToList();
+
+		foreach (var oj in eligibleOutsideJobs)
+		{
+			var ojBase = Math.Round(oj.VendorCost!.Value, 2);
+			var ojTaxRate = isGstEnabled ? 18m : 0m;
+			var ojTax = isGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
+			var ojTotal = ojBase + ojTax;
+
+			invoiceItems.Add(new InvoiceItem
+			{
+				Id = Guid.NewGuid(),
+				OutsideJobId = oj.Id,
+				Description = oj.ServiceName,
+				Quantity = 1,
+				UnitPrice = ojBase,
+				Discount = 0m,
+				TaxableAmount = ojBase,
+				TaxAmount = ojTax,
+				TotalAmount = ojTotal,
+				CreatedAt = now,
+				UpdatedAt = now,
+				IsDeleted = false
+			});
+		}
 
 		var subtotal = Math.Round(invoiceItems.Sum(i => i.UnitPrice * i.Quantity), 2);
 		var invoiceDiscount = 0m;
@@ -291,6 +324,8 @@ public class InvoiceService : IInvoiceService
 			.Include(i => i.InvoiceItems)
 			.Include(i => i.JobCard)
 				.ThenInclude(j => j.JobCardServices)
+			.Include(i => i.JobCard)
+				.ThenInclude(j => j.OutsideJobs)
 			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
 		if (invoice is null || invoice.IsDeleted)
@@ -299,6 +334,50 @@ public class InvoiceService : IInvoiceService
 		// Duplicate generation protection
 		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
 			throw new InvalidOperationException("Invoice has already been generated.");
+
+		// Sync any newly-returned outside jobs that aren't already on the invoice
+		if (invoice.JobCard?.OutsideJobs != null)
+		{
+			var existingOjIds = invoice.InvoiceItems
+				.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue)
+				.Select(it => it.OutsideJobId!.Value)
+				.ToHashSet();
+
+			var newEligibleOjs = invoice.JobCard.OutsideJobs
+				.Where(oj => !oj.IsDeleted
+					&& oj.Status == OutsideJobStatus.Returned
+					&& oj.VendorCost.HasValue
+					&& oj.VendorCost.Value > 0
+					&& !existingOjIds.Contains(oj.Id))
+				.ToList();
+
+			var syncNow = DateTime.UtcNow;
+			foreach (var oj in newEligibleOjs)
+			{
+				var ojBase = Math.Round(oj.VendorCost!.Value, 2);
+				var ojTaxRate = invoice.IsGstEnabled ? 18m : 0m;
+				var ojTax = invoice.IsGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
+				var ojTotal = ojBase + ojTax;
+
+				var ojItem = new InvoiceItem
+				{
+					Id = Guid.NewGuid(),
+					InvoiceId = invoice.Id,
+					OutsideJobId = oj.Id,
+					Description = oj.ServiceName,
+					Quantity = 1,
+					UnitPrice = ojBase,
+					Discount = 0m,
+					TaxableAmount = ojBase,
+					TaxAmount = ojTax,
+					TotalAmount = ojTotal,
+					CreatedAt = syncNow,
+					UpdatedAt = syncNow,
+					IsDeleted = false
+				};
+				invoice.InvoiceItems.Add(ojItem);
+			}
+		}
 
 		// Recalculate & validate final financial amounts
 		var subtotal = Math.Round(invoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
@@ -760,6 +839,7 @@ public class InvoiceService : IInvoiceService
 		i.InvoiceItems.Select(it => new InvoiceItemDto(
 			it.Id,
 			it.ServiceId,
+			it.OutsideJobId,
 			it.Description,
 			it.Quantity,
 			it.UnitPrice,

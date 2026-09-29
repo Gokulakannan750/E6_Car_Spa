@@ -12,6 +12,9 @@ public class InvoiceItem : BaseEntity
 	public Guid? ServiceId { get; set; }
 	public Service? Service { get; set; }
 
+	public Guid? OutsideJobId { get; set; }
+	public OutsideJob? OutsideJob { get; set; }
+
 	[Required]
 	[MaxLength(100)]
 	public string Description { get; set; } = string.Empty;

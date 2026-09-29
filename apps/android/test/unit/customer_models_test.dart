@@ -3,7 +3,7 @@ import 'package:e6_car_spa/features/customers/models/customer_model.dart';
 
 void main() {
   group('Customer Models Unit Tests', () {
-    test('Customer parses from backend JSON correctly', () {
+    test('Customer parses from backend JSON correctly with payment aggregations', () {
       final json = {
         'id': 'cust-123',
         'name': 'Ramesh Kumar',
@@ -11,6 +11,11 @@ void main() {
         'email': 'ramesh@example.com',
         'address': '123 Main St, Chennai',
         'vehicleCount': 2,
+        'invoiceCount': 5,
+        'totalInvoicedAmount': 10000.0,
+        'totalPaidAmount': 8500.0,
+        'totalOutstandingAmount': 1500.0,
+        'paymentStatus': 'Payment Pending',
         'createdAt': '2026-08-25T10:00:00Z',
         'updatedAt': '2026-08-25T10:00:00Z',
       };
@@ -23,6 +28,11 @@ void main() {
       expect(customer.email, 'ramesh@example.com');
       expect(customer.address, '123 Main St, Chennai');
       expect(customer.vehicleCount, 2);
+      expect(customer.invoiceCount, 5);
+      expect(customer.totalInvoicedAmount, 10000.0);
+      expect(customer.totalPaidAmount, 8500.0);
+      expect(customer.totalOutstandingAmount, 1500.0);
+      expect(customer.paymentStatus, 'Payment Pending');
       expect(customer.initials, 'RK');
     });
 
@@ -70,13 +80,18 @@ void main() {
       expect(json['address'], 'Bangalore');
     });
 
-    test('CustomerHistoryResponse parses correctly', () {
+    test('CustomerHistoryResponse parses correctly with payment details', () {
       final json = {
         'customerId': 'cust-1',
         'customerName': 'Ramesh',
         'phoneNumber': '9876543210',
         'totalJobCards': 1,
         'totalSpent': 1500.0,
+        'invoiceCount': 4,
+        'totalInvoicedAmount': 6000.0,
+        'totalPaidAmount': 6000.0,
+        'totalOutstandingAmount': 0.0,
+        'paymentStatus': 'Paid',
         'jobCards': [
           {
             'jobCardId': 'jc-1',
@@ -92,6 +107,11 @@ void main() {
       final history = CustomerHistoryResponse.fromJson(json);
       expect(history.customerId, 'cust-1');
       expect(history.totalJobCards, 1);
+      expect(history.invoiceCount, 4);
+      expect(history.totalInvoicedAmount, 6000.0);
+      expect(history.totalPaidAmount, 6000.0);
+      expect(history.totalOutstandingAmount, 0.0);
+      expect(history.paymentStatus, 'Paid');
       expect(history.jobCards.first.jobCardNumber, 'JC-2026-0001');
       expect(history.jobCards.first.vehicleNumber, 'TN01AB1234');
     });

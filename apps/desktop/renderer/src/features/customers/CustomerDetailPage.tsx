@@ -18,6 +18,7 @@ import {
 	Receipt,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { CustomerPaymentStatusBadge } from './CustomersPage';
 import { EditCustomerModal } from './EditCustomerModal';
 import {
 	getCustomerById,
@@ -250,6 +251,63 @@ export function CustomerDetailPage() {
 									year: 'numeric',
 								})}
 							</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* ── Payment Summary Section ───────────────────────────────────────── */}
+			<div className="app-card p-5 bg-surface-container-low border border-outline-variant rounded-xl shadow-2xs">
+				<div className="flex items-center justify-between mb-4">
+					<h2 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider flex items-center gap-2">
+						<CreditCard className="w-4 h-4 text-secondary" />
+						Payment Summary
+					</h2>
+					<CustomerPaymentStatusBadge
+						status={customerHistoryData?.paymentStatus || customer?.paymentStatus}
+					/>
+				</div>
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+					<div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant/60">
+						<span className="text-xs text-on-surface-variant block font-medium">Total Invoiced</span>
+						<span className="text-lg font-bold text-on-surface font-mono mt-0.5 block">
+							₹{(customerHistoryData?.totalInvoicedAmount ?? customer?.totalInvoicedAmount ?? 0).toLocaleString('en-IN', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}
+						</span>
+					</div>
+
+					<div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant/60">
+						<span className="text-xs text-on-surface-variant block font-medium">Total Paid</span>
+						<span className="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5 block">
+							₹{(customerHistoryData?.totalPaidAmount ?? customer?.totalPaidAmount ?? 0).toLocaleString('en-IN', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}
+						</span>
+					</div>
+
+					<div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant/60">
+						<span className="text-xs text-on-surface-variant block font-medium">Outstanding</span>
+						<span className={`text-lg font-bold font-mono mt-0.5 block ${
+							(customerHistoryData?.totalOutstandingAmount ?? customer?.totalOutstandingAmount ?? 0) > 0
+								? 'text-amber-600 dark:text-amber-400'
+								: 'text-on-surface'
+						}`}>
+							₹{(customerHistoryData?.totalOutstandingAmount ?? customer?.totalOutstandingAmount ?? 0).toLocaleString('en-IN', {
+								minimumFractionDigits: 2,
+								maximumFractionDigits: 2,
+							})}
+						</span>
+					</div>
+
+					<div className="p-3.5 bg-surface-container rounded-lg border border-outline-variant/60 flex flex-col justify-between">
+						<span className="text-xs text-on-surface-variant block font-medium">Payment Status</span>
+						<div className="mt-1">
+							<CustomerPaymentStatusBadge
+								status={customerHistoryData?.paymentStatus || customer?.paymentStatus}
+							/>
 						</div>
 					</div>
 				</div>
