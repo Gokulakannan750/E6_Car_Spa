@@ -83,7 +83,10 @@ void main() {
         response: Response(
           requestOptions: RequestOptions(path: '/users'),
           statusCode: 400,
-          data: {'error': 'Password must contain at least 8 characters and one symbol.'},
+          data: {
+            'error':
+                'Password must contain at least 8 characters and one symbol.',
+          },
         ),
         type: DioExceptionType.badResponse,
       );
@@ -98,11 +101,13 @@ void main() {
             role: 'Staff',
           ),
         ),
-        throwsA(isA<ValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Password must contain at least 8 characters'),
-        )),
+        throwsA(
+          isA<ValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Password must contain at least 8 characters'),
+          ),
+        ),
       );
     });
 
@@ -129,7 +134,9 @@ void main() {
         response: Response(
           requestOptions: RequestOptions(path: '/users/user-1/toggle-status'),
           statusCode: 500,
-          data: {'error': 'Database failure occurred while updating user status.'},
+          data: {
+            'error': 'Database failure occurred while updating user status.',
+          },
         ),
         type: DioExceptionType.badResponse,
       );
@@ -140,21 +147,26 @@ void main() {
       );
     });
 
-    test('getAvailablePermissions maps connection timeout to NetworkException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/users/permissions'),
-        type: DioExceptionType.connectionTimeout,
-      );
+    test(
+      'getAvailablePermissions maps connection timeout to NetworkException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(path: '/users/permissions'),
+          type: DioExceptionType.connectionTimeout,
+        );
 
-      expect(
-        () => repository.getAvailablePermissions(),
-        throwsA(isA<NetworkException>().having(
-          (e) => e.message,
-          'message',
-          contains('Connection timeout'),
-        )),
-      );
-    });
+        expect(
+          () => repository.getAvailablePermissions(),
+          throwsA(
+            isA<NetworkException>().having(
+              (e) => e.message,
+              'message',
+              contains('Connection timeout'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('updateUser maps connection error to NetworkException', () async {
       mockApi.exceptionToThrow = DioException(
@@ -163,7 +175,10 @@ void main() {
       );
 
       expect(
-        () => repository.updateUser('user-1', const UpdateUserRequest(fullName: 'Updated')),
+        () => repository.updateUser(
+          'user-1',
+          const UpdateUserRequest(fullName: 'Updated'),
+        ),
         throwsA(isA<NetworkException>()),
       );
     });

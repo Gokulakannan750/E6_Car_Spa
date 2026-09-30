@@ -38,11 +38,11 @@ export type Workspace =
 
 export const WORKSPACE_TITLES: Record<Workspace, string> = {
 	launcher: 'Suite Launcher',
-	billing: 'E6 Billing',
-	staff: 'E6 Staff',
-	showroom: 'E6 Showroom',
-	reports: 'E6 Reports',
-	settings: 'E6 Settings',
+	billing: 'Billing Suite',
+	staff: 'Staff Suite',
+	showroom: 'Showroom Suite',
+	reports: 'Reports Suite',
+	settings: 'Settings Suite',
 };
 
 /**

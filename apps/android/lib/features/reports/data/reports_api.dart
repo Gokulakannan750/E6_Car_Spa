@@ -29,7 +29,9 @@ class ReportsApi {
       '/reports/dashboard',
       queryParameters: queryParameters,
     );
-    return DashboardSummaryModel.fromJson(response.data as Map<String, dynamic>);
+    return DashboardSummaryModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 2. Sales Report
@@ -46,13 +48,16 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (customerId != null && customerId.isNotEmpty) queryParameters['customerId'] = customerId;
+    if (customerId != null && customerId.isNotEmpty)
+      queryParameters['customerId'] = customerId;
 
     final response = await _dio.get(
       '/reports/sales',
       queryParameters: queryParameters,
     );
-    return SalesReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return SalesReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 3. Payment Collection Report
@@ -73,13 +78,16 @@ class ReportsApi {
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
     if (paymentMethod != null) queryParameters['paymentMethod'] = paymentMethod;
-    if (invoiceId != null && invoiceId.isNotEmpty) queryParameters['invoiceId'] = invoiceId;
+    if (invoiceId != null && invoiceId.isNotEmpty)
+      queryParameters['invoiceId'] = invoiceId;
 
     final response = await _dio.get(
       '/reports/payments',
       queryParameters: queryParameters,
     );
-    return PaymentReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return PaymentReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 4. Outstanding Invoices Report
@@ -96,13 +104,16 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (customerId != null && customerId.isNotEmpty) queryParameters['customerId'] = customerId;
+    if (customerId != null && customerId.isNotEmpty)
+      queryParameters['customerId'] = customerId;
 
     final response = await _dio.get(
       '/reports/invoices/outstanding',
       queryParameters: queryParameters,
     );
-    return OutstandingInvoiceReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return OutstandingInvoiceReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 5. GST Summary Report
@@ -137,13 +148,16 @@ class ReportsApi {
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
     if (status != null) queryParameters['status'] = status;
-    if (customerId != null && customerId.isNotEmpty) queryParameters['customerId'] = customerId;
+    if (customerId != null && customerId.isNotEmpty)
+      queryParameters['customerId'] = customerId;
 
     final response = await _dio.get(
       '/reports/job-cards',
       queryParameters: queryParameters,
     );
-    return JobCardReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return JobCardReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 7. Showroom Daily Report
@@ -160,13 +174,16 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (showroomId != null && showroomId.isNotEmpty) queryParameters['showroomId'] = showroomId;
+    if (showroomId != null && showroomId.isNotEmpty)
+      queryParameters['showroomId'] = showroomId;
 
     final response = await _dio.get(
       '/reports/showrooms',
       queryParameters: queryParameters,
     );
-    return ShowroomReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return ShowroomReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 8. Staff Productivity Report
@@ -182,17 +199,24 @@ class ReportsApi {
     final queryParameters = <String, dynamic>{};
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (staffId != null && staffId.isNotEmpty) queryParameters['staffId'] = staffId;
-    if (showroomId != null && showroomId.isNotEmpty) queryParameters['showroomId'] = showroomId;
-    if (vehicleTypeId != null && vehicleTypeId.isNotEmpty) queryParameters['vehicleTypeId'] = vehicleTypeId;
-    if (workTypeId != null && workTypeId.isNotEmpty) queryParameters['workTypeId'] = workTypeId;
-    if (assignmentType != null && assignmentType.isNotEmpty) queryParameters['assignmentType'] = assignmentType;
+    if (staffId != null && staffId.isNotEmpty)
+      queryParameters['staffId'] = staffId;
+    if (showroomId != null && showroomId.isNotEmpty)
+      queryParameters['showroomId'] = showroomId;
+    if (vehicleTypeId != null && vehicleTypeId.isNotEmpty)
+      queryParameters['vehicleTypeId'] = vehicleTypeId;
+    if (workTypeId != null && workTypeId.isNotEmpty)
+      queryParameters['workTypeId'] = workTypeId;
+    if (assignmentType != null && assignmentType.isNotEmpty)
+      queryParameters['assignmentType'] = assignmentType;
 
     final response = await _dio.get(
       '/reports/staff-productivity',
       queryParameters: queryParameters,
     );
-    return StaffProductivityReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return StaffProductivityReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 9. Staff Advances Report
@@ -210,14 +234,17 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (staffId != null && staffId.isNotEmpty) queryParameters['staffId'] = staffId;
+    if (staffId != null && staffId.isNotEmpty)
+      queryParameters['staffId'] = staffId;
     if (status != null) queryParameters['status'] = status;
 
     final response = await _dio.get(
       '/reports/staff-advances',
       queryParameters: queryParameters,
     );
-    return StaffAdvanceReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return StaffAdvanceReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// 10. Monthly / Date-Range Showroom Report
@@ -241,6 +268,8 @@ class ReportsApi {
       '/reports/showroom/monthly',
       queryParameters: queryParameters,
     );
-    return MonthlyShowroomReportResponseModel.fromJson(response.data as Map<String, dynamic>);
+    return MonthlyShowroomReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 }

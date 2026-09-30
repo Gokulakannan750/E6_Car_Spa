@@ -43,7 +43,9 @@ class JobCardReportScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               jobCardsAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading job card operations...'),
+                loading: () => const AppLoadingState(
+                  message: 'Loading job card operations...',
+                ),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(jobCardsReportProvider),
@@ -60,7 +62,9 @@ class JobCardReportScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,18 +93,40 @@ class JobCardReportScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Completed', summary.completedCount.toString(), color: AppColors.success),
-                                _buildSummaryItem('In Progress', summary.inProgressCount.toString(), color: AppColors.primaryLight),
-                                _buildSummaryItem('Draft', summary.draftCount.toString(), color: AppColors.warning),
-                                _buildSummaryItem('Cancelled', summary.cancelledCount.toString(), color: AppColors.error),
+                                _buildSummaryItem(
+                                  'Completed',
+                                  summary.completedCount.toString(),
+                                  color: AppColors.success,
+                                ),
+                                _buildSummaryItem(
+                                  'In Progress',
+                                  summary.inProgressCount.toString(),
+                                  color: AppColors.primaryLight,
+                                ),
+                                _buildSummaryItem(
+                                  'Draft',
+                                  summary.draftCount.toString(),
+                                  color: AppColors.warning,
+                                ),
+                                _buildSummaryItem(
+                                  'Cancelled',
+                                  summary.cancelledCount.toString(),
+                                  color: AppColors.error,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Invoiced', summary.invoicedCount.toString()),
-                                _buildSummaryItem('Estimated Revenue', _formatCurrency(summary.totalRevenue)),
+                                _buildSummaryItem(
+                                  'Invoiced',
+                                  summary.invoicedCount.toString(),
+                                ),
+                                _buildSummaryItem(
+                                  'Estimated Revenue',
+                                  _formatCurrency(summary.totalRevenue),
+                                ),
                               ],
                             ),
                           ],
@@ -122,7 +148,8 @@ class JobCardReportScreen extends ConsumerWidget {
                       if (items.isEmpty)
                         const AppEmptyState(
                           title: 'No job cards found',
-                          message: 'No job cards created in the selected date range.',
+                          message:
+                              'No job cards created in the selected date range.',
                           icon: Icons.directions_car_outlined,
                         )
                       else
@@ -130,7 +157,8 @@ class JobCardReportScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final jc = items[index];
                             final dateFormat = DateFormat('dd MMM yyyy');
@@ -139,14 +167,17 @@ class JobCardReportScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         jc.jobCardNumber,
@@ -171,30 +202,48 @@ class JobCardReportScreen extends ConsumerWidget {
                                   if (jc.vehicleDetails.isNotEmpty)
                                     Text(
                                       jc.vehicleDetails,
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                   const SizedBox(height: 2),
                                   Text(
                                     '${dateFormat.format(jc.date)} • ${jc.customerPhone}',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textTertiary,
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Divider(color: AppColors.border, height: 1),
+                                  const Divider(
+                                    color: AppColors.border,
+                                    height: 1,
+                                  ),
                                   const SizedBox(height: 6),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        jc.invoiceNumber != null ? 'Invoice: ${jc.invoiceNumber}' : 'Uninvoiced',
+                                        jc.invoiceNumber != null
+                                            ? 'Invoice: ${jc.invoiceNumber}'
+                                            : 'Uninvoiced',
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
-                                          color: jc.invoiceNumber != null ? AppColors.success : AppColors.textTertiary,
+                                          color: jc.invoiceNumber != null
+                                              ? AppColors.success
+                                              : AppColors.textTertiary,
                                         ),
                                       ),
                                       Text(
                                         _formatCurrency(jc.totalAmount),
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ],
                                   ),

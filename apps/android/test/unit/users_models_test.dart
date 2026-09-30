@@ -37,7 +37,10 @@ void main() {
       final exportedJson = model.toJson();
       expect(exportedJson['id'], '11111111-2222-3333-4444-555555555555');
       expect(exportedJson['username'], 'ramesh');
-      expect(exportedJson['permissions'], ['customers.view', 'jobcards.create']);
+      expect(exportedJson['permissions'], [
+        'customers.view',
+        'jobcards.create',
+      ]);
     });
 
     test('Owner automatically has full access for all permission codes', () {
@@ -97,8 +100,8 @@ void main() {
             'name': 'Create Customers',
             'module': 'Customers',
             'description': 'Allows adding new customers',
-          }
-        ]
+          },
+        ],
       };
 
       final group = PermissionGroupModel.fromJson(groupJson);
@@ -135,19 +138,22 @@ void main() {
       expect(json['permissionCodes'], ['jobcards.view']);
     });
 
-    test('UpdateUserRequest omits null password when not changing password', () {
-      const request = UpdateUserRequest(
-        fullName: 'Priya Sharma Updated',
-        role: 'Manager',
-        permissionCodes: ['jobcards.view', 'jobcards.create'],
-      );
+    test(
+      'UpdateUserRequest omits null password when not changing password',
+      () {
+        const request = UpdateUserRequest(
+          fullName: 'Priya Sharma Updated',
+          role: 'Manager',
+          permissionCodes: ['jobcards.view', 'jobcards.create'],
+        );
 
-      final json = request.toJson();
+        final json = request.toJson();
 
-      expect(json['fullName'], 'Priya Sharma Updated');
-      expect(json['role'], 'Manager');
-      expect(json.containsKey('password'), false);
-      expect(json.containsKey('confirmPassword'), false);
-    });
+        expect(json['fullName'], 'Priya Sharma Updated');
+        expect(json['role'], 'Manager');
+        expect(json.containsKey('password'), false);
+        expect(json.containsKey('confirmPassword'), false);
+      },
+    );
   });
 }

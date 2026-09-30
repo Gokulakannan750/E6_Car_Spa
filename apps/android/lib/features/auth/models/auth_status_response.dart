@@ -9,9 +9,7 @@ class AuthStatusResponse {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'initialized': initialized,
-  };
+  Map<String, dynamic> toJson() => {'initialized': initialized};
 
   @override
   bool operator ==(Object other) =>

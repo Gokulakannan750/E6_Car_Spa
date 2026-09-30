@@ -52,7 +52,9 @@ class InvoiceListState {
       totalCount: totalCount ?? this.totalCount,
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
-      selectedStatus: clearStatus ? null : (selectedStatus ?? this.selectedStatus),
+      selectedStatus: clearStatus
+          ? null
+          : (selectedStatus ?? this.selectedStatus),
       searchQuery: searchQuery ?? this.searchQuery,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -85,8 +87,12 @@ class InvoiceListNotifier extends StateNotifier<InvoiceListState> {
     try {
       final effectiveSearch = search != null
           ? (search.trim().isEmpty ? null : search.trim())
-          : (state.searchQuery.trim().isEmpty ? null : state.searchQuery.trim());
-      final effectiveStatus = clearStatus ? null : (status ?? state.selectedStatus);
+          : (state.searchQuery.trim().isEmpty
+                ? null
+                : state.searchQuery.trim());
+      final effectiveStatus = clearStatus
+          ? null
+          : (status ?? state.selectedStatus);
 
       final response = await _repository.getInvoices(
         page: 1,
@@ -133,18 +139,16 @@ class InvoiceListNotifier extends StateNotifier<InvoiceListState> {
 
   void setStatusFilter(InvoiceStatus? status) {
     if (!mounted) return;
-    state = state.copyWith(
-      selectedStatus: status,
-      clearStatus: status == null,
-    );
+    state = state.copyWith(selectedStatus: status, clearStatus: status == null);
     loadInvoices(status: status, clearStatus: status == null);
   }
 }
 
-final invoiceListProvider = StateNotifierProvider<InvoiceListNotifier, InvoiceListState>((ref) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  return InvoiceListNotifier(repo);
-});
+final invoiceListProvider =
+    StateNotifierProvider<InvoiceListNotifier, InvoiceListState>((ref) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      return InvoiceListNotifier(repo);
+    });
 
 // ── Invoice Details State ─────────────────────────────────────────────────────
 
@@ -190,7 +194,9 @@ class InvoiceDetailsState {
       invoice: invoice ?? this.invoice,
       whatsAppStatuses: whatsAppStatuses ?? this.whatsAppStatuses,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      actionSuccessMessage: clearSuccess ? null : (actionSuccessMessage ?? this.actionSuccessMessage),
+      actionSuccessMessage: clearSuccess
+          ? null
+          : (actionSuccessMessage ?? this.actionSuccessMessage),
     );
   }
 }
@@ -210,7 +216,7 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
   static const int _maxPollingAttempts = 15;
 
   InvoiceDetailsNotifier(this._repository, this._invoiceId, this._ref)
-      : super(const InvoiceDetailsState()) {
+    : super(const InvoiceDetailsState()) {
     loadDetails();
   }
 
@@ -227,7 +233,8 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     if (!mounted) return;
     final invoice = state.invoice;
     if (invoice != null && invoice.isFinalized) {
-      if (state.whatsAppStatuses.isEmpty || state.whatsAppStatuses.any((s) => !s.isTerminal)) {
+      if (state.whatsAppStatuses.isEmpty ||
+          state.whatsAppStatuses.any((s) => !s.isTerminal)) {
         _startPolling(immediate: true);
       }
     }
@@ -253,11 +260,17 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
         stopPolling();
         return;
       }
-      await refreshWhatsAppStatus(silent: true, waitingForType: _waitingForType);
+      await refreshWhatsAppStatus(
+        silent: true,
+        waitingForType: _waitingForType,
+      );
     });
   }
 
-  Future<void> refreshWhatsAppStatus({bool silent = true, String? waitingForType}) async {
+  Future<void> refreshWhatsAppStatus({
+    bool silent = true,
+    String? waitingForType,
+  }) async {
     if (!mounted || _isFetchingWhatsApp) return;
     _isFetchingWhatsApp = true;
 
@@ -269,7 +282,9 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
 
       final targetType = waitingForType ?? _waitingForType;
       if (targetType != null) {
-        final target = statuses.where((s) => s.messageType == targetType).firstOrNull;
+        final target = statuses
+            .where((s) => s.messageType == targetType)
+            .firstOrNull;
         if (target != null && target.isTerminal) {
           if (statuses.every((s) => s.isTerminal)) {
             stopPolling();
@@ -297,7 +312,11 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
 
   Future<void> _performLoadDetails() async {
     if (!mounted) return;
-    state = state.copyWith(isLoading: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isLoading: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
       final invoice = await _repository.getInvoiceById(_invoiceId);
@@ -310,7 +329,9 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
 
       if (invoice.isFinalized) {
         try {
-          final statuses = await _repository.getInvoiceWhatsAppStatus(_invoiceId);
+          final statuses = await _repository.getInvoiceWhatsAppStatus(
+            _invoiceId,
+          );
           if (!mounted) return;
           state = state.copyWith(whatsAppStatuses: statuses);
           if (statuses.any((s) => !s.isTerminal)) {
@@ -322,10 +343,7 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(
@@ -341,7 +359,11 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     bool? isGstEnabled,
   }) async {
     if (!mounted) return false;
-    state = state.copyWith(isSaving: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSaving: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
       final updated = await _repository.updateInvoice(
@@ -363,10 +385,7 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       return true;
     } on ApiException catch (e) {
       if (!mounted) return false;
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: e.message);
       return false;
     } catch (e) {
       if (!mounted) return false;
@@ -380,7 +399,11 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
 
   Future<Invoice?> generateInvoice() async {
     if (!mounted) return null;
-    state = state.copyWith(isGenerating: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isGenerating: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
       final generated = await _repository.generateInvoice(_invoiceId);
@@ -388,19 +411,20 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       state = state.copyWith(
         isGenerating: false,
         invoice: generated,
-        actionSuccessMessage: 'Invoice ${generated.invoiceNumber ?? ""} generated successfully!',
+        actionSuccessMessage:
+            'Invoice ${generated.invoiceNumber ?? ""} generated successfully!',
         clearError: true,
       );
       _ref.read(invoiceListProvider.notifier).loadInvoices();
       _startPolling(waitingForType: 'InvoiceFinalized');
-      await refreshWhatsAppStatus(silent: true, waitingForType: 'InvoiceFinalized');
+      await refreshWhatsAppStatus(
+        silent: true,
+        waitingForType: 'InvoiceFinalized',
+      );
       return generated;
     } on ApiException catch (e) {
       if (!mounted) return null;
-      state = state.copyWith(
-        isGenerating: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isGenerating: false, errorMessage: e.message);
       return null;
     } catch (e) {
       if (!mounted) return null;
@@ -414,7 +438,11 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
 
   Future<bool> recordPayment(RecordPaymentRequest request) async {
     if (!mounted) return false;
-    state = state.copyWith(isRecordingPayment: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isRecordingPayment: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
       await _repository.recordPayment(_invoiceId, request);
@@ -424,12 +452,16 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       state = state.copyWith(
         isRecordingPayment: false,
         invoice: refreshed,
-        actionSuccessMessage: 'Payment of ₹${request.amount.toStringAsFixed(2)} recorded successfully!',
+        actionSuccessMessage:
+            'Payment of ₹${request.amount.toStringAsFixed(2)} recorded successfully!',
         clearError: true,
       );
       _ref.read(invoiceListProvider.notifier).loadInvoices();
       _startPolling(waitingForType: 'PaymentCompleted');
-      await refreshWhatsAppStatus(silent: true, waitingForType: 'PaymentCompleted');
+      await refreshWhatsAppStatus(
+        silent: true,
+        waitingForType: 'PaymentCompleted',
+      );
       return true;
     } on ApiException catch (e) {
       if (!mounted) return false;
@@ -455,7 +487,12 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
   }
 }
 
-final invoiceDetailsProvider = StateNotifierProvider.family<InvoiceDetailsNotifier, InvoiceDetailsState, String>((ref, id) {
-  final repo = ref.watch(invoiceRepositoryProvider);
-  return InvoiceDetailsNotifier(repo, id, ref);
-});
+final invoiceDetailsProvider =
+    StateNotifierProvider.family<
+      InvoiceDetailsNotifier,
+      InvoiceDetailsState,
+      String
+    >((ref, id) {
+      final repo = ref.watch(invoiceRepositoryProvider);
+      return InvoiceDetailsNotifier(repo, id, ref);
+    });

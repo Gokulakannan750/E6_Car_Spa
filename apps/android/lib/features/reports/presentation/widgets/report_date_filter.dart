@@ -23,7 +23,8 @@ class ReportDateFilter extends ConsumerWidget {
     ];
 
     final dateFormat = DateFormat('dd MMM yyyy');
-    final formattedRange = '${dateFormat.format(filterState.startDate)} – ${dateFormat.format(filterState.endDate)}';
+    final formattedRange =
+        '${dateFormat.format(filterState.startDate)} – ${dateFormat.format(filterState.endDate)}';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -48,7 +49,11 @@ class ReportDateFilter extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.primary),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     filterState.label,
@@ -90,20 +95,31 @@ class ReportDateFilter extends ConsumerWidget {
                     },
                     borderRadius: BorderRadius.circular(AppTheme.radiusSM),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.surfaceAlt,
                         borderRadius: BorderRadius.circular(AppTheme.radiusSM),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
                         ),
                       ),
                       child: Text(
                         item.$2,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
                       ),
                     ),
@@ -142,10 +158,9 @@ class ReportDateFilter extends ConsumerWidget {
     );
 
     if (pickedRange != null) {
-      ref.read(reportDateFilterProvider.notifier).setCustomRange(
-            pickedRange.start,
-            pickedRange.end,
-          );
+      ref
+          .read(reportDateFilterProvider.notifier)
+          .setCustomRange(pickedRange.start, pickedRange.end);
     }
   }
 }

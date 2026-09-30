@@ -17,12 +17,19 @@ class FakeBillingApi extends ShowroomApi {
   RecordShowroomPaymentRequest? lastRecordPaymentReq;
 
   @override
-  Future<ShowroomDailyBill> getShowroomDailyBill(String showroomId, DateTime date) async {
+  Future<ShowroomDailyBill> getShowroomDailyBill(
+    String showroomId,
+    DateTime date,
+  ) async {
     if (throwDioError) {
       throw DioException(
-        requestOptions: RequestOptions(path: '/showrooms/$showroomId/daily-bill'),
+        requestOptions: RequestOptions(
+          path: '/showrooms/$showroomId/daily-bill',
+        ),
         response: Response(
-          requestOptions: RequestOptions(path: '/showrooms/$showroomId/daily-bill'),
+          requestOptions: RequestOptions(
+            path: '/showrooms/$showroomId/daily-bill',
+          ),
           statusCode: 404,
           data: {'message': 'Showroom not found'},
         ),
@@ -105,17 +112,23 @@ void main() {
       expect(result.balanceAmount, 3000.0);
     });
 
-    test('getShowroomDailyBill rethrows ApiException on DioException', () async {
-      fakeApi.throwDioError = true;
+    test(
+      'getShowroomDailyBill rethrows ApiException on DioException',
+      () async {
+        fakeApi.throwDioError = true;
 
-      expect(
-        () => repository.getShowroomDailyBill('sr-1', testDate),
-        throwsA(isA<ApiException>()),
-      );
-    });
+        expect(
+          () => repository.getShowroomDailyBill('sr-1', testDate),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
 
     test('setShowroomDailyBill sets daily bill successfully', () async {
-      const request = SetShowroomDailyBillRequest(amount: 6000.0, notes: 'Updated rate');
+      const request = SetShowroomDailyBillRequest(
+        amount: 6000.0,
+        notes: 'Updated rate',
+      );
       fakeApi.returnBill = ShowroomDailyBill(
         id: 'bill-1',
         showroomId: 'sr-1',
@@ -129,7 +142,11 @@ void main() {
         createdAt: DateTime(2026, 9, 27),
       );
 
-      final result = await repository.setShowroomDailyBill('sr-1', testDate, request);
+      final result = await repository.setShowroomDailyBill(
+        'sr-1',
+        testDate,
+        request,
+      );
       expect(result.amount, 6000.0);
       expect(result.notes, 'Updated rate');
       expect(fakeApi.lastSetBillReq?.amount, 6000.0);
@@ -142,7 +159,11 @@ void main() {
         reference: 'REF-1234',
       );
 
-      final result = await repository.recordShowroomPayment('sr-1', testDate, request);
+      final result = await repository.recordShowroomPayment(
+        'sr-1',
+        testDate,
+        request,
+      );
       expect(result.id, 'bill-1');
       expect(fakeApi.lastRecordPaymentReq?.amount, 1500.0);
       expect(fakeApi.lastRecordPaymentReq?.paymentMethod, 'UPI');

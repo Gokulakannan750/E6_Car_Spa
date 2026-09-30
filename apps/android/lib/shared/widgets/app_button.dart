@@ -77,10 +77,7 @@ class AppButton extends StatelessWidget {
         ],
       );
     } else {
-      child = FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(label, maxLines: 1),
-      );
+      child = FittedBox(fit: BoxFit.scaleDown, child: Text(label, maxLines: 1));
     }
 
     Widget button;
@@ -130,57 +127,61 @@ class AppButton extends StatelessWidget {
   }
 
   ButtonStyle get _primaryStyle => ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor ?? AppColors.primary,
-        foregroundColor: foregroundColor ?? Colors.white,
-        disabledBackgroundColor: backgroundColor != null
-            ? backgroundColor!.withValues(alpha: 0.4)
-            : AppColors.border,
-        disabledForegroundColor: foregroundColor != null
-            ? foregroundColor!.withValues(alpha: 0.5)
-            : AppColors.textSecondary,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      );
+    backgroundColor: backgroundColor ?? AppColors.primary,
+    foregroundColor: foregroundColor ?? Colors.white,
+    disabledBackgroundColor: backgroundColor != null
+        ? backgroundColor!.withValues(alpha: 0.4)
+        : AppColors.border,
+    disabledForegroundColor: foregroundColor != null
+        ? foregroundColor!.withValues(alpha: 0.5)
+        : AppColors.textSecondary,
+    padding:
+        padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+  );
 
   ButtonStyle get _secondaryStyle => OutlinedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
-        disabledForegroundColor: AppColors.textTertiary,
-        side: const BorderSide(color: AppColors.borderDark),
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      );
+    backgroundColor: Colors.white,
+    foregroundColor: AppColors.textPrimary,
+    disabledForegroundColor: AppColors.textTertiary,
+    side: const BorderSide(color: AppColors.borderDark),
+    padding:
+        padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+  );
 
   ButtonStyle get _textStyle => TextButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        disabledForegroundColor: AppColors.textTertiary,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      );
+    foregroundColor: AppColors.primary,
+    disabledForegroundColor: AppColors.textTertiary,
+    padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+  );
 
   ButtonStyle get _dangerStyle => ElevatedButton.styleFrom(
-        backgroundColor: AppColors.error,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: AppColors.errorLight,
-        disabledForegroundColor: AppColors.errorDark,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      );
+    backgroundColor: AppColors.error,
+    foregroundColor: Colors.white,
+    disabledBackgroundColor: AppColors.errorLight,
+    disabledForegroundColor: AppColors.errorDark,
+    padding:
+        padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+  );
 
   ButtonStyle get _successStyle => ElevatedButton.styleFrom(
-        backgroundColor: AppColors.success,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: AppColors.border,
-        disabledForegroundColor: AppColors.textSecondary,
-        padding: padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      );
+    backgroundColor: AppColors.success,
+    foregroundColor: Colors.white,
+    disabledBackgroundColor: AppColors.border,
+    disabledForegroundColor: AppColors.textSecondary,
+    padding:
+        padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    elevation: 0,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+  );
 }

@@ -37,7 +37,9 @@ class FakeOperationsShowroomApi extends ShowroomApi {
   bool shouldThrowDioError = false;
 
   @override
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async {
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async {
     if (shouldThrowDioError) {
       throw DioException(
         requestOptions: RequestOptions(path: '/api/showroom-vehicle-types'),
@@ -75,9 +77,13 @@ class FakeOperationsShowroomApi extends ShowroomApi {
   }) async {
     if (shouldThrowDioError) {
       throw DioException(
-        requestOptions: RequestOptions(path: '/api/showrooms/$showroomId/vehicle-works'),
+        requestOptions: RequestOptions(
+          path: '/api/showrooms/$showroomId/vehicle-works',
+        ),
         response: Response(
-          requestOptions: RequestOptions(path: '/api/showrooms/$showroomId/vehicle-works'),
+          requestOptions: RequestOptions(
+            path: '/api/showrooms/$showroomId/vehicle-works',
+          ),
           statusCode: 400,
           data: {'message': 'Invalid query parameters'},
         ),
@@ -94,8 +100,13 @@ class FakeOperationsShowroomApi extends ShowroomApi {
   }
 
   @override
-  Future<ShowroomVehicleWork> getShowroomVehicleWorkById(String showroomId, String id) async {
-    final work = vehicleWorks.firstWhere((w) => w.id == id && w.showroomId == showroomId);
+  Future<ShowroomVehicleWork> getShowroomVehicleWorkById(
+    String showroomId,
+    String id,
+  ) async {
+    final work = vehicleWorks.firstWhere(
+      (w) => w.id == id && w.showroomId == showroomId,
+    );
     return work;
   }
 
@@ -106,9 +117,13 @@ class FakeOperationsShowroomApi extends ShowroomApi {
   ) async {
     if (shouldThrowDioError) {
       throw DioException(
-        requestOptions: RequestOptions(path: '/api/showrooms/$showroomId/vehicle-works'),
+        requestOptions: RequestOptions(
+          path: '/api/showrooms/$showroomId/vehicle-works',
+        ),
         response: Response(
-          requestOptions: RequestOptions(path: '/api/showrooms/$showroomId/vehicle-works'),
+          requestOptions: RequestOptions(
+            path: '/api/showrooms/$showroomId/vehicle-works',
+          ),
           statusCode: 409,
           data: {'message': 'Conflict creating vehicle work'},
         ),
@@ -125,15 +140,17 @@ class FakeOperationsShowroomApi extends ShowroomApi {
       date: request.date,
       notes: request.notes,
       serviceItems: (request.serviceItems ?? [])
-          .map((s) => ShowroomVehicleWorkItem(
-                id: 'item-${DateTime.now().millisecondsSinceEpoch}',
-                showroomVehicleWorkId: 'work-${vehicleWorks.length + 1}',
-                workTypeId: s.workTypeId,
-                workTypeCode: 'WASH',
-                workTypeName: 'Full Wash',
-                quantity: s.quantity,
-                createdAt: DateTime.now(),
-              ))
+          .map(
+            (s) => ShowroomVehicleWorkItem(
+              id: 'item-${DateTime.now().millisecondsSinceEpoch}',
+              showroomVehicleWorkId: 'work-${vehicleWorks.length + 1}',
+              workTypeId: s.workTypeId,
+              workTypeCode: 'WASH',
+              workTypeName: 'Full Wash',
+              quantity: s.quantity,
+              createdAt: DateTime.now(),
+            ),
+          )
           .toList(),
       createdAt: DateTime.now(),
     );
@@ -159,15 +176,17 @@ class FakeOperationsShowroomApi extends ShowroomApi {
         date: request.date,
         notes: v.notes ?? request.notes,
         serviceItems: v.workTypeIds
-            .map((id) => ShowroomVehicleWorkItem(
-                  id: 'item-${DateTime.now().millisecondsSinceEpoch}',
-                  showroomVehicleWorkId: 'work-batch-${vehicleWorks.length + 1}',
-                  workTypeId: id,
-                  workTypeCode: 'WASH',
-                  workTypeName: 'Full Wash',
-                  quantity: 1,
-                  createdAt: DateTime.now(),
-                ))
+            .map(
+              (id) => ShowroomVehicleWorkItem(
+                id: 'item-${DateTime.now().millisecondsSinceEpoch}',
+                showroomVehicleWorkId: 'work-batch-${vehicleWorks.length + 1}',
+                workTypeId: id,
+                workTypeCode: 'WASH',
+                workTypeName: 'Full Wash',
+                quantity: 1,
+                createdAt: DateTime.now(),
+              ),
+            )
             .toList(),
         createdAt: DateTime.now(),
       );
@@ -183,7 +202,9 @@ class FakeOperationsShowroomApi extends ShowroomApi {
     String workId,
     UpdateShowroomVehicleWorkRequest request,
   ) async {
-    final idx = vehicleWorks.indexWhere((w) => w.id == workId && w.showroomId == showroomId);
+    final idx = vehicleWorks.indexWhere(
+      (w) => w.id == workId && w.showroomId == showroomId,
+    );
     final prev = vehicleWorks[idx];
     final updated = ShowroomVehicleWork(
       id: prev.id,
@@ -204,8 +225,13 @@ class FakeOperationsShowroomApi extends ShowroomApi {
   }
 
   @override
-  Future<void> deleteShowroomVehicleWork(String showroomId, String workId) async {
-    vehicleWorks.removeWhere((w) => w.id == workId && w.showroomId == showroomId);
+  Future<void> deleteShowroomVehicleWork(
+    String showroomId,
+    String workId,
+  ) async {
+    vehicleWorks.removeWhere(
+      (w) => w.id == workId && w.showroomId == showroomId,
+    );
   }
 
   @override
@@ -213,9 +239,17 @@ class FakeOperationsShowroomApi extends ShowroomApi {
     String showroomId,
     DateTime date,
   ) async {
-    final works = vehicleWorks.where((w) => w.showroomId == showroomId).toList();
-    final totalVehicles = works.fold<int>(0, (sum, w) => sum + w.vehicleQuantity);
-    final totalServices = works.fold<int>(0, (sum, w) => sum + w.serviceItems.length);
+    final works = vehicleWorks
+        .where((w) => w.showroomId == showroomId)
+        .toList();
+    final totalVehicles = works.fold<int>(
+      0,
+      (sum, w) => sum + w.vehicleQuantity,
+    );
+    final totalServices = works.fold<int>(
+      0,
+      (sum, w) => sum + w.serviceItems.length,
+    );
 
     return ShowroomOperationsSummary(
       showroomId: showroomId,
@@ -304,7 +338,10 @@ void main() {
         ],
       );
 
-      final created = await repository.createShowroomVehicleWork('sr-1', request);
+      final created = await repository.createShowroomVehicleWork(
+        'sr-1',
+        request,
+      );
       expect(created.id, isNotEmpty);
       expect(created.vehicleTypeName, 'Sedan');
 
@@ -331,7 +368,10 @@ void main() {
         ],
       );
 
-      final results = await repository.createBatchShowroomVehicleWork('sr-1', batchRequest);
+      final results = await repository.createBatchShowroomVehicleWork(
+        'sr-1',
+        batchRequest,
+      );
       expect(results.length, 2);
       final list = await repository.getShowroomVehicleWorks('sr-1');
       expect(list.length, 2);
@@ -353,7 +393,11 @@ void main() {
         vehicleTypeId: 'vt-2',
       );
 
-      final updated = await repository.updateShowroomVehicleWork('sr-1', created.id, updateReq);
+      final updated = await repository.updateShowroomVehicleWork(
+        'sr-1',
+        created.id,
+        updateReq,
+      );
       expect(updated.notes, 'Updated note');
       expect(updated.vehicleTypeId, 'vt-2');
     });
@@ -387,7 +431,10 @@ void main() {
         ),
       );
 
-      final summary = await repository.getShowroomOperationsSummary('sr-1', DateTime(2026, 9, 27));
+      final summary = await repository.getShowroomOperationsSummary(
+        'sr-1',
+        DateTime(2026, 9, 27),
+      );
       expect(summary.totalVehiclesHandled, 3);
       expect(summary.totalServicesPerformed, 1);
       expect(summary.totalActiveStaffSessions, 2);

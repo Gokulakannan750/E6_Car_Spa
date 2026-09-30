@@ -38,10 +38,14 @@ class MockOpsApi extends ShowroomApi {
   final List<ShowroomVehicleWork> vehicleWorks = [];
 
   @override
-  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async => [];
+  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async =>
+      [];
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     return DailyStaffResponse(
       showroomId: showroomId,
       showroomName: 'Test Showroom',
@@ -69,8 +73,9 @@ class MockOpsApi extends ShowroomApi {
   }
 
   @override
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async =>
-      vehicleTypes;
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async => vehicleTypes;
 
   @override
   Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async =>
@@ -109,15 +114,17 @@ class MockOpsApi extends ShowroomApi {
       date: request.date,
       notes: request.notes,
       serviceItems: (request.serviceItems ?? [])
-          .map((s) => ShowroomVehicleWorkItem(
-                id: 'item-1',
-                showroomVehicleWorkId: 'work-1',
-                workTypeId: s.workTypeId,
-                workTypeCode: 'WASH',
-                workTypeName: 'Full Wash',
-                quantity: s.quantity,
-                createdAt: DateTime.now(),
-              ))
+          .map(
+            (s) => ShowroomVehicleWorkItem(
+              id: 'item-1',
+              showroomVehicleWorkId: 'work-1',
+              workTypeId: s.workTypeId,
+              workTypeCode: 'WASH',
+              workTypeName: 'Full Wash',
+              quantity: s.quantity,
+              createdAt: DateTime.now(),
+            ),
+          )
           .toList(),
       createdAt: DateTime.now(),
     );
@@ -177,7 +184,10 @@ class MockOpsApi extends ShowroomApi {
   }
 
   @override
-  Future<void> deleteShowroomVehicleWork(String showroomId, String workId) async {
+  Future<void> deleteShowroomVehicleWork(
+    String showroomId,
+    String workId,
+  ) async {
     vehicleWorks.removeWhere((w) => w.id == workId);
   }
 
@@ -186,7 +196,9 @@ class MockOpsApi extends ShowroomApi {
     String showroomId,
     DateTime date,
   ) async {
-    final works = vehicleWorks.where((w) => w.showroomId == showroomId).toList();
+    final works = vehicleWorks
+        .where((w) => w.showroomId == showroomId)
+        .toList();
     final count = works.fold<int>(0, (s, w) => s + w.vehicleQuantity);
     return ShowroomOperationsSummary(
       showroomId: showroomId,
@@ -235,12 +247,12 @@ void main() {
   setUp(() {
     mockApi = MockOpsApi();
     container = ProviderContainer(
-      overrides: [
-        showroomApiProvider.overrideWithValue(mockApi),
-      ],
+      overrides: [showroomApiProvider.overrideWithValue(mockApi)],
     );
-    subscription =
-        container.listen(showroomOperationsProvider('sr-1'), (prev, next) {});
+    subscription = container.listen(
+      showroomOperationsProvider('sr-1'),
+      (prev, next) {},
+    );
   });
 
   tearDown(() {
@@ -262,8 +274,9 @@ void main() {
     });
 
     test('setDate and shiftDate change selected date and reload', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       final newDate = DateTime(2026, 10, 15);
 
       notifier.setDate(newDate);
@@ -278,8 +291,9 @@ void main() {
     });
 
     test('createVehicleWork adds record and updates summary KPIs', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
       final request = CreateShowroomVehicleWorkRequest(
@@ -300,29 +314,34 @@ void main() {
     });
 
     test('filtering by staff and vehicle type works correctly', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
       // Add 2 works: 1 for staff-1 on vt-1, 1 for staff-2 on vt-2
-      await notifier.createVehicleWork(CreateShowroomVehicleWorkRequest(
-        staffId: 'staff-1',
-        vehicleTypeId: 'vt-1',
-        date: DateTime.now(),
-      ));
+      await notifier.createVehicleWork(
+        CreateShowroomVehicleWorkRequest(
+          staffId: 'staff-1',
+          vehicleTypeId: 'vt-1',
+          date: DateTime.now(),
+        ),
+      );
 
       // Mock another work in api
-      mockApi.vehicleWorks.add(ShowroomVehicleWork(
-        id: 'work-other',
-        showroomId: 'sr-1',
-        staffId: 'staff-2',
-        staffName: 'Suresh',
-        vehicleTypeId: 'vt-2',
-        vehicleTypeName: 'SUV',
-        vehicleQuantity: 1,
-        date: DateTime.now(),
-        createdAt: DateTime.now(),
-      ));
+      mockApi.vehicleWorks.add(
+        ShowroomVehicleWork(
+          id: 'work-other',
+          showroomId: 'sr-1',
+          staffId: 'staff-2',
+          staffName: 'Suresh',
+          vehicleTypeId: 'vt-2',
+          vehicleTypeName: 'SUV',
+          vehicleQuantity: 1,
+          date: DateTime.now(),
+          createdAt: DateTime.now(),
+        ),
+      );
 
       await notifier.loadOperationsData();
       var state = container.read(showroomOperationsProvider('sr-1'));
@@ -347,8 +366,9 @@ void main() {
     });
 
     test('createBatchVehicleWork creates batch entries', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
       final batchRequest = CreateBatchShowroomVehicleWorkRequest(
@@ -374,16 +394,19 @@ void main() {
     });
 
     test('updateVehicleWork and deleteVehicleWork modify state', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
-      final created = await notifier.createVehicleWork(CreateShowroomVehicleWorkRequest(
-        staffId: 'staff-1',
-        vehicleTypeId: 'vt-1',
-        date: DateTime.now(),
-        notes: 'Initial',
-      ));
+      final created = await notifier.createVehicleWork(
+        CreateShowroomVehicleWorkRequest(
+          staffId: 'staff-1',
+          vehicleTypeId: 'vt-1',
+          date: DateTime.now(),
+          notes: 'Initial',
+        ),
+      );
 
       const updateReq = UpdateShowroomVehicleWorkRequest(notes: 'Updated Note');
       final updated = await notifier.updateVehicleWork(
@@ -398,8 +421,9 @@ void main() {
     });
 
     test('closeStaffWorkSession closes session successfully', () async {
-      final notifier =
-          container.read(showroomOperationsProvider('sr-1').notifier);
+      final notifier = container.read(
+        showroomOperationsProvider('sr-1').notifier,
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
       await notifier.closeStaffWorkSession(

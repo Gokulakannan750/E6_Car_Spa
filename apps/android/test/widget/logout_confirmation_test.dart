@@ -40,15 +40,9 @@ void main() {
     testWidgets('renders sign out icon button in bar', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(testUser),
-          ],
+          overrides: [currentUserProvider.overrideWithValue(testUser)],
           child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(
-                actions: const [AppLogoutAction()],
-              ),
-            ),
+            home: Scaffold(appBar: AppBar(actions: const [AppLogoutAction()])),
           ),
         ),
       );
@@ -58,18 +52,14 @@ void main() {
       expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
     });
 
-    testWidgets('tapping Sign Out displays confirmation dialog with username', (tester) async {
+    testWidgets('tapping Sign Out displays confirmation dialog with username', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(testUser),
-          ],
+          overrides: [currentUserProvider.overrideWithValue(testUser)],
           child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(
-                actions: const [AppLogoutAction()],
-              ),
-            ),
+            home: Scaffold(appBar: AppBar(actions: const [AppLogoutAction()])),
           ),
         ),
       );
@@ -78,23 +68,24 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Are you sure you want to sign out from account "manager_suresh"?'), findsOneWidget);
+      expect(
+        find.text(
+          'Are you sure you want to sign out from account "manager_suresh"?',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.widgetWithText(ElevatedButton, 'Sign Out'), findsOneWidget);
     });
 
-    testWidgets('tapping Sign Out with null user displays fallback message', (tester) async {
+    testWidgets('tapping Sign Out with null user displays fallback message', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(null),
-          ],
+          overrides: [currentUserProvider.overrideWithValue(null)],
           child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(
-                actions: const [AppLogoutAction()],
-              ),
-            ),
+            home: Scaffold(appBar: AppBar(actions: const [AppLogoutAction()])),
           ),
         ),
       );
@@ -103,10 +94,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Are you sure you want to sign out of E6 Car Spa?'), findsOneWidget);
+      expect(
+        find.text('Are you sure you want to sign out of E6 Car Spa?'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('tapping Cancel dismisses dialog without calling logout', (tester) async {
+    testWidgets('tapping Cancel dismisses dialog without calling logout', (
+      tester,
+    ) async {
       final mockNotifier = _MockAuthNotifier();
 
       await tester.pumpWidget(
@@ -116,11 +112,7 @@ void main() {
             authNotifierProvider.overrideWith((ref) => mockNotifier),
           ],
           child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(
-                actions: const [AppLogoutAction()],
-              ),
-            ),
+            home: Scaffold(appBar: AppBar(actions: const [AppLogoutAction()])),
           ),
         ),
       );
@@ -137,33 +129,34 @@ void main() {
       expect(mockNotifier.logoutCalled, isFalse);
     });
 
-    testWidgets('tapping Sign Out in dialog invokes authNotifier.logout and dismisses dialog', (tester) async {
-      final mockNotifier = _MockAuthNotifier();
+    testWidgets(
+      'tapping Sign Out in dialog invokes authNotifier.logout and dismisses dialog',
+      (tester) async {
+        final mockNotifier = _MockAuthNotifier();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(testUser),
-            authNotifierProvider.overrideWith((ref) => mockNotifier),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              appBar: AppBar(
-                actions: const [AppLogoutAction()],
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentUserProvider.overrideWithValue(testUser),
+              authNotifierProvider.overrideWith((ref) => mockNotifier),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                appBar: AppBar(actions: const [AppLogoutAction()]),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.tap(find.byTooltip('Sign Out'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Sign Out'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Out'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Sign Out'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(mockNotifier.logoutCalled, isTrue);
-    });
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(mockNotifier.logoutCalled, isTrue);
+      },
+    );
   });
 }

@@ -33,7 +33,8 @@ class MockUsersRepo extends UsersRepository {
   Future<List<UserModel>> getUsers() async => users;
 
   @override
-  Future<List<PermissionGroupModel>> getAvailablePermissions() async => permissions;
+  Future<List<PermissionGroupModel>> getAvailablePermissions() async =>
+      permissions;
 
   @override
   Future<UserModel> createUser(CreateUserRequest request) async {
@@ -98,7 +99,8 @@ class MockUsersRepo extends UsersRepository {
   }
 }
 
-class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   FakeAuthNotifier(AuthUser user) : super(Authenticated(user));
 
   @override
@@ -107,6 +109,7 @@ class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> logout() async {
     state = const Unauthenticated();
   }
+
   @override
   Future<void> restoreSession() async {}
   @override
@@ -193,90 +196,101 @@ void main() {
   ];
 
   group('UserCard RBAC & Protection Controls', () {
-    testWidgets('Owner card renders full access badge and omits deactivation button', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UserCard(
-              user: sampleOwner,
-              isSelf: false,
-              canEdit: true,
-              canDeactivate: true,
-              onEdit: () {},
-              onToggleStatus: () {},
+    testWidgets(
+      'Owner card renders full access badge and omits deactivation button',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: UserCard(
+                user: sampleOwner,
+                isSelf: false,
+                canEdit: true,
+                canDeactivate: true,
+                onEdit: () {},
+                onToggleStatus: () {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Owner Admin'), findsOneWidget);
-      expect(find.text('Full Access (All Modules)'), findsOneWidget);
-      // Edit button is present
-      expect(find.byTooltip('Edit User'), findsOneWidget);
-      // Deactivate button is NEVER rendered for Owner
-      expect(find.byTooltip('Deactivate User'), findsNothing);
-      expect(find.byTooltip('Activate User'), findsNothing);
-    });
+        expect(find.text('Owner Admin'), findsOneWidget);
+        expect(find.text('Full Access (All Modules)'), findsOneWidget);
+        // Edit button is present
+        expect(find.byTooltip('Edit User'), findsOneWidget);
+        // Deactivate button is NEVER rendered for Owner
+        expect(find.byTooltip('Deactivate User'), findsNothing);
+        expect(find.byTooltip('Activate User'), findsNothing);
+      },
+    );
 
-    testWidgets('Self user card omits deactivation button even if has canDeactivate', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UserCard(
-              user: sampleStaff,
-              isSelf: true,
-              canEdit: true,
-              canDeactivate: true,
-              onEdit: () {},
-              onToggleStatus: () {},
+    testWidgets(
+      'Self user card omits deactivation button even if has canDeactivate',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: UserCard(
+                user: sampleStaff,
+                isSelf: true,
+                canEdit: true,
+                canDeactivate: true,
+                onEdit: () {},
+                onToggleStatus: () {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Ravi Kumar'), findsOneWidget);
-      expect(find.byTooltip('Edit User'), findsOneWidget);
-      // Deactivate button is omitted for self
-      expect(find.byTooltip('Deactivate User'), findsNothing);
-    });
+        expect(find.text('Ravi Kumar'), findsOneWidget);
+        expect(find.byTooltip('Edit User'), findsOneWidget);
+        // Deactivate button is omitted for self
+        expect(find.byTooltip('Deactivate User'), findsNothing);
+      },
+    );
 
-    testWidgets('Non-owner non-self active user card shows deactivation button', (tester) async {
-      bool toggleCalled = false;
+    testWidgets(
+      'Non-owner non-self active user card shows deactivation button',
+      (tester) async {
+        bool toggleCalled = false;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: UserCard(
-              user: sampleStaff,
-              isSelf: false,
-              canEdit: true,
-              canDeactivate: true,
-              onEdit: () {},
-              onToggleStatus: () {
-                toggleCalled = true;
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: UserCard(
+                user: sampleStaff,
+                isSelf: false,
+                canEdit: true,
+                canDeactivate: true,
+                onEdit: () {},
+                onToggleStatus: () {
+                  toggleCalled = true;
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Ravi Kumar'), findsOneWidget);
-      final deactBtn = find.byTooltip('Deactivate User');
-      expect(deactBtn, findsOneWidget);
+        expect(find.text('Ravi Kumar'), findsOneWidget);
+        final deactBtn = find.byTooltip('Deactivate User');
+        expect(deactBtn, findsOneWidget);
 
-      await tester.tap(deactBtn);
-      await tester.pumpAndSettle();
+        await tester.tap(deactBtn);
+        await tester.pumpAndSettle();
 
-      expect(toggleCalled, isTrue);
-    });
+        expect(toggleCalled, isTrue);
+      },
+    );
 
-    testWidgets('Inactive user card shows activate button with green styling', (tester) async {
+    testWidgets('Inactive user card shows activate button with green styling', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -300,167 +314,185 @@ void main() {
   });
 
   group('UserFormSheet Validations & RBAC', () {
-    testWidgets('Validates required fields in create mode (name, username, password)', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Validates required fields in create mode (name, username, password)',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockUsersRepo();
+        final mockRepo = MockUsersRepo();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            usersRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: UserFormSheet(
-                permissionGroups: samplePermissionGroups,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [usersRepositoryProvider.overrideWithValue(mockRepo)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: UserFormSheet(permissionGroups: samplePermissionGroups),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Tap 'Create User' button without filling required fields
-      final createBtn = find.widgetWithText(AppButton, 'Create User');
-      expect(createBtn, findsOneWidget);
-      await tester.tap(createBtn);
-      await tester.pumpAndSettle();
+        // Tap 'Create User' button without filling required fields
+        final createBtn = find.widgetWithText(AppButton, 'Create User');
+        expect(createBtn, findsOneWidget);
+        await tester.tap(createBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Full name is required'), findsOneWidget);
-      expect(find.text('Username is required'), findsOneWidget);
-      expect(find.text('Password is required'), findsOneWidget);
-    });
+        expect(find.text('Full name is required'), findsOneWidget);
+        expect(find.text('Username is required'), findsOneWidget);
+        expect(find.text('Password is required'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Validates username spaces, password length, and password mismatch', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Validates username spaces, password length, and password mismatch',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockUsersRepo();
+        final mockRepo = MockUsersRepo();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            usersRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: UserFormSheet(
-                permissionGroups: samplePermissionGroups,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [usersRepositoryProvider.overrideWithValue(mockRepo)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: UserFormSheet(permissionGroups: samplePermissionGroups),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Enter full name
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.at(0), 'Anand Kumar'); // Full name
-      await tester.enterText(textFields.at(1), 'anand kumar'); // Username with spaces
-      await tester.enterText(textFields.at(3), 'short'); // Password < 8 chars
-      await tester.enterText(textFields.at(4), 'different'); // Confirm password
-      await tester.pumpAndSettle();
+        // Enter full name
+        final textFields = find.byType(TextField);
+        await tester.enterText(textFields.at(0), 'Anand Kumar'); // Full name
+        await tester.enterText(
+          textFields.at(1),
+          'anand kumar',
+        ); // Username with spaces
+        await tester.enterText(textFields.at(3), 'short'); // Password < 8 chars
+        await tester.enterText(
+          textFields.at(4),
+          'different',
+        ); // Confirm password
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create User'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create User'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Username cannot contain spaces'), findsOneWidget);
-      expect(find.text('Password must be at least 8 characters'), findsOneWidget);
-      expect(find.text('Passwords do not match'), findsOneWidget);
-    });
+        expect(find.text('Username cannot contain spaces'), findsOneWidget);
+        expect(
+          find.text('Password must be at least 8 characters'),
+          findsOneWidget,
+        );
+        expect(find.text('Passwords do not match'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Protects Owner account when editing: hides role, permissions and displays OWNER ACCESS banner', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Protects Owner account when editing: hides role, permissions and displays OWNER ACCESS banner',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockUsersRepo();
+        final mockRepo = MockUsersRepo();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            usersRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: UserFormSheet(
-                user: sampleOwner,
-                permissionGroups: samplePermissionGroups,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [usersRepositoryProvider.overrideWithValue(mockRepo)],
+            child: MaterialApp(
+              home: Scaffold(
+                body: UserFormSheet(
+                  user: sampleOwner,
+                  permissionGroups: samplePermissionGroups,
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Edit Owner Account'), findsOneWidget);
-      expect(find.text('OWNER ACCESS'), findsOneWidget);
-      expect(find.textContaining('Full access to all current and future modules'), findsOneWidget);
+        expect(find.text('Edit Owner Account'), findsOneWidget);
+        expect(find.text('OWNER ACCESS'), findsOneWidget);
+        expect(
+          find.textContaining('Full access to all current and future modules'),
+          findsOneWidget,
+        );
 
-      // Role selector and Permission selector are completely hidden for Owner
-      expect(find.text('ROLE *'), findsNothing);
-      expect(find.text('ASSIGNED MODULE PERMISSIONS'), findsNothing);
-      expect(find.byType(PermissionSelector), findsNothing);
-    });
+        // Role selector and Permission selector are completely hidden for Owner
+        expect(find.text('ROLE *'), findsNothing);
+        expect(find.text('ASSIGNED MODULE PERMISSIONS'), findsNothing);
+        expect(find.byType(PermissionSelector), findsNothing);
+      },
+    );
 
-    testWidgets('Preserves form input and displays error when createUser API fails', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Preserves form input and displays error when createUser API fails',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockUsersRepo()
-        ..createError = 'Username "arun" is already taken. Please choose another.';
+        final mockRepo = MockUsersRepo()
+          ..createError =
+              'Username "arun" is already taken. Please choose another.';
 
-      final usersNotifier = UsersNotifier(mockRepo);
-      await usersNotifier.loadUsers();
+        final usersNotifier = UsersNotifier(mockRepo);
+        await usersNotifier.loadUsers();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            usersRepositoryProvider.overrideWithValue(mockRepo),
-            usersNotifierProvider.overrideWith((ref) => usersNotifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: UserFormSheet(
-                permissionGroups: samplePermissionGroups,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              usersRepositoryProvider.overrideWithValue(mockRepo),
+              usersNotifierProvider.overrideWith((ref) => usersNotifier),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: UserFormSheet(permissionGroups: samplePermissionGroups),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final textFields = find.byType(TextField);
-      await tester.enterText(textFields.at(0), 'Arun Prakash');
-      await tester.enterText(textFields.at(1), 'arun');
-      await tester.enterText(textFields.at(2), 'arun@e6carspa.com');
-      await tester.enterText(textFields.at(3), 'SecurePass123!');
-      await tester.enterText(textFields.at(4), 'SecurePass123!');
-      await tester.pumpAndSettle();
+        final textFields = find.byType(TextField);
+        await tester.enterText(textFields.at(0), 'Arun Prakash');
+        await tester.enterText(textFields.at(1), 'arun');
+        await tester.enterText(textFields.at(2), 'arun@e6carspa.com');
+        await tester.enterText(textFields.at(3), 'SecurePass123!');
+        await tester.enterText(textFields.at(4), 'SecurePass123!');
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create User'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create User'));
+        await tester.pumpAndSettle();
 
-      // Error message rendered in error container
-      expect(find.text('Username "arun" is already taken. Please choose another.'), findsOneWidget);
-      // Inputs preserved
-      expect(find.text('Arun Prakash'), findsOneWidget);
-      expect(find.text('arun'), findsOneWidget);
-      expect(find.text('arun@e6carspa.com'), findsOneWidget);
-    });
+        // Error message rendered in error container
+        expect(
+          find.text('Username "arun" is already taken. Please choose another.'),
+          findsOneWidget,
+        );
+        // Inputs preserved
+        expect(find.text('Arun Prakash'), findsOneWidget);
+        expect(find.text('arun'), findsOneWidget);
+        expect(find.text('arun@e6carspa.com'), findsOneWidget);
+      },
+    );
   });
 
   group('PermissionSelector Granular Interactions', () {
-    testWidgets('Toggles permissions and handles Select All and Clear All', (tester) async {
+    testWidgets('Toggles permissions and handles Select All and Clear All', (
+      tester,
+    ) async {
       List<String> selected = ['customers.view'];
 
       await tester.pumpWidget(
@@ -512,7 +544,9 @@ void main() {
   });
 
   group('UsersScreen Status Filter Tabs', () {
-    testWidgets('Filter chips switch between All, Active, and Inactive users', (tester) async {
+    testWidgets('Filter chips switch between All, Active, and Inactive users', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -525,11 +559,11 @@ void main() {
         ProviderScope(
           overrides: [
             usersRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(ownerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(ownerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: UsersScreen(),
-          ),
+          child: const MaterialApp(home: UsersScreen()),
         ),
       );
 

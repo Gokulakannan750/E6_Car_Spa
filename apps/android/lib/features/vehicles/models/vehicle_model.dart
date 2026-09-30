@@ -27,18 +27,28 @@ class Vehicle {
   factory Vehicle.fromJson(Map<String, dynamic> json) {
     return Vehicle(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
+      registrationNumber:
+          (json['registrationNumber'] as String? ??
+                  json['RegistrationNumber'] as String? ??
+                  '')
+              .trim()
+              .toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
       variant: json['variant'] as String? ?? json['Variant'] as String?,
       color: json['color'] as String? ?? json['Color'] as String?,
-      customerId: json['customerId'] as String? ?? json['CustomerId'] as String? ?? '',
-      customerName: json['customerName'] as String? ?? json['CustomerName'] as String? ?? '',
+      customerId:
+          json['customerId'] as String? ?? json['CustomerId'] as String? ?? '',
+      customerName:
+          json['customerName'] as String? ??
+          json['CustomerName'] as String? ??
+          '',
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
     );
   }
 
@@ -77,7 +87,9 @@ class Vehicle {
   }) {
     return Vehicle(
       id: id ?? this.id,
-      registrationNumber: (registrationNumber ?? this.registrationNumber).trim().toUpperCase(),
+      registrationNumber: (registrationNumber ?? this.registrationNumber)
+          .trim()
+          .toUpperCase(),
       make: make ?? this.make,
       model: model ?? this.model,
       variant: variant ?? this.variant,
@@ -112,7 +124,8 @@ class CreateVehicleRequest {
       'registrationNumber': registrationNumber.trim().toUpperCase(),
       'make': make.trim(),
       'model': model.trim(),
-      if (variant != null && variant!.trim().isNotEmpty) 'variant': variant!.trim(),
+      if (variant != null && variant!.trim().isNotEmpty)
+        'variant': variant!.trim(),
       if (color != null && color!.trim().isNotEmpty) 'color': color!.trim(),
       'customerId': customerId,
     };
@@ -140,7 +153,8 @@ class UpdateVehicleRequest {
       'registrationNumber': registrationNumber.trim().toUpperCase(),
       'make': make.trim(),
       'model': model.trim(),
-      if (variant != null && variant!.trim().isNotEmpty) 'variant': variant!.trim(),
+      if (variant != null && variant!.trim().isNotEmpty)
+        'variant': variant!.trim(),
       if (color != null && color!.trim().isNotEmpty) 'color': color!.trim(),
     };
   }
@@ -161,9 +175,14 @@ class VehicleListResponse {
   });
 
   factory VehicleListResponse.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return VehicleListResponse(
-      items: rawItems.map((e) => Vehicle.fromJson(e as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map((e) => Vehicle.fromJson(e as Map<String, dynamic>))
+          .toList(),
       totalCount: (json['totalCount'] ?? json['TotalCount'] ?? 0) as int,
       page: (json['page'] ?? json['Page'] ?? 1) as int,
       pageSize: (json['pageSize'] ?? json['PageSize'] ?? 20) as int,

@@ -27,8 +27,10 @@ class BusinessLogoCard extends StatelessWidget {
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
     }
-    final baseServerUrl =
-        AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
+    final baseServerUrl = AppEnvironment.apiBaseUrl.replaceAll(
+      RegExp(r'/api/?$'),
+      '',
+    );
     return '$baseServerUrl${trimmed.startsWith('/') ? '' : '/'}$trimmed';
   }
 
@@ -126,8 +128,13 @@ class BusinessLogoCard extends StatelessWidget {
                   Container(
                     height: 80,
                     width: hasLogo ? null : 80,
-                    constraints: const BoxConstraints(minWidth: 80, maxWidth: 180),
-                    padding: hasLogo ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 80,
+                      maxWidth: 180,
+                    ),
+                    padding: hasLogo
+                        ? const EdgeInsets.all(4)
+                        : EdgeInsets.zero,
                     decoration: BoxDecoration(
                       color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
@@ -141,12 +148,12 @@ class BusinessLogoCard extends StatelessWidget {
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) =>
                                 const Center(
-                              child: Icon(
-                                Icons.storefront_outlined,
-                                size: 36,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
+                                  child: Icon(
+                                    Icons.storefront_outlined,
+                                    size: 36,
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return const Center(

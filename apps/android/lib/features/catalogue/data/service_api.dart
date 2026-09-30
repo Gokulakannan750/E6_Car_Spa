@@ -41,18 +41,12 @@ class ServiceApi {
   }
 
   Future<Service> createService(CreateServiceRequest request) async {
-    final response = await _dio.post(
-      '/services',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/services', data: request.toJson());
     return Service.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<Service> updateService(String id, UpdateServiceRequest request) async {
-    final response = await _dio.put(
-      '/services/$id',
-      data: request.toJson(),
-    );
+    final response = await _dio.put('/services/$id', data: request.toJson());
     return Service.fromJson(response.data as Map<String, dynamic>);
   }
 

@@ -11,7 +11,8 @@ import '../../models/staff_request_models.dart';
 class AddEditStaffBottomSheet extends StatefulWidget {
   final Staff? staff;
   final Future<String?> Function(CreateStaffRequest request)? onCreate;
-  final Future<String?> Function(String staffId, UpdateStaffRequest request)? onUpdate;
+  final Future<String?> Function(String staffId, UpdateStaffRequest request)?
+  onUpdate;
 
   const AddEditStaffBottomSheet({
     super.key,
@@ -21,7 +22,8 @@ class AddEditStaffBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<AddEditStaffBottomSheet> createState() => _AddEditStaffBottomSheetState();
+  State<AddEditStaffBottomSheet> createState() =>
+      _AddEditStaffBottomSheetState();
 }
 
 class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
@@ -45,13 +47,18 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.staff?.name ?? '');
-    _phoneController = TextEditingController(text: widget.staff?.phoneNumber ?? '');
+    _phoneController = TextEditingController(
+      text: widget.staff?.phoneNumber ?? '',
+    );
     _emailController = TextEditingController(text: widget.staff?.email ?? '');
-    _addressController = TextEditingController(text: widget.staff?.address ?? '');
+    _addressController = TextEditingController(
+      text: widget.staff?.address ?? '',
+    );
     _roleController = TextEditingController(text: widget.staff?.role ?? '');
     _aadhaarController = TextEditingController();
     _isActive = widget.staff?.isActive ?? true;
-    _isEditingAadhaar = widget.staff != null && widget.staff!.aadhaarMasked == null;
+    _isEditingAadhaar =
+        widget.staff != null && widget.staff!.aadhaarMasked == null;
   }
 
   @override
@@ -97,7 +104,8 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
         });
         return;
       }
-      if (cleanAadhaar.length != 12 || !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
+      if (cleanAadhaar.length != 12 ||
+          !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
         setState(() {
           _errorMessage = 'Aadhaar number must be exactly 12 numeric digits.';
         });
@@ -105,7 +113,8 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
       }
     } else {
       if (_isEditingAadhaar && cleanAadhaar.isNotEmpty) {
-        if (cleanAadhaar.length != 12 || !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
+        if (cleanAadhaar.length != 12 ||
+            !RegExp(r'^\d{12}$').hasMatch(cleanAadhaar)) {
           setState(() {
             _errorMessage = 'Aadhaar number must be exactly 12 numeric digits.';
           });
@@ -133,7 +142,9 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
         address: address.isEmpty ? null : address,
         role: role.isEmpty ? null : role,
         isActive: _isActive,
-        aadhaarNumber: _isEditingAadhaar && cleanAadhaar.isNotEmpty ? cleanAadhaar : null,
+        aadhaarNumber: _isEditingAadhaar && cleanAadhaar.isNotEmpty
+            ? cleanAadhaar
+            : null,
         removeAadhaarDocument: _removeAadhaarDocument ? true : null,
       );
       error = await widget.onUpdate?.call(widget.staff!.id, request);
@@ -184,7 +195,9 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
           // Pinned Fixed Header
           AppModalHeader(
             title: isEdit ? 'Edit Staff Member' : 'Add Staff Member',
-            subtitle: isEdit ? 'Update staff member profile & role' : 'Add an employee to the workshop directory',
+            subtitle: isEdit
+                ? 'Update staff member profile & role'
+                : 'Add an employee to the workshop directory',
             icon: isEdit ? Icons.edit_outlined : Icons.person_add_outlined,
             iconBgColor: AppColors.inProgressBg,
             iconColor: AppColors.primary,
@@ -203,282 +216,356 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
                     if (_errorMessage != null)
                       Container(
                         margin: const EdgeInsets.only(bottom: 14),
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withAlpha(20),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withAlpha(80)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withAlpha(20),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.error.withAlpha(80),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Field 1: Name
-              Text(
-                'Full Name *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _nameController,
-                hintText: 'e.g. Ramesh Kumar',
-                prefixIcon: const Icon(Icons.person_outline, size: 18, color: AppColors.textSecondary),
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 12),
-
-              // Field 2: Phone Number
-              Text(
-                'Phone Number *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _phoneController,
-                hintText: 'e.g. 9840123456',
-                keyboardType: TextInputType.phone,
-                inputFormatters: PhoneValidator.formatters,
-                maxLength: 10,
-                prefixIcon: const Icon(Icons.phone_outlined, size: 18, color: AppColors.textSecondary),
-                isEnabled: !_isLoading,
-                validator: (val) => PhoneValidator.validate(val, isRequired: true),
-              ),
-              const SizedBox(height: 12),
-
-              // Field 3: Role / Designation
-              Text(
-                'Role / Designation',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _roleController,
-                hintText: 'e.g. Detailer, Supervisor, Technician',
-                prefixIcon: const Icon(Icons.badge_outlined, size: 18, color: AppColors.textSecondary),
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 12),
-
-              // Field 4: Email
-              Text(
-                'Email Address',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _emailController,
-                hintText: 'e.g. ramesh@e6carspa.com',
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined, size: 18, color: AppColors.textSecondary),
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 12),
-
-              // Field 5: Address
-              Text(
-                'Address',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _addressController,
-                hintText: 'Street, city, area...',
-                prefixIcon: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.textSecondary),
-                maxLines: 2,
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 12),
-
-              // Field 6: Aadhaar Information
-              if (!isEdit) ...[
-                Text(
-                  'Aadhaar Number *',
-                  style: AppTextStyles.labelMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                AppTextField(
-                  controller: _aadhaarController,
-                  hintText: 'e.g. 1234 5678 9012',
-                  keyboardType: TextInputType.number,
-                  prefixIcon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.textSecondary),
-                  isEnabled: !_isLoading,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Enter the 12-digit Aadhaar number',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                ),
-                const SizedBox(height: 14),
-              ] else ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Aadhaar Number',
-                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                widget.staff?.aadhaarMasked ?? 'Aadhaar: Not Added',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontFamily: 'monospace',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.error,
                                 ),
                               ),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditingAadhaar = !_isEditingAadhaar;
-                              });
-                            },
-                            child: Text(_isEditingAadhaar ? 'Cancel' : (widget.staff?.aadhaarMasked != null ? 'Change' : 'Add Aadhaar')),
-                          ),
-                        ],
-                      ),
-                      if (_isEditingAadhaar) ...[
-                        const Divider(height: 16),
-                        Text(
-                          'New Aadhaar Number',
-                          style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        AppTextField(
-                          controller: _aadhaarController,
-                          hintText: '12-digit Aadhaar number',
-                          keyboardType: TextInputType.number,
-                          prefixIcon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.textSecondary),
-                          isEnabled: !_isLoading,
+                      ),
+
+                    // Field 1: Name
+                    Text(
+                      'Full Name *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _nameController,
+                      hintText: 'e.g. Ramesh Kumar',
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 2: Phone Number
+                    Text(
+                      'Phone Number *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _phoneController,
+                      hintText: 'e.g. 9840123456',
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: PhoneValidator.formatters,
+                      maxLength: 10,
+                      prefixIcon: const Icon(
+                        Icons.phone_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      isEnabled: !_isLoading,
+                      validator: (val) =>
+                          PhoneValidator.validate(val, isRequired: true),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 3: Role / Designation
+                    Text(
+                      'Role / Designation',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _roleController,
+                      hintText: 'e.g. Detailer, Supervisor, Technician',
+                      prefixIcon: const Icon(
+                        Icons.badge_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 4: Email
+                    Text(
+                      'Email Address',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _emailController,
+                      hintText: 'e.g. ramesh@e6carspa.com',
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 5: Address
+                    Text(
+                      'Address',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _addressController,
+                      hintText: 'Street, city, area...',
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 2,
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Field 6: Aadhaar Information
+                    if (!isEdit) ...[
+                      Text(
+                        'Aadhaar Number *',
+                        style: AppTextStyles.labelMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      AppTextField(
+                        controller: _aadhaarController,
+                        hintText: 'e.g. 1234 5678 9012',
+                        keyboardType: TextInputType.number,
+                        prefixIcon: const Icon(
+                          Icons.shield_outlined,
+                          size: 18,
+                          color: AppColors.textSecondary,
+                        ),
+                        isEnabled: !_isLoading,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Enter the 12-digit Aadhaar number',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Aadhaar Number',
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      widget.staff?.aadhaarMasked ??
+                                          'Aadhaar: Not Added',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isEditingAadhaar = !_isEditingAadhaar;
+                                    });
+                                  },
+                                  child: Text(
+                                    _isEditingAadhaar
+                                        ? 'Cancel'
+                                        : (widget.staff?.aadhaarMasked != null
+                                              ? 'Change'
+                                              : 'Add Aadhaar'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_isEditingAadhaar) ...[
+                              const Divider(height: 16),
+                              Text(
+                                'New Aadhaar Number',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              AppTextField(
+                                controller: _aadhaarController,
+                                hintText: '12-digit Aadhaar number',
+                                keyboardType: TextInputType.number,
+                                prefixIcon: const Icon(
+                                  Icons.shield_outlined,
+                                  size: 18,
+                                  color: AppColors.textSecondary,
+                                ),
+                                isEnabled: !_isLoading,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+
+                    // Active switch
+                    if (isEdit)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Active Status',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  _isActive
+                                      ? 'Staff member can receive advances'
+                                      : 'Staff member is inactive',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: _isActive,
+                              activeThumbColor: AppColors.primary,
+                              onChanged: _isLoading
+                                  ? null
+                                  : (val) {
+                                      setState(() {
+                                        _isActive = val;
+                                      });
+                                    },
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Bottom action buttons (Cancel + Submit)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: const Key('modal_cancel_button'),
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            label: isEdit ? 'Save Changes' : 'Create Staff',
+                            icon: isEdit
+                                ? Icons.save_outlined
+                                : Icons.check_rounded,
+                            isLoading: _isLoading,
+                            onPressed: _handleSubmit,
+                          ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-              ],
-
-              // Active switch
-              if (isEdit)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Active Status',
-                            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            _isActive ? 'Staff member can receive advances' : 'Staff member is inactive',
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                      Switch(
-                        value: _isActive,
-                        activeThumbColor: AppColors.primary,
-                        onChanged: _isLoading
-                            ? null
-                            : (val) {
-                                setState(() {
-                                  _isActive = val;
-                                });
-                              },
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 20),
-
-              // Bottom action buttons (Cancel + Submit)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('modal_cancel_button'),
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context).pop();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.borderDark),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppButton(
-                      label: isEdit ? 'Save Changes' : 'Create Staff',
-                      icon: isEdit ? Icons.save_outlined : Icons.check_rounded,
-                      isLoading: _isLoading,
-                      onPressed: _handleSubmit,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

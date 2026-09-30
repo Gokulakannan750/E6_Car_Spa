@@ -29,12 +29,11 @@ class E6BrandBadge extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: AppColors.brandGradient,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: border ??
-            Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 0.75,
-            ),
-        boxShadow: boxShadow ??
+        border:
+            border ??
+            Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.75),
+        boxShadow:
+            boxShadow ??
             [
               BoxShadow(
                 color: AppColors.loginAccent.withValues(alpha: 0.3),

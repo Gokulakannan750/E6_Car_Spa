@@ -89,7 +89,8 @@ class BusinessInfoCard extends StatelessWidget {
                   inputFormatters: PhoneValidator.formatters,
                   maxLength: 10,
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                  validator: (val) => PhoneValidator.validate(val, isRequired: true),
+                  validator: (val) =>
+                      PhoneValidator.validate(val, isRequired: true),
                 ),
               ),
               const SizedBox(width: 12),

@@ -73,7 +73,11 @@ class StaffRepository {
     }
   }
 
-  Future<Staff> uploadAadhaarDocument(String staffId, List<int> fileBytes, String fileName) async {
+  Future<Staff> uploadAadhaarDocument(
+    String staffId,
+    List<int> fileBytes,
+    String fileName,
+  ) async {
     try {
       return await _api.uploadAadhaarDocument(staffId, fileBytes, fileName);
     } on DioException catch (e) {
@@ -230,7 +234,9 @@ class StaffRepository {
     }
   }
 
-  Future<List<StaffSalarySettlement>> getSettlementHistory(String staffId) async {
+  Future<List<StaffSalarySettlement>> getSettlementHistory(
+    String staffId,
+  ) async {
     try {
       return await _api.getSettlementHistory(staffId);
     } on DioException catch (e) {

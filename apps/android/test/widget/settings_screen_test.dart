@@ -102,27 +102,30 @@ void main() {
           (ref) => StateControllerNotifier(settingsState),
         ),
       ],
-      child: const MaterialApp(
-        home: CompanySettingsScreen(),
-      ),
+      child: const MaterialApp(home: CompanySettingsScreen()),
     );
   }
 
   group('CompanySettingsScreen Widget Tests', () {
-    testWidgets('Renders restricted access message when user lacks settings.view',
-        (tester) async {
-      await tester.pumpWidget(createTestWidget(user: unauthorizedUser));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Renders restricted access message when user lacks settings.view',
+      (tester) async {
+        await tester.pumpWidget(createTestWidget(user: unauthorizedUser));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Access Restricted'), findsOneWidget);
-      expect(
-        find.textContaining('You do not have permission to view Business Settings'),
-        findsOneWidget,
-      );
-    });
+        expect(find.text('Access Restricted'), findsOneWidget);
+        expect(
+          find.textContaining(
+            'You do not have permission to view Business Settings',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('Renders loading state when settings are loading',
-        (tester) async {
+    testWidgets('Renders loading state when settings are loading', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           user: managerUser,
@@ -134,8 +137,9 @@ void main() {
       expect(find.text('Loading business profile...'), findsOneWidget);
     });
 
-    testWidgets('Renders form cards with populated values for Manager/Owner',
-        (tester) async {
+    testWidgets('Renders form cards with populated values for Manager/Owner', (
+      tester,
+    ) async {
       const profile = BusinessProfileModel(
         id: '123',
         businessName: 'E6 Car Spa',
@@ -166,33 +170,36 @@ void main() {
       expect(find.text('+91 9578749449'), findsOneWidget);
     });
 
-    testWidgets('Shows View-Only banner and hides Save button for view-only staff',
-        (tester) async {
-      const profile = BusinessProfileModel(
-        id: '123',
-        businessName: 'E6 Car Spa',
-        addressLine1: '36, Geetha Nagar',
-        city: 'Erode',
-        state: 'Tamil Nadu',
-        postalCode: '638011',
-        phone: '+91 9578749449',
-        email: 'e6carspaerd@gmail.com',
-      );
+    testWidgets(
+      'Shows View-Only banner and hides Save button for view-only staff',
+      (tester) async {
+        const profile = BusinessProfileModel(
+          id: '123',
+          businessName: 'E6 Car Spa',
+          addressLine1: '36, Geetha Nagar',
+          city: 'Erode',
+          state: 'Tamil Nadu',
+          postalCode: '638011',
+          phone: '+91 9578749449',
+          email: 'e6carspaerd@gmail.com',
+        );
 
-      await tester.pumpWidget(
-        createTestWidget(
-          user: staffUser,
-          settingsState: const SettingsLoaded(profile: profile),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(
+            user: staffUser,
+            settingsState: const SettingsLoaded(profile: profile),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('View-Only Mode'), findsOneWidget);
-      expect(find.text('Save Settings'), findsNothing);
-    });
+        expect(find.textContaining('View-Only Mode'), findsOneWidget);
+        expect(find.text('Save Settings'), findsNothing);
+      },
+    );
 
-    testWidgets('Displays success banner when successMessage is present',
-        (tester) async {
+    testWidgets('Displays success banner when successMessage is present', (
+      tester,
+    ) async {
       const profile = BusinessProfileModel(
         id: '123',
         businessName: 'E6 Car Spa',
@@ -234,8 +241,10 @@ class StateControllerNotifier extends StateNotifier<SettingsState>
   Future<bool> updateProfile(dynamic request) async => true;
 
   @override
-  Future<bool> uploadLogo({required List<int> bytes, required String filename}) async =>
-      true;
+  Future<bool> uploadLogo({
+    required List<int> bytes,
+    required String filename,
+  }) async => true;
 
   @override
   Future<bool> removeLogo() async => true;

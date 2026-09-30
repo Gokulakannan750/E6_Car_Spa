@@ -46,29 +46,53 @@ class Staff {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return 'S';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 
   factory Staff.fromJson(Map<String, dynamic> json) {
     return Staff(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      staffMasterId: json['staffMasterId'] as String? ?? json['StaffMasterId'] as String?,
+      staffMasterId:
+          json['staffMasterId'] as String? ?? json['StaffMasterId'] as String?,
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
-      phoneNumber: json['phoneNumber'] as String? ?? json['PhoneNumber'] as String? ?? '',
+      phoneNumber:
+          json['phoneNumber'] as String? ??
+          json['PhoneNumber'] as String? ??
+          '',
       email: json['email'] as String? ?? json['Email'] as String?,
       address: json['address'] as String? ?? json['Address'] as String?,
       role: json['role'] as String? ?? json['Role'] as String?,
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
-      totalAdvances: (json['totalAdvances'] ?? json['TotalAdvances'] ?? 0) as int,
-      totalAdvanceAmount: ((json['totalAdvanceAmount'] ?? json['TotalAdvanceAmount'] ?? 0.0) as num).toDouble(),
-      aadhaarMasked: json['aadhaarMasked'] as String? ?? json['AadhaarMasked'] as String?,
-      hasAadhaarDocument: (json['hasAadhaarDocument'] ?? json['HasAadhaarDocument'] ?? false) as bool,
-      aadhaarDocumentFileName: json['aadhaarDocumentFileName'] as String? ?? json['AadhaarDocumentFileName'] as String?,
-      aadhaarDocumentContentType: json['aadhaarDocumentContentType'] as String? ?? json['AadhaarDocumentContentType'] as String?,
-      aadhaarDocumentSize: json['aadhaarDocumentSize'] as int? ?? json['AadhaarDocumentSize'] as int?,
-      defaultShowroomId: json['defaultShowroomId'] as String? ?? json['DefaultShowroomId'] as String?,
-      defaultShowroomMasterId: json['defaultShowroomMasterId'] as String? ?? json['DefaultShowroomMasterId'] as String?,
-      defaultShowroomName: json['defaultShowroomName'] as String? ?? json['DefaultShowroomName'] as String?,
+      totalAdvances:
+          (json['totalAdvances'] ?? json['TotalAdvances'] ?? 0) as int,
+      totalAdvanceAmount:
+          ((json['totalAdvanceAmount'] ?? json['TotalAdvanceAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      aadhaarMasked:
+          json['aadhaarMasked'] as String? ?? json['AadhaarMasked'] as String?,
+      hasAadhaarDocument:
+          (json['hasAadhaarDocument'] ?? json['HasAadhaarDocument'] ?? false)
+              as bool,
+      aadhaarDocumentFileName:
+          json['aadhaarDocumentFileName'] as String? ??
+          json['AadhaarDocumentFileName'] as String?,
+      aadhaarDocumentContentType:
+          json['aadhaarDocumentContentType'] as String? ??
+          json['AadhaarDocumentContentType'] as String?,
+      aadhaarDocumentSize:
+          json['aadhaarDocumentSize'] as int? ??
+          json['AadhaarDocumentSize'] as int?,
+      defaultShowroomId:
+          json['defaultShowroomId'] as String? ??
+          json['DefaultShowroomId'] as String?,
+      defaultShowroomMasterId:
+          json['defaultShowroomMasterId'] as String? ??
+          json['DefaultShowroomMasterId'] as String?,
+      defaultShowroomName:
+          json['defaultShowroomName'] as String? ??
+          json['DefaultShowroomName'] as String?,
     );
   }
 

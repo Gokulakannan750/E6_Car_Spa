@@ -12,6 +12,8 @@ public interface IOutsideJobService
     Task<OutsideJobDto> MarkReturnedAsync(Guid id, MarkOutsideJobReturnedRequest request, Guid? userId = null, string? userName = null, CancellationToken cancellationToken = default);
     Task<OutsideJobDto> CancelAsync(Guid id, CancelOutsideJobRequest request, Guid? userId = null, string? userName = null, CancellationToken cancellationToken = default);
     Task<OutsideJobDto?> UpdateAsync(Guid id, UpdateOutsideJobRequest request, CancellationToken cancellationToken = default);
+    Task<OutsideJobDto> UpdateCostAsync(Guid id, UpdateOutsideJobCostRequest request, Guid? userId = null, string? userName = null, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(Guid id, Guid? userId = null, string? userName = null, CancellationToken cancellationToken = default);
     Task<VehicleLocationDto> GetVehicleLocationByJobCardIdAsync(Guid jobCardId, CancellationToken cancellationToken = default);
     Task<VehicleLocationDto> GetVehicleLocationByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default);
 }

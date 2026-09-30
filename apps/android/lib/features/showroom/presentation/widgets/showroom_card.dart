@@ -28,7 +28,9 @@ class ShowroomCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: showroom.isActive ? AppColors.border : AppColors.border.withAlpha(100),
+          color: showroom.isActive
+              ? AppColors.border
+              : AppColors.border.withAlpha(100),
         ),
         boxShadow: [
           BoxShadow(
@@ -61,7 +63,9 @@ class ShowroomCard extends StatelessWidget {
                       child: Text(
                         showroom.initials,
                         style: AppTextStyles.headingSmall.copyWith(
-                          color: showroom.isActive ? AppColors.primary : AppColors.textSecondary,
+                          color: showroom.isActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -75,7 +79,9 @@ class ShowroomCard extends StatelessWidget {
                             showroom.name,
                             style: AppTextStyles.headingSmall.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: showroom.isActive ? AppColors.textPrimary : AppColors.textSecondary,
+                              color: showroom.isActive
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -106,7 +112,9 @@ class ShowroomCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     StatusBadge(
                       label: showroom.isActive ? 'Active' : 'Inactive',
-                      type: showroom.isActive ? StatusType.completed : StatusType.cancelled,
+                      type: showroom.isActive
+                          ? StatusType.completed
+                          : StatusType.cancelled,
                       isCompact: true,
                     ),
                   ],
@@ -139,7 +147,10 @@ class ShowroomCard extends StatelessWidget {
 
                 // Metrics Row: Staff Today & Total Vehicles Today
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8),
@@ -212,10 +223,16 @@ class ShowroomCard extends StatelessWidget {
                     TextButton.icon(
                       onPressed: onTap,
                       icon: const Icon(Icons.calendar_month_outlined, size: 15),
-                      label: const Text('Daily Workspace', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Daily Workspace',
+                        style: TextStyle(fontSize: 12),
+                      ),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
@@ -226,13 +243,21 @@ class ShowroomCard extends StatelessWidget {
                             TextButton(
                               onPressed: onToggleActive,
                               style: TextButton.styleFrom(
-                                foregroundColor: showroom.isActive ? AppColors.warning : AppColors.success,
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                foregroundColor: showroom.isActive
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 visualDensity: VisualDensity.compact,
                               ),
                               child: Text(
                                 showroom.isActive ? 'Deactivate' : 'Activate',
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           if (onEdit != null)

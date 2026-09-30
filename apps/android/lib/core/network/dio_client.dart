@@ -11,8 +11,12 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: AppEnvironment.apiBaseUrl,
-      connectTimeout: const Duration(milliseconds: AppConstants.connectTimeoutMs),
-      receiveTimeout: const Duration(milliseconds: AppConstants.receiveTimeoutMs),
+      connectTimeout: const Duration(
+        milliseconds: AppConstants.connectTimeoutMs,
+      ),
+      receiveTimeout: const Duration(
+        milliseconds: AppConstants.receiveTimeoutMs,
+      ),
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -38,7 +42,10 @@ final dioProvider = Provider<Dio>((ref) {
           normalizedPath = '/$normalizedPath';
         }
         if (normalizedPath.length > 1 && normalizedPath.endsWith('/')) {
-          normalizedPath = normalizedPath.substring(0, normalizedPath.length - 1);
+          normalizedPath = normalizedPath.substring(
+            0,
+            normalizedPath.length - 1,
+          );
         }
         final canonicalPath = normalizedPath.startsWith('/api/')
             ? normalizedPath.substring(4)
@@ -51,7 +58,9 @@ final dioProvider = Provider<Dio>((ref) {
           '/public/business-profile',
         };
 
-        final isUnauthenticated = unauthenticatedEndpoints.contains(canonicalPath);
+        final isUnauthenticated = unauthenticatedEndpoints.contains(
+          canonicalPath,
+        );
 
         if (error.response?.statusCode == 401 && !isUnauthenticated) {
           await storage.clearSession();

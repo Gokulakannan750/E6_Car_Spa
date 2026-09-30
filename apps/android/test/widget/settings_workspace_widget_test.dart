@@ -18,7 +18,8 @@ import 'package:e6_car_spa/features/users/presentation/pages/users_screen.dart';
 import 'package:e6_car_spa/features/users/providers/users_provider.dart';
 import 'package:e6_car_spa/features/users/providers/users_state.dart';
 
-class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   FakeAuthNotifier(super.state);
 
   @override
@@ -118,9 +119,8 @@ void main() {
       routes: [
         GoRoute(
           path: AppRoutes.dashboard,
-          builder: (context, state) => const Scaffold(
-            body: Text('Level-1 Suite Launcher Dashboard'),
-          ),
+          builder: (context, state) =>
+              const Scaffold(body: Text('Level-1 Suite Launcher Dashboard')),
         ),
         GoRoute(
           path: AppRoutes.settings,
@@ -144,10 +144,7 @@ void main() {
     );
   }
 
-  Widget createTestApp({
-    required AuthUser user,
-    GoRouter? router,
-  }) {
+  Widget createTestApp({required AuthUser user, GoRouter? router}) {
     return ProviderScope(
       overrides: [
         currentUserProvider.overrideWithValue(user),
@@ -155,146 +152,163 @@ void main() {
           (ref) => FakeAuthNotifier(Authenticated(user)),
         ),
         settingsNotifierProvider.overrideWith(
-          (ref) => FakeSettingsNotifier(const SettingsLoaded(profile: sampleProfile)),
+          (ref) => FakeSettingsNotifier(
+            const SettingsLoaded(profile: sampleProfile),
+          ),
         ),
         usersNotifierProvider.overrideWith(
-          (ref) => FakeUsersNotifier(UsersLoaded(
-            users: sampleUsers,
-            permissionGroups: const [
-              PermissionGroupModel(
-                module: 'Settings',
-                permissions: [
-                  PermissionModel(
-                    id: 'p1',
-                    code: 'settings.view',
-                    name: 'View Settings',
-                    module: 'Settings',
-                  ),
-                ],
-              ),
-            ],
-          )),
+          (ref) => FakeUsersNotifier(
+            UsersLoaded(
+              users: sampleUsers,
+              permissionGroups: const [
+                PermissionGroupModel(
+                  module: 'Settings',
+                  permissions: [
+                    PermissionModel(
+                      id: 'p1',
+                      code: 'settings.view',
+                      name: 'View Settings',
+                      module: 'Settings',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ],
-      child: MaterialApp.router(
-        routerConfig: router ?? createTestRouter(),
-      ),
+      child: MaterialApp.router(routerConfig: router ?? createTestRouter()),
     );
   }
 
   group('Settings Level-2 Workspace Tests', () {
-    testWidgets('1-7: Workspace opens, displays headers, cards, and NO WhatsApp',
-        (tester) async {
-      await tester.pumpWidget(createTestApp(user: ownerUser));
-      await tester.pumpAndSettle();
+    testWidgets(
+      '1-7: Workspace opens, displays headers, cards, and NO WhatsApp',
+      (tester) async {
+        await tester.pumpWidget(createTestApp(user: ownerUser));
+        await tester.pumpAndSettle();
 
-      // 1. Settings workspace opens
-      expect(find.byType(SettingsScreen), findsOneWidget);
+        // 1. Settings workspace opens
+        expect(find.byType(SettingsScreen), findsOneWidget);
 
-      // 2. Header contains "E6 Settings"
-      expect(find.text('E6 Settings'), findsOneWidget);
+        // 2. Header contains "E6 Settings"
+        expect(find.text('E6 Settings'), findsOneWidget);
 
-      // 3. Header contains "Level-2 Workspace"
-      expect(find.text('Level-2 Workspace'), findsOneWidget);
+        // 3. Header contains "Level-2 Workspace"
+        expect(find.text('Level-2 Workspace'), findsOneWidget);
 
-      // 4. Company Settings card exists
-      expect(find.text('Company Settings'), findsOneWidget);
-      expect(find.text('Business profile & invoices'), findsOneWidget);
+        // 4. Company Settings card exists
+        expect(find.text('Company Settings'), findsOneWidget);
+        expect(find.text('Business profile & invoices'), findsOneWidget);
 
-      // 5. Users & Access card exists when authorized
-      expect(find.text('Users & Access'), findsOneWidget);
-      expect(find.text('Users, roles & permissions'), findsOneWidget);
+        // 5. Users & Access card exists when authorized
+        expect(find.text('Users & Access'), findsOneWidget);
+        expect(find.text('Users, roles & permissions'), findsOneWidget);
 
-      // 6. System Preferences card exists
-      expect(find.text('System Preferences'), findsOneWidget);
-      expect(find.text('Display & application settings'), findsOneWidget);
+        // 6. System Preferences card exists
+        expect(find.text('System Preferences'), findsOneWidget);
+        expect(find.text('Display & application settings'), findsOneWidget);
 
-      // 7. WhatsApp Settings does NOT exist
-      expect(find.textContaining('WhatsApp'), findsNothing);
-      expect(find.textContaining('whatsapp'), findsNothing);
+        // 7. WhatsApp Settings does NOT exist
+        expect(find.textContaining('WhatsApp'), findsNothing);
+        expect(find.textContaining('whatsapp'), findsNothing);
 
-      // Verify no bottom navigation bar
-      expect(find.byType(BottomNavigationBar), findsNothing);
-    });
+        // Verify no bottom navigation bar
+        expect(find.byType(BottomNavigationBar), findsNothing);
+      },
+    );
 
-    testWidgets('8. Company Settings navigation works and back returns to Settings',
-        (tester) async {
-      final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
-      await tester.pumpAndSettle();
+    testWidgets(
+      '8. Company Settings navigation works and back returns to Settings',
+      (tester) async {
+        final router = createTestRouter();
+        await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
+        await tester.pumpAndSettle();
 
-      // Tap Company Settings card
-      await tester.tap(find.byKey(const Key('settings_tile_Company Settings')));
-      await tester.pumpAndSettle();
+        // Tap Company Settings card
+        await tester.tap(
+          find.byKey(const Key('settings_tile_Company Settings')),
+        );
+        await tester.pumpAndSettle();
 
-      // Company Settings opens
-      expect(find.byType(CompanySettingsScreen), findsOneWidget);
-      expect(find.text('Business Profile & Invoices'), findsOneWidget);
+        // Company Settings opens
+        expect(find.byType(CompanySettingsScreen), findsOneWidget);
+        expect(find.text('Business Profile & Invoices'), findsOneWidget);
 
-      // 11. Child back returns to Settings workspace
-      await tester.tap(find.byKey(const Key('company_settings_back_button')));
-      await tester.pumpAndSettle();
+        // 11. Child back returns to Settings workspace
+        await tester.tap(find.byKey(const Key('company_settings_back_button')));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.text('E6 Settings'), findsOneWidget);
-    });
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('E6 Settings'), findsOneWidget);
+      },
+    );
 
-    testWidgets('9. Users & Access navigation works and child back returns to Settings',
-        (tester) async {
-      final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
-      await tester.pumpAndSettle();
+    testWidgets(
+      '9. Users & Access navigation works and child back returns to Settings',
+      (tester) async {
+        final router = createTestRouter();
+        await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
+        await tester.pumpAndSettle();
 
-      // Tap Users & Access card
-      await tester.tap(find.byKey(const Key('settings_tile_Users & Access')));
-      await tester.pumpAndSettle();
+        // Tap Users & Access card
+        await tester.tap(find.byKey(const Key('settings_tile_Users & Access')));
+        await tester.pumpAndSettle();
 
-      // UsersScreen opens
-      expect(find.byType(UsersScreen), findsOneWidget);
-      expect(find.text('Users & Permissions'), findsOneWidget);
+        // UsersScreen opens
+        expect(find.byType(UsersScreen), findsOneWidget);
+        expect(find.text('Users & Permissions'), findsOneWidget);
 
-      // Tapping back button in UsersScreen returns to Settings
-      final backButton = find.byKey(const Key('users_back_button'));
-      await tester.tap(backButton);
-      await tester.pumpAndSettle();
+        // Tapping back button in UsersScreen returns to Settings
+        final backButton = find.byKey(const Key('users_back_button'));
+        await tester.tap(backButton);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.text('E6 Settings'), findsOneWidget);
-    });
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('E6 Settings'), findsOneWidget);
+      },
+    );
 
-    testWidgets('10. System Preferences navigation works and child back returns to Settings',
-        (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      '10. System Preferences navigation works and child back returns to Settings',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
-      await tester.pumpAndSettle();
+        final router = createTestRouter();
+        await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
+        await tester.pumpAndSettle();
 
-      // Tap System Preferences card
-      await tester.tap(find.byKey(const Key('settings_tile_System Preferences')));
-      await tester.pumpAndSettle();
+        // Tap System Preferences card
+        await tester.tap(
+          find.byKey(const Key('settings_tile_System Preferences')),
+        );
+        await tester.pumpAndSettle();
 
-      // System Preferences opens
-      expect(find.byType(SystemPreferencesScreen), findsOneWidget);
-      expect(find.text('Display & Application Settings'), findsOneWidget);
-      expect(find.text('Date & Time'), findsOneWidget);
-      expect(find.text('Currency & Formatting'), findsOneWidget);
-      expect(find.text('Document Printing'), findsOneWidget);
-      expect(find.text('Application Behavior'), findsOneWidget);
-      expect(find.text('System Diagnostics'), findsOneWidget);
+        // System Preferences opens
+        expect(find.byType(SystemPreferencesScreen), findsOneWidget);
+        expect(find.text('Display & Application Settings'), findsOneWidget);
+        expect(find.text('Date & Time'), findsOneWidget);
+        expect(find.text('Currency & Formatting'), findsOneWidget);
+        expect(find.text('Document Printing'), findsOneWidget);
+        expect(find.text('Application Behavior'), findsOneWidget);
+        expect(find.text('System Diagnostics'), findsOneWidget);
 
-      // Child back returns to Settings workspace
-      await tester.tap(find.byKey(const Key('system_preferences_back_button')));
-      await tester.pumpAndSettle();
+        // Child back returns to Settings workspace
+        await tester.tap(
+          find.byKey(const Key('system_preferences_back_button')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.text('E6 Settings'), findsOneWidget);
-    });
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('E6 Settings'), findsOneWidget);
+      },
+    );
 
-    testWidgets('12. Settings workspace back returns to /dashboard',
-        (tester) async {
+    testWidgets('12. Settings workspace back returns to /dashboard', (
+      tester,
+    ) async {
       final router = createTestRouter();
       await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
       await tester.pumpAndSettle();
@@ -306,8 +320,9 @@ void main() {
       expect(find.text('Level-1 Suite Launcher Dashboard'), findsOneWidget);
     });
 
-    testWidgets('13. Android system back from Settings returns to /dashboard',
-        (tester) async {
+    testWidgets('13. Android system back from Settings returns to /dashboard', (
+      tester,
+    ) async {
       final router = createTestRouter();
       await tester.pumpWidget(createTestApp(user: ownerUser, router: router));
       await tester.pumpAndSettle();
@@ -319,21 +334,28 @@ void main() {
       expect(find.text('Level-1 Suite Launcher Dashboard'), findsOneWidget);
     });
 
-    testWidgets('14a. User with settings.view only sees Company Settings and System Preferences',
-        (tester) async {
-      final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: settingsOnlyUser, router: router));
-      await tester.pumpAndSettle();
+    testWidgets(
+      '14a. User with settings.view only sees Company Settings and System Preferences',
+      (tester) async {
+        final router = createTestRouter();
+        await tester.pumpWidget(
+          createTestApp(user: settingsOnlyUser, router: router),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Company Settings'), findsOneWidget);
-      expect(find.text('System Preferences'), findsOneWidget);
-      expect(find.text('Users & Access'), findsNothing);
-    });
+        expect(find.text('Company Settings'), findsOneWidget);
+        expect(find.text('System Preferences'), findsOneWidget);
+        expect(find.text('Users & Access'), findsNothing);
+      },
+    );
 
-    testWidgets('14b. User with users.view only sees Users & Access',
-        (tester) async {
+    testWidgets('14b. User with users.view only sees Users & Access', (
+      tester,
+    ) async {
       final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: usersOnlyUser, router: router));
+      await tester.pumpWidget(
+        createTestApp(user: usersOnlyUser, router: router),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Users & Access'), findsOneWidget);
@@ -341,10 +363,13 @@ void main() {
       expect(find.text('System Preferences'), findsNothing);
     });
 
-    testWidgets('14c. Unauthorized user sees Access Restricted empty state',
-        (tester) async {
+    testWidgets('14c. Unauthorized user sees Access Restricted empty state', (
+      tester,
+    ) async {
       final router = createTestRouter();
-      await tester.pumpWidget(createTestApp(user: unauthorizedUser, router: router));
+      await tester.pumpWidget(
+        createTestApp(user: unauthorizedUser, router: router),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Access Restricted'), findsOneWidget);

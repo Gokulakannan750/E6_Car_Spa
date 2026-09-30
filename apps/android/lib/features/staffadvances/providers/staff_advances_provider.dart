@@ -16,7 +16,8 @@ class StaffAdvancesState {
   final int totalCount;
   final int page;
   final int pageSize;
-  final String selectedStatus; // 'all', 'active', 'outstanding', 'settled', 'obsolete'
+  final String
+  selectedStatus; // 'all', 'active', 'outstanding', 'settled', 'obsolete'
   final String? selectedStaffId;
   final String searchQuery;
   final String? errorMessage;
@@ -59,7 +60,9 @@ class StaffAdvancesState {
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
       selectedStatus: selectedStatus ?? this.selectedStatus,
-      selectedStaffId: clearStaffId ? null : (selectedStaffId ?? this.selectedStaffId),
+      selectedStaffId: clearStaffId
+          ? null
+          : (selectedStaffId ?? this.selectedStaffId),
       searchQuery: searchQuery ?? this.searchQuery,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -70,7 +73,8 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
   final StaffAdvancesRepository _repository;
   final Ref? _ref;
 
-  StaffAdvancesNotifier(this._repository, [this._ref]) : super(const StaffAdvancesState()) {
+  StaffAdvancesNotifier(this._repository, [this._ref])
+    : super(const StaffAdvancesState()) {
     loadAdvances();
   }
 
@@ -104,10 +108,7 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
     } catch (e) {
       if (!silent) {
         final message = e is ApiException ? e.message : e.toString();
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: message,
-        );
+        state = state.copyWith(isLoading: false, errorMessage: message);
       }
     }
   }
@@ -173,7 +174,10 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
 
     state = state.copyWith(isSubmitting: true, clearError: true);
     try {
-      await _repository.obsoleteStaffAdvance(id, ObsoleteStaffAdvanceRequest(reason: reason));
+      await _repository.obsoleteStaffAdvance(
+        id,
+        ObsoleteStaffAdvanceRequest(reason: reason),
+      );
       state = state.copyWith(isSubmitting: false);
       await loadAdvances(refresh: true);
       _ref?.read(staffProvider.notifier).loadStaff(silent: true);
@@ -188,6 +192,6 @@ class StaffAdvancesNotifier extends StateNotifier<StaffAdvancesState> {
 
 final staffAdvancesProvider =
     StateNotifierProvider<StaffAdvancesNotifier, StaffAdvancesState>((ref) {
-  final repository = ref.watch(staffAdvancesRepositoryProvider);
-  return StaffAdvancesNotifier(repository, ref);
-});
+      final repository = ref.watch(staffAdvancesRepositoryProvider);
+      return StaffAdvancesNotifier(repository, ref);
+    });

@@ -16,7 +16,20 @@ class StaffAttendanceTab extends ConsumerWidget {
   String _formatDisplayDate(String isoDate) {
     try {
       final dt = DateTime.parse(isoDate);
-      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      final months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
       final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       return '${days[dt.weekday - 1]}, ${dt.day} ${months[dt.month - 1]} ${dt.year}';
     } catch (_) {
@@ -29,7 +42,9 @@ class StaffAttendanceTab extends ConsumerWidget {
     try {
       final dt = DateTime.parse(currentDateStr);
       final newDt = dt.add(Duration(days: days));
-      ref.read(selectedAttendanceDateProvider.notifier).state = newDt.toIso8601String().split('T')[0];
+      ref.read(selectedAttendanceDateProvider.notifier).state = newDt
+          .toIso8601String()
+          .split('T')[0];
     } catch (_) {}
   }
 
@@ -56,11 +71,17 @@ class StaffAttendanceTab extends ConsumerWidget {
     );
 
     if (picked != null) {
-      ref.read(selectedAttendanceDateProvider.notifier).state = picked.toIso8601String().split('T')[0];
+      ref.read(selectedAttendanceDateProvider.notifier).state = picked
+          .toIso8601String()
+          .split('T')[0];
     }
   }
 
-  Future<void> _showConfirmDialog(BuildContext context, WidgetRef ref, String date) async {
+  Future<void> _showConfirmDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String date,
+  ) async {
     final notesController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -104,10 +125,14 @@ class StaffAttendanceTab extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      await ref.read(attendanceActionProvider.notifier).confirmDailyAttendance(
-        date: date,
-        notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
-      );
+      await ref
+          .read(attendanceActionProvider.notifier)
+          .confirmDailyAttendance(
+            date: date,
+            notes: notesController.text.trim().isEmpty
+                ? null
+                : notesController.text.trim(),
+          );
     }
   }
 
@@ -118,10 +143,17 @@ class StaffAttendanceTab extends ConsumerWidget {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
 
-    final canManageAttendance = user?.isOwner == true || (user?.permissions.contains('staff_attendance.manage') ?? false) || (user?.permissions.contains('staff.manage') ?? false);
-    final canConfirmAttendance = user?.isOwner == true || (user?.permissions.contains('staff_attendance.confirm') ?? false) || (user?.permissions.contains('staff.manage') ?? false);
+    final canManageAttendance =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff_attendance.manage') ?? false) ||
+        (user?.permissions.contains('staff.manage') ?? false);
+    final canConfirmAttendance =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff_attendance.confirm') ?? false) ||
+        (user?.permissions.contains('staff.manage') ?? false);
 
-    final isToday = selectedDate == DateTime.now().toIso8601String().split('T')[0];
+    final isToday =
+        selectedDate == DateTime.now().toIso8601String().split('T')[0];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -143,27 +175,43 @@ class StaffAttendanceTab extends ConsumerWidget {
                     onTap: () => _pickDate(context, ref),
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 6,
+                        horizontal: 8,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                          const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             _formatDisplayDate(selectedDate),
-                            style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           if (isToday) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.accentPill,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
                                 'TODAY',
-                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                           ],
@@ -190,10 +238,13 @@ class StaffAttendanceTab extends ConsumerWidget {
                 await ref.read(dailyAttendanceProvider(selectedDate).future);
               },
               child: attendanceAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading daily attendance roster...'),
+                loading: () => const AppLoadingState(
+                  message: 'Loading daily attendance roster...',
+                ),
                 error: (err, _) => AppErrorState(
                   message: 'Failed to load attendance roster: $err',
-                  onRetry: () => ref.invalidate(dailyAttendanceProvider(selectedDate)),
+                  onRetry: () =>
+                      ref.invalidate(dailyAttendanceProvider(selectedDate)),
                 ),
                 data: (data) {
                   final isConfirmed = data.isConfirmed;
@@ -204,20 +255,31 @@ class StaffAttendanceTab extends ConsumerWidget {
                     children: [
                       // Confirmation Status Banner
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
-                          color: isConfirmed ? AppColors.successLight : AppColors.warningLight,
+                          color: isConfirmed
+                              ? AppColors.successLight
+                              : AppColors.warningLight,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isConfirmed ? AppColors.success.withAlpha(80) : AppColors.warningDark.withAlpha(80),
+                            color: isConfirmed
+                                ? AppColors.success.withAlpha(80)
+                                : AppColors.warningDark.withAlpha(80),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
-                              isConfirmed ? Icons.lock_rounded : Icons.lock_open_rounded,
+                              isConfirmed
+                                  ? Icons.lock_rounded
+                                  : Icons.lock_open_rounded,
                               size: 18,
-                              color: isConfirmed ? AppColors.success : AppColors.warningDark,
+                              color: isConfirmed
+                                  ? AppColors.success
+                                  : AppColors.warningDark,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -225,17 +287,25 @@ class StaffAttendanceTab extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    isConfirmed ? 'Attendance Confirmed & Locked' : 'Pending Confirmation',
+                                    isConfirmed
+                                        ? 'Attendance Confirmed & Locked'
+                                        : 'Pending Confirmation',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
-                                      color: isConfirmed ? AppColors.success : AppColors.warningDark,
+                                      color: isConfirmed
+                                          ? AppColors.success
+                                          : AppColors.warningDark,
                                     ),
                                   ),
-                                  if (isConfirmed && data.attendanceConfirmedByName != null)
+                                  if (isConfirmed &&
+                                      data.attendanceConfirmedByName != null)
                                     Text(
                                       'Confirmed by ${data.attendanceConfirmedByName}',
-                                      style: TextStyle(fontSize: 10, color: AppColors.success.withAlpha(200)),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.success.withAlpha(200),
+                                      ),
                                     ),
                                 ],
                               ),
@@ -245,12 +315,27 @@ class StaffAttendanceTab extends ConsumerWidget {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                                 icon: const Icon(Icons.check_rounded, size: 14),
-                                label: const Text('Confirm Day', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                onPressed: () => _showConfirmDialog(context, ref, selectedDate),
+                                label: const Text(
+                                  'Confirm Day',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () => _showConfirmDialog(
+                                  context,
+                                  ref,
+                                  selectedDate,
+                                ),
                               ),
                           ],
                         ),
@@ -260,13 +345,33 @@ class StaffAttendanceTab extends ConsumerWidget {
                       // KPI Summary Counter Pills
                       Row(
                         children: [
-                          _buildSummaryCard('Present', '${summary.presentCount}', AppColors.success, AppColors.successLight),
+                          _buildSummaryCard(
+                            'Present',
+                            '${summary.presentCount}',
+                            AppColors.success,
+                            AppColors.successLight,
+                          ),
                           const SizedBox(width: 8),
-                          _buildSummaryCard('Half Day', '${summary.halfDayCount}', AppColors.warningDark, AppColors.warningLight),
+                          _buildSummaryCard(
+                            'Half Day',
+                            '${summary.halfDayCount}',
+                            AppColors.warningDark,
+                            AppColors.warningLight,
+                          ),
                           const SizedBox(width: 8),
-                          _buildSummaryCard('Leave', '${summary.leaveCount}', AppColors.error, AppColors.errorLight),
+                          _buildSummaryCard(
+                            'Leave',
+                            '${summary.leaveCount}',
+                            AppColors.error,
+                            AppColors.errorLight,
+                          ),
                           const SizedBox(width: 8),
-                          _buildSummaryCard('Unmarked', '${summary.unmarkedCount}', AppColors.textSecondary, AppColors.surface),
+                          _buildSummaryCard(
+                            'Unmarked',
+                            '${summary.unmarkedCount}',
+                            AppColors.textSecondary,
+                            AppColors.surface,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -275,7 +380,8 @@ class StaffAttendanceTab extends ConsumerWidget {
                       if (data.staffMembers.isEmpty)
                         const AppEmptyState(
                           title: 'No Staff Found',
-                          message: 'There are no active staff members in the roster for this date.',
+                          message:
+                              'There are no active staff members in the roster for this date.',
                           icon: Icons.people_outline_rounded,
                         )
                       else ...[
@@ -284,12 +390,18 @@ class StaffAttendanceTab extends ConsumerWidget {
                           children: [
                             Text(
                               'Staff Roster (${data.staffMembers.length})',
-                              style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w700),
+                              style: AppTextStyles.labelLarge.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             if (isConfirmed)
                               const Text(
                                 '🔒 Locked for editing',
-                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                  fontStyle: FontStyle.italic,
+                                ),
                               ),
                           ],
                         ),
@@ -313,7 +425,12 @@ class StaffAttendanceTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(String label, String count, Color color, Color bgColor) {
+  Widget _buildSummaryCard(
+    String label,
+    String count,
+    Color color,
+    Color bgColor,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -324,9 +441,23 @@ class StaffAttendanceTab extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+            Text(
+              count,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: color,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color)),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),

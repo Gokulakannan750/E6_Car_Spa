@@ -91,7 +91,9 @@ class PaymentTransactionCard extends StatelessWidget {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(4),
@@ -160,13 +162,11 @@ class PaymentTransactionCard extends StatelessWidget {
             ],
 
             // Notes Field
-            if (payment.notes != null &&
-                payment.notes!.trim().isNotEmpty) ...[
+            if (payment.notes != null && payment.notes!.trim().isNotEmpty) ...[
               const SizedBox(height: 6),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(6),
@@ -201,9 +201,7 @@ class PaymentTransactionCard extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Void Payment'),
           ),

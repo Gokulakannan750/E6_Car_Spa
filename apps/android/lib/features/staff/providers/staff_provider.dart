@@ -92,10 +92,7 @@ class StaffNotifier extends StateNotifier<StaffState> {
       if (!mounted) return;
       if (!silent) {
         final message = e is ApiException ? e.message : e.toString();
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: message,
-        );
+        state = state.copyWith(isLoading: false, errorMessage: message);
       }
     }
   }

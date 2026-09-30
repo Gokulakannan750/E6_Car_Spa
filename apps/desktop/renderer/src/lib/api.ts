@@ -512,6 +512,10 @@ export interface UpdateOutsideJobRequest {
  notes?: string | null;
 }
 
+export interface UpdateOutsideJobCostRequest {
+  vendorCost: number;
+}
+
 export interface OutsideJobListResponse {
  items: OutsideJobDto[];
  totalCount: number;
@@ -1078,6 +1082,19 @@ export async function cancelOutsideJob(id: string, data: CancelOutsideJobRequest
 		method: 'POST',
 		body: JSON.stringify(data),
 	}, 'cancel outside job');
+}
+
+export async function updateOutsideJobCost(id: string, data: UpdateOutsideJobCostRequest) {
+	return request<OutsideJobDto>(`/api/outside-jobs/${encodeURIComponent(id)}/cost`, {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'update vendor cost');
+}
+
+export async function deleteOutsideJob(id: string) {
+	return request<void>(`/api/outside-jobs/${encodeURIComponent(id)}`, {
+		method: 'DELETE',
+	}, 'delete outside job');
 }
 
 export async function getOutsideJobs(params?: {

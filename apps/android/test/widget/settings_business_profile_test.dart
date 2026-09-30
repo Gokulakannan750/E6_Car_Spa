@@ -30,13 +30,17 @@ class MockSettingsRepository extends SettingsRepository {
   Future<BusinessProfileModel> getBusinessProfile() async {
     getCalls++;
     if (shouldThrow) {
-      throw const ApiException(message: 'Failed to load business profile. Server unreachable.');
+      throw const ApiException(
+        message: 'Failed to load business profile. Server unreachable.',
+      );
     }
     return profileToReturn!;
   }
 
   @override
-  Future<BusinessProfileModel> updateBusinessProfile(UpdateBusinessProfileRequest request) async {
+  Future<BusinessProfileModel> updateBusinessProfile(
+    UpdateBusinessProfileRequest request,
+  ) async {
     updateCalls++;
     if (updateError != null) {
       throw ApiException(message: updateError!);
@@ -52,7 +56,8 @@ class MockSettingsRepository extends SettingsRepository {
       phone: request.phone,
       email: request.email,
       gstin: request.gstin,
-      invoicePrefix: request.invoicePrefix ?? profileToReturn?.invoicePrefix ?? 'INV',
+      invoicePrefix:
+          request.invoicePrefix ?? profileToReturn?.invoicePrefix ?? 'INV',
       termsAndConditions: request.termsAndConditions,
       logoPath: profileToReturn?.logoPath,
     );
@@ -61,7 +66,8 @@ class MockSettingsRepository extends SettingsRepository {
   }
 }
 
-class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   FakeAuthNotifier(AuthUser user) : super(Authenticated(user));
 
   @override
@@ -70,6 +76,7 @@ class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> logout() async {
     state = const Unauthenticated();
   }
+
   @override
   Future<void> restoreSession() async {}
   @override
@@ -109,17 +116,18 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockSettingsRepository()..profileToReturn = initialProfile;
+      final mockRepo = MockSettingsRepository()
+        ..profileToReturn = initialProfile;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
-          ),
+          child: const MaterialApp(home: CompanySettingsScreen()),
         ),
       );
 
@@ -145,25 +153,31 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Save Settings'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Phone number must be exactly 10 digits'), findsOneWidget);
+      expect(
+        find.text('Phone number must be exactly 10 digits'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('Validates GSTIN format with 15-character Indian GST regex', (tester) async {
+    testWidgets('Validates GSTIN format with 15-character Indian GST regex', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockSettingsRepository()..profileToReturn = initialProfile;
+      final mockRepo = MockSettingsRepository()
+        ..profileToReturn = initialProfile;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
-          ),
+          child: const MaterialApp(home: CompanySettingsScreen()),
         ),
       );
 
@@ -180,7 +194,10 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Save Settings'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid GSTIN format (e.g. 33AAAAA0000A1Z5)'), findsOneWidget);
+      expect(
+        find.text('Invalid GSTIN format (e.g. 33AAAAA0000A1Z5)'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Validates invoice prefix max 10 characters', (tester) async {
@@ -188,17 +205,18 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockSettingsRepository()..profileToReturn = initialProfile;
+      final mockRepo = MockSettingsRepository()
+        ..profileToReturn = initialProfile;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
-          ),
+          child: const MaterialApp(home: CompanySettingsScreen()),
         ),
       );
 
@@ -220,61 +238,73 @@ void main() {
   });
 
   group('Business Profile Save & Preservation', () {
-    testWidgets('Preserves form input and displays error banner when update fails', (tester) async {
+    testWidgets(
+      'Preserves form input and displays error banner when update fails',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final mockRepo = MockSettingsRepository()
+          ..profileToReturn = initialProfile
+          ..updateError =
+              'API 400: GSTIN registration state mismatch for Tamil Nadu';
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(managerUser),
+              ),
+            ],
+            child: const MaterialApp(home: CompanySettingsScreen()),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Modify business name
+        final nameFinder = find.widgetWithText(TextFormField, 'E6 Car Spa');
+        await tester.enterText(nameFinder, 'E6 Elite Detailing Spa');
+        await tester.pumpAndSettle();
+
+        // Tap Save
+        await tester.tap(find.widgetWithText(AppButton, 'Save Settings'));
+        await tester.pumpAndSettle();
+
+        // Error banner rendered
+        expect(
+          find.text(
+            'API 400: GSTIN registration state mismatch for Tamil Nadu',
+          ),
+          findsOneWidget,
+        );
+        // User input preserved
+        expect(find.text('E6 Elite Detailing Spa'), findsOneWidget);
+        expect(mockRepo.updateCalls, 1);
+      },
+    );
+
+    testWidgets('Successful save updates profile and shows success feedback', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       final mockRepo = MockSettingsRepository()
-        ..profileToReturn = initialProfile
-        ..updateError = 'API 400: GSTIN registration state mismatch for Tamil Nadu';
+        ..profileToReturn = initialProfile;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Modify business name
-      final nameFinder = find.widgetWithText(TextFormField, 'E6 Car Spa');
-      await tester.enterText(nameFinder, 'E6 Elite Detailing Spa');
-      await tester.pumpAndSettle();
-
-      // Tap Save
-      await tester.tap(find.widgetWithText(AppButton, 'Save Settings'));
-      await tester.pumpAndSettle();
-
-      // Error banner rendered
-      expect(find.text('API 400: GSTIN registration state mismatch for Tamil Nadu'), findsOneWidget);
-      // User input preserved
-      expect(find.text('E6 Elite Detailing Spa'), findsOneWidget);
-      expect(mockRepo.updateCalls, 1);
-    });
-
-    testWidgets('Successful save updates profile and shows success feedback', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final mockRepo = MockSettingsRepository()..profileToReturn = initialProfile;
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
-          ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
-          ),
+          child: const MaterialApp(home: CompanySettingsScreen()),
         ),
       );
 
@@ -290,40 +320,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(mockRepo.updateCalls, 1);
-      expect(find.text('Business profile and invoice settings saved successfully.'), findsWidgets);
+      expect(
+        find.text('Business profile and invoice settings saved successfully.'),
+        findsWidgets,
+      );
       expect(find.text('E6 Auto Spa Private Limited'), findsOneWidget);
     });
 
-    testWidgets('Displays error state when getBusinessProfile throws and allows retry', (tester) async {
-      final mockRepo = MockSettingsRepository()..shouldThrow = true;
+    testWidgets(
+      'Displays error state when getBusinessProfile throws and allows retry',
+      (tester) async {
+        final mockRepo = MockSettingsRepository()..shouldThrow = true;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
-          ],
-          child: const MaterialApp(
-            home: CompanySettingsScreen(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(managerUser),
+              ),
+            ],
+            child: const MaterialApp(home: CompanySettingsScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AppErrorState), findsOneWidget);
-      expect(find.text('Failed to load business profile. Server unreachable.'), findsOneWidget);
+        expect(find.byType(AppErrorState), findsOneWidget);
+        expect(
+          find.text('Failed to load business profile. Server unreachable.'),
+          findsOneWidget,
+        );
 
-      // Fix repository and tap retry
-      mockRepo.shouldThrow = false;
-      mockRepo.profileToReturn = initialProfile;
+        // Fix repository and tap retry
+        mockRepo.shouldThrow = false;
+        mockRepo.profileToReturn = initialProfile;
 
-      await tester.tap(find.text('Try Again'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Try Again'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AppErrorState), findsNothing);
-      expect(find.text('Business Details'), findsOneWidget);
-      expect(find.text('E6 Car Spa'), findsWidgets);
-    });
+        expect(find.byType(AppErrorState), findsNothing);
+        expect(find.text('Business Details'), findsOneWidget);
+        expect(find.text('E6 Car Spa'), findsWidgets);
+      },
+    );
   });
 }

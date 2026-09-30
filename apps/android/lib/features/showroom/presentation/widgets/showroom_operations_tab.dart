@@ -104,8 +104,10 @@ class ShowroomOperationsTab extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
@@ -146,12 +148,14 @@ class ShowroomOperationsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final opsState = ref.watch(showroomOperationsProvider(showroomId));
     final dailyState = ref.watch(dailyStaffProvider(showroomId));
-    final opsNotifier =
-        ref.read(showroomOperationsProvider(showroomId).notifier);
+    final opsNotifier = ref.read(
+      showroomOperationsProvider(showroomId).notifier,
+    );
 
     final dateHeading = DateFormat('dd MMM yyyy').format(opsState.selectedDate);
     final filteredWorks = opsState.filteredVehicleWorks;
-    final hasActiveFilter = opsState.selectedStaffId != null ||
+    final hasActiveFilter =
+        opsState.selectedStaffId != null ||
         opsState.selectedVehicleTypeId != null;
 
     return RefreshIndicator(
@@ -300,9 +304,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: AppColors.surfaceAlt,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: AppColors.border,
-                              ),
+                              border: Border.all(color: AppColors.border),
                             ),
                             child: Text(
                               '${item.workTypeName}: ${item.totalPerformed}',
@@ -424,14 +426,18 @@ class ShowroomOperationsTab extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline,
-                          size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         opsState.errorMessage!,
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyMedium
-                            .copyWith(color: AppColors.error),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
@@ -465,8 +471,8 @@ class ShowroomOperationsTab extends ConsumerWidget {
                   onAction: hasActiveFilter
                       ? () => opsNotifier.clearFilters()
                       : (canLogWork
-                          ? () => _openLogWorkSheet(context, ref)
-                          : null),
+                            ? () => _openLogWorkSheet(context, ref)
+                            : null),
                 ),
               ),
             )
@@ -474,20 +480,17 @@ class ShowroomOperationsTab extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.only(bottom: 88, top: 2),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (itemContext, index) {
-                    final work = filteredWorks[index];
-                    return VehicleWorkCard(
-                      key: Key('vehicle_work_card_${work.id}'),
-                      work: work,
-                      canEdit: canLogWork,
-                      canDelete: canLogWork,
-                      onEdit: () => _openEditWorkSheet(context, ref, work),
-                      onDelete: () => _handleDeleteWork(context, ref, work),
-                    );
-                  },
-                  childCount: filteredWorks.length,
-                ),
+                delegate: SliverChildBuilderDelegate((itemContext, index) {
+                  final work = filteredWorks[index];
+                  return VehicleWorkCard(
+                    key: Key('vehicle_work_card_${work.id}'),
+                    work: work,
+                    canEdit: canLogWork,
+                    canDelete: canLogWork,
+                    onEdit: () => _openEditWorkSheet(context, ref, work),
+                    onDelete: () => _handleDeleteWork(context, ref, work),
+                  );
+                }, childCount: filteredWorks.length),
               ),
             ),
         ],
@@ -579,7 +582,8 @@ class ShowroomOperationsTab extends ConsumerWidget {
         .where((v) => v.id == opsState.selectedVehicleTypeId)
         .firstOrNull;
 
-    final hasActiveFilter = opsState.selectedStaffId != null ||
+    final hasActiveFilter =
+        opsState.selectedStaffId != null ||
         opsState.selectedVehicleTypeId != null;
 
     return SingleChildScrollView(
@@ -672,10 +676,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                 child: Text('All Vehicle Types'),
               ),
               ...vehicleTypes.map(
-                (v) => PopupMenuItem<String?>(
-                  value: v.id,
-                  child: Text(v.name),
-                ),
+                (v) => PopupMenuItem<String?>(value: v.id, child: Text(v.name)),
               ),
             ],
             child: Container(
@@ -735,8 +736,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
               onTap: () => opsNotifier.clearFilters(),
               borderRadius: BorderRadius.circular(6),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(6),
@@ -745,7 +745,11 @@ class ShowroomOperationsTab extends ConsumerWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.close_rounded, size: 13, color: AppColors.textSecondary),
+                    Icon(
+                      Icons.close_rounded,
+                      size: 13,
+                      color: AppColors.textSecondary,
+                    ),
                     SizedBox(width: 3),
                     Text(
                       'Clear',
@@ -825,8 +829,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
             runSpacing: 6,
             children: activeSessions.map((session) {
               return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(8),
@@ -859,11 +862,14 @@ class ShowroomOperationsTab extends ConsumerWidget {
                     const SizedBox(width: 6),
                     InkWell(
                       key: Key('clock_out_btn_${session.id}'),
-                      onTap: () => _openCloseSessionSheet(context, ref, session),
+                      onTap: () =>
+                          _openCloseSessionSheet(context, ref, session),
                       borderRadius: BorderRadius.circular(4),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 2),
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.withAlpha(20),
                           borderRadius: BorderRadius.circular(4),
@@ -871,8 +877,11 @@ class ShowroomOperationsTab extends ConsumerWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.logout_rounded,
-                                size: 10, color: AppColors.error),
+                            Icon(
+                              Icons.logout_rounded,
+                              size: 10,
+                              color: AppColors.error,
+                            ),
                             SizedBox(width: 2),
                             Text(
                               'Clock Out',

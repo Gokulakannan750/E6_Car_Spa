@@ -34,7 +34,12 @@ class _StubInvoiceRepoForPayment extends InvoiceRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    return const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const InvoiceListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -57,7 +62,10 @@ class _StubInvoiceRepoForPayment extends InvoiceRepository {
   }
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     recordPaymentCallCount++;
     lastPaymentRequest = request;
     if (paymentCompleter != null) return paymentCompleter!.future;
@@ -88,7 +96,9 @@ class _StubInvoiceRepoForPayment extends InvoiceRepository {
   }
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     return whatsAppStatuses;
   }
 }
@@ -219,226 +229,302 @@ final _partiallyPaidInvoice = Invoice(
 
 void main() {
   group('Payment Collection — Edge Cases & Error Handling', () {
-    test('recordPayment success: returns true, updates invoice, sets success message', () async {
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
-        ..postPaymentInvoice = _partiallyPaidInvoice
-        ..whatsAppStatuses = [
-          const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        ];
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'recordPayment success: returns true, updates invoice, sets success message',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..postPaymentInvoice = _partiallyPaidInvoice
+          ..whatsAppStatuses = [
+            const InvoiceWhatsAppStatus(
+              messageType: 'InvoiceFinalized',
+              status: 'Sent',
+            ),
+          ];
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
-      );
+        final success = await notifier.recordPayment(
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
+        );
 
-      expect(success, true);
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, false);
-      expect(state.invoice!.paidAmount, 500.0);
-      expect(state.invoice!.balanceAmount, 680.0);
-      expect(state.actionSuccessMessage, contains('500.00'));
-      expect(state.actionSuccessMessage, contains('recorded successfully'));
-      expect(state.errorMessage, isNull);
+        expect(success, true);
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, false);
+        expect(state.invoice!.paidAmount, 500.0);
+        expect(state.invoice!.balanceAmount, 680.0);
+        expect(state.actionSuccessMessage, contains('500.00'));
+        expect(state.actionSuccessMessage, contains('recorded successfully'));
+        expect(state.errorMessage, isNull);
 
-      notifier.stopPolling();
-    });
+        notifier.stopPolling();
+      },
+    );
 
-    test('recordPayment HTTP 409 duplicate: returns false, sets error, invoice unchanged', () async {
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
-        ..shouldThrowConflictOnPayment = true;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'recordPayment HTTP 409 duplicate: returns false, sets error, invoice unchanged',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..shouldThrowConflictOnPayment = true;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'UPI'),
-      );
+        final success = await notifier.recordPayment(
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'UPI'),
+        );
 
-      expect(success, false);
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, false);
-      expect(state.errorMessage, 'A payment was already recorded for this transaction.');
-      // Invoice unchanged — still shows original balance
-      expect(state.invoice!.balanceAmount, 1180.0);
-      expect(state.invoice!.paidAmount, 0.0);
-    });
+        expect(success, false);
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, false);
+        expect(
+          state.errorMessage,
+          'A payment was already recorded for this transaction.',
+        );
+        // Invoice unchanged — still shows original balance
+        expect(state.invoice!.balanceAmount, 1180.0);
+        expect(state.invoice!.paidAmount, 0.0);
+      },
+    );
 
-    test('recordPayment HTTP 500 server error: returns false, sets error, invoice preserved', () async {
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
-        ..shouldThrowServerOnPayment = true;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'recordPayment HTTP 500 server error: returns false, sets error, invoice preserved',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..shouldThrowServerOnPayment = true;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
-      );
+        final success = await notifier.recordPayment(
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
+        );
 
-      expect(success, false);
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, false);
-      expect(state.errorMessage, 'Payment gateway temporarily unavailable.');
-      expect(state.invoice!.totalAmount, 1180.0);
-    });
+        expect(success, false);
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, false);
+        expect(state.errorMessage, 'Payment gateway temporarily unavailable.');
+        expect(state.invoice!.totalAmount, 1180.0);
+      },
+    );
 
-    test('isRecordingPayment flag enables UI to block concurrent payment submissions', () async {
-      final completer = Completer<PaymentDto>();
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)..paymentCompleter = completer;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'isRecordingPayment flag enables UI to block concurrent payment submissions',
+      () async {
+        final completer = Completer<PaymentDto>();
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..paymentCompleter = completer;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      // Start payment without awaiting
-      final future = notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
-      );
+        // Start payment without awaiting
+        final future = notifier.recordPayment(
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
+        );
 
-      // While in-flight, isRecordingPayment should be true
-      var state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, true);
+        // While in-flight, isRecordingPayment should be true
+        var state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, true);
 
-      // Complete the operation
-      completer.complete(PaymentDto(
-        id: 'pay-1',
-        invoiceId: 'inv-fin-1',
-        amount: 500.0,
-        paymentMethod: 'Cash',
-        paymentDate: DateTime.now(),
-        createdAt: DateTime.now(),
-      ));
-      await future;
+        // Complete the operation
+        completer.complete(
+          PaymentDto(
+            id: 'pay-1',
+            invoiceId: 'inv-fin-1',
+            amount: 500.0,
+            paymentMethod: 'Cash',
+            paymentDate: DateTime.now(),
+            createdAt: DateTime.now(),
+          ),
+        );
+        await future;
 
-      state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, false);
-      expect(repo.recordPaymentCallCount, 1);
-    });
+        state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, false);
+        expect(repo.recordPaymentCallCount, 1);
+      },
+    );
 
-    test('updateDraft handles ApiException: returns false, sets errorMessage', () async {
-      final repo = _StubInvoiceRepoForPayment(Invoice(
-        id: 'inv-d1',
-        invoiceNumber: null,
-        jobCardId: 'jc-1',
-        jobCardNumber: 'JC-001',
-        customerId: 'c-1',
-        customerName: 'Test',
-        customerPhone: '1234567890',
-        vehicleId: 'v-1',
-        registrationNumber: 'TN01AB1234',
-        vehicleMake: 'Maruti',
-        vehicleModel: 'Swift',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 1000.0,
-        taxableAmount: 1000.0,
-        gstAmount: 180.0,
-        totalAmount: 1180.0,
-        balanceAmount: 1180.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      ))..shouldThrowConflictOnUpdate = true;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'updateDraft handles ApiException: returns false, sets errorMessage',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(
+          Invoice(
+            id: 'inv-d1',
+            invoiceNumber: null,
+            jobCardId: 'jc-1',
+            jobCardNumber: 'JC-001',
+            customerId: 'c-1',
+            customerName: 'Test',
+            customerPhone: '1234567890',
+            vehicleId: 'v-1',
+            registrationNumber: 'TN01AB1234',
+            vehicleMake: 'Maruti',
+            vehicleModel: 'Swift',
+            invoiceDate: DateTime(2026, 9, 8),
+            subtotal: 1000.0,
+            taxableAmount: 1000.0,
+            gstAmount: 180.0,
+            totalAmount: 1180.0,
+            balanceAmount: 1180.0,
+            status: InvoiceStatus.draft,
+            items: const [],
+            createdAt: DateTime(2026, 9, 8),
+          ),
+        )..shouldThrowConflictOnUpdate = true;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-d1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-d1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.updateDraft(discount: 200.0, notes: 'VIP');
+        final success = await notifier.updateDraft(
+          discount: 200.0,
+          notes: 'VIP',
+        );
 
-      expect(success, false);
-      final state = container.read(invoiceDetailsProvider('inv-d1'));
-      expect(state.isSaving, false);
-      expect(state.errorMessage, 'Invoice was modified by another user.');
-    });
+        expect(success, false);
+        final state = container.read(invoiceDetailsProvider('inv-d1'));
+        expect(state.isSaving, false);
+        expect(state.errorMessage, 'Invoice was modified by another user.');
+      },
+    );
 
-    test('recordPayment generic non-ApiException: returns false, sets fallback error message', () async {
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
-        ..shouldThrowGenericOnPayment = true;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'recordPayment generic non-ApiException: returns false, sets fallback error message',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..shouldThrowGenericOnPayment = true;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
-      );
+        final success = await notifier.recordPayment(
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
+        );
 
-      expect(success, false);
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isRecordingPayment, false);
-      // Generic fallback message from the notifier's catch-all
-      expect(state.errorMessage, 'Failed to record payment.');
-    });
+        expect(success, false);
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isRecordingPayment, false);
+        // Generic fallback message from the notifier's catch-all
+        expect(state.errorMessage, 'Failed to record payment.');
+      },
+    );
 
-    test('successful payment starts PaymentCompleted WhatsApp polling', () async {
-      final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
-        ..postPaymentInvoice = _paidInvoice
-        ..whatsAppStatuses = [
-          const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-          const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Pending'),
-        ];
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'successful payment starts PaymentCompleted WhatsApp polling',
+      () async {
+        final repo = _StubInvoiceRepoForPayment(_finalizedInvoice)
+          ..postPaymentInvoice = _paidInvoice
+          ..whatsAppStatuses = [
+            const InvoiceWhatsAppStatus(
+              messageType: 'InvoiceFinalized',
+              status: 'Sent',
+            ),
+            const InvoiceWhatsAppStatus(
+              messageType: 'PaymentCompleted',
+              status: 'Pending',
+            ),
+          ];
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      final success = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 1180.0, paymentMethod: 'UPI', reference: 'UPI/20260908/112233'),
-      );
+        final success = await notifier.recordPayment(
+          const RecordPaymentRequest(
+            amount: 1180.0,
+            paymentMethod: 'UPI',
+            reference: 'UPI/20260908/112233',
+          ),
+        );
 
-      expect(success, true);
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.invoice!.isPaid, true);
-      // Polling should be active for PaymentCompleted
-      expect(notifier.isPolling, true);
+        expect(success, true);
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.invoice!.isPaid, true);
+        // Polling should be active for PaymentCompleted
+        expect(notifier.isPolling, true);
 
-      notifier.stopPolling();
-    });
+        notifier.stopPolling();
+      },
+    );
 
-    test('RecordPaymentRequest serialization: null reference and paymentDate are omitted from JSON', () {
-      // With all fields
-      final full = RecordPaymentRequest(
-        amount: 750.0,
-        paymentMethod: 'Card',
-        reference: 'CARD/20260908/445566',
-        paymentDate: DateTime(2026, 9, 8, 14, 30),
-      );
-      final fullJson = full.toJson();
-      expect(fullJson['amount'], 750.0);
-      expect(fullJson['paymentMethod'], 'Card');
-      expect(fullJson['reference'], 'CARD/20260908/445566');
-      expect(fullJson.containsKey('paymentDate'), true);
+    test(
+      'RecordPaymentRequest serialization: null reference and paymentDate are omitted from JSON',
+      () {
+        // With all fields
+        final full = RecordPaymentRequest(
+          amount: 750.0,
+          paymentMethod: 'Card',
+          reference: 'CARD/20260908/445566',
+          paymentDate: DateTime(2026, 9, 8, 14, 30),
+        );
+        final fullJson = full.toJson();
+        expect(fullJson['amount'], 750.0);
+        expect(fullJson['paymentMethod'], 'Card');
+        expect(fullJson['reference'], 'CARD/20260908/445566');
+        expect(fullJson.containsKey('paymentDate'), true);
 
-      // With null optional fields — keys should be absent
-      const minimal = RecordPaymentRequest(
-        amount: 500.0,
-        paymentMethod: 'Cash',
-      );
-      final minJson = minimal.toJson();
-      expect(minJson['amount'], 500.0);
-      expect(minJson['paymentMethod'], 'Cash');
-      expect(minJson.containsKey('reference'), false);
-      expect(minJson.containsKey('paymentDate'), false);
+        // With null optional fields — keys should be absent
+        const minimal = RecordPaymentRequest(
+          amount: 500.0,
+          paymentMethod: 'Cash',
+        );
+        final minJson = minimal.toJson();
+        expect(minJson['amount'], 500.0);
+        expect(minJson['paymentMethod'], 'Cash');
+        expect(minJson.containsKey('reference'), false);
+        expect(minJson.containsKey('paymentDate'), false);
 
-      // Empty string reference is also omitted (trimmed to empty)
-      const emptyRef = RecordPaymentRequest(
-        amount: 300.0,
-        paymentMethod: 'UPI',
-        reference: '   ',
-      );
-      final emptyRefJson = emptyRef.toJson();
-      expect(emptyRefJson.containsKey('reference'), false);
-    });
+        // Empty string reference is also omitted (trimmed to empty)
+        const emptyRef = RecordPaymentRequest(
+          amount: 300.0,
+          paymentMethod: 'UPI',
+          reference: '   ',
+        );
+        final emptyRefJson = emptyRef.toJson();
+        expect(emptyRefJson.containsKey('reference'), false);
+      },
+    );
   });
 }

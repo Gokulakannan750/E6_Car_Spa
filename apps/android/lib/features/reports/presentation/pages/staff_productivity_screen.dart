@@ -16,10 +16,12 @@ class StaffProductivityScreen extends ConsumerStatefulWidget {
   const StaffProductivityScreen({super.key});
 
   @override
-  ConsumerState<StaffProductivityScreen> createState() => _StaffProductivityScreenState();
+  ConsumerState<StaffProductivityScreen> createState() =>
+      _StaffProductivityScreenState();
 }
 
-class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScreen> {
+class _StaffProductivityScreenState
+    extends ConsumerState<StaffProductivityScreen> {
   String _searchQuery = '';
   String _selectedAssignmentType = 'all'; // all, regular, swapped
   bool _showGranularLog = false;
@@ -35,10 +37,14 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
       actions: [
         IconButton(
           icon: Icon(
-            _showGranularLog ? Icons.view_agenda_outlined : Icons.table_chart_outlined,
+            _showGranularLog
+                ? Icons.view_agenda_outlined
+                : Icons.table_chart_outlined,
             color: AppColors.textPrimary,
           ),
-          tooltip: _showGranularLog ? 'Switch to Grouped View' : 'Switch to Detailed Log',
+          tooltip: _showGranularLog
+              ? 'Switch to Grouped View'
+              : 'Switch to Detailed Log',
           onPressed: () {
             setState(() {
               _showGranularLog = !_showGranularLog;
@@ -81,7 +87,11 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                     // Showroom Dropdown
                     Row(
                       children: [
-                        const Icon(Icons.storefront_outlined, size: 16, color: AppColors.primary),
+                        const Icon(
+                          Icons.storefront_outlined,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonHideUnderline(
@@ -89,21 +99,42 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                               value: selectedShowroomId,
                               isDense: true,
                               isExpanded: true,
-                              hint: const Text('All Showrooms', style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                              hint: const Text(
+                                'All Showrooms',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
                               items: [
                                 const DropdownMenuItem<String?>(
                                   value: null,
-                                  child: Text('All Showrooms', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                  child: Text(
+                                    'All Showrooms',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                                 ...showroomsState.showrooms.map(
                                   (s) => DropdownMenuItem<String?>(
                                     value: s.id,
-                                    child: Text(s.name, style: const TextStyle(fontSize: 13)),
+                                    child: Text(
+                                      s.name,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
                                   ),
                                 ),
                               ],
                               onChanged: (val) {
-                                ref.read(selectedReportShowroomIdProvider.notifier).state = val;
+                                ref
+                                        .read(
+                                          selectedReportShowroomIdProvider
+                                              .notifier,
+                                        )
+                                        .state =
+                                    val;
                               },
                             ),
                           ),
@@ -121,22 +152,43 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                           child: TextField(
                             decoration: InputDecoration(
                               hintText: 'Search staff name / vehicle...',
-                              hintStyle: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
-                              prefixIcon: const Icon(Icons.search, size: 16, color: AppColors.textTertiary),
+                              hintStyle: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textTertiary,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 16,
+                                color: AppColors.textTertiary,
+                              ),
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
                               filled: true,
                               fillColor: AppColors.surfaceAlt,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusSM),
-                                borderSide: const BorderSide(color: AppColors.border),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusSM,
+                                ),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusSM),
-                                borderSide: const BorderSide(color: AppColors.border),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusSM,
+                                ),
+                                borderSide: const BorderSide(
+                                  color: AppColors.border,
+                                ),
                               ),
                             ),
-                            style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textPrimary,
+                            ),
                             onChanged: (val) {
                               setState(() {
                                 _searchQuery = val.trim().toLowerCase();
@@ -153,16 +205,27 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                             setState(() {
                               _selectedAssignmentType = val;
                             });
-                            ref.read(staffProductivityAssignmentFilterProvider.notifier).state =
-                                val == 'all' ? null : val;
+                            ref
+                                .read(
+                                  staffProductivityAssignmentFilterProvider
+                                      .notifier,
+                                )
+                                .state = val == 'all'
+                                ? null
+                                : val;
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: _selectedAssignmentType != 'all'
                                   ? AppColors.primary.withValues(alpha: 0.15)
                                   : AppColors.surfaceAlt,
-                              borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusSM,
+                              ),
                               border: Border.all(
                                 color: _selectedAssignmentType != 'all'
                                     ? AppColors.primary
@@ -182,7 +245,9 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                                 Text(
                                   _selectedAssignmentType == 'all'
                                       ? 'All'
-                                      : (_selectedAssignmentType == 'Swapped' ? 'Swaps' : 'Regular'),
+                                      : (_selectedAssignmentType == 'Swapped'
+                                            ? 'Swaps'
+                                            : 'Regular'),
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -195,9 +260,18 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                             ),
                           ),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'all', child: Text('All Work Types')),
-                            const PopupMenuItem(value: 'Regular', child: Text('Regular Staff Work')),
-                            const PopupMenuItem(value: 'Swapped', child: Text('Swapped Staff Work')),
+                            const PopupMenuItem(
+                              value: 'all',
+                              child: Text('All Work Types'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Regular',
+                              child: Text('Regular Staff Work'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Swapped',
+                              child: Text('Swapped Staff Work'),
+                            ),
                           ],
                         ),
                       ],
@@ -208,7 +282,9 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
               const SizedBox(height: 16),
 
               productivityAsync.when(
-                loading: () => const AppLoadingState(message: 'Calculating staff productivity & work logs...'),
+                loading: () => const AppLoadingState(
+                  message: 'Calculating staff productivity & work logs...',
+                ),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(staffProductivityProvider),
@@ -217,16 +293,26 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                   // Filter staff rows
                   final filteredItems = report.items.where((staff) {
                     if (_searchQuery.isNotEmpty) {
-                      final matchName = staff.staffName.toLowerCase().contains(_searchQuery);
-                      final matchRole = (staff.role ?? '').toLowerCase().contains(_searchQuery);
-                      final matchPhone = staff.staffPhone.toLowerCase().contains(_searchQuery);
+                      final matchName = staff.staffName.toLowerCase().contains(
+                        _searchQuery,
+                      );
+                      final matchRole = (staff.role ?? '')
+                          .toLowerCase()
+                          .contains(_searchQuery);
+                      final matchPhone = staff.staffPhone
+                          .toLowerCase()
+                          .contains(_searchQuery);
                       if (!matchName && !matchRole && !matchPhone) return false;
                     }
                     if (_selectedAssignmentType == 'Swapped') {
-                      final hasSwaps = staff.workRecords.any((r) => r.assignmentType == 'Swapped');
+                      final hasSwaps = staff.workRecords.any(
+                        (r) => r.assignmentType == 'Swapped',
+                      );
                       if (!hasSwaps) return false;
                     } else if (_selectedAssignmentType == 'Regular') {
-                      final hasRegular = staff.workRecords.any((r) => r.assignmentType == 'Regular');
+                      final hasRegular = staff.workRecords.any(
+                        (r) => r.assignmentType == 'Regular',
+                      );
                       if (!hasRegular) return false;
                     }
                     return true;
@@ -235,13 +321,23 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                   // Filter granular records
                   final filteredGranular = report.granularRecords.where((r) {
                     if (_searchQuery.isNotEmpty) {
-                      final matchStaff = r.staffName.toLowerCase().contains(_searchQuery);
-                      final matchVeh = r.vehicleTypeName.toLowerCase().contains(_searchQuery);
-                      final matchSrv = r.workTypeName.toLowerCase().contains(_searchQuery);
+                      final matchStaff = r.staffName.toLowerCase().contains(
+                        _searchQuery,
+                      );
+                      final matchVeh = r.vehicleTypeName.toLowerCase().contains(
+                        _searchQuery,
+                      );
+                      final matchSrv = r.workTypeName.toLowerCase().contains(
+                        _searchQuery,
+                      );
                       if (!matchStaff && !matchVeh && !matchSrv) return false;
                     }
-                    if (_selectedAssignmentType == 'Swapped' && r.assignmentType != 'Swapped') return false;
-                    if (_selectedAssignmentType == 'Regular' && r.assignmentType != 'Regular') return false;
+                    if (_selectedAssignmentType == 'Swapped' &&
+                        r.assignmentType != 'Swapped')
+                      return false;
+                    if (_selectedAssignmentType == 'Regular' &&
+                        r.assignmentType != 'Regular')
+                      return false;
                     return true;
                   }).toList();
 
@@ -253,7 +349,9 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +382,10 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                                     ),
                                     Text(
                                       '${report.totalServicesPerformed} Services Performed',
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF94A3B8),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -301,7 +402,10 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                                     ),
                                     const Text(
                                       'Total Staff Hours',
-                                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF94A3B8),
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -312,10 +416,32 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                             const SizedBox(height: 12),
                             Row(
                               children: [
-                                Expanded(child: _buildSummaryMetric('Active Staff', report.totalStaff.toString())),
-                                Expanded(child: _buildSummaryMetric('Days Assigned', report.totalDaysAssigned.toString())),
-                                Expanded(child: _buildSummaryMetric('Veh / Staff', report.averageVehiclesPerStaff.toStringAsFixed(1))),
-                                Expanded(child: _buildSummaryMetric('Srv / Staff', report.averageServicesPerStaff.toStringAsFixed(1))),
+                                Expanded(
+                                  child: _buildSummaryMetric(
+                                    'Active Staff',
+                                    report.totalStaff.toString(),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildSummaryMetric(
+                                    'Days Assigned',
+                                    report.totalDaysAssigned.toString(),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildSummaryMetric(
+                                    'Veh / Staff',
+                                    report.averageVehiclesPerStaff
+                                        .toStringAsFixed(1),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _buildSummaryMetric(
+                                    'Srv / Staff',
+                                    report.averageServicesPerStaff
+                                        .toStringAsFixed(1),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -341,9 +467,14 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                           ),
                           Flexible(
                             child: Text(
-                              _showGranularLog ? 'Individual jobs' : 'Staff Hierarchy',
+                              _showGranularLog
+                                  ? 'Individual jobs'
+                                  : 'Staff Hierarchy',
                               textAlign: TextAlign.end,
-                              style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textTertiary,
+                              ),
                             ),
                           ),
                         ],
@@ -381,7 +512,9 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final staff = items[index];
-        final hasSwapWork = staff.workRecords.any((r) => r.assignmentType == 'Swapped');
+        final hasSwapWork = staff.workRecords.any(
+          (r) => r.assignmentType == 'Swapped',
+        );
 
         return Container(
           decoration: BoxDecoration(
@@ -392,7 +525,10 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
           child: ExpansionTile(
             shape: const Border(),
             collapsedShape: const Border(),
-            tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            tilePadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 8,
+            ),
             childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
             leading: CircleAvatar(
               radius: 18,
@@ -400,9 +536,13 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                   ? const Color(0xFFF59E0B).withValues(alpha: 0.15)
                   : AppColors.primary.withValues(alpha: 0.1),
               child: Text(
-                staff.staffName.isNotEmpty ? staff.staffName[0].toUpperCase() : 'S',
+                staff.staffName.isNotEmpty
+                    ? staff.staffName[0].toUpperCase()
+                    : 'S',
                 style: TextStyle(
-                  color: hasSwapWork ? const Color(0xFFD97706) : AppColors.primary,
+                  color: hasSwapWork
+                      ? const Color(0xFFD97706)
+                      : AppColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -422,7 +562,10 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                 if (hasSwapWork)
                   Container(
                     margin: const EdgeInsets.only(left: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFEF3C7),
                       borderRadius: BorderRadius.circular(4),
@@ -430,7 +573,11 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                     ),
                     child: const Text(
                       'Swap Work',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF92400E)),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF92400E),
+                      ),
                     ),
                   ),
               ],
@@ -441,16 +588,28 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                 const SizedBox(height: 2),
                 Text(
                   '${staff.role ?? 'Staff'} • ${staff.workingShowroomName ?? staff.homeShowroomName ?? 'Showroom'}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildMiniBadge('${staff.totalVehiclesAttended} vehicles', AppColors.primary),
+                    _buildMiniBadge(
+                      '${staff.totalVehiclesAttended} vehicles',
+                      AppColors.primary,
+                    ),
                     const SizedBox(width: 6),
-                    _buildMiniBadge('${staff.totalServicesPerformed} services', const Color(0xFF0284C7)),
+                    _buildMiniBadge(
+                      '${staff.totalServicesPerformed} services',
+                      const Color(0xFF0284C7),
+                    ),
                     const SizedBox(width: 6),
-                    _buildMiniBadge('${staff.totalWorkingHours.toStringAsFixed(1)}h', const Color(0xFF10B981)),
+                    _buildMiniBadge(
+                      '${staff.totalWorkingHours.toStringAsFixed(1)}h',
+                      const Color(0xFF10B981),
+                    ),
                   ],
                 ),
               ],
@@ -465,7 +624,10 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text(
                     'No vehicle type breakdown available for this staff.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 )
               else
@@ -487,7 +649,11 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.directions_car_outlined, size: 14, color: AppColors.primary),
+                                const Icon(
+                                  Icons.directions_car_outlined,
+                                  size: 14,
+                                  color: AppColors.primary,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   vType.vehicleTypeName,
@@ -522,11 +688,16 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                             child: Row(
                               children: [
                                 const SizedBox(width: 12),
-                                const Icon(Icons.subdirectory_arrow_right, size: 12, color: AppColors.textTertiary),
+                                const Icon(
+                                  Icons.subdirectory_arrow_right,
+                                  size: 12,
+                                  color: AppColors.textTertiary,
+                                ),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         srv.workTypeName,
@@ -536,22 +707,34 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                                           color: AppColors.textPrimary,
                                         ),
                                       ),
-                                      if (isSwapped && srv.originalStaffName != null)
+                                      if (isSwapped &&
+                                          srv.originalStaffName != null)
                                         Text(
                                           'Swapped for ${srv.originalStaffName} (${srv.swapId ?? 'SWP'})',
-                                          style: const TextStyle(fontSize: 10, color: Color(0xFFD97706)),
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Color(0xFFD97706),
+                                          ),
                                         ),
                                     ],
                                   ),
                                 ),
                                 Text(
                                   '${srv.vehicleCount} cars',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
                                   '${srv.hours.toStringAsFixed(1)}h',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -612,9 +795,14 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSwapped ? const Color(0xFFFEF3C7) : AppColors.surfaceAlt,
+                      color: isSwapped
+                          ? const Color(0xFFFEF3C7)
+                          : AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -622,7 +810,9 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isSwapped ? const Color(0xFF92400E) : AppColors.textSecondary,
+                        color: isSwapped
+                            ? const Color(0xFF92400E)
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -631,13 +821,19 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
               const SizedBox(height: 4),
               Text(
                 '${dateFormat.format(r.date)} • ${r.vehicleTypeName} • ${r.workTypeName}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               if (isSwapped && r.originalStaffName != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   'Original: ${r.originalStaffName} • Swap ID: ${r.swapId ?? 'SWP'}',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFFD97706)),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFFD97706),
+                  ),
                 ),
               ],
               const SizedBox(height: 6),
@@ -646,11 +842,19 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
                 children: [
                   Text(
                     '${r.vehicleQuantity} vehicle • ${r.serviceQuantity} service',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                   Text(
                     '${r.workingHours.toStringAsFixed(1)} hrs',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ],
               ),
@@ -691,7 +895,11 @@ class _StaffProductivityScreenState extends ConsumerState<StaffProductivityScree
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
       ),
     );
   }

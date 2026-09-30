@@ -38,8 +38,15 @@ public class VendorsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateVendorRequest request, CancellationToken ct = default)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var created = await _vendorService.CreateAsync(request, ct);
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        try
+        {
+            var created = await _vendorService.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpPut("{id:guid}")]
@@ -47,9 +54,16 @@ public class VendorsController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVendorRequest request, CancellationToken ct = default)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        var updated = await _vendorService.UpdateAsync(id, request, ct);
-        if (updated == null) return NotFound();
-        return Ok(updated);
+        try
+        {
+            var updated = await _vendorService.UpdateAsync(id, request, ct);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [HttpDelete("{id:guid}")]

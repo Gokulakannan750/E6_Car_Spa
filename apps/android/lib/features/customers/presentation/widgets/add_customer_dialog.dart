@@ -13,21 +13,19 @@ class AddCustomerDialog extends ConsumerStatefulWidget {
   final String? initialPhone;
   final Function(Customer)? onCreated;
 
-  const AddCustomerDialog({
-    super.key,
-    this.initialPhone,
-    this.onCreated,
-  });
+  const AddCustomerDialog({super.key, this.initialPhone, this.onCreated});
 
-  static Future<Customer?> show(BuildContext context, {String? initialPhone, Function(Customer)? onCreated}) {
+  static Future<Customer?> show(
+    BuildContext context, {
+    String? initialPhone,
+    Function(Customer)? onCreated,
+  }) {
     return showModalBottomSheet<Customer>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddCustomerDialog(
-        initialPhone: initialPhone,
-        onCreated: onCreated,
-      ),
+      builder: (context) =>
+          AddCustomerDialog(initialPhone: initialPhone, onCreated: onCreated),
     );
   }
 
@@ -73,11 +71,17 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
       final request = CreateCustomerRequest(
         name: _nameController.text.trim(),
         phoneNumber: PhoneValidator.clean(_phoneController.text.trim()),
-        email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-        address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+        email: _emailController.text.trim().isEmpty
+            ? null
+            : _emailController.text.trim(),
+        address: _addressController.text.trim().isEmpty
+            ? null
+            : _addressController.text.trim(),
       );
 
-      final customer = await ref.read(customerListProvider.notifier).createCustomer(request);
+      final customer = await ref
+          .read(customerListProvider.notifier)
+          .createCustomer(request);
       widget.onCreated?.call(customer);
 
       if (mounted) {
@@ -130,95 +134,109 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error),
-                  ),
-                  child: Text(
-                    _errorMessage!,
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              AppTextField(
-                controller: _nameController,
-                label: 'Full Name',
-                hint: 'e.g. Ramesh Kumar',
-                prefixIcon: const Icon(Icons.person_outline),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) return 'Customer name is required';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _phoneController,
-                label: 'Phone Number',
-                hint: 'e.g. 9876543210',
-                keyboardType: TextInputType.phone,
-                inputFormatters: PhoneValidator.formatters,
-                maxLength: 10,
-                prefixIcon: const Icon(Icons.phone_outlined),
-                validator: (val) => PhoneValidator.validate(val, isRequired: true),
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _emailController,
-                label: 'Email (Optional)',
-                hint: 'e.g. ramesh@example.com',
-                keyboardType: TextInputType.emailAddress,
-                prefixIcon: const Icon(Icons.email_outlined),
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                controller: _addressController,
-                label: 'Address (Optional)',
-                hint: 'e.g. 12, Main Street, Chennai',
-                prefixIcon: const Icon(Icons.location_on_outlined),
-              ),
-              const SizedBox(height: 24),
-              // Action Buttons (Cancel + Create Customer)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('modal_cancel_button'),
-                      onPressed: _isSubmitting
-                          ? null
-                          : () {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context).pop();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.borderDark),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.error),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.errorDark,
+                          ),
+                        ),
                       ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      const SizedBox(height: 16),
+                    ],
+                    AppTextField(
+                      controller: _nameController,
+                      label: 'Full Name',
+                      hint: 'e.g. Ramesh Kumar',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty)
+                          return 'Customer name is required';
+                        return null;
+                      },
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppButton(
-                      label: 'Create Customer',
-                      isLoading: _isSubmitting,
-                      onPressed: _submit,
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      hint: 'e.g. 9876543210',
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: PhoneValidator.formatters,
+                      maxLength: 10,
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      validator: (val) =>
+                          PhoneValidator.validate(val, isRequired: true),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _emailController,
+                      label: 'Email (Optional)',
+                      hint: 'e.g. ramesh@example.com',
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
+                    const SizedBox(height: 16),
+                    AppTextField(
+                      controller: _addressController,
+                      label: 'Address (Optional)',
+                      hint: 'e.g. 12, Main Street, Chennai',
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                    ),
+                    const SizedBox(height: 24),
+                    // Action Buttons (Cancel + Create Customer)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: const Key('modal_cancel_button'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            label: 'Create Customer',
+                            isLoading: _isSubmitting,
+                            onPressed: _submit,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

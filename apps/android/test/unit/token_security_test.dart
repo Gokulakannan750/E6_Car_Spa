@@ -59,8 +59,6 @@ class FakeSecureStorage extends FlutterSecureStorage {
   Map<String, String> get store => _store;
 }
 
-
-
 void main() {
   group('AuthTokenStorage - Secure Token Lifecycle', () {
     late FakeSecureStorage fakeStorage;

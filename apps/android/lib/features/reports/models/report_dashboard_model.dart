@@ -2,15 +2,20 @@ class DateRangeModel {
   final DateTime fromDate;
   final DateTime toDate;
 
-  const DateRangeModel({
-    required this.fromDate,
-    required this.toDate,
-  });
+  const DateRangeModel({required this.fromDate, required this.toDate});
 
   factory DateRangeModel.fromJson(Map<String, dynamic> json) {
     return DateRangeModel(
-      fromDate: DateTime.tryParse(json['fromDate']?.toString() ?? json['FromDate']?.toString() ?? '') ?? DateTime.now(),
-      toDate: DateTime.tryParse(json['toDate']?.toString() ?? json['ToDate']?.toString() ?? '') ?? DateTime.now(),
+      fromDate:
+          DateTime.tryParse(
+            json['fromDate']?.toString() ?? json['FromDate']?.toString() ?? '',
+          ) ??
+          DateTime.now(),
+      toDate:
+          DateTime.tryParse(
+            json['toDate']?.toString() ?? json['ToDate']?.toString() ?? '',
+          ) ??
+          DateTime.now(),
     );
   }
 }
@@ -34,12 +39,26 @@ class JobCardKpisModel {
 
   factory JobCardKpisModel.fromJson(Map<String, dynamic> json) {
     return JobCardKpisModel(
-      totalJobCards: json['totalJobCards'] as int? ?? json['TotalJobCards'] as int? ?? 0,
-      newJobCards: json['newJobCards'] as int? ?? json['NewJobCards'] as int? ?? 0,
-      inProgressJobCards: json['inProgressJobCards'] as int? ?? json['InProgressJobCards'] as int? ?? 0,
-      completedJobCards: json['completedJobCards'] as int? ?? json['CompletedJobCards'] as int? ?? 0,
-      cancelledJobCards: json['cancelledJobCards'] as int? ?? json['CancelledJobCards'] as int? ?? 0,
-      invoicedJobCards: json['invoicedJobCards'] as int? ?? json['InvoicedJobCards'] as int? ?? 0,
+      totalJobCards:
+          json['totalJobCards'] as int? ?? json['TotalJobCards'] as int? ?? 0,
+      newJobCards:
+          json['newJobCards'] as int? ?? json['NewJobCards'] as int? ?? 0,
+      inProgressJobCards:
+          json['inProgressJobCards'] as int? ??
+          json['InProgressJobCards'] as int? ??
+          0,
+      completedJobCards:
+          json['completedJobCards'] as int? ??
+          json['CompletedJobCards'] as int? ??
+          0,
+      cancelledJobCards:
+          json['cancelledJobCards'] as int? ??
+          json['CancelledJobCards'] as int? ??
+          0,
+      invoicedJobCards:
+          json['invoicedJobCards'] as int? ??
+          json['InvoicedJobCards'] as int? ??
+          0,
     );
   }
 }
@@ -57,9 +76,18 @@ class VehicleActivityModel {
 
   factory VehicleActivityModel.fromJson(Map<String, dynamic> json) {
     return VehicleActivityModel(
-      vehiclesServiced: json['vehiclesServiced'] as int? ?? json['VehiclesServiced'] as int? ?? 0,
-      totalServicesCompleted: json['totalServicesCompleted'] as int? ?? json['TotalServicesCompleted'] as int? ?? 0,
-      uniqueVehiclesServiced: json['uniqueVehiclesServiced'] as int? ?? json['UniqueVehiclesServiced'] as int? ?? 0,
+      vehiclesServiced:
+          json['vehiclesServiced'] as int? ??
+          json['VehiclesServiced'] as int? ??
+          0,
+      totalServicesCompleted:
+          json['totalServicesCompleted'] as int? ??
+          json['TotalServicesCompleted'] as int? ??
+          0,
+      uniqueVehiclesServiced:
+          json['uniqueVehiclesServiced'] as int? ??
+          json['UniqueVehiclesServiced'] as int? ??
+          0,
     );
   }
 }
@@ -88,13 +116,28 @@ class InvoiceKpisModel {
   factory InvoiceKpisModel.fromJson(Map<String, dynamic> json) {
     return InvoiceKpisModel(
       draftCount: json['draftCount'] as int? ?? json['DraftCount'] as int? ?? 0,
-      generatedCount: json['generatedCount'] as int? ?? json['GeneratedCount'] as int? ?? 0,
-      partiallyPaidCount: json['partiallyPaidCount'] as int? ?? json['PartiallyPaidCount'] as int? ?? 0,
+      generatedCount:
+          json['generatedCount'] as int? ?? json['GeneratedCount'] as int? ?? 0,
+      partiallyPaidCount:
+          json['partiallyPaidCount'] as int? ??
+          json['PartiallyPaidCount'] as int? ??
+          0,
       paidCount: json['paidCount'] as int? ?? json['PaidCount'] as int? ?? 0,
-      cancelledCount: json['cancelledCount'] as int? ?? json['CancelledCount'] as int? ?? 0,
-      totalInvoicedAmount: ((json['totalInvoicedAmount'] ?? json['TotalInvoicedAmount'] ?? 0.0) as num).toDouble(),
-      totalPaidAmount: ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num).toDouble(),
-      totalOutstandingAmount: ((json['totalOutstandingAmount'] ?? json['TotalOutstandingAmount'] ?? 0.0) as num).toDouble(),
+      cancelledCount:
+          json['cancelledCount'] as int? ?? json['CancelledCount'] as int? ?? 0,
+      totalInvoicedAmount:
+          ((json['totalInvoicedAmount'] ?? json['TotalInvoicedAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      totalPaidAmount:
+          ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num)
+              .toDouble(),
+      totalOutstandingAmount:
+          ((json['totalOutstandingAmount'] ??
+                      json['TotalOutstandingAmount'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
     );
   }
 }
@@ -118,12 +161,22 @@ class DashboardSalesModel {
 
   factory DashboardSalesModel.fromJson(Map<String, dynamic> json) {
     return DashboardSalesModel(
-      grossSubtotal: ((json['grossSubtotal'] ?? json['GrossSubtotal'] ?? 0.0) as num).toDouble(),
-      totalDiscount: ((json['totalDiscount'] ?? json['TotalDiscount'] ?? 0.0) as num).toDouble(),
-      gstAmount: ((json['gstAmount'] ?? json['GstAmount'] ?? 0.0) as num).toDouble(),
-      netSales: ((json['netSales'] ?? json['NetSales'] ?? 0.0) as num).toDouble(),
-      paymentCollection: ((json['paymentCollection'] ?? json['PaymentCollection'] ?? 0.0) as num).toDouble(),
-      outstanding: ((json['outstanding'] ?? json['Outstanding'] ?? 0.0) as num).toDouble(),
+      grossSubtotal:
+          ((json['grossSubtotal'] ?? json['GrossSubtotal'] ?? 0.0) as num)
+              .toDouble(),
+      totalDiscount:
+          ((json['totalDiscount'] ?? json['TotalDiscount'] ?? 0.0) as num)
+              .toDouble(),
+      gstAmount: ((json['gstAmount'] ?? json['GstAmount'] ?? 0.0) as num)
+          .toDouble(),
+      netSales: ((json['netSales'] ?? json['NetSales'] ?? 0.0) as num)
+          .toDouble(),
+      paymentCollection:
+          ((json['paymentCollection'] ?? json['PaymentCollection'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      outstanding: ((json['outstanding'] ?? json['Outstanding'] ?? 0.0) as num)
+          .toDouble(),
     );
   }
 }
@@ -142,7 +195,10 @@ class PaymentMethodBreakdownModel {
   factory PaymentMethodBreakdownModel.fromJson(Map<String, dynamic> json) {
     return PaymentMethodBreakdownModel(
       method: json['method']?.toString() ?? json['Method']?.toString() ?? '',
-      transactionCount: json['transactionCount'] as int? ?? json['TransactionCount'] as int? ?? 0,
+      transactionCount:
+          json['transactionCount'] as int? ??
+          json['TransactionCount'] as int? ??
+          0,
       amount: ((json['amount'] ?? json['Amount'] ?? 0.0) as num).toDouble(),
     );
   }
@@ -160,12 +216,24 @@ class DashboardPaymentCollectionModel {
   });
 
   factory DashboardPaymentCollectionModel.fromJson(Map<String, dynamic> json) {
-    final rawList = json['breakdownByMethod'] as List<dynamic>? ?? json['BreakdownByMethod'] as List<dynamic>? ?? [];
+    final rawList =
+        json['breakdownByMethod'] as List<dynamic>? ??
+        json['BreakdownByMethod'] as List<dynamic>? ??
+        [];
     return DashboardPaymentCollectionModel(
-      totalReceived: ((json['totalReceived'] ?? json['TotalReceived'] ?? 0.0) as num).toDouble(),
-      transactionCount: json['transactionCount'] as int? ?? json['TransactionCount'] as int? ?? 0,
+      totalReceived:
+          ((json['totalReceived'] ?? json['TotalReceived'] ?? 0.0) as num)
+              .toDouble(),
+      transactionCount:
+          json['transactionCount'] as int? ??
+          json['TransactionCount'] as int? ??
+          0,
       breakdownByMethod: rawList
-          .map((item) => PaymentMethodBreakdownModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => PaymentMethodBreakdownModel.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
           .toList(),
     );
   }
@@ -196,15 +264,36 @@ class DashboardShowroomModel {
 
   factory DashboardShowroomModel.fromJson(Map<String, dynamic> json) {
     return DashboardShowroomModel(
-      activeShowroomsCount: json['activeShowroomsCount'] as int? ?? json['ActiveShowroomsCount'] as int? ?? 0,
-      staffAssignmentsCount: json['staffAssignmentsCount'] as int? ?? json['StaffAssignmentsCount'] as int? ?? 0,
-      vehiclesAttended: json['vehiclesAttended'] as int? ?? json['VehiclesAttended'] as int? ?? 0,
-      totalBilled: ((json['totalBilled'] ?? json['TotalBilled'] ?? 0.0) as num).toDouble(),
-      totalReceived: ((json['totalReceived'] ?? json['TotalReceived'] ?? 0.0) as num).toDouble(),
-      totalOutstanding: ((json['totalOutstanding'] ?? json['TotalOutstanding'] ?? 0.0) as num).toDouble(),
-      paidDaysCount: json['paidDaysCount'] as int? ?? json['PaidDaysCount'] as int? ?? 0,
-      partiallyPaidDaysCount: json['partiallyPaidDaysCount'] as int? ?? json['PartiallyPaidDaysCount'] as int? ?? 0,
-      unpaidDaysCount: json['unpaidDaysCount'] as int? ?? json['UnpaidDaysCount'] as int? ?? 0,
+      activeShowroomsCount:
+          json['activeShowroomsCount'] as int? ??
+          json['ActiveShowroomsCount'] as int? ??
+          0,
+      staffAssignmentsCount:
+          json['staffAssignmentsCount'] as int? ??
+          json['StaffAssignmentsCount'] as int? ??
+          0,
+      vehiclesAttended:
+          json['vehiclesAttended'] as int? ??
+          json['VehiclesAttended'] as int? ??
+          0,
+      totalBilled: ((json['totalBilled'] ?? json['TotalBilled'] ?? 0.0) as num)
+          .toDouble(),
+      totalReceived:
+          ((json['totalReceived'] ?? json['TotalReceived'] ?? 0.0) as num)
+              .toDouble(),
+      totalOutstanding:
+          ((json['totalOutstanding'] ?? json['TotalOutstanding'] ?? 0.0) as num)
+              .toDouble(),
+      paidDaysCount:
+          json['paidDaysCount'] as int? ?? json['PaidDaysCount'] as int? ?? 0,
+      partiallyPaidDaysCount:
+          json['partiallyPaidDaysCount'] as int? ??
+          json['PartiallyPaidDaysCount'] as int? ??
+          0,
+      unpaidDaysCount:
+          json['unpaidDaysCount'] as int? ??
+          json['UnpaidDaysCount'] as int? ??
+          0,
     );
   }
 }
@@ -226,11 +315,21 @@ class DashboardStaffAdvanceModel {
 
   factory DashboardStaffAdvanceModel.fromJson(Map<String, dynamic> json) {
     return DashboardStaffAdvanceModel(
-      outstandingCount: json['outstandingCount'] as int? ?? json['OutstandingCount'] as int? ?? 0,
-      outstandingAmount: ((json['outstandingAmount'] ?? json['OutstandingAmount'] ?? 0.0) as num).toDouble(),
-      settledCount: json['settledCount'] as int? ?? json['SettledCount'] as int? ?? 0,
-      settledAmount: ((json['settledAmount'] ?? json['SettledAmount'] ?? 0.0) as num).toDouble(),
-      obsoleteCount: json['obsoleteCount'] as int? ?? json['ObsoleteCount'] as int? ?? 0,
+      outstandingCount:
+          json['outstandingCount'] as int? ??
+          json['OutstandingCount'] as int? ??
+          0,
+      outstandingAmount:
+          ((json['outstandingAmount'] ?? json['OutstandingAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      settledCount:
+          json['settledCount'] as int? ?? json['SettledCount'] as int? ?? 0,
+      settledAmount:
+          ((json['settledAmount'] ?? json['SettledAmount'] ?? 0.0) as num)
+              .toDouble(),
+      obsoleteCount:
+          json['obsoleteCount'] as int? ?? json['ObsoleteCount'] as int? ?? 0,
     );
   }
 }
@@ -250,10 +349,26 @@ class DashboardOutstandingModel {
 
   factory DashboardOutstandingModel.fromJson(Map<String, dynamic> json) {
     return DashboardOutstandingModel(
-      invoiceOutstanding: ((json['invoiceOutstanding'] ?? json['InvoiceOutstanding'] ?? 0.0) as num).toDouble(),
-      showroomOutstanding: ((json['showroomOutstanding'] ?? json['ShowroomOutstanding'] ?? 0.0) as num).toDouble(),
-      staffAdvanceOutstanding: ((json['staffAdvanceOutstanding'] ?? json['StaffAdvanceOutstanding'] ?? 0.0) as num).toDouble(),
-      totalOutstandingCombined: ((json['totalOutstandingCombined'] ?? json['TotalOutstandingCombined'] ?? 0.0) as num).toDouble(),
+      invoiceOutstanding:
+          ((json['invoiceOutstanding'] ?? json['InvoiceOutstanding'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      showroomOutstanding:
+          ((json['showroomOutstanding'] ?? json['ShowroomOutstanding'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      staffAdvanceOutstanding:
+          ((json['staffAdvanceOutstanding'] ??
+                      json['StaffAdvanceOutstanding'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      totalOutstandingCombined:
+          ((json['totalOutstandingCombined'] ??
+                      json['TotalOutstandingCombined'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
     );
   }
 }
@@ -279,12 +394,27 @@ class RecentActivityItemModel {
 
   factory RecentActivityItemModel.fromJson(Map<String, dynamic> json) {
     return RecentActivityItemModel(
-      activityType: json['activityType']?.toString() ?? json['ActivityType']?.toString() ?? '',
+      activityType:
+          json['activityType']?.toString() ??
+          json['ActivityType']?.toString() ??
+          '',
       title: json['title']?.toString() ?? json['Title']?.toString() ?? '',
-      description: json['description']?.toString() ?? json['Description']?.toString() ?? '',
-      amount: json['amount'] != null || json['Amount'] != null ? ((json['amount'] ?? json['Amount']) as num).toDouble() : null,
-      timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? json['Timestamp']?.toString() ?? '') ?? DateTime.now(),
-      referenceId: json['referenceId']?.toString() ?? json['ReferenceId']?.toString(),
+      description:
+          json['description']?.toString() ??
+          json['Description']?.toString() ??
+          '',
+      amount: json['amount'] != null || json['Amount'] != null
+          ? ((json['amount'] ?? json['Amount']) as num).toDouble()
+          : null,
+      timestamp:
+          DateTime.tryParse(
+            json['timestamp']?.toString() ??
+                json['Timestamp']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
+      referenceId:
+          json['referenceId']?.toString() ?? json['ReferenceId']?.toString(),
       status: json['status']?.toString() ?? json['Status']?.toString(),
     );
   }
@@ -316,19 +446,49 @@ class DashboardSummaryModel {
   });
 
   factory DashboardSummaryModel.fromJson(Map<String, dynamic> json) {
-    final rawRecent = json['recentActivity'] as List<dynamic>? ?? json['RecentActivity'] as List<dynamic>? ?? [];
+    final rawRecent =
+        json['recentActivity'] as List<dynamic>? ??
+        json['RecentActivity'] as List<dynamic>? ??
+        [];
     return DashboardSummaryModel(
-      dateRange: DateRangeModel.fromJson((json['dateRange'] ?? json['DateRange'] ?? {}) as Map<String, dynamic>),
-      jobCardKpis: JobCardKpisModel.fromJson((json['jobCardKpis'] ?? json['JobCardKpis'] ?? {}) as Map<String, dynamic>),
-      vehicleActivity: VehicleActivityModel.fromJson((json['vehicleActivity'] ?? json['VehicleActivity'] ?? {}) as Map<String, dynamic>),
-      invoiceKpis: InvoiceKpisModel.fromJson((json['invoiceKpis'] ?? json['InvoiceKpis'] ?? {}) as Map<String, dynamic>),
-      sales: DashboardSalesModel.fromJson((json['sales'] ?? json['Sales'] ?? {}) as Map<String, dynamic>),
-      paymentCollection: DashboardPaymentCollectionModel.fromJson((json['paymentCollection'] ?? json['PaymentCollection'] ?? {}) as Map<String, dynamic>),
-      showroom: DashboardShowroomModel.fromJson((json['showroom'] ?? json['Showroom'] ?? {}) as Map<String, dynamic>),
-      staffAdvances: DashboardStaffAdvanceModel.fromJson((json['staffAdvances'] ?? json['StaffAdvances'] ?? {}) as Map<String, dynamic>),
-      outstanding: DashboardOutstandingModel.fromJson((json['outstanding'] ?? json['Outstanding'] ?? {}) as Map<String, dynamic>),
+      dateRange: DateRangeModel.fromJson(
+        (json['dateRange'] ?? json['DateRange'] ?? {}) as Map<String, dynamic>,
+      ),
+      jobCardKpis: JobCardKpisModel.fromJson(
+        (json['jobCardKpis'] ?? json['JobCardKpis'] ?? {})
+            as Map<String, dynamic>,
+      ),
+      vehicleActivity: VehicleActivityModel.fromJson(
+        (json['vehicleActivity'] ?? json['VehicleActivity'] ?? {})
+            as Map<String, dynamic>,
+      ),
+      invoiceKpis: InvoiceKpisModel.fromJson(
+        (json['invoiceKpis'] ?? json['InvoiceKpis'] ?? {})
+            as Map<String, dynamic>,
+      ),
+      sales: DashboardSalesModel.fromJson(
+        (json['sales'] ?? json['Sales'] ?? {}) as Map<String, dynamic>,
+      ),
+      paymentCollection: DashboardPaymentCollectionModel.fromJson(
+        (json['paymentCollection'] ?? json['PaymentCollection'] ?? {})
+            as Map<String, dynamic>,
+      ),
+      showroom: DashboardShowroomModel.fromJson(
+        (json['showroom'] ?? json['Showroom'] ?? {}) as Map<String, dynamic>,
+      ),
+      staffAdvances: DashboardStaffAdvanceModel.fromJson(
+        (json['staffAdvances'] ?? json['StaffAdvances'] ?? {})
+            as Map<String, dynamic>,
+      ),
+      outstanding: DashboardOutstandingModel.fromJson(
+        (json['outstanding'] ?? json['Outstanding'] ?? {})
+            as Map<String, dynamic>,
+      ),
       recentActivity: rawRecent
-          .map((item) => RecentActivityItemModel.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                RecentActivityItemModel.fromJson(item as Map<String, dynamic>),
+          )
           .toList(),
     );
   }

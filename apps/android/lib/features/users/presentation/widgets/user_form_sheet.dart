@@ -16,11 +16,7 @@ class UserFormSheet extends ConsumerStatefulWidget {
   final UserModel? user; // Null if create mode
   final List<PermissionGroupModel> permissionGroups;
 
-  const UserFormSheet({
-    super.key,
-    this.user,
-    required this.permissionGroups,
-  });
+  const UserFormSheet({super.key, this.user, required this.permissionGroups});
 
   static Future<bool?> show(
     BuildContext context, {
@@ -31,10 +27,8 @@ class UserFormSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UserFormSheet(
-        user: user,
-        permissionGroups: permissionGroups,
-      ),
+      builder: (context) =>
+          UserFormSheet(user: user, permissionGroups: permissionGroups),
     );
   }
 
@@ -206,13 +200,15 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
             child: AppModalHeader(
               title: _isEdit
                   ? (_isOwner
-                      ? 'Edit Owner Account'
-                      : 'Edit User: ${widget.user?.fullName}')
+                        ? 'Edit Owner Account'
+                        : 'Edit User: ${widget.user?.fullName}')
                   : 'Add New User',
               subtitle: _isEdit
                   ? 'Update profile and module permissions'
                   : 'Create a Manager or Staff account and assign permissions',
-              icon: _isEdit ? Icons.manage_accounts_rounded : Icons.person_add_rounded,
+              icon: _isEdit
+                  ? Icons.manage_accounts_rounded
+                  : Icons.person_add_rounded,
               iconBgColor: AppColors.primaryContainer,
               iconColor: AppColors.textOnPrimary,
               showDragHandle: true,
@@ -232,17 +228,23 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                     if (_errorMessage != null) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.errorLight,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                              color: AppColors.error.withAlpha(60)),
+                            color: AppColors.error.withAlpha(60),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline_rounded,
-                                color: AppColors.error, size: 18),
+                            const Icon(
+                              Icons.error_outline_rounded,
+                              color: AppColors.error,
+                              size: 18,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -274,8 +276,11 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.shield_rounded,
-                                    color: Color(0xFF7C3AED), size: 20),
+                                Icon(
+                                  Icons.shield_rounded,
+                                  color: Color(0xFF7C3AED),
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'OWNER ACCESS',
@@ -308,7 +313,10 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       controller: _nameController,
                       label: 'Full Name *',
                       hintText: 'e.g. Ramesh Kumar',
-                      prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.person_outline_rounded,
+                        size: 20,
+                      ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Full name is required';
@@ -327,7 +335,10 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       label: _isEdit ? 'Username (Immutable)' : 'Username *',
                       hintText: 'e.g. ramesh',
                       isEnabled: !_isEdit,
-                      prefixIcon: const Icon(Icons.alternate_email_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.alternate_email_rounded,
+                        size: 20,
+                      ),
                       validator: (val) {
                         if (!_isEdit) {
                           if (val == null || val.trim().isEmpty) {
@@ -354,8 +365,9 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       prefixIcon: const Icon(Icons.email_outlined, size: 20),
                       validator: (val) {
                         if (val != null && val.trim().isNotEmpty) {
-                          final emailRegex =
-                              RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$');
+                          final emailRegex = RegExp(
+                            r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$',
+                          );
                           if (!emailRegex.hasMatch(val.trim())) {
                             return 'Enter a valid email address';
                           }
@@ -379,7 +391,9 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 4),
+                          horizontal: 14,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(12),
@@ -389,22 +403,30 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                           child: DropdownButton<String>(
                             value: _role,
                             isExpanded: true,
-                            icon: const Icon(Icons.arrow_drop_down_rounded,
-                                color: AppColors.textSecondary),
+                            icon: const Icon(
+                              Icons.arrow_drop_down_rounded,
+                              color: AppColors.textSecondary,
+                            ),
                             items: const [
                               DropdownMenuItem(
                                 value: 'Manager',
-                                child: Text('Manager',
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
+                                child: Text(
+                                  'Manager',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'Staff',
-                                child: Text('Staff',
-                                    style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600)),
+                                child: Text(
+                                  'Staff',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ],
                             onChanged: (newRole) {
@@ -424,9 +446,7 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                     const Divider(color: AppColors.border),
                     const SizedBox(height: 8),
                     Text(
-                      _isEdit
-                          ? 'CHANGE PASSWORD (OPTIONAL)'
-                          : 'SET PASSWORD *',
+                      _isEdit ? 'CHANGE PASSWORD (OPTIONAL)' : 'SET PASSWORD *',
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -451,7 +471,10 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       label: _isEdit ? 'New Password' : 'Password *',
                       hintText: 'Min 8 characters',
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 20,
+                      ),
                       validator: (val) {
                         if (!_isEdit && (val == null || val.isEmpty)) {
                           return 'Password is required';
@@ -471,7 +494,10 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                           : 'Confirm Password *',
                       hintText: 'Re-enter password',
                       isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 20,
+                      ),
                       validator: (val) {
                         if (_passwordController.text.isNotEmpty) {
                           if (val == null || val.isEmpty) {
@@ -530,8 +556,7 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                                 ? null
                                 : () => Navigator.pop(context),
                             style: OutlinedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               side: const BorderSide(color: AppColors.border),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),

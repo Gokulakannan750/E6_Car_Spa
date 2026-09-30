@@ -20,7 +20,9 @@ class StaffDirectoryTab extends ConsumerWidget {
     final staffState = ref.watch(staffProvider);
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
-    final canCreateStaff = user?.isOwner == true || (user?.permissions.contains('staff.create') ?? false);
+    final canCreateStaff =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff.create') ?? false);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,14 +32,18 @@ class StaffDirectoryTab extends ConsumerWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Add Staff', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Add Staff',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onPressed: () {
                 showModalBottomSheet<void>(
                   context: context,
                   isScrollControlled: true,
                   backgroundColor: Colors.transparent,
                   builder: (_) => AddEditStaffBottomSheet(
-                    onCreate: (req) => ref.read(staffProvider.notifier).createStaff(req),
+                    onCreate: (req) =>
+                        ref.read(staffProvider.notifier).createStaff(req),
                   ),
                 );
               },
@@ -45,7 +51,8 @@ class StaffDirectoryTab extends ConsumerWidget {
           : null,
       body: RefreshIndicator(
         color: AppColors.primary,
-        onRefresh: () => ref.read(staffProvider.notifier).loadStaff(refresh: true),
+        onRefresh: () =>
+            ref.read(staffProvider.notifier).loadStaff(refresh: true),
         child: Column(
           children: [
             // Search and Status Filters
@@ -56,7 +63,8 @@ class StaffDirectoryTab extends ConsumerWidget {
                 children: [
                   AppSearchField(
                     placeholder: 'Search staff by name, phone, role...',
-                    onChanged: (val) => ref.read(staffProvider.notifier).setSearch(val),
+                    onChanged: (val) =>
+                        ref.read(staffProvider.notifier).setSearch(val),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -77,7 +85,8 @@ class StaffDirectoryTab extends ConsumerWidget {
                       const SizedBox(width: 8),
                       _buildFilterChip(
                         ref: ref,
-                        label: 'Inactive (${staffState.staffList.length - staffState.activeStaff.length})',
+                        label:
+                            'Inactive (${staffState.staffList.length - staffState.activeStaff.length})',
                         filter: StaffStatusFilter.inactive,
                         currentFilter: staffState.statusFilter,
                       ),
@@ -92,46 +101,53 @@ class StaffDirectoryTab extends ConsumerWidget {
             Expanded(
               child: staffState.isLoading && staffState.staffList.isEmpty
                   ? const AppLoadingState(message: 'Loading staff directory...')
-                  : staffState.errorMessage != null && staffState.staffList.isEmpty
-                      ? AppErrorState(
-                          message: staffState.errorMessage!,
-                          onRetry: () => ref.read(staffProvider.notifier).loadStaff(refresh: true),
-                        )
-                      : staffState.filteredStaff.isEmpty
-                          ? const AppEmptyState(
-                              title: 'No Staff Members Found',
-                              message: 'Try adjusting your search query or filter settings.',
-                              icon: Icons.people_outline_rounded,
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-                              itemCount: staffState.filteredStaff.length,
-                              itemBuilder: (context, index) {
-                                final staff = staffState.filteredStaff[index];
-                                return StaffCard(
-                                  staff: staff,
-                                  onTap: () {
-                                    showModalBottomSheet<void>(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (_) => StaffDetailsBottomSheet(staff: staff),
-                                    );
-                                  },
-                                  onEdit: () {
-                                    showModalBottomSheet<void>(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (_) => AddEditStaffBottomSheet(
-                                        staff: staff,
-                                        onUpdate: (id, req) => ref.read(staffProvider.notifier).updateStaff(id, req),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
+                  : staffState.errorMessage != null &&
+                        staffState.staffList.isEmpty
+                  ? AppErrorState(
+                      message: staffState.errorMessage!,
+                      onRetry: () => ref
+                          .read(staffProvider.notifier)
+                          .loadStaff(refresh: true),
+                    )
+                  : staffState.filteredStaff.isEmpty
+                  ? const AppEmptyState(
+                      title: 'No Staff Members Found',
+                      message:
+                          'Try adjusting your search query or filter settings.',
+                      icon: Icons.people_outline_rounded,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
+                      itemCount: staffState.filteredStaff.length,
+                      itemBuilder: (context, index) {
+                        final staff = staffState.filteredStaff[index];
+                        return StaffCard(
+                          staff: staff,
+                          onTap: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) =>
+                                  StaffDetailsBottomSheet(staff: staff),
+                            );
+                          },
+                          onEdit: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => AddEditStaffBottomSheet(
+                                staff: staff,
+                                onUpdate: (id, req) => ref
+                                    .read(staffProvider.notifier)
+                                    .updateStaff(id, req),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -158,8 +174,11 @@ class StaffDirectoryTab extends ConsumerWidget {
       selected: isSelected,
       selectedColor: AppColors.primary,
       backgroundColor: AppColors.surface,
-      side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
-      onSelected: (_) => ref.read(staffProvider.notifier).setStatusFilter(filter),
+      side: BorderSide(
+        color: isSelected ? AppColors.primary : AppColors.border,
+      ),
+      onSelected: (_) =>
+          ref.read(staffProvider.notifier).setStatusFilter(filter),
     );
   }
 }

@@ -22,26 +22,28 @@ class ShowroomVehicleType {
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
       code: json['code'] as String? ?? json['Code'] as String? ?? '',
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
-      displayOrder: (json['displayOrder'] as num?)?.toInt() ??
+      displayOrder:
+          (json['displayOrder'] as num?)?.toInt() ??
           (json['DisplayOrder'] as num?)?.toInt() ??
           0,
       isActive: json['isActive'] as bool? ?? json['IsActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'code': code,
-        'name': name,
-        'displayOrder': displayOrder,
-        'isActive': isActive,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'code': code,
+    'name': name,
+    'displayOrder': displayOrder,
+    'isActive': isActive,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 // ── Showroom Work Type ─────────────────────────────────────────────────────
@@ -70,28 +72,31 @@ class ShowroomWorkType {
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
       code: json['code'] as String? ?? json['Code'] as String? ?? '',
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
-      description: json['description'] as String? ?? json['Description'] as String?,
-      displayOrder: (json['displayOrder'] as num?)?.toInt() ??
+      description:
+          json['description'] as String? ?? json['Description'] as String?,
+      displayOrder:
+          (json['displayOrder'] as num?)?.toInt() ??
           (json['DisplayOrder'] as num?)?.toInt() ??
           0,
       isActive: json['isActive'] as bool? ?? json['IsActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'code': code,
-        'name': name,
-        'description': description,
-        'displayOrder': displayOrder,
-        'isActive': isActive,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'code': code,
+    'name': name,
+    'description': description,
+    'displayOrder': displayOrder,
+    'isActive': isActive,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 // ── Showroom Vehicle Work Item ─────────────────────────────────────────────
@@ -120,36 +125,44 @@ class ShowroomVehicleWorkItem {
   factory ShowroomVehicleWorkItem.fromJson(Map<String, dynamic> json) {
     return ShowroomVehicleWorkItem(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      showroomVehicleWorkId: json['showroomVehicleWorkId'] as String? ??
+      showroomVehicleWorkId:
+          json['showroomVehicleWorkId'] as String? ??
           json['ShowroomVehicleWorkId'] as String? ??
           '',
-      workTypeId: json['workTypeId'] as String? ?? json['WorkTypeId'] as String? ?? '',
+      workTypeId:
+          json['workTypeId'] as String? ?? json['WorkTypeId'] as String? ?? '',
       workTypeCode:
-          json['workTypeCode'] as String? ?? json['WorkTypeCode'] as String? ?? '',
+          json['workTypeCode'] as String? ??
+          json['WorkTypeCode'] as String? ??
+          '',
       workTypeName:
-          json['workTypeName'] as String? ?? json['WorkTypeName'] as String? ?? '',
-      quantity: (json['quantity'] as num?)?.toInt() ??
+          json['workTypeName'] as String? ??
+          json['WorkTypeName'] as String? ??
+          '',
+      quantity:
+          (json['quantity'] as num?)?.toInt() ??
           (json['Quantity'] as num?)?.toInt() ??
           1,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'showroomVehicleWorkId': showroomVehicleWorkId,
-        'workTypeId': workTypeId,
-        'workTypeCode': workTypeCode,
-        'workTypeName': workTypeName,
-        'quantity': quantity,
-        'notes': notes,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'showroomVehicleWorkId': showroomVehicleWorkId,
+    'workTypeId': workTypeId,
+    'workTypeCode': workTypeCode,
+    'workTypeName': workTypeName,
+    'quantity': quantity,
+    'notes': notes,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }
 
 // ── Showroom Vehicle Work ──────────────────────────────────────────────────
@@ -195,17 +208,21 @@ class ShowroomVehicleWork {
     this.updatedAt,
   });
 
-  String get displayStaffName => staffName.isNotEmpty ? staffName : 'Unknown Staff';
-  String get displayVehicleType => vehicleTypeName.isNotEmpty ? vehicleTypeName : vehicleTypeCode;
+  String get displayStaffName =>
+      staffName.isNotEmpty ? staffName : 'Unknown Staff';
+  String get displayVehicleType =>
+      vehicleTypeName.isNotEmpty ? vehicleTypeName : vehicleTypeCode;
   String get displayTime => timeRecorded != null && timeRecorded!.isNotEmpty
       ? timeRecorded!
       : '${createdAt.toLocal().hour.toString().padLeft(2, '0')}:${createdAt.toLocal().minute.toString().padLeft(2, '0')}';
 
-  String get serviceTypesSummary =>
-      serviceItems.map((s) => s.workTypeName.isNotEmpty ? s.workTypeName : s.workTypeCode).join(', ');
+  String get serviceTypesSummary => serviceItems
+      .map((s) => s.workTypeName.isNotEmpty ? s.workTypeName : s.workTypeCode)
+      .join(', ');
 
   factory ShowroomVehicleWork.fromJson(Map<String, dynamic> json) {
-    var rawItems = json['serviceItems'] as List<dynamic>? ??
+    var rawItems =
+        json['serviceItems'] as List<dynamic>? ??
         json['ServiceItems'] as List<dynamic>? ??
         [];
     var items = rawItems
@@ -214,69 +231,85 @@ class ShowroomVehicleWork {
 
     return ShowroomVehicleWork(
       id: json['id'] as String? ?? '',
-      showroomId: json['showroomId'] as String? ?? json['ShowroomId'] as String? ?? '',
-      showroomMasterId: json['showroomMasterId'] as String? ??
+      showroomId:
+          json['showroomId'] as String? ?? json['ShowroomId'] as String? ?? '',
+      showroomMasterId:
+          json['showroomMasterId'] as String? ??
           json['ShowroomMasterId'] as String? ??
           '',
       showroomName:
-          json['showroomName'] as String? ?? json['ShowroomName'] as String? ?? '',
+          json['showroomName'] as String? ??
+          json['ShowroomName'] as String? ??
+          '',
       staffId: json['staffId'] as String? ?? json['StaffId'] as String? ?? '',
-      staffMasterId: json['staffMasterId'] as String? ??
+      staffMasterId:
+          json['staffMasterId'] as String? ??
           json['StaffMasterId'] as String? ??
           '',
-      staffName: json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
+      staffName:
+          json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
       vehicleTypeId:
-          json['vehicleTypeId'] as String? ?? json['VehicleTypeId'] as String? ?? '',
+          json['vehicleTypeId'] as String? ??
+          json['VehicleTypeId'] as String? ??
+          '',
       vehicleTypeCode:
-          json['vehicleTypeCode'] as String? ?? json['VehicleTypeCode'] as String? ?? '',
+          json['vehicleTypeCode'] as String? ??
+          json['VehicleTypeCode'] as String? ??
+          '',
       vehicleTypeName:
-          json['vehicleTypeName'] as String? ?? json['VehicleTypeName'] as String? ?? '',
-      showroomStaffWorkSessionId: json['showroomStaffWorkSessionId'] as String? ??
+          json['vehicleTypeName'] as String? ??
+          json['VehicleTypeName'] as String? ??
+          '',
+      showroomStaffWorkSessionId:
+          json['showroomStaffWorkSessionId'] as String? ??
           json['ShowroomStaffWorkSessionId'] as String?,
-      vehicleQuantity: (json['vehicleQuantity'] as num?)?.toInt() ??
+      vehicleQuantity:
+          (json['vehicleQuantity'] as num?)?.toInt() ??
           (json['VehicleQuantity'] as num?)?.toInt() ??
           1,
       date: json['date'] != null
           ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
           : (json['Date'] != null
-              ? DateTime.tryParse(json['Date'].toString()) ?? DateTime.now()
-              : DateTime.now()),
-      timeRecorded: json['timeRecorded'] as String? ?? json['TimeRecorded'] as String?,
+                ? DateTime.tryParse(json['Date'].toString()) ?? DateTime.now()
+                : DateTime.now()),
+      timeRecorded:
+          json['timeRecorded'] as String? ?? json['TimeRecorded'] as String?,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
       serviceItems: items,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())
           : (json['UpdatedAt'] != null
-              ? DateTime.tryParse(json['UpdatedAt'].toString())
-              : null),
+                ? DateTime.tryParse(json['UpdatedAt'].toString())
+                : null),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'showroomId': showroomId,
-        'showroomMasterId': showroomMasterId,
-        'showroomName': showroomName,
-        'staffId': staffId,
-        'staffMasterId': staffMasterId,
-        'staffName': staffName,
-        'vehicleTypeId': vehicleTypeId,
-        'vehicleTypeCode': vehicleTypeCode,
-        'vehicleTypeName': vehicleTypeName,
-        'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
-        'vehicleQuantity': vehicleQuantity,
-        'date': date.toIso8601String(),
-        'timeRecorded': timeRecorded,
-        'notes': notes,
-        'serviceItems': serviceItems.map((e) => e.toJson()).toList(),
-        'createdAt': createdAt.toIso8601String(),
-        if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
-      };
+    'id': id,
+    'showroomId': showroomId,
+    'showroomMasterId': showroomMasterId,
+    'showroomName': showroomName,
+    'staffId': staffId,
+    'staffMasterId': staffMasterId,
+    'staffName': staffName,
+    'vehicleTypeId': vehicleTypeId,
+    'vehicleTypeCode': vehicleTypeCode,
+    'vehicleTypeName': vehicleTypeName,
+    'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
+    'vehicleQuantity': vehicleQuantity,
+    'date': date.toIso8601String(),
+    'timeRecorded': timeRecorded,
+    'notes': notes,
+    'serviceItems': serviceItems.map((e) => e.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+  };
 }
 
 // ── Operations Requests ────────────────────────────────────────────────────
@@ -293,10 +326,10 @@ class CreateShowroomVehicleWorkItemRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'workTypeId': workTypeId,
-        'quantity': quantity,
-        if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-      };
+    'workTypeId': workTypeId,
+    'quantity': quantity,
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+  };
 }
 
 class CreateShowroomVehicleWorkRequest {
@@ -321,17 +354,19 @@ class CreateShowroomVehicleWorkRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'staffId': staffId,
-        'vehicleTypeId': vehicleTypeId,
-        if (showroomStaffWorkSessionId != null && showroomStaffWorkSessionId!.isNotEmpty)
-          'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
-        'vehicleQuantity': vehicleQuantity,
-        'date': date.toIso8601String().split('T').first,
-        if (timeRecorded != null && timeRecorded!.isNotEmpty) 'timeRecorded': timeRecorded,
-        if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-        if (serviceItems != null && serviceItems!.isNotEmpty)
-          'serviceItems': serviceItems!.map((e) => e.toJson()).toList(),
-      };
+    'staffId': staffId,
+    'vehicleTypeId': vehicleTypeId,
+    if (showroomStaffWorkSessionId != null &&
+        showroomStaffWorkSessionId!.isNotEmpty)
+      'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
+    'vehicleQuantity': vehicleQuantity,
+    'date': date.toIso8601String().split('T').first,
+    if (timeRecorded != null && timeRecorded!.isNotEmpty)
+      'timeRecorded': timeRecorded,
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+    if (serviceItems != null && serviceItems!.isNotEmpty)
+      'serviceItems': serviceItems!.map((e) => e.toJson()).toList(),
+  };
 }
 
 class UpdateShowroomVehicleWorkRequest {
@@ -356,17 +391,17 @@ class UpdateShowroomVehicleWorkRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        if (staffId != null) 'staffId': staffId,
-        if (vehicleTypeId != null) 'vehicleTypeId': vehicleTypeId,
-        if (showroomStaffWorkSessionId != null)
-          'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
-        if (vehicleQuantity != null) 'vehicleQuantity': vehicleQuantity,
-        if (date != null) 'date': date!.toIso8601String().split('T').first,
-        if (timeRecorded != null) 'timeRecorded': timeRecorded,
-        if (notes != null) 'notes': notes,
-        if (serviceItems != null)
-          'serviceItems': serviceItems!.map((e) => e.toJson()).toList(),
-      };
+    if (staffId != null) 'staffId': staffId,
+    if (vehicleTypeId != null) 'vehicleTypeId': vehicleTypeId,
+    if (showroomStaffWorkSessionId != null)
+      'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
+    if (vehicleQuantity != null) 'vehicleQuantity': vehicleQuantity,
+    if (date != null) 'date': date!.toIso8601String().split('T').first,
+    if (timeRecorded != null) 'timeRecorded': timeRecorded,
+    if (notes != null) 'notes': notes,
+    if (serviceItems != null)
+      'serviceItems': serviceItems!.map((e) => e.toJson()).toList(),
+  };
 }
 
 class IndividualVehicleWorkEntry {
@@ -381,10 +416,10 @@ class IndividualVehicleWorkEntry {
   });
 
   Map<String, dynamic> toJson() => {
-        'vehicleTypeId': vehicleTypeId,
-        'workTypeIds': workTypeIds,
-        if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-      };
+    'vehicleTypeId': vehicleTypeId,
+    'workTypeIds': workTypeIds,
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+  };
 }
 
 class CreateBatchShowroomVehicleWorkRequest {
@@ -405,29 +440,28 @@ class CreateBatchShowroomVehicleWorkRequest {
   });
 
   Map<String, dynamic> toJson() => {
-        'staffId': staffId,
-        if (showroomStaffWorkSessionId != null && showroomStaffWorkSessionId!.isNotEmpty)
-          'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
-        'date': date.toIso8601String().split('T').first,
-        if (timeRecorded != null && timeRecorded!.isNotEmpty) 'timeRecorded': timeRecorded,
-        if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-        'vehicles': vehicles.map((e) => e.toJson()).toList(),
-      };
+    'staffId': staffId,
+    if (showroomStaffWorkSessionId != null &&
+        showroomStaffWorkSessionId!.isNotEmpty)
+      'showroomStaffWorkSessionId': showroomStaffWorkSessionId,
+    'date': date.toIso8601String().split('T').first,
+    if (timeRecorded != null && timeRecorded!.isNotEmpty)
+      'timeRecorded': timeRecorded,
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+    'vehicles': vehicles.map((e) => e.toJson()).toList(),
+  };
 }
 
 class CloseShowroomStaffWorkSessionRequest {
   final String? endTime;
   final String? notes;
 
-  const CloseShowroomStaffWorkSessionRequest({
-    this.endTime,
-    this.notes,
-  });
+  const CloseShowroomStaffWorkSessionRequest({this.endTime, this.notes});
 
   Map<String, dynamic> toJson() => {
-        if (endTime != null && endTime!.isNotEmpty) 'endTime': endTime,
-        if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
-      };
+    if (endTime != null && endTime!.isNotEmpty) 'endTime': endTime,
+    if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+  };
 }
 
 // ── Showroom Operations Summaries & Breakdowns ─────────────────────────────
@@ -448,23 +482,30 @@ class VehicleTypeWorkSummary {
   factory VehicleTypeWorkSummary.fromJson(Map<String, dynamic> json) {
     return VehicleTypeWorkSummary(
       vehicleTypeId:
-          json['vehicleTypeId'] as String? ?? json['VehicleTypeId'] as String? ?? '',
+          json['vehicleTypeId'] as String? ??
+          json['VehicleTypeId'] as String? ??
+          '',
       vehicleTypeCode:
-          json['vehicleTypeCode'] as String? ?? json['VehicleTypeCode'] as String? ?? '',
+          json['vehicleTypeCode'] as String? ??
+          json['VehicleTypeCode'] as String? ??
+          '',
       vehicleTypeName:
-          json['vehicleTypeName'] as String? ?? json['VehicleTypeName'] as String? ?? '',
-      totalVehicles: (json['totalVehicles'] as num?)?.toInt() ??
+          json['vehicleTypeName'] as String? ??
+          json['VehicleTypeName'] as String? ??
+          '',
+      totalVehicles:
+          (json['totalVehicles'] as num?)?.toInt() ??
           (json['TotalVehicles'] as num?)?.toInt() ??
           0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'vehicleTypeId': vehicleTypeId,
-        'vehicleTypeCode': vehicleTypeCode,
-        'vehicleTypeName': vehicleTypeName,
-        'totalVehicles': totalVehicles,
-      };
+    'vehicleTypeId': vehicleTypeId,
+    'vehicleTypeCode': vehicleTypeCode,
+    'vehicleTypeName': vehicleTypeName,
+    'totalVehicles': totalVehicles,
+  };
 }
 
 class WorkTypeWorkSummary {
@@ -484,23 +525,29 @@ class WorkTypeWorkSummary {
 
   factory WorkTypeWorkSummary.fromJson(Map<String, dynamic> json) {
     return WorkTypeWorkSummary(
-      workTypeId: json['workTypeId'] as String? ?? json['WorkTypeId'] as String? ?? '',
+      workTypeId:
+          json['workTypeId'] as String? ?? json['WorkTypeId'] as String? ?? '',
       workTypeCode:
-          json['workTypeCode'] as String? ?? json['WorkTypeCode'] as String? ?? '',
+          json['workTypeCode'] as String? ??
+          json['WorkTypeCode'] as String? ??
+          '',
       workTypeName:
-          json['workTypeName'] as String? ?? json['WorkTypeName'] as String? ?? '',
-      totalQuantity: (json['totalQuantity'] as num?)?.toInt() ??
+          json['workTypeName'] as String? ??
+          json['WorkTypeName'] as String? ??
+          '',
+      totalQuantity:
+          (json['totalQuantity'] as num?)?.toInt() ??
           (json['TotalQuantity'] as num?)?.toInt() ??
           0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'workTypeId': workTypeId,
-        'workTypeCode': workTypeCode,
-        'workTypeName': workTypeName,
-        'totalQuantity': totalQuantity,
-      };
+    'workTypeId': workTypeId,
+    'workTypeCode': workTypeCode,
+    'workTypeName': workTypeName,
+    'totalQuantity': totalQuantity,
+  };
 }
 
 class StaffWorkSummary {
@@ -523,30 +570,35 @@ class StaffWorkSummary {
   factory StaffWorkSummary.fromJson(Map<String, dynamic> json) {
     return StaffWorkSummary(
       staffId: json['staffId'] as String? ?? json['StaffId'] as String? ?? '',
-      staffMasterId: json['staffMasterId'] as String? ??
+      staffMasterId:
+          json['staffMasterId'] as String? ??
           json['StaffMasterId'] as String? ??
           '',
-      staffName: json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
-      totalSessions: (json['totalSessions'] as num?)?.toInt() ??
+      staffName:
+          json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
+      totalSessions:
+          (json['totalSessions'] as num?)?.toInt() ??
           (json['TotalSessions'] as num?)?.toInt() ??
           0,
-      totalVehiclesHandled: (json['totalVehiclesHandled'] as num?)?.toInt() ??
+      totalVehiclesHandled:
+          (json['totalVehiclesHandled'] as num?)?.toInt() ??
           (json['TotalVehiclesHandled'] as num?)?.toInt() ??
           0,
-      totalServicesPerformed: (json['totalServicesPerformed'] as num?)?.toInt() ??
+      totalServicesPerformed:
+          (json['totalServicesPerformed'] as num?)?.toInt() ??
           (json['TotalServicesPerformed'] as num?)?.toInt() ??
           0,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'staffId': staffId,
-        'staffMasterId': staffMasterId,
-        'staffName': staffName,
-        'totalSessions': totalSessions,
-        'totalVehiclesHandled': totalVehiclesHandled,
-        'totalServicesPerformed': totalServicesPerformed,
-      };
+    'staffId': staffId,
+    'staffMasterId': staffMasterId,
+    'staffName': staffName,
+    'totalSessions': totalSessions,
+    'totalVehiclesHandled': totalVehiclesHandled,
+    'totalServicesPerformed': totalServicesPerformed,
+  };
 }
 
 class ShowroomOperationsSummary {
@@ -584,21 +636,24 @@ class ShowroomOperationsSummary {
       workTypeBreakdown.isEmpty;
 
   factory ShowroomOperationsSummary.fromJson(Map<String, dynamic> json) {
-    var rawVehicles = json['vehicleTypeBreakdown'] as List<dynamic>? ??
+    var rawVehicles =
+        json['vehicleTypeBreakdown'] as List<dynamic>? ??
         json['VehicleTypeBreakdown'] as List<dynamic>? ??
         [];
     var vehicleList = rawVehicles
         .map((e) => VehicleTypeWorkSummary.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    var rawWorks = json['workTypeBreakdown'] as List<dynamic>? ??
+    var rawWorks =
+        json['workTypeBreakdown'] as List<dynamic>? ??
         json['WorkTypeBreakdown'] as List<dynamic>? ??
         [];
     var workList = rawWorks
         .map((e) => WorkTypeWorkSummary.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    var rawStaff = json['staffProductivityBreakdown'] as List<dynamic>? ??
+    var rawStaff =
+        json['staffProductivityBreakdown'] as List<dynamic>? ??
         json['StaffProductivityBreakdown'] as List<dynamic>? ??
         [];
     var staffList = rawStaff
@@ -606,29 +661,37 @@ class ShowroomOperationsSummary {
         .toList();
 
     return ShowroomOperationsSummary(
-      showroomId: json['showroomId'] as String? ?? json['ShowroomId'] as String? ?? '',
-      showroomMasterId: json['showroomMasterId'] as String? ??
+      showroomId:
+          json['showroomId'] as String? ?? json['ShowroomId'] as String? ?? '',
+      showroomMasterId:
+          json['showroomMasterId'] as String? ??
           json['ShowroomMasterId'] as String? ??
           '',
       showroomName:
-          json['showroomName'] as String? ?? json['ShowroomName'] as String? ?? '',
+          json['showroomName'] as String? ??
+          json['ShowroomName'] as String? ??
+          '',
       fromDate: json['fromDate'] != null
           ? DateTime.tryParse(json['fromDate'].toString()) ?? DateTime.now()
           : (json['FromDate'] != null
-              ? DateTime.tryParse(json['FromDate'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['FromDate'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
       toDate: json['toDate'] != null
           ? DateTime.tryParse(json['toDate'].toString()) ?? DateTime.now()
           : (json['ToDate'] != null
-              ? DateTime.tryParse(json['ToDate'].toString()) ?? DateTime.now()
-              : DateTime.now()),
-      totalVehiclesHandled: (json['totalVehiclesHandled'] as num?)?.toInt() ??
+                ? DateTime.tryParse(json['ToDate'].toString()) ?? DateTime.now()
+                : DateTime.now()),
+      totalVehiclesHandled:
+          (json['totalVehiclesHandled'] as num?)?.toInt() ??
           (json['TotalVehiclesHandled'] as num?)?.toInt() ??
           0,
-      totalServicesPerformed: (json['totalServicesPerformed'] as num?)?.toInt() ??
+      totalServicesPerformed:
+          (json['totalServicesPerformed'] as num?)?.toInt() ??
           (json['TotalServicesPerformed'] as num?)?.toInt() ??
           0,
-      totalActiveStaffSessions: (json['totalActiveStaffSessions'] as num?)?.toInt() ??
+      totalActiveStaffSessions:
+          (json['totalActiveStaffSessions'] as num?)?.toInt() ??
           (json['TotalActiveStaffSessions'] as num?)?.toInt() ??
           0,
       vehicleTypeBreakdown: vehicleList,
@@ -638,17 +701,20 @@ class ShowroomOperationsSummary {
   }
 
   Map<String, dynamic> toJson() => {
-        'showroomId': showroomId,
-        'showroomMasterId': showroomMasterId,
-        'showroomName': showroomName,
-        'fromDate': fromDate.toIso8601String(),
-        'toDate': toDate.toIso8601String(),
-        'totalVehiclesHandled': totalVehiclesHandled,
-        'totalServicesPerformed': totalServicesPerformed,
-        'totalActiveStaffSessions': totalActiveStaffSessions,
-        'vehicleTypeBreakdown': vehicleTypeBreakdown.map((e) => e.toJson()).toList(),
-        'workTypeBreakdown': workTypeBreakdown.map((e) => e.toJson()).toList(),
-        'staffProductivityBreakdown':
-            staffProductivityBreakdown.map((e) => e.toJson()).toList(),
-      };
+    'showroomId': showroomId,
+    'showroomMasterId': showroomMasterId,
+    'showroomName': showroomName,
+    'fromDate': fromDate.toIso8601String(),
+    'toDate': toDate.toIso8601String(),
+    'totalVehiclesHandled': totalVehiclesHandled,
+    'totalServicesPerformed': totalServicesPerformed,
+    'totalActiveStaffSessions': totalActiveStaffSessions,
+    'vehicleTypeBreakdown': vehicleTypeBreakdown
+        .map((e) => e.toJson())
+        .toList(),
+    'workTypeBreakdown': workTypeBreakdown.map((e) => e.toJson()).toList(),
+    'staffProductivityBreakdown': staffProductivityBreakdown
+        .map((e) => e.toJson())
+        .toList(),
+  };
 }

@@ -5,14 +5,12 @@ import 'package:e6_car_spa/features/jobcards/presentation/widgets/add_custom_ser
 
 void main() {
   group('AddCustomServiceDialog Widget Tests', () {
-    testWidgets('Renders Category dropdown and required validation', (tester) async {
+    testWidgets('Renders Category dropdown and required validation', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: AddCustomServiceDialog(),
-            ),
-          ),
+          child: MaterialApp(home: Scaffold(body: AddCustomServiceDialog())),
         ),
       );
 
@@ -34,29 +32,28 @@ void main() {
       expect(find.text('Category is required'), findsOneWidget);
     });
 
-    testWidgets('Populates authoritative fallback categories when backend returns empty or uninitialized', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: AddCustomServiceDialog(),
-            ),
+    testWidgets(
+      'Populates authoritative fallback categories when backend returns empty or uninitialized',
+      (tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(home: Scaffold(body: AddCustomServiceDialog())),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Tap category dropdown to show menu items
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
+        // Tap category dropdown to show menu items
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
 
-      // Verify the 5 authoritative categories are present
-      expect(find.text('Exterior Detailing'), findsWidgets);
-      expect(find.text('General Services'), findsWidgets);
-      expect(find.text('Interior Care'), findsWidgets);
-      expect(find.text('Protection Packages'), findsWidgets);
-      expect(find.text('Others'), findsWidgets);
-    });
+        // Verify the 5 authoritative categories are present
+        expect(find.text('Exterior Detailing'), findsWidgets);
+        expect(find.text('General Services'), findsWidgets);
+        expect(find.text('Interior Care'), findsWidgets);
+        expect(find.text('Protection Packages'), findsWidgets);
+        expect(find.text('Others'), findsWidgets);
+      },
+    );
   });
 }

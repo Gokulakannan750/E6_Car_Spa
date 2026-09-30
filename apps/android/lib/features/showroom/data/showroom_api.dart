@@ -24,7 +24,9 @@ class ShowroomApi {
     );
 
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => Showroom.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => Showroom.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Showroom> getShowroomById(String id) async {
@@ -33,18 +35,15 @@ class ShowroomApi {
   }
 
   Future<Showroom> createShowroom(CreateShowroomRequest request) async {
-    final response = await _dio.post(
-      '/showrooms',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/showrooms', data: request.toJson());
     return Showroom.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Showroom> updateShowroom(String id, UpdateShowroomRequest request) async {
-    final response = await _dio.put(
-      '/showrooms/$id',
-      data: request.toJson(),
-    );
+  Future<Showroom> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
+    final response = await _dio.put('/showrooms/$id', data: request.toJson());
     return Showroom.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -52,7 +51,10 @@ class ShowroomApi {
     await _dio.patch('/showrooms/$id/toggle-active');
   }
 
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     final dateStr = date.toIso8601String().split('T').first;
     final response = await _dio.get(
       '/showrooms/$showroomId/daily-staff',
@@ -86,8 +88,7 @@ class ShowroomApi {
   Future<DailyStaffAssignment> updateDailyStaffVehicles(
     String assignmentId,
     UpdateDailyStaffAssignmentRequest request,
-  ) =>
-      updateDailyStaffAssignment(assignmentId, request);
+  ) => updateDailyStaffAssignment(assignmentId, request);
 
   Future<void> removeDailyStaff(String assignmentId) async {
     await _dio.delete('/showroom-staff-assignments/$assignmentId');
@@ -135,14 +136,17 @@ class ShowroomApi {
     final queryParameters = <String, dynamic>{};
     if (showroomId != null) queryParameters['showroomId'] = showroomId;
     if (staffId != null) queryParameters['staffId'] = staffId;
-    if (date != null) queryParameters['date'] = date.toIso8601String().split('T').first;
+    if (date != null)
+      queryParameters['date'] = date.toIso8601String().split('T').first;
 
     final response = await _dio.get(
       '/showrooms/swaps',
       queryParameters: queryParameters,
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<ShowroomStaffSwap>> getShowroomSwapHistory(
@@ -150,14 +154,17 @@ class ShowroomApi {
     DateTime? date,
   }) async {
     final queryParameters = <String, dynamic>{};
-    if (date != null) queryParameters['date'] = date.toIso8601String().split('T').first;
+    if (date != null)
+      queryParameters['date'] = date.toIso8601String().split('T').first;
 
     final response = await _dio.get(
       '/showrooms/$showroomId/swap-history',
       queryParameters: queryParameters,
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomStaffSwap.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ShowroomStaffSwap> getSwapById(String swapId) async {
@@ -178,7 +185,9 @@ class ShowroomApi {
 
   // ── Showroom Operations (Vehicle Types & Work Types) ─────────────────────
 
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async {
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async {
     final queryParameters = <String, dynamic>{};
     if (isActive != null) queryParameters['isActive'] = isActive;
 
@@ -187,7 +196,9 @@ class ShowroomApi {
       queryParameters: queryParameters,
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomVehicleType.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomVehicleType.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async {
@@ -199,7 +210,9 @@ class ShowroomApi {
       queryParameters: queryParameters,
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomWorkType.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomWorkType.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ── Showroom Vehicle Work ────────────────────────────────────────────────
@@ -211,8 +224,10 @@ class ShowroomApi {
     String? vehicleTypeId,
   }) async {
     final queryParameters = <String, dynamic>{};
-    if (date != null) queryParameters['date'] = date.toIso8601String().split('T').first;
-    if (staffId != null && staffId.isNotEmpty) queryParameters['staffId'] = staffId;
+    if (date != null)
+      queryParameters['date'] = date.toIso8601String().split('T').first;
+    if (staffId != null && staffId.isNotEmpty)
+      queryParameters['staffId'] = staffId;
     if (vehicleTypeId != null && vehicleTypeId.isNotEmpty) {
       queryParameters['vehicleTypeId'] = vehicleTypeId;
     }
@@ -222,7 +237,9 @@ class ShowroomApi {
       queryParameters: queryParameters,
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomVehicleWork.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomVehicleWork.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ShowroomVehicleWork> getShowroomVehicleWorkById(
@@ -253,7 +270,9 @@ class ShowroomApi {
       data: request.toJson(),
     );
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => ShowroomVehicleWork.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => ShowroomVehicleWork.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ShowroomVehicleWork> updateShowroomVehicleWork(
@@ -286,7 +305,9 @@ class ShowroomApi {
       '/showrooms/$showroomId/operations-summary',
       queryParameters: {'date': dateStr},
     );
-    return ShowroomOperationsSummary.fromJson(response.data as Map<String, dynamic>);
+    return ShowroomOperationsSummary.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   // ── Work Session Close ───────────────────────────────────────────────────
@@ -389,8 +410,10 @@ class ShowroomApi {
     );
     final rawList = response.data as List<dynamic>? ?? [];
     return rawList
-        .map((e) =>
-            ShowroomOutstandingOverview.fromJson(e as Map<String, dynamic>))
+        .map(
+          (e) =>
+              ShowroomOutstandingOverview.fromJson(e as Map<String, dynamic>),
+        )
         .toList();
   }
 }

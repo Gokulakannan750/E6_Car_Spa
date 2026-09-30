@@ -62,60 +62,73 @@ void main() {
   );
 
   group('SettingsRepository Additional Error Boundary Tests', () {
-    test('getBusinessProfile maps 401 Unauthorized to UnauthorizedException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/settings/business'),
-        response: Response(
+    test(
+      'getBusinessProfile maps 401 Unauthorized to UnauthorizedException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/settings/business'),
-          statusCode: 401,
-          data: {'error': 'Session expired. Please log in again.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/settings/business'),
+            statusCode: 401,
+            data: {'error': 'Session expired. Please log in again.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.getBusinessProfile(),
-        throwsA(isA<UnauthorizedException>()),
-      );
-    });
+        expect(
+          () => repository.getBusinessProfile(),
+          throwsA(isA<UnauthorizedException>()),
+        );
+      },
+    );
 
-    test('getBusinessProfile maps 404 Not Found to NotFoundException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/settings/business'),
-        response: Response(
+    test(
+      'getBusinessProfile maps 404 Not Found to NotFoundException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/settings/business'),
-          statusCode: 404,
-          data: {'error': 'Business profile not found.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/settings/business'),
+            statusCode: 404,
+            data: {'error': 'Business profile not found.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.getBusinessProfile(),
-        throwsA(isA<NotFoundException>()),
-      );
-    });
+        expect(
+          () => repository.getBusinessProfile(),
+          throwsA(isA<NotFoundException>()),
+        );
+      },
+    );
 
-    test('updateBusinessProfile maps 409 Conflict to ConflictException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/settings/business'),
-        response: Response(
+    test(
+      'updateBusinessProfile maps 409 Conflict to ConflictException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/settings/business'),
-          statusCode: 409,
-          data: {'error': 'Profile was modified concurrently by another user.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/settings/business'),
+            statusCode: 409,
+            data: {
+              'error': 'Profile was modified concurrently by another user.',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.updateBusinessProfile(sampleUpdateRequest),
-        throwsA(isA<ConflictException>().having(
-          (e) => e.message,
-          'message',
-          contains('Profile was modified concurrently'),
-        )),
-      );
-    });
+        expect(
+          () => repository.updateBusinessProfile(sampleUpdateRequest),
+          throwsA(
+            isA<ConflictException>().having(
+              (e) => e.message,
+              'message',
+              contains('Profile was modified concurrently'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('uploadLogo maps 500 Server Error to ServerException', () async {
       mockApi.exceptionToThrow = DioException(
@@ -134,21 +147,26 @@ void main() {
       );
     });
 
-    test('updateBusinessProfile maps connection timeout to NetworkException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/settings/business'),
-        type: DioExceptionType.connectionTimeout,
-      );
+    test(
+      'updateBusinessProfile maps connection timeout to NetworkException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(path: '/settings/business'),
+          type: DioExceptionType.connectionTimeout,
+        );
 
-      expect(
-        () => repository.updateBusinessProfile(sampleUpdateRequest),
-        throwsA(isA<NetworkException>().having(
-          (e) => e.message,
-          'message',
-          contains('Connection timeout'),
-        )),
-      );
-    });
+        expect(
+          () => repository.updateBusinessProfile(sampleUpdateRequest),
+          throwsA(
+            isA<NetworkException>().having(
+              (e) => e.message,
+              'message',
+              contains('Connection timeout'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('removeLogo maps connection error to NetworkException', () async {
       mockApi.exceptionToThrow = DioException(
@@ -156,10 +174,7 @@ void main() {
         type: DioExceptionType.connectionError,
       );
 
-      expect(
-        () => repository.removeLogo(),
-        throwsA(isA<NetworkException>()),
-      );
+      expect(() => repository.removeLogo(), throwsA(isA<NetworkException>()));
     });
   });
 }

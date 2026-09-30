@@ -75,7 +75,9 @@ class AppConfirmDialog extends StatelessWidget {
         ),
         AppButton(
           label: confirmLabel,
-          variant: isDestructive ? AppButtonVariant.danger : AppButtonVariant.primary,
+          variant: isDestructive
+              ? AppButtonVariant.danger
+              : AppButtonVariant.primary,
           onPressed: onConfirm,
         ),
       ],

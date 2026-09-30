@@ -7,9 +7,9 @@ import 'settings_state.dart';
 
 final settingsNotifierProvider =
     StateNotifierProvider<SettingsNotifier, SettingsState>((ref) {
-  final repository = ref.watch(settingsRepositoryProvider);
-  return SettingsNotifier(repository);
-});
+      final repository = ref.watch(settingsRepositoryProvider);
+      return SettingsNotifier(repository);
+    });
 
 final businessProfileProvider = Provider<BusinessProfileModel?>((ref) {
   final state = ref.watch(settingsNotifierProvider);
@@ -103,24 +103,27 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     // 4. Fetch fresh public branding from anonymous endpoint
     try {
       final publicBranding = await _repository.getPublicBusinessProfile();
-      final current = state is SettingsLoaded ? (state as SettingsLoaded).profile : null;
+      final current = state is SettingsLoaded
+          ? (state as SettingsLoaded).profile
+          : null;
       state = SettingsLoaded(
-        profile: (current ??
-                const BusinessProfileModel(
-                  id: '',
-                  businessName: 'E6 Car Spa',
-                  addressLine1: '',
-                  city: '',
-                  state: '',
-                  postalCode: '',
-                  phone: '',
-                  email: '',
-                ))
-            .copyWith(
-          businessName: publicBranding.businessName,
-          logoPath: publicBranding.logoPath,
-          updatedAt: publicBranding.updatedAt,
-        ),
+        profile:
+            (current ??
+                    const BusinessProfileModel(
+                      id: '',
+                      businessName: 'E6 Car Spa',
+                      addressLine1: '',
+                      city: '',
+                      state: '',
+                      postalCode: '',
+                      phone: '',
+                      email: '',
+                    ))
+                .copyWith(
+                  businessName: publicBranding.businessName,
+                  logoPath: publicBranding.logoPath,
+                  updatedAt: publicBranding.updatedAt,
+                ),
       );
     } catch (_) {
       // If network fails and nothing was cached, leave state as is
@@ -142,15 +145,15 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       state = SettingsLoaded(
         profile: updatedProfile,
         isSaving: false,
-        successMessage: 'Business profile and invoice settings saved successfully.',
+        successMessage:
+            'Business profile and invoice settings saved successfully.',
       );
       return true;
     } catch (e) {
-      final message = e is ApiException ? e.message : 'Failed to save settings.';
-      state = currentState.copyWith(
-        isSaving: false,
-        errorMessage: message,
-      );
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to save settings.';
+      state = currentState.copyWith(isSaving: false, errorMessage: message);
       return false;
     }
   }
@@ -220,10 +223,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   void clearMessages() {
     final currentState = state;
     if (currentState is SettingsLoaded) {
-      state = currentState.copyWith(
-        clearSuccess: true,
-        clearError: true,
-      );
+      state = currentState.copyWith(clearSuccess: true, clearError: true);
     }
   }
 }

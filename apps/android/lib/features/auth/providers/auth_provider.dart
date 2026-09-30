@@ -7,8 +7,9 @@ import '../models/auth_user.dart';
 import '../models/bootstrap_owner_request.dart';
 import 'auth_state.dart';
 
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   final repository = ref.watch(authRepositoryProvider);
   return AuthNotifier(repository);
 });
@@ -25,11 +26,23 @@ final currentUserProvider = Provider<AuthUser?>((ref) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   StreamSubscription<void>? _unauthorizedSubscription;
+  Future<void>? _inFlightRevalidation;
+  DateTime? _lastRevalidationTime;
 
   AuthNotifier(this._repository) : super(const AuthInitial()) {
-    _unauthorizedSubscription =
-        AuthSessionEvents.onUnauthorized.listen((_) {
-      if (state is Authenticated) {
+    _unauthorizedSubscription = AuthSessionEvents.onUnauthorized.listen((
+      _,
+    ) async {
+      try {
+        final isInitialized = await _repository.checkInitialization();
+        if (!isInitialized) {
+          state = const SetupRequired();
+        } else {
+          state = const Unauthenticated(
+            'Session expired. Please log in again.',
+          );
+        }
+      } catch (_) {
         state = const Unauthenticated('Session expired. Please log in again.');
       }
     });
@@ -69,7 +82,104 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (e is ApiException) {
         state = Unauthenticated(e.message);
       } else {
-        state = const Unauthenticated('Unable to connect to server. Please verify your connection.');
+        state = const Unauthenticated(
+          'Unable to connect to server. Please verify your connection.',
+        );
+      }
+    }
+  }
+
+  /// Revalidates authentication and backend initialization state across application lifecycle events
+  /// (e.g. app returning to foreground/resumed state).
+  ///
+  /// Serializes and debounces duplicate in-flight requests to eliminate race conditions.
+  Future<void> revalidateAuthState({
+    bool onResume = false,
+    bool force = false,
+  }) async {
+    if (_inFlightRevalidation != null) {
+      return _inFlightRevalidation!;
+    }
+
+    if (!force &&
+        _lastRevalidationTime != null &&
+        DateTime.now().difference(_lastRevalidationTime!).inMilliseconds <
+            1500) {
+      return;
+    }
+
+    final completer = Completer<void>();
+    _inFlightRevalidation = completer.future;
+
+    try {
+      _lastRevalidationTime = DateTime.now();
+      final currentState = state;
+
+      if (currentState is SetupRequired) {
+        // Case A: Android is showing First-Time Setup.
+        // Another client creates the first Owner.
+        // Android resumes -> detect initialized=true and move to Login (Unauthenticated).
+        try {
+          final isInitialized = await _repository.checkInitialization();
+          if (isInitialized && state is SetupRequired) {
+            state = const Unauthenticated();
+          }
+        } catch (_) {
+          // Transient network failure during setup check -> retain existing SetupRequired
+        }
+      } else if (currentState is Unauthenticated ||
+          currentState is AuthFailure ||
+          currentState is AccountLocked ||
+          currentState is AuthInitial) {
+        // Case B: Android is showing Login.
+        // The last user is deleted from PostgreSQL.
+        // Android resumes -> detect initialized=false and show First-Time Setup.
+        try {
+          final isInitialized = await _repository.checkInitialization();
+          if (!isInitialized) {
+            state = const SetupRequired();
+          } else if (currentState is AuthInitial) {
+            state = const Unauthenticated();
+          }
+        } catch (_) {
+          // Transient network failure -> retain existing unauthenticated state
+        }
+      } else if (currentState is Authenticated) {
+        // Case C: Authenticated user session.
+        // Transient network failure occurs -> do NOT destroy session!
+        try {
+          final isInitialized = await _repository.checkInitialization();
+          if (!isInitialized) {
+            // Zero users exist in DB -> clear local session and transition to First-Time Setup
+            await _repository.logout();
+            state = const SetupRequired();
+            return;
+          }
+
+          // Backend is initialized. If resuming, revalidate active token.
+          if (onResume) {
+            try {
+              final user = await _repository.getCurrentUser();
+              if (state is Authenticated) {
+                state = Authenticated(user);
+              }
+            } on UnauthorizedException {
+              await _repository.logout();
+              state = const Unauthenticated(
+                'Session expired. Please log in again.',
+              );
+            } catch (_) {
+              // Transient network failure: DO NOT destroy session! Retain Authenticated state (Case C / Test 7)
+            }
+          }
+        } catch (_) {
+          // Network failure checking status -> retain Authenticated session
+        }
+      }
+    } finally {
+      _inFlightRevalidation = null;
+      if (!completer.isCompleted) {
+        completer.complete();
       }
     }
   }
@@ -80,18 +190,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// If status check fails -> retains existing SetupRequired state without disrupting the screen.
   Future<void> pollSetupStatus() async {
     if (state is! SetupRequired) return;
-
-    try {
-      final isInitialized = await _repository.checkInitialization();
-      if (isInitialized && state is SetupRequired) {
-        state = const Unauthenticated();
-      }
-    } catch (_) {
-      // Backend offline or periodic check failure:
-      // Do NOT assume initialized = false.
-      // Do NOT change the state away from SetupRequired.
-      // Retain entered form data and retry on next interval.
-    }
+    await revalidateAuthState(force: true);
   }
 
   /// Bootstraps initial Owner account against POST /api/auth/bootstrap
@@ -108,7 +207,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = SetupRequired(e.message);
       return false;
     } catch (e) {
-      state = const SetupRequired('Failed to create Owner account. Please try again.');
+      state = const SetupRequired(
+        'Failed to create Owner account. Please try again.',
+      );
       return false;
     }
   }
@@ -162,7 +263,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void clearError() {
     if (state is AuthFailure || state is AccountLocked) {
       state = const Unauthenticated();
-    } else if (state is SetupRequired && (state as SetupRequired).message != null) {
+    } else if (state is SetupRequired &&
+        (state as SetupRequired).message != null) {
       state = const SetupRequired();
     }
   }

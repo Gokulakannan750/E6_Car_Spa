@@ -19,7 +19,9 @@ class StatusBadge extends StatelessWidget {
     StatusType type;
     if (lower.contains('progress')) {
       type = StatusType.inProgress;
-    } else if (lower.contains('ready') || lower.contains('completed') || lower.contains('delivered')) {
+    } else if (lower.contains('ready') ||
+        lower.contains('completed') ||
+        lower.contains('delivered')) {
       type = StatusType.completed;
     } else if (lower.contains('paid') && !lower.contains('partially')) {
       type = StatusType.paid;
@@ -27,7 +29,9 @@ class StatusBadge extends StatelessWidget {
       type = StatusType.pending;
     } else if (lower.contains('cancel')) {
       type = StatusType.cancelled;
-    } else if (lower.contains('payment pending') || lower.contains('invoice') || lower.contains('generated')) {
+    } else if (lower.contains('payment pending') ||
+        lower.contains('invoice') ||
+        lower.contains('generated')) {
       type = StatusType.generated;
     } else if (lower.contains('quality') || lower.contains('pending')) {
       type = StatusType.pending;
@@ -151,10 +155,11 @@ class StatusBadge extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: (isCompact ? AppTextStyles.labelSmall : AppTextStyles.labelMedium).copyWith(
-              color: _textColor,
-              fontWeight: FontWeight.w600,
-            ),
+            style:
+                (isCompact
+                        ? AppTextStyles.labelSmall
+                        : AppTextStyles.labelMedium)
+                    .copyWith(color: _textColor, fontWeight: FontWeight.w600),
           ),
         ],
       ),

@@ -92,9 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
 
-    await ref
-        .read(authNotifierProvider.notifier)
-        .login(username, password);
+    await ref.read(authNotifierProvider.notifier).login(username, password);
   }
 
   @override
@@ -118,12 +116,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_remainingLockoutSeconds > 0) {
       final mins = _remainingLockoutSeconds ~/ 60;
       final secs = _remainingLockoutSeconds % 60;
-      final timeStr = mins > 0 ? '${mins}m ${secs.toString().padLeft(2, '0')}s' : '${secs}s';
-      errorMessage = 'Account temporarily locked. Please try again later. ($timeStr remaining)';
+      final timeStr = mins > 0
+          ? '${mins}m ${secs.toString().padLeft(2, '0')}s'
+          : '${secs}s';
+      errorMessage =
+          'Account temporarily locked. Please try again later. ($timeStr remaining)';
     } else if (authState is AccountLocked) {
       final mins = authState.remainingSeconds ~/ 60;
       final secs = authState.remainingSeconds % 60;
-      final timeStr = mins > 0 ? '${mins}m ${secs.toString().padLeft(2, '0')}s' : '${secs}s';
+      final timeStr = mins > 0
+          ? '${mins}m ${secs.toString().padLeft(2, '0')}s'
+          : '${secs}s';
       errorMessage = '${authState.message} ($timeStr remaining)';
     } else if (authState is AuthFailure) {
       errorMessage = authState.message;
@@ -152,7 +155,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 16.0,
+              ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Form(
@@ -213,8 +219,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: isSuccess
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.5)
-                                  : AppColors.loginAccent.withValues(alpha: 0.6),
+                                  ? const Color(
+                                      0xFF10B981,
+                                    ).withValues(alpha: 0.5)
+                                  : AppColors.loginAccent.withValues(
+                                      alpha: 0.6,
+                                    ),
                               width: 1,
                             ),
                           ),
@@ -224,17 +234,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 isSuccess
                                     ? Icons.check_circle_outline_rounded
                                     : (isLocked
-                                        ? Icons.lock_clock_outlined
-                                        : Icons.error_outline_rounded),
+                                          ? Icons.lock_clock_outlined
+                                          : Icons.error_outline_rounded),
                                 size: 20,
-                                color: isSuccess ? const Color(0xFF34D399) : const Color(0xFFFCA5A5),
+                                color: isSuccess
+                                    ? const Color(0xFF34D399)
+                                    : const Color(0xFFFCA5A5),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   errorMessage,
                                   style: AppTextStyles.bodySmall.copyWith(
-                                    color: isSuccess ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                                    color: isSuccess
+                                        ? const Color(0xFFD1FAE5)
+                                        : const Color(0xFFFEE2E2),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -293,9 +307,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 borderColor: AppColors.loginInputBorder,
                                 focusedBorderColor: AppColors.loginAccent,
                                 onChanged: (_) {
-                                  if (!isLocked && (_localError != null || authState is AuthFailure)) {
+                                  if (!isLocked &&
+                                      (_localError != null ||
+                                          authState is AuthFailure)) {
                                     setState(() => _localError = null);
-                                    ref.read(authNotifierProvider.notifier).clearError();
+                                    ref
+                                        .read(authNotifierProvider.notifier)
+                                        .clearError();
                                   }
                                 },
                               ),
@@ -330,9 +348,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   },
                                 ),
                                 onChanged: (_) {
-                                  if (!isLocked && (_localError != null || authState is AuthFailure)) {
+                                  if (!isLocked &&
+                                      (_localError != null ||
+                                          authState is AuthFailure)) {
                                     setState(() => _localError = null);
-                                    ref.read(authNotifierProvider.notifier).clearError();
+                                    ref
+                                        .read(authNotifierProvider.notifier)
+                                        .clearError();
                                   }
                                 },
                               ),
@@ -340,11 +362,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                               // Submit Button (Red matching gradient branding)
                               AppButton(
-                                label: isLocked
-                                    ? 'Account Locked'
-                                    : 'Sign In',
+                                label: isLocked ? 'Account Locked' : 'Sign In',
                                 backgroundColor: AppColors.loginAccent,
-                                onPressed: (isLoading || isLocked) ? null : _handleLogin,
+                                onPressed: (isLoading || isLocked)
+                                    ? null
+                                    : _handleLogin,
                                 isLoading: isLoading,
                                 fullWidth: true,
                               ),

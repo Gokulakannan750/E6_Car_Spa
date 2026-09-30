@@ -173,6 +173,69 @@ public class OutsideJobsController : ControllerBase
     }
 
     /// <summary>
+    /// Updates the vendor cost for an outside job.
+    /// </summary>
+    [HttpPut("api/outside-jobs/{id:guid}/cost")]
+    [RequirePermission("jobcards.edit")]
+    public async Task<IActionResult> UpdateCost(Guid id, [FromBody] UpdateOutsideJobCostRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+        var (userId, userName) = GetCurrentUser();
+
+        try
+        {
+            var dto = await _service.UpdateCostAsync(id, request, userId, userName, ct);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Deletes / marks obsolete an outside job movement.
+    /// </summary>
+    [HttpDelete("api/outside-jobs/{id:guid}")]
+    [RequirePermission("jobcards.edit")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        var (userId, userName) = GetCurrentUser();
+
+        try
+        {
+            var deleted = await _service.DeleteAsync(id, userId, userName, ct);
+            if (!deleted) return NotFound();
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Gets current location of the vehicle associated with a job card.
     /// </summary>
     [HttpGet("api/job-cards/{jobCardId:guid}/location")]

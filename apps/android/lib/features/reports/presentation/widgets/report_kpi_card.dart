@@ -36,7 +36,9 @@ class ReportKpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayValue = stringValue ?? (amountValue != null ? _formatCurrency(amountValue!) : '₹0.00');
+    final displayValue =
+        stringValue ??
+        (amountValue != null ? _formatCurrency(amountValue!) : '₹0.00');
 
     return InkWell(
       onTap: onTap,
@@ -97,7 +99,9 @@ class ReportKpiCard extends StatelessWidget {
                         height: 28,
                         decoration: BoxDecoration(
                           color: accentColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusSM,
+                          ),
                         ),
                         child: Icon(icon, size: 16, color: accentColor),
                       ),
@@ -112,7 +116,9 @@ class ReportKpiCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: accentColor == AppColors.primary ? AppColors.textPrimary : accentColor,
+                        color: accentColor == AppColors.primary
+                            ? AppColors.textPrimary
+                            : accentColor,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),

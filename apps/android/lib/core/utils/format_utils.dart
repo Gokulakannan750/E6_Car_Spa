@@ -61,8 +61,8 @@ class FormatUtils {
     final hour12 = date.hour == 0
         ? 12
         : date.hour > 12
-            ? date.hour - 12
-            : date.hour;
+        ? date.hour - 12
+        : date.hour;
     final hoursStr = hour12.toString().padLeft(2, '0');
     final minutes = date.minute.toString().padLeft(2, '0');
     final ampm = date.hour >= 12 ? 'PM' : 'AM';

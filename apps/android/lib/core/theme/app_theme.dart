@@ -82,7 +82,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(radiusSM),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -140,11 +143,11 @@ class AppTheme {
     );
   }
 
- static const SystemUiOverlayStyle systemOverlay = SystemUiOverlayStyle(
- statusBarColor: Colors.transparent,
- statusBarIconBrightness: Brightness.dark,
- systemNavigationBarColor: Colors.white,
- systemNavigationBarDividerColor: Colors.transparent,
- systemNavigationBarIconBrightness: Brightness.dark,
- );
+  static const SystemUiOverlayStyle systemOverlay = SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.white,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  );
 }

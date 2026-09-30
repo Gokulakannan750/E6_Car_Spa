@@ -10,6 +10,8 @@ import {
 	Phone,
 	X,
 	Lock,
+	Edit2,
+	Trash2,
 } from 'lucide-react';
 import {
 	getOutsideJobsByJobCardId,
@@ -19,6 +21,8 @@ import {
 	markOutsideJobReturned,
 	cancelOutsideJob,
 	createVendor,
+	updateOutsideJobCost,
+	deleteOutsideJob,
 	type OutsideJobDto,
 	type CreateOutsideJobRequest,
 	type MarkOutsideJobReturnedRequest,
@@ -84,6 +88,15 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 	const [newVendorAddress, setNewVendorAddress] = useState('');
 	const [newVendorSpecialty, setNewVendorSpecialty] = useState('');
 	const [vendorCreateError, setVendorCreateError] = useState<string | null>(null);
+
+	// Edit Vendor Cost State
+	const [editingCostJob, setEditingCostJob] = useState<OutsideJobDto | null>(null);
+	const [editCostValue, setEditCostValue] = useState('');
+	const [editCostError, setEditCostError] = useState<string | null>(null);
+
+	// Delete Movement State
+	const [deletingJob, setDeletingJob] = useState<OutsideJobDto | null>(null);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
 
 	// Fetch Outside Jobs for this job card
 	const { data: outsideJobs = [], isLoading, refetch } = useQuery({
@@ -181,7 +194,9 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 			setNotes('');
 			refetch();
 			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
 			queryClient.invalidateQueries({ queryKey: ['vehicleLocation'] });
 			onUpdated?.();
 		} catch (err: unknown) {
@@ -210,7 +225,9 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 			setFinalCost('');
 			refetch();
 			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
 			onUpdated?.();
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to mark vehicle returned.';
@@ -236,7 +253,9 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 			setCancelReason('');
 			refetch();
 			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
 			onUpdated?.();
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to cancel outside job.';
@@ -251,6 +270,12 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 		if (!newVendorName.trim()) {
 			setVendorCreateError('Vendor name is required.');
 			return;
+		}
+		if (newVendorPhone !== '') {
+			if (!/^\d{10}$/.test(newVendorPhone)) {
+				setVendorCreateError('Phone number must be exactly 10 digits.');
+				return;
+			}
 		}
 		setIsSubmitting(true);
 		setVendorCreateError(null);
@@ -273,6 +298,64 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to create vendor.';
 			setVendorCreateError(msg);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleOpenEditCost = (job: OutsideJobDto) => {
+		setEditingCostJob(job);
+		setEditCostValue(job.vendorCost !== null && job.vendorCost !== undefined ? String(job.vendorCost) : '');
+		setEditCostError(null);
+	};
+
+	const handleSaveCost = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!editingCostJob) return;
+
+		const num = parseFloat(editCostValue);
+		if (isNaN(num) || num < 0) {
+			setEditCostError('Vendor cost must be a valid non-negative number.');
+			return;
+		}
+
+		setIsSubmitting(true);
+		setEditCostError(null);
+		try {
+			await updateOutsideJobCost(editingCostJob.id, { vendorCost: num });
+			refetch();
+			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			setEditingCostJob(null);
+			onUpdated?.();
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Failed to update vendor cost.';
+			setEditCostError(msg);
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!deletingJob) return;
+		setIsSubmitting(true);
+		setDeleteError(null);
+		try {
+			await deleteOutsideJob(deletingJob.id);
+			refetch();
+			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['invoices'] });
+			setDeletingJob(null);
+			onUpdated?.();
+		} catch (err: unknown) {
+			const msg = err instanceof Error ? err.message : 'Failed to remove movement record.';
+			setDeleteError(msg);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -506,6 +589,7 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 										<th className="px-4 py-2.5">Vendor Cost</th>
 										<th className="px-4 py-2.5 text-center">Status</th>
 										<th className="px-4 py-2.5">Notes</th>
+										<th className="px-4 py-2.5 text-right">Actions</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-outline-variant">
@@ -546,6 +630,38 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 											</td>
 											<td className="px-4 py-3 text-on-surface-variant max-w-xs truncate">
 												{j.returnNotes || j.notes || j.cancellationReason || '-'}
+											</td>
+											<td className="px-4 py-3 text-right">
+												{!isLocked ? (
+													<div className="flex items-center justify-end gap-1">
+														<button
+															type="button"
+															onClick={() => handleOpenEditCost(j)}
+															className="p-1 rounded text-on-surface-variant hover:text-secondary hover:bg-surface-variant transition-colors"
+															title="Edit Vendor Cost"
+															data-testid={`btn-edit-cost-${j.id}`}
+														>
+															<Edit2 className="w-3.5 h-3.5" />
+														</button>
+														<button
+															type="button"
+															onClick={() => {
+																setDeletingJob(j);
+																setDeleteError(null);
+															}}
+															className="p-1 rounded text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+															title="Remove Movement Record"
+															data-testid={`btn-delete-movement-${j.id}`}
+														>
+															<Trash2 className="w-3.5 h-3.5" />
+														</button>
+													</div>
+												) : (
+													<span className="text-[11px] text-on-surface-variant/40 inline-flex items-center gap-1 justify-end">
+														<Lock className="w-3 h-3" />
+														Locked
+													</span>
+												)}
 											</td>
 										</tr>
 									))}
@@ -614,6 +730,7 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 										type="button"
 										onClick={() => setShowNewVendorModal(true)}
 										className="text-xs text-secondary hover:underline flex items-center gap-1 font-semibold"
+										data-testid="btn-toggle-new-vendor"
 									>
 										<Plus className="w-3 h-3" />
 										New Vendor
@@ -999,11 +1116,141 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 									type="submit"
 									disabled={isSubmitting}
 									className="bg-secondary text-white px-4 py-1.5 rounded font-semibold hover:opacity-90 disabled:opacity-50"
+									data-testid="btn-save-new-vendor"
 								>
 									{isSubmitting ? 'Saving…' : 'Save Vendor'}
 								</button>
 							</div>
 						</form>
+					</div>
+				</div>
+			)}
+
+			{/* ── MODAL: EDIT VENDOR COST ────────────────────────────────────────── */}
+			{editingCostJob && (
+				<div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" data-testid="modal-edit-vendor-cost">
+					<div className="bg-surface rounded-2xl max-w-sm w-full border border-outline-variant shadow-2xl overflow-hidden">
+						<div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+							<h3 className="text-base font-bold text-on-surface flex items-center gap-2">
+								<Edit2 className="w-4 h-4 text-secondary" />
+								Edit Vendor Cost
+							</h3>
+							<button
+								onClick={() => setEditingCostJob(null)}
+								className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+							>
+								<X className="w-5 h-5" />
+							</button>
+						</div>
+
+						<form onSubmit={handleSaveCost} className="p-6 space-y-4 text-xs">
+							{editCostError && (
+								<div className="p-2.5 rounded bg-red-50 text-red-700 border border-red-200">
+									{editCostError}
+								</div>
+							)}
+
+							<div>
+								<p className="text-xs text-on-surface-variant mb-1">
+									Service: <span className="font-semibold text-on-surface">{editingCostJob.serviceName}</span>
+								</p>
+								<p className="text-xs text-on-surface-variant">
+									Vendor: <span className="font-semibold text-on-surface">{editingCostJob.vendorName}</span>
+								</p>
+							</div>
+
+							<div>
+								<label className="block font-semibold text-on-surface mb-1">
+									Vendor Cost (₹) <span className="text-red-500">*</span>
+								</label>
+								<div className="relative">
+									<span className="absolute left-3 top-2.5 text-xs font-semibold text-on-surface-variant">₹</span>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
+										required
+										value={editCostValue}
+										onChange={(e) => setEditCostValue(e.target.value)}
+										placeholder="e.g. 500.00"
+										className="w-full border border-outline-variant rounded-lg pl-7 pr-3 py-2 text-sm focus:border-secondary focus:ring-1 focus:ring-secondary"
+										data-testid="input-edit-vendor-cost"
+									/>
+								</div>
+							</div>
+
+							<div className="pt-3 flex justify-end gap-2 border-t border-outline-variant">
+								<button
+									type="button"
+									onClick={() => setEditingCostJob(null)}
+									className="px-4 py-2 border border-outline-variant rounded-lg text-sm text-on-surface hover:bg-surface-variant transition-colors"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									disabled={isSubmitting}
+									className="bg-secondary text-white px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+									data-testid="btn-save-edited-cost"
+								>
+									{isSubmitting ? 'Saving…' : 'Save Cost'}
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			)}
+
+			{/* ── MODAL: CONFIRM DELETE MOVEMENT ─────────────────────────────────── */}
+			{deletingJob && (
+				<div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" data-testid="modal-delete-movement">
+					<div className="bg-surface rounded-2xl max-w-sm w-full border border-outline-variant shadow-2xl overflow-hidden">
+						<div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low">
+							<h3 className="text-base font-bold text-on-surface flex items-center gap-2 text-error">
+								<AlertTriangle className="w-4 h-4 text-error" />
+								Remove Movement Record
+							</h3>
+							<button
+								onClick={() => setDeletingJob(null)}
+								className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+							>
+								<X className="w-5 h-5" />
+							</button>
+						</div>
+
+						<div className="p-6 space-y-4 text-xs">
+							{deleteError && (
+								<div className="p-2.5 rounded bg-red-50 text-red-700 border border-red-200">
+									{deleteError}
+								</div>
+							)}
+
+							<p className="text-sm text-on-surface">
+								Are you sure you want to remove the outside job record for <strong className="font-semibold">{deletingJob.serviceName}</strong> at <strong className="font-semibold">{deletingJob.vendorName}</strong>?
+							</p>
+							<p className="text-xs text-on-surface-variant">
+								This movement will be marked obsolete and excluded from invoice calculations and history.
+							</p>
+
+							<div className="pt-3 flex justify-end gap-2 border-t border-outline-variant">
+								<button
+									type="button"
+									onClick={() => setDeletingJob(null)}
+									className="px-4 py-2 border border-outline-variant rounded-lg text-sm text-on-surface hover:bg-surface-variant transition-colors"
+								>
+									Cancel
+								</button>
+								<button
+									type="button"
+									disabled={isSubmitting}
+									onClick={handleConfirmDelete}
+									className="bg-error text-white px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+									data-testid="btn-confirm-delete-movement"
+								>
+									{isSubmitting ? 'Removing…' : 'Confirm Remove'}
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 			)}

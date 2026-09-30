@@ -40,15 +40,39 @@ class OutstandingInvoiceRowModel {
 
   factory OutstandingInvoiceRowModel.fromJson(Map<String, dynamic> json) {
     return OutstandingInvoiceRowModel(
-      invoiceId: json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
-      invoiceNumber: json['invoiceNumber']?.toString() ?? json['InvoiceNumber']?.toString(),
-      invoiceDate: DateTime.tryParse(json['invoiceDate']?.toString() ?? json['InvoiceDate']?.toString() ?? '') ?? DateTime.now(),
-      customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
-      customerPhone: json['customerPhone']?.toString() ?? json['CustomerPhone']?.toString() ?? '',
-      vehicleRegistration: (json['vehicleRegistration']?.toString() ?? json['VehicleRegistration']?.toString() ?? '').trim().toUpperCase(),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
-      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble(),
-      balanceAmount: ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble(),
+      invoiceId:
+          json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
+      invoiceNumber:
+          json['invoiceNumber']?.toString() ??
+          json['InvoiceNumber']?.toString(),
+      invoiceDate:
+          DateTime.tryParse(
+            json['invoiceDate']?.toString() ??
+                json['InvoiceDate']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
+      customerName:
+          json['customerName']?.toString() ??
+          json['CustomerName']?.toString() ??
+          '',
+      customerPhone:
+          json['customerPhone']?.toString() ??
+          json['CustomerPhone']?.toString() ??
+          '',
+      vehicleRegistration:
+          (json['vehicleRegistration']?.toString() ??
+                  json['VehicleRegistration']?.toString() ??
+                  '')
+              .trim()
+              .toUpperCase(),
+      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
+          .toDouble(),
+      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num)
+          .toDouble(),
+      balanceAmount:
+          ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num)
+              .toDouble(),
       status: _parseInvoiceStatus(json['status'] ?? json['Status']),
       ageInDays: json['ageInDays'] as int? ?? json['AgeInDays'] as int? ?? 0,
     );
@@ -70,10 +94,21 @@ class OutstandingInvoiceSummaryModel {
 
   factory OutstandingInvoiceSummaryModel.fromJson(Map<String, dynamic> json) {
     return OutstandingInvoiceSummaryModel(
-      totalOutstandingAmount: ((json['totalOutstandingAmount'] ?? json['TotalOutstandingAmount'] ?? 0.0) as num).toDouble(),
-      totalInvoiceAmount: ((json['totalInvoiceAmount'] ?? json['TotalInvoiceAmount'] ?? 0.0) as num).toDouble(),
-      totalPaidAmount: ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num).toDouble(),
-      invoiceCount: json['invoiceCount'] as int? ?? json['InvoiceCount'] as int? ?? 0,
+      totalOutstandingAmount:
+          ((json['totalOutstandingAmount'] ??
+                      json['TotalOutstandingAmount'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      totalInvoiceAmount:
+          ((json['totalInvoiceAmount'] ?? json['TotalInvoiceAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      totalPaidAmount:
+          ((json['totalPaidAmount'] ?? json['TotalPaidAmount'] ?? 0.0) as num)
+              .toDouble(),
+      invoiceCount:
+          json['invoiceCount'] as int? ?? json['InvoiceCount'] as int? ?? 0,
     );
   }
 }
@@ -93,14 +128,27 @@ class OutstandingInvoiceReportResponseModel {
     required this.summary,
   });
 
-  factory OutstandingInvoiceReportResponseModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+  factory OutstandingInvoiceReportResponseModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return OutstandingInvoiceReportResponseModel(
-      items: rawItems.map((item) => OutstandingInvoiceRowModel.fromJson(item as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map(
+            (item) => OutstandingInvoiceRowModel.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       totalCount: json['totalCount'] as int? ?? json['TotalCount'] as int? ?? 0,
       page: json['page'] as int? ?? json['Page'] as int? ?? 1,
       pageSize: json['pageSize'] as int? ?? json['PageSize'] as int? ?? 20,
-      summary: OutstandingInvoiceSummaryModel.fromJson((json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>),
+      summary: OutstandingInvoiceSummaryModel.fromJson(
+        (json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>,
+      ),
     );
   }
 }

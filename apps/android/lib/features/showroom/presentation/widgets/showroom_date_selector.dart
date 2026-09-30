@@ -125,11 +125,16 @@ class ShowroomDateSelector extends StatelessWidget {
                   onTap: () => onDateSelected(DateTime.now()),
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.accentPill,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withAlpha(80)),
+                      border: Border.all(
+                        color: AppColors.primary.withAlpha(80),
+                      ),
                     ),
                     child: Text(
                       'Today',

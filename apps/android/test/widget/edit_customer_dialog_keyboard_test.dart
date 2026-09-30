@@ -20,7 +20,10 @@ class _FakeCustomerRepo extends CustomerRepository {
   _FakeCustomerRepo() : super(CustomerApi(Dio()));
 
   @override
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
     updateCallCount++;
     lastUpdateRequest = request;
     return Customer(
@@ -57,7 +60,8 @@ class _FakeCustomerRepo extends CustomerRepository {
   }
 }
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -89,14 +93,17 @@ void main() {
     return ProviderScope(
       overrides: [
         customerRepositoryProvider.overrideWithValue(repo),
-        authNotifierProvider.overrideWith((ref) => _TestAuthNotifier(const Authenticated(managerUser))),
+        authNotifierProvider.overrideWith(
+          (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
+        ),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
           body: Builder(
             builder: (context) => ElevatedButton(
-              onPressed: () => EditCustomerDialog.show(context, customer: testCustomer),
+              onPressed: () =>
+                  EditCustomerDialog.show(context, customer: testCustomer),
               child: const Text('Open Dialog'),
             ),
           ),
@@ -106,86 +113,103 @@ void main() {
   }
 
   group('EditCustomerDialog Keyboard & Submission Tests', () {
-    testWidgets('Pressing Next on Name field shifts focus to Phone and does NOT submit', (tester) async {
+    testWidgets(
+      'Pressing Next on Name field shifts focus to Phone and does NOT submit',
+      (tester) async {
+        final repo = _FakeCustomerRepo();
+        await tester.pumpWidget(createDialogWidget(repo: repo));
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
+
+        // Find fields
+        final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
+        final phoneField = find.widgetWithText(TextFormField, '9876543210');
+
+        expect(nameField, findsOneWidget);
+        expect(phoneField, findsOneWidget);
+
+        // Focus name field and send TextInputAction.next
+        await tester.tap(nameField);
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.next);
+        await tester.pumpAndSettle();
+
+        // Form should NOT have submitted
+        expect(repo.updateCallCount, 0);
+
+        // Verify Name field has TextInputAction.next configured
+        final nameAppTextField = tester.widget<AppTextField>(
+          find.ancestor(of: nameField, matching: find.byType(AppTextField)),
+        );
+        expect(nameAppTextField.textInputAction, TextInputAction.next);
+      },
+    );
+
+    testWidgets(
+      'Pressing Next on Phone field does NOT submit and has TextInputAction.next',
+      (tester) async {
+        final repo = _FakeCustomerRepo();
+        await tester.pumpWidget(createDialogWidget(repo: repo));
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
+
+        final phoneField = find.widgetWithText(TextFormField, '9876543210');
+
+        // Focus phone and trigger Next
+        await tester.tap(phoneField);
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.next);
+        await tester.pumpAndSettle();
+
+        expect(repo.updateCallCount, 0);
+
+        final phoneAppTextField = tester.widget<AppTextField>(
+          find.ancestor(of: phoneField, matching: find.byType(AppTextField)),
+        );
+        expect(phoneAppTextField.textInputAction, TextInputAction.next);
+      },
+    );
+
+    testWidgets(
+      'Pressing Next on Email field does NOT submit and has TextInputAction.next',
+      (tester) async {
+        final repo = _FakeCustomerRepo();
+        await tester.pumpWidget(createDialogWidget(repo: repo));
+        await tester.tap(find.text('Open Dialog'));
+        await tester.pumpAndSettle();
+
+        final emailField = find.widgetWithText(
+          TextFormField,
+          'ramesh@example.com',
+        );
+
+        // Focus email and trigger Next
+        await tester.tap(emailField);
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.next);
+        await tester.pumpAndSettle();
+
+        expect(repo.updateCallCount, 0);
+
+        final emailAppTextField = tester.widget<AppTextField>(
+          find.ancestor(of: emailField, matching: find.byType(AppTextField)),
+        );
+        expect(emailAppTextField.textInputAction, TextInputAction.next);
+      },
+    );
+
+    testWidgets('Pressing Done on Address field submits the form', (
+      tester,
+    ) async {
       final repo = _FakeCustomerRepo();
       await tester.pumpWidget(createDialogWidget(repo: repo));
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
 
-      // Find fields
-      final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
-      final phoneField = find.widgetWithText(TextFormField, '9876543210');
-
-      expect(nameField, findsOneWidget);
-      expect(phoneField, findsOneWidget);
-
-      // Focus name field and send TextInputAction.next
-      await tester.tap(nameField);
-      await tester.pumpAndSettle();
-      await tester.testTextInput.receiveAction(TextInputAction.next);
-      await tester.pumpAndSettle();
-
-      // Form should NOT have submitted
-      expect(repo.updateCallCount, 0);
-
-      // Verify Name field has TextInputAction.next configured
-      final nameAppTextField = tester.widget<AppTextField>(
-        find.ancestor(of: nameField, matching: find.byType(AppTextField)),
+      final addressField = find.widgetWithText(
+        TextFormField,
+        '12 Anna Salai, Chennai',
       );
-      expect(nameAppTextField.textInputAction, TextInputAction.next);
-    });
-
-    testWidgets('Pressing Next on Phone field does NOT submit and has TextInputAction.next', (tester) async {
-      final repo = _FakeCustomerRepo();
-      await tester.pumpWidget(createDialogWidget(repo: repo));
-      await tester.tap(find.text('Open Dialog'));
-      await tester.pumpAndSettle();
-
-      final phoneField = find.widgetWithText(TextFormField, '9876543210');
-
-      // Focus phone and trigger Next
-      await tester.tap(phoneField);
-      await tester.pumpAndSettle();
-      await tester.testTextInput.receiveAction(TextInputAction.next);
-      await tester.pumpAndSettle();
-
-      expect(repo.updateCallCount, 0);
-
-      final phoneAppTextField = tester.widget<AppTextField>(
-        find.ancestor(of: phoneField, matching: find.byType(AppTextField)),
-      );
-      expect(phoneAppTextField.textInputAction, TextInputAction.next);
-    });
-
-    testWidgets('Pressing Next on Email field does NOT submit and has TextInputAction.next', (tester) async {
-      final repo = _FakeCustomerRepo();
-      await tester.pumpWidget(createDialogWidget(repo: repo));
-      await tester.tap(find.text('Open Dialog'));
-      await tester.pumpAndSettle();
-
-      final emailField = find.widgetWithText(TextFormField, 'ramesh@example.com');
-
-      // Focus email and trigger Next
-      await tester.tap(emailField);
-      await tester.pumpAndSettle();
-      await tester.testTextInput.receiveAction(TextInputAction.next);
-      await tester.pumpAndSettle();
-
-      expect(repo.updateCallCount, 0);
-
-      final emailAppTextField = tester.widget<AppTextField>(
-        find.ancestor(of: emailField, matching: find.byType(AppTextField)),
-      );
-      expect(emailAppTextField.textInputAction, TextInputAction.next);
-    });
-
-    testWidgets('Pressing Done on Address field submits the form', (tester) async {
-      final repo = _FakeCustomerRepo();
-      await tester.pumpWidget(createDialogWidget(repo: repo));
-      await tester.tap(find.text('Open Dialog'));
-      await tester.pumpAndSettle();
-
-      final addressField = find.widgetWithText(TextFormField, '12 Anna Salai, Chennai');
 
       await tester.tap(addressField);
       await tester.pumpAndSettle();
@@ -197,7 +221,9 @@ void main() {
       expect(repo.lastUpdateRequest?.phoneNumber, '9876543210');
     });
 
-    testWidgets('Tapping explicit Save Changes button submits the form', (tester) async {
+    testWidgets('Tapping explicit Save Changes button submits the form', (
+      tester,
+    ) async {
       final repo = _FakeCustomerRepo();
       await tester.pumpWidget(createDialogWidget(repo: repo));
       await tester.tap(find.text('Open Dialog'));

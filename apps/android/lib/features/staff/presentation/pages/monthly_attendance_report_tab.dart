@@ -13,8 +13,18 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
   const MonthlyAttendanceReportTab({super.key});
 
   static const _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   void _shiftMonth(WidgetRef ref, int delta) {
@@ -30,7 +40,10 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
       newYear--;
     }
 
-    ref.read(selectedMonthlyYearMonthProvider.notifier).state = (year: newYear, month: newMonth);
+    ref.read(selectedMonthlyYearMonthProvider.notifier).state = (
+      year: newYear,
+      month: newMonth,
+    );
   }
 
   @override
@@ -62,11 +75,19 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.primary),
+                        const Icon(
+                          Icons.calendar_month_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           '$monthName ${yearMonth.year}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -83,23 +104,35 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
                   decoration: const InputDecoration(
                     labelText: 'Filter by Staff Member',
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     border: OutlineInputBorder(),
                   ),
                   items: [
                     const DropdownMenuItem(
                       value: null,
-                      child: Text('All Active Staff Members', style: TextStyle(fontSize: 12)),
+                      child: Text(
+                        'All Active Staff Members',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                     ...staffList.map(
                       (s) => DropdownMenuItem(
                         value: s.id,
-                        child: Text('${s.name} (${s.role ?? 'Staff'})', style: const TextStyle(fontSize: 12)),
+                        child: Text(
+                          '${s.name} (${s.role ?? 'Staff'})',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                   ],
                   onChanged: (val) {
-                    ref.read(selectedMonthlyStaffFilterProvider.notifier).state = val;
+                    ref
+                            .read(selectedMonthlyStaffFilterProvider.notifier)
+                            .state =
+                        val;
                   },
                 ),
               ],
@@ -110,7 +143,9 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
           // Report Content
           Expanded(
             child: reportAsync.when(
-              loading: () => const AppLoadingState(message: 'Compiling monthly attendance report...'),
+              loading: () => const AppLoadingState(
+                message: 'Compiling monthly attendance report...',
+              ),
               error: (err, stack) => AppErrorState(
                 message: 'Failed to load monthly report: $err',
                 onRetry: () => ref.invalidate(monthlyAttendanceReportProvider),
@@ -133,7 +168,8 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
                             child: _buildKpiCard(
                               title: 'Staff Members',
                               value: '${report.staffCount}',
-                              subtitle: '${report.totalCalendarDays} calendar days',
+                              subtitle:
+                                  '${report.totalCalendarDays} calendar days',
                               icon: Icons.people_alt_outlined,
                               color: AppColors.primary,
                             ),
@@ -179,18 +215,23 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
                       // Staff Monthly Breakdown List
                       Text(
                         'Monthly Attendance Breakdown (${report.staffAttendance.length})',
-                        style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.labelLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(height: 10),
 
                       if (report.staffAttendance.isEmpty)
                         const AppEmptyState(
                           title: 'No Monthly Attendance Found',
-                          message: 'No attendance records match the selected month and filter.',
+                          message:
+                              'No attendance records match the selected month and filter.',
                           icon: Icons.calendar_today_rounded,
                         )
                       else
-                        ...report.staffAttendance.map((item) => _MonthlyStaffCard(item: item)),
+                        ...report.staffAttendance.map(
+                          (item) => _MonthlyStaffCard(item: item),
+                        ),
                     ],
                   ),
                 );
@@ -222,14 +263,34 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               Icon(icon, size: 16, color: color),
             ],
           ),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -271,8 +332,13 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
                   radius: 18,
                   backgroundColor: AppColors.accentPill,
                   child: Text(
-                    item.name.isNotEmpty ? item.name.substring(0, 1).toUpperCase() : 'S',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                    item.name.isNotEmpty
+                        ? item.name.substring(0, 1).toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -280,17 +346,31 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.name, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        item.name,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       Text(
                         '${item.role ?? 'Staff'} • ${item.phoneNumber}',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(_expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded),
-                  tooltip: _expanded ? 'Hide Day Matrix' : 'Show Day-by-Day Log',
+                  icon: Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                  ),
+                  tooltip: _expanded
+                      ? 'Hide Day Matrix'
+                      : 'Show Day-by-Day Log',
                   onPressed: () {
                     setState(() {
                       _expanded = !_expanded;
@@ -304,19 +384,46 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
             // Summary counters
             Row(
               children: [
-                _buildMetricBadge('Present', '${item.presentDays}', AppColors.success, AppColors.successLight),
+                _buildMetricBadge(
+                  'Present',
+                  '${item.presentDays}',
+                  AppColors.success,
+                  AppColors.successLight,
+                ),
                 const SizedBox(width: 6),
-                _buildMetricBadge('Half Day', '${item.halfDays}', AppColors.warningDark, AppColors.warningLight),
+                _buildMetricBadge(
+                  'Half Day',
+                  '${item.halfDays}',
+                  AppColors.warningDark,
+                  AppColors.warningLight,
+                ),
                 const SizedBox(width: 6),
-                _buildMetricBadge('Leave', '${item.leaveDays}', AppColors.error, AppColors.errorLight),
+                _buildMetricBadge(
+                  'Leave',
+                  '${item.leaveDays}',
+                  AppColors.error,
+                  AppColors.errorLight,
+                ),
                 const SizedBox(width: 6),
-                _buildMetricBadge('Unmarked', '${item.unmarkedDays}', AppColors.textSecondary, AppColors.surface),
+                _buildMetricBadge(
+                  'Unmarked',
+                  '${item.unmarkedDays}',
+                  AppColors.textSecondary,
+                  AppColors.surface,
+                ),
               ],
             ),
 
             if (_expanded) ...[
               const Divider(height: 20, color: AppColors.border),
-              const Text('Calendar Day Log:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: AppColors.textSecondary)),
+              const Text(
+                'Calendar Day Log:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
@@ -339,7 +446,10 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
                   }
 
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: bg,
                       borderRadius: BorderRadius.circular(6),
@@ -347,7 +457,11 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
                     ),
                     child: Text(
                       '${d.day} (${d.dayOfWeek.substring(0, 1)}): ${d.status}',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: fg,
+                      ),
                     ),
                   );
                 }).toList(),
@@ -370,8 +484,22 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
         ),
         child: Column(
           children: [
-            Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
-            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: color)),
+            Text(
+              count,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: color,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),

@@ -4,10 +4,7 @@ class LoginResponse {
   final String token;
   final AuthUser user;
 
-  const LoginResponse({
-    required this.token,
-    required this.user,
-  });
+  const LoginResponse({required this.token, required this.user});
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
     return LoginResponse(
@@ -17,9 +14,6 @@ class LoginResponse {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'token': token,
-      'user': user.toJson(),
-    };
+    return {'token': token, 'user': user.toJson()};
   }
 }

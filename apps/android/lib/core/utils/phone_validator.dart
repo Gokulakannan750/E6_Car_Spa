@@ -9,9 +9,9 @@ class PhoneValidator {
 
   /// Input formatters that enforce numeric-only input and a maximum length of 10 digits.
   static List<TextInputFormatter> get formatters => [
-        FilteringTextInputFormatter.digitsOnly,
-        LengthLimitingTextInputFormatter(10),
-      ];
+    FilteringTextInputFormatter.digitsOnly,
+    LengthLimitingTextInputFormatter(10),
+  ];
 
   /// Strips any non-digit characters and limits the string to at most 10 digits.
   static String clean(String? val) {
@@ -41,7 +41,9 @@ class PhoneValidator {
 
     final cleanDigits = trimmed.replaceAll(RegExp(r'\D'), '');
 
-    if (cleanDigits.length != 10 || trimmed.length != 10 || !exact10DigitsRegex.hasMatch(trimmed)) {
+    if (cleanDigits.length != 10 ||
+        trimmed.length != 10 ||
+        !exact10DigitsRegex.hasMatch(trimmed)) {
       return '$fieldName must be exactly 10 digits';
     }
 

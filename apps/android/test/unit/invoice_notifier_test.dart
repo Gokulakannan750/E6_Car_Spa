@@ -24,7 +24,12 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
     DateTime? toDate,
   }) async {
     if (mockListResponse != null) return mockListResponse!;
-    return const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const InvoiceListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -51,11 +56,24 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
         invoiceDate: mockInvoice!.invoiceDate,
         subtotal: mockInvoice!.subtotal,
         discount: request.discount ?? mockInvoice!.discount,
-        taxableAmount: (mockInvoice!.subtotal - (request.discount ?? mockInvoice!.discount)),
-        gstAmount: (request.isGstEnabled ?? mockInvoice!.isGstEnabled) ? 180.0 : 0.0,
-        totalAmount: (mockInvoice!.subtotal - (request.discount ?? mockInvoice!.discount)) + ((request.isGstEnabled ?? mockInvoice!.isGstEnabled) ? 180.0 : 0.0),
+        taxableAmount:
+            (mockInvoice!.subtotal -
+            (request.discount ?? mockInvoice!.discount)),
+        gstAmount: (request.isGstEnabled ?? mockInvoice!.isGstEnabled)
+            ? 180.0
+            : 0.0,
+        totalAmount:
+            (mockInvoice!.subtotal -
+                (request.discount ?? mockInvoice!.discount)) +
+            ((request.isGstEnabled ?? mockInvoice!.isGstEnabled) ? 180.0 : 0.0),
         paidAmount: mockInvoice!.paidAmount,
-        balanceAmount: (mockInvoice!.subtotal - (request.discount ?? mockInvoice!.discount)) + ((request.isGstEnabled ?? mockInvoice!.isGstEnabled) ? 180.0 : 0.0) - mockInvoice!.paidAmount,
+        balanceAmount:
+            (mockInvoice!.subtotal -
+                (request.discount ?? mockInvoice!.discount)) +
+            ((request.isGstEnabled ?? mockInvoice!.isGstEnabled)
+                ? 180.0
+                : 0.0) -
+            mockInvoice!.paidAmount,
         status: mockInvoice!.status,
         notes: request.notes ?? mockInvoice!.notes,
         isGstEnabled: request.isGstEnabled ?? mockInvoice!.isGstEnabled,
@@ -102,7 +120,10 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
   }
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     return PaymentDto(
       id: 'pay-1',
       invoiceId: invoiceId,
@@ -117,7 +138,9 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
   List<InvoiceWhatsAppStatus> mockWhatsAppStatuses = [];
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     return mockWhatsAppStatuses;
   }
 }
@@ -130,9 +153,7 @@ void main() {
     setUp(() {
       fakeApi = FakeInvoiceApiForNotifier();
       container = ProviderContainer(
-        overrides: [
-          invoiceApiProvider.overrideWithValue(fakeApi),
-        ],
+        overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
       );
     });
 
@@ -226,122 +247,157 @@ void main() {
       expect(state.isLoading, false);
 
       notifier.setStatusFilter(InvoiceStatus.generated);
-      expect(container.read(invoiceListProvider).selectedStatus, InvoiceStatus.generated);
-    });
-
-    test('InvoiceDetailsNotifier updates draft and generates invoice', () async {
-      fakeApi.mockInvoice = testDraftInvoice;
-
-      final notifier = container.read(invoiceDetailsProvider('inv-draft-1').notifier);
-      await notifier.loadDetails();
-
-      var state = container.read(invoiceDetailsProvider('inv-draft-1'));
-      expect(state.invoice, isNotNull);
-      expect(state.invoice!.isDraft, true);
-
-      final updateSuccess = await notifier.updateDraft(discount: 100.0, notes: 'Discount applied');
-      expect(updateSuccess, true);
-
-      state = container.read(invoiceDetailsProvider('inv-draft-1'));
-      expect(state.invoice!.discount, 100.0);
-
-      final generated = await notifier.generateInvoice();
-      expect(generated, isNotNull);
-      expect(generated!.invoiceNumber, 'INV-2026-000001');
-      expect(generated.status, InvoiceStatus.generated);
-    });
-
-    test('InvoiceDetailsNotifier records payment and updates balance', () async {
-      fakeApi.mockInvoice = testDraftInvoice;
-
-      final notifier = container.read(invoiceDetailsProvider('inv-draft-1').notifier);
-      await notifier.loadDetails();
-
-      final paySuccess = await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'UPI', reference: 'UPI123'),
+      expect(
+        container.read(invoiceListProvider).selectedStatus,
+        InvoiceStatus.generated,
       );
-
-      expect(paySuccess, true);
     });
 
-    test('InvoiceDetailsNotifier refreshes WhatsApp status silently and stops polling on Sent', () async {
-      fakeApi.mockInvoice = testFinalizedInvoice;
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
+    test(
+      'InvoiceDetailsNotifier updates draft and generates invoice',
+      () async {
+        fakeApi.mockInvoice = testDraftInvoice;
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-draft-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      var state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.isLoading, false);
-      expect(state.whatsAppStatuses.length, 1);
-      expect(state.whatsAppStatuses.first.isPending, true);
-      expect(notifier.isPolling, true);
+        var state = container.read(invoiceDetailsProvider('inv-draft-1'));
+        expect(state.invoice, isNotNull);
+        expect(state.invoice!.isDraft, true);
 
-      // Now backend reports Sent
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-      ];
+        final updateSuccess = await notifier.updateDraft(
+          discount: 100.0,
+          notes: 'Discount applied',
+        );
+        expect(updateSuccess, true);
 
-      await notifier.refreshWhatsAppStatus(silent: true);
+        state = container.read(invoiceDetailsProvider('inv-draft-1'));
+        expect(state.invoice!.discount, 100.0);
 
-      state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.whatsAppStatuses.first.isSent, true);
-      expect(notifier.isPolling, false); // Polling stopped!
-    });
+        final generated = await notifier.generateInvoice();
+        expect(generated, isNotNull);
+        expect(generated!.invoiceNumber, 'INV-2026-000001');
+        expect(generated.status, InvoiceStatus.generated);
+      },
+    );
 
-    test('InvoiceDetailsNotifier stops polling when WhatsApp status is Failed', () async {
-      fakeApi.mockInvoice = testFinalizedInvoice;
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Processing',
-        ),
-      ];
+    test(
+      'InvoiceDetailsNotifier records payment and updates balance',
+      () async {
+        fakeApi.mockInvoice = testDraftInvoice;
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-draft-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      expect(notifier.isPolling, true);
+        final paySuccess = await notifier.recordPayment(
+          const RecordPaymentRequest(
+            amount: 500.0,
+            paymentMethod: 'UPI',
+            reference: 'UPI123',
+          ),
+        );
 
-      // Backend reports Failed
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Failed',
-          errorMessage: 'Meta template error',
-        ),
-      ];
+        expect(paySuccess, true);
+      },
+    );
 
-      await notifier.refreshWhatsAppStatus(silent: true);
+    test(
+      'InvoiceDetailsNotifier refreshes WhatsApp status silently and stops polling on Sent',
+      () async {
+        fakeApi.mockInvoice = testFinalizedInvoice;
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
+          ),
+        ];
 
-      final state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.whatsAppStatuses.first.isFailed, true);
-      expect(notifier.isPolling, false); // Polling stopped!
-    });
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-    test('InvoiceDetailsNotifier stopPolling cancels active polling timer', () async {
-      fakeApi.mockInvoice = testFinalizedInvoice;
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
+        var state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.isLoading, false);
+        expect(state.whatsAppStatuses.length, 1);
+        expect(state.whatsAppStatuses.first.isPending, true);
+        expect(notifier.isPolling, true);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        // Now backend reports Sent
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+        ];
 
-      expect(notifier.isPolling, true);
-      notifier.stopPolling();
-      expect(notifier.isPolling, false);
-    });
+        await notifier.refreshWhatsAppStatus(silent: true);
+
+        state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.whatsAppStatuses.first.isSent, true);
+        expect(notifier.isPolling, false); // Polling stopped!
+      },
+    );
+
+    test(
+      'InvoiceDetailsNotifier stops polling when WhatsApp status is Failed',
+      () async {
+        fakeApi.mockInvoice = testFinalizedInvoice;
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Processing',
+          ),
+        ];
+
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
+
+        expect(notifier.isPolling, true);
+
+        // Backend reports Failed
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Failed',
+            errorMessage: 'Meta template error',
+          ),
+        ];
+
+        await notifier.refreshWhatsAppStatus(silent: true);
+
+        final state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.whatsAppStatuses.first.isFailed, true);
+        expect(notifier.isPolling, false); // Polling stopped!
+      },
+    );
+
+    test(
+      'InvoiceDetailsNotifier stopPolling cancels active polling timer',
+      () async {
+        fakeApi.mockInvoice = testFinalizedInvoice;
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
+          ),
+        ];
+
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
+
+        expect(notifier.isPolling, true);
+        notifier.stopPolling();
+        expect(notifier.isPolling, false);
+      },
+    );
   });
 }

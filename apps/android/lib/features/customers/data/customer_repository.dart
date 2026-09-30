@@ -78,7 +78,10 @@ class CustomerRepository {
     }
   }
 
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
     try {
       return await _api.updateCustomer(id, request);
     } on DioException catch (e) {

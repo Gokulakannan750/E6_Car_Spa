@@ -9,7 +9,9 @@ class VehicleApi {
   Future<List<Vehicle>> getVehiclesByCustomer(String customerId) async {
     final response = await _dio.get('/vehicles/by-customer/$customerId');
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => Vehicle.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => Vehicle.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Vehicle> getVehicleById(String id) async {
@@ -49,18 +51,12 @@ class VehicleApi {
   }
 
   Future<Vehicle> createVehicle(CreateVehicleRequest request) async {
-    final response = await _dio.post(
-      '/vehicles',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/vehicles', data: request.toJson());
     return Vehicle.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<Vehicle> updateVehicle(String id, UpdateVehicleRequest request) async {
-    final response = await _dio.put(
-      '/vehicles/$id',
-      data: request.toJson(),
-    );
+    final response = await _dio.put('/vehicles/$id', data: request.toJson());
     return Vehicle.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -68,7 +64,10 @@ class VehicleApi {
     await _dio.delete('/vehicles/$id');
   }
 
-  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+  Future<Vehicle> transferOwnership(
+    String vehicleId,
+    String newCustomerId,
+  ) async {
     final response = await _dio.post(
       '/vehicles/$vehicleId/transfer-ownership',
       data: {'newCustomerId': newCustomerId},

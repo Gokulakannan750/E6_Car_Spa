@@ -83,7 +83,10 @@ class InvoiceRepository {
     }
   }
 
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     try {
       return await _api.recordPayment(invoiceId, request);
     } on DioException catch (e) {
@@ -99,7 +102,9 @@ class InvoiceRepository {
     }
   }
 
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     try {
       return await _api.getInvoiceWhatsAppStatus(invoiceId);
     } on DioException catch (e) {

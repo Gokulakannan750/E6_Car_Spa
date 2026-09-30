@@ -17,7 +17,8 @@ class PoweredByTrovo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveStyle = style ??
+    final effectiveStyle =
+        style ??
         AppTextStyles.labelSmall.copyWith(
           color: AppColors.textTertiary,
           fontWeight: FontWeight.w500,

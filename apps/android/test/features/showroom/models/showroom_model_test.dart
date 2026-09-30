@@ -126,33 +126,33 @@ void main() {
       expect(json['gstin'], '33AAAAA0000A1Z5');
     });
 
-    test('UpdateShowroomRequest explicitly serializes "gstin": null when empty or cleared', () {
-      // 1. Cleared with empty string
-      const reqEmpty = UpdateShowroomRequest(
-        name: 'Tambaram Hub',
-        gstin: '',
-      );
-      final jsonEmpty = reqEmpty.toJson();
-      expect(jsonEmpty.containsKey('gstin'), true);
-      expect(jsonEmpty['gstin'], isNull);
+    test(
+      'UpdateShowroomRequest explicitly serializes "gstin": null when empty or cleared',
+      () {
+        // 1. Cleared with empty string
+        const reqEmpty = UpdateShowroomRequest(name: 'Tambaram Hub', gstin: '');
+        final jsonEmpty = reqEmpty.toJson();
+        expect(jsonEmpty.containsKey('gstin'), true);
+        expect(jsonEmpty['gstin'], isNull);
 
-      // 2. Cleared with whitespace
-      const reqWhitespace = UpdateShowroomRequest(
-        name: 'Tambaram Hub',
-        gstin: '   ',
-      );
-      final jsonWhitespace = reqWhitespace.toJson();
-      expect(jsonWhitespace.containsKey('gstin'), true);
-      expect(jsonWhitespace['gstin'], isNull);
+        // 2. Cleared with whitespace
+        const reqWhitespace = UpdateShowroomRequest(
+          name: 'Tambaram Hub',
+          gstin: '   ',
+        );
+        final jsonWhitespace = reqWhitespace.toJson();
+        expect(jsonWhitespace.containsKey('gstin'), true);
+        expect(jsonWhitespace['gstin'], isNull);
 
-      // 3. Cleared with null
-      const reqNull = UpdateShowroomRequest(
-        name: 'Tambaram Hub',
-        gstin: null,
-      );
-      final jsonNull = reqNull.toJson();
-      expect(jsonNull.containsKey('gstin'), true);
-      expect(jsonNull['gstin'], isNull);
-    });
+        // 3. Cleared with null
+        const reqNull = UpdateShowroomRequest(
+          name: 'Tambaram Hub',
+          gstin: null,
+        );
+        final jsonNull = reqNull.toJson();
+        expect(jsonNull.containsKey('gstin'), true);
+        expect(jsonNull['gstin'], isNull);
+      },
+    );
   });
 }

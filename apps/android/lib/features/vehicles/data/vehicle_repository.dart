@@ -51,7 +51,11 @@ class VehicleRepository {
     String? search,
   }) async {
     try {
-      return await _api.getAllVehicles(page: page, pageSize: pageSize, search: search);
+      return await _api.getAllVehicles(
+        page: page,
+        pageSize: pageSize,
+        search: search,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -81,7 +85,10 @@ class VehicleRepository {
     }
   }
 
-  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+  Future<Vehicle> transferOwnership(
+    String vehicleId,
+    String newCustomerId,
+  ) async {
     try {
       return await _api.transferOwnership(vehicleId, newCustomerId);
     } on DioException catch (e) {

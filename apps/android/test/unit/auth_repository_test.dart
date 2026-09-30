@@ -69,7 +69,8 @@ class FakeAuthTokenStorage extends AuthTokenStorage {
   Future<String?> getToken() async => storedToken;
 
   @override
-  Future<bool> hasToken() async => storedToken != null && storedToken!.isNotEmpty;
+  Future<bool> hasToken() async =>
+      storedToken != null && storedToken!.isNotEmpty;
 
   @override
   Future<void> saveUser(AuthUser user) async {
@@ -108,69 +109,88 @@ void main() {
   });
 
   group('AuthRepository Unit Tests', () {
-    test('checkInitialization returns false when database is uninitialized', () async {
-      fakeApi.mockAuthStatus = const AuthStatusResponse(initialized: false);
+    test(
+      'checkInitialization returns false when database is uninitialized',
+      () async {
+        fakeApi.mockAuthStatus = const AuthStatusResponse(initialized: false);
 
-      final isInitialized = await repository.checkInitialization();
+        final isInitialized = await repository.checkInitialization();
 
-      expect(isInitialized, false);
-    });
+        expect(isInitialized, false);
+      },
+    );
 
-    test('checkInitialization returns true when database is initialized', () async {
-      fakeApi.mockAuthStatus = const AuthStatusResponse(initialized: true);
+    test(
+      'checkInitialization returns true when database is initialized',
+      () async {
+        fakeApi.mockAuthStatus = const AuthStatusResponse(initialized: true);
 
-      final isInitialized = await repository.checkInitialization();
+        final isInitialized = await repository.checkInitialization();
 
-      expect(isInitialized, true);
-    });
+        expect(isInitialized, true);
+      },
+    );
 
-    test('checkInitialization propagates ApiException on network or server failure', () async {
-      fakeApi.errorToThrow = const ApiException(message: 'Backend server unreachable');
+    test(
+      'checkInitialization propagates ApiException on network or server failure',
+      () async {
+        fakeApi.errorToThrow = const ApiException(
+          message: 'Backend server unreachable',
+        );
 
-      expect(
-        () => repository.checkInitialization(),
-        throwsA(isA<ApiException>()),
-      );
-    });
+        expect(
+          () => repository.checkInitialization(),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
 
-    test('bootstrapOwner sends expected request payload and returns created user', () async {
-      const request = BootstrapOwnerRequest(
-        fullName: 'E6 Founder',
-        username: 'founder',
-        password: 'Password@123',
-        confirmPassword: 'Password@123',
-      );
-      fakeApi.mockBootstrapUser = const AuthUser(
-        id: 'owner-created-id',
-        fullName: 'E6 Founder',
-        username: 'founder',
-        role: 'Owner',
-        isOwner: true,
-      );
+    test(
+      'bootstrapOwner sends expected request payload and returns created user',
+      () async {
+        const request = BootstrapOwnerRequest(
+          fullName: 'E6 Founder',
+          username: 'founder',
+          password: 'Password@123',
+          confirmPassword: 'Password@123',
+        );
+        fakeApi.mockBootstrapUser = const AuthUser(
+          id: 'owner-created-id',
+          fullName: 'E6 Founder',
+          username: 'founder',
+          role: 'Owner',
+          isOwner: true,
+        );
 
-      final created = await repository.bootstrapOwner(request);
+        final created = await repository.bootstrapOwner(request);
 
-      expect(created.id, 'owner-created-id');
-      expect(created.isOwner, true);
-      expect(fakeApi.lastBootstrapRequest?.username, 'founder');
-      expect(fakeApi.lastBootstrapRequest?.fullName, 'E6 Founder');
-    });
+        expect(created.id, 'owner-created-id');
+        expect(created.isOwner, true);
+        expect(fakeApi.lastBootstrapRequest?.username, 'founder');
+        expect(fakeApi.lastBootstrapRequest?.fullName, 'E6 Founder');
+      },
+    );
 
-    test('bootstrapOwner propagates ConflictException when already initialized', () async {
-      fakeApi.errorToThrow = const ConflictException(message: 'Application is already initialized with an Owner.');
+    test(
+      'bootstrapOwner propagates ConflictException when already initialized',
+      () async {
+        fakeApi.errorToThrow = const ConflictException(
+          message: 'Application is already initialized with an Owner.',
+        );
 
-      expect(
-        () => repository.bootstrapOwner(
-          const BootstrapOwnerRequest(
-            fullName: 'E6 Founder',
-            username: 'founder',
-            password: 'Password@123',
-            confirmPassword: 'Password@123',
+        expect(
+          () => repository.bootstrapOwner(
+            const BootstrapOwnerRequest(
+              fullName: 'E6 Founder',
+              username: 'founder',
+              password: 'Password@123',
+              confirmPassword: 'Password@123',
+            ),
           ),
-        ),
-        throwsA(isA<ConflictException>()),
-      );
-    });
+          throwsA(isA<ConflictException>()),
+        );
+      },
+    );
 
     test('login saves token and user to storage upon success', () async {
       fakeApi.mockLoginResponse = const LoginResponse(
@@ -185,49 +205,61 @@ void main() {
       expect(fakeStorage.storedUser?.id, 'user-123');
     });
 
-    test('login propagates ApiException without saving session when failed', () async {
-      fakeApi.errorToThrow = const UnauthorizedException(
-        message: 'Invalid username or password.',
-      );
+    test(
+      'login propagates ApiException without saving session when failed',
+      () async {
+        fakeApi.errorToThrow = const UnauthorizedException(
+          message: 'Invalid username or password.',
+        );
 
-      expect(
-        () => repository.login('wronguser', 'wrongpass'),
-        throwsA(isA<UnauthorizedException>()),
-      );
-      expect(fakeStorage.storedToken, isNull);
-    });
+        expect(
+          () => repository.login('wronguser', 'wrongpass'),
+          throwsA(isA<UnauthorizedException>()),
+        );
+        expect(fakeStorage.storedToken, isNull);
+      },
+    );
 
-    test('restoreSession returns validated user when token exists and GET /me succeeds', () async {
-      fakeStorage.storedToken = 'valid_token_xyz';
-      fakeApi.mockCurrentUser = testUser;
+    test(
+      'restoreSession returns validated user when token exists and GET /me succeeds',
+      () async {
+        fakeStorage.storedToken = 'valid_token_xyz';
+        fakeApi.mockCurrentUser = testUser;
 
-      final user = await repository.restoreSession();
+        final user = await repository.restoreSession();
 
-      expect(user, isNotNull);
-      expect(user?.username, 'testuser');
-      expect(fakeStorage.storedUser?.id, 'user-123');
-    });
+        expect(user, isNotNull);
+        expect(user?.username, 'testuser');
+        expect(fakeStorage.storedUser?.id, 'user-123');
+      },
+    );
 
-    test('restoreSession clears session and returns null when token is 401 Unauthorized', () async {
-      fakeStorage.storedToken = 'expired_token';
-      fakeApi.errorToThrow = const UnauthorizedException(
-        message: 'User not found or inactive.',
-      );
+    test(
+      'restoreSession clears session and returns null when token is 401 Unauthorized',
+      () async {
+        fakeStorage.storedToken = 'expired_token';
+        fakeApi.errorToThrow = const UnauthorizedException(
+          message: 'User not found or inactive.',
+        );
 
-      final user = await repository.restoreSession();
+        final user = await repository.restoreSession();
 
-      expect(user, isNull);
-      expect(fakeStorage.storedToken, isNull);
-      expect(fakeStorage.storedUser, isNull);
-    });
+        expect(user, isNull);
+        expect(fakeStorage.storedToken, isNull);
+        expect(fakeStorage.storedUser, isNull);
+      },
+    );
 
-    test('restoreSession returns null without calling API when no token is stored', () async {
-      fakeStorage.storedToken = null;
+    test(
+      'restoreSession returns null without calling API when no token is stored',
+      () async {
+        fakeStorage.storedToken = null;
 
-      final user = await repository.restoreSession();
+        final user = await repository.restoreSession();
 
-      expect(user, isNull);
-    });
+        expect(user, isNull);
+      },
+    );
 
     test('logout clears stored credentials', () async {
       fakeStorage.storedToken = 'active_token';

@@ -25,17 +25,37 @@ class PaymentReportRowModel {
 
   factory PaymentReportRowModel.fromJson(Map<String, dynamic> json) {
     return PaymentReportRowModel(
-      paymentId: json['paymentId']?.toString() ?? json['PaymentId']?.toString() ?? '',
-      invoiceId: json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
-      invoiceNumber: json['invoiceNumber']?.toString() ?? json['InvoiceNumber']?.toString(),
-      customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
-      paymentDate: DateTime.tryParse(json['paymentDate']?.toString() ?? json['PaymentDate']?.toString() ?? '') ?? DateTime.now(),
-      paymentMethod: json['paymentMethod']?.toString() ?? json['PaymentMethod']?.toString() ?? '',
+      paymentId:
+          json['paymentId']?.toString() ?? json['PaymentId']?.toString() ?? '',
+      invoiceId:
+          json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
+      invoiceNumber:
+          json['invoiceNumber']?.toString() ??
+          json['InvoiceNumber']?.toString(),
+      customerName:
+          json['customerName']?.toString() ??
+          json['CustomerName']?.toString() ??
+          '',
+      paymentDate:
+          DateTime.tryParse(
+            json['paymentDate']?.toString() ??
+                json['PaymentDate']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
+      paymentMethod:
+          json['paymentMethod']?.toString() ??
+          json['PaymentMethod']?.toString() ??
+          '',
       reference: json['reference']?.toString() ?? json['Reference']?.toString(),
       amount: ((json['amount'] ?? json['Amount'] ?? 0.0) as num).toDouble(),
       isVoided: json['isVoided'] as bool? ?? json['IsVoided'] as bool? ?? false,
       voidedAt: json['voidedAt'] != null || json['VoidedAt'] != null
-          ? DateTime.tryParse(json['voidedAt']?.toString() ?? json['VoidedAt']?.toString() ?? '')
+          ? DateTime.tryParse(
+              json['voidedAt']?.toString() ??
+                  json['VoidedAt']?.toString() ??
+                  '',
+            )
           : null,
     );
   }
@@ -64,14 +84,30 @@ class PaymentReportSummaryModel {
 
   factory PaymentReportSummaryModel.fromJson(Map<String, dynamic> json) {
     return PaymentReportSummaryModel(
-      totalCollected: ((json['totalCollected'] ?? json['TotalCollected'] ?? 0.0) as num).toDouble(),
-      transactionCount: json['transactionCount'] as int? ?? json['TransactionCount'] as int? ?? 0,
-      cashAmount: ((json['cashAmount'] ?? json['CashAmount'] ?? 0.0) as num).toDouble(),
-      upiAmount: ((json['upiAmount'] ?? json['UpiAmount'] ?? 0.0) as num).toDouble(),
-      cardAmount: ((json['cardAmount'] ?? json['CardAmount'] ?? 0.0) as num).toDouble(),
-      bankTransferAmount: ((json['bankTransferAmount'] ?? json['BankTransferAmount'] ?? 0.0) as num).toDouble(),
-      voidedTransactionCount: json['voidedTransactionCount'] as int? ?? json['VoidedTransactionCount'] as int? ?? 0,
-      voidedAmount: ((json['voidedAmount'] ?? json['VoidedAmount'] ?? 0.0) as num).toDouble(),
+      totalCollected:
+          ((json['totalCollected'] ?? json['TotalCollected'] ?? 0.0) as num)
+              .toDouble(),
+      transactionCount:
+          json['transactionCount'] as int? ??
+          json['TransactionCount'] as int? ??
+          0,
+      cashAmount: ((json['cashAmount'] ?? json['CashAmount'] ?? 0.0) as num)
+          .toDouble(),
+      upiAmount: ((json['upiAmount'] ?? json['UpiAmount'] ?? 0.0) as num)
+          .toDouble(),
+      cardAmount: ((json['cardAmount'] ?? json['CardAmount'] ?? 0.0) as num)
+          .toDouble(),
+      bankTransferAmount:
+          ((json['bankTransferAmount'] ?? json['BankTransferAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      voidedTransactionCount:
+          json['voidedTransactionCount'] as int? ??
+          json['VoidedTransactionCount'] as int? ??
+          0,
+      voidedAmount:
+          ((json['voidedAmount'] ?? json['VoidedAmount'] ?? 0.0) as num)
+              .toDouble(),
     );
   }
 }
@@ -92,13 +128,23 @@ class PaymentReportResponseModel {
   });
 
   factory PaymentReportResponseModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return PaymentReportResponseModel(
-      items: rawItems.map((item) => PaymentReportRowModel.fromJson(item as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map(
+            (item) =>
+                PaymentReportRowModel.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
       totalCount: json['totalCount'] as int? ?? json['TotalCount'] as int? ?? 0,
       page: json['page'] as int? ?? json['Page'] as int? ?? 1,
       pageSize: json['pageSize'] as int? ?? json['PageSize'] as int? ?? 20,
-      summary: PaymentReportSummaryModel.fromJson((json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>),
+      summary: PaymentReportSummaryModel.fromJson(
+        (json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>,
+      ),
     );
   }
 }

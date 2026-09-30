@@ -5,34 +5,45 @@ import 'package:e6_car_spa/features/auth/models/login_response.dart';
 
 void main() {
   group('Auth Models Unit Tests', () {
-    test('AuthUser correctly parses from backend JSON and serializes to JSON', () {
-      final json = {
-        'id': '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-        'fullName': 'John Manager',
-        'username': 'john_manager',
-        'email': 'john@e6carspa.com',
-        'role': 'Manager',
-        'isOwner': false,
-        'permissions': ['JobCards.Create', 'JobCards.View', 'Invoices.Create'],
-      };
+    test(
+      'AuthUser correctly parses from backend JSON and serializes to JSON',
+      () {
+        final json = {
+          'id': '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+          'fullName': 'John Manager',
+          'username': 'john_manager',
+          'email': 'john@e6carspa.com',
+          'role': 'Manager',
+          'isOwner': false,
+          'permissions': [
+            'JobCards.Create',
+            'JobCards.View',
+            'Invoices.Create',
+          ],
+        };
 
-      final user = AuthUser.fromJson(json);
+        final user = AuthUser.fromJson(json);
 
-      expect(user.id, '3fa85f64-5717-4562-b3fc-2c963f66afa6');
-      expect(user.fullName, 'John Manager');
-      expect(user.username, 'john_manager');
-      expect(user.email, 'john@e6carspa.com');
-      expect(user.role, 'Manager');
-      expect(user.isOwner, false);
-      expect(user.permissions, ['JobCards.Create', 'JobCards.View', 'Invoices.Create']);
-      expect(user.hasPermission('JobCards.Create'), true);
-      expect(user.hasPermission('Reports.View'), false);
+        expect(user.id, '3fa85f64-5717-4562-b3fc-2c963f66afa6');
+        expect(user.fullName, 'John Manager');
+        expect(user.username, 'john_manager');
+        expect(user.email, 'john@e6carspa.com');
+        expect(user.role, 'Manager');
+        expect(user.isOwner, false);
+        expect(user.permissions, [
+          'JobCards.Create',
+          'JobCards.View',
+          'Invoices.Create',
+        ]);
+        expect(user.hasPermission('JobCards.Create'), true);
+        expect(user.hasPermission('Reports.View'), false);
 
-      final serialized = user.toJson();
-      expect(serialized['id'], user.id);
-      expect(serialized['username'], user.username);
-      expect(serialized['permissions'], user.permissions);
-    });
+        final serialized = user.toJson();
+        expect(serialized['id'], user.id);
+        expect(serialized['username'], user.username);
+        expect(serialized['permissions'], user.permissions);
+      },
+    );
 
     test('AuthUser owner role grants all permissions', () {
       const owner = AuthUser(

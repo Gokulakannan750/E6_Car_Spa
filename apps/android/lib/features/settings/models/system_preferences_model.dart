@@ -17,7 +17,8 @@ class SystemPreferencesModel {
     this.refreshInterval = 30,
   });
 
-  static const SystemPreferencesModel defaultPreferences = SystemPreferencesModel();
+  static const SystemPreferencesModel defaultPreferences =
+      SystemPreferencesModel();
 
   SystemPreferencesModel copyWith({
     String? dateFormat,

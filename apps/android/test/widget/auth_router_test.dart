@@ -49,76 +49,76 @@ void main() {
   );
 
   group('AuthRouter Redirection Tests', () {
-    testWidgets('unauthenticated user stays on /login and cannot see protected dashboard', (tester) async {
-      final notifier = TestAuthNotifier(StubAuthRepo(), const Unauthenticated());
+    testWidgets(
+      'unauthenticated user stays on /login and cannot see protected dashboard',
+      (tester) async {
+        final notifier = TestAuthNotifier(
+          StubAuthRepo(),
+          const Unauthenticated(),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authNotifierProvider.overrideWith((ref) => notifier)],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
-      expect(find.byType(AppShell), findsNothing);
-    });
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
+        expect(find.byType(AppShell), findsNothing);
+      },
+    );
 
-    testWidgets('authenticated user is redirected to /dashboard away from /login', (tester) async {
-      final notifier = TestAuthNotifier(
-        StubAuthRepo(),
-        const Authenticated(testUser),
-      );
+    testWidgets(
+      'authenticated user is redirected to /dashboard away from /login',
+      (tester) async {
+        final notifier = TestAuthNotifier(
+          StubAuthRepo(),
+          const Authenticated(testUser),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authNotifierProvider.overrideWith((ref) => notifier)],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      // Use bounded pump instead of pumpAndSettle because DashboardScreen
-      // triggers async provider loading that never completes in test environment
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+        // Use bounded pump instead of pumpAndSettle because DashboardScreen
+        // triggers async provider loading that never completes in test environment
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(find.byType(LoginScreen), findsNothing);
-    });
+        expect(find.byType(AppShell), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
+      },
+    );
 
     testWidgets('SetupRequired state redirects user to /setup', (tester) async {
-      final notifier = TestAuthNotifier(
-        StubAuthRepo(),
-        const SetupRequired(),
-      );
+      final notifier = TestAuthNotifier(StubAuthRepo(), const SetupRequired());
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
+          overrides: [authNotifierProvider.overrideWith((ref) => notifier)],
           child: Consumer(
             builder: (context, ref, _) {
               final router = ref.watch(routerProvider);
@@ -133,79 +133,90 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('First-Time Setup — Create Owner Account'), findsOneWidget);
+      expect(
+        find.text('First-Time Setup — Create Owner Account'),
+        findsOneWidget,
+      );
       expect(find.text('Create Owner Account'), findsWidgets);
       expect(find.byType(LoginScreen), findsNothing);
       expect(find.byType(AppShell), findsNothing);
     });
 
-    testWidgets('Unauthenticated user navigating to /setup is redirected to /login', (tester) async {
-      final notifier = TestAuthNotifier(
-        StubAuthRepo(),
-        const Unauthenticated(),
-      );
+    testWidgets(
+      'Unauthenticated user navigating to /setup is redirected to /login',
+      (tester) async {
+        final notifier = TestAuthNotifier(
+          StubAuthRepo(),
+          const Unauthenticated(),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authNotifierProvider.overrideWith((ref) => notifier)],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Verify currently on login
-      expect(find.byType(LoginScreen), findsOneWidget);
+        // Verify currently on login
+        expect(find.byType(LoginScreen), findsOneWidget);
 
-      // Attempt to navigate to /setup
-      final BuildContext context = tester.element(find.byType(LoginScreen));
-      context.go(AppRoutes.firstTimeSetup);
+        // Attempt to navigate to /setup
+        final BuildContext context = tester.element(find.byType(LoginScreen));
+        context.go(AppRoutes.firstTimeSetup);
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Must be redirected back to /login
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.text('First-Time Setup — Create Owner Account'), findsNothing);
-    });
+        // Must be redirected back to /login
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(
+          find.text('First-Time Setup — Create Owner Account'),
+          findsNothing,
+        );
+      },
+    );
 
-    testWidgets('Authenticated user navigating to /setup is redirected to /dashboard', (tester) async {
-      final notifier = TestAuthNotifier(
-        StubAuthRepo(),
-        const Authenticated(testUser),
-      );
+    testWidgets(
+      'Authenticated user navigating to /setup is redirected to /dashboard',
+      (tester) async {
+        final notifier = TestAuthNotifier(
+          StubAuthRepo(),
+          const Authenticated(testUser),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authNotifierProvider.overrideWith((ref) => notifier)],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(find.text('First-Time Setup — Create Owner Account'), findsNothing);
-    });
+        expect(find.byType(AppShell), findsOneWidget);
+        expect(
+          find.text('First-Time Setup — Create Owner Account'),
+          findsNothing,
+        );
+      },
+    );
   });
 }

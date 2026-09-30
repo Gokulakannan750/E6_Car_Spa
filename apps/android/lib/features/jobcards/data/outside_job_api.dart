@@ -10,11 +10,16 @@ class OutsideJobApi {
   Future<List<OutsideJob>> getByJobCardId(String jobCardId) async {
     final response = await _dio.get('/job-cards/$jobCardId/outside-jobs');
     final list = response.data as List<dynamic>? ?? [];
-    return list.map((e) => OutsideJob.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => OutsideJob.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   /// Creates and sends a vehicle outside for a specific job card.
-  Future<OutsideJob> createOutsideJob(String jobCardId, CreateOutsideJobRequest request) async {
+  Future<OutsideJob> createOutsideJob(
+    String jobCardId,
+    CreateOutsideJobRequest request,
+  ) async {
     final response = await _dio.post(
       '/job-cards/$jobCardId/outside-jobs',
       data: request.toJson(),
@@ -23,7 +28,10 @@ class OutsideJobApi {
   }
 
   /// Marks an active outside job as returned.
-  Future<OutsideJob> markReturned(String outsideJobId, MarkOutsideJobReturnedRequest request) async {
+  Future<OutsideJob> markReturned(
+    String outsideJobId,
+    MarkOutsideJobReturnedRequest request,
+  ) async {
     final response = await _dio.post(
       '/outside-jobs/$outsideJobId/return',
       data: request.toJson(),
@@ -32,12 +40,32 @@ class OutsideJobApi {
   }
 
   /// Cancels an outside job.
-  Future<OutsideJob> cancel(String outsideJobId, CancelOutsideJobRequest request) async {
+  Future<OutsideJob> cancel(
+    String outsideJobId,
+    CancelOutsideJobRequest request,
+  ) async {
     final response = await _dio.post(
       '/outside-jobs/$outsideJobId/cancel',
       data: request.toJson(),
     );
     return OutsideJob.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Updates vendor cost for an outside job.
+  Future<OutsideJob> updateCost(
+    String outsideJobId,
+    UpdateOutsideJobCostRequest request,
+  ) async {
+    final response = await _dio.put(
+      '/outside-jobs/$outsideJobId/cost',
+      data: request.toJson(),
+    );
+    return OutsideJob.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Deletes / marks obsolete an outside job movement.
+  Future<void> deleteOutsideJob(String outsideJobId) async {
+    await _dio.delete('/outside-jobs/$outsideJobId');
   }
 
   /// Gets all vendors (optionally only active).
@@ -51,10 +79,7 @@ class OutsideJobApi {
 
   /// Creates a new vendor.
   Future<Vendor> createVendor(CreateVendorRequest request) async {
-    final response = await _dio.post(
-      '/vendors',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/vendors', data: request.toJson());
     return Vendor.fromJson(response.data as Map<String, dynamic>);
   }
 

@@ -14,7 +14,8 @@ class FirstTimeSetupScreen extends ConsumerStatefulWidget {
   const FirstTimeSetupScreen({super.key});
 
   @override
-  ConsumerState<FirstTimeSetupScreen> createState() => _FirstTimeSetupScreenState();
+  ConsumerState<FirstTimeSetupScreen> createState() =>
+      _FirstTimeSetupScreenState();
 }
 
 class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
@@ -91,7 +92,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
     }
 
     if (password.length < 8) {
-      setState(() => _localError = 'Password must be at least 8 characters long.');
+      setState(
+        () => _localError = 'Password must be at least 8 characters long.',
+      );
       return;
     }
 
@@ -101,14 +104,18 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
     }
 
     if (password.trim().toLowerCase() == username.toLowerCase()) {
-      setState(() => _localError = 'Password cannot be the same as the username.');
+      setState(
+        () => _localError = 'Password cannot be the same as the username.',
+      );
       return;
     }
 
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
 
-    await ref.read(authNotifierProvider.notifier).bootstrapOwner(
+    await ref
+        .read(authNotifierProvider.notifier)
+        .bootstrapOwner(
           BootstrapOwnerRequest(
             fullName: fullName,
             username: username,
@@ -137,7 +144,10 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Form(
@@ -261,7 +271,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                                 Text(
                                   'This account will have Owner privileges with unrestricted access to all current and future modules.',
                                   style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.infoDark.withValues(alpha: 0.85),
+                                    color: AppColors.infoDark.withValues(
+                                      alpha: 0.85,
+                                    ),
                                     height: 1.35,
                                   ),
                                 ),
@@ -291,10 +303,14 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               controller: _fullNameController,
                               label: 'Full Name',
                               hintText: 'e.g. Gokulakannan',
-                              prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                              prefixIcon: const Icon(
+                                Icons.person_outline_rounded,
+                                size: 20,
+                              ),
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null) setState(() => _localError = null);
+                                if (_localError != null)
+                                  setState(() => _localError = null);
                               },
                             ),
                             const SizedBox(height: 16),
@@ -304,10 +320,14 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               controller: _usernameController,
                               label: 'Username',
                               hintText: 'e.g. gokul',
-                              prefixIcon: const Icon(Icons.account_circle_outlined, size: 20),
+                              prefixIcon: const Icon(
+                                Icons.account_circle_outlined,
+                                size: 20,
+                              ),
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null) setState(() => _localError = null);
+                                if (_localError != null)
+                                  setState(() => _localError = null);
                               },
                             ),
                             const SizedBox(height: 16),
@@ -317,11 +337,15 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               controller: _passwordController,
                               label: 'Password',
                               hintText: 'Minimum 8 characters',
-                              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                                size: 20,
+                              ),
                               isPassword: _obscurePassword,
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null) setState(() => _localError = null);
+                                if (_localError != null)
+                                  setState(() => _localError = null);
                               },
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -345,11 +369,15 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               controller: _confirmPasswordController,
                               label: 'Confirm Password',
                               hintText: 'Re-enter password',
-                              prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline_rounded,
+                                size: 20,
+                              ),
                               isPassword: _obscureConfirmPassword,
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null) setState(() => _localError = null);
+                                if (_localError != null)
+                                  setState(() => _localError = null);
                               },
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -361,7 +389,8 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
                                   });
                                 },
                               ),
@@ -370,7 +399,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
 
                             // Submit Button
                             AppButton(
-                              label: isLoading ? 'Creating Owner Account...' : 'Create Owner Account',
+                              label: isLoading
+                                  ? 'Creating Owner Account...'
+                                  : 'Create Owner Account',
                               isLoading: isLoading,
                               onPressed: isLoading ? null : _handleSubmit,
                             ),

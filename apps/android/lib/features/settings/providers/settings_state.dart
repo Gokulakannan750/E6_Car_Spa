@@ -40,7 +40,9 @@ class SettingsLoaded extends SettingsState {
       profile: profile ?? this.profile,
       isSaving: isSaving ?? this.isSaving,
       isUploadingLogo: isUploadingLogo ?? this.isUploadingLogo,
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }

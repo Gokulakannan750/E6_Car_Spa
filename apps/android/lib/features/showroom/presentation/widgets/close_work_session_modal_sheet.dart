@@ -39,8 +39,9 @@ class _CloseWorkSessionModalSheetState
     final now = DateTime.now();
     final currentHour = now.hour.toString().padLeft(2, '0');
     final currentMinute = now.minute.toString().padLeft(2, '0');
-    _clockOutTimeController =
-        TextEditingController(text: '$currentHour:$currentMinute');
+    _clockOutTimeController = TextEditingController(
+      text: '$currentHour:$currentMinute',
+    );
     _notesController = TextEditingController();
   }
 
@@ -137,12 +138,17 @@ class _CloseWorkSessionModalSheetState
                       decoration: BoxDecoration(
                         color: AppColors.error.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.error.withAlpha(80)),
+                        border: Border.all(
+                          color: AppColors.error.withAlpha(80),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.error, size: 18),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.error,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -264,7 +270,8 @@ class _CloseWorkSessionModalSheetState
                     key: const Key('close_session_notes_field'),
                     label: 'Clock-out Notes (Optional)',
                     controller: _notesController,
-                    hint: 'e.g. Left early with permission, completed extra shift',
+                    hint:
+                        'e.g. Left early with permission, completed extra shift',
                     maxLines: 2,
                   ),
                 ],

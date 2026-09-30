@@ -14,7 +14,9 @@ class StaffApi {
   Future<List<Staff>> getStaff() async {
     final response = await _dio.get('/staff-advances/staff');
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => Staff.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => Staff.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Staff> getStaffById(String staffId) async {
@@ -48,7 +50,11 @@ class StaffApi {
     return (data['aadhaarNumber'] ?? data['AadhaarNumber'] ?? '') as String;
   }
 
-  Future<Staff> uploadAadhaarDocument(String staffId, List<int> fileBytes, String fileName) async {
+  Future<Staff> uploadAadhaarDocument(
+    String staffId,
+    List<int> fileBytes,
+    String fileName,
+  ) async {
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
     });
@@ -60,15 +66,22 @@ class StaffApi {
   }
 
   Future<Staff> deleteAadhaarDocument(String staffId) async {
-    final response = await _dio.delete('/staff-advances/staff/$staffId/aadhaar-document');
+    final response = await _dio.delete(
+      '/staff-advances/staff/$staffId/aadhaar-document',
+    );
     return Staff.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ── Staff Attendance ───────────────────────────────────────────────────────
 
   Future<DailyAttendanceResponse> getDailyAttendance(String date) async {
-    final response = await _dio.get('/staff-attendance', queryParameters: {'date': date});
-    return DailyAttendanceResponse.fromJson(response.data as Map<String, dynamic>);
+    final response = await _dio.get(
+      '/staff-attendance',
+      queryParameters: {'date': date},
+    );
+    return DailyAttendanceResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<DailyStaffAttendanceItem> upsertAttendance({
@@ -84,14 +97,18 @@ class StaffApi {
       'staffId': staffId,
       'attendanceDate': attendanceDate,
       'status': status,
-      if (checkInTime != null && checkInTime.isNotEmpty) 'checkInTime': checkInTime,
-      if (checkOutTime != null && checkOutTime.isNotEmpty) 'checkOutTime': checkOutTime,
+      if (checkInTime != null && checkInTime.isNotEmpty)
+        'checkInTime': checkInTime,
+      if (checkOutTime != null && checkOutTime.isNotEmpty)
+        'checkOutTime': checkOutTime,
       'workingHours': ?workingHours,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
     };
 
     final response = await _dio.post('/staff-attendance', data: payload);
-    return DailyStaffAttendanceItem.fromJson(response.data as Map<String, dynamic>);
+    return DailyStaffAttendanceItem.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<Map<String, dynamic>> confirmDailyAttendance({
@@ -121,8 +138,13 @@ class StaffApi {
       if (staffId != null && staffId.isNotEmpty) 'staffId': staffId,
     };
 
-    final response = await _dio.get('/staff-attendance/monthly-report', queryParameters: queryParams);
-    return MonthlyAttendanceReportResponse.fromJson(response.data as Map<String, dynamic>);
+    final response = await _dio.get(
+      '/staff-attendance/monthly-report',
+      queryParameters: queryParams,
+    );
+    return MonthlyAttendanceReportResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   // ── Staff Salary ───────────────────────────────────────────────────────────
@@ -142,8 +164,13 @@ class StaffApi {
       if (search != null && search.isNotEmpty) 'search': search,
     };
 
-    final response = await _dio.get('/staff-salary', queryParameters: queryParams);
-    return StaffSalaryRosterResponse.fromJson(response.data as Map<String, dynamic>);
+    final response = await _dio.get(
+      '/staff-salary',
+      queryParameters: queryParams,
+    );
+    return StaffSalaryRosterResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<StaffSalaryPreviewResponse> getSalaryPreview({
@@ -159,8 +186,13 @@ class StaffApi {
       'enteredSalary': enteredSalary,
     };
 
-    final response = await _dio.get('/staff-salary/preview', queryParameters: queryParams);
-    return StaffSalaryPreviewResponse.fromJson(response.data as Map<String, dynamic>);
+    final response = await _dio.get(
+      '/staff-salary/preview',
+      queryParameters: queryParams,
+    );
+    return StaffSalaryPreviewResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<StaffSalaryItem> saveEnteredSalary({
@@ -198,12 +230,18 @@ class StaffApi {
     };
 
     final response = await _dio.post('/staff-salary/settle', data: payload);
-    return StaffSalarySettlement.fromJson(response.data as Map<String, dynamic>);
+    return StaffSalarySettlement.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
-  Future<List<StaffSalarySettlement>> getSettlementHistory(String staffId) async {
+  Future<List<StaffSalarySettlement>> getSettlementHistory(
+    String staffId,
+  ) async {
     final response = await _dio.get('/staff-salary/settlements/$staffId');
     final rawList = response.data as List<dynamic>? ?? [];
-    return rawList.map((e) => StaffSalarySettlement.fromJson(e as Map<String, dynamic>)).toList();
+    return rawList
+        .map((e) => StaffSalarySettlement.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

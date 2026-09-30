@@ -30,17 +30,18 @@ import '../widgets/showroom_swap_history_modal_sheet.dart';
 class ShowroomDetailScreen extends ConsumerStatefulWidget {
   final Showroom showroom;
 
-  const ShowroomDetailScreen({
-    super.key,
-    required this.showroom,
-  });
+  const ShowroomDetailScreen({super.key, required this.showroom});
 
   @override
-  ConsumerState<ShowroomDetailScreen> createState() => _ShowroomDetailScreenState();
+  ConsumerState<ShowroomDetailScreen> createState() =>
+      _ShowroomDetailScreenState();
 }
 
 class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutoRefreshMixin<ShowroomDetailScreen> {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        AutoRefreshMixin<ShowroomDetailScreen> {
   late Showroom _currentShowroom;
   late final TabController _tabController;
 
@@ -51,25 +52,23 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
     if (_tabController.index == 0) {
       ref.read(dailyStaffProvider(id).notifier).loadDailyStaff(silent: true);
     } else if (_tabController.index == 1) {
-      ref.read(showroomOperationsProvider(id).notifier).loadOperationsData(silent: true);
+      ref
+          .read(showroomOperationsProvider(id).notifier)
+          .loadOperationsData(silent: true);
     } else if (_tabController.index == 2) {
-      ref.read(showroomBillingProvider(id).notifier).loadDailyBill(silent: true);
+      ref
+          .read(showroomBillingProvider(id).notifier)
+          .loadDailyBill(silent: true);
     }
   }
 
   static const List<Tab> _tabs = [
-    Tab(
-      icon: Icon(Icons.fact_check_outlined, size: 18),
-      text: 'Attendance',
-    ),
+    Tab(icon: Icon(Icons.fact_check_outlined, size: 18), text: 'Attendance'),
     Tab(
       icon: Icon(Icons.directions_car_outlined, size: 18),
       text: 'Operations',
     ),
-    Tab(
-      icon: Icon(Icons.receipt_long_outlined, size: 18),
-      text: 'Billing',
-    ),
+    Tab(icon: Icon(Icons.receipt_long_outlined, size: 18), text: 'Billing'),
   ];
 
   @override
@@ -96,7 +95,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
   }
 
   void _openAssignStaffSheet(DailyStaffState dailyState) {
-    final assignedStaffIds = dailyState.staffAssignments.map((a) => a.staffId).toSet();
+    final assignedStaffIds = dailyState.staffAssignments
+        .map((a) => a.staffId)
+        .toSet();
 
     showModalBottomSheet<bool>(
       context: context,
@@ -107,31 +108,34 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         showroomName: _currentShowroom.name,
         selectedDate: dailyState.selectedDate,
         alreadyAssignedStaffIds: assignedStaffIds,
-        onAssign: ({
-          required staffId,
-          required startTime,
-          required endTime,
-          required assignmentType,
-          transferReason,
-          notes,
-        }) async {
-          await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).assignWorkSession(
-                staffId: staffId,
-                startTime: startTime,
-                endTime: endTime,
-                assignmentType: assignmentType,
-                transferReason: transferReason,
-                notes: notes,
-              );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Staff work session assigned successfully!'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-        },
+        onAssign:
+            ({
+              required staffId,
+              required startTime,
+              required endTime,
+              required assignmentType,
+              transferReason,
+              notes,
+            }) async {
+              await ref
+                  .read(dailyStaffProvider(_currentShowroom.id).notifier)
+                  .assignWorkSession(
+                    staffId: staffId,
+                    startTime: startTime,
+                    endTime: endTime,
+                    assignmentType: assignmentType,
+                    transferReason: transferReason,
+                    notes: notes,
+                  );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Staff work session assigned successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
       ),
     );
   }
@@ -144,30 +148,33 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
       builder: (sheetContext) => EditStaffSessionModalSheet(
         assignment: assignment,
         showroomName: _currentShowroom.name,
-        onUpdate: ({
-          required startTime,
-          required endTime,
-          status,
-          transferReason,
-          notes,
-        }) async {
-          await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).updateWorkSession(
-                assignmentId: assignment.id,
-                startTime: startTime,
-                endTime: endTime,
-                status: status,
-                transferReason: transferReason,
-                notes: notes,
-              );
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Work session updated successfully!'),
-                backgroundColor: AppColors.success,
-              ),
-            );
-          }
-        },
+        onUpdate:
+            ({
+              required startTime,
+              required endTime,
+              status,
+              transferReason,
+              notes,
+            }) async {
+              await ref
+                  .read(dailyStaffProvider(_currentShowroom.id).notifier)
+                  .updateWorkSession(
+                    assignmentId: assignment.id,
+                    startTime: startTime,
+                    endTime: endTime,
+                    status: status,
+                    transferReason: transferReason,
+                    notes: notes,
+                  );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Work session updated successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
       ),
     );
   }
@@ -180,7 +187,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
       builder: (sheetContext) => LogVehicleWorkModalSheet(
         showroomId: _currentShowroom.id,
         showroomName: _currentShowroom.name,
-        selectedDate: ref.read(dailyStaffProvider(_currentShowroom.id)).selectedDate,
+        selectedDate: ref
+            .read(dailyStaffProvider(_currentShowroom.id))
+            .selectedDate,
       ),
     ).then((result) {
       if (result == true && mounted) {
@@ -202,7 +211,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
       builder: (sheetContext) => ShowroomFormSheet(
         showroom: _currentShowroom,
         onUpdate: (id, request) async {
-          final updated = await ref.read(showroomsProvider.notifier).updateShowroom(id, request);
+          final updated = await ref
+              .read(showroomsProvider.notifier)
+              .updateShowroom(id, request);
           if (updated != null && mounted) {
             setState(() {
               _currentShowroom = updated;
@@ -221,7 +232,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
 
   Future<void> _handleRemoveAssignment(DailyStaffAssignment assignment) async {
     try {
-      await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).removeAssignment(assignment.id);
+      await ref
+          .read(dailyStaffProvider(_currentShowroom.id).notifier)
+          .removeAssignment(assignment.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -261,7 +274,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           FilledButton(
             key: const Key('confirm_dialog_confirm_button'),
@@ -275,7 +291,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).confirmAttendance();
+        await ref
+            .read(dailyStaffProvider(_currentShowroom.id).notifier)
+            .confirmAttendance();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -286,12 +304,11 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         }
       } catch (e) {
         if (mounted) {
-          final msg = e is ApiException ? e.message : 'Failed to confirm attendance: $e';
+          final msg = e is ApiException
+              ? e.message
+              : 'Failed to confirm attendance: $e';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(msg), backgroundColor: AppColors.error),
           );
         }
       }
@@ -317,7 +334,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           FilledButton(
             key: const Key('unlock_dialog_confirm_button'),
@@ -331,7 +351,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
 
     if (confirmed == true && mounted) {
       try {
-        await ref.read(dailyStaffProvider(_currentShowroom.id).notifier).unlockAttendance();
+        await ref
+            .read(dailyStaffProvider(_currentShowroom.id).notifier)
+            .unlockAttendance();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -342,19 +364,21 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         }
       } catch (e) {
         if (mounted) {
-          final msg = e is ApiException ? e.message : 'Failed to unlock attendance: $e';
+          final msg = e is ApiException
+              ? e.message
+              : 'Failed to unlock attendance: $e';
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              backgroundColor: AppColors.error,
-            ),
+            SnackBar(content: Text(msg), backgroundColor: AppColors.error),
           );
         }
       }
     }
   }
 
-  void _openSwapStaffSheet(DailyStaffState dailyState, [DailyStaffAssignment? assignment]) {
+  void _openSwapStaffSheet(
+    DailyStaffState dailyState, [
+    DailyStaffAssignment? assignment,
+  ]) {
     showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -401,7 +425,9 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
 
     final allShowrooms = ref.watch(showroomsProvider).showrooms;
-    final updated = allShowrooms.where((s) => s.id == widget.showroom.id).firstOrNull;
+    final updated = allShowrooms
+        .where((s) => s.id == widget.showroom.id)
+        .firstOrNull;
     if (updated != null) {
       _currentShowroom = updated;
     }
@@ -425,10 +451,7 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         icon: const Icon(Icons.person_add_alt_1_outlined, color: Colors.white),
         label: const Text(
           'Assign Staff',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       );
     } else if (_tabController.index == 1 && canLogWork) {
@@ -436,13 +459,13 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         key: const Key('log_vehicle_work_fab'),
         onPressed: _openLogVehicleWorkSheet,
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.directions_car_filled_outlined, color: Colors.white),
+        icon: const Icon(
+          Icons.directions_car_filled_outlined,
+          color: Colors.white,
+        ),
         label: const Text(
           'Log Vehicle Work',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       );
     }
@@ -464,11 +487,22 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
         actions: [
           IconButton(
             onPressed: () {
-              ref.read(dailyStaffProvider(_currentShowroom.id).notifier).loadDailyStaff();
-              ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).loadOperationsData();
-              ref.read(showroomBillingProvider(_currentShowroom.id).notifier).refresh();
+              ref
+                  .read(dailyStaffProvider(_currentShowroom.id).notifier)
+                  .loadDailyStaff();
+              ref
+                  .read(
+                    showroomOperationsProvider(_currentShowroom.id).notifier,
+                  )
+                  .loadOperationsData();
+              ref
+                  .read(showroomBillingProvider(_currentShowroom.id).notifier)
+                  .refresh();
             },
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+            ),
             tooltip: 'Refresh',
           ),
           const AppLogoutAction(),
@@ -577,7 +611,8 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                   runSpacing: 4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (_currentShowroom.phone != null && _currentShowroom.phone!.isNotEmpty)
+                    if (_currentShowroom.phone != null &&
+                        _currentShowroom.phone!.isNotEmpty)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -602,7 +637,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                         _currentShowroom.phone!.isNotEmpty &&
                         _currentShowroom.gstin != null &&
                         _currentShowroom.gstin!.trim().isNotEmpty)
-                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+                      const Text(
+                        '•',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     if (_currentShowroom.gstin != null &&
                         _currentShowroom.gstin!.trim().isNotEmpty)
                       Row(
@@ -627,7 +665,10 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                       ),
                     if (_currentShowroom.gstin != null &&
                         _currentShowroom.gstin!.trim().isNotEmpty)
-                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+                      const Text(
+                        '•',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -656,9 +697,17 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
           ShowroomDateSelector(
             selectedDate: dailyState.selectedDate,
             onDateSelected: (newDate) {
-              ref.read(dailyStaffProvider(_currentShowroom.id).notifier).setDate(newDate);
-              ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).setDate(newDate);
-              ref.read(showroomBillingProvider(_currentShowroom.id).notifier).setDate(newDate);
+              ref
+                  .read(dailyStaffProvider(_currentShowroom.id).notifier)
+                  .setDate(newDate);
+              ref
+                  .read(
+                    showroomOperationsProvider(_currentShowroom.id).notifier,
+                  )
+                  .setDate(newDate);
+              ref
+                  .read(showroomBillingProvider(_currentShowroom.id).notifier)
+                  .setDate(newDate);
             },
           ),
 
@@ -671,8 +720,12 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
               indicatorWeight: 2.5,
               labelColor: AppColors.primary,
               unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w700),
-              unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w500),
+              labelStyle: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
               tabs: _tabs,
             ),
           ),
@@ -688,12 +741,19 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                   canAssignStaff: canAssignStaff,
                   canConfirmAttendance: canConfirmAttendance,
                   isOwner: isOwner,
-                  onOpenAssignStaffSheet: () => _openAssignStaffSheet(dailyState),
+                  onOpenAssignStaffSheet: () =>
+                      _openAssignStaffSheet(dailyState),
                   onOpenEditStaffSessionSheet: _openEditStaffSessionSheet,
                   onRemoveAssignment: _handleRemoveAssignment,
-                  onOpenSwapStaffSheet: (assignment) => _openSwapStaffSheet(dailyState, assignment),
-                  onOpenSwapDetailsSheet: (swapId) => _openSwapDetailsSheet(swapId, !isLocked && (isOwner || canAssignStaff)),
-                  onOpenSwapHistorySheet: () => _openSwapHistorySheet(!isLocked && (isOwner || canAssignStaff)),
+                  onOpenSwapStaffSheet: (assignment) =>
+                      _openSwapStaffSheet(dailyState, assignment),
+                  onOpenSwapDetailsSheet: (swapId) => _openSwapDetailsSheet(
+                    swapId,
+                    !isLocked && (isOwner || canAssignStaff),
+                  ),
+                  onOpenSwapHistorySheet: () => _openSwapHistorySheet(
+                    !isLocked && (isOwner || canAssignStaff),
+                  ),
                   onConfirmSubmitAttendance: _confirmSubmitAttendance,
                   onConfirmUnlockAttendance: _confirmUnlockAttendance,
                 ),
@@ -712,9 +772,21 @@ class _ShowroomDetailScreenState extends ConsumerState<ShowroomDetailScreen>
                   showroom: _currentShowroom,
                   selectedDate: dailyState.selectedDate,
                   onSelectDate: (newDate) {
-                    ref.read(dailyStaffProvider(_currentShowroom.id).notifier).setDate(newDate);
-                    ref.read(showroomOperationsProvider(_currentShowroom.id).notifier).setDate(newDate);
-                    ref.read(showroomBillingProvider(_currentShowroom.id).notifier).setDate(newDate);
+                    ref
+                        .read(dailyStaffProvider(_currentShowroom.id).notifier)
+                        .setDate(newDate);
+                    ref
+                        .read(
+                          showroomOperationsProvider(
+                            _currentShowroom.id,
+                          ).notifier,
+                        )
+                        .setDate(newDate);
+                    ref
+                        .read(
+                          showroomBillingProvider(_currentShowroom.id).notifier,
+                        )
+                        .setDate(newDate);
                   },
                 ),
               ],

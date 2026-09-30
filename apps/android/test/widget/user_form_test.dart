@@ -73,15 +73,10 @@ void main() {
     required TestUsersNotifier notifier,
   }) {
     return ProviderScope(
-      overrides: [
-        usersNotifierProvider.overrideWith((ref) => notifier),
-      ],
+      overrides: [usersNotifierProvider.overrideWith((ref) => notifier)],
       child: MaterialApp(
         home: Scaffold(
-          body: UserFormSheet(
-            user: user,
-            permissionGroups: samplePermissions,
-          ),
+          body: UserFormSheet(user: user, permissionGroups: samplePermissions),
         ),
       ),
     );
@@ -96,10 +91,9 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final notifier = TestUsersNotifier(const UsersLoaded(
-        users: [],
-        permissionGroups: [],
-      ));
+      final notifier = TestUsersNotifier(
+        const UsersLoaded(users: [], permissionGroups: []),
+      );
 
       await tester.pumpWidget(createTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
@@ -122,10 +116,9 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final notifier = TestUsersNotifier(const UsersLoaded(
-        users: [],
-        permissionGroups: [],
-      ));
+      final notifier = TestUsersNotifier(
+        const UsersLoaded(users: [], permissionGroups: []),
+      );
 
       await tester.pumpWidget(createTestWidget(notifier: notifier));
       await tester.pumpAndSettle();
@@ -140,46 +133,48 @@ void main() {
       expect(find.text('Password is required'), findsOneWidget);
     });
 
-    testWidgets('Renders Edit User form with immutable username and optional password',
-        (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'Renders Edit User form with immutable username and optional password',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      final userToEdit = UserModel(
-        id: 'user-1',
-        fullName: 'Ramesh Kumar',
-        username: 'ramesh',
-        email: 'ramesh@e6carspa.com',
-        role: 'Manager',
-        isActive: true,
-        createdAt: DateTime.now(),
-        permissions: const ['customers.view'],
-      );
+        final userToEdit = UserModel(
+          id: 'user-1',
+          fullName: 'Ramesh Kumar',
+          username: 'ramesh',
+          email: 'ramesh@e6carspa.com',
+          role: 'Manager',
+          isActive: true,
+          createdAt: DateTime.now(),
+          permissions: const ['customers.view'],
+        );
 
-      final notifier = TestUsersNotifier(const UsersLoaded(
-        users: [],
-        permissionGroups: [],
-      ));
+        final notifier = TestUsersNotifier(
+          const UsersLoaded(users: [], permissionGroups: []),
+        );
 
-      await tester.pumpWidget(createTestWidget(
-        user: userToEdit,
-        notifier: notifier,
-      ));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(user: userToEdit, notifier: notifier),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Edit User: Ramesh Kumar'), findsOneWidget);
-      expect(find.text('Username (Immutable)'), findsOneWidget);
-      expect(find.text('Ramesh Kumar'), findsOneWidget);
-      expect(find.text('ramesh'), findsOneWidget);
-      expect(find.text('New Password'), findsOneWidget);
-      expect(find.text('Save Changes'), findsOneWidget);
-    });
+        expect(find.text('Edit User: Ramesh Kumar'), findsOneWidget);
+        expect(find.text('Username (Immutable)'), findsOneWidget);
+        expect(find.text('Ramesh Kumar'), findsOneWidget);
+        expect(find.text('ramesh'), findsOneWidget);
+        expect(find.text('New Password'), findsOneWidget);
+        expect(find.text('Save Changes'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Renders Owner Access banner when editing Owner', (tester) async {
+    testWidgets('Renders Owner Access banner when editing Owner', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -196,15 +191,13 @@ void main() {
         createdAt: DateTime.now(),
       );
 
-      final notifier = TestUsersNotifier(const UsersLoaded(
-        users: [],
-        permissionGroups: [],
-      ));
+      final notifier = TestUsersNotifier(
+        const UsersLoaded(users: [], permissionGroups: []),
+      );
 
-      await tester.pumpWidget(createTestWidget(
-        user: ownerUser,
-        notifier: notifier,
-      ));
+      await tester.pumpWidget(
+        createTestWidget(user: ownerUser, notifier: notifier),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Edit Owner Account'), findsOneWidget);

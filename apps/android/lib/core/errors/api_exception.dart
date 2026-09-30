@@ -39,11 +39,17 @@ class ApiException implements Exception {
     if (error.response?.data != null) {
       final data = error.response!.data;
       if (data is Map) {
-        if (data.containsKey('error') && data['error'] != null && data['error'].toString().trim().isNotEmpty) {
+        if (data.containsKey('error') &&
+            data['error'] != null &&
+            data['error'].toString().trim().isNotEmpty) {
           rawMessage = data['error'].toString().trim();
-        } else if (data.containsKey('detail') && data['detail'] != null && data['detail'].toString().trim().isNotEmpty) {
+        } else if (data.containsKey('detail') &&
+            data['detail'] != null &&
+            data['detail'].toString().trim().isNotEmpty) {
           rawMessage = data['detail'].toString().trim();
-        } else if (data.containsKey('message') && data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+        } else if (data.containsKey('message') &&
+            data['message'] != null &&
+            data['message'].toString().trim().isNotEmpty) {
           rawMessage = data['message'].toString().trim();
         } else if (data.containsKey('errors') && data['errors'] is Map) {
           final errorsMap = data['errors'] as Map;
@@ -56,10 +62,14 @@ class ApiException implements Exception {
               break;
             }
           }
-          if (rawMessage == null && data.containsKey('title') && data['title'] != null) {
+          if (rawMessage == null &&
+              data.containsKey('title') &&
+              data['title'] != null) {
             rawMessage = data['title'].toString().trim();
           }
-        } else if (data.containsKey('title') && data['title'] != null && data['title'].toString().trim().isNotEmpty) {
+        } else if (data.containsKey('title') &&
+            data['title'] != null &&
+            data['title'].toString().trim().isNotEmpty) {
           rawMessage = data['title'].toString().trim();
         }
       } else if (data is String && data.trim().isNotEmpty) {
@@ -68,18 +78,26 @@ class ApiException implements Exception {
     }
 
     final normEndpoint = endpoint.toLowerCase();
-    final isLogin = normEndpoint.contains('/auth/login') || normEndpoint.endsWith('auth/login');
+    final isLogin =
+        normEndpoint.contains('/auth/login') ||
+        normEndpoint.endsWith('auth/login');
 
     if (statusCode == 401) {
       final msg = isLogin
           ? 'Invalid username or password.'
           : 'Session expired. Please log in again.';
-      return UnauthorizedException(message: msg, endpoint: endpoint, details: error.response?.data);
+      return UnauthorizedException(
+        message: msg,
+        endpoint: endpoint,
+        details: error.response?.data,
+      );
     }
 
     if (statusCode == 403) {
       String msg;
-      if (rawMessage != null && !isTechnical(rawMessage) && !rawMessage.toLowerCase().startsWith('http')) {
+      if (rawMessage != null &&
+          !isTechnical(rawMessage) &&
+          !rawMessage.toLowerCase().startsWith('http')) {
         msg = rawMessage;
       } else if (action != null && action.isNotEmpty) {
         msg = "You don't have permission to $action.";
@@ -98,21 +116,33 @@ class ApiException implements Exception {
       final msg = (rawMessage != null && !isTechnical(rawMessage))
           ? rawMessage
           : 'This record has a conflict or has already been modified.';
-      return ConflictException(message: msg, endpoint: endpoint, details: error.response?.data);
+      return ConflictException(
+        message: msg,
+        endpoint: endpoint,
+        details: error.response?.data,
+      );
     }
 
     if (statusCode == 400) {
       final msg = (rawMessage != null && !isTechnical(rawMessage))
           ? rawMessage
           : 'Invalid request. Please check the entered data.';
-      return ValidationException(message: msg, endpoint: endpoint, details: error.response?.data);
+      return ValidationException(
+        message: msg,
+        endpoint: endpoint,
+        details: error.response?.data,
+      );
     }
 
     if (statusCode == 404) {
       final msg = (rawMessage != null && !isTechnical(rawMessage))
           ? rawMessage
           : 'The requested record could not be found.';
-      return NotFoundException(message: msg, endpoint: endpoint, details: error.response?.data);
+      return NotFoundException(
+        message: msg,
+        endpoint: endpoint,
+        details: error.response?.data,
+      );
     }
 
     if (statusCode == 423) {
@@ -146,13 +176,15 @@ class ApiException implements Exception {
       case DioExceptionType.connectionTimeout:
         return NetworkException(
           endpoint: endpoint,
-          message: 'Connection timeout. Unable to connect to the server. Please try again.',
+          message:
+              'Connection timeout. Unable to connect to the server. Please try again.',
           details: error.response?.data,
         );
       case DioExceptionType.sendTimeout:
         return NetworkException(
           endpoint: endpoint,
-          message: 'Request send timeout. Unable to connect to the server. Please try again.',
+          message:
+              'Request send timeout. Unable to connect to the server. Please try again.',
           details: error.response?.data,
         );
       case DioExceptionType.receiveTimeout:
@@ -196,7 +228,9 @@ class ApiException implements Exception {
     }
 
     return ApiException(
-      message: (rawMessage != null && !isTechnical(rawMessage)) ? rawMessage : 'An unexpected error occurred.',
+      message: (rawMessage != null && !isTechnical(rawMessage))
+          ? rawMessage
+          : 'An unexpected error occurred.',
       statusCode: statusCode,
       endpoint: endpoint,
       details: error.response?.data,
@@ -286,7 +320,8 @@ class ServerException extends ApiException {
 class NetworkException extends ApiException {
   const NetworkException({
     super.endpoint,
-    super.message = 'No internet connection. Unable to connect to the server. Please try again.',
+    super.message =
+        'No internet connection. Unable to connect to the server. Please try again.',
     super.details,
   });
 }

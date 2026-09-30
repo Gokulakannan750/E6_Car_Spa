@@ -148,11 +148,13 @@ void main() {
 
       expect(
         () => repository.getServices(),
-        throwsA(isA<ValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Invalid service query parameters.'),
-        )),
+        throwsA(
+          isA<ValidationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Invalid service query parameters.'),
+          ),
+        ),
       );
     });
 
@@ -213,7 +215,9 @@ void main() {
         response: Response(
           requestOptions: RequestOptions(path: '/services'),
           statusCode: 409,
-          data: {'error': "Service with name 'Full Body Foam Wash' already exists."},
+          data: {
+            'error': "Service with name 'Full Body Foam Wash' already exists.",
+          },
         ),
         type: DioExceptionType.badResponse,
       );
@@ -222,11 +226,13 @@ void main() {
         () => repository.createService(
           const CreateServiceRequest(name: 'Full Body Foam Wash', price: 650.0),
         ),
-        throwsA(isA<ConflictException>().having(
-          (e) => e.message,
-          'message',
-          contains("Service with name 'Full Body Foam Wash' already exists."),
-        )),
+        throwsA(
+          isA<ConflictException>().having(
+            (e) => e.message,
+            'message',
+            contains("Service with name 'Full Body Foam Wash' already exists."),
+          ),
+        ),
       );
     });
 
@@ -257,11 +263,13 @@ void main() {
 
       expect(
         () => repository.getServices(),
-        throwsA(isA<NetworkException>().having(
-          (e) => e.message,
-          'message',
-          contains('Connection timeout'),
-        )),
+        throwsA(
+          isA<NetworkException>().having(
+            (e) => e.message,
+            'message',
+            contains('Connection timeout'),
+          ),
+        ),
       );
     });
   });

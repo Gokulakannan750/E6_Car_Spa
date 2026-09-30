@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
+import 'features/auth/providers/auth_provider.dart';
 import 'features/settings/providers/system_preferences_provider.dart';
 
 void main() {
@@ -15,15 +16,32 @@ class E6CarSpaApp extends ConsumerStatefulWidget {
   ConsumerState<E6CarSpaApp> createState() => _E6CarSpaAppState();
 }
 
-class _E6CarSpaAppState extends ConsumerState<E6CarSpaApp> {
+class _E6CarSpaAppState extends ConsumerState<E6CarSpaApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     Future.microtask(() {
       if (mounted) {
         ref.read(systemPreferencesNotifierProvider.notifier).loadPreferences();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref
+          .read(authNotifierProvider.notifier)
+          .revalidateAuthState(onResume: true);
+    }
   }
 
   @override

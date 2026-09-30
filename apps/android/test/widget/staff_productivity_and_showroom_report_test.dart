@@ -298,31 +298,36 @@ void main() {
   );
 
   group('Staff Productivity & Showroom Reports Widget Tests', () {
-    testWidgets('StaffProductivityScreen renders KPI cards, staff cards and swap badges', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            staffProductivityProvider.overrideWith((ref) => Future.value(testStaffProductivityData)),
-          ],
-          child: const MaterialApp(
-            home: StaffProductivityScreen(),
+    testWidgets(
+      'StaffProductivityScreen renders KPI cards, staff cards and swap badges',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              staffProductivityProvider.overrideWith(
+                (ref) => Future.value(testStaffProductivityData),
+              ),
+            ],
+            child: const MaterialApp(home: StaffProductivityScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('PRODUCTIVITY SUMMARY'), findsOneWidget);
-      expect(find.text('5 Cars'), findsOneWidget);
-      expect(find.text('7 Services Performed'), findsOneWidget);
-      expect(find.text('6.5h'), findsOneWidget);
-      expect(find.text('Staff B (Replacement)'), findsOneWidget);
-      expect(find.text('Staff C (Regular)'), findsOneWidget);
-      expect(find.text('Swap Work'), findsOneWidget);
-    });
+        expect(find.text('PRODUCTIVITY SUMMARY'), findsOneWidget);
+        expect(find.text('5 Cars'), findsOneWidget);
+        expect(find.text('7 Services Performed'), findsOneWidget);
+        expect(find.text('6.5h'), findsOneWidget);
+        expect(find.text('Staff B (Replacement)'), findsOneWidget);
+        expect(find.text('Staff C (Regular)'), findsOneWidget);
+        expect(find.text('Swap Work'), findsOneWidget);
+      },
+    );
 
-    testWidgets('ShowroomReportScreen renders all 5 tabs and swap data', (tester) async {
+    testWidgets('ShowroomReportScreen renders all 5 tabs and swap data', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1200, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -333,11 +338,11 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            monthlyShowroomReportProvider.overrideWith((ref) => Future.value(testMonthlyShowroomData)),
+            monthlyShowroomReportProvider.overrideWith(
+              (ref) => Future.value(testMonthlyShowroomData),
+            ),
           ],
-          child: const MaterialApp(
-            home: ShowroomReportScreen(),
-          ),
+          child: const MaterialApp(home: ShowroomReportScreen()),
         ),
       );
 

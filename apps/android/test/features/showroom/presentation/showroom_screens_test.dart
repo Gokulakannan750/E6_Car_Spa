@@ -9,7 +9,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('Showroom UI Widgets Tests', () {
-    testWidgets('ShowroomCard displays name, address, phone, and metrics', (tester) async {
+    testWidgets('ShowroomCard displays name, address, phone, and metrics', (
+      tester,
+    ) async {
       final showroom = Showroom(
         id: 'sr-001',
         name: 'Anna Nagar Prime Hub',
@@ -27,10 +29,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ShowroomCard(
-              showroom: showroom,
-              onTap: () => tapped = true,
-            ),
+            body: ShowroomCard(showroom: showroom, onTap: () => tapped = true),
           ),
         ),
       );
@@ -49,71 +48,74 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('ShowroomCard displays Staff Today: 6 for Maruti Nexa with 6 assigned staff', (tester) async {
-      final marutiNexa = Showroom(
-        id: 'ma-10001',
-        name: 'Maruti Nexa',
-        address: 'MG Road, Bangalore',
-        phone: '9840112233',
-        isActive: true,
-        activeStaffCountToday: 6,
-        totalVehiclesToday: 15,
-        createdAt: DateTime(2026, 9, 27),
-      );
+    testWidgets(
+      'ShowroomCard displays Staff Today: 6 for Maruti Nexa with 6 assigned staff',
+      (tester) async {
+        final marutiNexa = Showroom(
+          id: 'ma-10001',
+          name: 'Maruti Nexa',
+          address: 'MG Road, Bangalore',
+          phone: '9840112233',
+          isActive: true,
+          activeStaffCountToday: 6,
+          totalVehiclesToday: 15,
+          createdAt: DateTime(2026, 9, 27),
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ShowroomCard(
-              showroom: marutiNexa,
-              onTap: () {},
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ShowroomCard(showroom: marutiNexa, onTap: () {}),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Maruti Nexa'), findsOneWidget);
-      expect(find.text('Staff Today: '), findsOneWidget);
-      expect(find.text('6'), findsOneWidget);
-      expect(find.text('15'), findsOneWidget);
-    });
+        expect(find.text('Maruti Nexa'), findsOneWidget);
+        expect(find.text('Staff Today: '), findsOneWidget);
+        expect(find.text('6'), findsOneWidget);
+        expect(find.text('15'), findsOneWidget);
+      },
+    );
 
-    testWidgets('DailyStaffAssignmentCard displays staff details and work session timings', (tester) async {
-      final assignment = DailyStaffAssignment(
-        id: 'assign-1',
-        showroomId: 'sr-001',
-        showroomName: 'Anna Nagar Prime Hub',
-        staffId: 'staff-001',
-        staffName: 'Ramesh Detailer',
-        staffPhone: '9876543210',
-        staffRole: 'Detailer',
-        date: DateTime(2026, 8, 26),
-        startTime: '09:00',
-        endTime: '14:00',
-        workingHours: 5.0,
-        assignmentType: 'Regular',
-        createdAt: DateTime(2026, 8, 26),
-      );
+    testWidgets(
+      'DailyStaffAssignmentCard displays staff details and work session timings',
+      (tester) async {
+        final assignment = DailyStaffAssignment(
+          id: 'assign-1',
+          showroomId: 'sr-001',
+          showroomName: 'Anna Nagar Prime Hub',
+          staffId: 'staff-001',
+          staffName: 'Ramesh Detailer',
+          staffPhone: '9876543210',
+          staffRole: 'Detailer',
+          date: DateTime(2026, 8, 26),
+          startTime: '09:00',
+          endTime: '14:00',
+          workingHours: 5.0,
+          assignmentType: 'Regular',
+          createdAt: DateTime(2026, 8, 26),
+        );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: DailyStaffAssignmentCard(
-              assignment: assignment,
-              onRemove: () {},
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: DailyStaffAssignmentCard(
+                assignment: assignment,
+                onRemove: () {},
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Ramesh Detailer'), findsOneWidget);
-      expect(find.text('Detailer'), findsOneWidget);
-      expect(find.text('9876543210'), findsOneWidget);
-      expect(find.text('09:00 – 14:00'), findsOneWidget);
-      expect(find.text('5h'), findsOneWidget);
-      expect(find.text('Regular'), findsOneWidget);
-      expect(find.byIcon(Icons.delete_outline), findsOneWidget);
-    });
+        expect(find.text('Ramesh Detailer'), findsOneWidget);
+        expect(find.text('Detailer'), findsOneWidget);
+        expect(find.text('9876543210'), findsOneWidget);
+        expect(find.text('09:00 – 14:00'), findsOneWidget);
+        expect(find.text('5h'), findsOneWidget);
+        expect(find.text('Regular'), findsOneWidget);
+        expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+      },
+    );
 
     testWidgets('ShowroomDateSelector allows shifting dates', (tester) async {
       DateTime currentDate = DateTime(2026, 8, 26);
@@ -147,7 +149,53 @@ void main() {
       expect(find.text('Thu, 27 Aug 2026'), findsOneWidget);
     });
 
-    testWidgets('ShowroomFormSheet accepts valid GSTIN and submits normalized uppercase', (tester) async {
+    testWidgets(
+      'ShowroomFormSheet accepts valid GSTIN and submits normalized uppercase',
+      (tester) async {
+        CreateShowroomRequest? capturedRequest;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ShowroomFormSheet(
+                onCreate: (req) async {
+                  capturedRequest = req;
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+          'New Hub',
+        );
+        await tester.enterText(
+          find.widgetWithText(
+            TextFormField,
+            'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040',
+          ),
+          'Address 123',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'e.g. 33AAAAA0000A1Z5'),
+          '33aaaaa0000a1z5',
+        );
+
+        await tester.tap(find.text('Create Showroom'));
+        await tester.pumpAndSettle();
+
+        expect(capturedRequest, isNotNull);
+        expect(capturedRequest!.name, 'New Hub');
+        expect(capturedRequest!.gstin, '33AAAAA0000A1Z5');
+        expect(capturedRequest!.toJson()['gstin'], '33AAAAA0000A1Z5');
+      },
+    );
+
+    testWidgets('ShowroomFormSheet rejects invalid GSTIN format', (
+      tester,
+    ) async {
       CreateShowroomRequest? capturedRequest;
 
       await tester.pumpWidget(
@@ -163,38 +211,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'), 'New Hub');
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040'), 'Address 123');
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. 33AAAAA0000A1Z5'), '33aaaaa0000a1z5');
-
-      await tester.tap(find.text('Create Showroom'));
-      await tester.pumpAndSettle();
-
-      expect(capturedRequest, isNotNull);
-      expect(capturedRequest!.name, 'New Hub');
-      expect(capturedRequest!.gstin, '33AAAAA0000A1Z5');
-      expect(capturedRequest!.toJson()['gstin'], '33AAAAA0000A1Z5');
-    });
-
-    testWidgets('ShowroomFormSheet rejects invalid GSTIN format', (tester) async {
-      CreateShowroomRequest? capturedRequest;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ShowroomFormSheet(
-              onCreate: (req) async {
-                capturedRequest = req;
-              },
-            ),
-          ),
-        ),
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+        'New Hub',
       );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'), 'New Hub');
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040'), 'Address 123');
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. 33AAAAA0000A1Z5'), 'INVALID123');
+      await tester.enterText(
+        find.widgetWithText(
+          TextFormField,
+          'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040',
+        ),
+        'Address 123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'e.g. 33AAAAA0000A1Z5'),
+        'INVALID123',
+      );
 
       await tester.tap(find.text('Create Showroom'));
       await tester.pumpAndSettle();
@@ -203,7 +234,9 @@ void main() {
       expect(capturedRequest, isNull);
     });
 
-    testWidgets('ShowroomFormSheet accepts empty GSTIN as optional', (tester) async {
+    testWidgets('ShowroomFormSheet accepts empty GSTIN as optional', (
+      tester,
+    ) async {
       CreateShowroomRequest? capturedRequest;
 
       await tester.pumpWidget(
@@ -219,8 +252,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'), 'New Hub');
-      await tester.enterText(find.widgetWithText(TextFormField, 'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040'), 'Address 123');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+        'New Hub',
+      );
+      await tester.enterText(
+        find.widgetWithText(
+          TextFormField,
+          'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040',
+        ),
+        'Address 123',
+      );
 
       await tester.tap(find.text('Create Showroom'));
       await tester.pumpAndSettle();
@@ -230,48 +272,54 @@ void main() {
       expect(capturedRequest!.toJson().containsKey('gstin'), false);
     });
 
-    testWidgets('ShowroomFormSheet clearing existing GSTIN submits request with gstin as null and serializes "gstin": null', (tester) async {
-      final existing = Showroom(
-        id: 'sr-1',
-        name: 'Anna Nagar Hub',
-        address: '2nd Avenue',
-        gstin: '33AAAAA0000A1Z5',
-        isActive: true,
-        createdAt: DateTime.now(),
-      );
+    testWidgets(
+      'ShowroomFormSheet clearing existing GSTIN submits request with gstin as null and serializes "gstin": null',
+      (tester) async {
+        final existing = Showroom(
+          id: 'sr-1',
+          name: 'Anna Nagar Hub',
+          address: '2nd Avenue',
+          gstin: '33AAAAA0000A1Z5',
+          isActive: true,
+          createdAt: DateTime.now(),
+        );
 
-      UpdateShowroomRequest? capturedUpdate;
+        UpdateShowroomRequest? capturedUpdate;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ShowroomFormSheet(
-              showroom: existing,
-              onUpdate: (id, req) async {
-                capturedUpdate = req;
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ShowroomFormSheet(
+                showroom: existing,
+                onUpdate: (id, req) async {
+                  capturedUpdate = req;
+                },
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // GSTIN should be populated with existing value
-      expect(find.text('33AAAAA0000A1Z5'), findsOneWidget);
+        // GSTIN should be populated with existing value
+        expect(find.text('33AAAAA0000A1Z5'), findsOneWidget);
 
-      // Clear the GSTIN field
-      await tester.enterText(find.widgetWithText(TextFormField, '33AAAAA0000A1Z5'), '');
-      await tester.pumpAndSettle();
+        // Clear the GSTIN field
+        await tester.enterText(
+          find.widgetWithText(TextFormField, '33AAAAA0000A1Z5'),
+          '',
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Save Changes'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Save Changes'));
+        await tester.pumpAndSettle();
 
-      expect(capturedUpdate, isNotNull);
-      expect(capturedUpdate!.gstin, isNull);
+        expect(capturedUpdate, isNotNull);
+        expect(capturedUpdate!.gstin, isNull);
 
-      final json = capturedUpdate!.toJson();
-      expect(json.containsKey('gstin'), true);
-      expect(json['gstin'], isNull);
-    });
+        final json = capturedUpdate!.toJson();
+        expect(json.containsKey('gstin'), true);
+        expect(json['gstin'], isNull);
+      },
+    );
   });
 }

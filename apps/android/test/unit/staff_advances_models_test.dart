@@ -94,36 +94,39 @@ void main() {
       expect(summary.totalActiveCount, 5);
     });
 
-    test('StaffAdvanceListResponse.fromJson parses list and summary correctly', () {
-      final json = {
-        'items': [
-          {
-            'id': 'adv-1',
-            'staffId': 'staff-1',
-            'staffName': 'Suresh',
-            'amount': 2000.0,
-            'advanceDate': '2026-08-26T08:00:00Z',
-            'reason': 'Personal Advance',
-            'status': 'Outstanding',
-            'createdAt': '2026-08-26T08:00:00Z',
-          }
-        ],
-        'totalCount': 1,
-        'page': 1,
-        'pageSize': 20,
-        'summary': {
-          'outstandingAmount': 2000.0,
-          'settledAmount': 0.0,
-          'totalActiveCount': 1,
-        }
-      };
+    test(
+      'StaffAdvanceListResponse.fromJson parses list and summary correctly',
+      () {
+        final json = {
+          'items': [
+            {
+              'id': 'adv-1',
+              'staffId': 'staff-1',
+              'staffName': 'Suresh',
+              'amount': 2000.0,
+              'advanceDate': '2026-08-26T08:00:00Z',
+              'reason': 'Personal Advance',
+              'status': 'Outstanding',
+              'createdAt': '2026-08-26T08:00:00Z',
+            },
+          ],
+          'totalCount': 1,
+          'page': 1,
+          'pageSize': 20,
+          'summary': {
+            'outstandingAmount': 2000.0,
+            'settledAmount': 0.0,
+            'totalActiveCount': 1,
+          },
+        };
 
-      final response = StaffAdvanceListResponse.fromJson(json);
+        final response = StaffAdvanceListResponse.fromJson(json);
 
-      expect(response.items.length, 1);
-      expect(response.totalCount, 1);
-      expect(response.summary.outstandingAmount, 2000.0);
-    });
+        expect(response.items.length, 1);
+        expect(response.totalCount, 1);
+        expect(response.summary.outstandingAmount, 2000.0);
+      },
+    );
 
     test('StaffAdvanceHistory.fromJson parses history DTO correctly', () {
       final json = {
@@ -153,8 +156,8 @@ void main() {
             'reason': 'Medical',
             'status': 'Outstanding',
             'createdAt': '2026-08-26T00:00:00Z',
-          }
-        ]
+          },
+        ],
       };
 
       final history = StaffAdvanceHistory.fromJson(json);

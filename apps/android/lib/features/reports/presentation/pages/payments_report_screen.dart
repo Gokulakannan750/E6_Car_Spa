@@ -42,7 +42,9 @@ class PaymentsReportScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               paymentsAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading payment collections...'),
+                loading: () => const AppLoadingState(
+                  message: 'Loading payment collections...',
+                ),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(paymentsReportProvider),
@@ -59,7 +61,9 @@ class PaymentsReportScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,10 +92,22 @@ class PaymentsReportScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Cash', _formatCurrency(summary.cashAmount)),
-                                _buildSummaryItem('UPI', _formatCurrency(summary.upiAmount)),
-                                _buildSummaryItem('Card', _formatCurrency(summary.cardAmount)),
-                                _buildSummaryItem('Bank', _formatCurrency(summary.bankTransferAmount)),
+                                _buildSummaryItem(
+                                  'Cash',
+                                  _formatCurrency(summary.cashAmount),
+                                ),
+                                _buildSummaryItem(
+                                  'UPI',
+                                  _formatCurrency(summary.upiAmount),
+                                ),
+                                _buildSummaryItem(
+                                  'Card',
+                                  _formatCurrency(summary.cardAmount),
+                                ),
+                                _buildSummaryItem(
+                                  'Bank',
+                                  _formatCurrency(summary.bankTransferAmount),
+                                ),
                               ],
                             ),
                             if (summary.voidedTransactionCount > 0) ...[
@@ -124,7 +140,8 @@ class PaymentsReportScreen extends ConsumerWidget {
                       if (items.isEmpty)
                         const AppEmptyState(
                           title: 'No payments found',
-                          message: 'No payment transactions recorded in this date range.',
+                          message:
+                              'No payment transactions recorded in this date range.',
                           icon: Icons.payments_outlined,
                         )
                       else
@@ -132,18 +149,25 @@ class PaymentsReportScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final p = items[index];
-                            final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
+                            final dateFormat = DateFormat(
+                              'dd MMM yyyy, hh:mm a',
+                            );
 
                             return Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(
-                                  color: p.isVoided ? AppColors.error.withValues(alpha: 0.3) : AppColors.border,
+                                  color: p.isVoided
+                                      ? AppColors.error.withValues(alpha: 0.3)
+                                      : AppColors.border,
                                 ),
                               ),
                               child: Row(
@@ -153,20 +177,31 @@ class PaymentsReportScreen extends ConsumerWidget {
                                     height: 36,
                                     decoration: BoxDecoration(
                                       color: p.isVoided
-                                          ? AppColors.error.withValues(alpha: 0.1)
-                                          : AppColors.success.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                                          ? AppColors.error.withValues(
+                                              alpha: 0.1,
+                                            )
+                                          : AppColors.success.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                      borderRadius: BorderRadius.circular(
+                                        AppTheme.radiusSM,
+                                      ),
                                     ),
                                     child: Icon(
-                                      p.isVoided ? Icons.block : Icons.check_circle_outline,
-                                      color: p.isVoided ? AppColors.error : AppColors.success,
+                                      p.isVoided
+                                          ? Icons.block
+                                          : Icons.check_circle_outline,
+                                      color: p.isVoided
+                                          ? AppColors.error
+                                          : AppColors.success,
                                       size: 20,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -175,17 +210,27 @@ class PaymentsReportScreen extends ConsumerWidget {
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
-                                                color: p.isVoided ? AppColors.textTertiary : AppColors.textPrimary,
-                                                decoration: p.isVoided ? TextDecoration.lineThrough : null,
+                                                color: p.isVoided
+                                                    ? AppColors.textTertiary
+                                                    : AppColors.textPrimary,
+                                                decoration: p.isVoided
+                                                    ? TextDecoration.lineThrough
+                                                    : null,
                                               ),
                                             ),
                                             if (p.isVoided) ...[
                                               const SizedBox(width: 6),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 5,
+                                                      vertical: 1,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: AppColors.error.withValues(alpha: 0.1),
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  color: AppColors.error
+                                                      .withValues(alpha: 0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: const Text(
                                                   'VOIDED',
@@ -225,8 +270,12 @@ class PaymentsReportScreen extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w700,
-                                      color: p.isVoided ? AppColors.textTertiary : AppColors.success,
-                                      decoration: p.isVoided ? TextDecoration.lineThrough : null,
+                                      color: p.isVoided
+                                          ? AppColors.textTertiary
+                                          : AppColors.success,
+                                      decoration: p.isVoided
+                                          ? TextDecoration.lineThrough
+                                          : null,
                                     ),
                                   ),
                                 ],

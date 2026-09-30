@@ -16,13 +16,11 @@ import '../widgets/record_payment_bottom_sheet.dart';
 class InvoiceDetailsScreen extends ConsumerStatefulWidget {
   final String invoiceId;
 
-  const InvoiceDetailsScreen({
-    super.key,
-    required this.invoiceId,
-  });
+  const InvoiceDetailsScreen({super.key, required this.invoiceId});
 
   @override
-  ConsumerState<InvoiceDetailsScreen> createState() => _InvoiceDetailsScreenState();
+  ConsumerState<InvoiceDetailsScreen> createState() =>
+      _InvoiceDetailsScreenState();
 }
 
 class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
@@ -31,7 +29,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        ref.read(invoiceDetailsProvider(widget.invoiceId).notifier).checkAndResumePolling();
+        ref
+            .read(invoiceDetailsProvider(widget.invoiceId).notifier)
+            .checkAndResumePolling();
       }
     });
   }
@@ -47,39 +47,48 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(invoiceDetailsProvider(widget.invoiceId));
-    final notifier = ref.read(invoiceDetailsProvider(widget.invoiceId).notifier);
+    final notifier = ref.read(
+      invoiceDetailsProvider(widget.invoiceId).notifier,
+    );
 
     // Listen for feedback messages
-    ref.listen<InvoiceDetailsState>(
-      invoiceDetailsProvider(widget.invoiceId),
-      (prev, next) {
-        if (next.actionSuccessMessage != null && prev?.actionSuccessMessage != next.actionSuccessMessage) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.actionSuccessMessage!),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        if (next.errorMessage != null && prev?.errorMessage != next.errorMessage && next.invoice != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(next.errorMessage!),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      },
-    );
+    ref.listen<InvoiceDetailsState>(invoiceDetailsProvider(widget.invoiceId), (
+      prev,
+      next,
+    ) {
+      if (next.actionSuccessMessage != null &&
+          prev?.actionSuccessMessage != next.actionSuccessMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.actionSuccessMessage!),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      if (next.errorMessage != null &&
+          prev?.errorMessage != next.errorMessage &&
+          next.invoice != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           state.invoice?.invoiceNumber ?? 'Invoice Details',
-          style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
@@ -89,7 +98,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
           if (state.invoice != null) ...[
             IconButton(
               key: const Key('print_invoice_appbar_button'),
-              icon: const Icon(Icons.print_outlined, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.print_outlined,
+                color: AppColors.textPrimary,
+              ),
               tooltip: 'Print Invoice',
               onPressed: () => InvoicePrintPreviewDialog.show(
                 context,
@@ -106,7 +118,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         ],
       ),
       body: _buildBody(context, state, notifier),
-      bottomNavigationBar: state.invoice != null ? _buildBottomActions(context, state.invoice!, notifier, state) : null,
+      bottomNavigationBar: state.invoice != null
+          ? _buildBottomActions(context, state.invoice!, notifier, state)
+          : null,
     );
   }
 
@@ -155,14 +169,21 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.assignment_outlined, size: 18, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.assignment_outlined,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: RichText(
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       text: TextSpan(
-                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
                         children: [
                           const TextSpan(text: 'Job Card: '),
                           TextSpan(
@@ -183,11 +204,21 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                       context.go('/job-cards/${invoice.jobCardId}');
                     },
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('View JC', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                    child: const Text(
+                      'View JC',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -197,7 +228,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             // ── Service Line Items Section ──────────────────────────────────
             Text(
               'Service Items & Charges (${invoice.items.length})',
-              style: AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary),
+              style: AppTextStyles.headingMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
             Card(
@@ -212,7 +245,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(12),
                 itemCount: invoice.items.length,
-                separatorBuilder: (_, _) => const Divider(height: 16, color: AppColors.border),
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 16, color: AppColors.border),
                 itemBuilder: (context, index) {
                   final item = invoice.items[index];
                   final lineTotal = item.unitPrice * item.quantity;
@@ -225,12 +259,17 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                           children: [
                             Text(
                               item.description,
-                              style: AppTextStyles.headingSmall.copyWith(color: AppColors.textPrimary),
+                              style: AppTextStyles.headingSmall.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity}',
-                              style: AppTextStyles.bodySmall.copyWith(fontFamily: 'monospace', color: AppColors.textSecondary),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontFamily: 'monospace',
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -262,7 +301,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildSummaryRow(context, 'Subtotal', '₹${invoice.subtotal.toStringAsFixed(2)}'),
+                    _buildSummaryRow(
+                      context,
+                      'Subtotal',
+                      '₹${invoice.subtotal.toStringAsFixed(2)}',
+                    ),
                     if (invoice.discount > 0) ...[
                       const SizedBox(height: 8),
                       _buildSummaryRow(
@@ -309,7 +352,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                       'Balance Due',
                       '₹${invoice.balanceAmount.toStringAsFixed(2)}',
                       isBold: true,
-                      color: invoice.balanceAmount > 0 ? AppColors.error : AppColors.success,
+                      color: invoice.balanceAmount > 0
+                          ? AppColors.error
+                          : AppColors.success,
                     ),
                   ],
                 ),
@@ -321,7 +366,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             if (invoice.notes != null && invoice.notes!.trim().isNotEmpty) ...[
               Text(
                 'Notes & Terms',
-                style: AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.headingMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               Container(
@@ -333,7 +380,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                 ),
                 child: Text(
                   invoice.notes!,
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -343,7 +392,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             if (invoice.isFinalized) ...[
               Text(
                 'Payment History (${invoice.payments.length})',
-                style: AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.headingMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               if (invoice.payments.isEmpty)
@@ -357,7 +408,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                   ),
                   child: const Text(
                     'No payments recorded yet for this invoice.',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                 )
               else
@@ -373,7 +427,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(12),
                     itemCount: invoice.payments.length,
-                    separatorBuilder: (_, _) => const Divider(height: 16, color: AppColors.border),
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 16, color: AppColors.border),
                     itemBuilder: (context, index) {
                       final payment = invoice.payments[index];
                       return Row(
@@ -398,14 +453,19 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                               children: [
                                 Text(
                                   payment.method.label,
-                                  style: AppTextStyles.headingSmall.copyWith(color: AppColors.textPrimary),
+                                  style: AppTextStyles.headingSmall.copyWith(
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   _formatDate(payment.paymentDate),
-                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
-                                if (payment.reference != null && payment.reference!.isNotEmpty) ...[
+                                if (payment.reference != null &&
+                                    payment.reference!.isNotEmpty) ...[
                                   const SizedBox(height: 2),
                                   Text(
                                     'Ref: ${payment.reference}',
@@ -439,7 +499,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     );
   }
 
-  Widget _buildStatusBanner(Invoice invoice, List<InvoiceWhatsAppStatus> whatsAppStatuses) {
+  Widget _buildStatusBanner(
+    Invoice invoice,
+    List<InvoiceWhatsAppStatus> whatsAppStatuses,
+  ) {
     if (invoice.isDraft) {
       return Container(
         padding: const EdgeInsets.all(12),
@@ -455,7 +518,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             Expanded(
               child: Text(
                 'Draft Invoice: Not yet finalized. Official invoice number will be issued when generated.',
-                style: TextStyle(color: AppColors.warning, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -478,7 +545,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             Expanded(
               child: Text(
                 'This invoice has been Cancelled. No further payments or edits permitted.',
-                style: TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -513,12 +584,20 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.lock_outline, size: 20, color: AppColors.primary),
+              const Icon(
+                Icons.lock_outline,
+                size: 20,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Invoice Finalized: Locked against edits. Official #${invoice.invoiceNumber ?? ""} issued.',
-                  style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -528,7 +607,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 6,
-              children: deduplicated.map((st) => _buildWhatsAppChip(st)).toList(),
+              children: deduplicated
+                  .map((st) => _buildWhatsAppChip(st))
+                  .toList(),
             ),
           ],
         ],
@@ -600,7 +681,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.person, color: AppColors.textOnPrimary, size: 20),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.textOnPrimary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -609,11 +694,15 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     children: [
                       Text(
                         invoice.customerName,
-                        style: AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary),
+                        style: AppTextStyles.headingMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       Text(
                         invoice.customerPhone,
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -630,7 +719,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.directions_car, color: AppColors.textPrimary, size: 20),
+                  child: const Icon(
+                    Icons.directions_car,
+                    color: AppColors.textPrimary,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -647,7 +740,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                       ),
                       Text(
                         invoice.vehicleDisplayName,
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -675,8 +770,12 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
           child: Text(
             label,
             style: isBold
-                ? AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary)
-                : AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                ? AppTextStyles.headingMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  )
+                : AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
           ),
         ),
         const SizedBox(width: 8),
@@ -691,7 +790,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
               : AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   fontFamily: 'monospace',
-                  color: color ?? (isNegative ? AppColors.error : AppColors.textPrimary),
+                  color:
+                      color ??
+                      (isNegative ? AppColors.error : AppColors.textPrimary),
                 ),
         ),
       ],
@@ -716,13 +817,22 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
-                  label: const Text('Edit Draft', style: TextStyle(color: AppColors.primary)),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  label: const Text(
+                    'Edit Draft',
+                    style: TextStyle(color: AppColors.primary),
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
                     side: const BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   onPressed: () {
                     EditDraftBottomSheet.show(
@@ -735,7 +845,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                           isGstEnabled: isGstEnabled,
                         );
                         if (!success) {
-                          return ref.read(invoiceDetailsProvider(widget.invoiceId)).errorMessage ??
+                          return ref
+                                  .read(
+                                    invoiceDetailsProvider(widget.invoiceId),
+                                  )
+                                  .errorMessage ??
                               'Failed to update draft invoice.';
                         }
                         return null;
@@ -771,26 +885,40 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             children: [
               OutlinedButton.icon(
                 key: const Key('print_invoice_bottom_button'),
-                icon: const Icon(Icons.print_outlined, size: 18, color: AppColors.primary),
-                label: const Text('Print', style: TextStyle(color: AppColors.primary)),
+                icon: const Icon(
+                  Icons.print_outlined,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                label: const Text(
+                  'Print',
+                  style: TextStyle(color: AppColors.primary),
+                ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
                   side: const BorderSide(color: AppColors.primary),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                onPressed: () => InvoicePrintPreviewDialog.show(
-                  context,
-                  invoice: invoice,
-                ),
+                onPressed: () =>
+                    InvoicePrintPreviewDialog.show(context, invoice: invoice),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: AppButton(
-                  label: 'Record Payment (₹${invoice.balanceAmount.toStringAsFixed(2)})',
+                  label:
+                      'Record Payment (₹${invoice.balanceAmount.toStringAsFixed(2)})',
                   icon: Icons.payments_outlined,
                   isLoading: state.isRecordingPayment,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                   onPressed: () {
                     RecordPaymentBottomSheet.show(
                       context,
@@ -798,7 +926,11 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                       onRecordPayment: (request) async {
                         final success = await notifier.recordPayment(request);
                         if (!success) {
-                          return ref.read(invoiceDetailsProvider(widget.invoiceId)).errorMessage ??
+                          return ref
+                                  .read(
+                                    invoiceDetailsProvider(widget.invoiceId),
+                                  )
+                                  .errorMessage ??
                               'Failed to record payment.';
                         }
                         return null;
@@ -825,10 +957,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             key: const Key('print_paid_invoice_button'),
             label: 'Print Invoice',
             icon: Icons.print_outlined,
-            onPressed: () => InvoicePrintPreviewDialog.show(
-              context,
-              invoice: invoice,
-            ),
+            onPressed: () =>
+                InvoicePrintPreviewDialog.show(context, invoice: invoice),
           ),
         ),
       );
@@ -848,7 +978,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.card,
-        title: const Text('Generate Invoice?', style: TextStyle(color: AppColors.textPrimary)),
+        title: const Text(
+          'Generate Invoice?',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,7 +1000,14 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Grand Total:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary)),
+                  const Text(
+                    'Grand Total:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   Text(
                     '₹${invoice.totalAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
@@ -885,7 +1025,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.primary),

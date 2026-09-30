@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('AppModalHeader triggers close callback and pops navigator', (tester) async {
+  testWidgets('AppModalHeader triggers close callback and pops navigator', (
+    tester,
+  ) async {
     bool closeCalled = false;
 
     await tester.pumpWidget(
@@ -30,110 +32,118 @@ void main() {
     expect(closeCalled, isTrue);
   });
 
-  testWidgets('AddEditStaffBottomSheet has modal_close_button and modal_cancel_button', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) => const AddEditStaffBottomSheet(),
-                  );
-                },
-                child: const Text('Open Sheet'),
+  testWidgets(
+    'AddEditStaffBottomSheet has modal_close_button and modal_cancel_button',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => const AddEditStaffBottomSheet(),
+                    );
+                  },
+                  child: const Text('Open Sheet'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Open Sheet'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Sheet'));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
-    expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
 
-    // Tap close button to dismiss
-    await tester.tap(find.byKey(const Key('modal_close_button')));
-    await tester.pumpAndSettle();
+      // Tap close button to dismiss
+      await tester.tap(find.byKey(const Key('modal_close_button')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Add Staff Member'), findsNothing);
-  });
+      expect(find.text('Add Staff Member'), findsNothing);
+    },
+  );
 
-  testWidgets('CreateAdvanceBottomSheet has modal_close_button and modal_cancel_button', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) => CreateAdvanceBottomSheet(
-                      activeStaff: const [],
-                      onSubmit: (req) async => null,
-                    ),
-                  );
-                },
-                child: const Text('Open Advance Sheet'),
+  testWidgets(
+    'CreateAdvanceBottomSheet has modal_close_button and modal_cancel_button',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => CreateAdvanceBottomSheet(
+                        activeStaff: const [],
+                        onSubmit: (req) async => null,
+                      ),
+                    );
+                  },
+                  child: const Text('Open Advance Sheet'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Open Advance Sheet'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Advance Sheet'));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
-    expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
 
-    // Tap X to dismiss
-    await tester.tap(find.byKey(const Key('modal_close_button')));
-    await tester.pumpAndSettle();
+      // Tap X to dismiss
+      await tester.tap(find.byKey(const Key('modal_close_button')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Disburse Staff Advance'), findsNothing);
-  });
+      expect(find.text('Disburse Staff Advance'), findsNothing);
+    },
+  );
 
-  testWidgets('ShowroomFormSheet has modal_close_button and modal_cancel_button', (tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (context) => ShowroomFormSheet(
-                      onCreate: (req) async {},
-                    ),
-                  );
-                },
-                child: const Text('Open Showroom Sheet'),
+  testWidgets(
+    'ShowroomFormSheet has modal_close_button and modal_cancel_button',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) =>
+                          ShowroomFormSheet(onCreate: (req) async {}),
+                    );
+                  },
+                  child: const Text('Open Showroom Sheet'),
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tap(find.text('Open Showroom Sheet'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Showroom Sheet'));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
-    expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_close_button')), findsOneWidget);
+      expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
 
-    // Tap X close button to dismiss
-    await tester.tap(find.byKey(const Key('modal_close_button')));
-    await tester.pumpAndSettle();
+      // Tap X close button to dismiss
+      await tester.tap(find.byKey(const Key('modal_close_button')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Add New Showroom'), findsNothing);
-  });
+      expect(find.text('Add New Showroom'), findsNothing);
+    },
+  );
 }

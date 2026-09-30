@@ -95,7 +95,9 @@ class ShowroomOperationsState {
       workTypes: workTypes ?? this.workTypes,
       vehicleWorks: vehicleWorks ?? this.vehicleWorks,
       summary: summary ?? this.summary,
-      selectedStaffId: clearStaffFilter ? null : (selectedStaffId ?? this.selectedStaffId),
+      selectedStaffId: clearStaffFilter
+          ? null
+          : (selectedStaffId ?? this.selectedStaffId),
       selectedVehicleTypeId: clearVehicleTypeFilter
           ? null
           : (selectedVehicleTypeId ?? this.selectedVehicleTypeId),
@@ -109,15 +111,18 @@ class ShowroomOperationsState {
   }
 }
 
-class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> {
+class ShowroomOperationsNotifier
+    extends StateNotifier<ShowroomOperationsState> {
   final ShowroomRepository _repository;
   final Ref _ref;
 
   ShowroomOperationsNotifier(this._repository, this._ref, String showroomId)
-      : super(ShowroomOperationsState(
+    : super(
+        ShowroomOperationsState(
           showroomId: showroomId,
           selectedDate: DateTime.now(),
-        )) {
+        ),
+      ) {
     init();
   }
 
@@ -182,10 +187,7 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
     } on ApiException catch (e) {
       if (!mounted) return;
       if (!silent) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: e.message,
-        );
+        state = state.copyWith(isLoading: false, errorMessage: e.message);
       }
     } catch (e) {
       if (!mounted) return;
@@ -250,7 +252,9 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       await loadOperationsData(date: state.selectedDate);
 
       // Also refresh daily staff so totalVehiclesAttended is updated
-      _ref.read(dailyStaffProvider(state.showroomId).notifier).loadDailyStaff(date: state.selectedDate);
+      _ref
+          .read(dailyStaffProvider(state.showroomId).notifier)
+          .loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       if (!mounted) return result;
@@ -258,10 +262,7 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       return result;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -287,7 +288,9 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       await loadOperationsData(date: state.selectedDate);
 
       // Also refresh daily staff so totalVehiclesAttended is updated
-      _ref.read(dailyStaffProvider(state.showroomId).notifier).loadDailyStaff(date: state.selectedDate);
+      _ref
+          .read(dailyStaffProvider(state.showroomId).notifier)
+          .loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       if (!mounted) return results;
@@ -295,10 +298,7 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       return results;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -323,7 +323,9 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       );
 
       await loadOperationsData(date: state.selectedDate);
-      _ref.read(dailyStaffProvider(state.showroomId).notifier).loadDailyStaff(date: state.selectedDate);
+      _ref
+          .read(dailyStaffProvider(state.showroomId).notifier)
+          .loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       if (!mounted) return result;
@@ -331,10 +333,7 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       return result;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -352,17 +351,16 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
       await _repository.deleteShowroomVehicleWork(state.showroomId, workId);
 
       await loadOperationsData(date: state.selectedDate);
-      _ref.read(dailyStaffProvider(state.showroomId).notifier).loadDailyStaff(date: state.selectedDate);
+      _ref
+          .read(dailyStaffProvider(state.showroomId).notifier)
+          .loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       if (!mounted) return;
       state = state.copyWith(isDeleting: false, clearError: true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isDeleting: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isDeleting: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) return;
@@ -393,17 +391,16 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
 
       // Refresh operations summary & daily staff sessions
       await loadOperationsData(date: state.selectedDate);
-      _ref.read(dailyStaffProvider(state.showroomId).notifier).loadDailyStaff(date: state.selectedDate);
+      _ref
+          .read(dailyStaffProvider(state.showroomId).notifier)
+          .loadDailyStaff(date: state.selectedDate);
       _ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
 
       if (!mounted) return;
       state = state.copyWith(isClosingSession: false, clearError: true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isClosingSession: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isClosingSession: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) return;
@@ -417,7 +414,10 @@ class ShowroomOperationsNotifier extends StateNotifier<ShowroomOperationsState> 
 }
 
 final showroomOperationsProvider = StateNotifierProvider.autoDispose
-    .family<ShowroomOperationsNotifier, ShowroomOperationsState, String>((ref, showroomId) {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return ShowroomOperationsNotifier(repository, ref, showroomId);
-});
+    .family<ShowroomOperationsNotifier, ShowroomOperationsState, String>((
+      ref,
+      showroomId,
+    ) {
+      final repository = ref.watch(showroomRepositoryProvider);
+      return ShowroomOperationsNotifier(repository, ref, showroomId);
+    });

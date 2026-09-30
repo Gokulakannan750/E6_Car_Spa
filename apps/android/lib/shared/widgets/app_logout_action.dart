@@ -19,10 +19,16 @@ class AppLogoutAction extends ConsumerWidget {
           decoration: BoxDecoration(
             color: AppColors.accentPill,
             borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.25),
+            ),
           ),
           child: const Center(
-            child: Icon(Icons.logout_rounded, size: 18, color: AppColors.primary),
+            child: Icon(
+              Icons.logout_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
           ),
         ),
         tooltip: 'Sign Out',
@@ -41,7 +47,14 @@ class AppLogoutAction extends ConsumerWidget {
           children: [
             Icon(Icons.logout_rounded, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textPrimary)),
+            Text(
+              'Sign Out',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
         content: Text(
@@ -55,7 +68,9 @@ class AppLogoutAction extends ConsumerWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textPrimary,
               side: const BorderSide(color: AppColors.border),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
@@ -65,13 +80,18 @@ class AppLogoutAction extends ConsumerWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
               await ref.read(authNotifierProvider.notifier).logout();
             },
-            child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Sign Out',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

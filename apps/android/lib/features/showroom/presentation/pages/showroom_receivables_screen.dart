@@ -72,8 +72,10 @@ class _ShowroomReceivablesScreenState
         actions: [
           IconButton(
             onPressed: () => ref.refresh(showroomsOutstandingProvider),
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+            ),
             tooltip: 'Refresh',
           ),
         ],
@@ -86,14 +88,18 @@ class _ShowroomReceivablesScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline,
-                    size: 48, color: AppColors.error),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppColors.error,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Failed to load receivables overview: $err',
                   textAlign: TextAlign.center,
-                  style:
-                      AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.error,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
@@ -106,21 +112,29 @@ class _ShowroomReceivablesScreenState
           ),
         ),
         data: (outstandingList) {
-          final totalBilled =
-              outstandingList.fold<double>(0, (sum, i) => sum + i.totalBilled);
+          final totalBilled = outstandingList.fold<double>(
+            0,
+            (sum, i) => sum + i.totalBilled,
+          );
           final totalReceived = outstandingList.fold<double>(
-              0, (sum, i) => sum + i.totalReceived);
+            0,
+            (sum, i) => sum + i.totalReceived,
+          );
           final totalOutstanding = outstandingList.fold<double>(
-              0, (sum, i) => sum + i.outstandingAmount);
-          final dueCount =
-              outstandingList.where((i) => i.outstandingAmount > 0.001).length;
+            0,
+            (sum, i) => sum + i.outstandingAmount,
+          );
+          final dueCount = outstandingList
+              .where((i) => i.outstandingAmount > 0.001)
+              .length;
 
           // Filter by search & status
           var filteredList = outstandingList.where((item) {
-            final matchesSearch = _searchTerm.isEmpty ||
-                item.showroomName
-                    .toLowerCase()
-                    .contains(_searchTerm.toLowerCase()) ||
+            final matchesSearch =
+                _searchTerm.isEmpty ||
+                item.showroomName.toLowerCase().contains(
+                  _searchTerm.toLowerCase(),
+                ) ||
                 item.address.toLowerCase().contains(_searchTerm.toLowerCase());
 
             if (!matchesSearch) return false;
@@ -143,8 +157,10 @@ class _ShowroomReceivablesScreenState
               children: [
                 // Global Financial Overview Banner
                 Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -173,7 +189,9 @@ class _ShowroomReceivablesScreenState
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: dueCount > 0
                                   ? AppColors.warning.withAlpha(25)
@@ -226,29 +244,38 @@ class _ShowroomReceivablesScreenState
 
                 // Search Field
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   child: AppSearchField(
                     controller: _searchController,
                     hint: 'Search showroom by name or location...',
-                    onChanged: (val) => setState(() => _searchTerm = val.trim()),
+                    onChanged: (val) =>
+                        setState(() => _searchTerm = val.trim()),
                     onClear: () => setState(() => _searchTerm = ''),
                   ),
                 ),
 
                 // Filter Chips
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 2,
+                  ),
                   child: Row(
                     children: [
-                      _buildFilterChip('All (${outstandingList.length})', 'all'),
+                      _buildFilterChip(
+                        'All (${outstandingList.length})',
+                        'all',
+                      ),
                       const SizedBox(width: 8),
                       _buildFilterChip('With Due ($dueCount)', 'due'),
                       const SizedBox(width: 8),
                       _buildFilterChip(
-                          'Fully Paid (${outstandingList.length - dueCount})',
-                          'paid'),
+                        'Fully Paid (${outstandingList.length - dueCount})',
+                        'paid',
+                      ),
                     ],
                   ),
                 ),
@@ -266,7 +293,10 @@ class _ShowroomReceivablesScreenState
                   ),
                 ] else ...[
                   for (final item in filteredList)
-                    _buildShowroomReceivableCard(item, showroomsState.showrooms),
+                    _buildShowroomReceivableCard(
+                      item,
+                      showroomsState.showrooms,
+                    ),
                 ],
               ],
             ),
@@ -349,9 +379,7 @@ class _ShowroomReceivablesScreenState
       side: BorderSide(
         color: isSelected ? AppColors.primary : AppColors.border,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -473,8 +501,10 @@ class _ShowroomReceivablesScreenState
 
                 // Financial Breakdown Row
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8),
@@ -536,7 +566,9 @@ class _ShowroomReceivablesScreenState
                             item.formattedOutstanding,
                             style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: isDue ? AppColors.error : AppColors.success,
+                              color: isDue
+                                  ? AppColors.error
+                                  : AppColors.success,
                               fontSize: 12,
                             ),
                           ),

@@ -33,7 +33,9 @@ class CatalogueState {
     return CatalogueState(
       services: services ?? this.services,
       categories: categories ?? this.categories,
-      selectedCategory: clearCategory ? null : (selectedCategory ?? this.selectedCategory),
+      selectedCategory: clearCategory
+          ? null
+          : (selectedCategory ?? this.selectedCategory),
       searchQuery: searchQuery ?? this.searchQuery,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -74,7 +76,9 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
       if (!silent) {
         state = state.copyWith(
           isLoading: false,
-          categories: state.categories.isEmpty ? kCatalogueCategories : state.categories,
+          categories: state.categories.isEmpty
+              ? kCatalogueCategories
+              : state.categories,
           errorMessage: e.toString().replaceAll('ApiException: ', ''),
         );
       }
@@ -116,10 +120,11 @@ class CatalogueNotifier extends StateNotifier<CatalogueState> {
   }
 }
 
-final catalogueProvider = StateNotifierProvider<CatalogueNotifier, CatalogueState>((ref) {
-  final repo = ref.watch(serviceRepositoryProvider);
-  return CatalogueNotifier(repo);
-});
+final catalogueProvider =
+    StateNotifierProvider<CatalogueNotifier, CatalogueState>((ref) {
+      final repo = ref.watch(serviceRepositoryProvider);
+      return CatalogueNotifier(repo);
+    });
 
 final serviceCategoriesProvider = FutureProvider<List<String>>((ref) async {
   final repo = ref.watch(serviceRepositoryProvider);

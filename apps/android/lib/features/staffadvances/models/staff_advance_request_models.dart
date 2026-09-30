@@ -29,11 +29,7 @@ class CreateStaffAdvanceRequest {
 class ObsoleteStaffAdvanceRequest {
   final String reason;
 
-  const ObsoleteStaffAdvanceRequest({
-    required this.reason,
-  });
+  const ObsoleteStaffAdvanceRequest({required this.reason});
 
-  Map<String, dynamic> toJson() => {
-    'reason': reason.trim(),
-  };
+  Map<String, dynamic> toJson() => {'reason': reason.trim()};
 }

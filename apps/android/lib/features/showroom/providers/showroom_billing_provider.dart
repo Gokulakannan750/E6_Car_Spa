@@ -4,18 +4,9 @@ import '../data/showroom_repository.dart';
 import '../models/showroom_billing_model.dart';
 import 'showroom_provider.dart';
 
-enum ShowroomBillingTabMode {
-  daily,
-  history,
-}
+enum ShowroomBillingTabMode { daily, history }
 
-enum BillingHistoryPreset {
-  today,
-  thisWeek,
-  thisMonth,
-  lastMonth,
-  custom,
-}
+enum BillingHistoryPreset { today, thisWeek, thisMonth, lastMonth, custom }
 
 class ShowroomBillingState {
   final String showroomId;
@@ -72,8 +63,9 @@ class ShowroomBillingState {
       isSaving: isSaving ?? this.isSaving,
       errorMessage: errorMessage != null ? errorMessage() : this.errorMessage,
       historyPreset: historyPreset ?? this.historyPreset,
-      customFromDate:
-          customFromDate != null ? customFromDate() : this.customFromDate,
+      customFromDate: customFromDate != null
+          ? customFromDate()
+          : this.customFromDate,
       customToDate: customToDate != null ? customToDate() : this.customToDate,
       summary: summary != null ? summary() : this.summary,
       isSummaryLoading: isSummaryLoading ?? this.isSummaryLoading,
@@ -96,9 +88,11 @@ class ShowroomBillingState {
         return DateTime(now.year, now.month, now.day);
       case BillingHistoryPreset.thisWeek:
         final weekday = now.weekday; // Mon=1, Sun=7
-        return DateTime(now.year, now.month, now.day).subtract(
-          Duration(days: weekday - 1),
-        );
+        return DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).subtract(Duration(days: weekday - 1));
       case BillingHistoryPreset.thisMonth:
         return DateTime(now.year, now.month, 1);
       case BillingHistoryPreset.lastMonth:
@@ -130,20 +124,17 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
   final Ref _ref;
 
   ShowroomBillingNotifier(this._repository, this._ref, String showroomId)
-      : super(
-          ShowroomBillingState(
-            showroomId: showroomId,
-            selectedDate: DateTime.now(),
-          ),
-        ) {
+    : super(
+        ShowroomBillingState(
+          showroomId: showroomId,
+          selectedDate: DateTime.now(),
+        ),
+      ) {
     loadDailyBill();
   }
 
   void setDate(DateTime date) {
-    state = state.copyWith(
-      selectedDate: date,
-      errorMessage: () => null,
-    );
+    state = state.copyWith(selectedDate: date, errorMessage: () => null);
     loadDailyBill();
   }
 
@@ -187,10 +178,7 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
         errorMessage: () => null,
       );
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: () => e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: () => e.message);
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -252,10 +240,7 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
       }
       return true;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: () => e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: () => e.message);
       return false;
     } catch (e) {
       state = state.copyWith(
@@ -287,10 +272,7 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
       }
       return true;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: () => e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: () => e.message);
       return false;
     } catch (e) {
       state = state.copyWith(
@@ -323,10 +305,7 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
       }
       return true;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isSaving: false,
-        errorMessage: () => e.message,
-      );
+      state = state.copyWith(isSaving: false, errorMessage: () => e.message);
       return false;
     } catch (e) {
       state = state.copyWith(
@@ -346,14 +325,16 @@ class ShowroomBillingNotifier extends StateNotifier<ShowroomBillingState> {
 }
 
 final showroomBillingProvider = StateNotifierProvider.autoDispose
-    .family<ShowroomBillingNotifier, ShowroomBillingState, String>(
-        (ref, showroomId) {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return ShowroomBillingNotifier(repository, ref, showroomId);
-});
+    .family<ShowroomBillingNotifier, ShowroomBillingState, String>((
+      ref,
+      showroomId,
+    ) {
+      final repository = ref.watch(showroomRepositoryProvider);
+      return ShowroomBillingNotifier(repository, ref, showroomId);
+    });
 
 final showroomsOutstandingProvider =
     FutureProvider.autoDispose<List<ShowroomOutstandingOverview>>((ref) async {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return await repository.getShowroomsOutstanding();
-});
+      final repository = ref.watch(showroomRepositoryProvider);
+      return await repository.getShowroomsOutstanding();
+    });

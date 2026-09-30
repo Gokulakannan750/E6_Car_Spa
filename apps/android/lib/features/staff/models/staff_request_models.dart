@@ -24,7 +24,8 @@ class CreateStaffRequest {
     'name': name.trim(),
     'phoneNumber': phoneNumber.trim(),
     if (email != null && email!.trim().isNotEmpty) 'email': email!.trim(),
-    if (address != null && address!.trim().isNotEmpty) 'address': address!.trim(),
+    if (address != null && address!.trim().isNotEmpty)
+      'address': address!.trim(),
     if (role != null && role!.trim().isNotEmpty) 'role': role!.trim(),
     'isActive': isActive,
     'aadhaarNumber': aadhaarNumber.trim().replaceAll(RegExp(r'[\s-]'), ''),
@@ -55,13 +56,16 @@ class UpdateStaffRequest {
 
   Map<String, dynamic> toJson() => {
     if (name != null && name!.trim().isNotEmpty) 'name': name!.trim(),
-    if (phoneNumber != null && phoneNumber!.trim().isNotEmpty) 'phoneNumber': phoneNumber!.trim(),
+    if (phoneNumber != null && phoneNumber!.trim().isNotEmpty)
+      'phoneNumber': phoneNumber!.trim(),
     if (email != null && email!.trim().isNotEmpty) 'email': email!.trim(),
-    if (address != null && address!.trim().isNotEmpty) 'address': address!.trim(),
+    if (address != null && address!.trim().isNotEmpty)
+      'address': address!.trim(),
     if (role != null && role!.trim().isNotEmpty) 'role': role!.trim(),
     if (isActive != null) 'isActive': isActive,
     if (aadhaarNumber != null && aadhaarNumber!.trim().isNotEmpty)
       'aadhaarNumber': aadhaarNumber!.trim().replaceAll(RegExp(r'[\s-]'), ''),
-    if (removeAadhaarDocument != null) 'removeAadhaarDocument': removeAadhaarDocument,
+    if (removeAadhaarDocument != null)
+      'removeAadhaarDocument': removeAadhaarDocument,
   };
 }

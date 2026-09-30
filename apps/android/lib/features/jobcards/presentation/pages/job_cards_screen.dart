@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_shell.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
@@ -47,25 +48,23 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(jobCardListProvider);
     final notifier = ref.read(jobCardListProvider.notifier);
+    final inBillingSuite = BillingSuiteScope.maybeOf(context);
 
     final scaffold = Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          key: const Key('job_cards_back_button'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to Dashboard',
-          onPressed: () => context.go(AppRoutes.dashboard),
-        ),
-        title: Text(
-          'Job Cards',
-          style: AppTextStyles.appBarTitle,
-        ),
-        centerTitle: false,
-        actions: const [
-          AppLogoutAction(),
-        ],
-      ),
+      appBar: inBillingSuite
+          ? null
+          : AppBar(
+              leading: IconButton(
+                key: const Key('job_cards_back_button'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to Dashboard',
+                onPressed: () => context.go(AppRoutes.dashboard),
+              ),
+              title: Text('Job Cards', style: AppTextStyles.appBarTitle),
+              centerTitle: false,
+              actions: const [AppLogoutAction()],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ref.read(newJobCardProvider.notifier).reset();
@@ -114,7 +113,8 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
                             child: _buildFilterChip(
                               label: status.label,
                               isSelected: state.selectedStatus == status,
-                              onSelected: (_) => notifier.setStatusFilter(status),
+                              onSelected: (_) =>
+                                  notifier.setStatusFilter(status),
                             ),
                           ),
                         ),
@@ -126,13 +126,13 @@ class _JobCardsScreenState extends ConsumerState<JobCardsScreen>
             ),
 
             // Job Cards List
-            Expanded(
-              child: _buildBody(state, notifier),
-            ),
+            Expanded(child: _buildBody(state, notifier)),
           ],
         ),
       ),
     );
+
+    if (inBillingSuite) return scaffold;
 
     return PopScope(
       canPop: false,
@@ -210,10 +210,7 @@ class _JobCardCard extends StatelessWidget {
   final JobCardListItem jobCard;
   final VoidCallback onTap;
 
-  const _JobCardCard({
-    required this.jobCard,
-    required this.onTap,
-  });
+  const _JobCardCard({required this.jobCard, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -260,7 +257,11 @@ class _JobCardCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person_outline, size: 15, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.person_outline,
+                              size: 15,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -275,7 +276,11 @@ class _JobCardCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.directions_car_outlined, size: 15, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.directions_car_outlined,
+                              size: 15,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               jobCard.registrationNumber,
@@ -305,10 +310,7 @@ class _JobCardCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(
-                        'Total',
-                        style: AppTextStyles.labelSmall,
-                      ),
+                      Text('Total', style: AppTextStyles.labelSmall),
                       Text(
                         '₹${jobCard.totalAmount.toStringAsFixed(2)}',
                         style: AppTextStyles.headingMedium.copyWith(
@@ -327,4 +329,3 @@ class _JobCardCard extends StatelessWidget {
     );
   }
 }
-

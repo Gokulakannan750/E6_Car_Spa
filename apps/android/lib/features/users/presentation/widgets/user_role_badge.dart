@@ -4,11 +4,7 @@ class UserRoleBadge extends StatelessWidget {
   final String role;
   final double fontSize;
 
-  const UserRoleBadge({
-    super.key,
-    required this.role,
-    this.fontSize = 11,
-  });
+  const UserRoleBadge({super.key, required this.role, this.fontSize = 11});
 
   @override
   Widget build(BuildContext context) {

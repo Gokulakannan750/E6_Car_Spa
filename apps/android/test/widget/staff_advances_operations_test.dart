@@ -102,7 +102,10 @@ void main() {
       await tester.tap(submitBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('Please enter a valid advance amount greater than ₹0.'), findsOneWidget);
+      expect(
+        find.text('Please enter a valid advance amount greater than ₹0.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('Validates amount exceeding maximum ceiling', (tester) async {
@@ -133,40 +136,48 @@ void main() {
       expect(find.text('Amount cannot exceed ₹999,999.99.'), findsOneWidget);
     });
 
-    testWidgets('Validates custom reason when Other (Custom) is selected and reason is empty', (tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Validates custom reason when Other (Custom) is selected and reason is empty',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1200);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CreateAdvanceBottomSheet(
-              activeStaff: sampleStaff,
-              onSubmit: (req) async => null,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CreateAdvanceBottomSheet(
+                activeStaff: sampleStaff,
+                onSubmit: (req) async => null,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Enter valid amount
-      await tester.enterText(find.byType(TextField).first, '2500');
-      await tester.pumpAndSettle();
+        // Enter valid amount
+        await tester.enterText(find.byType(TextField).first, '2500');
+        await tester.pumpAndSettle();
 
-      // Select 'Other (Custom)' choice chip
-      await tester.tap(find.text('Other (Custom)'));
-      await tester.pumpAndSettle();
+        // Select 'Other (Custom)' choice chip
+        await tester.tap(find.text('Other (Custom)'));
+        await tester.pumpAndSettle();
 
-      // Submit without entering custom reason
-      await tester.tap(find.widgetWithText(AppButton, 'Disburse Advance'));
-      await tester.pumpAndSettle();
+        // Submit without entering custom reason
+        await tester.tap(find.widgetWithText(AppButton, 'Disburse Advance'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Please specify a reason for the advance.'), findsOneWidget);
-    });
+        expect(
+          find.text('Please specify a reason for the advance.'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('Preserves form input and displays error when onSubmit fails', (tester) async {
+    testWidgets('Preserves form input and displays error when onSubmit fails', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -176,7 +187,8 @@ void main() {
           home: Scaffold(
             body: CreateAdvanceBottomSheet(
               activeStaff: sampleStaff,
-              onSubmit: (req) async => 'API 400: Monthly advance limit reached for staff member',
+              onSubmit: (req) async =>
+                  'API 400: Monthly advance limit reached for staff member',
             ),
           ),
         ),
@@ -191,40 +203,52 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify error message is rendered
-      expect(find.text('API 400: Monthly advance limit reached for staff member'), findsOneWidget);
+      expect(
+        find.text('API 400: Monthly advance limit reached for staff member'),
+        findsOneWidget,
+      );
       // Verify entered amount is preserved
       expect(find.text('4000'), findsOneWidget);
     });
   });
 
   group('SettleAdvanceDialog Operations', () {
-    testWidgets('Renders advance details and handles settlement failure gracefully', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SettleAdvanceDialog(
-              advance: sampleAdvance,
-              onSettle: (id) async => 'API 409: Advance has already been settled.',
+    testWidgets(
+      'Renders advance details and handles settlement failure gracefully',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SettleAdvanceDialog(
+                advance: sampleAdvance,
+                onSettle: (id) async =>
+                    'API 409: Advance has already been settled.',
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Settle Staff Advance'), findsOneWidget);
-      expect(find.text('Ramesh Kumar'), findsOneWidget);
-      expect(find.text('Emergency advance'), findsOneWidget);
-      expect(find.text('₹3,500.00'), findsOneWidget);
+        expect(find.text('Settle Staff Advance'), findsOneWidget);
+        expect(find.text('Ramesh Kumar'), findsOneWidget);
+        expect(find.text('Emergency advance'), findsOneWidget);
+        expect(find.text('₹3,500.00'), findsOneWidget);
 
-      // Tap settle button
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Settle Advance'));
-      await tester.pumpAndSettle();
+        // Tap settle button
+        await tester.tap(find.widgetWithText(ElevatedButton, 'Settle Advance'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('API 409: Advance has already been settled.'), findsOneWidget);
-    });
+        expect(
+          find.text('API 409: Advance has already been settled.'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('Successful settlement calls onSettle and dismisses dialog', (tester) async {
+    testWidgets('Successful settlement calls onSettle and dismisses dialog', (
+      tester,
+    ) async {
       String? settledId;
 
       await tester.pumpWidget(
@@ -263,7 +287,9 @@ void main() {
   });
 
   group('ObsoleteAdvanceBottomSheet Operations', () {
-    testWidgets('Validates custom reason length minimum 3 characters', (tester) async {
+    testWidgets('Validates custom reason length minimum 3 characters', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -288,16 +314,22 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Confirm Obsolete'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Reason must be at least 3 characters long.'), findsOneWidget);
+      expect(
+        find.text('Reason must be at least 3 characters long.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('Displays error when onObsolete fails and preserves reason', (tester) async {
+    testWidgets('Displays error when onObsolete fails and preserves reason', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: ObsoleteAdvanceBottomSheet(
               advance: sampleAdvance,
-              onObsolete: (id, reason) async => 'API 403: Insufficient permission to obsolete advances',
+              onObsolete: (id, reason) async =>
+                  'API 403: Insufficient permission to obsolete advances',
             ),
           ),
         ),
@@ -308,12 +340,17 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Confirm Obsolete'));
       await tester.pumpAndSettle();
 
-      expect(find.text('API 403: Insufficient permission to obsolete advances'), findsOneWidget);
+      expect(
+        find.text('API 403: Insufficient permission to obsolete advances'),
+        findsOneWidget,
+      );
     });
   });
 
   group('StaffAdvancesScreen Empty and Error States', () {
-    testWidgets('Renders empty state when advances list is empty', (tester) async {
+    testWidgets('Renders empty state when advances list is empty', (
+      tester,
+    ) async {
       final mockAdvancesRepo = MockStaffAdvancesRepo()
         ..advancesResponseToReturn = const StaffAdvanceListResponse(
           items: [],
@@ -334,9 +371,7 @@ void main() {
             staffAdvancesRepositoryProvider.overrideWithValue(mockAdvancesRepo),
             staffRepositoryProvider.overrideWithValue(mockStaffRepo),
           ],
-          child: const MaterialApp(
-            home: StaffAdvancesScreen(),
-          ),
+          child: const MaterialApp(home: StaffAdvancesScreen()),
         ),
       );
 
@@ -346,7 +381,9 @@ void main() {
       expect(find.text('No staff advances found'), findsOneWidget);
     });
 
-    testWidgets('Renders error state when repository throws and allows retry', (tester) async {
+    testWidgets('Renders error state when repository throws and allows retry', (
+      tester,
+    ) async {
       final mockAdvancesRepo = MockStaffAdvancesRepo()..shouldThrow = true;
       final mockStaffRepo = MockStaffRepo();
 
@@ -356,9 +393,7 @@ void main() {
             staffAdvancesRepositoryProvider.overrideWithValue(mockAdvancesRepo),
             staffRepositoryProvider.overrideWithValue(mockStaffRepo),
           ],
-          child: const MaterialApp(
-            home: StaffAdvancesScreen(),
-          ),
+          child: const MaterialApp(home: StaffAdvancesScreen()),
         ),
       );
 

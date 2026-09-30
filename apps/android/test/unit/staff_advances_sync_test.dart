@@ -65,7 +65,9 @@ class _FakeAdvancesRepository extends StaffAdvancesRepository {
   }
 
   @override
-  Future<StaffAdvance> createStaffAdvance(CreateStaffAdvanceRequest request) async {
+  Future<StaffAdvance> createStaffAdvance(
+    CreateStaffAdvanceRequest request,
+  ) async {
     createCallCount++;
     if (shouldFail) {
       throw Exception('Server error creating advance');
@@ -102,7 +104,10 @@ class _FakeAdvancesRepository extends StaffAdvancesRepository {
   }
 
   @override
-  Future<StaffAdvance> obsoleteStaffAdvance(String advanceId, ObsoleteStaffAdvanceRequest request) async {
+  Future<StaffAdvance> obsoleteStaffAdvance(
+    String advanceId,
+    ObsoleteStaffAdvanceRequest request,
+  ) async {
     obsoleteCallCount++;
     if (shouldFail) {
       throw Exception('Server error cancelling advance');
@@ -123,87 +128,113 @@ class _FakeAdvancesRepository extends StaffAdvancesRepository {
 }
 
 void main() {
-  group('Task 1 — Staff Advance Mutation Triggers Immediate Staff Directory Sync', () {
-    late ProviderContainer container;
-    late _FakeAdvancesRepository advancesRepo;
-    late _FakeStaffRepository staffRepo;
+  group(
+    'Task 1 — Staff Advance Mutation Triggers Immediate Staff Directory Sync',
+    () {
+      late ProviderContainer container;
+      late _FakeAdvancesRepository advancesRepo;
+      late _FakeStaffRepository staffRepo;
 
-    setUp(() {
-      advancesRepo = _FakeAdvancesRepository();
-      staffRepo = _FakeStaffRepository();
+      setUp(() {
+        advancesRepo = _FakeAdvancesRepository();
+        staffRepo = _FakeStaffRepository();
 
-      container = ProviderContainer(
-        overrides: [
-          staffAdvancesRepositoryProvider.overrideWithValue(advancesRepo),
-          staffRepositoryProvider.overrideWithValue(staffRepo),
-        ],
-      );
-    });
+        container = ProviderContainer(
+          overrides: [
+            staffAdvancesRepositoryProvider.overrideWithValue(advancesRepo),
+            staffRepositoryProvider.overrideWithValue(staffRepo),
+          ],
+        );
+      });
 
-    tearDown(() {
-      container.dispose();
-    });
+      tearDown(() {
+        container.dispose();
+      });
 
-    test('Creating advance refreshes staff directory immediately on success without full screen loading', () async {
-      await container.read(staffProvider.notifier).loadStaff();
-      final initialCount = staffRepo.loadStaffCallCount;
-      expect(initialCount, greaterThanOrEqualTo(1));
+      test(
+        'Creating advance refreshes staff directory immediately on success without full screen loading',
+        () async {
+          await container.read(staffProvider.notifier).loadStaff();
+          final initialCount = staffRepo.loadStaffCallCount;
+          expect(initialCount, greaterThanOrEqualTo(1));
 
-      final request = CreateStaffAdvanceRequest(
-        staffId: 'staff-1',
-        amount: 1500,
-        advanceDate: DateTime.now(),
-        reason: 'Festival advance',
-      );
+          final request = CreateStaffAdvanceRequest(
+            staffId: 'staff-1',
+            amount: 1500,
+            advanceDate: DateTime.now(),
+            reason: 'Festival advance',
+          );
 
-      final error = await container.read(staffAdvancesProvider.notifier).createAdvance(request);
-      expect(error, isNull);
+          final error = await container
+              .read(staffAdvancesProvider.notifier)
+              .createAdvance(request);
+          expect(error, isNull);
 
-      // Verify staff directory was reloaded silently
-      expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
-      expect(container.read(staffProvider).isLoading, isFalse);
-    });
-
-    test('Settling advance refreshes staff directory immediately on success', () async {
-      await container.read(staffProvider.notifier).loadStaff();
-      final initialCount = staffRepo.loadStaffCallCount;
-
-      final error = await container.read(staffAdvancesProvider.notifier).settleAdvance('adv-1');
-      expect(error, isNull);
-      expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
-    });
-
-    test('Obsoleting advance refreshes staff directory immediately on success', () async {
-      await container.read(staffProvider.notifier).loadStaff();
-      final initialCount = staffRepo.loadStaffCallCount;
-
-      final error = await container.read(staffAdvancesProvider.notifier).obsoleteAdvance('adv-1', 'Created in error');
-      expect(error, isNull);
-      expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
-    });
-
-    test('Failed advance mutation does NOT refresh staff directory and retains error message', () async {
-      await container.read(staffProvider.notifier).loadStaff();
-      final initialCount = staffRepo.loadStaffCallCount;
-
-      advancesRepo.shouldFail = true;
-
-      final request = CreateStaffAdvanceRequest(
-        staffId: 'staff-1',
-        amount: 2000,
-        advanceDate: DateTime.now(),
-        reason: 'Emergency',
+          // Verify staff directory was reloaded silently
+          expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
+          expect(container.read(staffProvider).isLoading, isFalse);
+        },
       );
 
-      final error = await container.read(staffAdvancesProvider.notifier).createAdvance(request);
-      expect(error, isNotNull);
+      test(
+        'Settling advance refreshes staff directory immediately on success',
+        () async {
+          await container.read(staffProvider.notifier).loadStaff();
+          final initialCount = staffRepo.loadStaffCallCount;
 
-      // Staff directory must not be refreshed when mutation failed
-      expect(staffRepo.loadStaffCallCount, equals(initialCount));
+          final error = await container
+              .read(staffAdvancesProvider.notifier)
+              .settleAdvance('adv-1');
+          expect(error, isNull);
+          expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
+        },
+      );
 
-      // Error message should remain visible in state
-      final advancesState = container.read(staffAdvancesProvider);
-      expect(advancesState.errorMessage, contains('Server error creating advance'));
-    });
-  });
+      test(
+        'Obsoleting advance refreshes staff directory immediately on success',
+        () async {
+          await container.read(staffProvider.notifier).loadStaff();
+          final initialCount = staffRepo.loadStaffCallCount;
+
+          final error = await container
+              .read(staffAdvancesProvider.notifier)
+              .obsoleteAdvance('adv-1', 'Created in error');
+          expect(error, isNull);
+          expect(staffRepo.loadStaffCallCount, equals(initialCount + 1));
+        },
+      );
+
+      test(
+        'Failed advance mutation does NOT refresh staff directory and retains error message',
+        () async {
+          await container.read(staffProvider.notifier).loadStaff();
+          final initialCount = staffRepo.loadStaffCallCount;
+
+          advancesRepo.shouldFail = true;
+
+          final request = CreateStaffAdvanceRequest(
+            staffId: 'staff-1',
+            amount: 2000,
+            advanceDate: DateTime.now(),
+            reason: 'Emergency',
+          );
+
+          final error = await container
+              .read(staffAdvancesProvider.notifier)
+              .createAdvance(request);
+          expect(error, isNotNull);
+
+          // Staff directory must not be refreshed when mutation failed
+          expect(staffRepo.loadStaffCallCount, equals(initialCount));
+
+          // Error message should remain visible in state
+          final advancesState = container.read(staffAdvancesProvider);
+          expect(
+            advancesState.errorMessage,
+            contains('Server error creating advance'),
+          );
+        },
+      );
+    },
+  );
 }

@@ -62,7 +62,9 @@ void main() {
       expect(theme.scaffoldBackgroundColor, AppColors.background);
     });
 
-    testWidgets('AppTextStyles provides Inter typography styles', (tester) async {
+    testWidgets('AppTextStyles provides Inter typography styles', (
+      tester,
+    ) async {
       expect(AppTextStyles.displayLarge.fontSize, 30);
       expect(AppTextStyles.headingLarge.fontSize, 18);
       expect(AppTextStyles.bodyMedium.fontSize, 14);
@@ -83,28 +85,24 @@ void main() {
     });
   });
 
-  group('3. Navigation & AppShell', () {
-    test('AppRoutes.getNavIndex correctly calculates active tab indices', () {
-      expect(AppRoutes.getNavIndex('/dashboard'), 0);
-      expect(AppRoutes.getNavIndex('/customers'), 1);
-      expect(AppRoutes.getNavIndex('/customers/123'), 1);
-      expect(AppRoutes.getNavIndex('/job-cards'), 2);
-      expect(AppRoutes.getNavIndex('/job-cards/new'), 2);
-      expect(AppRoutes.getNavIndex('/job-cards/456'), 2);
-
-      // Invoices is active tab index 3
-      expect(AppRoutes.getNavIndex('/quotations-invoices'), 3);
-      expect(AppRoutes.getNavIndex('/quotations-invoices/12'), 3);
-      expect(AppRoutes.getNavIndex('/invoices/12'), 3);
-
-      // Catalogue is active tab index 4
-      expect(AppRoutes.getNavIndex('/catalogue'), 4);
-
-      // Routes in More menu map to index 5 (More tab)
-      expect(AppRoutes.getNavIndex('/staff-advances'), 5);
-      expect(AppRoutes.getNavIndex('/reports'), 5);
-      expect(AppRoutes.getNavIndex('/showroom'), 5);
-      expect(AppRoutes.getNavIndex('/settings'), 5);
+  group('3. Billing Suite route mapping', () {
+    test('existing billing routes map to their own top tabs', () {
+      expect(AppRoutes.billingRouteFor('/job-cards'), AppRoutes.jobCards);
+      expect(AppRoutes.billingRouteFor('/job-cards/new'), AppRoutes.jobCards);
+      expect(AppRoutes.billingRouteFor('/job-cards/456'), AppRoutes.jobCards);
+      expect(AppRoutes.billingRouteFor('/customers'), AppRoutes.customers);
+      expect(AppRoutes.billingRouteFor('/customers/123'), AppRoutes.customers);
+      expect(
+        AppRoutes.billingRouteFor('/quotations-invoices'),
+        AppRoutes.quotationsInvoices,
+      );
+      expect(
+        AppRoutes.billingRouteFor('/quotations-invoices/12'),
+        AppRoutes.quotationsInvoices,
+      );
+      expect(AppRoutes.billingRouteFor('/catalogue'), AppRoutes.catalogue);
+      expect(AppRoutes.billingRouteFor('/staff'), isNull);
+      expect(AppRoutes.billingRouteFor('/reports'), isNull);
     });
   });
 
@@ -139,7 +137,9 @@ void main() {
   });
 
   group('5. Shared Foundation Widgets', () {
-    testWidgets('AppButton renders label and handles tap', (WidgetTester tester) async {
+    testWidgets('AppButton renders label and handles tap', (
+      WidgetTester tester,
+    ) async {
       bool tapped = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -163,10 +163,7 @@ void main() {
         MaterialApp(
           theme: AppTheme.light,
           home: const Scaffold(
-            body: AppButton(
-              label: 'Saving',
-              isLoading: true,
-            ),
+            body: AppButton(label: 'Saving', isLoading: true),
           ),
         ),
       );
@@ -175,7 +172,9 @@ void main() {
       expect(find.text('Saving'), findsOneWidget);
     });
 
-    testWidgets('AppTextField renders and receives text', (WidgetTester tester) async {
+    testWidgets('AppTextField renders and receives text', (
+      WidgetTester tester,
+    ) async {
       String changedText = '';
       await tester.pumpWidget(
         MaterialApp(
@@ -195,7 +194,9 @@ void main() {
       expect(changedText, 'John Doe');
     });
 
-    testWidgets('AppSearchField renders and receives search query', (WidgetTester tester) async {
+    testWidgets('AppSearchField renders and receives search query', (
+      WidgetTester tester,
+    ) async {
       String query = '';
       await tester.pumpWidget(
         MaterialApp(
@@ -214,7 +215,9 @@ void main() {
       expect(query, 'TN01AB1234');
     });
 
-    testWidgets('StatusBadge renders correct label and icons for statuses', (WidgetTester tester) async {
+    testWidgets('StatusBadge renders correct label and icons for statuses', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -235,7 +238,9 @@ void main() {
       expect(find.text('Completed'), findsOneWidget);
     });
 
-    testWidgets('AppKpiCard renders title, value and handles tap', (WidgetTester tester) async {
+    testWidgets('AppKpiCard renders title, value and handles tap', (
+      WidgetTester tester,
+    ) async {
       bool tapped = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -257,28 +262,36 @@ void main() {
       expect(tapped, true);
     });
 
-    testWidgets('AppLoadingState, AppEmptyState, AppErrorState render cleanly', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const Scaffold(
-            body: Column(
-              children: [
-                AppLoadingState(message: 'Loading records...'),
-                AppEmptyState(title: 'No Customers Found', message: 'Add a customer to get started'),
-                AppErrorState(message: 'Network error occurred'),
-              ],
+    testWidgets(
+      'AppLoadingState, AppEmptyState, AppErrorState render cleanly',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(
+              body: Column(
+                children: [
+                  AppLoadingState(message: 'Loading records...'),
+                  AppEmptyState(
+                    title: 'No Customers Found',
+                    message: 'Add a customer to get started',
+                  ),
+                  AppErrorState(message: 'Network error occurred'),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Loading records...'), findsOneWidget);
-      expect(find.text('No Customers Found'), findsOneWidget);
-      expect(find.text('Network error occurred'), findsOneWidget);
-    });
+        expect(find.text('Loading records...'), findsOneWidget);
+        expect(find.text('No Customers Found'), findsOneWidget);
+        expect(find.text('Network error occurred'), findsOneWidget);
+      },
+    );
 
-    testWidgets('AppSectionHeader and AppScreenScaffold render correctly', (WidgetTester tester) async {
+    testWidgets('AppSectionHeader and AppScreenScaffold render correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -298,7 +311,9 @@ void main() {
       expect(find.text('View All'), findsOneWidget);
     });
 
-    testWidgets('AppConfirmDialog renders with confirm and cancel buttons', (WidgetTester tester) async {
+    testWidgets('AppConfirmDialog renders with confirm and cancel buttons', (
+      WidgetTester tester,
+    ) async {
       bool confirmed = false;
       await tester.pumpWidget(
         MaterialApp(
@@ -316,7 +331,10 @@ void main() {
       );
 
       expect(find.text('Delete Item'), findsOneWidget);
-      expect(find.text('Are you sure you want to delete this?'), findsOneWidget);
+      expect(
+        find.text('Are you sure you want to delete this?'),
+        findsOneWidget,
+      );
       expect(find.text('Delete'), findsOneWidget);
       await tester.tap(find.text('Delete'));
       expect(confirmed, true);
@@ -324,12 +342,10 @@ void main() {
   });
 
   group('6. App Startup & Routing', () {
-    testWidgets('E6CarSpaApp starts up and mounts with ProviderScope', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: E6CarSpaApp(),
-        ),
-      );
+    testWidgets('E6CarSpaApp starts up and mounts with ProviderScope', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const ProviderScope(child: E6CarSpaApp()));
 
       await tester.pumpAndSettle();
       expect(find.byType(MaterialApp), findsOneWidget);

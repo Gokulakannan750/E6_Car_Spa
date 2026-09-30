@@ -16,8 +16,10 @@ class _StubInvoiceRepoForWhatsApp extends InvoiceRepository {
   bool shouldThrowOnWhatsApp = false;
   int whatsAppFetchCount = 0;
 
-  _StubInvoiceRepoForWhatsApp(this.invoiceToReturn, {this.whatsAppStatuses = const []})
-      : super(InvoiceApi(Dio()));
+  _StubInvoiceRepoForWhatsApp(
+    this.invoiceToReturn, {
+    this.whatsAppStatuses = const [],
+  }) : super(InvoiceApi(Dio()));
 
   @override
   Future<InvoiceListResponse> getInvoices({
@@ -28,7 +30,12 @@ class _StubInvoiceRepoForWhatsApp extends InvoiceRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    return const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const InvoiceListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -38,7 +45,10 @@ class _StubInvoiceRepoForWhatsApp extends InvoiceRepository {
   Future<Invoice> generateInvoice(String id) async => invoiceToReturn;
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     return PaymentDto(
       id: 'pay-stub',
       invoiceId: invoiceId,
@@ -50,7 +60,9 @@ class _StubInvoiceRepoForWhatsApp extends InvoiceRepository {
   }
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     whatsAppFetchCount++;
     if (shouldThrowOnWhatsApp) {
       throw Exception('WhatsApp API temporarily unavailable');
@@ -121,13 +133,23 @@ final _paidInvoice = Invoice(
 void main() {
   group('WhatsApp Notification Lifecycle — Polling & State Transitions', () {
     test('Invoice WhatsApp Pending → Skipped stops polling', () async {
-      final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Pending'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
+      final repo = _StubInvoiceRepoForWhatsApp(
+        _finalizedInvoice,
+        whatsAppStatuses: [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+      );
       addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      final notifier = container.read(
+        invoiceDetailsProvider('inv-fin-1').notifier,
+      );
       await notifier.loadDetails();
 
       var state = container.read(invoiceDetailsProvider('inv-fin-1'));
@@ -136,7 +158,10 @@ void main() {
 
       // Backend reports Skipped
       repo.whatsAppStatuses = [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Skipped'),
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Skipped',
+        ),
       ];
 
       await notifier.refreshWhatsAppStatus(silent: true);
@@ -148,14 +173,27 @@ void main() {
     });
 
     test('Payment WhatsApp Pending → Sent stops polling', () async {
-      final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Pending'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
+      final repo = _StubInvoiceRepoForWhatsApp(
+        _finalizedInvoice,
+        whatsAppStatuses: [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Pending',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+      );
       addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      final notifier = container.read(
+        invoiceDetailsProvider('inv-fin-1').notifier,
+      );
       await notifier.loadDetails();
 
       // Polling started because PaymentCompleted is non-terminal
@@ -163,8 +201,14 @@ void main() {
 
       // Backend reports PaymentCompleted Sent
       repo.whatsAppStatuses = [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Sent'),
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        ),
+        const InvoiceWhatsAppStatus(
+          messageType: 'PaymentCompleted',
+          status: 'Sent',
+        ),
       ];
 
       await notifier.refreshWhatsAppStatus(silent: true);
@@ -175,21 +219,37 @@ void main() {
     });
 
     test('Payment WhatsApp Pending → Failed stops polling', () async {
-      final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Processing'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
+      final repo = _StubInvoiceRepoForWhatsApp(
+        _finalizedInvoice,
+        whatsAppStatuses: [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Processing',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+      );
       addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      final notifier = container.read(
+        invoiceDetailsProvider('inv-fin-1').notifier,
+      );
       await notifier.loadDetails();
 
       expect(notifier.isPolling, true);
 
       // Backend reports PaymentCompleted Failed
       repo.whatsAppStatuses = [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        ),
         const InvoiceWhatsAppStatus(
           messageType: 'PaymentCompleted',
           status: 'Failed',
@@ -201,28 +261,50 @@ void main() {
 
       final state = container.read(invoiceDetailsProvider('inv-fin-1'));
       expect(state.whatsAppStatuses.last.isFailed, true);
-      expect(state.whatsAppStatuses.last.errorMessage, 'Meta API rate limit exceeded');
+      expect(
+        state.whatsAppStatuses.last.errorMessage,
+        'Meta API rate limit exceeded',
+      );
       expect(state.whatsAppStatuses.every((s) => s.isTerminal), true);
       expect(notifier.isPolling, false);
     });
 
     test('Payment WhatsApp Pending → Skipped stops polling', () async {
-      final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Pending'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
+      final repo = _StubInvoiceRepoForWhatsApp(
+        _finalizedInvoice,
+        whatsAppStatuses: [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Pending',
+          ),
+        ],
+      );
+      final container = ProviderContainer(
+        overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+      );
       addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+      final notifier = container.read(
+        invoiceDetailsProvider('inv-fin-1').notifier,
+      );
       await notifier.loadDetails();
 
       expect(notifier.isPolling, true);
 
       // Backend reports PaymentCompleted Skipped
       repo.whatsAppStatuses = [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Skipped'),
+        const InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        ),
+        const InvoiceWhatsAppStatus(
+          messageType: 'PaymentCompleted',
+          status: 'Skipped',
+        ),
       ];
 
       await notifier.refreshWhatsAppStatus(silent: true);
@@ -232,45 +314,68 @@ void main() {
       expect(notifier.isPolling, false);
     });
 
-    test('WhatsApp status API failure during polling does not crash or clear state', () async {
-      final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Pending'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+    test(
+      'WhatsApp status API failure during polling does not crash or clear state',
+      () async {
+        final repo = _StubInvoiceRepoForWhatsApp(
+          _finalizedInvoice,
+          whatsAppStatuses: [
+            const InvoiceWhatsAppStatus(
+              messageType: 'InvoiceFinalized',
+              status: 'Pending',
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      var state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      expect(state.whatsAppStatuses.length, 1);
-      expect(state.whatsAppStatuses.first.isPending, true);
+        var state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        expect(state.whatsAppStatuses.length, 1);
+        expect(state.whatsAppStatuses.first.isPending, true);
 
-      // API starts failing
-      repo.shouldThrowOnWhatsApp = true;
+        // API starts failing
+        repo.shouldThrowOnWhatsApp = true;
 
-      // Silent polling error should not crash or clear existing statuses
-      await notifier.refreshWhatsAppStatus(silent: true);
+        // Silent polling error should not crash or clear existing statuses
+        await notifier.refreshWhatsAppStatus(silent: true);
 
-      state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      // Existing statuses preserved (not cleared)
-      expect(state.whatsAppStatuses.length, 1);
-      expect(state.whatsAppStatuses.first.isPending, true);
-      // Invoice state intact
-      expect(state.invoice!.isFinalized, true);
-      expect(state.errorMessage, isNull);
+        state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        // Existing statuses preserved (not cleared)
+        expect(state.whatsAppStatuses.length, 1);
+        expect(state.whatsAppStatuses.first.isPending, true);
+        // Invoice state intact
+        expect(state.invoice!.isFinalized, true);
+        expect(state.errorMessage, isNull);
 
-      notifier.stopPolling();
-    });
+        notifier.stopPolling();
+      },
+    );
 
     test('polling stops after maximum attempts (15)', () {
       fakeAsync((async) {
-        final repo = _StubInvoiceRepoForWhatsApp(_finalizedInvoice, whatsAppStatuses: [
-          const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Pending'),
-        ]);
-        final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
+        final repo = _StubInvoiceRepoForWhatsApp(
+          _finalizedInvoice,
+          whatsAppStatuses: [
+            const InvoiceWhatsAppStatus(
+              messageType: 'InvoiceFinalized',
+              status: 'Pending',
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
 
-        final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
 
         // Flush microtasks to complete loadDetails (async constructor call)
         async.flushMicrotasks();
@@ -290,87 +395,129 @@ void main() {
       });
     });
 
-    test('InvoiceWhatsAppStatus model: isTerminal, displayType, displayStatus cover all states', () {
-      const pending = InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Pending');
-      expect(pending.isPending, true);
-      expect(pending.isTerminal, false);
-      expect(pending.displayType, 'Invoice');
-      expect(pending.displayStatus, 'Pending');
+    test(
+      'InvoiceWhatsAppStatus model: isTerminal, displayType, displayStatus cover all states',
+      () {
+        const pending = InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Pending',
+        );
+        expect(pending.isPending, true);
+        expect(pending.isTerminal, false);
+        expect(pending.displayType, 'Invoice');
+        expect(pending.displayStatus, 'Pending');
 
-      const sent = InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent');
-      expect(sent.isSent, true);
-      expect(sent.isTerminal, true);
-      expect(sent.displayType, 'Invoice');
+        const sent = InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Sent',
+        );
+        expect(sent.isSent, true);
+        expect(sent.isTerminal, true);
+        expect(sent.displayType, 'Invoice');
 
-      const failed = InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Failed');
-      expect(failed.isFailed, true);
-      expect(failed.isTerminal, true);
-      expect(failed.displayType, 'Receipt');
-
-      const skipped = InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Skipped');
-      expect(skipped.isSkipped, true);
-      expect(skipped.isTerminal, true);
-      expect(skipped.displayType, 'Receipt');
-      expect(skipped.displayStatus, 'Skipped');
-
-      const processing = InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Processing');
-      expect(processing.isProcessing, true);
-      expect(processing.isTerminal, false);
-
-      // Unknown messageType falls through to raw value
-      const unknown = InvoiceWhatsAppStatus(messageType: 'SomethingNew', status: 'Pending');
-      expect(unknown.displayType, 'SomethingNew');
-    });
-
-    test('WhatsApp failure does NOT corrupt successful financial state', () async {
-      // Start with a successfully paid invoice
-      final repo = _StubInvoiceRepoForWhatsApp(_paidInvoice, whatsAppStatuses: [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(messageType: 'PaymentCompleted', status: 'Pending'),
-      ]);
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
-
-      final notifier = container.read(invoiceDetailsProvider('inv-fin-1').notifier);
-      await notifier.loadDetails();
-
-      var state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      // Financial state is correct
-      expect(state.invoice!.isPaid, true);
-      expect(state.invoice!.paidAmount, 1180.0);
-      expect(state.invoice!.balanceAmount, 0.0);
-      expect(state.invoice!.isFinalized, true);
-
-      // WhatsApp payment notification fails
-      repo.whatsAppStatuses = [
-        const InvoiceWhatsAppStatus(messageType: 'InvoiceFinalized', status: 'Sent'),
-        const InvoiceWhatsAppStatus(
+        const failed = InvoiceWhatsAppStatus(
           messageType: 'PaymentCompleted',
           status: 'Failed',
-          errorMessage: 'Template not found',
-        ),
-      ];
+        );
+        expect(failed.isFailed, true);
+        expect(failed.isTerminal, true);
+        expect(failed.displayType, 'Receipt');
 
-      await notifier.refreshWhatsAppStatus(silent: true);
+        const skipped = InvoiceWhatsAppStatus(
+          messageType: 'PaymentCompleted',
+          status: 'Skipped',
+        );
+        expect(skipped.isSkipped, true);
+        expect(skipped.isTerminal, true);
+        expect(skipped.displayType, 'Receipt');
+        expect(skipped.displayStatus, 'Skipped');
 
-      state = container.read(invoiceDetailsProvider('inv-fin-1'));
-      // CRITICAL: Financial state must NOT be corrupted by WhatsApp failure
-      expect(state.invoice!.isPaid, true);
-      expect(state.invoice!.paidAmount, 1180.0);
-      expect(state.invoice!.balanceAmount, 0.0);
-      expect(state.invoice!.isFinalized, true);
-      expect(state.invoice!.totalAmount, 1180.0);
+        const processing = InvoiceWhatsAppStatus(
+          messageType: 'InvoiceFinalized',
+          status: 'Processing',
+        );
+        expect(processing.isProcessing, true);
+        expect(processing.isTerminal, false);
 
-      // WhatsApp failure is represented independently
-      final paymentStatus = state.whatsAppStatuses
-          .firstWhere((s) => s.messageType == 'PaymentCompleted');
-      expect(paymentStatus.isFailed, true);
-      expect(paymentStatus.errorMessage, 'Template not found');
+        // Unknown messageType falls through to raw value
+        const unknown = InvoiceWhatsAppStatus(
+          messageType: 'SomethingNew',
+          status: 'Pending',
+        );
+        expect(unknown.displayType, 'SomethingNew');
+      },
+    );
 
-      // Invoice notification still shows Sent
-      final invoiceStatus = state.whatsAppStatuses
-          .firstWhere((s) => s.messageType == 'InvoiceFinalized');
-      expect(invoiceStatus.isSent, true);
-    });
+    test(
+      'WhatsApp failure does NOT corrupt successful financial state',
+      () async {
+        // Start with a successfully paid invoice
+        final repo = _StubInvoiceRepoForWhatsApp(
+          _paidInvoice,
+          whatsAppStatuses: [
+            const InvoiceWhatsAppStatus(
+              messageType: 'InvoiceFinalized',
+              status: 'Sent',
+            ),
+            const InvoiceWhatsAppStatus(
+              messageType: 'PaymentCompleted',
+              status: 'Pending',
+            ),
+          ],
+        );
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
+
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-fin-1').notifier,
+        );
+        await notifier.loadDetails();
+
+        var state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        // Financial state is correct
+        expect(state.invoice!.isPaid, true);
+        expect(state.invoice!.paidAmount, 1180.0);
+        expect(state.invoice!.balanceAmount, 0.0);
+        expect(state.invoice!.isFinalized, true);
+
+        // WhatsApp payment notification fails
+        repo.whatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Failed',
+            errorMessage: 'Template not found',
+          ),
+        ];
+
+        await notifier.refreshWhatsAppStatus(silent: true);
+
+        state = container.read(invoiceDetailsProvider('inv-fin-1'));
+        // CRITICAL: Financial state must NOT be corrupted by WhatsApp failure
+        expect(state.invoice!.isPaid, true);
+        expect(state.invoice!.paidAmount, 1180.0);
+        expect(state.invoice!.balanceAmount, 0.0);
+        expect(state.invoice!.isFinalized, true);
+        expect(state.invoice!.totalAmount, 1180.0);
+
+        // WhatsApp failure is represented independently
+        final paymentStatus = state.whatsAppStatuses.firstWhere(
+          (s) => s.messageType == 'PaymentCompleted',
+        );
+        expect(paymentStatus.isFailed, true);
+        expect(paymentStatus.errorMessage, 'Template not found');
+
+        // Invoice notification still shows Sent
+        final invoiceStatus = state.whatsAppStatuses.firstWhere(
+          (s) => s.messageType == 'InvoiceFinalized',
+        );
+        expect(invoiceStatus.isSent, true);
+      },
+    );
   });
 }

@@ -37,10 +37,15 @@ class TestAuthNotifier extends StateNotifier<AuthState>
 
 class TestUsersNotifier extends StateNotifier<UsersState>
     implements UsersNotifier {
+  int loadUsersCallCount = 0;
+  bool lastShowLoading = true;
   TestUsersNotifier(super.initialState);
 
   @override
-  Future<void> loadUsers({bool showLoading = true}) async {}
+  Future<void> loadUsers({bool showLoading = true}) async {
+    loadUsersCallCount++;
+    lastShowLoading = showLoading;
+  }
 
   @override
   void setSearchQuery(String query) {
@@ -160,31 +165,29 @@ void main() {
           (ref) => TestUsersNotifier(usersState),
         ),
       ],
-      child: const MaterialApp(
-        home: UsersScreen(),
-      ),
+      child: const MaterialApp(home: UsersScreen()),
     );
   }
 
   group('UsersScreen Widget Tests', () {
-    testWidgets('Renders Access Restricted when user lacks users.view',
-        (tester) async {
+    testWidgets('Renders Access Restricted when user lacks users.view', (
+      tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(user: unauthorizedAuth));
       await tester.pumpAndSettle();
 
       expect(find.text('Access Restricted'), findsOneWidget);
       expect(
-        find.textContaining('You do not have permission to view or manage user accounts'),
+        find.textContaining(
+          'You do not have permission to view or manage user accounts',
+        ),
         findsOneWidget,
       );
     });
 
     testWidgets('Renders loading state', (tester) async {
       await tester.pumpWidget(
-        createTestWidget(
-          user: ownerAuth,
-          usersState: const UsersLoading(),
-        ),
+        createTestWidget(user: ownerAuth, usersState: const UsersLoading()),
       );
       await tester.pump();
 
@@ -204,8 +207,9 @@ void main() {
       expect(find.text('Network timeout'), findsOneWidget);
     });
 
-    testWidgets('Renders KPI metrics, user cards, and Add User FAB for Owner',
-        (tester) async {
+    testWidgets('Renders KPI metrics, user cards, and Add User FAB for Owner', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -219,10 +223,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        createTestWidget(
-          user: ownerAuth,
-          usersState: loadedState,
-        ),
+        createTestWidget(user: ownerAuth, usersState: loadedState),
       );
       await tester.pumpAndSettle();
 
@@ -249,10 +250,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        createTestWidget(
-          user: viewOnlyAuth,
-          usersState: loadedState,
-        ),
+        createTestWidget(user: viewOnlyAuth, usersState: loadedState),
       );
       await tester.pumpAndSettle();
 
@@ -267,16 +265,46 @@ void main() {
       );
 
       await tester.pumpWidget(
-        createTestWidget(
-          user: ownerAuth,
-          usersState: loadedState,
-        ),
+        createTestWidget(user: ownerAuth, usersState: loadedState),
       );
       await tester.pumpAndSettle();
 
       expect(find.byType(UserCard), findsOneWidget);
       expect(find.text('Priya Staff'), findsOneWidget);
       expect(find.text('Ramesh Manager'), findsNothing);
+    });
+
+    testWidgets('AutoRefresh triggers silent refresh on resume', (
+      tester,
+    ) async {
+      final loadedState = UsersLoaded(
+        users: sampleUsers,
+        permissionGroups: samplePermissions,
+        searchQuery: 'priya',
+      );
+      final testNotifier = TestUsersNotifier(loadedState);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authNotifierProvider.overrideWith(
+              (ref) => TestAuthNotifier(Authenticated(ownerAuth)),
+            ),
+            usersNotifierProvider.overrideWith((ref) => testNotifier),
+          ],
+          child: const MaterialApp(home: UsersScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final initialCount = testNotifier.loadUsersCallCount;
+
+      // Simulate app resuming
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(testNotifier.loadUsersCallCount, greaterThan(initialCount));
+      expect(testNotifier.lastShowLoading, false);
     });
   });
 }

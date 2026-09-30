@@ -17,10 +17,12 @@ class ObsoleteAdvanceBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<ObsoleteAdvanceBottomSheet> createState() => _ObsoleteAdvanceBottomSheetState();
+  State<ObsoleteAdvanceBottomSheet> createState() =>
+      _ObsoleteAdvanceBottomSheetState();
 }
 
-class _ObsoleteAdvanceBottomSheetState extends State<ObsoleteAdvanceBottomSheet> {
+class _ObsoleteAdvanceBottomSheetState
+    extends State<ObsoleteAdvanceBottomSheet> {
   final _customReasonController = TextEditingController();
   String _selectedReasonPreset = 'Wrongly entered';
   bool _isCustomReason = false;
@@ -48,7 +50,10 @@ class _ObsoleteAdvanceBottomSheetState extends State<ObsoleteAdvanceBottomSheet>
     final decimalPart = parts[1];
 
     final reg = RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))');
-    final formattedInt = integerPart.replaceAllMapped(reg, (Match m) => '${m[1]},');
+    final formattedInt = integerPart.replaceAllMapped(
+      reg,
+      (Match m) => '${m[1]},',
+    );
     return '₹$formattedInt.$decimalPart';
   }
 
@@ -124,154 +129,184 @@ class _ObsoleteAdvanceBottomSheetState extends State<ObsoleteAdvanceBottomSheet>
                   if (_errorMessage != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.error.withAlpha(80)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.error.withAlpha(80),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: AppColors.error,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
 
-            Text(
-              'Marking this advance obsolete will exclude it from all active financial balances and reports. This action cannot be undone.',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-
-            // Advance mini info
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
                   Text(
-                    widget.advance.staffName,
-                    style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    _formatCurrency(widget.advance.amount),
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.error,
+                    'Marking this advance obsolete will exclude it from all active financial balances and reports. This action cannot be undone.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Advance mini info
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.advance.staffName,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _formatCurrency(widget.advance.amount),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontFamily: 'monospace',
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Reason presets
+                  Text(
+                    'Reason for Obsoleting *',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _reasonPresets.map((preset) {
+                      final isSelected =
+                          (_isCustomReason && preset == 'Other (Custom)') ||
+                          (!_isCustomReason && _selectedReasonPreset == preset);
+                      return ChoiceChip(
+                        label: Text(preset),
+                        selected: isSelected,
+                        selectedColor: AppColors.error.withAlpha(20),
+                        backgroundColor: AppColors.surface,
+                        labelStyle: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? AppColors.error
+                              : AppColors.textPrimary,
+                        ),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppColors.error
+                              : AppColors.border,
+                        ),
+                        onSelected: _isLoading
+                            ? null
+                            : (selected) {
+                                if (selected) {
+                                  setState(() {
+                                    if (preset == 'Other (Custom)') {
+                                      _isCustomReason = true;
+                                    } else {
+                                      _isCustomReason = false;
+                                      _selectedReasonPreset = preset;
+                                    }
+                                  });
+                                }
+                              },
+                      );
+                    }).toList(),
+                  ),
+
+                  if (_isCustomReason) ...[
+                    const SizedBox(height: 10),
+                    AppTextField(
+                      controller: _customReasonController,
+                      hintText: 'Enter reason for obsoleting (min 3 chars)...',
+                      isEnabled: !_isLoading,
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+
+                  // Action Buttons (Cancel + Confirm Obsolete)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          key: const Key('modal_cancel_button'),
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  FocusScope.of(context).unfocus();
+                                  Navigator.of(context).pop();
+                                },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.borderDark),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: AppButton(
+                          label: 'Confirm Obsolete',
+                          icon: Icons.block_rounded,
+                          isLoading: _isLoading,
+                          variant: AppButtonVariant.danger,
+                          onPressed: _handleSubmit,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Reason presets
-            Text(
-              'Reason for Obsoleting *',
-              style: AppTextStyles.labelMedium.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: _reasonPresets.map((preset) {
-                final isSelected = (_isCustomReason && preset == 'Other (Custom)') ||
-                    (!_isCustomReason && _selectedReasonPreset == preset);
-                return ChoiceChip(
-                  label: Text(preset),
-                  selected: isSelected,
-                  selectedColor: AppColors.error.withAlpha(20),
-                  backgroundColor: AppColors.surface,
-                  labelStyle: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? AppColors.error : AppColors.textPrimary,
-                  ),
-                  side: BorderSide(
-                    color: isSelected ? AppColors.error : AppColors.border,
-                  ),
-                  onSelected: _isLoading
-                      ? null
-                      : (selected) {
-                          if (selected) {
-                            setState(() {
-                              if (preset == 'Other (Custom)') {
-                                _isCustomReason = true;
-                              } else {
-                                _isCustomReason = false;
-                                _selectedReasonPreset = preset;
-                              }
-                            });
-                          }
-                        },
-                );
-              }).toList(),
-            ),
-
-            if (_isCustomReason) ...[
-              const SizedBox(height: 10),
-              AppTextField(
-                controller: _customReasonController,
-                hintText: 'Enter reason for obsoleting (min 3 chars)...',
-                isEnabled: !_isLoading,
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // Action Buttons (Cancel + Confirm Obsolete)
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    key: const Key('modal_cancel_button'),
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            Navigator.of(context).pop();
-                          },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.borderDark),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: AppButton(
-                    label: 'Confirm Obsolete',
-                    icon: Icons.block_rounded,
-                    isLoading: _isLoading,
-                    variant: AppButtonVariant.danger,
-                    onPressed: _handleSubmit,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

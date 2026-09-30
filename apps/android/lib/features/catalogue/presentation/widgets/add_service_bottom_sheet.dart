@@ -13,27 +13,20 @@ import '../providers/catalogue_providers.dart';
 class AddServiceBottomSheet extends ConsumerStatefulWidget {
   final VoidCallback? onCreated;
 
-  const AddServiceBottomSheet({
-    super.key,
-    this.onCreated,
-  });
+  const AddServiceBottomSheet({super.key, this.onCreated});
 
-  static Future<bool?> show(
-    BuildContext context, {
-    VoidCallback? onCreated,
-  }) {
+  static Future<bool?> show(BuildContext context, {VoidCallback? onCreated}) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AddServiceBottomSheet(
-        onCreated: onCreated,
-      ),
+      builder: (context) => AddServiceBottomSheet(onCreated: onCreated),
     );
   }
 
   @override
-  ConsumerState<AddServiceBottomSheet> createState() => _AddServiceBottomSheetState();
+  ConsumerState<AddServiceBottomSheet> createState() =>
+      _AddServiceBottomSheetState();
 }
 
 class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
@@ -46,7 +39,6 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
   bool _isActive = true;
   bool _isSubmitting = false;
   String? _errorMessage;
-
 
   @override
   void dispose() {
@@ -80,7 +72,9 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
         name: _nameController.text.trim(),
         category: _selectedCategory!.trim(),
         price: price,
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
         taxPercentage: 18.0,
         isActive: _isActive,
       );
@@ -98,8 +92,8 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
         _errorMessage = e.statusCode == 403
             ? 'Permission denied. You do not have permission to create catalogue services.'
             : e.statusCode == 409
-                ? 'A service with this name already exists.'
-                : e.message;
+            ? 'A service with this name already exists.'
+            : e.message;
       });
     } catch (e) {
       if (!mounted) return;
@@ -168,7 +162,9 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.errorDark,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -181,8 +177,10 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                       hint: 'e.g. Premium Foam Wash',
                       prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Service name is required';
-                        if (val.trim().length > 100) return 'Name cannot exceed 100 characters';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Service name is required';
+                        if (val.trim().length > 100)
+                          return 'Name cannot exceed 100 characters';
                         return null;
                       },
                     ),
@@ -190,22 +188,35 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
 
                     // Category Dropdown
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedCategory != null && categoryList.contains(_selectedCategory)
+                      initialValue:
+                          _selectedCategory != null &&
+                              categoryList.contains(_selectedCategory)
                           ? _selectedCategory
-                          : (categoryList.isNotEmpty ? categoryList.first : null),
+                          : (categoryList.isNotEmpty
+                                ? categoryList.first
+                                : null),
                       decoration: InputDecoration(
                         labelText: 'Category *',
-                        prefixIcon: const Icon(Icons.category_outlined, color: AppColors.textSecondary),
+                        prefixIcon: const Icon(
+                          Icons.category_outlined,
+                          color: AppColors.textSecondary,
+                        ),
                         border: const OutlineInputBorder(),
                         enabledBorder: const OutlineInputBorder(
                           borderSide: BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: AppColors.accent, width: 2),
+                          borderSide: BorderSide(
+                            color: AppColors.accent,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: AppColors.card,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       items: categoryList.map((cat) {
                         return DropdownMenuItem<String>(
@@ -219,7 +230,8 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                         });
                       },
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Category is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Category is required';
                         return null;
                       },
                     ),
@@ -230,10 +242,13 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                       controller: _priceController,
                       label: 'Price (₹) *',
                       hint: 'e.g. 650',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       prefixIcon: const Icon(Icons.currency_rupee),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Price is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Price is required';
                         final num = double.tryParse(val.trim());
                         if (num == null || num < 0) return 'Enter valid amount';
                         return null;
@@ -259,7 +274,10 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
 
                     // Active Toggle
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
@@ -273,11 +291,17 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                             children: [
                               Text(
                                 'Service Active Status',
-                                style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w600),
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               Text(
-                                _isActive ? 'Available for job card booking' : 'Hidden from new job cards',
-                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                _isActive
+                                    ? 'Available for job card booking'
+                                    : 'Hidden from new job cards',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -305,12 +329,19 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                                   },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: AppColors.borderDark),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             child: const Text(
                               'Cancel',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ),

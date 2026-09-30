@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_shell.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -46,25 +47,23 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(invoiceListProvider);
     final notifier = ref.read(invoiceListProvider.notifier);
+    final inBillingSuite = BillingSuiteScope.maybeOf(context);
 
     final scaffold = Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          key: const Key('invoices_back_button'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to Dashboard',
-          onPressed: () => context.go(AppRoutes.dashboard),
-        ),
-        title: Text(
-          'Invoices',
-          style: AppTextStyles.appBarTitle,
-        ),
-        centerTitle: false,
-        actions: const [
-          AppLogoutAction(),
-        ],
-      ),
+      appBar: inBillingSuite
+          ? null
+          : AppBar(
+              leading: IconButton(
+                key: const Key('invoices_back_button'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to Dashboard',
+                onPressed: () => context.go(AppRoutes.dashboard),
+              ),
+              title: Text('Invoices', style: AppTextStyles.appBarTitle),
+              centerTitle: false,
+              actions: const [AppLogoutAction()],
+            ),
       body: Column(
         children: [
           // ── Search & Status Filters Bar ─────────────────────────────────
@@ -90,17 +89,47 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip('All Invoices', null, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'All Invoices',
+                        null,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Draft', InvoiceStatus.draft, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'Draft',
+                        InvoiceStatus.draft,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Payment Pending', InvoiceStatus.generated, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'Payment Pending',
+                        InvoiceStatus.generated,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Partially Paid', InvoiceStatus.partiallyPaid, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'Partially Paid',
+                        InvoiceStatus.partiallyPaid,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Paid', InvoiceStatus.paid, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'Paid',
+                        InvoiceStatus.paid,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                       const SizedBox(width: 6),
-                      _buildFilterChip('Cancelled', InvoiceStatus.cancelled, state.selectedStatus, notifier),
+                      _buildFilterChip(
+                        'Cancelled',
+                        InvoiceStatus.cancelled,
+                        state.selectedStatus,
+                        notifier,
+                      ),
                     ],
                   ),
                 ),
@@ -110,12 +139,12 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
           const Divider(height: 1, color: AppColors.border),
 
           // ── Main Content Area ─────────────────────────────────────────────
-          Expanded(
-            child: _buildContent(context, state, notifier),
-          ),
+          Expanded(child: _buildContent(context, state, notifier)),
         ],
       ),
     );
+
+    if (inBillingSuite) return scaffold;
 
     return PopScope(
       canPop: false,
@@ -181,10 +210,12 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
             height: MediaQuery.of(context).size.height * 0.6,
             alignment: Alignment.center,
             child: AppEmptyState(
-              title: state.searchQuery.isNotEmpty || state.selectedStatus != null
+              title:
+                  state.searchQuery.isNotEmpty || state.selectedStatus != null
                   ? 'No matching invoices'
                   : 'No Invoices Yet',
-              message: state.searchQuery.isNotEmpty || state.selectedStatus != null
+              message:
+                  state.searchQuery.isNotEmpty || state.selectedStatus != null
                   ? 'Try adjusting your search query or status filter.'
                   : 'Invoices converted from Job Cards will appear here.',
               icon: Icons.receipt_long_outlined,

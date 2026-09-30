@@ -42,7 +42,8 @@ class GstReportScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               gstAsync.when(
-                loading: () => const AppLoadingState(message: 'Calculating GST report...'),
+                loading: () =>
+                    const AppLoadingState(message: 'Calculating GST report...'),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(gstReportProvider),
@@ -56,7 +57,9 @@ class GstReportScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -85,18 +88,36 @@ class GstReportScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Taxable Base', _formatCurrency(report.taxableBase)),
-                                _buildSummaryItem('CGST (9%)', _formatCurrency(report.cgstAmount)),
-                                _buildSummaryItem('SGST (9%)', _formatCurrency(report.sgstAmount)),
+                                _buildSummaryItem(
+                                  'Taxable Base',
+                                  _formatCurrency(report.taxableBase),
+                                ),
+                                _buildSummaryItem(
+                                  'CGST (9%)',
+                                  _formatCurrency(report.cgstAmount),
+                                ),
+                                _buildSummaryItem(
+                                  'SGST (9%)',
+                                  _formatCurrency(report.sgstAmount),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Invoices', report.invoiceCount.toString()),
-                                _buildSummaryItem('Gross Subtotal', _formatCurrency(report.grossSubtotal)),
-                                _buildSummaryItem('Total Discount', _formatCurrency(report.totalDiscount)),
+                                _buildSummaryItem(
+                                  'Invoices',
+                                  report.invoiceCount.toString(),
+                                ),
+                                _buildSummaryItem(
+                                  'Gross Subtotal',
+                                  _formatCurrency(report.grossSubtotal),
+                                ),
+                                _buildSummaryItem(
+                                  'Total Discount',
+                                  _formatCurrency(report.totalDiscount),
+                                ),
                               ],
                             ),
                           ],
@@ -118,7 +139,8 @@ class GstReportScreen extends ConsumerWidget {
                       if (report.invoices.isEmpty)
                         const AppEmptyState(
                           title: 'No GST invoices found',
-                          message: 'No finalized invoices found in this date range.',
+                          message:
+                              'No finalized invoices found in this date range.',
                           icon: Icons.account_balance_outlined,
                         )
                       else
@@ -126,7 +148,8 @@ class GstReportScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: report.invoices.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final inv = report.invoices[index];
                             final dateFormat = DateFormat('dd MMM yyyy');
@@ -135,14 +158,17 @@ class GstReportScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Invoice',
@@ -153,19 +179,30 @@ class GstReportScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: inv.isGstEnabled
-                                              ? AppColors.primary.withValues(alpha: 0.1)
+                                              ? AppColors.primary.withValues(
+                                                  alpha: 0.1,
+                                                )
                                               : AppColors.surfaceAlt,
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         child: Text(
-                                          inv.isGstEnabled ? 'GST Enabled' : 'Non-GST',
+                                          inv.isGstEnabled
+                                              ? 'GST Enabled'
+                                              : 'Non-GST',
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
-                                            color: inv.isGstEnabled ? AppColors.primary : AppColors.textTertiary,
+                                            color: inv.isGstEnabled
+                                                ? AppColors.primary
+                                                : AppColors.textTertiary,
                                           ),
                                         ),
                                       ),
@@ -182,25 +219,43 @@ class GstReportScreen extends ConsumerWidget {
                                   ),
                                   Text(
                                     dateFormat.format(inv.invoiceDate),
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textTertiary,
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Divider(color: AppColors.border, height: 1),
+                                  const Divider(
+                                    color: AppColors.border,
+                                    height: 1,
+                                  ),
                                   const SizedBox(height: 6),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         'Taxable: ${_formatCurrency(inv.taxableAmount)}',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textSecondary,
+                                        ),
                                       ),
                                       Text(
                                         'GST: ${_formatCurrency(inv.gstAmount)}',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                       Text(
                                         'Total: ${_formatCurrency(inv.totalAmount)}',
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ],
                                   ),

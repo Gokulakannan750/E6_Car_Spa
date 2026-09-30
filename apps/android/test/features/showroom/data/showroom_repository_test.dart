@@ -56,7 +56,10 @@ class FakeShowroomApi extends ShowroomApi {
   }
 
   @override
-  Future<Showroom> updateShowroom(String id, UpdateShowroomRequest request) async {
+  Future<Showroom> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
     final idx = showrooms.indexWhere((s) => s.id == id);
     final prev = showrooms[idx];
     final cleanGstin = (request.gstin == null || request.gstin!.trim().isEmpty)
@@ -81,9 +84,11 @@ class FakeShowroomApi extends ShowroomApi {
     showrooms[idx] = prev.copyWith(isActive: !prev.isActive);
   }
 
-
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     final sr = showrooms.firstWhere((s) => s.id == showroomId);
     final list = assignments[showroomId] ?? [];
     return DailyStaffResponse(
@@ -142,21 +147,24 @@ void main() {
       expect(list.first.name, 'Anna Nagar');
     });
 
-    test('createShowroom adds new showroom to list with optional GSTIN', () async {
-      final created = await repo.createShowroom(
-        const CreateShowroomRequest(
-          name: 'Velachery Hub',
-          address: 'Velachery Main Rd',
-          phone: '9840112233',
-          gstin: '33aaaaa0000a1z5',
-        ),
-      );
+    test(
+      'createShowroom adds new showroom to list with optional GSTIN',
+      () async {
+        final created = await repo.createShowroom(
+          const CreateShowroomRequest(
+            name: 'Velachery Hub',
+            address: 'Velachery Main Rd',
+            phone: '9840112233',
+            gstin: '33aaaaa0000a1z5',
+          ),
+        );
 
-      expect(created.name, 'Velachery Hub');
-      expect(created.gstin, '33AAAAA0000A1Z5');
-      final list = await repo.getShowrooms();
-      expect(list.length, 2);
-    });
+        expect(created.name, 'Velachery Hub');
+        expect(created.gstin, '33AAAAA0000A1Z5');
+        final list = await repo.getShowrooms();
+        expect(list.length, 2);
+      },
+    );
 
     test('updateShowroom modifies showroom details and GSTIN', () async {
       final updated = await repo.updateShowroom(
@@ -191,30 +199,39 @@ void main() {
       expect(fetched.isActive, true);
     });
 
-    test('assignDailyStaff and removeDailyStaff manage roster correctly', () async {
-      final assignment = await repo.assignDailyStaff(
-        'sr-1',
-        CreateDailyStaffAssignmentRequest(
-          staffId: 'staff-99',
-          date: DateTime(2026, 8, 26),
-          vehiclesAttended: 3,
-        ),
-      );
+    test(
+      'assignDailyStaff and removeDailyStaff manage roster correctly',
+      () async {
+        final assignment = await repo.assignDailyStaff(
+          'sr-1',
+          CreateDailyStaffAssignmentRequest(
+            staffId: 'staff-99',
+            date: DateTime(2026, 8, 26),
+            vehiclesAttended: 3,
+          ),
+        );
 
-      expect(assignment.staffId, 'staff-99');
-      var dailyRoster = await repo.getDailyStaff('sr-1', DateTime(2026, 8, 26));
-      expect(dailyRoster.staffAssignments.length, 1);
-      expect(dailyRoster.totalVehiclesAttended, 3);
+        expect(assignment.staffId, 'staff-99');
+        var dailyRoster = await repo.getDailyStaff(
+          'sr-1',
+          DateTime(2026, 8, 26),
+        );
+        expect(dailyRoster.staffAssignments.length, 1);
+        expect(dailyRoster.totalVehiclesAttended, 3);
 
-      await repo.removeDailyStaff(assignment.id);
-      dailyRoster = await repo.getDailyStaff('sr-1', DateTime(2026, 8, 26));
-      expect(dailyRoster.staffAssignments.isEmpty, true);
-    });
+        await repo.removeDailyStaff(assignment.id);
+        dailyRoster = await repo.getDailyStaff('sr-1', DateTime(2026, 8, 26));
+        expect(dailyRoster.staffAssignments.isEmpty, true);
+      },
+    );
 
-    test('verifies showroom deletion is completely removed from Android repository and API contract', () {
-      // Showroom deletion has been completely removed across ShowroomApi, ShowroomRepository, and ShowroomsNotifier.
-      // Showrooms cannot be deleted; lifecycle is strictly managed via Active/Inactive status.
-      expect(repo, isA<ShowroomRepository>());
-    });
+    test(
+      'verifies showroom deletion is completely removed from Android repository and API contract',
+      () {
+        // Showroom deletion has been completely removed across ShowroomApi, ShowroomRepository, and ShowroomsNotifier.
+        // Showrooms cannot be deleted; lifecycle is strictly managed via Active/Inactive status.
+        expect(repo, isA<ShowroomRepository>());
+      },
+    );
   });
 }

@@ -18,7 +18,9 @@ class FakeInvoiceApiForBottomBarTest extends InvoiceApi {
   }
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     return const [];
   }
 }
@@ -55,19 +57,14 @@ Invoice _createTestInvoice({required double balanceAmount}) {
 
 void main() {
   group('Invoice Details Bottom Action Bar Overflow & Responsiveness Tests', () {
-    final amountsToTest = [
-      1000.0,
-      19560.80,
-      100000.0,
-      1050000.0,
-    ];
+    final amountsToTest = [1000.0, 19560.80, 100000.0, 1050000.0];
 
     final screenSizesToTest = [
-      const Size(320, 568),  // Small/legacy Android
-      const Size(360, 800),  // Standard compact Android
-      const Size(390, 844),  // Modern standard Android
+      const Size(320, 568), // Small/legacy Android
+      const Size(360, 800), // Standard compact Android
+      const Size(390, 844), // Modern standard Android
       const Size(411.4, 823), // Pixel emulator / standard large
-      const Size(480, 854),  // Wide Android
+      const Size(480, 854), // Wide Android
     ];
 
     for (final size in screenSizesToTest) {
@@ -90,9 +87,7 @@ void main() {
 
             await tester.pumpWidget(
               ProviderScope(
-                overrides: [
-                  invoiceApiProvider.overrideWithValue(fakeApi),
-                ],
+                overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
                 child: const MaterialApp(
                   home: InvoiceDetailsScreen(invoiceId: 'inv-test'),
                 ),
@@ -105,11 +100,15 @@ void main() {
             expect(captured, isNull);
 
             // Verify both buttons are present and visible
-            expect(find.byKey(const Key('print_invoice_bottom_button')), findsOneWidget);
+            expect(
+              find.byKey(const Key('print_invoice_bottom_button')),
+              findsOneWidget,
+            );
             expect(find.text('Print'), findsOneWidget);
             expect(find.byIcon(Icons.print_outlined), findsWidgets);
 
-            final expectedLabel = 'Record Payment (₹${amount.toStringAsFixed(2)})';
+            final expectedLabel =
+                'Record Payment (₹${amount.toStringAsFixed(2)})';
             expect(find.text(expectedLabel), findsOneWidget);
             expect(find.byIcon(Icons.payments_outlined), findsOneWidget);
           },
@@ -117,36 +116,37 @@ void main() {
       }
     }
 
-    testWidgets('Record Payment button is tappable and opens RecordPaymentBottomSheet', (tester) async {
-      final fakeApi = FakeInvoiceApiForBottomBarTest();
-      fakeApi.mockInvoice = _createTestInvoice(balanceAmount: 19560.80);
+    testWidgets(
+      'Record Payment button is tappable and opens RecordPaymentBottomSheet',
+      (tester) async {
+        final fakeApi = FakeInvoiceApiForBottomBarTest();
+        fakeApi.mockInvoice = _createTestInvoice(balanceAmount: 19560.80);
 
-      tester.view.physicalSize = const Size(411.4, 823);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+        tester.view.physicalSize = const Size(411.4, 823);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test'),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test'),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final recordPaymentFinder = find.text('Record Payment (₹19560.80)');
-      expect(recordPaymentFinder, findsOneWidget);
+        final recordPaymentFinder = find.text('Record Payment (₹19560.80)');
+        expect(recordPaymentFinder, findsOneWidget);
 
-      await tester.tap(recordPaymentFinder);
-      await tester.pumpAndSettle();
+        await tester.tap(recordPaymentFinder);
+        await tester.pumpAndSettle();
 
-      // Verify the Record Payment bottom sheet appears
-      expect(find.text('Record Payment'), findsWidgets);
-    });
+        // Verify the Record Payment bottom sheet appears
+        expect(find.text('Record Payment'), findsWidgets);
+      },
+    );
 
     testWidgets('Print button is tappable and triggers dialog', (tester) async {
       final fakeApi = FakeInvoiceApiForBottomBarTest();
@@ -158,9 +158,7 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
+          overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
           child: const MaterialApp(
             home: InvoiceDetailsScreen(invoiceId: 'inv-test'),
           ),

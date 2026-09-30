@@ -11,7 +11,9 @@ final staffAdvancesApiProvider = Provider<StaffAdvancesApi>((ref) {
   return StaffAdvancesApi(dio);
 });
 
-final staffAdvancesRepositoryProvider = Provider<StaffAdvancesRepository>((ref) {
+final staffAdvancesRepositoryProvider = Provider<StaffAdvancesRepository>((
+  ref,
+) {
   final api = ref.watch(staffAdvancesApiProvider);
   return StaffAdvancesRepository(api);
 });
@@ -53,7 +55,9 @@ class StaffAdvancesRepository {
     }
   }
 
-  Future<StaffAdvance> createStaffAdvance(CreateStaffAdvanceRequest request) async {
+  Future<StaffAdvance> createStaffAdvance(
+    CreateStaffAdvanceRequest request,
+  ) async {
     try {
       return await _api.createStaffAdvance(request);
     } on DioException catch (e) {
@@ -69,7 +73,10 @@ class StaffAdvancesRepository {
     }
   }
 
-  Future<StaffAdvance> obsoleteStaffAdvance(String id, ObsoleteStaffAdvanceRequest request) async {
+  Future<StaffAdvance> obsoleteStaffAdvance(
+    String id,
+    ObsoleteStaffAdvanceRequest request,
+  ) async {
     try {
       return await _api.obsoleteStaffAdvance(id, request);
     } on DioException catch (e) {

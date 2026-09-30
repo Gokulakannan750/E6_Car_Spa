@@ -64,7 +64,11 @@ void main() {
       final container = createTestContainer();
       addTearDown(container.dispose);
 
-      const customer = Customer(id: 'c1', name: 'John Doe', phoneNumber: '1234567890');
+      const customer = Customer(
+        id: 'c1',
+        name: 'John Doe',
+        phoneNumber: '1234567890',
+      );
       const vehicle = Vehicle(
         id: 'v1',
         registrationNumber: 'TN01AB1234',
@@ -82,71 +86,78 @@ void main() {
       expect(state.canProceedToServices, true);
     });
 
-    test('Adding and modifying services computes accurate display previews', () {
-      final container = createTestContainer();
-      addTearDown(container.dispose);
+    test(
+      'Adding and modifying services computes accurate display previews',
+      () {
+        final container = createTestContainer();
+        addTearDown(container.dispose);
 
-      const svc1 = Service(
-        id: 's1',
-        name: 'Foam Wash',
-        price: 500.0,
-        taxPercentage: 18.0,
-        isActive: true,
-      );
+        const svc1 = Service(
+          id: 's1',
+          name: 'Foam Wash',
+          price: 500.0,
+          taxPercentage: 18.0,
+          isActive: true,
+        );
 
-      const svc2 = Service(
-        id: 's2',
-        name: 'Interior Detailing',
-        price: 1000.0,
-        taxPercentage: 18.0,
-        isActive: true,
-      );
+        const svc2 = Service(
+          id: 's2',
+          name: 'Interior Detailing',
+          price: 1000.0,
+          taxPercentage: 18.0,
+          isActive: true,
+        );
 
-      final notifier = container.read(newJobCardProvider.notifier);
+        final notifier = container.read(newJobCardProvider.notifier);
 
-      // Add svc1
-      notifier.addService(svc1);
-      var state = container.read(newJobCardProvider);
-      expect(state.selectedServices.length, 1);
-      expect(state.previewSubtotal, 500.0);
-      expect(state.previewTax, 90.0); // 18% of 500
-      expect(state.previewTotal, 590.0);
-      expect(state.canProceedToReview, true);
+        // Add svc1
+        notifier.addService(svc1);
+        var state = container.read(newJobCardProvider);
+        expect(state.selectedServices.length, 1);
+        expect(state.previewSubtotal, 500.0);
+        expect(state.previewTax, 90.0); // 18% of 500
+        expect(state.previewTotal, 590.0);
+        expect(state.canProceedToReview, true);
 
-      // Increase quantity of svc1 to 2
-      notifier.updateQuantity('s1', 2);
-      state = container.read(newJobCardProvider);
-      expect(state.previewSubtotal, 1000.0);
-      expect(state.previewTax, 180.0);
-      expect(state.previewTotal, 1180.0);
+        // Increase quantity of svc1 to 2
+        notifier.updateQuantity('s1', 2);
+        state = container.read(newJobCardProvider);
+        expect(state.previewSubtotal, 1000.0);
+        expect(state.previewTax, 180.0);
+        expect(state.previewTotal, 1180.0);
 
-      // Add svc2
-      notifier.addService(svc2);
-      state = container.read(newJobCardProvider);
-      expect(state.previewSubtotal, 2000.0); // 1000 + 1000
-      expect(state.previewTax, 360.0); // 180 + 180
-      expect(state.previewTotal, 2360.0);
+        // Add svc2
+        notifier.addService(svc2);
+        state = container.read(newJobCardProvider);
+        expect(state.previewSubtotal, 2000.0); // 1000 + 1000
+        expect(state.previewTax, 360.0); // 180 + 180
+        expect(state.previewTotal, 2360.0);
 
-      // Disable GST
-      notifier.setGstEnabled(false);
-      state = container.read(newJobCardProvider);
-      expect(state.isGstEnabled, false);
-      expect(state.previewSubtotal, 2000.0);
-      expect(state.previewTax, 0.0);
-      expect(state.previewTotal, 2000.0);
+        // Disable GST
+        notifier.setGstEnabled(false);
+        state = container.read(newJobCardProvider);
+        expect(state.isGstEnabled, false);
+        expect(state.previewSubtotal, 2000.0);
+        expect(state.previewTax, 0.0);
+        expect(state.previewTotal, 2000.0);
 
-      // Remove svc1
-      notifier.removeService('s1');
-      state = container.read(newJobCardProvider);
-      expect(state.selectedServices.containsKey('s1'), false);
-      expect(state.previewSubtotal, 1000.0);
-    });
+        // Remove svc1
+        notifier.removeService('s1');
+        state = container.read(newJobCardProvider);
+        expect(state.selectedServices.containsKey('s1'), false);
+        expect(state.previewSubtotal, 1000.0);
+      },
+    );
 
     test('Reset clears state back to clean step 0', () {
       final container = createTestContainer();
       addTearDown(container.dispose);
 
-      const customer = Customer(id: 'c1', name: 'John Doe', phoneNumber: '1234567890');
+      const customer = Customer(
+        id: 'c1',
+        name: 'John Doe',
+        phoneNumber: '1234567890',
+      );
       final notifier = container.read(newJobCardProvider.notifier);
       notifier.selectCustomer(customer, []);
       notifier.setStep(1);

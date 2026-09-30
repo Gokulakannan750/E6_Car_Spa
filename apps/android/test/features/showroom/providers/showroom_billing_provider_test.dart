@@ -17,10 +17,14 @@ class FakeBillingApi extends ShowroomApi {
   bool deletePaymentCalled = false;
 
   @override
-  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async => [];
+  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async =>
+      [];
 
   @override
-  Future<ShowroomDailyBill> getShowroomDailyBill(String showroomId, DateTime date) async {
+  Future<ShowroomDailyBill> getShowroomDailyBill(
+    String showroomId,
+    DateTime date,
+  ) async {
     return returnBill!;
   }
 
@@ -40,7 +44,10 @@ class FakeBillingApi extends ShowroomApi {
     RecordShowroomPaymentRequest request,
   ) async {
     if (throwOnPayment) {
-      throw const ApiException(message: 'Payment amount exceeds balance', statusCode: 400);
+      throw const ApiException(
+        message: 'Payment amount exceeds balance',
+        statusCode: 400,
+      );
     }
     return returnBill!;
   }
@@ -123,12 +130,12 @@ void main() {
     fakeApi.returnSummary = testSummary;
 
     container = ProviderContainer(
-      overrides: [
-        showroomApiProvider.overrideWithValue(fakeApi),
-      ],
+      overrides: [showroomApiProvider.overrideWithValue(fakeApi)],
     );
-    subscription =
-        container.listen(showroomBillingProvider('sr-1'), (prev, next) {});
+    subscription = container.listen(
+      showroomBillingProvider('sr-1'),
+      (prev, next) {},
+    );
   });
 
   tearDown(() {
@@ -190,7 +197,10 @@ void main() {
     });
 
     test('setDailyBill updates daily bill on success', () async {
-      const request = SetShowroomDailyBillRequest(amount: 7000.0, notes: 'Full wash combo');
+      const request = SetShowroomDailyBillRequest(
+        amount: 7000.0,
+        notes: 'Full wash combo',
+      );
       fakeApi.returnBill = ShowroomDailyBill(
         id: 'bill-1',
         showroomId: 'sr-1',

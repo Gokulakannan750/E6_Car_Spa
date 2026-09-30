@@ -364,7 +364,9 @@ export default function JobCardDetails() {
 				discountAmount: s.discountAmount ?? 0,
 			})));
 			await queryClient.invalidateQueries({ queryKey: ['job-card', id] });
+			await queryClient.invalidateQueries({ queryKey: ['jobCard', id] });
 			await queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			await queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 			setIsEditing(false);
 		} catch (err: unknown) {
 			const errorMsg = (err && typeof err === 'object' && 'message' in err)
@@ -375,7 +377,9 @@ export default function JobCardDetails() {
 			if (errorMsg.toLowerCase().includes('locked') || errorMsg.toLowerCase().includes('invoice')) {
 				setIsEditing(false);
 				await queryClient.invalidateQueries({ queryKey: ['job-card', id] });
+				await queryClient.invalidateQueries({ queryKey: ['jobCard', id] });
 				await queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+				await queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 			}
 		} finally {
 			setIsSaving(false);
@@ -543,8 +547,17 @@ export default function JobCardDetails() {
 									</button>
 								) : (
 									<button
-										onClick={() => outsideJobsRef.current?.openSendModal()}
-										className="flex items-center gap-1.5 border border-secondary text-secondary font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-secondary/10 transition-colors"
+										disabled={isLocked}
+										onClick={() => {
+											if (isLocked) return;
+											outsideJobsRef.current?.openSendModal();
+										}}
+										className={
+											isLocked
+												? 'flex items-center gap-1.5 border border-outline-variant text-on-surface-variant/40 font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded cursor-not-allowed opacity-60'
+												: 'flex items-center gap-1.5 border border-secondary text-secondary font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-secondary/10 transition-colors'
+										}
+										title={isLocked ? 'Job Card is locked because an invoice has been generated.' : undefined}
 										data-testid="header-btn-send-outside"
 									>
 										<Truck className="w-4 h-4" />

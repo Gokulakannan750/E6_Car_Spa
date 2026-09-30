@@ -97,7 +97,10 @@ class FakeCustomerApi extends CustomerApi {
   }
 
   @override
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
     if (errorToThrow != null) throw errorToThrow!;
     return mockUpdatedCustomer ??
         Customer(
@@ -135,62 +138,81 @@ void main() {
       vehicleCount: 2,
     );
 
-    test('getCustomers forwards pagination and query parameters correctly', () async {
-      fakeApi.mockListResponse = const CustomerListResponse(
-        items: [sampleCustomer],
-        totalCount: 1,
-        page: 2,
-        pageSize: 15,
-      );
+    test(
+      'getCustomers forwards pagination and query parameters correctly',
+      () async {
+        fakeApi.mockListResponse = const CustomerListResponse(
+          items: [sampleCustomer],
+          totalCount: 1,
+          page: 2,
+          pageSize: 15,
+        );
 
-      final result = await repository.getCustomers(page: 2, pageSize: 15, search: 'Priya');
+        final result = await repository.getCustomers(
+          page: 2,
+          pageSize: 15,
+          search: 'Priya',
+        );
 
-      expect(fakeApi.lastPage, 2);
-      expect(fakeApi.lastPageSize, 15);
-      expect(fakeApi.lastSearch, 'Priya');
-      expect(result.items.length, 1);
-      expect(result.items.first.name, 'Priya Sharma');
-      expect(result.totalCount, 1);
-    });
+        expect(fakeApi.lastPage, 2);
+        expect(fakeApi.lastPageSize, 15);
+        expect(fakeApi.lastSearch, 'Priya');
+        expect(result.items.length, 1);
+        expect(result.items.first.name, 'Priya Sharma');
+        expect(result.totalCount, 1);
+      },
+    );
 
-    test('getCustomerById returns customer on success and maps 404 to NotFoundException', () async {
-      fakeApi.mockCustomer = sampleCustomer;
-      final customer = await repository.getCustomerById('cust-100');
-      expect(customer.id, 'cust-100');
-      expect(customer.name, 'Priya Sharma');
+    test(
+      'getCustomerById returns customer on success and maps 404 to NotFoundException',
+      () async {
+        fakeApi.mockCustomer = sampleCustomer;
+        final customer = await repository.getCustomerById('cust-100');
+        expect(customer.id, 'cust-100');
+        expect(customer.name, 'Priya Sharma');
 
-      // Now test 404 error mapping
-      fakeApi.mockCustomer = null;
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers/cust-missing'),
-        response: Response(
+        // Now test 404 error mapping
+        fakeApi.mockCustomer = null;
+        fakeApi.errorToThrow = DioException(
           requestOptions: RequestOptions(path: '/customers/cust-missing'),
-          statusCode: 404,
-          data: {'message': 'Customer not found'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/customers/cust-missing'),
+            statusCode: 404,
+            data: {'message': 'Customer not found'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.getCustomerById('cust-missing'),
-        throwsA(isA<NotFoundException>().having((e) => e.statusCode, 'statusCode', 404)),
-      );
-    });
+        expect(
+          () => repository.getCustomerById('cust-missing'),
+          throwsA(
+            isA<NotFoundException>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              404,
+            ),
+          ),
+        );
+      },
+    );
 
-    test('getCustomerByPhone and getCustomerByRegistration return entity or null', () async {
-      fakeApi.mockCustomerByPhone = sampleCustomer;
-      final byPhone = await repository.getCustomerByPhone('9876543210');
-      expect(byPhone?.name, 'Priya Sharma');
+    test(
+      'getCustomerByPhone and getCustomerByRegistration return entity or null',
+      () async {
+        fakeApi.mockCustomerByPhone = sampleCustomer;
+        final byPhone = await repository.getCustomerByPhone('9876543210');
+        expect(byPhone?.name, 'Priya Sharma');
 
-      fakeApi.mockCustomerByReg = sampleCustomer;
-      final byReg = await repository.getCustomerByRegistration('KA01MJ5678');
-      expect(byReg?.id, 'cust-100');
+        fakeApi.mockCustomerByReg = sampleCustomer;
+        final byReg = await repository.getCustomerByRegistration('KA01MJ5678');
+        expect(byReg?.id, 'cust-100');
 
-      // Null return check
-      fakeApi.mockCustomerByPhone = null;
-      final emptyPhone = await repository.getCustomerByPhone('0000000000');
-      expect(emptyPhone, isNull);
-    });
+        // Null return check
+        fakeApi.mockCustomerByPhone = null;
+        final emptyPhone = await repository.getCustomerByPhone('0000000000');
+        expect(emptyPhone, isNull);
+      },
+    );
 
     test('getCustomerHistory maps 500 error to ServerException', () async {
       fakeApi.errorToThrow = DioException(
@@ -213,123 +235,144 @@ void main() {
       );
     });
 
-    test('createCustomer maps HTTP 409 to ConflictException and 400 to ValidationException', () async {
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers'),
-        response: Response(
+    test(
+      'createCustomer maps HTTP 409 to ConflictException and 400 to ValidationException',
+      () async {
+        fakeApi.errorToThrow = DioException(
           requestOptions: RequestOptions(path: '/customers'),
-          statusCode: 409,
-          data: {'message': 'Customer with phone 9876543210 already exists.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/customers'),
+            statusCode: 409,
+            data: {'message': 'Customer with phone 9876543210 already exists.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      const request = CreateCustomerRequest(
-        name: 'Duplicate User',
-        phoneNumber: '9876543210',
-      );
+        const request = CreateCustomerRequest(
+          name: 'Duplicate User',
+          phoneNumber: '9876543210',
+        );
 
-      expect(
-        () => repository.createCustomer(request),
-        throwsA(
-          isA<ConflictException>()
-              .having((e) => e.statusCode, 'statusCode', 409)
-              .having((e) => e.message, 'message', contains('already exists')),
-        ),
-      );
+        expect(
+          () => repository.createCustomer(request),
+          throwsA(
+            isA<ConflictException>()
+                .having((e) => e.statusCode, 'statusCode', 409)
+                .having(
+                  (e) => e.message,
+                  'message',
+                  contains('already exists'),
+                ),
+          ),
+        );
 
-      // Validation 400
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers'),
-        response: Response(
+        // Validation 400
+        fakeApi.errorToThrow = DioException(
           requestOptions: RequestOptions(path: '/customers'),
-          statusCode: 400,
-          data: {'message': 'Phone number must be 10 digits.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/customers'),
+            statusCode: 400,
+            data: {'message': 'Phone number must be 10 digits.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.createCustomer(request),
-        throwsA(
-          isA<ValidationException>()
-              .having((e) => e.statusCode, 'statusCode', 400)
-              .having((e) => e.message, 'message', contains('10 digits')),
-        ),
-      );
-    });
+        expect(
+          () => repository.createCustomer(request),
+          throwsA(
+            isA<ValidationException>()
+                .having((e) => e.statusCode, 'statusCode', 400)
+                .having((e) => e.message, 'message', contains('10 digits')),
+          ),
+        );
+      },
+    );
 
-    test('deleteCustomer handles clean deletion and network timeout to NetworkException', () async {
-      await repository.deleteCustomer('cust-to-del');
-      expect(fakeApi.deleteCalled, isTrue);
-      expect(fakeApi.lastDeletedId, 'cust-to-del');
+    test(
+      'deleteCustomer handles clean deletion and network timeout to NetworkException',
+      () async {
+        await repository.deleteCustomer('cust-to-del');
+        expect(fakeApi.deleteCalled, isTrue);
+        expect(fakeApi.lastDeletedId, 'cust-to-del');
 
-      // Network timeout
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers/cust-to-del'),
-        type: DioExceptionType.connectionTimeout,
-        message: 'Connection timed out',
-      );
+        // Network timeout
+        fakeApi.errorToThrow = DioException(
+          requestOptions: RequestOptions(path: '/customers/cust-to-del'),
+          type: DioExceptionType.connectionTimeout,
+          message: 'Connection timed out',
+        );
 
-      expect(
-        () => repository.deleteCustomer('cust-to-del'),
-        throwsA(isA<NetworkException>()),
-      );
-    });
+        expect(
+          () => repository.deleteCustomer('cust-to-del'),
+          throwsA(isA<NetworkException>()),
+        );
+      },
+    );
 
-    test('updateCustomer maps successfully and handles 409, 400, and 404', () async {
-      const updateReq = UpdateCustomerRequest(
-        name: 'Updated Name',
-        phoneNumber: '9123456789',
-        email: 'updated@example.com',
-        address: 'Updated Address',
-      );
+    test(
+      'updateCustomer maps successfully and handles 409, 400, and 404',
+      () async {
+        const updateReq = UpdateCustomerRequest(
+          name: 'Updated Name',
+          phoneNumber: '9123456789',
+          email: 'updated@example.com',
+          address: 'Updated Address',
+        );
 
-      final updated = await repository.updateCustomer('cust-1', updateReq);
-      expect(updated.name, 'Updated Name');
-      expect(updated.phoneNumber, '9123456789');
-      expect(updated.email, 'updated@example.com');
-      expect(updated.address, 'Updated Address');
+        final updated = await repository.updateCustomer('cust-1', updateReq);
+        expect(updated.name, 'Updated Name');
+        expect(updated.phoneNumber, '9123456789');
+        expect(updated.email, 'updated@example.com');
+        expect(updated.address, 'Updated Address');
 
-      // 409 Conflict
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers/cust-1'),
-        response: Response(
+        // 409 Conflict
+        fakeApi.errorToThrow = DioException(
           requestOptions: RequestOptions(path: '/customers/cust-1'),
-          statusCode: 409,
-          data: {'error': 'A customer with this phone number already exists.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/customers/cust-1'),
+            statusCode: 409,
+            data: {
+              'error': 'A customer with this phone number already exists.',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.updateCustomer('cust-1', updateReq),
-        throwsA(
-          isA<ConflictException>()
-              .having((e) => e.statusCode, 'statusCode', 409)
-              .having((e) => e.message, 'message', contains('already exists')),
-        ),
-      );
+        expect(
+          () => repository.updateCustomer('cust-1', updateReq),
+          throwsA(
+            isA<ConflictException>()
+                .having((e) => e.statusCode, 'statusCode', 409)
+                .having(
+                  (e) => e.message,
+                  'message',
+                  contains('already exists'),
+                ),
+          ),
+        );
 
-      // 400 Validation
-      fakeApi.errorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/customers/cust-1'),
-        response: Response(
+        // 400 Validation
+        fakeApi.errorToThrow = DioException(
           requestOptions: RequestOptions(path: '/customers/cust-1'),
-          statusCode: 400,
-          data: {'message': 'Phone number must be exactly 10 digits.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/customers/cust-1'),
+            statusCode: 400,
+            data: {'message': 'Phone number must be exactly 10 digits.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.updateCustomer('cust-1', updateReq),
-        throwsA(
-          isA<ValidationException>()
-              .having((e) => e.statusCode, 'statusCode', 400),
-        ),
-      );
-    });
+        expect(
+          () => repository.updateCustomer('cust-1', updateReq),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              400,
+            ),
+          ),
+        );
+      },
+    );
   });
 }
-

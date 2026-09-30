@@ -29,7 +29,7 @@ class SettingsRepository {
   static const String _cachedPublicBrandingKey = 'e6_cached_public_branding';
 
   SettingsRepository(this._api, [FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   Future<BusinessProfileModel?> getCachedBusinessProfile() async {
     try {
@@ -60,7 +60,9 @@ class SettingsRepository {
     }
   }
 
-  Future<void> _saveCachedPublicBranding(PublicBusinessProfileModel branding) async {
+  Future<void> _saveCachedPublicBranding(
+    PublicBusinessProfileModel branding,
+  ) async {
     try {
       final jsonStr = jsonEncode(branding.toJson());
       await _storage.write(key: _cachedPublicBrandingKey, value: jsonStr);

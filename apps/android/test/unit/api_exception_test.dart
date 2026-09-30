@@ -11,7 +11,9 @@ void main() {
           extra: {'action': 'generate invoices'},
         ),
         response: Response(
-          requestOptions: RequestOptions(path: '/api/invoices/inv-123/generate'),
+          requestOptions: RequestOptions(
+            path: '/api/invoices/inv-123/generate',
+          ),
           statusCode: 403,
           data: {'error': 'Forbidden'},
         ),
@@ -24,25 +26,35 @@ void main() {
       expect(exception, isA<ForbiddenException>());
       expect(exception, isA<ApiException>());
       expect(exception.statusCode, 403);
-      expect(exception.message, "You don't have permission to generate invoices.");
-    });
-
-    test('403 Forbidden with custom non-technical backend error preserves message', () {
-      final dioException = DioException(
-        requestOptions: RequestOptions(path: '/api/invoices/inv-123/payments'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/api/invoices/inv-123/payments'),
-          statusCode: 403,
-          data: {'error': 'Only managers may record payments.'},
-        ),
-        type: DioExceptionType.badResponse,
+      expect(
+        exception.message,
+        "You don't have permission to generate invoices.",
       );
-
-      final exception = ApiException.fromDio(dioException);
-
-      expect(exception, isA<PermissionDeniedException>());
-      expect(exception.message, 'Only managers may record payments.');
     });
+
+    test(
+      '403 Forbidden with custom non-technical backend error preserves message',
+      () {
+        final dioException = DioException(
+          requestOptions: RequestOptions(
+            path: '/api/invoices/inv-123/payments',
+          ),
+          response: Response(
+            requestOptions: RequestOptions(
+              path: '/api/invoices/inv-123/payments',
+            ),
+            statusCode: 403,
+            data: {'error': 'Only managers may record payments.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        final exception = ApiException.fromDio(dioException);
+
+        expect(exception, isA<PermissionDeniedException>());
+        expect(exception.message, 'Only managers may record payments.');
+      },
+    );
 
     test('403 Forbidden without action falls back to clean default', () {
       final dioException = DioException(
@@ -58,7 +70,10 @@ void main() {
       final exception = ApiException.fromDio(dioException);
 
       expect(exception, isA<PermissionDeniedException>());
-      expect(exception.message, "You don't have permission to perform this action.");
+      expect(
+        exception.message,
+        "You don't have permission to perform this action.",
+      );
     });
 
     test('401 Unauthorized produces session expired message', () {
@@ -80,7 +95,8 @@ void main() {
     });
 
     test('409 Conflict preserves business lock message', () {
-      const lockMsg = 'This job card is locked because its invoice has already been generated.';
+      const lockMsg =
+          'This job card is locked because its invoice has already been generated.';
       final dioException = DioException(
         requestOptions: RequestOptions(path: '/api/job-cards'),
         response: Response(
@@ -134,23 +150,26 @@ void main() {
       expect(exception.message, 'The requested record could not be found.');
     });
 
-    test('401 Unauthorized on login endpoint produces invalid credentials message', () {
-      final dioException = DioException(
-        requestOptions: RequestOptions(path: '/auth/login'),
-        response: Response(
+    test(
+      '401 Unauthorized on login endpoint produces invalid credentials message',
+      () {
+        final dioException = DioException(
           requestOptions: RequestOptions(path: '/auth/login'),
-          statusCode: 401,
-          data: {'error': 'Invalid username or password.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/auth/login'),
+            statusCode: 401,
+            data: {'error': 'Invalid username or password.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      final exception = ApiException.fromDio(dioException);
+        final exception = ApiException.fromDio(dioException);
 
-      expect(exception, isA<UnauthorizedException>());
-      expect(exception.statusCode, 401);
-      expect(exception.message, 'Invalid username or password.');
-    });
+        expect(exception, isA<UnauthorizedException>());
+        expect(exception.statusCode, 401);
+        expect(exception.message, 'Invalid username or password.');
+      },
+    );
 
     test('423 Locked maps to AccountLockedException', () {
       final dioException = DioException(
@@ -158,10 +177,7 @@ void main() {
         response: Response(
           requestOptions: RequestOptions(path: '/auth/login'),
           statusCode: 423,
-          data: {
-            'error': 'Account locked',
-            'remainingLockoutSeconds': 180,
-          },
+          data: {'error': 'Account locked', 'remainingLockoutSeconds': 180},
         ),
         type: DioExceptionType.badResponse,
       );
@@ -170,45 +186,58 @@ void main() {
 
       expect(exception, isA<AccountLockedException>());
       expect(exception.statusCode, 423);
-      expect(exception.message, 'Account temporarily locked. Please try again later.');
-      expect((exception as AccountLockedException).remainingLockoutSeconds, 180);
+      expect(
+        exception.message,
+        'Account temporarily locked. Please try again later.',
+      );
+      expect(
+        (exception as AccountLockedException).remainingLockoutSeconds,
+        180,
+      );
     });
 
-    test('429 Too Many Requests maps to RateLimitedException with contract message', () {
-      final dioException = DioException(
-        requestOptions: RequestOptions(path: '/api/auth/login'),
-        response: Response(
+    test(
+      '429 Too Many Requests maps to RateLimitedException with contract message',
+      () {
+        final dioException = DioException(
           requestOptions: RequestOptions(path: '/api/auth/login'),
-          statusCode: 429,
-          data: {},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/auth/login'),
+            statusCode: 429,
+            data: {},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      final exception = ApiException.fromDio(dioException);
+        final exception = ApiException.fromDio(dioException);
 
-      expect(exception, isA<RateLimitedException>());
-      expect(exception.statusCode, 429);
-      expect(exception.message, 'Too many attempts. Please try again later.');
-    });
+        expect(exception, isA<RateLimitedException>());
+        expect(exception.statusCode, 429);
+        expect(exception.message, 'Too many attempts. Please try again later.');
+      },
+    );
 
-    test('500 Server Error sanitizes technical dump when no friendly message is provided', () {
-      final dioException = DioException(
-        requestOptions: RequestOptions(path: '/api/reports'),
-        response: Response(
+    test(
+      '500 Server Error sanitizes technical dump when no friendly message is provided',
+      () {
+        final dioException = DioException(
           requestOptions: RequestOptions(path: '/api/reports'),
-          statusCode: 500,
-          data: 'Npgsql.NpgsqlException: Connection failed at Postgres.Execute()',
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/api/reports'),
+            statusCode: 500,
+            data:
+                'Npgsql.NpgsqlException: Connection failed at Postgres.Execute()',
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      final exception = ApiException.fromDio(dioException);
+        final exception = ApiException.fromDio(dioException);
 
-      expect(exception, isA<ServerException>());
-      expect(exception.statusCode, 500);
-      expect(exception.message, 'Server error. Please try again later.');
-    });
+        expect(exception, isA<ServerException>());
+        expect(exception.statusCode, 500);
+        expect(exception.message, 'Server error. Please try again later.');
+      },
+    );
 
     test('Network connection error maps to NetworkException', () {
       final dioException = DioException(

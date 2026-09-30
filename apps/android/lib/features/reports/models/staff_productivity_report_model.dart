@@ -25,19 +25,43 @@ class StaffProductivityServiceItemModel {
     this.replacementStaffName,
   });
 
-  factory StaffProductivityServiceItemModel.fromJson(Map<String, dynamic> json) {
+  factory StaffProductivityServiceItemModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return StaffProductivityServiceItemModel(
-      workTypeId: json['workTypeId']?.toString() ?? json['WorkTypeId']?.toString() ?? '',
-      workTypeCode: json['workTypeCode']?.toString() ?? json['WorkTypeCode']?.toString() ?? 'SRV',
-      workTypeName: json['workTypeName']?.toString() ?? json['WorkTypeName']?.toString() ?? 'Service',
-      serviceCategory: json['serviceCategory']?.toString() ?? json['ServiceCategory']?.toString(),
-      vehicleCount: json['vehicleCount'] as int? ?? json['VehicleCount'] as int? ?? 0,
-      serviceQuantity: json['serviceQuantity'] as int? ?? json['ServiceQuantity'] as int? ?? 0,
+      workTypeId:
+          json['workTypeId']?.toString() ??
+          json['WorkTypeId']?.toString() ??
+          '',
+      workTypeCode:
+          json['workTypeCode']?.toString() ??
+          json['WorkTypeCode']?.toString() ??
+          'SRV',
+      workTypeName:
+          json['workTypeName']?.toString() ??
+          json['WorkTypeName']?.toString() ??
+          'Service',
+      serviceCategory:
+          json['serviceCategory']?.toString() ??
+          json['ServiceCategory']?.toString(),
+      vehicleCount:
+          json['vehicleCount'] as int? ?? json['VehicleCount'] as int? ?? 0,
+      serviceQuantity:
+          json['serviceQuantity'] as int? ??
+          json['ServiceQuantity'] as int? ??
+          0,
       hours: ((json['hours'] ?? json['Hours'] ?? 0.0) as num).toDouble(),
-      assignmentType: json['assignmentType']?.toString() ?? json['AssignmentType']?.toString() ?? 'Regular',
+      assignmentType:
+          json['assignmentType']?.toString() ??
+          json['AssignmentType']?.toString() ??
+          'Regular',
       swapId: json['swapId']?.toString() ?? json['SwapId']?.toString(),
-      originalStaffName: json['originalStaffName']?.toString() ?? json['OriginalStaffName']?.toString(),
-      replacementStaffName: json['replacementStaffName']?.toString() ?? json['ReplacementStaffName']?.toString(),
+      originalStaffName:
+          json['originalStaffName']?.toString() ??
+          json['OriginalStaffName']?.toString(),
+      replacementStaffName:
+          json['replacementStaffName']?.toString() ??
+          json['ReplacementStaffName']?.toString(),
     );
   }
 }
@@ -61,16 +85,40 @@ class StaffProductivityVehicleTypeGroupModel {
     required this.services,
   });
 
-  factory StaffProductivityVehicleTypeGroupModel.fromJson(Map<String, dynamic> json) {
-    final rawServices = json['services'] as List<dynamic>? ?? json['Services'] as List<dynamic>? ?? [];
+  factory StaffProductivityVehicleTypeGroupModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawServices =
+        json['services'] as List<dynamic>? ??
+        json['Services'] as List<dynamic>? ??
+        [];
     return StaffProductivityVehicleTypeGroupModel(
-      vehicleTypeId: json['vehicleTypeId']?.toString() ?? json['VehicleTypeId']?.toString() ?? '',
-      vehicleTypeCode: json['vehicleTypeCode']?.toString() ?? json['VehicleTypeCode']?.toString() ?? 'VEH',
-      vehicleTypeName: json['vehicleTypeName']?.toString() ?? json['VehicleTypeName']?.toString() ?? 'Standard Vehicle',
-      vehicleCount: json['vehicleCount'] as int? ?? json['VehicleCount'] as int? ?? 0,
-      serviceQuantity: json['serviceQuantity'] as int? ?? json['ServiceQuantity'] as int? ?? 0,
+      vehicleTypeId:
+          json['vehicleTypeId']?.toString() ??
+          json['VehicleTypeId']?.toString() ??
+          '',
+      vehicleTypeCode:
+          json['vehicleTypeCode']?.toString() ??
+          json['VehicleTypeCode']?.toString() ??
+          'VEH',
+      vehicleTypeName:
+          json['vehicleTypeName']?.toString() ??
+          json['VehicleTypeName']?.toString() ??
+          'Standard Vehicle',
+      vehicleCount:
+          json['vehicleCount'] as int? ?? json['VehicleCount'] as int? ?? 0,
+      serviceQuantity:
+          json['serviceQuantity'] as int? ??
+          json['ServiceQuantity'] as int? ??
+          0,
       hours: ((json['hours'] ?? json['Hours'] ?? 0.0) as num).toDouble(),
-      services: rawServices.map((s) => StaffProductivityServiceItemModel.fromJson(s as Map<String, dynamic>)).toList(),
+      services: rawServices
+          .map(
+            (s) => StaffProductivityServiceItemModel.fromJson(
+              s as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -139,32 +187,88 @@ class StaffProductivityWorkRecordModel {
   factory StaffProductivityWorkRecordModel.fromJson(Map<String, dynamic> json) {
     return StaffProductivityWorkRecordModel(
       id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
-      date: DateTime.tryParse(json['date']?.toString() ?? json['Date']?.toString() ?? '') ?? DateTime.now(),
-      showroomId: json['showroomId']?.toString() ?? json['ShowroomId']?.toString() ?? '',
-      showroomMasterId: json['showroomMasterId']?.toString() ?? json['ShowroomMasterId']?.toString() ?? '',
-      showroomName: json['showroomName']?.toString() ?? json['ShowroomName']?.toString() ?? '',
+      date:
+          DateTime.tryParse(
+            json['date']?.toString() ?? json['Date']?.toString() ?? '',
+          ) ??
+          DateTime.now(),
+      showroomId:
+          json['showroomId']?.toString() ??
+          json['ShowroomId']?.toString() ??
+          '',
+      showroomMasterId:
+          json['showroomMasterId']?.toString() ??
+          json['ShowroomMasterId']?.toString() ??
+          '',
+      showroomName:
+          json['showroomName']?.toString() ??
+          json['ShowroomName']?.toString() ??
+          '',
       staffId: json['staffId']?.toString() ?? json['StaffId']?.toString() ?? '',
-      staffMasterId: json['staffMasterId']?.toString() ?? json['StaffMasterId']?.toString() ?? '',
-      staffName: json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
+      staffMasterId:
+          json['staffMasterId']?.toString() ??
+          json['StaffMasterId']?.toString() ??
+          '',
+      staffName:
+          json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
       role: json['role']?.toString() ?? json['Role']?.toString(),
-      homeShowroomName: json['homeShowroomName']?.toString() ?? json['HomeShowroomName']?.toString(),
-      workingShowroomName: json['workingShowroomName']?.toString() ?? json['WorkingShowroomName']?.toString(),
-      vehicleTypeId: json['vehicleTypeId']?.toString() ?? json['VehicleTypeId']?.toString() ?? '',
-      vehicleTypeCode: json['vehicleTypeCode']?.toString() ?? json['VehicleTypeCode']?.toString() ?? 'VEH',
-      vehicleTypeName: json['vehicleTypeName']?.toString() ?? json['VehicleTypeName']?.toString() ?? 'Vehicle',
-      workTypeId: json['workTypeId']?.toString() ?? json['WorkTypeId']?.toString() ?? '',
-      workTypeCode: json['workTypeCode']?.toString() ?? json['WorkTypeCode']?.toString() ?? 'SRV',
-      workTypeName: json['workTypeName']?.toString() ?? json['WorkTypeName']?.toString() ?? 'Service',
-      serviceCategory: json['serviceCategory']?.toString() ?? json['ServiceCategory']?.toString(),
-      vehicleQuantity: json['vehicleQuantity'] as int? ?? json['VehicleQuantity'] as int? ?? 0,
-      serviceQuantity: json['serviceQuantity'] as int? ?? json['ServiceQuantity'] as int? ?? 0,
+      homeShowroomName:
+          json['homeShowroomName']?.toString() ??
+          json['HomeShowroomName']?.toString(),
+      workingShowroomName:
+          json['workingShowroomName']?.toString() ??
+          json['WorkingShowroomName']?.toString(),
+      vehicleTypeId:
+          json['vehicleTypeId']?.toString() ??
+          json['VehicleTypeId']?.toString() ??
+          '',
+      vehicleTypeCode:
+          json['vehicleTypeCode']?.toString() ??
+          json['VehicleTypeCode']?.toString() ??
+          'VEH',
+      vehicleTypeName:
+          json['vehicleTypeName']?.toString() ??
+          json['VehicleTypeName']?.toString() ??
+          'Vehicle',
+      workTypeId:
+          json['workTypeId']?.toString() ??
+          json['WorkTypeId']?.toString() ??
+          '',
+      workTypeCode:
+          json['workTypeCode']?.toString() ??
+          json['WorkTypeCode']?.toString() ??
+          'SRV',
+      workTypeName:
+          json['workTypeName']?.toString() ??
+          json['WorkTypeName']?.toString() ??
+          'Service',
+      serviceCategory:
+          json['serviceCategory']?.toString() ??
+          json['ServiceCategory']?.toString(),
+      vehicleQuantity:
+          json['vehicleQuantity'] as int? ??
+          json['VehicleQuantity'] as int? ??
+          0,
+      serviceQuantity:
+          json['serviceQuantity'] as int? ??
+          json['ServiceQuantity'] as int? ??
+          0,
       startTime: json['startTime']?.toString() ?? json['StartTime']?.toString(),
       endTime: json['endTime']?.toString() ?? json['EndTime']?.toString(),
-      workingHours: ((json['workingHours'] ?? json['WorkingHours'] ?? 0.0) as num).toDouble(),
-      assignmentType: json['assignmentType']?.toString() ?? json['AssignmentType']?.toString() ?? 'Regular',
+      workingHours:
+          ((json['workingHours'] ?? json['WorkingHours'] ?? 0.0) as num)
+              .toDouble(),
+      assignmentType:
+          json['assignmentType']?.toString() ??
+          json['AssignmentType']?.toString() ??
+          'Regular',
       swapId: json['swapId']?.toString() ?? json['SwapId']?.toString(),
-      originalStaffName: json['originalStaffName']?.toString() ?? json['OriginalStaffName']?.toString(),
-      replacementStaffName: json['replacementStaffName']?.toString() ?? json['ReplacementStaffName']?.toString(),
+      originalStaffName:
+          json['originalStaffName']?.toString() ??
+          json['OriginalStaffName']?.toString(),
+      replacementStaffName:
+          json['replacementStaffName']?.toString() ??
+          json['ReplacementStaffName']?.toString(),
       notes: json['notes']?.toString() ?? json['Notes']?.toString(),
     );
   }
@@ -204,24 +308,65 @@ class StaffProductivityRowModel {
   });
 
   factory StaffProductivityRowModel.fromJson(Map<String, dynamic> json) {
-    final rawVTypes = json['vehicleTypes'] as List<dynamic>? ?? json['VehicleTypes'] as List<dynamic>? ?? [];
-    final rawRecords = json['workRecords'] as List<dynamic>? ?? json['WorkRecords'] as List<dynamic>? ?? [];
+    final rawVTypes =
+        json['vehicleTypes'] as List<dynamic>? ??
+        json['VehicleTypes'] as List<dynamic>? ??
+        [];
+    final rawRecords =
+        json['workRecords'] as List<dynamic>? ??
+        json['WorkRecords'] as List<dynamic>? ??
+        [];
 
     return StaffProductivityRowModel(
       staffId: json['staffId']?.toString() ?? json['StaffId']?.toString() ?? '',
-      staffMasterId: json['staffMasterId']?.toString() ?? json['StaffMasterId']?.toString() ?? '',
-      staffName: json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
-      staffPhone: json['staffPhone']?.toString() ?? json['StaffPhone']?.toString() ?? '',
+      staffMasterId:
+          json['staffMasterId']?.toString() ??
+          json['StaffMasterId']?.toString() ??
+          '',
+      staffName:
+          json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
+      staffPhone:
+          json['staffPhone']?.toString() ??
+          json['StaffPhone']?.toString() ??
+          '',
       role: json['role']?.toString() ?? json['Role']?.toString(),
-      homeShowroomName: json['homeShowroomName']?.toString() ?? json['HomeShowroomName']?.toString(),
-      workingShowroomName: json['workingShowroomName']?.toString() ?? json['WorkingShowroomName']?.toString(),
-      daysAssigned: json['daysAssigned'] as int? ?? json['DaysAssigned'] as int? ?? 0,
-      totalVehiclesAttended: json['totalVehiclesAttended'] as int? ?? json['TotalVehiclesAttended'] as int? ?? 0,
-      totalServicesPerformed: json['totalServicesPerformed'] as int? ?? json['TotalServicesPerformed'] as int? ?? 0,
-      totalWorkingHours: ((json['totalWorkingHours'] ?? json['TotalWorkingHours'] ?? 0.0) as num).toDouble(),
-      dailyAverage: ((json['dailyAverage'] ?? json['DailyAverage'] ?? 0.0) as num).toDouble(),
-      vehicleTypes: rawVTypes.map((v) => StaffProductivityVehicleTypeGroupModel.fromJson(v as Map<String, dynamic>)).toList(),
-      workRecords: rawRecords.map((r) => StaffProductivityWorkRecordModel.fromJson(r as Map<String, dynamic>)).toList(),
+      homeShowroomName:
+          json['homeShowroomName']?.toString() ??
+          json['HomeShowroomName']?.toString(),
+      workingShowroomName:
+          json['workingShowroomName']?.toString() ??
+          json['WorkingShowroomName']?.toString(),
+      daysAssigned:
+          json['daysAssigned'] as int? ?? json['DaysAssigned'] as int? ?? 0,
+      totalVehiclesAttended:
+          json['totalVehiclesAttended'] as int? ??
+          json['TotalVehiclesAttended'] as int? ??
+          0,
+      totalServicesPerformed:
+          json['totalServicesPerformed'] as int? ??
+          json['TotalServicesPerformed'] as int? ??
+          0,
+      totalWorkingHours:
+          ((json['totalWorkingHours'] ?? json['TotalWorkingHours'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      dailyAverage:
+          ((json['dailyAverage'] ?? json['DailyAverage'] ?? 0.0) as num)
+              .toDouble(),
+      vehicleTypes: rawVTypes
+          .map(
+            (v) => StaffProductivityVehicleTypeGroupModel.fromJson(
+              v as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      workRecords: rawRecords
+          .map(
+            (r) => StaffProductivityWorkRecordModel.fromJson(
+              r as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -251,21 +396,65 @@ class StaffProductivityReportResponseModel {
     this.averageServicesPerStaff = 0.0,
   });
 
-  factory StaffProductivityReportResponseModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
-    final rawGranular = json['granularRecords'] as List<dynamic>? ?? json['GranularRecords'] as List<dynamic>? ?? [];
+  factory StaffProductivityReportResponseModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
+    final rawGranular =
+        json['granularRecords'] as List<dynamic>? ??
+        json['GranularRecords'] as List<dynamic>? ??
+        [];
 
     return StaffProductivityReportResponseModel(
-      items: rawItems.map((item) => StaffProductivityRowModel.fromJson(item as Map<String, dynamic>)).toList(),
-      granularRecords: rawGranular.map((r) => StaffProductivityWorkRecordModel.fromJson(r as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map(
+            (item) => StaffProductivityRowModel.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      granularRecords: rawGranular
+          .map(
+            (r) => StaffProductivityWorkRecordModel.fromJson(
+              r as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       totalStaff: json['totalStaff'] as int? ?? json['TotalStaff'] as int? ?? 0,
-      totalDaysAssigned: json['totalDaysAssigned'] as int? ?? json['TotalDaysAssigned'] as int? ?? 0,
-      totalVehiclesAttended: json['totalVehiclesAttended'] as int? ?? json['TotalVehiclesAttended'] as int? ?? 0,
-      totalServicesPerformed: json['totalServicesPerformed'] as int? ?? json['TotalServicesPerformed'] as int? ?? 0,
-      totalStaffHours: ((json['totalStaffHours'] ?? json['TotalStaffHours'] ?? 0.0) as num).toDouble(),
-      overallDailyAverage: ((json['overallDailyAverage'] ?? json['OverallDailyAverage'] ?? 0.0) as num).toDouble(),
-      averageVehiclesPerStaff: ((json['averageVehiclesPerStaff'] ?? json['AverageVehiclesPerStaff'] ?? 0.0) as num).toDouble(),
-      averageServicesPerStaff: ((json['averageServicesPerStaff'] ?? json['AverageServicesPerStaff'] ?? 0.0) as num).toDouble(),
+      totalDaysAssigned:
+          json['totalDaysAssigned'] as int? ??
+          json['TotalDaysAssigned'] as int? ??
+          0,
+      totalVehiclesAttended:
+          json['totalVehiclesAttended'] as int? ??
+          json['TotalVehiclesAttended'] as int? ??
+          0,
+      totalServicesPerformed:
+          json['totalServicesPerformed'] as int? ??
+          json['TotalServicesPerformed'] as int? ??
+          0,
+      totalStaffHours:
+          ((json['totalStaffHours'] ?? json['TotalStaffHours'] ?? 0.0) as num)
+              .toDouble(),
+      overallDailyAverage:
+          ((json['overallDailyAverage'] ?? json['OverallDailyAverage'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      averageVehiclesPerStaff:
+          ((json['averageVehiclesPerStaff'] ??
+                      json['AverageVehiclesPerStaff'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      averageServicesPerStaff:
+          ((json['averageServicesPerStaff'] ??
+                      json['AverageServicesPerStaff'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
     );
   }
 }

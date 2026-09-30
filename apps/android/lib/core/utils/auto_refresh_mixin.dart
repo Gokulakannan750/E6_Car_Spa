@@ -9,7 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// 3. Pauses polling when the app is backgrounded to preserve battery/network.
 /// 4. Guards against overlapping / concurrent refresh operations.
 /// 5. Resilient against transient lifecycle events (inactive state during window focus / system dialogs / keyboard).
-mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, WidgetsBindingObserver {
+mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
+    on ConsumerState<T>, WidgetsBindingObserver {
   Timer? _refreshTimer;
   int _lastConfiguredSeconds = -1;
   bool _isRefreshing = false;
@@ -101,5 +102,3 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget> on ConsumerState<T>, Wi
     super.dispose();
   }
 }
-
-

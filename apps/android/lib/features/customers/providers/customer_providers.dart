@@ -53,7 +53,9 @@ class CustomerListState {
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
       searchQuery: searchQuery ?? this.searchQuery,
-      paymentStatus: clearPaymentStatus ? null : (paymentStatus ?? this.paymentStatus),
+      paymentStatus: clearPaymentStatus
+          ? null
+          : (paymentStatus ?? this.paymentStatus),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -82,7 +84,8 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
     }
 
     try {
-      final effectiveSearch = search ?? (state.searchQuery.isEmpty ? null : state.searchQuery);
+      final effectiveSearch =
+          search ?? (state.searchQuery.isEmpty ? null : state.searchQuery);
       final effectivePaymentStatus = paymentStatus ?? state.paymentStatus;
       final response = await _repository.getCustomers(
         page: state.page,
@@ -141,20 +144,26 @@ class CustomerListNotifier extends StateNotifier<CustomerListState> {
     return customer;
   }
 
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
     final updated = await _repository.updateCustomer(id, request);
     if (mounted) {
-      final updatedList = state.customers.map((c) => c.id == id ? updated : c).toList();
+      final updatedList = state.customers
+          .map((c) => c.id == id ? updated : c)
+          .toList();
       state = state.copyWith(customers: updatedList);
     }
     return updated;
   }
 }
 
-final customerListProvider = StateNotifierProvider<CustomerListNotifier, CustomerListState>((ref) {
-  final repo = ref.watch(customerRepositoryProvider);
-  return CustomerListNotifier(repo);
-});
+final customerListProvider =
+    StateNotifierProvider<CustomerListNotifier, CustomerListState>((ref) {
+      final repo = ref.watch(customerRepositoryProvider);
+      return CustomerListNotifier(repo);
+    });
 
 // ── Customer Details State ────────────────────────────────────────────────────
 
@@ -231,10 +240,7 @@ class CustomerDetailsNotifier extends StateNotifier<CustomerDetailsState> {
     } on ApiException catch (e) {
       if (!mounted) return;
       if (silent) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
     } catch (e) {
       if (!mounted) return;
       if (silent) return;
@@ -248,18 +254,19 @@ class CustomerDetailsNotifier extends StateNotifier<CustomerDetailsState> {
   Future<Customer> updateCustomer(UpdateCustomerRequest request) async {
     final updated = await _customerRepo.updateCustomer(customerId, request);
     if (mounted) {
-      state = state.copyWith(
-        customer: updated,
-        clearError: true,
-      );
+      state = state.copyWith(customer: updated, clearError: true);
     }
     return updated;
   }
 }
 
 final customerDetailsProvider =
-    StateNotifierProvider.family<CustomerDetailsNotifier, CustomerDetailsState, String>((ref, customerId) {
-  final customerRepo = ref.watch(customerRepositoryProvider);
-  final vehicleRepo = ref.watch(vehicleRepositoryProvider);
-  return CustomerDetailsNotifier(customerId, customerRepo, vehicleRepo);
-});
+    StateNotifierProvider.family<
+      CustomerDetailsNotifier,
+      CustomerDetailsState,
+      String
+    >((ref, customerId) {
+      final customerRepo = ref.watch(customerRepositoryProvider);
+      final vehicleRepo = ref.watch(vehicleRepositoryProvider);
+      return CustomerDetailsNotifier(customerId, customerRepo, vehicleRepo);
+    });

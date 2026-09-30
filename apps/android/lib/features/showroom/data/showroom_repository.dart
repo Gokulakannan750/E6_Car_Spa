@@ -47,14 +47,16 @@ class ShowroomRepository {
     }
   }
 
-  Future<Showroom> updateShowroom(String id, UpdateShowroomRequest request) async {
+  Future<Showroom> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
     try {
       return await _api.updateShowroom(id, request);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
   }
-
 
   Future<void> toggleShowroomActive(String id) async {
     try {
@@ -64,7 +66,10 @@ class ShowroomRepository {
     }
   }
 
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     try {
       return await _api.getDailyStaff(showroomId, date);
     } on DioException catch (e) {
@@ -97,8 +102,7 @@ class ShowroomRepository {
   Future<DailyStaffAssignment> updateDailyStaffVehicles(
     String assignmentId,
     UpdateDailyStaffAssignmentRequest request,
-  ) =>
-      updateDailyStaffAssignment(assignmentId, request);
+  ) => updateDailyStaffAssignment(assignmentId, request);
 
   Future<void> removeDailyStaff(String assignmentId) async {
     try {
@@ -188,7 +192,9 @@ class ShowroomRepository {
 
   // --- Operations Methods ---
 
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async {
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async {
     try {
       return await _api.getShowroomVehicleTypes(isActive: isActive);
     } on DioException catch (e) {
@@ -295,7 +301,11 @@ class ShowroomRepository {
     CloseShowroomStaffWorkSessionRequest? request,
   ) async {
     try {
-      return await _api.closeShowroomStaffWorkSession(showroomId, sessionId, request);
+      return await _api.closeShowroomStaffWorkSession(
+        showroomId,
+        sessionId,
+        request,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

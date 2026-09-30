@@ -143,40 +143,48 @@ void main() {
   });
 
   group('ReportsRepository Tests', () {
-    test('getDashboardSummary returns DashboardSummaryModel on 200 success', () async {
-      mockApi.dashboardSummaryToReturn = sampleDashboard;
+    test(
+      'getDashboardSummary returns DashboardSummaryModel on 200 success',
+      () async {
+        mockApi.dashboardSummaryToReturn = sampleDashboard;
 
-      final result = await repository.getDashboardSummary(
-        fromDate: DateTime(2026, 9, 1),
-        toDate: DateTime(2026, 9, 9),
-      );
+        final result = await repository.getDashboardSummary(
+          fromDate: DateTime(2026, 9, 1),
+          toDate: DateTime(2026, 9, 9),
+        );
 
-      expect(result.sales.grossSubtotal, 50000.0);
-      expect(result.jobCardKpis.totalJobCards, 20);
-      expect(result.vehicleActivity.uniqueVehiclesServiced, 15);
-      expect(result.outstanding.totalOutstandingCombined, 23820.0);
-    });
+        expect(result.sales.grossSubtotal, 50000.0);
+        expect(result.jobCardKpis.totalJobCards, 20);
+        expect(result.vehicleActivity.uniqueVehiclesServiced, 15);
+        expect(result.outstanding.totalOutstandingCombined, 23820.0);
+      },
+    );
 
-    test('getDashboardSummary maps 400 Bad Request to ValidationException', () async {
-      mockApi.dioExceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/reports/dashboard'),
-        response: Response(
+    test(
+      'getDashboardSummary maps 400 Bad Request to ValidationException',
+      () async {
+        mockApi.dioExceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/reports/dashboard'),
-          statusCode: 400,
-          data: {'error': 'From date cannot be after to date.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/reports/dashboard'),
+            statusCode: 400,
+            data: {'error': 'From date cannot be after to date.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.getDashboardSummary(),
-        throwsA(isA<ValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('From date cannot be after to date.'),
-        )),
-      );
-    });
+        expect(
+          () => repository.getDashboardSummary(),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('From date cannot be after to date.'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('getDashboardSummary maps 401 to UnauthorizedException', () async {
       mockApi.dioExceptionToThrow = DioException(
@@ -208,11 +216,13 @@ void main() {
 
       expect(
         () => repository.getDashboardSummary(),
-        throwsA(isA<ForbiddenException>().having(
-          (e) => e.message,
-          'message',
-          contains('User does not have permission to view reports.'),
-        )),
+        throwsA(
+          isA<ForbiddenException>().having(
+            (e) => e.message,
+            'message',
+            contains('User does not have permission to view reports.'),
+          ),
+        ),
       );
     });
 
@@ -250,96 +260,114 @@ void main() {
       );
     });
 
-    test('getDashboardSummary maps connection timeout to NetworkException', () async {
-      mockApi.dioExceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/reports/dashboard'),
-        type: DioExceptionType.connectionTimeout,
-      );
+    test(
+      'getDashboardSummary maps connection timeout to NetworkException',
+      () async {
+        mockApi.dioExceptionToThrow = DioException(
+          requestOptions: RequestOptions(path: '/reports/dashboard'),
+          type: DioExceptionType.connectionTimeout,
+        );
 
-      expect(
-        () => repository.getDashboardSummary(),
-        throwsA(isA<NetworkException>().having(
-          (e) => e.message,
-          'message',
-          contains('Connection timeout'),
-        )),
-      );
-    });
+        expect(
+          () => repository.getDashboardSummary(),
+          throwsA(
+            isA<NetworkException>().having(
+              (e) => e.message,
+              'message',
+              contains('Connection timeout'),
+            ),
+          ),
+        );
+      },
+    );
 
-    test('getSalesReport returns SalesReportResponseModel on success', () async {
-      mockApi.salesReportToReturn = const SalesReportResponseModel(
-        items: [],
-        totalCount: 0,
-        page: 1,
-        pageSize: 20,
-        summary: SalesReportSummaryModel(
-          totalSubtotal: 0.0,
-          totalDiscount: 0.0,
-          totalGst: 0.0,
-          totalAmount: 0.0,
-          totalPaid: 0.0,
-          totalBalance: 0.0,
-          invoiceCount: 0,
-        ),
-      );
+    test(
+      'getSalesReport returns SalesReportResponseModel on success',
+      () async {
+        mockApi.salesReportToReturn = const SalesReportResponseModel(
+          items: [],
+          totalCount: 0,
+          page: 1,
+          pageSize: 20,
+          summary: SalesReportSummaryModel(
+            totalSubtotal: 0.0,
+            totalDiscount: 0.0,
+            totalGst: 0.0,
+            totalAmount: 0.0,
+            totalPaid: 0.0,
+            totalBalance: 0.0,
+            invoiceCount: 0,
+          ),
+        );
 
-      final result = await repository.getSalesReport();
-      expect(result.totalCount, 0);
-      expect(result.summary.totalAmount, 0.0);
-    });
+        final result = await repository.getSalesReport();
+        expect(result.totalCount, 0);
+        expect(result.summary.totalAmount, 0.0);
+      },
+    );
 
-    test('getSalesReport maps network connection failure to NetworkException', () async {
-      mockApi.dioExceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/reports/sales'),
-        type: DioExceptionType.connectionError,
-      );
+    test(
+      'getSalesReport maps network connection failure to NetworkException',
+      () async {
+        mockApi.dioExceptionToThrow = DioException(
+          requestOptions: RequestOptions(path: '/reports/sales'),
+          type: DioExceptionType.connectionError,
+        );
 
-      expect(
-        () => repository.getSalesReport(),
-        throwsA(isA<NetworkException>()),
-      );
-    });
+        expect(
+          () => repository.getSalesReport(),
+          throwsA(isA<NetworkException>()),
+        );
+      },
+    );
 
-    test('getPaymentCollectionReport returns PaymentReportResponseModel on success', () async {
-      mockApi.paymentReportToReturn = const PaymentReportResponseModel(
-        items: [],
-        totalCount: 0,
-        page: 1,
-        pageSize: 20,
-        summary: PaymentReportSummaryModel(
-          totalCollected: 0.0,
-          transactionCount: 0,
-          cashAmount: 0.0,
-          upiAmount: 0.0,
-          cardAmount: 0.0,
-          bankTransferAmount: 0.0,
-          voidedTransactionCount: 0,
-          voidedAmount: 0.0,
-        ),
-      );
+    test(
+      'getPaymentCollectionReport returns PaymentReportResponseModel on success',
+      () async {
+        mockApi.paymentReportToReturn = const PaymentReportResponseModel(
+          items: [],
+          totalCount: 0,
+          page: 1,
+          pageSize: 20,
+          summary: PaymentReportSummaryModel(
+            totalCollected: 0.0,
+            transactionCount: 0,
+            cashAmount: 0.0,
+            upiAmount: 0.0,
+            cardAmount: 0.0,
+            bankTransferAmount: 0.0,
+            voidedTransactionCount: 0,
+            voidedAmount: 0.0,
+          ),
+        );
 
-      final result = await repository.getPaymentCollectionReport();
-      expect(result.totalCount, 0);
-      expect(result.summary.totalCollected, 0.0);
-    });
+        final result = await repository.getPaymentCollectionReport();
+        expect(result.totalCount, 0);
+        expect(result.summary.totalCollected, 0.0);
+      },
+    );
 
-    test('getOutstandingInvoicesReport returns OutstandingInvoiceReportResponseModel on success', () async {
-      mockApi.outstandingReportToReturn = const OutstandingInvoiceReportResponseModel(
-        items: [],
-        totalCount: 0,
-        page: 1,
-        pageSize: 20,
-        summary: OutstandingInvoiceSummaryModel(
-          totalOutstandingAmount: 0.0,
-          totalInvoiceAmount: 0.0,
-          totalPaidAmount: 0.0,
-          invoiceCount: 0,
-        ),
-      );
+    test(
+      'getOutstandingInvoicesReport returns OutstandingInvoiceReportResponseModel on success',
+      () async {
+        mockApi.outstandingReportToReturn =
+            const OutstandingInvoiceReportResponseModel(
+              items: [],
+              totalCount: 0,
+              page: 1,
+              pageSize: 20,
+              summary: OutstandingInvoiceSummaryModel(
+                totalOutstandingAmount: 0.0,
+                totalInvoiceAmount: 0.0,
+                totalPaidAmount: 0.0,
+                invoiceCount: 0,
+              ),
+            );
 
-      final result = await repository.getOutstandingInvoicesReport();
-      expect(result.totalCount, 0);
-      expect(result.summary.totalOutstandingAmount, 0.0);
-    });
+        final result = await repository.getOutstandingInvoicesReport();
+        expect(result.totalCount, 0);
+        expect(result.summary.totalOutstandingAmount, 0.0);
+      },
+    );
   });
 }

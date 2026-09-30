@@ -84,27 +84,30 @@ void main() {
       expect(result.first.username, 'ramesh');
     });
 
-    test('getAvailablePermissions returns permission groups on success', () async {
-      mockApi.permissionsToReturn = [
-        const PermissionGroupModel(
-          module: 'Customers',
-          permissions: [
-            PermissionModel(
-              id: 'p1',
-              code: 'customers.view',
-              name: 'View Customers',
-              module: 'Customers',
-            ),
-          ],
-        ),
-      ];
+    test(
+      'getAvailablePermissions returns permission groups on success',
+      () async {
+        mockApi.permissionsToReturn = [
+          const PermissionGroupModel(
+            module: 'Customers',
+            permissions: [
+              PermissionModel(
+                id: 'p1',
+                code: 'customers.view',
+                name: 'View Customers',
+                module: 'Customers',
+              ),
+            ],
+          ),
+        ];
 
-      final result = await repository.getAvailablePermissions();
+        final result = await repository.getAvailablePermissions();
 
-      expect(result.length, 1);
-      expect(result.first.module, 'Customers');
-      expect(result.first.permissions.first.code, 'customers.view');
-    });
+        expect(result.length, 1);
+        expect(result.first.module, 'Customers');
+        expect(result.first.permissions.first.code, 'customers.view');
+      },
+    );
 
     test('createUser returns created user on success', () async {
       mockApi.userToReturn = sampleUser;
@@ -127,9 +130,7 @@ void main() {
       final updatedUser = sampleUser.copyWith(fullName: 'Ramesh Kumar Updated');
       mockApi.userToReturn = updatedUser;
 
-      const request = UpdateUserRequest(
-        fullName: 'Ramesh Kumar Updated',
-      );
+      const request = UpdateUserRequest(fullName: 'Ramesh Kumar Updated');
 
       final result = await repository.updateUser('user-1', request);
 
@@ -145,32 +146,39 @@ void main() {
       expect(result.isActive, false);
     });
 
-    test('rethrows ApiException on 409 Conflict (Duplicate username)', () async {
-      mockApi.dioExceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/users'),
-        response: Response(
+    test(
+      'rethrows ApiException on 409 Conflict (Duplicate username)',
+      () async {
+        mockApi.dioExceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/users'),
-          statusCode: 409,
-          data: {'error': "A user with username 'ramesh' already exists."},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/users'),
+            statusCode: 409,
+            data: {'error': "A user with username 'ramesh' already exists."},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.createUser(const CreateUserRequest(
-          fullName: 'Ramesh Kumar',
-          username: 'ramesh',
-          password: 'Password@123',
-          confirmPassword: 'Password@123',
-          role: 'Manager',
-        )),
-        throwsA(isA<ApiException>().having(
-          (e) => e.message,
-          'message',
-          contains("A user with username 'ramesh' already exists."),
-        )),
-      );
-    });
+        expect(
+          () => repository.createUser(
+            const CreateUserRequest(
+              fullName: 'Ramesh Kumar',
+              username: 'ramesh',
+              password: 'Password@123',
+              confirmPassword: 'Password@123',
+              role: 'Manager',
+            ),
+          ),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              contains("A user with username 'ramesh' already exists."),
+            ),
+          ),
+        );
+      },
+    );
 
     test('rethrows ApiException on 403 Forbidden', () async {
       mockApi.dioExceptionToThrow = DioException(
@@ -183,10 +191,7 @@ void main() {
         type: DioExceptionType.badResponse,
       );
 
-      expect(
-        () => repository.getUsers(),
-        throwsA(isA<ApiException>()),
-      );
+      expect(() => repository.getUsers(), throwsA(isA<ApiException>()));
     });
   });
 }

@@ -51,9 +51,7 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         centerTitle: false,
-        actions: const [
-          AppLogoutAction(),
-        ],
+        actions: const [AppLogoutAction()],
       ),
       body: SafeArea(
         child: ListView(
@@ -125,11 +123,7 @@ class DashboardScreen extends ConsumerWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F172A),
-            Color(0xFF0A0F1D),
-            Color(0xFF020617),
-          ],
+          colors: [Color(0xFF0F172A), Color(0xFF0A0F1D), Color(0xFF020617)],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF1E293B), width: 1),
@@ -281,8 +275,13 @@ class DashboardScreen extends ConsumerWidget {
         icon: Icons.directions_car_rounded,
         iconColor: Color(0xFF0453CD),
         bgColor: Color(0xFFEFF6FF),
-        route: AppRoutes.jobCards,
-        requiredPermissions: ['jobcards.view', 'invoices.view', 'customers.view'],
+        route: AppRoutes.billing,
+        requiredPermissions: [
+          'jobcards.view',
+          'invoices.view',
+          'customers.view',
+          'catalogue.view',
+        ],
       ),
       _SuiteAppItem(
         title: 'E6 Staff',
@@ -322,7 +321,9 @@ class DashboardScreen extends ConsumerWidget {
       ),
     ];
 
-    final visibleApps = allApps.where((app) => isAuthorized(app.requiredPermissions)).toList();
+    final visibleApps = allApps
+        .where((app) => isAuthorized(app.requiredPermissions))
+        .toList();
 
     if (visibleApps.isEmpty) {
       return Container(
@@ -341,9 +342,13 @@ class DashboardScreen extends ConsumerWidget {
       );
     }
 
-    final mainApps = visibleApps.where((app) => app.title != 'Settings').toList();
+    final mainApps = visibleApps
+        .where((app) => app.title != 'Settings')
+        .toList();
     final hasSettings = visibleApps.any((app) => app.title == 'Settings');
-    final settingsApp = hasSettings ? visibleApps.firstWhere((app) => app.title == 'Settings') : null;
+    final settingsApp = hasSettings
+        ? visibleApps.firstWhere((app) => app.title == 'Settings')
+        : null;
 
     final rows = <Widget>[];
 
@@ -357,9 +362,7 @@ class DashboardScreen extends ConsumerWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _buildApplicationCard(context, app1),
-            ),
+            Expanded(child: _buildApplicationCard(context, app1)),
             const SizedBox(width: 12),
             Expanded(
               child: app2 != null
@@ -375,9 +378,7 @@ class DashboardScreen extends ConsumerWidget {
 
     // Row 3: Settings — full width card
     if (settingsApp != null) {
-      rows.add(
-        _buildApplicationCard(context, settingsApp, isFullWidth: true),
-      );
+      rows.add(_buildApplicationCard(context, settingsApp, isFullWidth: true));
     } else if (rows.isNotEmpty && rows.last is SizedBox) {
       rows.removeLast();
     }
@@ -402,9 +403,7 @@ class DashboardScreen extends ConsumerWidget {
         onTap: () => context.go(app.route),
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          constraints: BoxConstraints(
-            minHeight: isFullWidth ? 110 : 155,
-          ),
+          constraints: BoxConstraints(minHeight: isFullWidth ? 110 : 155),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -510,10 +509,7 @@ class _CarSilhouettePainter extends CustomPainter {
   final Color color;
   final Color accentColor;
 
-  _CarSilhouettePainter({
-    required this.color,
-    required this.accentColor,
-  });
+  _CarSilhouettePainter({required this.color, required this.accentColor});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -576,7 +572,14 @@ class _CarSilhouettePainter extends CustomPainter {
     final glassPaint = Paint()..color = accentColor.withValues(alpha: 0.35);
     final glassPath = Path();
     glassPath.moveTo(w * 0.36, h * 0.46);
-    glassPath.cubicTo(w * 0.44, h * 0.28, w * 0.58, h * 0.26, w * 0.72, h * 0.44);
+    glassPath.cubicTo(
+      w * 0.44,
+      h * 0.28,
+      w * 0.58,
+      h * 0.26,
+      w * 0.72,
+      h * 0.44,
+    );
     glassPath.lineTo(w * 0.36, h * 0.46);
     glassPath.close();
     canvas.drawPath(glassPath, glassPaint);

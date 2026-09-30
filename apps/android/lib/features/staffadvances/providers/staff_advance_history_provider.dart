@@ -5,13 +5,13 @@ import '../models/staff_advance_model.dart';
 
 final staffAdvanceHistoryProvider =
     FutureProvider.family<StaffAdvanceHistory, String>((ref, staffId) async {
-  final repository = ref.watch(staffAdvancesRepositoryProvider);
-  try {
-    return await repository.getStaffAdvanceHistory(staffId);
-  } catch (e) {
-    if (e is ApiException) {
-      throw Exception(e.message);
-    }
-    throw Exception(e.toString());
-  }
-});
+      final repository = ref.watch(staffAdvancesRepositoryProvider);
+      try {
+        return await repository.getStaffAdvanceHistory(staffId);
+      } catch (e) {
+        if (e is ApiException) {
+          throw Exception(e.message);
+        }
+        throw Exception(e.toString());
+      }
+    });

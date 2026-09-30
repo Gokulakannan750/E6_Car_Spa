@@ -36,14 +36,22 @@ class DailyStaffState {
   double get totalScheduledHours =>
       dailyStaffResponse?.totalScheduledHours ??
       staffAssignments.fold<double>(0.0, (sum, a) {
-        final hours = a.workingHours ?? calculateSessionHours(a.startTime, a.endTime) ?? 0.0;
+        final hours =
+            a.workingHours ??
+            calculateSessionHours(a.startTime, a.endTime) ??
+            0.0;
         return sum + hours;
       });
-  int get totalVehiclesAttended => dailyStaffResponse?.totalVehiclesAttended ?? 0;
-  bool get isAttendanceConfirmed => dailyStaffResponse?.isAttendanceConfirmed ?? false;
-  DateTime? get attendanceConfirmedAt => dailyStaffResponse?.attendanceConfirmedAt;
-  String? get attendanceConfirmedByName => dailyStaffResponse?.attendanceConfirmedByName;
-  String? get attendanceConfirmedByUserId => dailyStaffResponse?.attendanceConfirmedByUserId;
+  int get totalVehiclesAttended =>
+      dailyStaffResponse?.totalVehiclesAttended ?? 0;
+  bool get isAttendanceConfirmed =>
+      dailyStaffResponse?.isAttendanceConfirmed ?? false;
+  DateTime? get attendanceConfirmedAt =>
+      dailyStaffResponse?.attendanceConfirmedAt;
+  String? get attendanceConfirmedByName =>
+      dailyStaffResponse?.attendanceConfirmedByName;
+  String? get attendanceConfirmedByUserId =>
+      dailyStaffResponse?.attendanceConfirmedByUserId;
 
   DailyStaffState copyWith({
     String? showroomId,
@@ -76,10 +84,9 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
   final Ref _ref;
 
   DailyStaffNotifier(this._repository, this._ref, String showroomId)
-      : super(DailyStaffState(
-          showroomId: showroomId,
-          selectedDate: DateTime.now(),
-        )) {
+    : super(
+        DailyStaffState(showroomId: showroomId, selectedDate: DateTime.now()),
+      ) {
     loadDailyStaff();
   }
 
@@ -107,10 +114,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
     } on ApiException catch (e) {
       if (!mounted) return;
       if (!silent) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: e.message,
-        );
+        state = state.copyWith(isLoading: false, errorMessage: e.message);
       }
     } catch (e) {
       if (!mounted) return;
@@ -172,10 +176,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return assignment;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isAssigning: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isAssigning: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -216,10 +217,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return updated;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -277,10 +275,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       state = state.copyWith(isAssigning: false, clearError: true);
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isAssigning: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isAssigning: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -313,10 +308,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return updated;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -343,10 +335,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       state = state.copyWith(isRemoving: false, clearError: true);
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isRemoving: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isRemoving: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) return;
@@ -377,15 +366,11 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return response;
     } on ApiException {
       if (!mounted) return null;
-      state = state.copyWith(
-        isConfirming: false,
-      );
+      state = state.copyWith(isConfirming: false);
       rethrow;
     } catch (e) {
       if (!mounted) return null;
-      state = state.copyWith(
-        isConfirming: false,
-      );
+      state = state.copyWith(isConfirming: false);
       rethrow;
     }
   }
@@ -409,15 +394,11 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return response;
     } on ApiException {
       if (!mounted) return null;
-      state = state.copyWith(
-        isUnlocking: false,
-      );
+      state = state.copyWith(isUnlocking: false);
       rethrow;
     } catch (e) {
       if (!mounted) return null;
-      state = state.copyWith(
-        isUnlocking: false,
-      );
+      state = state.copyWith(isUnlocking: false);
       rethrow;
     }
   }
@@ -459,10 +440,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return swapResult;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -494,10 +472,7 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
       return result;
     } on ApiException catch (e) {
       if (!mounted) rethrow;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       if (!mounted) rethrow;
@@ -523,6 +498,6 @@ class DailyStaffNotifier extends StateNotifier<DailyStaffState> {
 
 final dailyStaffProvider = StateNotifierProvider.autoDispose
     .family<DailyStaffNotifier, DailyStaffState, String>((ref, showroomId) {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return DailyStaffNotifier(repository, ref, showroomId);
-});
+      final repository = ref.watch(showroomRepositoryProvider);
+      return DailyStaffNotifier(repository, ref, showroomId);
+    });

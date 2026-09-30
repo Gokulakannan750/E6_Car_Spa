@@ -18,7 +18,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
 
   @override
@@ -52,9 +53,11 @@ class _MockCustomerRepository extends CustomerRepository {
     var list = customers;
     if (search != null && search.isNotEmpty) {
       list = list
-          .where((c) =>
-              c.name.toLowerCase().contains(search.toLowerCase()) ||
-              c.phoneNumber.contains(search))
+          .where(
+            (c) =>
+                c.name.toLowerCase().contains(search.toLowerCase()) ||
+                c.phoneNumber.contains(search),
+          )
           .toList();
     }
     return CustomerListResponse(
@@ -120,7 +123,10 @@ class _MockVehicleRepository extends VehicleRepository {
   }
 
   @override
-  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+  Future<Vehicle> transferOwnership(
+    String vehicleId,
+    String newCustomerId,
+  ) async {
     transferCalls++;
     Vehicle? found;
     for (final list in customerVehicles.values) {
@@ -164,7 +170,12 @@ void main() {
     fullName: 'Admin User',
     role: 'Admin',
     isOwner: true,
-    permissions: ['customers.view', 'customers.create', 'customers.edit', 'vehicles.delete'],
+    permissions: [
+      'customers.view',
+      'customers.create',
+      'customers.edit',
+      'vehicles.delete',
+    ],
   );
 
   Widget createCustomerListWidget({
@@ -180,12 +191,12 @@ void main() {
           (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
         ),
         systemPreferencesProvider.overrideWithValue(
-          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
+          SystemPreferencesModel.defaultPreferences.copyWith(
+            refreshInterval: refreshInterval,
+          ),
         ),
       ],
-      child: const MaterialApp(
-        home: CustomersScreen(),
-      ),
+      child: const MaterialApp(home: CustomersScreen()),
     );
   }
 
@@ -203,245 +214,355 @@ void main() {
           (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
         ),
         systemPreferencesProvider.overrideWithValue(
-          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
+          SystemPreferencesModel.defaultPreferences.copyWith(
+            refreshInterval: refreshInterval,
+          ),
         ),
       ],
-      child: MaterialApp(
-        home: CustomerDetailsScreen(customerId: customerId),
-      ),
+      child: MaterialApp(home: CustomerDetailsScreen(customerId: customerId)),
     );
   }
 
   group('Customer Vehicle Count Display & Parity', () {
-    testWidgets('Displays accurate counts for 0, 1, 2, and 3 vehicles with proper singular/plural UX',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
+    testWidgets(
+      'Displays accurate counts for 0, 1, 2, and 3 vehicles with proper singular/plural UX',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
 
-      custRepo.customers = [
-        const Customer(id: 'c-0', name: 'Zero Vehicles', phoneNumber: '9870000000', vehicleCount: 0),
-        const Customer(id: 'c-1', name: 'One Vehicle', phoneNumber: '9870000001', vehicleCount: 1),
-        const Customer(id: 'c-2', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 2),
-        const Customer(id: 'c-3', name: 'Three Vehicles', phoneNumber: '9870000003', vehicleCount: 3),
-      ];
+        custRepo.customers = [
+          const Customer(
+            id: 'c-0',
+            name: 'Zero Vehicles',
+            phoneNumber: '9870000000',
+            vehicleCount: 0,
+          ),
+          const Customer(
+            id: 'c-1',
+            name: 'One Vehicle',
+            phoneNumber: '9870000001',
+            vehicleCount: 1,
+          ),
+          const Customer(
+            id: 'c-2',
+            name: 'Krishna',
+            phoneNumber: '9874563210',
+            vehicleCount: 2,
+          ),
+          const Customer(
+            id: 'c-3',
+            name: 'Three Vehicles',
+            phoneNumber: '9870000003',
+            vehicleCount: 3,
+          ),
+        ];
 
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(
+          createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('0 vehicles'), findsOneWidget);
-      expect(find.text('1 vehicle'), findsOneWidget);
-      expect(find.text('2 vehicles'), findsOneWidget);
-      expect(find.text('3 vehicles'), findsOneWidget);
-    });
+        expect(find.text('0 vehicles'), findsOneWidget);
+        expect(find.text('1 vehicle'), findsOneWidget);
+        expect(find.text('2 vehicles'), findsOneWidget);
+        expect(find.text('3 vehicles'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Customer List and Customer Details show consistent vehicle counts for Krishna',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
+    testWidgets(
+      'Customer List and Customer Details show consistent vehicle counts for Krishna',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
 
-      const krishna = Customer(
-        id: 'c-krishna',
-        name: 'Krishna',
-        phoneNumber: '9874563210',
-        vehicleCount: 2,
-      );
-      custRepo.customers = [krishna];
-      custRepo.customerMap[krishna.id] = krishna;
+        const krishna = Customer(
+          id: 'c-krishna',
+          name: 'Krishna',
+          phoneNumber: '9874563210',
+          vehicleCount: 2,
+        );
+        custRepo.customers = [krishna];
+        custRepo.customerMap[krishna.id] = krishna;
 
-      vehRepo.customerVehicles[krishna.id] = [
-        Vehicle(
-          id: 'v-1',
-          registrationNumber: 'TN33A0001',
-          make: 'Tata',
-          model: 'Nexon',
-          customerId: krishna.id,
-          createdAt: DateTime.now(),
-        ),
-        Vehicle(
-          id: 'v-2',
-          registrationNumber: 'TN33A0002',
-          make: 'Tata',
-          model: 'Mazza',
-          customerId: krishna.id,
-          createdAt: DateTime.now(),
-        ),
-      ];
+        vehRepo.customerVehicles[krishna.id] = [
+          Vehicle(
+            id: 'v-1',
+            registrationNumber: 'TN33A0001',
+            make: 'Tata',
+            model: 'Nexon',
+            customerId: krishna.id,
+            createdAt: DateTime.now(),
+          ),
+          Vehicle(
+            id: 'v-2',
+            registrationNumber: 'TN33A0002',
+            make: 'Tata',
+            model: 'Mazza',
+            customerId: krishna.id,
+            createdAt: DateTime.now(),
+          ),
+        ];
 
-      // 1. Verify Customer List
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        // 1. Verify Customer List
+        await tester.pumpWidget(
+          createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Krishna'), findsOneWidget);
-      expect(find.text('2 vehicles'), findsOneWidget);
+        expect(find.text('Krishna'), findsOneWidget);
+        expect(find.text('2 vehicles'), findsOneWidget);
 
-      // 2. Verify Customer Details
-      await tester.pumpWidget(createCustomerDetailsWidget(
-        customerId: krishna.id,
-        custRepo: custRepo,
-        vehRepo: vehRepo,
-      ));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        // 2. Verify Customer Details
+        await tester.pumpWidget(
+          createCustomerDetailsWidget(
+            customerId: krishna.id,
+            custRepo: custRepo,
+            vehRepo: vehRepo,
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Registered Vehicles (2)'), findsOneWidget);
-      expect(find.text('TN33A0001'), findsOneWidget);
-      expect(find.text('TN33A0002'), findsOneWidget);
-    });
+        expect(find.text('Registered Vehicles (2)'), findsOneWidget);
+        expect(find.text('TN33A0001'), findsOneWidget);
+        expect(find.text('TN33A0002'), findsOneWidget);
+      },
+    );
   });
 
   group('Cross-Platform Auto-Refresh Synchronization', () {
-    testWidgets('12-second periodic AutoRefreshMixin updates Customer List vehicle count without navigation',
-        (tester) async {
+    testWidgets(
+      '12-second periodic AutoRefreshMixin updates Customer List vehicle count without navigation',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
+
+        custRepo.customers = [
+          const Customer(
+            id: 'c-krishna',
+            name: 'Krishna',
+            phoneNumber: '9874563210',
+            vehicleCount: 2,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('2 vehicles'), findsOneWidget);
+        expect(find.text('3 vehicles'), findsNothing);
+
+        // Simulate external service/vehicle creation (e.g. from Windows)
+        custRepo.customers = [
+          const Customer(
+            id: 'c-krishna',
+            name: 'Krishna',
+            phoneNumber: '9874563210',
+            vehicleCount: 3,
+          ),
+        ];
+
+        // Advance timer by 12 seconds
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Rebuilt automatically on Customer List screen without navigation
+        expect(find.text('3 vehicles'), findsOneWidget);
+        expect(find.text('2 vehicles'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '12-second periodic AutoRefreshMixin updates Customer Details registered vehicles count',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
+
+        const krishna = Customer(
+          id: 'c-krishna',
+          name: 'Krishna',
+          phoneNumber: '9874563210',
+          vehicleCount: 2,
+        );
+        custRepo.customers = [krishna];
+        custRepo.customerMap[krishna.id] = krishna;
+
+        vehRepo.customerVehicles[krishna.id] = [
+          Vehicle(
+            id: 'v-1',
+            registrationNumber: 'TN33A0001',
+            make: 'Tata',
+            model: 'Nexon',
+            customerId: krishna.id,
+            createdAt: DateTime.now(),
+          ),
+          Vehicle(
+            id: 'v-2',
+            registrationNumber: 'TN33A0002',
+            make: 'Tata',
+            model: 'Mazza',
+            customerId: krishna.id,
+            createdAt: DateTime.now(),
+          ),
+        ];
+
+        await tester.pumpWidget(
+          createCustomerDetailsWidget(
+            customerId: krishna.id,
+            custRepo: custRepo,
+            vehRepo: vehRepo,
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Registered Vehicles (2)'), findsOneWidget);
+
+        // Windows adds a 3rd vehicle to Krishna
+        vehRepo.customerVehicles[krishna.id] = [
+          ...vehRepo.customerVehicles[krishna.id]!,
+          Vehicle(
+            id: 'v-3',
+            registrationNumber: 'TN33A0003',
+            make: 'Tata',
+            model: 'Safari',
+            customerId: krishna.id,
+            createdAt: DateTime.now(),
+          ),
+        ];
+
+        // Advance by 12 seconds
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Registered Vehicles (3)'), findsOneWidget);
+        expect(find.text('TN33A0003'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Silent refresh updates list quietly without showing full-page loading spinner',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
+
+        custRepo.customers = [
+          const Customer(
+            id: 'c-1',
+            name: 'Customer 1',
+            phoneNumber: '9876543210',
+            vehicleCount: 1,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('1 vehicle'), findsOneWidget);
+        expect(find.byType(AppLoadingState), findsNothing);
+
+        // Trigger 12s periodic timer
+        await tester.pump(const Duration(seconds: 12));
+
+        // AppLoadingState is never shown during background refresh
+        expect(find.byType(AppLoadingState), findsNothing);
+        expect(find.text('Customer 1'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Search query survives background silent refresh without resetting',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
+
+        custRepo.customers = [
+          const Customer(
+            id: 'c-1',
+            name: 'Gokul',
+            phoneNumber: '9876543210',
+            vehicleCount: 1,
+          ),
+          const Customer(
+            id: 'c-2',
+            name: 'Krishna',
+            phoneNumber: '9874563210',
+            vehicleCount: 2,
+          ),
+        ];
+
+        await tester.pumpWidget(
+          createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Gokul'), findsOneWidget);
+        expect(find.text('Krishna'), findsOneWidget);
+
+        // Type search query
+        await tester.enterText(find.byType(TextField), 'Krishna');
+        await tester.pumpAndSettle();
+
+        expect(find.widgetWithText(InkWell, 'Krishna'), findsOneWidget);
+        expect(find.text('Gokul'), findsNothing);
+
+        // Now background refresh fires after Windows updates data
+        custRepo.customers = [
+          const Customer(
+            id: 'c-1',
+            name: 'Gokul',
+            phoneNumber: '9876543210',
+            vehicleCount: 2,
+          ),
+          const Customer(
+            id: 'c-2',
+            name: 'Krishna',
+            phoneNumber: '9874563210',
+            vehicleCount: 3,
+          ),
+        ];
+
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Search remains active and displays updated Krishna data with 3 vehicles
+        expect(find.widgetWithText(InkWell, 'Krishna'), findsOneWidget);
+        expect(find.text('3 vehicles'), findsOneWidget);
+        expect(find.text('Gokul'), findsNothing);
+        expect(find.text('Search results for "Krishna"'), findsOneWidget);
+      },
+    );
+
+    testWidgets('App lifecycle inactive -> resumed triggers auto-refresh', (
+      tester,
+    ) async {
       final custRepo = _MockCustomerRepository();
       final vehRepo = _MockVehicleRepository();
 
       custRepo.customers = [
-        const Customer(id: 'c-krishna', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 2),
+        const Customer(
+          id: 'c-1',
+          name: 'Krishna',
+          phoneNumber: '9874563210',
+          vehicleCount: 2,
+        ),
       ];
 
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('2 vehicles'), findsOneWidget);
-      expect(find.text('3 vehicles'), findsNothing);
-
-      // Simulate external service/vehicle creation (e.g. from Windows)
-      custRepo.customers = [
-        const Customer(id: 'c-krishna', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 3),
-      ];
-
-      // Advance timer by 12 seconds
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Rebuilt automatically on Customer List screen without navigation
-      expect(find.text('3 vehicles'), findsOneWidget);
-      expect(find.text('2 vehicles'), findsNothing);
-    });
-
-    testWidgets('12-second periodic AutoRefreshMixin updates Customer Details registered vehicles count',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
-
-      const krishna = Customer(
-        id: 'c-krishna',
-        name: 'Krishna',
-        phoneNumber: '9874563210',
-        vehicleCount: 2,
+      await tester.pumpWidget(
+        createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo),
       );
-      custRepo.customers = [krishna];
-      custRepo.customerMap[krishna.id] = krishna;
-
-      vehRepo.customerVehicles[krishna.id] = [
-        Vehicle(id: 'v-1', registrationNumber: 'TN33A0001', make: 'Tata', model: 'Nexon', customerId: krishna.id, createdAt: DateTime.now()),
-        Vehicle(id: 'v-2', registrationNumber: 'TN33A0002', make: 'Tata', model: 'Mazza', customerId: krishna.id, createdAt: DateTime.now()),
-      ];
-
-      await tester.pumpWidget(createCustomerDetailsWidget(
-        customerId: krishna.id,
-        custRepo: custRepo,
-        vehRepo: vehRepo,
-      ));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('Registered Vehicles (2)'), findsOneWidget);
-
-      // Windows adds a 3rd vehicle to Krishna
-      vehRepo.customerVehicles[krishna.id] = [
-        ...vehRepo.customerVehicles[krishna.id]!,
-        Vehicle(id: 'v-3', registrationNumber: 'TN33A0003', make: 'Tata', model: 'Safari', customerId: krishna.id, createdAt: DateTime.now()),
-      ];
-
-      // Advance by 12 seconds
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('Registered Vehicles (3)'), findsOneWidget);
-      expect(find.text('TN33A0003'), findsOneWidget);
-    });
-
-    testWidgets('Silent refresh updates list quietly without showing full-page loading spinner',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
-
-      custRepo.customers = [
-        const Customer(id: 'c-1', name: 'Customer 1', phoneNumber: '9876543210', vehicleCount: 1),
-      ];
-
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('1 vehicle'), findsOneWidget);
-      expect(find.byType(AppLoadingState), findsNothing);
-
-      // Trigger 12s periodic timer
-      await tester.pump(const Duration(seconds: 12));
-
-      // AppLoadingState is never shown during background refresh
-      expect(find.byType(AppLoadingState), findsNothing);
-      expect(find.text('Customer 1'), findsOneWidget);
-    });
-
-    testWidgets('Search query survives background silent refresh without resetting',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
-
-      custRepo.customers = [
-        const Customer(id: 'c-1', name: 'Gokul', phoneNumber: '9876543210', vehicleCount: 1),
-        const Customer(id: 'c-2', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 2),
-      ];
-
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      expect(find.text('Gokul'), findsOneWidget);
-      expect(find.text('Krishna'), findsOneWidget);
-
-      // Type search query
-      await tester.enterText(find.byType(TextField), 'Krishna');
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(InkWell, 'Krishna'), findsOneWidget);
-      expect(find.text('Gokul'), findsNothing);
-
-      // Now background refresh fires after Windows updates data
-      custRepo.customers = [
-        const Customer(id: 'c-1', name: 'Gokul', phoneNumber: '9876543210', vehicleCount: 2),
-        const Customer(id: 'c-2', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 3),
-      ];
-
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Search remains active and displays updated Krishna data with 3 vehicles
-      expect(find.widgetWithText(InkWell, 'Krishna'), findsOneWidget);
-      expect(find.text('3 vehicles'), findsOneWidget);
-      expect(find.text('Gokul'), findsNothing);
-      expect(find.text('Search results for "Krishna"'), findsOneWidget);
-    });
-
-    testWidgets('App lifecycle inactive -> resumed triggers auto-refresh',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
-
-      custRepo.customers = [
-        const Customer(id: 'c-1', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 2),
-      ];
-
-      await tester.pumpWidget(createCustomerListWidget(custRepo: custRepo, vehRepo: vehRepo));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -453,7 +574,12 @@ void main() {
 
       // Simulate app returning to foreground
       custRepo.customers = [
-        const Customer(id: 'c-1', name: 'Krishna', phoneNumber: '9874563210', vehicleCount: 3),
+        const Customer(
+          id: 'c-1',
+          name: 'Krishna',
+          phoneNumber: '9874563210',
+          vehicleCount: 3,
+        ),
       ];
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
@@ -463,40 +589,51 @@ void main() {
       expect(find.text('3 vehicles'), findsOneWidget);
     });
 
+    testWidgets(
+      'Ownership transfer updates vehicle count for both old and new customers in data layer',
+      (tester) async {
+        final custRepo = _MockCustomerRepository();
+        final vehRepo = _MockVehicleRepository();
 
-    testWidgets('Ownership transfer updates vehicle count for both old and new customers in data layer',
-        (tester) async {
-      final custRepo = _MockCustomerRepository();
-      final vehRepo = _MockVehicleRepository();
+        const oldCustomer = Customer(
+          id: 'c-old',
+          name: 'Old Owner',
+          phoneNumber: '9870000001',
+          vehicleCount: 1,
+        );
+        const newCustomer = Customer(
+          id: 'c-new',
+          name: 'New Owner',
+          phoneNumber: '9870000002',
+          vehicleCount: 0,
+        );
 
-      const oldCustomer = Customer(
-        id: 'c-old',
-        name: 'Old Owner',
-        phoneNumber: '9870000001',
-        vehicleCount: 1,
-      );
-      const newCustomer = Customer(
-        id: 'c-new',
-        name: 'New Owner',
-        phoneNumber: '9870000002',
-        vehicleCount: 0,
-      );
+        custRepo.customers = [oldCustomer, newCustomer];
+        custRepo.customerMap[oldCustomer.id] = oldCustomer;
+        custRepo.customerMap[newCustomer.id] = newCustomer;
 
-      custRepo.customers = [oldCustomer, newCustomer];
-      custRepo.customerMap[oldCustomer.id] = oldCustomer;
-      custRepo.customerMap[newCustomer.id] = newCustomer;
+        vehRepo.customerVehicles[oldCustomer.id] = [
+          Vehicle(
+            id: 'v-shared',
+            registrationNumber: 'TN33TRANSFER',
+            make: 'Tata',
+            model: 'Safari',
+            customerId: oldCustomer.id,
+            createdAt: DateTime.now(),
+          ),
+        ];
+        vehRepo.customerVehicles[newCustomer.id] = [];
 
-      vehRepo.customerVehicles[oldCustomer.id] = [
-        Vehicle(id: 'v-shared', registrationNumber: 'TN33TRANSFER', make: 'Tata', model: 'Safari', customerId: oldCustomer.id, createdAt: DateTime.now()),
-      ];
-      vehRepo.customerVehicles[newCustomer.id] = [];
+        // Transfer vehicle from oldCustomer to newCustomer
+        await vehRepo.transferOwnership('v-shared', newCustomer.id);
 
-      // Transfer vehicle from oldCustomer to newCustomer
-      await vehRepo.transferOwnership('v-shared', newCustomer.id);
-
-      expect(vehRepo.customerVehicles[oldCustomer.id]!.length, 0);
-      expect(vehRepo.customerVehicles[newCustomer.id]!.length, 1);
-      expect(vehRepo.customerVehicles[newCustomer.id]!.first.customerId, newCustomer.id);
-    });
+        expect(vehRepo.customerVehicles[oldCustomer.id]!.length, 0);
+        expect(vehRepo.customerVehicles[newCustomer.id]!.length, 1);
+        expect(
+          vehRepo.customerVehicles[newCustomer.id]!.first.customerId,
+          newCustomer.id,
+        );
+      },
+    );
   });
 }

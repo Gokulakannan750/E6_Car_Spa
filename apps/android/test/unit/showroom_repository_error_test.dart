@@ -30,13 +30,19 @@ class MockErrorShowroomApi extends ShowroomApi {
   }
 
   @override
-  Future<Showroom> updateShowroom(String id, UpdateShowroomRequest request) async {
+  Future<Showroom> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
     throw UnimplementedError();
   }
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     if (exceptionToThrow != null) throw exceptionToThrow!;
     throw UnimplementedError();
   }
@@ -97,43 +103,53 @@ void main() {
   });
 
   group('ShowroomRepository Error Boundary Tests', () {
-    test('getShowrooms maps 401 Unauthorized to UnauthorizedException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showrooms'),
-        response: Response(
+    test(
+      'getShowrooms maps 401 Unauthorized to UnauthorizedException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/showrooms'),
-          statusCode: 401,
-          data: {'error': 'Session expired. Please log in again.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/showrooms'),
+            statusCode: 401,
+            data: {'error': 'Session expired. Please log in again.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.getShowrooms(),
-        throwsA(isA<UnauthorizedException>()),
-      );
-    });
+        expect(
+          () => repository.getShowrooms(),
+          throwsA(isA<UnauthorizedException>()),
+        );
+      },
+    );
 
-    test('createShowroom maps 400 Bad Request to ValidationException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showrooms'),
-        response: Response(
+    test(
+      'createShowroom maps 400 Bad Request to ValidationException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
           requestOptions: RequestOptions(path: '/showrooms'),
-          statusCode: 400,
-          data: {'error': 'Showroom name is required and cannot be empty.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/showrooms'),
+            statusCode: 400,
+            data: {'error': 'Showroom name is required and cannot be empty.'},
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-      expect(
-        () => repository.createShowroom(const CreateShowroomRequest(name: '', address: 'Address')),
-        throwsA(isA<ValidationException>().having(
-          (e) => e.message,
-          'message',
-          contains('Showroom name is required and cannot be empty.'),
-        )),
-      );
-    });
+        expect(
+          () => repository.createShowroom(
+            const CreateShowroomRequest(name: '', address: 'Address'),
+          ),
+          throwsA(
+            isA<ValidationException>().having(
+              (e) => e.message,
+              'message',
+              contains('Showroom name is required and cannot be empty.'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('getShowroomById maps 404 Not Found to NotFoundException', () async {
       mockApi.exceptionToThrow = DioException(
@@ -152,74 +168,108 @@ void main() {
       );
     });
 
-    test('confirmDailyStaffAttendance maps 403 Forbidden to ForbiddenException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff/confirm'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff/confirm'),
-          statusCode: 403,
-          data: {'error': 'User lacks permission showroom.confirm_attendance.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
-
-      expect(
-        () => repository.confirmDailyStaffAttendance('sr-1', DateTime(2026, 9, 9)),
-        throwsA(isA<ForbiddenException>().having(
-          (e) => e.message,
-          'message',
-          contains('User lacks permission showroom.confirm_attendance.'),
-        )),
-      );
-    });
-
-    test('assignDailyStaff maps 409 Conflict to ConflictException when attendance is locked', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff'),
-          statusCode: 409,
-          data: {'error': 'Cannot assign staff: Attendance for this date is already confirmed and locked.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
-
-      expect(
-        () => repository.assignDailyStaff(
-          'sr-1',
-          CreateDailyStaffAssignmentRequest(
-            staffId: 'stf-1',
-            date: DateTime(2026, 9, 9),
-            vehiclesAttended: 5,
+    test(
+      'confirmDailyStaffAttendance maps 403 Forbidden to ForbiddenException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(
+            path: '/showrooms/sr-1/daily-staff/confirm',
           ),
-        ),
-        throwsA(isA<ConflictException>().having(
-          (e) => e.message,
-          'message',
-          contains('Cannot assign staff: Attendance for this date is already confirmed and locked.'),
-        )),
-      );
-    });
+          response: Response(
+            requestOptions: RequestOptions(
+              path: '/showrooms/sr-1/daily-staff/confirm',
+            ),
+            statusCode: 403,
+            data: {
+              'error': 'User lacks permission showroom.confirm_attendance.',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+        );
 
-    test('updateDailyStaffVehicles maps 500 Server Error to ServerException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showroom-staff-assignments/asg-1'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/showroom-staff-assignments/asg-1'),
-          statusCode: 500,
-          data: {'error': 'Database transaction failure while updating vehicle count.'},
-        ),
-        type: DioExceptionType.badResponse,
-      );
+        expect(
+          () => repository.confirmDailyStaffAttendance(
+            'sr-1',
+            DateTime(2026, 9, 9),
+          ),
+          throwsA(
+            isA<ForbiddenException>().having(
+              (e) => e.message,
+              'message',
+              contains('User lacks permission showroom.confirm_attendance.'),
+            ),
+          ),
+        );
+      },
+    );
 
-      expect(
-        () => repository.updateDailyStaffVehicles(
-          'asg-1',
-          const UpdateDailyStaffAssignmentRequest(vehiclesAttended: 8),
-        ),
-        throwsA(isA<ServerException>()),
-      );
-    });
+    test(
+      'assignDailyStaff maps 409 Conflict to ConflictException when attendance is locked',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff'),
+            statusCode: 409,
+            data: {
+              'error':
+                  'Cannot assign staff: Attendance for this date is already confirmed and locked.',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        expect(
+          () => repository.assignDailyStaff(
+            'sr-1',
+            CreateDailyStaffAssignmentRequest(
+              staffId: 'stf-1',
+              date: DateTime(2026, 9, 9),
+              vehiclesAttended: 5,
+            ),
+          ),
+          throwsA(
+            isA<ConflictException>().having(
+              (e) => e.message,
+              'message',
+              contains(
+                'Cannot assign staff: Attendance for this date is already confirmed and locked.',
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    test(
+      'updateDailyStaffVehicles maps 500 Server Error to ServerException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(
+            path: '/showroom-staff-assignments/asg-1',
+          ),
+          response: Response(
+            requestOptions: RequestOptions(
+              path: '/showroom-staff-assignments/asg-1',
+            ),
+            statusCode: 500,
+            data: {
+              'error':
+                  'Database transaction failure while updating vehicle count.',
+            },
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+        expect(
+          () => repository.updateDailyStaffVehicles(
+            'asg-1',
+            const UpdateDailyStaffAssignmentRequest(vehiclesAttended: 8),
+          ),
+          throwsA(isA<ServerException>()),
+        );
+      },
+    );
 
     test('getDailyStaff maps connection timeout to NetworkException', () async {
       mockApi.exceptionToThrow = DioException(
@@ -229,24 +279,34 @@ void main() {
 
       expect(
         () => repository.getDailyStaff('sr-1', DateTime(2026, 9, 9)),
-        throwsA(isA<NetworkException>().having(
-          (e) => e.message,
-          'message',
-          contains('Connection timeout'),
-        )),
+        throwsA(
+          isA<NetworkException>().having(
+            (e) => e.message,
+            'message',
+            contains('Connection timeout'),
+          ),
+        ),
       );
     });
 
-    test('unlockDailyStaffAttendance maps connection error to NetworkException', () async {
-      mockApi.exceptionToThrow = DioException(
-        requestOptions: RequestOptions(path: '/showrooms/sr-1/daily-staff/unlock'),
-        type: DioExceptionType.connectionError,
-      );
+    test(
+      'unlockDailyStaffAttendance maps connection error to NetworkException',
+      () async {
+        mockApi.exceptionToThrow = DioException(
+          requestOptions: RequestOptions(
+            path: '/showrooms/sr-1/daily-staff/unlock',
+          ),
+          type: DioExceptionType.connectionError,
+        );
 
-      expect(
-        () => repository.unlockDailyStaffAttendance('sr-1', DateTime(2026, 9, 9)),
-        throwsA(isA<NetworkException>()),
-      );
-    });
+        expect(
+          () => repository.unlockDailyStaffAttendance(
+            'sr-1',
+            DateTime(2026, 9, 9),
+          ),
+          throwsA(isA<NetworkException>()),
+        );
+      },
+    );
   });
 }

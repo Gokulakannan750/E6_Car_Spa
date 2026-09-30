@@ -32,7 +32,9 @@ class MockAuthRepo extends AuthRepository {
   Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
     capturedRequest = request;
     if (!bootstrapShouldSucceed) {
-      throw Exception(bootstrapErrorMessage ?? 'System has already been initialized.');
+      throw Exception(
+        bootstrapErrorMessage ?? 'System has already been initialized.',
+      );
     }
     return AuthUser(
       id: 'owner-1',
@@ -47,7 +49,10 @@ class MockAuthRepo extends AuthRepository {
 class TestFirstTimeSetupNotifier extends AuthNotifier {
   int pollSetupStatusCalls = 0;
 
-  TestFirstTimeSetupNotifier(super.repo, [AuthState initial = const SetupRequired()]) {
+  TestFirstTimeSetupNotifier(
+    super.repo, [
+    AuthState initial = const SetupRequired(),
+  ]) {
     state = initial;
   }
 
@@ -89,7 +94,9 @@ void main() {
   }
 
   group('FirstTimeSetupScreen Widget Tests', () {
-    testWidgets('1. renders header, branding, titles, and owner privilege card', (tester) async {
+    testWidgets('1. renders header, branding, titles, and owner privilege card', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -98,7 +105,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('WELCOME TO E6 CAR SPA'), findsOneWidget);
-      expect(find.text('First-Time Setup — Create Owner Account'), findsOneWidget);
+      expect(
+        find.text('First-Time Setup — Create Owner Account'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'This account will have Owner privileges with unrestricted access to all current and future modules.',
@@ -107,7 +117,9 @@ void main() {
       );
     });
 
-    testWidgets('2. renders all four required fields and submit button', (tester) async {
+    testWidgets('2. renders all four required fields and submit button', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -118,8 +130,14 @@ void main() {
       expect(find.widgetWithText(AppTextField, 'Full Name'), findsOneWidget);
       expect(find.widgetWithText(AppTextField, 'Username'), findsOneWidget);
       expect(find.widgetWithText(AppTextField, 'Password'), findsOneWidget);
-      expect(find.widgetWithText(AppTextField, 'Confirm Password'), findsOneWidget);
-      expect(find.widgetWithText(AppButton, 'Create Owner Account'), findsOneWidget);
+      expect(
+        find.widgetWithText(AppTextField, 'Confirm Password'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(AppButton, 'Create Owner Account'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('3. password visibility toggle buttons work', (tester) async {
@@ -157,7 +175,9 @@ void main() {
       expect(find.text('Full name is required.'), findsOneWidget);
     });
 
-    testWidgets('5. validates password length must be at least 8 characters', (tester) async {
+    testWidgets('5. validates password length must be at least 8 characters', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -199,7 +219,10 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Create Owner Account'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Password must be at least 8 characters long.'), findsOneWidget);
+      expect(
+        find.text('Password must be at least 8 characters long.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('6. validates password confirmation mismatch', (tester) async {
@@ -245,7 +268,9 @@ void main() {
       expect(find.text('Passwords do not match.'), findsOneWidget);
     });
 
-    testWidgets('7. validates password cannot be equal to username', (tester) async {
+    testWidgets('7. validates password cannot be equal to username', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -285,109 +310,127 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Create Owner Account'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Password cannot be the same as the username.'), findsOneWidget);
-    });
-
-    testWidgets('8. displays error banner when state is SetupRequired with message', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(
-        createSetupTestWidget(
-          initialState: const SetupRequired('System is already initialized or server unreachable.'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
       expect(
-        find.text('System is already initialized or server unreachable.'),
+        find.text('Password cannot be the same as the username.'),
         findsOneWidget,
       );
     });
 
-    testWidgets('9. successful bootstrap submits valid payload and clears error', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      '8. displays error banner when state is SetupRequired with message',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockAuthRepo();
-
-      await tester.pumpWidget(createSetupTestWidget(mockRepo: mockRepo));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.descendant(
-          of: find.widgetWithText(AppTextField, 'Full Name'),
-          matching: find.byType(TextField),
-        ),
-        'Gokul Kannan',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.widgetWithText(AppTextField, 'Username'),
-          matching: find.byType(TextField),
-        ),
-        'gokul',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.widgetWithText(AppTextField, 'Password'),
-          matching: find.byType(TextField),
-        ),
-        'Password@123',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.widgetWithText(AppTextField, 'Confirm Password'),
-          matching: find.byType(TextField),
-        ),
-        'Password@123',
-      );
-
-      await tester.tap(find.widgetWithText(AppButton, 'Create Owner Account'));
-      await tester.pump();
-
-      // Verify captured request sent to repo
-      expect(mockRepo.capturedRequest, isNotNull);
-      expect(mockRepo.capturedRequest!.fullName, 'Gokul Kannan');
-      expect(mockRepo.capturedRequest!.username, 'gokul');
-      expect(mockRepo.capturedRequest!.password, 'Password@123');
-      expect(mockRepo.capturedRequest!.confirmPassword, 'Password@123');
-    });
-
-    testWidgets('10. periodic polling triggers pollSetupStatus while setup screen is open', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final mockRepo = MockAuthRepo();
-      final notifier = TestFirstTimeSetupNotifier(mockRepo, const SetupRequired());
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => notifier),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const FirstTimeSetupScreen(),
+        await tester.pumpWidget(
+          createSetupTestWidget(
+            initialState: const SetupRequired(
+              'System is already initialized or server unreachable.',
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(notifier.pollSetupStatusCalls, 0);
+        expect(
+          find.text('System is already initialized or server unreachable.'),
+          findsOneWidget,
+        );
+      },
+    );
 
-      // Advance time by 10 seconds (timer fires)
-      await tester.pump(const Duration(seconds: 10));
-      expect(notifier.pollSetupStatusCalls, 1);
+    testWidgets(
+      '9. successful bootstrap submits valid payload and clears error',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      // Advance time by another 10 seconds
-      await tester.pump(const Duration(seconds: 10));
-      expect(notifier.pollSetupStatusCalls, 2);
-    });
+        final mockRepo = MockAuthRepo();
+
+        await tester.pumpWidget(createSetupTestWidget(mockRepo: mockRepo));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.descendant(
+            of: find.widgetWithText(AppTextField, 'Full Name'),
+            matching: find.byType(TextField),
+          ),
+          'Gokul Kannan',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.widgetWithText(AppTextField, 'Username'),
+            matching: find.byType(TextField),
+          ),
+          'gokul',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.widgetWithText(AppTextField, 'Password'),
+            matching: find.byType(TextField),
+          ),
+          'Password@123',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.widgetWithText(AppTextField, 'Confirm Password'),
+            matching: find.byType(TextField),
+          ),
+          'Password@123',
+        );
+
+        await tester.tap(
+          find.widgetWithText(AppButton, 'Create Owner Account'),
+        );
+        await tester.pump();
+
+        // Verify captured request sent to repo
+        expect(mockRepo.capturedRequest, isNotNull);
+        expect(mockRepo.capturedRequest!.fullName, 'Gokul Kannan');
+        expect(mockRepo.capturedRequest!.username, 'gokul');
+        expect(mockRepo.capturedRequest!.password, 'Password@123');
+        expect(mockRepo.capturedRequest!.confirmPassword, 'Password@123');
+      },
+    );
+
+    testWidgets(
+      '10. periodic polling triggers pollSetupStatus while setup screen is open',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final mockRepo = MockAuthRepo();
+        final notifier = TestFirstTimeSetupNotifier(
+          mockRepo,
+          const SetupRequired(),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith((ref) => notifier),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const FirstTimeSetupScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(notifier.pollSetupStatusCalls, 0);
+
+        // Advance time by 10 seconds (timer fires)
+        await tester.pump(const Duration(seconds: 10));
+        expect(notifier.pollSetupStatusCalls, 1);
+
+        // Advance time by another 10 seconds
+        await tester.pump(const Duration(seconds: 10));
+        expect(notifier.pollSetupStatusCalls, 2);
+      },
+    );
   });
 }
-

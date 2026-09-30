@@ -15,6 +15,8 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		markOutsideJobReturned: vi.fn(),
 		cancelOutsideJob: vi.fn(),
 		createVendor: vi.fn(),
+		updateOutsideJobCost: vi.fn(),
+		deleteOutsideJob: vi.fn(),
 	};
 });
 
@@ -425,5 +427,123 @@ describe('OutsideJobsSection Component', () => {
 
 		fireEvent.click(screen.getByTestId('btn-add-outside-job'));
 		expect(screen.queryByTestId('modal-send-outside')).not.toBeInTheDocument();
+	});
+
+	it('validates vendor phone number must be exactly 10 digits in new vendor form', async () => {
+		renderComponent('jc-test-phone');
+
+		await waitFor(() => {
+			expect(screen.getByTestId('btn-add-outside-job')).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByTestId('btn-add-outside-job'));
+		expect(screen.getByTestId('modal-send-outside')).toBeInTheDocument();
+
+		// Click Add New Vendor button
+		fireEvent.click(screen.getByTestId('btn-toggle-new-vendor'));
+
+		// Fill invalid 9-digit phone
+		fireEvent.change(screen.getByPlaceholderText(/Sri Lakshmi Auto Works/i), { target: { value: 'New Test Vendor' } });
+		fireEvent.change(screen.getByPlaceholderText(/9842712345/i), { target: { value: '987654321' } });
+
+		fireEvent.click(screen.getByTestId('btn-save-new-vendor'));
+
+		await waitFor(() => {
+			expect(screen.getByText('Phone number must be exactly 10 digits.')).toBeInTheDocument();
+			expect(api.createVendor).not.toHaveBeenCalled();
+		});
+	});
+
+	it('allows editing vendor cost from movement history and calls updateOutsideJobCost', async () => {
+		const returnedJob: api.OutsideJobDto = {
+			id: 'oj-hist-edit-1',
+			jobCardId: 'jc-test-edit',
+			jobCardNumber: 'JC-2026-0109',
+			vehicleId: 'veh-1',
+			vehicleRegistrationNumber: 'KA01MJ9999',
+			vehicleMake: 'Honda',
+			vehicleModel: 'City',
+			customerId: 'cust-1',
+			customerName: 'Rahul Sharma',
+			customerPhone: '9876543210',
+			vendorId: 'ven-1',
+			vendorName: 'Sri Lakshmi Auto Works',
+			serviceName: 'Denting',
+			status: 2, // Returned
+			statusName: 'Returned',
+			sentAt: '2026-09-20T09:00:00Z',
+			expectedReturnAt: '2026-09-20T17:00:00Z',
+			returnedAt: '2026-09-20T15:30:00Z',
+			vendorCost: 500,
+			isOverdue: false,
+			createdAt: '2026-09-20T09:00:00Z',
+		};
+
+		vi.mocked(api.getOutsideJobsByJobCardId).mockResolvedValue([returnedJob]);
+		vi.mocked(api.updateOutsideJobCost).mockResolvedValue({ ...returnedJob, vendorCost: 1500 });
+
+		renderComponent('jc-test-edit');
+
+		await waitFor(() => {
+			expect(screen.getByTestId('btn-edit-cost-oj-hist-edit-1')).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByTestId('btn-edit-cost-oj-hist-edit-1'));
+		expect(screen.getByTestId('modal-edit-vendor-cost')).toBeInTheDocument();
+
+		const costInput = screen.getByTestId('input-edit-vendor-cost');
+		expect(costInput).toHaveValue(500);
+
+		fireEvent.change(costInput, { target: { value: '1500' } });
+		fireEvent.click(screen.getByTestId('btn-save-edited-cost'));
+
+		await waitFor(() => {
+			expect(api.updateOutsideJobCost).toHaveBeenCalledWith('oj-hist-edit-1', { vendorCost: 1500 });
+		});
+	});
+
+	it('allows deleting movement from history with confirmation dialog', async () => {
+		const returnedJob: api.OutsideJobDto = {
+			id: 'oj-hist-del-1',
+			jobCardId: 'jc-test-del',
+			jobCardNumber: 'JC-2026-0110',
+			vehicleId: 'veh-1',
+			vehicleRegistrationNumber: 'KA01MJ9999',
+			vehicleMake: 'Honda',
+			vehicleModel: 'City',
+			customerId: 'cust-1',
+			customerName: 'Rahul Sharma',
+			customerPhone: '9876543210',
+			vendorId: 'ven-1',
+			vendorName: 'Sri Lakshmi Auto Works',
+			serviceName: 'Mistaken Job',
+			status: 2, // Returned
+			statusName: 'Returned',
+			sentAt: '2026-09-20T09:00:00Z',
+			expectedReturnAt: '2026-09-20T17:00:00Z',
+			returnedAt: '2026-09-20T15:30:00Z',
+			vendorCost: 500,
+			isOverdue: false,
+			createdAt: '2026-09-20T09:00:00Z',
+		};
+
+		vi.mocked(api.getOutsideJobsByJobCardId).mockResolvedValue([returnedJob]);
+		vi.mocked(api.deleteOutsideJob).mockResolvedValue(undefined);
+
+		renderComponent('jc-test-del');
+
+		await waitFor(() => {
+			expect(screen.getByTestId('btn-delete-movement-oj-hist-del-1')).toBeInTheDocument();
+		});
+
+		fireEvent.click(screen.getByTestId('btn-delete-movement-oj-hist-del-1'));
+		expect(screen.getByTestId('modal-delete-movement')).toBeInTheDocument();
+		expect(screen.getByText(/Are you sure you want to remove the outside job record/i)).toBeInTheDocument();
+
+		fireEvent.click(screen.getByTestId('btn-confirm-delete-movement'));
+
+		await waitFor(() => {
+			expect(api.deleteOutsideJob).toHaveBeenCalledWith('oj-hist-del-1');
+		});
 	});
 });

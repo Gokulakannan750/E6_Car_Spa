@@ -12,6 +12,8 @@ import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../../models/user_model.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/users_state.dart';
@@ -25,8 +27,18 @@ class UsersScreen extends ConsumerStatefulWidget {
   ConsumerState<UsersScreen> createState() => _UsersScreenState();
 }
 
-class _UsersScreenState extends ConsumerState<UsersScreen> {
+class _UsersScreenState extends ConsumerState<UsersScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<UsersScreen> {
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void onAutoRefresh() {
+    final authState = ref.read(authNotifierProvider);
+    final currentUser = authState is Authenticated ? authState.user : null;
+    if (currentUser == null || !currentUser.hasPermission('users.view')) return;
+
+    ref.read(usersNotifierProvider.notifier).loadUsers(showLoading: false);
+  }
 
   @override
   void dispose() {
@@ -34,10 +46,7 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
     super.dispose();
   }
 
-  Future<void> _handleToggleStatus(
-    UserModel user,
-    String currentUserId,
-  ) async {
+  Future<void> _handleToggleStatus(UserModel user, String currentUserId) async {
     if (user.isOwner) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -135,6 +144,9 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
+
     final authState = ref.watch(authNotifierProvider);
     final currentUser = authState is Authenticated ? authState.user : null;
 
@@ -192,54 +204,54 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
         ),
         onBackPressed: () => context.go(AppRoutes.settings),
         actions: const [AppLogoutAction()],
-      floatingActionButton: canCreate && usersState is UsersLoaded
-          ? FloatingActionButton.extended(
-              onPressed: () => _handleOpenCreate(usersState),
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-              label: const Text(
-                'Add User',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+        floatingActionButton: canCreate && usersState is UsersLoaded
+            ? FloatingActionButton.extended(
+                onPressed: () => _handleOpenCreate(usersState),
+                backgroundColor: AppColors.primary,
+                icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+                label: const Text(
+                  'Add User',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-            )
-          : null,
-      body: Builder(
-        builder: (context) {
-          if (usersState is UsersLoading) {
-            return const AppLoadingState(
-              message: 'Loading users and permissions...',
-            );
-          }
+              )
+            : null,
+        body: Builder(
+          builder: (context) {
+            if (usersState is UsersLoading) {
+              return const AppLoadingState(
+                message: 'Loading users and permissions...',
+              );
+            }
 
-          if (usersState is UsersError) {
-            return AppErrorState(
-              title: 'Failed to Load Users',
-              message: usersState.message,
-              onRetry: () =>
-                  ref.read(usersNotifierProvider.notifier).loadUsers(),
-            );
-          }
+            if (usersState is UsersError) {
+              return AppErrorState(
+                title: 'Failed to Load Users',
+                message: usersState.message,
+                onRetry: () =>
+                    ref.read(usersNotifierProvider.notifier).loadUsers(),
+              );
+            }
 
-          if (usersState is UsersLoaded) {
-            return _buildLoadedContent(
-              context: context,
-              state: usersState,
-              currentUserId: currentUser?.id ?? '',
-              canCreate: canCreate,
-              canEdit: canEdit,
-              canDeactivate: canDeactivate,
-            );
-          }
+            if (usersState is UsersLoaded) {
+              return _buildLoadedContent(
+                context: context,
+                state: usersState,
+                currentUserId: currentUser?.id ?? '',
+                canCreate: canCreate,
+                canEdit: canEdit,
+                canDeactivate: canDeactivate,
+              );
+            }
 
-          return const SizedBox.shrink();
-        },
+            return const SizedBox.shrink();
+          },
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildLoadedContent({
     required BuildContext context,
@@ -390,23 +402,20 @@ class _UsersScreenState extends ConsumerState<UsersScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final user = filteredUsers[index];
-                    final isSelf = user.id == currentUserId;
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final user = filteredUsers[index];
+                  final isSelf = user.id == currentUserId;
 
-                    return UserCard(
-                      user: user,
-                      isSelf: isSelf,
-                      canEdit: canEdit,
-                      canDeactivate: canDeactivate,
-                      onEdit: () => _handleOpenEdit(user, state),
-                      onToggleStatus: () =>
-                          _handleToggleStatus(user, currentUserId),
-                    );
-                  },
-                  childCount: filteredUsers.length,
-                ),
+                  return UserCard(
+                    user: user,
+                    isSelf: isSelf,
+                    canEdit: canEdit,
+                    canDeactivate: canDeactivate,
+                    onEdit: () => _handleOpenEdit(user, state),
+                    onToggleStatus: () =>
+                        _handleToggleStatus(user, currentUserId),
+                  );
+                }, childCount: filteredUsers.length),
               ),
             ),
         ],

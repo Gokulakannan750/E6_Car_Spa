@@ -33,10 +33,7 @@ class ReportsRepository {
     DateTime? toDate,
   }) async {
     try {
-      return await _api.getDashboardSummary(
-        fromDate: fromDate,
-        toDate: toDate,
-      );
+      return await _api.getDashboardSummary(fromDate: fromDate, toDate: toDate);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -111,10 +108,7 @@ class ReportsRepository {
     DateTime? toDate,
   }) async {
     try {
-      return await _api.getGstReport(
-        fromDate: fromDate,
-        toDate: toDate,
-      );
+      return await _api.getGstReport(fromDate: fromDate, toDate: toDate);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

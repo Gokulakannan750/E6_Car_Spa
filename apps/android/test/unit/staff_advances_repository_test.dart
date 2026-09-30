@@ -50,7 +50,9 @@ class MockStaffAdvancesApi extends StaffAdvancesApi {
   }
 
   @override
-  Future<StaffAdvance> createStaffAdvance(CreateStaffAdvanceRequest request) async {
+  Future<StaffAdvance> createStaffAdvance(
+    CreateStaffAdvanceRequest request,
+  ) async {
     if (shouldThrow) throw Exception(errorMessage);
     return StaffAdvance(
       id: 'adv-new',
@@ -82,7 +84,10 @@ class MockStaffAdvancesApi extends StaffAdvancesApi {
   }
 
   @override
-  Future<StaffAdvance> obsoleteStaffAdvance(String id, ObsoleteStaffAdvanceRequest request) async {
+  Future<StaffAdvance> obsoleteStaffAdvance(
+    String id,
+    ObsoleteStaffAdvanceRequest request,
+  ) async {
     if (shouldThrow) throw Exception(errorMessage);
     return StaffAdvance(
       id: id,
@@ -167,7 +172,7 @@ void main() {
           reason: 'Salary Advance',
           status: StaffAdvanceStatus.outstanding,
           createdAt: DateTime.now(),
-        )
+        ),
       ];
 
       final result = await repository.getStaffAdvances();
@@ -177,28 +182,37 @@ void main() {
       expect(result.summary.outstandingAmount, 3000.0);
     });
 
-    test('createStaffAdvance creates and returns newly created advance', () async {
-      final request = CreateStaffAdvanceRequest(
-        staffId: 's-1',
-        amount: 3000.0,
-        advanceDate: DateTime.now(),
-        reason: 'Personal Advance',
-      );
+    test(
+      'createStaffAdvance creates and returns newly created advance',
+      () async {
+        final request = CreateStaffAdvanceRequest(
+          staffId: 's-1',
+          amount: 3000.0,
+          advanceDate: DateTime.now(),
+          reason: 'Personal Advance',
+        );
 
-      final advance = await repository.createStaffAdvance(request);
+        final advance = await repository.createStaffAdvance(request);
 
-      expect(advance.id, 'adv-new');
-      expect(advance.amount, 3000.0);
-      expect(advance.status, StaffAdvanceStatus.outstanding);
-    });
+        expect(advance.id, 'adv-new');
+        expect(advance.amount, 3000.0);
+        expect(advance.status, StaffAdvanceStatus.outstanding);
+      },
+    );
 
     test('settleStaffAdvance calls API without error', () async {
-      expect(() async => await repository.settleStaffAdvance('adv-1'), returnsNormally);
+      expect(
+        () async => await repository.settleStaffAdvance('adv-1'),
+        returnsNormally,
+      );
     });
 
     test('obsoleteStaffAdvance calls API without error', () async {
       final request = ObsoleteStaffAdvanceRequest(reason: 'Wrongly entered');
-      expect(() async => await repository.obsoleteStaffAdvance('adv-1', request), returnsNormally);
+      expect(
+        () async => await repository.obsoleteStaffAdvance('adv-1', request),
+        returnsNormally,
+      );
     });
 
     test('getStaffAdvanceHistory returns full history DTO', () async {
@@ -234,7 +248,7 @@ void main() {
           name: 'Ramesh Kumar',
           phoneNumber: '9840123456',
           isActive: true,
-        )
+        ),
       ];
 
       final list = await staffRepository.getStaff();

@@ -7,24 +7,34 @@ final selectedAttendanceDateProvider = StateProvider<String>((ref) {
   return DateTime.now().toIso8601String().split('T')[0];
 });
 
-final selectedMonthlyYearMonthProvider = StateProvider<({int year, int month})>((ref) {
-  final now = DateTime.now();
-  return (year: now.year, month: now.month);
-});
+final selectedMonthlyYearMonthProvider = StateProvider<({int year, int month})>(
+  (ref) {
+    final now = DateTime.now();
+    return (year: now.year, month: now.month);
+  },
+);
 
-final selectedMonthlyStaffFilterProvider = StateProvider<String?>((ref) => null);
+final selectedMonthlyStaffFilterProvider = StateProvider<String?>(
+  (ref) => null,
+);
 
-final dailyAttendanceProvider = FutureProvider.autoDispose.family<DailyAttendanceResponse, String>((ref, date) async {
-  final repo = ref.watch(staffRepositoryProvider);
-  return repo.getDailyAttendance(date);
-});
+final dailyAttendanceProvider = FutureProvider.autoDispose
+    .family<DailyAttendanceResponse, String>((ref, date) async {
+      final repo = ref.watch(staffRepositoryProvider);
+      return repo.getDailyAttendance(date);
+    });
 
-final monthlyAttendanceReportProvider = FutureProvider.autoDispose<MonthlyAttendanceReportResponse>((ref) async {
-  final ym = ref.watch(selectedMonthlyYearMonthProvider);
-  final staffId = ref.watch(selectedMonthlyStaffFilterProvider);
-  final repo = ref.watch(staffRepositoryProvider);
-  return repo.getMonthlyAttendanceReport(year: ym.year, month: ym.month, staffId: staffId);
-});
+final monthlyAttendanceReportProvider =
+    FutureProvider.autoDispose<MonthlyAttendanceReportResponse>((ref) async {
+      final ym = ref.watch(selectedMonthlyYearMonthProvider);
+      final staffId = ref.watch(selectedMonthlyStaffFilterProvider);
+      final repo = ref.watch(staffRepositoryProvider);
+      return repo.getMonthlyAttendanceReport(
+        year: ym.year,
+        month: ym.month,
+        staffId: staffId,
+      );
+    });
 
 class AttendanceActionState {
   final bool isSubmitting;
@@ -47,7 +57,9 @@ class AttendanceActionState {
     return AttendanceActionState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -56,7 +68,8 @@ class AttendanceActionNotifier extends StateNotifier<AttendanceActionState> {
   final StaffRepository _repository;
   final Ref _ref;
 
-  AttendanceActionNotifier(this._repository, this._ref) : super(const AttendanceActionState());
+  AttendanceActionNotifier(this._repository, this._ref)
+    : super(const AttendanceActionState());
 
   Future<String?> markAttendance({
     required String staffId,
@@ -67,7 +80,11 @@ class AttendanceActionNotifier extends StateNotifier<AttendanceActionState> {
     double? workingHours,
     String? notes,
   }) async {
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       await _repository.upsertAttendance(
         staffId: staffId,
@@ -78,7 +95,10 @@ class AttendanceActionNotifier extends StateNotifier<AttendanceActionState> {
         workingHours: workingHours,
         notes: notes,
       );
-      state = state.copyWith(isSubmitting: false, successMessage: 'Attendance recorded');
+      state = state.copyWith(
+        isSubmitting: false,
+        successMessage: 'Attendance recorded',
+      );
       _ref.invalidate(dailyAttendanceProvider(attendanceDate));
       _ref.invalidate(monthlyAttendanceReportProvider);
       return null;
@@ -93,10 +113,17 @@ class AttendanceActionNotifier extends StateNotifier<AttendanceActionState> {
     required String date,
     String? notes,
   }) async {
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       await _repository.confirmDailyAttendance(date: date, notes: notes);
-      state = state.copyWith(isSubmitting: false, successMessage: 'Daily attendance confirmed & locked');
+      state = state.copyWith(
+        isSubmitting: false,
+        successMessage: 'Daily attendance confirmed & locked',
+      );
       _ref.invalidate(dailyAttendanceProvider(date));
       return null;
     } catch (e) {
@@ -107,7 +134,10 @@ class AttendanceActionNotifier extends StateNotifier<AttendanceActionState> {
   }
 }
 
-final attendanceActionProvider = StateNotifierProvider<AttendanceActionNotifier, AttendanceActionState>((ref) {
-  final repo = ref.watch(staffRepositoryProvider);
-  return AttendanceActionNotifier(repo, ref);
-});
+final attendanceActionProvider =
+    StateNotifierProvider<AttendanceActionNotifier, AttendanceActionState>((
+      ref,
+    ) {
+      final repo = ref.watch(staffRepositoryProvider);
+      return AttendanceActionNotifier(repo, ref);
+    });

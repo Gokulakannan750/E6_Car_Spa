@@ -4,10 +4,7 @@ class LogoUploadResponseModel {
   final String logoUrl;
   final BusinessProfileModel profile;
 
-  const LogoUploadResponseModel({
-    required this.logoUrl,
-    required this.profile,
-  });
+  const LogoUploadResponseModel({required this.logoUrl, required this.profile});
 
   factory LogoUploadResponseModel.fromJson(Map<String, dynamic> json) {
     return LogoUploadResponseModel(
@@ -19,9 +16,6 @@ class LogoUploadResponseModel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'logoUrl': logoUrl,
-      'profile': profile.toJson(),
-    };
+    return {'logoUrl': logoUrl, 'profile': profile.toJson()};
   }
 }

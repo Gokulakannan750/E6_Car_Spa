@@ -23,11 +23,11 @@ class VehicleWorkCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final staffInitials = work.staffName.trim().isNotEmpty
         ? work.staffName
-            .trim()
-            .split(RegExp(r'\s+'))
-            .map((e) => e.isNotEmpty ? e[0].toUpperCase() : '')
-            .take(2)
-            .join()
+              .trim()
+              .split(RegExp(r'\s+'))
+              .map((e) => e.isNotEmpty ? e[0].toUpperCase() : '')
+              .take(2)
+              .join()
         : 'S';
 
     return Container(
@@ -107,7 +107,10 @@ class VehicleWorkCard extends StatelessWidget {
                     tooltip: 'Edit Vehicle Work',
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
                 if (canDelete && onDelete != null)
                   IconButton(
@@ -117,7 +120,10 @@ class VehicleWorkCard extends StatelessWidget {
                     tooltip: 'Delete Vehicle Work',
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
                   ),
               ],
             ),
@@ -130,7 +136,10 @@ class VehicleWorkCard extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withAlpha(15),
                     borderRadius: BorderRadius.circular(6),
@@ -157,7 +166,10 @@ class VehicleWorkCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(6),
@@ -183,11 +195,16 @@ class VehicleWorkCard extends StatelessWidget {
                 runSpacing: 4,
                 children: work.serviceItems.map((item) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
-                      border: Border.all(color: AppColors.border.withAlpha(120)),
+                      border: Border.all(
+                        color: AppColors.border.withAlpha(120),
+                      ),
                     ),
                     child: Text(
                       item.workTypeName,

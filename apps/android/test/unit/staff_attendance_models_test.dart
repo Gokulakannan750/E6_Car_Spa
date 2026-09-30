@@ -78,7 +78,7 @@ void main() {
             'staffPhoneNumber': '9876543210',
             'status': 'Present',
             'attendanceDate': '2026-09-22',
-          }
+          },
         ],
       };
 
@@ -105,12 +105,7 @@ void main() {
         'toDate': '2026-09-30',
         'totalCalendarDays': 30,
         'staffCount': 5,
-        'summary': {
-          'present': 120,
-          'halfDay': 10,
-          'leave': 15,
-          'unmarked': 5,
-        },
+        'summary': {'present': 120, 'halfDay': 10, 'leave': 15, 'unmarked': 5},
         'staffAttendance': [
           {
             'staffId': 'staff-1',
@@ -132,7 +127,7 @@ void main() {
                 'workingHoursFormatted': '9.0 hrs',
               },
             ],
-          }
+          },
         ],
       };
 

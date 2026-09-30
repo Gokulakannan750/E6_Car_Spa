@@ -89,10 +89,7 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
       );
     } on ApiException catch (e) {
       if (!silent) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: e.message,
-        );
+        state = state.copyWith(isLoading: false, errorMessage: e.message);
       }
     } catch (e) {
       if (!silent) {
@@ -123,10 +120,7 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
       );
       return created;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isMutating: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isMutating: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       state = state.copyWith(
@@ -137,21 +131,23 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
     }
   }
 
-  Future<Showroom?> updateShowroom(String id, UpdateShowroomRequest request) async {
+  Future<Showroom?> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
     state = state.copyWith(isMutating: true, clearError: true);
     try {
       final updated = await _repository.updateShowroom(id, request);
       state = state.copyWith(
-        showrooms: state.showrooms.map((s) => s.id == id ? updated : s).toList(),
+        showrooms: state.showrooms
+            .map((s) => s.id == id ? updated : s)
+            .toList(),
         isMutating: false,
         clearError: true,
       );
       return updated;
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isMutating: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isMutating: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       state = state.copyWith(
@@ -177,10 +173,7 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
         clearError: true,
       );
     } on ApiException catch (e) {
-      state = state.copyWith(
-        isMutating: false,
-        errorMessage: e.message,
-      );
+      state = state.copyWith(isMutating: false, errorMessage: e.message);
       rethrow;
     } catch (e) {
       state = state.copyWith(
@@ -190,11 +183,10 @@ class ShowroomsNotifier extends StateNotifier<ShowroomsState> {
       rethrow;
     }
   }
-
 }
 
 final showroomsProvider =
     StateNotifierProvider<ShowroomsNotifier, ShowroomsState>((ref) {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return ShowroomsNotifier(repository);
-});
+      final repository = ref.watch(showroomRepositoryProvider);
+      return ShowroomsNotifier(repository);
+    });

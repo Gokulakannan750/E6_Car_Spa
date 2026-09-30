@@ -20,7 +20,10 @@ class AdvanceKpiSection extends StatelessWidget {
     final decimalPart = parts[1];
 
     final reg = RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))');
-    final formattedInt = integerPart.replaceAllMapped(reg, (Match m) => '${m[1]},');
+    final formattedInt = integerPart.replaceAllMapped(
+      reg,
+      (Match m) => '${m[1]},',
+    );
     return '₹$formattedInt.$decimalPart';
   }
 

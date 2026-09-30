@@ -56,7 +56,9 @@ class JobCardListState {
       totalCount: totalCount ?? this.totalCount,
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
-      selectedStatus: clearStatus ? null : (selectedStatus ?? this.selectedStatus),
+      selectedStatus: clearStatus
+          ? null
+          : (selectedStatus ?? this.selectedStatus),
       searchQuery: searchQuery ?? this.searchQuery,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
@@ -89,7 +91,8 @@ class JobCardListNotifier extends StateNotifier<JobCardListState> {
       final response = await _repository.getJobCards(
         page: 1,
         pageSize: state.pageSize,
-        search: search ?? (state.searchQuery.isEmpty ? null : state.searchQuery),
+        search:
+            search ?? (state.searchQuery.isEmpty ? null : state.searchQuery),
         status: status ?? state.selectedStatus,
       );
 
@@ -131,18 +134,16 @@ class JobCardListNotifier extends StateNotifier<JobCardListState> {
 
   void setStatusFilter(JobCardStatus? status) {
     if (!mounted) return;
-    state = state.copyWith(
-      selectedStatus: status,
-      clearStatus: status == null,
-    );
+    state = state.copyWith(selectedStatus: status, clearStatus: status == null);
     loadJobCards(status: status);
   }
 }
 
-final jobCardListProvider = StateNotifierProvider<JobCardListNotifier, JobCardListState>((ref) {
-  final repo = ref.watch(jobCardRepositoryProvider);
-  return JobCardListNotifier(repo);
-});
+final jobCardListProvider =
+    StateNotifierProvider<JobCardListNotifier, JobCardListState>((ref) {
+      final repo = ref.watch(jobCardRepositoryProvider);
+      return JobCardListNotifier(repo);
+    });
 
 // ── Job Card Details State ────────────────────────────────────────────────────
 
@@ -187,9 +188,11 @@ class JobCardDetailsNotifier extends StateNotifier<JobCardDetailsState> {
     }
   }
 
-  Future<void> loadDetails() async {
+  Future<void> loadDetails({bool silent = false}) async {
     if (!mounted) return;
-    state = state.copyWith(isLoading: true, clearError: true);
+    if (!silent) {
+      state = state.copyWith(isLoading: true, clearError: true);
+    }
 
     try {
       final jobCard = await _repository.getJobCardById(jobCardId);
@@ -201,22 +204,26 @@ class JobCardDetailsNotifier extends StateNotifier<JobCardDetailsState> {
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.message,
-      );
+      if (!silent) {
+        state = state.copyWith(isLoading: false, errorMessage: e.message);
+      }
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: 'Unable to load Job Card details. Please try again.',
-      );
+      if (!silent) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Unable to load Job Card details. Please try again.',
+        );
+      }
     }
   }
 
   Future<JobCard> updateServices(UpdateJobCardServicesRequest request) async {
     try {
-      final updated = await _repository.updateJobCardServices(jobCardId, request);
+      final updated = await _repository.updateJobCardServices(
+        jobCardId,
+        request,
+      );
       if (mounted) {
         state = state.copyWith(jobCard: updated, clearError: true);
       }
@@ -228,10 +235,14 @@ class JobCardDetailsNotifier extends StateNotifier<JobCardDetailsState> {
 }
 
 final jobCardDetailsProvider =
-    StateNotifierProvider.family<JobCardDetailsNotifier, JobCardDetailsState, String>((ref, jobCardId) {
-  final repo = ref.watch(jobCardRepositoryProvider);
-  return JobCardDetailsNotifier(jobCardId, repo);
-});
+    StateNotifierProvider.family<
+      JobCardDetailsNotifier,
+      JobCardDetailsState,
+      String
+    >((ref, jobCardId) {
+      final repo = ref.watch(jobCardRepositoryProvider);
+      return JobCardDetailsNotifier(jobCardId, repo);
+    });
 
 // ── New Job Card Wizard State ─────────────────────────────────────────────────
 
@@ -249,13 +260,11 @@ class SelectedServiceDraft {
 
   double get subtotal => service.price * quantity;
   double get effectiveTaxRate => service.taxPercentage;
-  double get taxAmount => (subtotal - discountAmount) * (effectiveTaxRate / 100);
+  double get taxAmount =>
+      (subtotal - discountAmount) * (effectiveTaxRate / 100);
   double get lineTotal => subtotal - discountAmount + taxAmount;
 
-  SelectedServiceDraft copyWith({
-    int? quantity,
-    double? discountAmount,
-  }) {
+  SelectedServiceDraft copyWith({int? quantity, double? discountAmount}) {
     return SelectedServiceDraft(
       service: service,
       quantity: quantity ?? this.quantity,
@@ -300,16 +309,25 @@ class NewJobCardState {
   bool get canProceedToReview => selectedServices.isNotEmpty;
 
   double get previewSubtotal {
-    return selectedServices.values.fold(0.0, (acc, item) => acc + item.subtotal);
+    return selectedServices.values.fold(
+      0.0,
+      (acc, item) => acc + item.subtotal,
+    );
   }
 
   double get previewTax {
     if (!isGstEnabled) return 0.0;
-    return selectedServices.values.fold(0.0, (acc, item) => acc + item.taxAmount);
+    return selectedServices.values.fold(
+      0.0,
+      (acc, item) => acc + item.taxAmount,
+    );
   }
 
   double get previewDiscount {
-    return selectedServices.values.fold(0.0, (acc, item) => acc + item.discountAmount);
+    return selectedServices.values.fold(
+      0.0,
+      (acc, item) => acc + item.discountAmount,
+    );
   }
 
   double get previewTotal {
@@ -339,7 +357,9 @@ class NewJobCardState {
       step: step ?? this.step,
       customer: clearCustomer ? null : (customer ?? this.customer),
       customerVehicles: customerVehicles ?? this.customerVehicles,
-      selectedVehicle: clearSelectedVehicle ? null : (selectedVehicle ?? this.selectedVehicle),
+      selectedVehicle: clearSelectedVehicle
+          ? null
+          : (selectedVehicle ?? this.selectedVehicle),
       selectedServices: selectedServices ?? this.selectedServices,
       notes: notes ?? this.notes,
       isGstEnabled: isGstEnabled ?? this.isGstEnabled,
@@ -380,7 +400,10 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
     if (!mounted) return;
     state = state.copyWith(isLoadingServices: true);
     try {
-      final response = await _serviceRepo.getServices(isActive: true, pageSize: 100);
+      final response = await _serviceRepo.getServices(
+        isActive: true,
+        pageSize: 100,
+      );
       if (!mounted) return;
       state = state.copyWith(
         isLoadingServices: false,
@@ -424,7 +447,10 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       state = state.copyWith(isSearching: false, lookupError: e.message);
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(isSearching: false, lookupError: 'Search failed. Please try again.');
+      state = state.copyWith(
+        isSearching: false,
+        lookupError: 'Search failed. Please try again.',
+      );
     }
   }
 
@@ -435,20 +461,35 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
     state = state.copyWith(isSearching: true, clearLookupError: true);
 
     try {
-      final fetchedVehicle = await _vehicleRepo.getVehicleByRegistration(normalized);
+      final fetchedVehicle = await _vehicleRepo.getVehicleByRegistration(
+        normalized,
+      );
       if (!mounted) return;
       if (fetchedVehicle != null) {
-        final vehicle = fetchedVehicle.registrationNumber != fetchedVehicle.registrationNumber.trim().toUpperCase()
-            ? fetchedVehicle.copyWith(registrationNumber: fetchedVehicle.registrationNumber.trim().toUpperCase())
+        final vehicle =
+            fetchedVehicle.registrationNumber !=
+                fetchedVehicle.registrationNumber.trim().toUpperCase()
+            ? fetchedVehicle.copyWith(
+                registrationNumber: fetchedVehicle.registrationNumber
+                    .trim()
+                    .toUpperCase(),
+              )
             : fetchedVehicle;
         if (state.customer != null) {
           if (vehicle.customerId == state.customer!.id) {
             // CASE 1: Belongs to currently selected customer
-            final existingIndex = state.customerVehicles.indexWhere((v) =>
-                v.id == vehicle.id ||
-                v.registrationNumber.trim().toUpperCase() == vehicle.registrationNumber.trim().toUpperCase());
-            final matchingVehicle = existingIndex >= 0 ? state.customerVehicles[existingIndex] : vehicle;
-            final vehicles = existingIndex >= 0 ? state.customerVehicles : [...state.customerVehicles, vehicle];
+            final existingIndex = state.customerVehicles.indexWhere(
+              (v) =>
+                  v.id == vehicle.id ||
+                  v.registrationNumber.trim().toUpperCase() ==
+                      vehicle.registrationNumber.trim().toUpperCase(),
+            );
+            final matchingVehicle = existingIndex >= 0
+                ? state.customerVehicles[existingIndex]
+                : vehicle;
+            final vehicles = existingIndex >= 0
+                ? state.customerVehicles
+                : [...state.customerVehicles, vehicle];
             state = state.copyWith(
               isSearching: false,
               customerVehicles: vehicles,
@@ -461,13 +502,16 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
             final owner = vehicle.customerName ?? 'another customer';
             state = state.copyWith(
               isSearching: false,
-              lookupError: 'Vehicle ${vehicle.registrationNumber} is already registered to $owner. Tap "+ Add Vehicle" to transfer ownership.',
+              lookupError:
+                  'Vehicle ${vehicle.registrationNumber} is already registered to $owner. Tap "+ Add Vehicle" to transfer ownership.',
             );
             return;
           }
         }
 
-        final customer = await _customerRepo.getCustomerById(vehicle.customerId);
+        final customer = await _customerRepo.getCustomerById(
+          vehicle.customerId,
+        );
         if (!mounted) return;
         final vehicles = await _vehicleRepo.getVehiclesByCustomer(customer.id);
         if (!mounted) return;
@@ -489,11 +533,18 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       state = state.copyWith(isSearching: false, lookupError: e.message);
     } catch (e) {
       if (!mounted) return;
-      state = state.copyWith(isSearching: false, lookupError: 'Search failed. Please try again.');
+      state = state.copyWith(
+        isSearching: false,
+        lookupError: 'Search failed. Please try again.',
+      );
     }
   }
 
-  void selectCustomer(Customer customer, List<Vehicle> vehicles, {Vehicle? vehicle}) {
+  void selectCustomer(
+    Customer customer,
+    List<Vehicle> vehicles, {
+    Vehicle? vehicle,
+  }) {
     if (!mounted) return;
     state = state.copyWith(
       customer: customer,
@@ -510,7 +561,9 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
 
   void addService(Service service) {
     if (!mounted) return;
-    final current = Map<String, SelectedServiceDraft>.from(state.selectedServices);
+    final current = Map<String, SelectedServiceDraft>.from(
+      state.selectedServices,
+    );
     if (current.containsKey(service.id)) {
       final existing = current[service.id]!;
       current[service.id] = existing.copyWith(quantity: existing.quantity + 1);
@@ -526,7 +579,9 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       return;
     }
     if (!mounted) return;
-    final current = Map<String, SelectedServiceDraft>.from(state.selectedServices);
+    final current = Map<String, SelectedServiceDraft>.from(
+      state.selectedServices,
+    );
     if (current.containsKey(serviceId)) {
       current[serviceId] = current[serviceId]!.copyWith(quantity: quantity);
       state = state.copyWith(selectedServices: current);
@@ -535,7 +590,9 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
 
   void removeService(String serviceId) {
     if (!mounted) return;
-    final current = Map<String, SelectedServiceDraft>.from(state.selectedServices);
+    final current = Map<String, SelectedServiceDraft>.from(
+      state.selectedServices,
+    );
     current.remove(serviceId);
     state = state.copyWith(selectedServices: current);
   }
@@ -557,9 +614,13 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
   }
 
   Future<JobCard?> submitJobCard() async {
-    if (state.customer == null || state.selectedVehicle == null || state.selectedServices.isEmpty) {
+    if (state.customer == null ||
+        state.selectedVehicle == null ||
+        state.selectedServices.isEmpty) {
       if (!mounted) return null;
-      state = state.copyWith(submitError: 'Please complete all required steps before submitting.');
+      state = state.copyWith(
+        submitError: 'Please complete all required steps before submitting.',
+      );
       return null;
     }
 
@@ -593,17 +654,21 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       return null;
     } catch (e) {
       if (!mounted) return null;
-      state = state.copyWith(isSubmitting: false, submitError: 'Failed to create Job Card. Please try again.');
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Failed to create Job Card. Please try again.',
+      );
       return null;
     }
   }
 }
 
-final newJobCardProvider = StateNotifierProvider<NewJobCardNotifier, NewJobCardState>((ref) {
-  return NewJobCardNotifier(
-    ref.watch(customerRepositoryProvider),
-    ref.watch(vehicleRepositoryProvider),
-    ref.watch(serviceRepositoryProvider),
-    ref.watch(jobCardRepositoryProvider),
-  );
-});
+final newJobCardProvider =
+    StateNotifierProvider<NewJobCardNotifier, NewJobCardState>((ref) {
+      return NewJobCardNotifier(
+        ref.watch(customerRepositoryProvider),
+        ref.watch(vehicleRepositoryProvider),
+        ref.watch(serviceRepositoryProvider),
+        ref.watch(jobCardRepositoryProvider),
+      );
+    });

@@ -28,12 +28,28 @@ class AdvanceCard extends StatelessWidget {
     final decimalPart = parts[1];
 
     final reg = RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))');
-    final formattedInt = integerPart.replaceAllMapped(reg, (Match m) => '${m[1]},');
+    final formattedInt = integerPart.replaceAllMapped(
+      reg,
+      (Match m) => '${m[1]},',
+    );
     return '₹$formattedInt.$decimalPart';
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -56,7 +72,9 @@ class AdvanceCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: advance.isOutstanding ? AppColors.warning.withAlpha(80) : AppColors.border,
+          color: advance.isOutstanding
+              ? AppColors.warning.withAlpha(80)
+              : AppColors.border,
           width: advance.isOutstanding ? 1.2 : 1.0,
         ),
         boxShadow: [
@@ -87,7 +105,8 @@ class AdvanceCard extends StatelessWidget {
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      if (advance.staffRole != null && advance.staffRole!.isNotEmpty)
+                      if (advance.staffRole != null &&
+                          advance.staffRole!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
@@ -132,7 +151,9 @@ class AdvanceCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                         color: advance.isOutstanding
                             ? AppColors.primary
-                            : (advance.isSettled ? AppColors.success : AppColors.textSecondary),
+                            : (advance.isSettled
+                                  ? AppColors.success
+                                  : AppColors.textSecondary),
                       ),
                     ),
                   ],
@@ -150,7 +171,11 @@ class AdvanceCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          size: 12,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _formatDate(advance.advanceDate),
@@ -176,11 +201,18 @@ class AdvanceCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.label_outline_rounded, size: 13, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.label_outline_rounded,
+                    size: 13,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      advance.reason + (advance.notes != null && advance.notes!.isNotEmpty ? ' — ${advance.notes}' : ''),
+                      advance.reason +
+                          (advance.notes != null && advance.notes!.isNotEmpty
+                              ? ' — ${advance.notes}'
+                              : ''),
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textPrimary,
                         fontSize: 12,
@@ -199,7 +231,11 @@ class AdvanceCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle, size: 13, color: AppColors.success),
+                    const Icon(
+                      Icons.check_circle,
+                      size: 13,
+                      color: AppColors.success,
+                    ),
                     const SizedBox(width: 5),
                     Expanded(
                       child: Text(
@@ -220,7 +256,11 @@ class AdvanceCard extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 13, color: AppColors.error),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 13,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(width: 5),
                     Expanded(
                       child: Text(
@@ -250,7 +290,10 @@ class AdvanceCard extends StatelessWidget {
                   label: const Text('History', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     visualDensity: VisualDensity.compact,
                   ),
                 ),
@@ -262,20 +305,35 @@ class AdvanceCard extends StatelessWidget {
                           onPressed: onObsolete,
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.error,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             visualDensity: VisualDensity.compact,
                           ),
-                          child: const Text('Mark Obsolete', style: TextStyle(fontSize: 12)),
+                          child: const Text(
+                            'Mark Obsolete',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       if (canSettle)
                         ElevatedButton.icon(
                           onPressed: onSettle,
                           icon: const Icon(Icons.check, size: 14),
-                          label: const Text('Settle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          label: const Text(
+                            'Settle',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             visualDensity: VisualDensity.compact,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),

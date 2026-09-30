@@ -18,26 +18,47 @@ void main() {
         equals('https://example.com/logo.png'),
       );
       expect(
-        AppBusinessLogo.resolveLogoUrl('http://192.168.1.100:5298/uploads/logos/logo_123.png'),
+        AppBusinessLogo.resolveLogoUrl(
+          'http://192.168.1.100:5298/uploads/logos/logo_123.png',
+        ),
         equals('http://192.168.1.100:5298/uploads/logos/logo_123.png'),
       );
     });
 
-    test('resolveLogoUrl resolves relative /uploads/... path with apiBaseUrl', () {
-      final resolved = AppBusinessLogo.resolveLogoUrl('/uploads/logos/logo_abc.png');
-      final expectedBase = AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
-      expect(resolved, equals('$expectedBase/uploads/logos/logo_abc.png'));
-    });
+    test(
+      'resolveLogoUrl resolves relative /uploads/... path with apiBaseUrl',
+      () {
+        final resolved = AppBusinessLogo.resolveLogoUrl(
+          '/uploads/logos/logo_abc.png',
+        );
+        final expectedBase = AppEnvironment.apiBaseUrl.replaceAll(
+          RegExp(r'/api/?$'),
+          '',
+        );
+        expect(resolved, equals('$expectedBase/uploads/logos/logo_abc.png'));
+      },
+    );
 
-    test('resolveLogoUrl appends cache-busting version param when updatedAt is provided', () {
-      final date = DateTime.utc(2026, 9, 5, 12, 0, 0);
-      final resolved = AppBusinessLogo.resolveLogoUrl('/uploads/logos/logo_abc.png', date);
-      final expectedBase = AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
-      expect(
-        resolved,
-        equals('$expectedBase/uploads/logos/logo_abc.png?v=${date.millisecondsSinceEpoch}'),
-      );
-    });
+    test(
+      'resolveLogoUrl appends cache-busting version param when updatedAt is provided',
+      () {
+        final date = DateTime.utc(2026, 9, 5, 12, 0, 0);
+        final resolved = AppBusinessLogo.resolveLogoUrl(
+          '/uploads/logos/logo_abc.png',
+          date,
+        );
+        final expectedBase = AppEnvironment.apiBaseUrl.replaceAll(
+          RegExp(r'/api/?$'),
+          '',
+        );
+        expect(
+          resolved,
+          equals(
+            '$expectedBase/uploads/logos/logo_abc.png?v=${date.millisecondsSinceEpoch}',
+          ),
+        );
+      },
+    );
   });
 
   group('AppBusinessLogo Fallback Widget Tests', () {
@@ -46,11 +67,7 @@ void main() {
         const ProviderScope(
           child: MaterialApp(
             home: Scaffold(
-              body: AppBusinessLogo(
-                width: 32,
-                height: 32,
-                fallbackText: 'E6',
-              ),
+              body: AppBusinessLogo(width: 32, height: 32, fallbackText: 'E6'),
             ),
           ),
         ),
@@ -59,7 +76,9 @@ void main() {
       expect(find.text('E6'), findsOneWidget);
     });
 
-    testWidgets('renders fallback icon when fallbackIcon is provided', (tester) async {
+    testWidgets('renders fallback icon when fallbackIcon is provided', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
@@ -76,24 +95,24 @@ void main() {
       expect(find.byIcon(Icons.local_car_wash_rounded), findsOneWidget);
     });
 
-    testWidgets('renders fallback with dynamic width defaulted to height when width is null', (tester) async {
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: AppBusinessLogo(
-                height: 36,
-                fallbackText: 'E6',
+    testWidgets(
+      'renders fallback with dynamic width defaulted to height when width is null',
+      (tester) async {
+        await tester.pumpWidget(
+          const ProviderScope(
+            child: MaterialApp(
+              home: Scaffold(
+                body: AppBusinessLogo(height: 36, fallbackText: 'E6'),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      final containerFinder = find.byType(Container).first;
-      final Container container = tester.widget(containerFinder);
-      expect(container.constraints?.maxHeight, equals(36));
-      expect(find.text('E6'), findsOneWidget);
-    });
+        final containerFinder = find.byType(Container).first;
+        final Container container = tester.widget(containerFinder);
+        expect(container.constraints?.maxHeight, equals(36));
+        expect(find.text('E6'), findsOneWidget);
+      },
+    );
   });
 }

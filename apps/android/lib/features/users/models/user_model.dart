@@ -47,7 +47,8 @@ class UserModel {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
-      permissions: (json['permissions'] as List<dynamic>?)
+      permissions:
+          (json['permissions'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],

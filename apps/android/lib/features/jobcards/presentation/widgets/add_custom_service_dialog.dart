@@ -13,10 +13,7 @@ import '../../../catalogue/presentation/providers/catalogue_providers.dart';
 class AddCustomServiceDialog extends ConsumerStatefulWidget {
   final Function(Service)? onCreated;
 
-  const AddCustomServiceDialog({
-    super.key,
-    this.onCreated,
-  });
+  const AddCustomServiceDialog({super.key, this.onCreated});
 
   static Future<Service?> show(
     BuildContext context, {
@@ -31,10 +28,12 @@ class AddCustomServiceDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<AddCustomServiceDialog> createState() => _AddCustomServiceDialogState();
+  ConsumerState<AddCustomServiceDialog> createState() =>
+      _AddCustomServiceDialogState();
 }
 
-class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog> {
+class _AddCustomServiceDialogState
+    extends ConsumerState<AddCustomServiceDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
@@ -43,7 +42,6 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
   String? _selectedCategory;
   bool _isSubmitting = false;
   String? _errorMessage;
-
 
   @override
   void dispose() {
@@ -77,12 +75,16 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
         name: _nameController.text.trim(),
         price: price,
         category: _selectedCategory!.trim(),
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
         taxPercentage: 18.0,
         isActive: true,
       );
 
-      final service = await ref.read(serviceRepositoryProvider).createService(request);
+      final service = await ref
+          .read(serviceRepositoryProvider)
+          .createService(request);
       widget.onCreated?.call(service);
 
       if (mounted) {
@@ -156,7 +158,9 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.errorDark,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -167,7 +171,8 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                       hint: 'e.g. Custom Scratch Removal & Polish',
                       prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Service name is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Service name is required';
                         return null;
                       },
                     ),
@@ -180,12 +185,16 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                             controller: _priceController,
                             label: 'Price (₹)',
                             hint: 'e.g. 1500',
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
                             prefixIcon: const Icon(Icons.currency_rupee),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Price is required';
+                              if (val == null || val.trim().isEmpty)
+                                return 'Price is required';
                               final parsed = double.tryParse(val.trim());
-                              if (parsed == null || parsed < 0) return 'Enter valid amount';
+                              if (parsed == null || parsed < 0)
+                                return 'Enter valid amount';
                               return null;
                             },
                           ),
@@ -193,31 +202,52 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: _selectedCategory != null && categoryList.contains(_selectedCategory)
+                            initialValue:
+                                _selectedCategory != null &&
+                                    categoryList.contains(_selectedCategory)
                                 ? _selectedCategory
                                 : null,
-                            hint: const Text('Select Category', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                            hint: const Text(
+                              'Select Category',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
                             decoration: InputDecoration(
                               labelText: 'Category *',
-                              prefixIcon: const Icon(Icons.category_outlined, color: AppColors.textSecondary),
+                              prefixIcon: const Icon(
+                                Icons.category_outlined,
+                                color: AppColors.textSecondary,
+                              ),
                               border: const OutlineInputBorder(),
                               enabledBorder: const OutlineInputBorder(
                                 borderSide: BorderSide(color: AppColors.border),
                               ),
                               focusedBorder: const OutlineInputBorder(
-                                borderSide: BorderSide(color: AppColors.accent, width: 2),
+                                borderSide: BorderSide(
+                                  color: AppColors.accent,
+                                  width: 2,
+                                ),
                               ),
                               errorBorder: const OutlineInputBorder(
                                 borderSide: BorderSide(color: AppColors.error),
                               ),
                               filled: true,
                               fillColor: AppColors.card,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
                             ),
                             items: categoryList.map((cat) {
                               return DropdownMenuItem<String>(
                                 value: cat,
-                                child: Text(cat, style: AppTextStyles.bodyMedium, overflow: TextOverflow.ellipsis),
+                                child: Text(
+                                  cat,
+                                  style: AppTextStyles.bodyMedium,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -226,7 +256,8 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                               });
                             },
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Category is required';
+                              if (val == null || val.trim().isEmpty)
+                                return 'Category is required';
                               return null;
                             },
                           ),
@@ -241,45 +272,55 @@ class _AddCustomServiceDialogState extends ConsumerState<AddCustomServiceDialog>
                       prefixIcon: const Icon(Icons.notes_rounded),
                       maxLines: 2,
                     ),
-              const SizedBox(height: 24),
-              // Action Buttons (Cancel + Add to Job Card)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('modal_cancel_button'),
-                      onPressed: _isSubmitting
-                          ? null
-                          : () {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context).pop();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.borderDark),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                    const SizedBox(height: 24),
+                    // Action Buttons (Cancel + Add to Job Card)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: const Key('modal_cancel_button'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            label: 'Add to Job Card',
+                            isLoading: _isSubmitting,
+                            onPressed: _submit,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppButton(
-                      label: 'Add to Job Card',
-                      isLoading: _isSubmitting,
-                      onPressed: _submit,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

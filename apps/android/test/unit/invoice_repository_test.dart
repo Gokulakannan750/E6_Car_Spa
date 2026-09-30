@@ -29,7 +29,10 @@ class FakeInvoiceApi extends InvoiceApi {
     throw DioException(
       requestOptions: RequestOptions(path: '/invoices'),
       error: 'Not found',
-      response: Response(requestOptions: RequestOptions(path: '/invoices'), statusCode: 404),
+      response: Response(
+        requestOptions: RequestOptions(path: '/invoices'),
+        statusCode: 404,
+      ),
     );
   }
 
@@ -39,7 +42,10 @@ class FakeInvoiceApi extends InvoiceApi {
     if (mockInvoice != null) return mockInvoice!;
     throw DioException(
       requestOptions: RequestOptions(path: '/invoices/$id'),
-      response: Response(requestOptions: RequestOptions(path: '/invoices/$id'), statusCode: 404),
+      response: Response(
+        requestOptions: RequestOptions(path: '/invoices/$id'),
+        statusCode: 404,
+      ),
     );
   }
 
@@ -48,8 +54,15 @@ class FakeInvoiceApi extends InvoiceApi {
     if (dioErrorToThrow != null) throw dioErrorToThrow!;
     if (mockInvoice != null) return mockInvoice!;
     throw DioException(
-      requestOptions: RequestOptions(path: '/invoices/from-job-card/$jobCardId'),
-      response: Response(requestOptions: RequestOptions(path: '/invoices/from-job-card/$jobCardId'), statusCode: 400),
+      requestOptions: RequestOptions(
+        path: '/invoices/from-job-card/$jobCardId',
+      ),
+      response: Response(
+        requestOptions: RequestOptions(
+          path: '/invoices/from-job-card/$jobCardId',
+        ),
+        statusCode: 400,
+      ),
     );
   }
 
@@ -59,7 +72,10 @@ class FakeInvoiceApi extends InvoiceApi {
     if (mockInvoice != null) return mockInvoice!;
     throw DioException(
       requestOptions: RequestOptions(path: '/invoices/$id'),
-      response: Response(requestOptions: RequestOptions(path: '/invoices/$id'), statusCode: 400),
+      response: Response(
+        requestOptions: RequestOptions(path: '/invoices/$id'),
+        statusCode: 400,
+      ),
     );
   }
 
@@ -69,17 +85,26 @@ class FakeInvoiceApi extends InvoiceApi {
     if (mockInvoice != null) return mockInvoice!;
     throw DioException(
       requestOptions: RequestOptions(path: '/invoices/$id/generate'),
-      response: Response(requestOptions: RequestOptions(path: '/invoices/$id/generate'), statusCode: 400),
+      response: Response(
+        requestOptions: RequestOptions(path: '/invoices/$id/generate'),
+        statusCode: 400,
+      ),
     );
   }
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     if (dioErrorToThrow != null) throw dioErrorToThrow!;
     if (mockPayment != null) return mockPayment!;
     throw DioException(
       requestOptions: RequestOptions(path: '/invoices/$invoiceId/payments'),
-      response: Response(requestOptions: RequestOptions(path: '/invoices/$invoiceId/payments'), statusCode: 400),
+      response: Response(
+        requestOptions: RequestOptions(path: '/invoices/$invoiceId/payments'),
+        statusCode: 400,
+      ),
     );
   }
 
@@ -93,7 +118,9 @@ class FakeInvoiceApi extends InvoiceApi {
   List<InvoiceWhatsAppStatus>? mockWhatsAppStatuses;
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     if (dioErrorToThrow != null) throw dioErrorToThrow!;
     if (mockWhatsAppStatuses != null) return mockWhatsAppStatuses!;
     return [];
@@ -213,77 +240,93 @@ void main() {
       expect(res.status, InvoiceStatus.draft);
     });
 
-    test('generateInvoice finalizes invoice and returns official invoice number', () async {
-      fakeApi.mockInvoice = testInvoice;
+    test(
+      'generateInvoice finalizes invoice and returns official invoice number',
+      () async {
+        fakeApi.mockInvoice = testInvoice;
 
-      final res = await repository.generateInvoice('inv-draft-1');
+        final res = await repository.generateInvoice('inv-draft-1');
 
-      expect(res.invoiceNumber, 'INV-2026-000001');
-      expect(res.isFinalized, true);
-      expect(res.status, InvoiceStatus.generated);
-    });
+        expect(res.invoiceNumber, 'INV-2026-000001');
+        expect(res.isFinalized, true);
+        expect(res.status, InvoiceStatus.generated);
+      },
+    );
 
-    test('recordPayment records payment and propagates ApiException on failure', () async {
-      fakeApi.mockPayment = PaymentDto(
-        id: 'pay-1',
-        invoiceId: 'inv-1',
-        amount: 500.0,
-        paymentMethod: 'Cash',
-        reference: null,
-        paymentDate: DateTime(2026, 8, 25),
-        createdAt: DateTime(2026, 8, 25),
-      );
+    test(
+      'recordPayment records payment and propagates ApiException on failure',
+      () async {
+        fakeApi.mockPayment = PaymentDto(
+          id: 'pay-1',
+          invoiceId: 'inv-1',
+          amount: 500.0,
+          paymentMethod: 'Cash',
+          reference: null,
+          paymentDate: DateTime(2026, 8, 25),
+          createdAt: DateTime(2026, 8, 25),
+        );
 
-      final payment = await repository.recordPayment(
-        'inv-1',
-        const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
-      );
+        final payment = await repository.recordPayment(
+          'inv-1',
+          const RecordPaymentRequest(amount: 500.0, paymentMethod: 'Cash'),
+        );
 
-      expect(payment.id, 'pay-1');
-      expect(payment.amount, 500.0);
+        expect(payment.id, 'pay-1');
+        expect(payment.amount, 500.0);
 
-      // Verify DioException maps to ApiException
-      fakeApi.dioErrorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/invoices/inv-1/payments'),
-        response: Response(
+        // Verify DioException maps to ApiException
+        fakeApi.dioErrorToThrow = DioException(
           requestOptions: RequestOptions(path: '/invoices/inv-1/payments'),
-          statusCode: 400,
-          data: {'message': 'Payment amount exceeds current balance'},
-        ),
-      );
+          response: Response(
+            requestOptions: RequestOptions(path: '/invoices/inv-1/payments'),
+            statusCode: 400,
+            data: {'message': 'Payment amount exceeds current balance'},
+          ),
+        );
 
-      expect(
-        () => repository.recordPayment('inv-1', const RecordPaymentRequest(amount: 50000.0, paymentMethod: 'Cash')),
-        throwsA(isA<ApiException>()),
-      );
-    });
+        expect(
+          () => repository.recordPayment(
+            'inv-1',
+            const RecordPaymentRequest(amount: 50000.0, paymentMethod: 'Cash'),
+          ),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
 
-    test('getInvoiceWhatsAppStatus returns list of statuses and handles error', () async {
-      fakeApi.mockWhatsAppStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-      ];
+    test(
+      'getInvoiceWhatsAppStatus returns list of statuses and handles error',
+      () async {
+        fakeApi.mockWhatsAppStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+        ];
 
-      final statuses = await repository.getInvoiceWhatsAppStatus('inv-1');
-      expect(statuses.length, 1);
-      expect(statuses.first.isSent, true);
-      expect(statuses.first.displayType, 'Invoice');
-      expect(statuses.first.displayStatus, 'Sent');
+        final statuses = await repository.getInvoiceWhatsAppStatus('inv-1');
+        expect(statuses.length, 1);
+        expect(statuses.first.isSent, true);
+        expect(statuses.first.displayType, 'Invoice');
+        expect(statuses.first.displayStatus, 'Sent');
 
-      fakeApi.dioErrorToThrow = DioException(
-        requestOptions: RequestOptions(path: '/invoices/inv-1/whatsapp-status'),
-        response: Response(
-          requestOptions: RequestOptions(path: '/invoices/inv-1/whatsapp-status'),
-          statusCode: 500,
-        ),
-      );
+        fakeApi.dioErrorToThrow = DioException(
+          requestOptions: RequestOptions(
+            path: '/invoices/inv-1/whatsapp-status',
+          ),
+          response: Response(
+            requestOptions: RequestOptions(
+              path: '/invoices/inv-1/whatsapp-status',
+            ),
+            statusCode: 500,
+          ),
+        );
 
-      expect(
-        () => repository.getInvoiceWhatsAppStatus('inv-1'),
-        throwsA(isA<ApiException>()),
-      );
-    });
+        expect(
+          () => repository.getInvoiceWhatsAppStatus('inv-1'),
+          throwsA(isA<ApiException>()),
+        );
+      },
+    );
   });
 }

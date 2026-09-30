@@ -30,7 +30,8 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      ref.read(salarySearchQueryProvider.notifier).state = _searchController.text;
+      ref.read(salarySearchQueryProvider.notifier).state =
+          _searchController.text;
     });
   }
 
@@ -174,11 +175,12 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                         fillColor: AppColors.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.border,
-                          ),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -257,7 +259,8 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                                 item: item,
                                 onEnterSalary: () => _openEnterSalary(item),
                                 onSettleSalary: () => _openSettleSalary(item),
-                                onSettlementHistory: () => _openSettlementHistory(item),
+                                onSettlementHistory: () =>
+                                    _openSettlementHistory(item),
                               ),
                             );
                           },
@@ -278,16 +281,26 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'Failed to load salary roster',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           err.toString(),
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -308,15 +321,17 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
     );
   }
 
-  Widget _buildPeriodSelectorCard(BuildContext context, DateTime from, DateTime to) {
+  Widget _buildPeriodSelectorCard(
+    BuildContext context,
+    DateTime from,
+    DateTime to,
+  ) {
     return Card(
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(
-          color: AppColors.border,
-        ),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -325,11 +340,7 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
           children: [
             Row(
               children: const [
-                Icon(
-                  Icons.date_range,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
+                Icon(Icons.date_range, size: 20, color: AppColors.primary),
                 SizedBox(width: 8),
                 Text(
                   'Salary Period (Arbitrary Range)',
@@ -349,13 +360,14 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                     onTap: () => _selectPeriodFrom(context),
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.border,
-                        ),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,20 +395,25 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(Icons.arrow_forward, size: 16, color: AppColors.textTertiary),
+                  child: Icon(
+                    Icons.arrow_forward,
+                    size: 16,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
                 Expanded(
                   child: InkWell(
                     onTap: () => _selectPeriodTo(context),
                     borderRadius: BorderRadius.circular(10),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.border,
-                        ),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,7 +476,8 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
               selected: isSelected,
               onSelected: (selected) {
                 if (selected) {
-                  ref.read(salaryStatusFilterProvider.notifier).state = f['value']!;
+                  ref.read(salaryStatusFilterProvider.notifier).state =
+                      f['value']!;
                 }
               },
             ),

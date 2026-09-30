@@ -29,7 +29,8 @@ enum JobCardStatus {
     final clean = name.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
     for (final s in JobCardStatus.values) {
       final sClean = s.name.toLowerCase();
-      if (sClean == clean || s.label.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '') == clean) {
+      if (sClean == clean ||
+          s.label.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '') == clean) {
         return s;
       }
     }
@@ -53,7 +54,10 @@ class CustomerSummary {
     return CustomerSummary(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
-      phoneNumber: json['phoneNumber'] as String? ?? json['PhoneNumber'] as String? ?? '',
+      phoneNumber:
+          json['phoneNumber'] as String? ??
+          json['PhoneNumber'] as String? ??
+          '',
     );
   }
 
@@ -85,7 +89,12 @@ class VehicleSummary {
   factory VehicleSummary.fromJson(Map<String, dynamic> json) {
     return VehicleSummary(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
+      registrationNumber:
+          (json['registrationNumber'] as String? ??
+                  json['RegistrationNumber'] as String? ??
+                  '')
+              .trim()
+              .toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
       variant: json['variant'] as String? ?? json['Variant'] as String?,
@@ -136,13 +145,23 @@ class JobCardServiceItem {
   factory JobCardServiceItem.fromJson(Map<String, dynamic> json) {
     return JobCardServiceItem(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      serviceId: json['serviceId'] as String? ?? json['ServiceId'] as String? ?? '',
-      serviceName: json['serviceName'] as String? ?? json['ServiceName'] as String? ?? '',
-      unitPrice: ((json['unitPrice'] ?? json['UnitPrice'] ?? 0.0) as num).toDouble(),
+      serviceId:
+          json['serviceId'] as String? ?? json['ServiceId'] as String? ?? '',
+      serviceName:
+          json['serviceName'] as String? ??
+          json['ServiceName'] as String? ??
+          '',
+      unitPrice: ((json['unitPrice'] ?? json['UnitPrice'] ?? 0.0) as num)
+          .toDouble(),
       quantity: (json['quantity'] ?? json['Quantity'] ?? 1) as int,
-      taxPercentage: ((json['taxPercentage'] ?? json['TaxPercentage'] ?? 0.0) as num).toDouble(),
-      discountAmount: ((json['discountAmount'] ?? json['DiscountAmount'] ?? 0.0) as num).toDouble(),
-      lineTotal: ((json['lineTotal'] ?? json['LineTotal'] ?? 0.0) as num).toDouble(),
+      taxPercentage:
+          ((json['taxPercentage'] ?? json['TaxPercentage'] ?? 0.0) as num)
+              .toDouble(),
+      discountAmount:
+          ((json['discountAmount'] ?? json['DiscountAmount'] ?? 0.0) as num)
+              .toDouble(),
+      lineTotal: ((json['lineTotal'] ?? json['LineTotal'] ?? 0.0) as num)
+          .toDouble(),
     );
   }
 
@@ -217,37 +236,64 @@ class JobCard {
   }
 
   factory JobCard.fromJson(Map<String, dynamic> json) {
-    final rawServices = json['services'] as List<dynamic>? ?? json['Services'] as List<dynamic>? ?? [];
+    final rawServices =
+        json['services'] as List<dynamic>? ??
+        json['Services'] as List<dynamic>? ??
+        [];
     final statusRaw = json['status'] ?? json['Status'] ?? 0;
-    final statusInt = statusRaw is int ? statusRaw : (int.tryParse(statusRaw.toString()) ?? 0);
+    final statusInt = statusRaw is int
+        ? statusRaw
+        : (int.tryParse(statusRaw.toString()) ?? 0);
 
     return JobCard(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      jobCardNumber: json['jobCardNumber'] as String? ?? json['JobCardNumber'] as String? ?? '',
-      customer: CustomerSummary.fromJson((json['customer'] ?? json['Customer'] ?? {}) as Map<String, dynamic>),
-      vehicle: VehicleSummary.fromJson((json['vehicle'] ?? json['Vehicle'] ?? {}) as Map<String, dynamic>),
+      jobCardNumber:
+          json['jobCardNumber'] as String? ??
+          json['JobCardNumber'] as String? ??
+          '',
+      customer: CustomerSummary.fromJson(
+        (json['customer'] ?? json['Customer'] ?? {}) as Map<String, dynamic>,
+      ),
+      vehicle: VehicleSummary.fromJson(
+        (json['vehicle'] ?? json['Vehicle'] ?? {}) as Map<String, dynamic>,
+      ),
       status: JobCardStatus.fromValue(statusInt),
       notes: json['notes'] as String? ?? json['Notes'] as String?,
-      services: rawServices.map((e) => JobCardServiceItem.fromJson(e as Map<String, dynamic>)).toList(),
-      subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num).toDouble(),
-      taxAmount: ((json['taxAmount'] ?? json['TaxAmount'] ?? 0.0) as num).toDouble(),
-      discountAmount: ((json['discountAmount'] ?? json['DiscountAmount'] ?? 0.0) as num).toDouble(),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
+      services: rawServices
+          .map((e) => JobCardServiceItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num)
+          .toDouble(),
+      taxAmount: ((json['taxAmount'] ?? json['TaxAmount'] ?? 0.0) as num)
+          .toDouble(),
+      discountAmount:
+          ((json['discountAmount'] ?? json['DiscountAmount'] ?? 0.0) as num)
+              .toDouble(),
+      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
+          .toDouble(),
       invoiceId: json['invoiceId'] as String? ?? json['InvoiceId'] as String?,
-      invoiceNumber: json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
-      invoiceStatus: json['invoiceStatus'] as String? ?? json['InvoiceStatus'] as String?,
+      invoiceNumber:
+          json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
+      invoiceStatus:
+          json['invoiceStatus'] as String? ?? json['InvoiceStatus'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())
-          : (json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt'].toString()) : null),
-      vehicleLocation: (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
+          : (json['UpdatedAt'] != null
+                ? DateTime.tryParse(json['UpdatedAt'].toString())
+                : null),
+      vehicleLocation:
+          (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
           ? VehicleLocation.fromJson(
               Map<String, dynamic>.from(
-                  (json['vehicleLocation'] ?? json['VehicleLocation']) as Map))
+                (json['vehicleLocation'] ?? json['VehicleLocation']) as Map,
+              ),
+            )
           : null,
     );
   }
@@ -313,31 +359,56 @@ class JobCardListItem {
 
   factory JobCardListItem.fromJson(Map<String, dynamic> json) {
     final statusRaw = json['status'] ?? json['Status'] ?? 0;
-    final statusInt = statusRaw is int ? statusRaw : (int.tryParse(statusRaw.toString()) ?? 0);
+    final statusInt = statusRaw is int
+        ? statusRaw
+        : (int.tryParse(statusRaw.toString()) ?? 0);
 
     return JobCardListItem(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
-      jobCardNumber: json['jobCardNumber'] as String? ?? json['JobCardNumber'] as String? ?? '',
-      customerName: json['customerName'] as String? ?? json['CustomerName'] as String? ?? '',
-      customerPhone: json['customerPhone'] as String? ?? json['CustomerPhone'] as String? ?? '',
-      registrationNumber: (json['registrationNumber'] as String? ?? json['RegistrationNumber'] as String? ?? '').trim().toUpperCase(),
+      jobCardNumber:
+          json['jobCardNumber'] as String? ??
+          json['JobCardNumber'] as String? ??
+          '',
+      customerName:
+          json['customerName'] as String? ??
+          json['CustomerName'] as String? ??
+          '',
+      customerPhone:
+          json['customerPhone'] as String? ??
+          json['CustomerPhone'] as String? ??
+          '',
+      registrationNumber:
+          (json['registrationNumber'] as String? ??
+                  json['RegistrationNumber'] as String? ??
+                  '')
+              .trim()
+              .toUpperCase(),
       make: json['make'] as String? ?? json['Make'] as String? ?? '',
       model: json['model'] as String? ?? json['Model'] as String? ?? '',
-      vehicleDisplayName: json['vehicleDisplayName'] as String? ?? json['VehicleDisplayName'] as String?,
+      vehicleDisplayName:
+          json['vehicleDisplayName'] as String? ??
+          json['VehicleDisplayName'] as String?,
       status: JobCardStatus.fromValue(statusInt),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
+      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
+          .toDouble(),
       invoiceId: json['invoiceId'] as String? ?? json['InvoiceId'] as String?,
-      invoiceNumber: json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
-      invoiceStatus: json['invoiceStatus'] as String? ?? json['InvoiceStatus'] as String?,
+      invoiceNumber:
+          json['invoiceNumber'] as String? ?? json['InvoiceNumber'] as String?,
+      invoiceStatus:
+          json['invoiceStatus'] as String? ?? json['InvoiceStatus'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
-      vehicleLocation: (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
+      vehicleLocation:
+          (json['vehicleLocation'] ?? json['VehicleLocation']) is Map
           ? VehicleLocation.fromJson(
               Map<String, dynamic>.from(
-                  (json['vehicleLocation'] ?? json['VehicleLocation']) as Map))
+                (json['vehicleLocation'] ?? json['VehicleLocation']) as Map,
+              ),
+            )
           : null,
     );
   }
@@ -358,9 +429,14 @@ class JobCardListResponse {
   });
 
   factory JobCardListResponse.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return JobCardListResponse(
-      items: rawItems.map((e) => JobCardListItem.fromJson(e as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map((e) => JobCardListItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
       totalCount: (json['totalCount'] ?? json['TotalCount'] ?? 0) as int,
       page: (json['page'] ?? json['Page'] ?? 1) as int,
       pageSize: (json['pageSize'] ?? json['PageSize'] ?? 20) as int,
@@ -417,10 +493,7 @@ class UpdateJobCardServicesRequest {
   final List<JobCardServiceItemRequest> services;
   final String? notes;
 
-  const UpdateJobCardServicesRequest({
-    required this.services,
-    this.notes,
-  });
+  const UpdateJobCardServicesRequest({required this.services, this.notes});
 
   Map<String, dynamic> toJson() => {
     'services': services.map((s) => s.toJson()).toList(),

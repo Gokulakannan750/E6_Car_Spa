@@ -84,10 +84,7 @@ class AuthFailure extends AuthState {
 class AccountLocked extends AuthState {
   final String message;
   final int remainingSeconds;
-  const AccountLocked({
-    required this.message,
-    required this.remainingSeconds,
-  });
+  const AccountLocked({required this.message, required this.remainingSeconds});
 
   @override
   bool operator ==(Object other) =>

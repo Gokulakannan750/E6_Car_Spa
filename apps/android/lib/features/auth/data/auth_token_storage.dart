@@ -14,7 +14,7 @@ class AuthTokenStorage {
   static const String _userKey = 'e6_cached_auth_user';
 
   const AuthTokenStorage([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   Future<void> saveToken(String token) async {
     await _storage.write(key: AppConstants.keyAccessToken, value: token);

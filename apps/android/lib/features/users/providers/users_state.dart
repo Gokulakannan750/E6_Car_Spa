@@ -74,10 +74,12 @@ class UsersLoaded extends UsersState {
       searchQuery: searchQuery ?? this.searchQuery,
       statusFilter: statusFilter ?? this.statusFilter,
       isMutating: isMutating ?? this.isMutating,
-      mutationSuccessMessage:
-          clearSuccess ? null : (mutationSuccessMessage ?? this.mutationSuccessMessage),
-      mutationErrorMessage:
-          clearError ? null : (mutationErrorMessage ?? this.mutationErrorMessage),
+      mutationSuccessMessage: clearSuccess
+          ? null
+          : (mutationSuccessMessage ?? this.mutationSuccessMessage),
+      mutationErrorMessage: clearError
+          ? null
+          : (mutationErrorMessage ?? this.mutationErrorMessage),
     );
   }
 

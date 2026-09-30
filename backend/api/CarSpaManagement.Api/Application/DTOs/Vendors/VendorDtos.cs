@@ -17,7 +17,7 @@ public record CreateVendorRequest(
     [Required]
     [MaxLength(150)]
     string Name,
-    [MaxLength(20)]
+    [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
     string? Phone,
     [MaxLength(100)]
     string? ContactPerson,
@@ -30,7 +30,7 @@ public record UpdateVendorRequest(
     [Required]
     [MaxLength(150)]
     string Name,
-    [MaxLength(20)]
+    [RegularExpression(@"^[0-9]{10}$", ErrorMessage = "Phone number must be exactly 10 digits.")]
     string? Phone,
     [MaxLength(100)]
     string? ContactPerson,

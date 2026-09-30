@@ -41,21 +41,21 @@ class _EditVehicleWorkModalSheetState
     super.initState();
     _selectedStaffId = widget.work.staffId;
     _selectedVehicleTypeId = widget.work.vehicleTypeId;
-    _selectedWorkTypeIds = widget.work.serviceItems.map((e) => e.workTypeId).toSet();
+    _selectedWorkTypeIds = widget.work.serviceItems
+        .map((e) => e.workTypeId)
+        .toSet();
     _notesController = TextEditingController(text: widget.work.notes ?? '');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final dailyNotifier =
-          ref.read(dailyStaffProvider(widget.showroomId).notifier);
-      final currentDailyState =
-          ref.read(dailyStaffProvider(widget.showroomId));
+      final dailyNotifier = ref.read(
+        dailyStaffProvider(widget.showroomId).notifier,
+      );
+      final currentDailyState = ref.read(dailyStaffProvider(widget.showroomId));
 
-      final isSameDate = currentDailyState.selectedDate.year ==
-              widget.work.date.year &&
-          currentDailyState.selectedDate.month ==
-              widget.work.date.month &&
-          currentDailyState.selectedDate.day ==
-              widget.work.date.day;
+      final isSameDate =
+          currentDailyState.selectedDate.year == widget.work.date.year &&
+          currentDailyState.selectedDate.month == widget.work.date.month &&
+          currentDailyState.selectedDate.day == widget.work.date.day;
 
       if (!isSameDate || currentDailyState.dailyStaffResponse == null) {
         dailyNotifier.loadDailyStaff(date: widget.work.date);
@@ -113,10 +113,7 @@ class _EditVehicleWorkModalSheetState
 
       await ref
           .read(showroomOperationsProvider(widget.showroomId).notifier)
-          .updateVehicleWork(
-            workId: widget.work.id,
-            request: request,
-          );
+          .updateVehicleWork(workId: widget.work.id, request: request);
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
@@ -132,8 +129,7 @@ class _EditVehicleWorkModalSheetState
   @override
   Widget build(BuildContext context) {
     final dailyState = ref.watch(dailyStaffProvider(widget.showroomId));
-    final opsState =
-        ref.watch(showroomOperationsProvider(widget.showroomId));
+    final opsState = ref.watch(showroomOperationsProvider(widget.showroomId));
 
     // Combine daily roster staff with currently assigned staff so current staff is always selectable
     final staffItems = <DropdownMenuItem<String>>[];
@@ -217,12 +213,17 @@ class _EditVehicleWorkModalSheetState
                       decoration: BoxDecoration(
                         color: AppColors.error.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.error.withAlpha(80)),
+                        border: Border.all(
+                          color: AppColors.error.withAlpha(80),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.error, size: 18),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.error,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -345,8 +346,9 @@ class _EditVehicleWorkModalSheetState
                       spacing: 6,
                       runSpacing: 6,
                       children: workTypes.map((wType) {
-                        final isSelected =
-                            _selectedWorkTypeIds.contains(wType.id);
+                        final isSelected = _selectedWorkTypeIds.contains(
+                          wType.id,
+                        );
                         return FilterChip(
                           key: Key('edit_work_type_chip_${wType.id}'),
                           label: Text(wType.name),

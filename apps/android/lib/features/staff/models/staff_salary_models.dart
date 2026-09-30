@@ -53,22 +53,42 @@ class StaffSalaryItem {
 
     return StaffSalaryItem(
       staffId: json['staffId'] as String? ?? json['StaffId'] as String? ?? '',
-      staffName: json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
+      staffName:
+          json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
       staffRole: json['staffRole'] as String? ?? json['StaffRole'] as String?,
-      staffPhoneNumber: json['staffPhoneNumber'] as String? ?? json['StaffPhoneNumber'] as String? ?? '',
+      staffPhoneNumber:
+          json['staffPhoneNumber'] as String? ??
+          json['StaffPhoneNumber'] as String? ??
+          '',
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
-      periodFrom: json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
-      periodTo: json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
-      enteredSalary: (json['enteredSalary'] ?? json['EnteredSalary'] as num?)?.toDouble(),
-      outstandingAdvance: ((json['outstandingAdvance'] ?? json['OutstandingAdvance'] ?? 0.0) as num).toDouble(),
-      advanceDeduction: (json['advanceDeduction'] ?? json['AdvanceDeduction'] as num?)?.toDouble(),
-      finalSalary: (json['finalSalary'] ?? json['FinalSalary'] as num?)?.toDouble(),
-      remainingAdvance: (json['remainingAdvance'] ?? json['RemainingAdvance'] as num?)?.toDouble(),
-      status: json['status'] as String? ?? json['Status'] as String? ?? 'NotEntered',
+      periodFrom:
+          json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
+      periodTo:
+          json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
+      enteredSalary: (json['enteredSalary'] ?? json['EnteredSalary'] as num?)
+          ?.toDouble(),
+      outstandingAdvance:
+          ((json['outstandingAdvance'] ?? json['OutstandingAdvance'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      advanceDeduction:
+          (json['advanceDeduction'] ?? json['AdvanceDeduction'] as num?)
+              ?.toDouble(),
+      finalSalary: (json['finalSalary'] ?? json['FinalSalary'] as num?)
+          ?.toDouble(),
+      remainingAdvance:
+          (json['remainingAdvance'] ?? json['RemainingAdvance'] as num?)
+              ?.toDouble(),
+      status:
+          json['status'] as String? ??
+          json['Status'] as String? ??
+          'NotEntered',
       settledAt: parsedSettledAt,
-      settledByName: json['settledByName'] as String? ?? json['SettledByName'] as String?,
+      settledByName:
+          json['settledByName'] as String? ?? json['SettledByName'] as String?,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
-      settlementId: json['settlementId'] as String? ?? json['SettlementId'] as String?,
+      settlementId:
+          json['settlementId'] as String? ?? json['SettlementId'] as String?,
     );
   }
 
@@ -122,16 +142,32 @@ class StaffSalaryRosterResponse {
   factory StaffSalaryRosterResponse.fromJson(Map<String, dynamic> json) {
     final rawItems = (json['items'] ?? json['Items']) as List<dynamic>? ?? [];
     return StaffSalaryRosterResponse(
-      periodFrom: json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
-      periodTo: json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
-      totalStaffCount: (json['totalStaffCount'] ?? json['TotalStaffCount'] ?? 0) as int,
-      notEnteredCount: (json['notEnteredCount'] ?? json['NotEnteredCount'] ?? 0) as int,
+      periodFrom:
+          json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
+      periodTo:
+          json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
+      totalStaffCount:
+          (json['totalStaffCount'] ?? json['TotalStaffCount'] ?? 0) as int,
+      notEnteredCount:
+          (json['notEnteredCount'] ?? json['NotEnteredCount'] ?? 0) as int,
       readyCount: (json['readyCount'] ?? json['ReadyCount'] ?? 0) as int,
       settledCount: (json['settledCount'] ?? json['SettledCount'] ?? 0) as int,
-      totalEnteredSalary: ((json['totalEnteredSalary'] ?? json['TotalEnteredSalary'] ?? 0.0) as num).toDouble(),
-      totalAdvanceDeductions: ((json['totalAdvanceDeductions'] ?? json['TotalAdvanceDeductions'] ?? 0.0) as num).toDouble(),
-      totalFinalSalary: ((json['totalFinalSalary'] ?? json['TotalFinalSalary'] ?? 0.0) as num).toDouble(),
-      items: rawItems.map((e) => StaffSalaryItem.fromJson(e as Map<String, dynamic>)).toList(),
+      totalEnteredSalary:
+          ((json['totalEnteredSalary'] ?? json['TotalEnteredSalary'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      totalAdvanceDeductions:
+          ((json['totalAdvanceDeductions'] ??
+                      json['TotalAdvanceDeductions'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      totalFinalSalary:
+          ((json['totalFinalSalary'] ?? json['TotalFinalSalary'] ?? 0.0) as num)
+              .toDouble(),
+      items: rawItems
+          .map((e) => StaffSalaryItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -167,15 +203,28 @@ class StaffSalaryPreviewResponse {
   factory StaffSalaryPreviewResponse.fromJson(Map<String, dynamic> json) {
     return StaffSalaryPreviewResponse(
       staffId: json['staffId'] as String? ?? json['StaffId'] as String? ?? '',
-      staffName: json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
+      staffName:
+          json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
       staffRole: json['staffRole'] as String? ?? json['StaffRole'] as String?,
-      periodFrom: json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
-      periodTo: json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
-      enteredSalary: ((json['enteredSalary'] ?? json['EnteredSalary'] ?? 0.0) as num).toDouble(),
-      outstandingAdvance: ((json['outstandingAdvance'] ?? json['OutstandingAdvance'] ?? 0.0) as num).toDouble(),
-      advanceDeduction: ((json['advanceDeduction'] ?? json['AdvanceDeduction'] ?? 0.0) as num).toDouble(),
-      finalSalary: ((json['finalSalary'] ?? json['FinalSalary'] ?? 0.0) as num).toDouble(),
-      remainingAdvance: ((json['remainingAdvance'] ?? json['RemainingAdvance'] ?? 0.0) as num).toDouble(),
+      periodFrom:
+          json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
+      periodTo:
+          json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
+      enteredSalary:
+          ((json['enteredSalary'] ?? json['EnteredSalary'] ?? 0.0) as num)
+              .toDouble(),
+      outstandingAdvance:
+          ((json['outstandingAdvance'] ?? json['OutstandingAdvance'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      advanceDeduction:
+          ((json['advanceDeduction'] ?? json['AdvanceDeduction'] ?? 0.0) as num)
+              .toDouble(),
+      finalSalary: ((json['finalSalary'] ?? json['FinalSalary'] ?? 0.0) as num)
+          .toDouble(),
+      remainingAdvance:
+          ((json['remainingAdvance'] ?? json['RemainingAdvance'] ?? 0.0) as num)
+              .toDouble(),
       status: json['status'] as String? ?? json['Status'] as String? ?? 'Ready',
     );
   }
@@ -235,18 +284,38 @@ class StaffSalarySettlement {
     return StaffSalarySettlement(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
       staffId: json['staffId'] as String? ?? json['StaffId'] as String? ?? '',
-      staffName: json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
+      staffName:
+          json['staffName'] as String? ?? json['StaffName'] as String? ?? '',
       staffRole: json['staffRole'] as String? ?? json['StaffRole'] as String?,
-      periodFrom: json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
-      periodTo: json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
-      enteredSalary: ((json['enteredSalary'] ?? json['EnteredSalary'] ?? 0.0) as num).toDouble(),
-      outstandingAdvanceBeforeSettlement: ((json['outstandingAdvanceBeforeSettlement'] ?? json['OutstandingAdvanceBeforeSettlement'] ?? 0.0) as num).toDouble(),
-      advanceDeduction: ((json['advanceDeduction'] ?? json['AdvanceDeduction'] ?? 0.0) as num).toDouble(),
-      remainingAdvanceAfterSettlement: ((json['remainingAdvanceAfterSettlement'] ?? json['RemainingAdvanceAfterSettlement'] ?? 0.0) as num).toDouble(),
-      finalSalary: ((json['finalSalary'] ?? json['FinalSalary'] ?? 0.0) as num).toDouble(),
-      status: json['status'] as String? ?? json['Status'] as String? ?? 'Settled',
+      periodFrom:
+          json['periodFrom'] as String? ?? json['PeriodFrom'] as String? ?? '',
+      periodTo:
+          json['periodTo'] as String? ?? json['PeriodTo'] as String? ?? '',
+      enteredSalary:
+          ((json['enteredSalary'] ?? json['EnteredSalary'] ?? 0.0) as num)
+              .toDouble(),
+      outstandingAdvanceBeforeSettlement:
+          ((json['outstandingAdvanceBeforeSettlement'] ??
+                      json['OutstandingAdvanceBeforeSettlement'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      advanceDeduction:
+          ((json['advanceDeduction'] ?? json['AdvanceDeduction'] ?? 0.0) as num)
+              .toDouble(),
+      remainingAdvanceAfterSettlement:
+          ((json['remainingAdvanceAfterSettlement'] ??
+                      json['RemainingAdvanceAfterSettlement'] ??
+                      0.0)
+                  as num)
+              .toDouble(),
+      finalSalary: ((json['finalSalary'] ?? json['FinalSalary'] ?? 0.0) as num)
+          .toDouble(),
+      status:
+          json['status'] as String? ?? json['Status'] as String? ?? 'Settled',
       settledAt: parsedSettledAt,
-      settledByName: json['settledByName'] as String? ?? json['SettledByName'] as String?,
+      settledByName:
+          json['settledByName'] as String? ?? json['SettledByName'] as String?,
       notes: json['notes'] as String? ?? json['Notes'] as String?,
       createdAt: parsedCreatedAt,
     );

@@ -16,11 +16,7 @@ class EditJobCardSheet extends ConsumerStatefulWidget {
   final JobCard jobCard;
   final VoidCallback? onSaved;
 
-  const EditJobCardSheet({
-    super.key,
-    required this.jobCard,
-    this.onSaved,
-  });
+  const EditJobCardSheet({super.key, required this.jobCard, this.onSaved});
 
   static Future<bool?> show(
     BuildContext context, {
@@ -31,10 +27,8 @@ class EditJobCardSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EditJobCardSheet(
-        jobCard: jobCard,
-        onSaved: onSaved,
-      ),
+      builder: (context) =>
+          EditJobCardSheet(jobCard: jobCard, onSaved: onSaved),
     );
   }
 
@@ -103,7 +97,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
   Future<void> _loadAvailableServices() async {
     setState(() => _isLoadingCatalogue = true);
     try {
-      final res = await ref.read(serviceRepositoryProvider).getServices(isActive: true, pageSize: 100);
+      final res = await ref
+          .read(serviceRepositoryProvider)
+          .getServices(isActive: true, pageSize: 100);
       if (mounted) {
         setState(() {
           _availableServices = res.items;
@@ -117,9 +113,14 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
     }
   }
 
-  double get _subtotal => _services.fold(0.0, (sum, s) => sum + (s.unitPrice * s.quantity));
-  double get _taxAmount => _services.fold(0.0, (sum, s) => sum + (s.unitPrice * s.quantity * (s.taxPercentage / 100)));
-  double get _discountAmount => _services.fold(0.0, (sum, s) => sum + s.discountAmount);
+  double get _subtotal =>
+      _services.fold(0.0, (sum, s) => sum + (s.unitPrice * s.quantity));
+  double get _taxAmount => _services.fold(
+    0.0,
+    (sum, s) => sum + (s.unitPrice * s.quantity * (s.taxPercentage / 100)),
+  );
+  double get _discountAmount =>
+      _services.fold(0.0, (sum, s) => sum + s.discountAmount);
   double get _totalAmount => _subtotal + _taxAmount - _discountAmount;
 
   void _addService(Service svc) {
@@ -128,13 +129,15 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
       if (existingIndex >= 0) {
         _services[existingIndex].quantity += 1;
       } else {
-        _services.add(_EditableServiceRow(
-          serviceId: svc.id,
-          serviceName: svc.name,
-          unitPrice: svc.price,
-          taxPercentage: svc.taxPercentage,
-          quantity: 1,
-        ));
+        _services.add(
+          _EditableServiceRow(
+            serviceId: svc.id,
+            serviceName: svc.name,
+            unitPrice: svc.price,
+            taxPercentage: svc.taxPercentage,
+            quantity: 1,
+          ),
+        );
       }
     });
   }
@@ -181,11 +184,19 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
             ),
             const SizedBox(height: 12),
             if (_isLoadingCatalogue)
-              const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                ),
+              )
             else if (_availableServices.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(24),
-                child: Text('No active catalogue services available.', textAlign: TextAlign.center),
+                child: Text(
+                  'No active catalogue services available.',
+                  textAlign: TextAlign.center,
+                ),
               )
             else
               Expanded(
@@ -195,12 +206,25 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                   itemBuilder: (c, i) {
                     final svc = _availableServices[i];
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      title: Text(svc.name, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                      subtitle: svc.category != null ? Text(svc.category!, style: AppTextStyles.bodySmall) : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      title: Text(
+                        svc.name,
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: svc.category != null
+                          ? Text(svc.category!, style: AppTextStyles.bodySmall)
+                          : null,
                       trailing: Text(
                         '₹${svc.price.toStringAsFixed(2)}',
-                        style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.w700, color: AppColors.primary),
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
                       ),
                       onTap: () => Navigator.of(ctx).pop(svc),
                     );
@@ -226,7 +250,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
 
   Future<void> _handleSubmit() async {
     if (_services.isEmpty) {
-      setState(() => _errorMessage = 'At least one service is required on a job card.');
+      setState(
+        () => _errorMessage = 'At least one service is required on a job card.',
+      );
       return;
     }
 
@@ -244,10 +270,14 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
             discountAmount: s.discountAmount,
           );
         }).toList(),
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
       );
 
-      await ref.read(jobCardDetailsProvider(widget.jobCard.id).notifier).updateServices(request);
+      await ref
+          .read(jobCardDetailsProvider(widget.jobCard.id).notifier)
+          .updateServices(request);
       ref.read(jobCardListProvider.notifier).loadJobCards();
       widget.onSaved?.call();
 
@@ -256,16 +286,22 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
       }
     } on ApiException catch (e) {
       if (!mounted) return;
-      if (e.statusCode == 409 || e.message.toLowerCase().contains('locked') || e.message.toLowerCase().contains('invoice')) {
+      if (e.statusCode == 409 ||
+          e.message.toLowerCase().contains('locked') ||
+          e.message.toLowerCase().contains('invoice')) {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = 'This job card is locked because its invoice has already been generated.';
+          _errorMessage =
+              'This job card is locked because its invoice has already been generated.';
         });
-        ref.read(jobCardDetailsProvider(widget.jobCard.id).notifier).loadDetails();
+        ref
+            .read(jobCardDetailsProvider(widget.jobCard.id).notifier)
+            .loadDetails();
       } else if (e.statusCode == 403) {
         setState(() {
           _isSubmitting = false;
-          _errorMessage = 'Permission denied. You do not have permission to edit job cards.';
+          _errorMessage =
+              'Permission denied. You do not have permission to edit job cards.';
         });
       } else {
         setState(() {
@@ -305,7 +341,8 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
         children: [
           AppModalHeader(
             title: 'Edit Job Card',
-            subtitle: '${widget.jobCard.jobCardNumber} · ${widget.jobCard.vehicle.registrationNumber}',
+            subtitle:
+                '${widget.jobCard.jobCardNumber} · ${widget.jobCard.vehicle.registrationNumber}',
             icon: Icons.edit_note_rounded,
             iconBgColor: AppColors.accentPill,
             iconColor: AppColors.primary,
@@ -323,7 +360,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
               ),
               child: Text(
                 _errorMessage!,
-                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.errorDark,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -348,16 +387,26 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                           children: [
                             TextButton.icon(
                               key: const Key('add_custom_service_button'),
-                              onPressed: _isSubmitting ? null : _openCreateCustomService,
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : _openCreateCustomService,
                               icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Custom Service', style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Custom Service',
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
                             const SizedBox(width: 4),
                             FilledButton.tonalIcon(
                               key: const Key('add_catalogue_service_button'),
-                              onPressed: _isSubmitting ? null : _openServicePicker,
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : _openServicePicker,
                               icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Catalogue', style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Catalogue',
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
                           ],
                         ),
@@ -376,7 +425,10 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                         child: const Center(
                           child: Text(
                             'No services added. Click Catalogue or Custom Service to add.',
-                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
@@ -389,7 +441,10 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                         itemBuilder: (context, index) {
                           final item = _services[index];
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(10),
@@ -399,11 +454,15 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         item.serviceName,
-                                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
@@ -417,18 +476,33 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                 Row(
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                                      icon: const Icon(
+                                        Icons.remove_circle_outline,
+                                        size: 20,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      onPressed: () => _updateQuantity(index, item.quantity - 1),
+                                      onPressed: () => _updateQuantity(
+                                        index,
+                                        item.quantity - 1,
+                                      ),
                                     ),
                                     Text(
                                       '${item.quantity}',
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                                      icon: const Icon(
+                                        Icons.add_circle_outline,
+                                        size: 20,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      onPressed: () => _updateQuantity(index, item.quantity + 1),
+                                      onPressed: () => _updateQuantity(
+                                        index,
+                                        item.quantity + 1,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -441,7 +515,11 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 18,
+                                    color: AppColors.error,
+                                  ),
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () => _removeService(index),
                                 ),
@@ -476,26 +554,60 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                              Text('₹${_subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const Text(
+                                'Subtotal',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                '₹${_subtotal.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Tax (GST)', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                              Text('₹${_taxAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const Text(
+                                'Tax (GST)',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                '₹${_taxAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                           const Divider(height: 16, color: AppColors.border),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Total Amount', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                              const Text(
+                                'Total Amount',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                               Text(
                                 '₹${_totalAmount.toStringAsFixed(2)}',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.primary),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ],
                           ),
@@ -524,9 +636,17 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     side: const BorderSide(color: AppColors.borderDark),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

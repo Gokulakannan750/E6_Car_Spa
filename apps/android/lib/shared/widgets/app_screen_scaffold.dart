@@ -63,7 +63,8 @@ class AppScreenScaffold extends StatelessWidget {
           ],
         ),
         automaticallyImplyLeading: false,
-        leading: leading ??
+        leading:
+            leading ??
             (showBackButton
                 ? IconButton(
                     key: const Key('app_scaffold_back_button'),

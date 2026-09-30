@@ -18,21 +18,36 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
     required this.staffName,
   });
 
-  static Future<void> show(BuildContext context, String staffId, String staffName) {
+  static Future<void> show(
+    BuildContext context,
+    String staffId,
+    String staffName,
+  ) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => SettlementHistoryBottomSheet(
-        staffId: staffId,
-        staffName: staffName,
-      ),
+      builder: (context) =>
+          SettlementHistoryBottomSheet(staffId: staffId, staffName: staffName),
     );
   }
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return '';
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
   }
 
@@ -66,16 +81,23 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
                 children: [
                   Text(
                     'Settlement History',
-                    style: AppTextStyles.headingMedium.copyWith(fontWeight: FontWeight.w700),
+                    style: AppTextStyles.headingMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   Text(
                     staffName,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -84,23 +106,28 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
 
           Expanded(
             child: historyAsync.when(
-              loading: () => const AppLoadingState(message: 'Loading settlement records...'),
+              loading: () => const AppLoadingState(
+                message: 'Loading settlement records...',
+              ),
               error: (err, stack) => AppErrorState(
                 message: 'Failed to load settlement history: $err',
-                onRetry: () => ref.invalidate(salarySettlementHistoryProvider(staffId)),
+                onRetry: () =>
+                    ref.invalidate(salarySettlementHistoryProvider(staffId)),
               ),
               data: (historyList) {
                 if (historyList.isEmpty) {
                   return const AppEmptyState(
                     title: 'No Settlements Recorded',
-                    message: 'No salary settlements have been processed for this staff member yet.',
+                    message:
+                        'No salary settlements have been processed for this staff member yet.',
                     icon: Icons.history_rounded,
                   );
                 }
 
                 return ListView.separated(
                   itemCount: historyList.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 10),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = historyList[index];
                     return Container(
@@ -118,7 +145,11 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
                             children: [
                               Text(
                                 '${item.periodFrom} → ${item.periodTo}',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                               const StatusBadge(
                                 label: 'Settled',
@@ -133,38 +164,85 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Gross Salary', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                  Text('₹${item.enteredSalary.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                                  const Text(
+                                    'Gross Salary',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${item.enteredSalary.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Advance Recovered', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                  Text('- ₹${item.advanceDeduction.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.error)),
+                                  const Text(
+                                    'Advance Recovered',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '- ₹${item.advanceDeduction.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
                                 ],
                               ),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  const Text('Final Payout', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                  Text('₹${item.finalSalary.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.success)),
+                                  const Text(
+                                    'Final Payout',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${item.finalSalary.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
-                          if (item.settledByName != null || item.settledAt != null) ...[
+                          if (item.settledByName != null ||
+                              item.settledAt != null) ...[
                             const Divider(height: 14, color: AppColors.border),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  item.settledByName != null ? 'Settled by: ${item.settledByName}' : '',
-                                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                  item.settledByName != null
+                                      ? 'Settled by: ${item.settledByName}'
+                                      : '',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                                 Text(
                                   _formatDate(item.settledAt),
-                                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -173,7 +251,11 @@ class SettlementHistoryBottomSheet extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Text(
                               'Notes: ${item.notes}',
-                              style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ],

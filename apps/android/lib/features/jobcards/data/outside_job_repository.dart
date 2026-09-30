@@ -32,7 +32,10 @@ class OutsideJobRepository {
     }
   }
 
-  Future<OutsideJob> createOutsideJob(String jobCardId, CreateOutsideJobRequest request) async {
+  Future<OutsideJob> createOutsideJob(
+    String jobCardId,
+    CreateOutsideJobRequest request,
+  ) async {
     try {
       return await _api.createOutsideJob(jobCardId, request);
     } on DioException catch (e) {
@@ -40,7 +43,10 @@ class OutsideJobRepository {
     }
   }
 
-  Future<OutsideJob> markReturned(String outsideJobId, MarkOutsideJobReturnedRequest request) async {
+  Future<OutsideJob> markReturned(
+    String outsideJobId,
+    MarkOutsideJobReturnedRequest request,
+  ) async {
     try {
       return await _api.markReturned(outsideJobId, request);
     } on DioException catch (e) {
@@ -48,9 +54,31 @@ class OutsideJobRepository {
     }
   }
 
-  Future<OutsideJob> cancel(String outsideJobId, CancelOutsideJobRequest request) async {
+  Future<OutsideJob> cancel(
+    String outsideJobId,
+    CancelOutsideJobRequest request,
+  ) async {
     try {
       return await _api.cancel(outsideJobId, request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<OutsideJob> updateCost(
+    String outsideJobId,
+    UpdateOutsideJobCostRequest request,
+  ) async {
+    try {
+      return await _api.updateCost(outsideJobId, request);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> deleteOutsideJob(String outsideJobId) async {
+    try {
+      await _api.deleteOutsideJob(outsideJobId);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

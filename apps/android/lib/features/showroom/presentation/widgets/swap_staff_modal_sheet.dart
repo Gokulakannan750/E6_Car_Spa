@@ -25,7 +25,8 @@ class SwapStaffModalSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SwapStaffModalSheet> createState() => _SwapStaffModalSheetState();
+  ConsumerState<SwapStaffModalSheet> createState() =>
+      _SwapStaffModalSheetState();
 }
 
 class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
@@ -48,8 +49,11 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
   @override
   void initState() {
     super.initState();
-    _selectedStaffA = widget.initialStaffA ??
-        (widget.currentShowroomStaff.isNotEmpty ? widget.currentShowroomStaff.first : null);
+    _selectedStaffA =
+        widget.initialStaffA ??
+        (widget.currentShowroomStaff.isNotEmpty
+            ? widget.currentShowroomStaff.first
+            : null);
     if (_selectedStaffA != null) {
       _coverageStartTime = _selectedStaffA!.startTime;
       _coverageEndTime = _selectedStaffA!.endTime;
@@ -89,7 +93,9 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
   }
 
   Future<void> _pickCoverageStartTime() async {
-    final initial = _parseTimeOfDay(_coverageStartTime) ?? const TimeOfDay(hour: 14, minute: 0);
+    final initial =
+        _parseTimeOfDay(_coverageStartTime) ??
+        const TimeOfDay(hour: 14, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -108,7 +114,9 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
   }
 
   Future<void> _pickCoverageEndTime() async {
-    final initial = _parseTimeOfDay(_coverageEndTime) ?? const TimeOfDay(hour: 18, minute: 0);
+    final initial =
+        _parseTimeOfDay(_coverageEndTime) ??
+        const TimeOfDay(hour: 18, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -139,7 +147,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
     setState(() => _isLoadingTargetStaff = true);
     try {
       final repository = ref.read(showroomRepositoryProvider);
-      final response = await repository.getDailyStaff(showroomId, widget.selectedDate);
+      final response = await repository.getDailyStaff(
+        showroomId,
+        widget.selectedDate,
+      );
       final assignments = response.staffAssignments;
 
       if (!mounted) return;
@@ -171,13 +182,17 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
       return;
     }
     if (_selectedStaffA!.staffId == _selectedStaffB!.staffId) {
-      setState(() => _errorMessage = 'Cannot swap a staff member with themselves.');
+      setState(
+        () => _errorMessage = 'Cannot swap a staff member with themselves.',
+      );
       return;
     }
 
     final durationHours = _calculateCoverageDuration();
     if (durationHours == null || durationHours <= 0) {
-      setState(() => _errorMessage = 'Coverage end time must be after start time.');
+      setState(
+        () => _errorMessage = 'Coverage end time must be after start time.',
+      );
       return;
     }
 
@@ -205,9 +220,7 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
       Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Staff swap completed! Swap ID: #${swapResult.swapId}',
-          ),
+          content: Text('Staff swap completed! Swap ID: #${swapResult.swapId}'),
           backgroundColor: AppColors.primary,
         ),
       );
@@ -272,7 +285,11 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                       color: Colors.purple.withAlpha(25),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.swap_horiz, color: Colors.purple, size: 22),
+                    child: const Icon(
+                      Icons.swap_horiz,
+                      color: Colors.purple,
+                      size: 22,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -318,16 +335,25 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                         decoration: BoxDecoration(
                           color: AppColors.error.withAlpha(20),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.error.withAlpha(60)),
+                          border: Border.all(
+                            color: AppColors.error.withAlpha(60),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, size: 16, color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              size: 16,
+                              color: AppColors.error,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 _errorMessage!,
-                                style: const TextStyle(fontSize: 12, color: AppColors.error),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.error,
+                                ),
                               ),
                             ),
                           ],
@@ -348,7 +374,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                       isExpanded: true,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                       items: widget.currentShowroomStaff.map((a) {
                         return DropdownMenuItem(
@@ -386,7 +415,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                       hint: const Text('Select destination showroom'),
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                       items: availableShowrooms.map((s) {
                         return DropdownMenuItem(
@@ -426,7 +458,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                           ),
                           child: Text(
                             'No staff assigned to this showroom on $dateHeading.',
-                            style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber.shade900,
+                            ),
                           ),
                         )
                       else
@@ -436,20 +471,29 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                           hint: const Text('Select staff member to swap with'),
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                           ),
                           items: _targetStaffList
-                              .where((b) => _selectedStaffA == null || b.staffId != _selectedStaffA!.staffId)
+                              .where(
+                                (b) =>
+                                    _selectedStaffA == null ||
+                                    b.staffId != _selectedStaffA!.staffId,
+                              )
                               .map((b) {
-                            return DropdownMenuItem(
-                              value: b,
-                              child: Text(
-                                '${b.staffName} (${b.displayTimeRange})',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) => setState(() => _selectedStaffB = val),
+                                return DropdownMenuItem(
+                                  value: b,
+                                  child: Text(
+                                    '${b.staffName} (${b.displayTimeRange})',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                );
+                              })
+                              .toList(),
+                          onChanged: (val) =>
+                              setState(() => _selectedStaffB = val),
                         ),
                       const SizedBox(height: 14),
                     ],
@@ -478,20 +522,31 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isDurationValid ? Colors.purple.withAlpha(20) : AppColors.error.withAlpha(20),
+                                  color: isDurationValid
+                                      ? Colors.purple.withAlpha(20)
+                                      : AppColors.error.withAlpha(20),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: isDurationValid ? Colors.purple.withAlpha(60) : AppColors.error.withAlpha(60),
+                                    color: isDurationValid
+                                        ? Colors.purple.withAlpha(60)
+                                        : AppColors.error.withAlpha(60),
                                   ),
                                 ),
                                 child: Text(
-                                  isDurationValid ? 'Duration: $durationText' : 'Invalid Period',
+                                  isDurationValid
+                                      ? 'Duration: $durationText'
+                                      : 'Invalid Period',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: isDurationValid ? Colors.purple.shade900 : AppColors.error,
+                                    color: isDurationValid
+                                        ? Colors.purple.shade900
+                                        : AppColors.error,
                                   ),
                                 ),
                               ),
@@ -506,24 +561,46 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                                   children: [
                                     const Text(
                                       'Start Time',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     InkWell(
                                       onTap: _pickCoverageStartTime,
                                       borderRadius: BorderRadius.circular(8),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey.shade400),
-                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           color: Colors.white,
                                         ),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(_coverageStartTime, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                            const Icon(Icons.access_time, size: 16, color: Colors.purple),
+                                            Text(
+                                              _coverageStartTime,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.access_time,
+                                              size: 16,
+                                              color: Colors.purple,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -538,24 +615,46 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                                   children: [
                                     const Text(
                                       'End Time',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                     const SizedBox(height: 4),
                                     InkWell(
                                       onTap: _pickCoverageEndTime,
                                       borderRadius: BorderRadius.circular(8),
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
                                         decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey.shade400),
-                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: Colors.grey.shade400,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           color: Colors.white,
                                         ),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            Text(_coverageEndTime, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                            const Icon(Icons.access_time, size: 16, color: Colors.purple),
+                                            Text(
+                                              _coverageEndTime,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.access_time,
+                                              size: 16,
+                                              color: Colors.purple,
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -572,7 +671,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                             runSpacing: 4,
                             children: [
                               ActionChip(
-                                label: const Text('Full Day (09:00-18:00)', style: TextStyle(fontSize: 10)),
+                                label: const Text(
+                                  'Full Day (09:00-18:00)',
+                                  style: TextStyle(fontSize: 10),
+                                ),
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 onPressed: () {
@@ -583,7 +685,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                                 },
                               ),
                               ActionChip(
-                                label: const Text('Morning (09:00-14:00)', style: TextStyle(fontSize: 10)),
+                                label: const Text(
+                                  'Morning (09:00-14:00)',
+                                  style: TextStyle(fontSize: 10),
+                                ),
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 onPressed: () {
@@ -594,7 +699,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                                 },
                               ),
                               ActionChip(
-                                label: const Text('Afternoon (14:00-18:00)', style: TextStyle(fontSize: 10)),
+                                label: const Text(
+                                  'Afternoon (14:00-18:00)',
+                                  style: TextStyle(fontSize: 10),
+                                ),
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 onPressed: () {
@@ -633,17 +741,33 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            _buildSummaryRow('Original Staff:', '${_selectedStaffA!.staffName} (${_selectedStaffA!.displayTimeRange})'),
+                            _buildSummaryRow(
+                              'Original Staff:',
+                              '${_selectedStaffA!.staffName} (${_selectedStaffA!.displayTimeRange})',
+                            ),
                             const SizedBox(height: 4),
-                            _buildSummaryRow('Replacement Staff:', '${_selectedStaffB!.staffName} (${_selectedStaffB!.displayTimeRange})'),
+                            _buildSummaryRow(
+                              'Replacement Staff:',
+                              '${_selectedStaffB!.staffName} (${_selectedStaffB!.displayTimeRange})',
+                            ),
                             const SizedBox(height: 4),
-                            _buildSummaryRow('Coverage Period:', '$_coverageStartTime – $_coverageEndTime'),
+                            _buildSummaryRow(
+                              'Coverage Period:',
+                              '$_coverageStartTime – $_coverageEndTime',
+                            ),
                             const SizedBox(height: 4),
-                            _buildSummaryRow('Coverage Duration:', durationText),
+                            _buildSummaryRow(
+                              'Coverage Duration:',
+                              durationText,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'Note: ${_selectedStaffB!.staffName} will cover ${_selectedStaffA!.staffName} temporarily during this specific period.',
-                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -665,7 +789,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                       decoration: const InputDecoration(
                         hintText: 'e.g. Coverage for heavy ceramic workload',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
@@ -690,7 +817,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                       decoration: const InputDecoration(
                         hintText: 'Optional operational notes...',
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -703,7 +833,9 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                           backgroundColor: Colors.purple.shade700,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        onPressed: (_isSubmitting || !isDurationValid) ? null : _handleSubmit,
+                        onPressed: (_isSubmitting || !isDurationValid)
+                            ? null
+                            : _handleSubmit,
                         child: _isSubmitting
                             ? const SizedBox(
                                 width: 20,
@@ -737,13 +869,21 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
           width: 125,
           child: Text(
             label,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

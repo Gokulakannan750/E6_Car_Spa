@@ -61,6 +61,8 @@ public class VendorService : IVendorService
 
     public async Task<VendorDto> CreateAsync(CreateVendorRequest request, CancellationToken cancellationToken = default)
     {
+        ValidatePhone(request.Phone);
+
         var now = DateTime.UtcNow;
         var vendor = new Vendor
         {
@@ -103,6 +105,8 @@ public class VendorService : IVendorService
 
     public async Task<VendorDto?> UpdateAsync(Guid id, UpdateVendorRequest request, CancellationToken cancellationToken = default)
     {
+        ValidatePhone(request.Phone);
+
         var vendor = await _db.Vendors.FirstOrDefaultAsync(v => v.Id == id && !v.IsDeleted, cancellationToken);
         if (vendor == null) return null;
 
@@ -170,5 +174,14 @@ public class VendorService : IVendorService
             cancellationToken: cancellationToken);
 
         return true;
+    }
+
+    private static void ValidatePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(phone.Trim(), @"^[0-9]{10}$"))
+        {
+            throw new ArgumentException("Phone number must be exactly 10 digits.");
+        }
     }
 }

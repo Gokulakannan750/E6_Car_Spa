@@ -72,20 +72,32 @@ class AppTextField extends StatelessWidget {
     final effectiveHint = hint ?? hintText;
     final effectiveBorderColor = borderColor ?? AppColors.border;
     final effectiveFocusedBorderColor = focusedBorderColor ?? AppColors.accent;
-    final effectiveFillColor = fillColor ?? (isEnabled ? AppColors.card : AppColors.surfaceAlt);
+    final effectiveFillColor =
+        fillColor ?? (isEnabled ? AppColors.card : AppColors.surfaceAlt);
 
     return TextFormField(
       controller: controller,
       initialValue: controller == null ? initialValue : null,
       enabled: isEnabled,
-      style: textColor != null ? TextStyle(color: textColor, fontSize: 14) : null,
+      style: textColor != null
+          ? TextStyle(color: textColor, fontSize: 14)
+          : null,
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       obscureText: isPassword,
       maxLines: isPassword ? 1 : maxLines,
       maxLength: maxLength,
       inputFormatters: inputFormatters,
-      buildCounter: buildCounter ?? (maxLength != null ? (_, {required currentLength, required isFocused, required maxLength}) => null : null),
+      buildCounter:
+          buildCounter ??
+          (maxLength != null
+              ? (
+                  _, {
+                  required currentLength,
+                  required isFocused,
+                  required maxLength,
+                }) => null
+              : null),
       textInputAction: textInputAction,
       onFieldSubmitted: onFieldSubmitted,
       onChanged: onChanged,
@@ -93,9 +105,13 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: effectiveLabel,
-        labelStyle: labelColor != null ? TextStyle(color: labelColor, fontSize: 14) : null,
+        labelStyle: labelColor != null
+            ? TextStyle(color: labelColor, fontSize: 14)
+            : null,
         hintText: effectiveHint,
-        hintStyle: hintColor != null ? TextStyle(color: hintColor, fontSize: 14) : null,
+        hintStyle: hintColor != null
+            ? TextStyle(color: hintColor, fontSize: 14)
+            : null,
         helperText: helperText,
         errorText: errorText,
         prefixIcon: prefixIcon,
@@ -112,7 +128,10 @@ class AppTextField extends StatelessWidget {
         ),
         filled: true,
         fillColor: effectiveFillColor,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
     );
   }

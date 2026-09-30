@@ -15,10 +15,7 @@ class MockShowroomRepository extends Fake implements ShowroomRepository {
   final ShowroomStaffSwap mockSwap;
   final List<ShowroomStaffSwap> mockHistory;
 
-  MockShowroomRepository({
-    required this.mockSwap,
-    required this.mockHistory,
-  });
+  MockShowroomRepository({required this.mockSwap, required this.mockHistory});
 
   @override
   Future<ShowroomStaffSwap> getSwapById(String swapId) async {
@@ -69,7 +66,10 @@ class MockShowroomRepository extends Fake implements ShowroomRepository {
   }
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     return DailyStaffResponse(
       showroomId: showroomId,
       showroomName: 'Target Showroom',
@@ -177,235 +177,267 @@ void main() {
     createdAt: DateTime.now(),
   );
 
-  testWidgets('1. DailyStaffAssignmentCard displays purple Swapped badge with Swap ID', (tester) async {
-    bool viewSwapCalled = false;
+  testWidgets(
+    '1. DailyStaffAssignmentCard displays purple Swapped badge with Swap ID',
+    (tester) async {
+      bool viewSwapCalled = false;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: DailyStaffAssignmentCard(
-            assignment: swappedAssignment,
-            onViewSwap: () => viewSwapCalled = true,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('Swapped with Suresh Babu (#SWP-20260927-0001)'), findsOneWidget);
-    expect(find.text('Swapped'), findsOneWidget);
-    expect(find.text('Orig: KUN BMW Showroom → Now: Popular Hyundai Showroom'), findsOneWidget);
-
-    // Tap the swap badge
-    await tester.tap(find.text('Swapped with Suresh Babu (#SWP-20260927-0001)'));
-    await tester.pumpAndSettle();
-
-    expect(viewSwapCalled, isTrue);
-  });
-
-  testWidgets('2. SwapDetailsModalSheet renders complete bidirectional swap traceability and coverage period', (tester) async {
-    final mockRepo = MockShowroomRepository(
-      mockSwap: mockSwap,
-      mockHistory: [mockSwap],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          showroomRepositoryProvider.overrideWithValue(mockRepo),
-        ],
-        child: const MaterialApp(
+      await tester.pumpWidget(
+        MaterialApp(
           home: Scaffold(
-            body: SwapDetailsModalSheet(
-              showroomId: 'sr-1',
-              swapId: 'SWP-20260927-0001',
+            body: DailyStaffAssignmentCard(
+              assignment: swappedAssignment,
+              onViewSwap: () => viewSwapCalled = true,
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      expect(
+        find.text('Swapped with Suresh Babu (#SWP-20260927-0001)'),
+        findsOneWidget,
+      );
+      expect(find.text('Swapped'), findsOneWidget);
+      expect(
+        find.text('Orig: KUN BMW Showroom → Now: Popular Hyundai Showroom'),
+        findsOneWidget,
+      );
 
-    // Verify Swap ID and status
-    expect(find.text('Swap ID: #SWP-20260927-0001'), findsOneWidget);
-    expect(find.text('COMPLETED'), findsOneWidget);
+      // Tap the swap badge
+      await tester.tap(
+        find.text('Swapped with Suresh Babu (#SWP-20260927-0001)'),
+      );
+      await tester.pumpAndSettle();
 
-    // Verify Coverage Period banner
-    expect(find.text('SWAP COVERAGE PERIOD'), findsOneWidget);
-    expect(find.text('14:00 – 18:00 (4 hours)'), findsOneWidget);
+      expect(viewSwapCalled, isTrue);
+    },
+  );
 
-    // Verify Staff A details
-    expect(find.text('Ramesh Kumar'), findsOneWidget);
-    expect(find.text('#RA101H'), findsOneWidget);
-    expect(find.text('From: Popular Hyundai Showroom'), findsOneWidget);
-    expect(find.text('To: KUN BMW Showroom'), findsOneWidget);
+  testWidgets(
+    '2. SwapDetailsModalSheet renders complete bidirectional swap traceability and coverage period',
+    (tester) async {
+      final mockRepo = MockShowroomRepository(
+        mockSwap: mockSwap,
+        mockHistory: [mockSwap],
+      );
 
-    // Verify Staff B details
-    expect(find.text('Suresh Babu'), findsOneWidget);
-    expect(find.text('#SU102B'), findsOneWidget);
-    expect(find.text('From: KUN BMW Showroom'), findsOneWidget);
-    expect(find.text('To: Popular Hyundai Showroom'), findsOneWidget);
-
-    // Verify Audit Metadata
-    expect(find.text('Gokula Kannan'), findsOneWidget);
-    expect(find.text('Emergency cross-showroom swap'), findsOneWidget);
-    expect(find.text('Approved by manager'), findsOneWidget);
-  });
-
-  testWidgets('3. ShowroomSwapHistoryModalSheet displays historical transactions with coverage period', (tester) async {
-    final mockRepo = MockShowroomRepository(
-      mockSwap: mockSwap,
-      mockHistory: [mockSwap],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          showroomRepositoryProvider.overrideWithValue(mockRepo),
-        ],
-        child: const MaterialApp(
-          home: Scaffold(
-            body: ShowroomSwapHistoryModalSheet(
-              showroomId: 'sr-1',
-              showroomName: 'Popular Hyundai Showroom',
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [showroomRepositoryProvider.overrideWithValue(mockRepo)],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SwapDetailsModalSheet(
+                showroomId: 'sr-1',
+                swapId: 'SWP-20260927-0001',
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    expect(find.text('Swap History'), findsOneWidget);
-    expect(find.text('#SWP-20260927-0001'), findsOneWidget);
-    expect(find.text('Ramesh Kumar ⇄ Suresh Babu'), findsOneWidget);
-    expect(find.text('Popular Hyundai Showroom ⇄ KUN BMW Showroom'), findsOneWidget);
-    expect(find.text('Coverage: 14:00 – 18:00 (4 hours)'), findsOneWidget);
-  });
+      // Verify Swap ID and status
+      expect(find.text('Swap ID: #SWP-20260927-0001'), findsOneWidget);
+      expect(find.text('COMPLETED'), findsOneWidget);
 
-  testWidgets('4. SwapDetailsModalSheet displays locked notice when canReverse is false', (tester) async {
-    final mockRepo = MockShowroomRepository(
-      mockSwap: mockSwap,
-      mockHistory: [mockSwap],
-    );
+      // Verify Coverage Period banner
+      expect(find.text('SWAP COVERAGE PERIOD'), findsOneWidget);
+      expect(find.text('14:00 – 18:00 (4 hours)'), findsOneWidget);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          showroomRepositoryProvider.overrideWithValue(mockRepo),
-        ],
-        child: const MaterialApp(
-          home: Scaffold(
-            body: SwapDetailsModalSheet(
-              showroomId: 'sr-1',
-              swapId: 'SWP-20260927-0001',
-              canReverse: false,
+      // Verify Staff A details
+      expect(find.text('Ramesh Kumar'), findsOneWidget);
+      expect(find.text('#RA101H'), findsOneWidget);
+      expect(find.text('From: Popular Hyundai Showroom'), findsOneWidget);
+      expect(find.text('To: KUN BMW Showroom'), findsOneWidget);
+
+      // Verify Staff B details
+      expect(find.text('Suresh Babu'), findsOneWidget);
+      expect(find.text('#SU102B'), findsOneWidget);
+      expect(find.text('From: KUN BMW Showroom'), findsOneWidget);
+      expect(find.text('To: Popular Hyundai Showroom'), findsOneWidget);
+
+      // Verify Audit Metadata
+      expect(find.text('Gokula Kannan'), findsOneWidget);
+      expect(find.text('Emergency cross-showroom swap'), findsOneWidget);
+      expect(find.text('Approved by manager'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '3. ShowroomSwapHistoryModalSheet displays historical transactions with coverage period',
+    (tester) async {
+      final mockRepo = MockShowroomRepository(
+        mockSwap: mockSwap,
+        mockHistory: [mockSwap],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [showroomRepositoryProvider.overrideWithValue(mockRepo)],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: ShowroomSwapHistoryModalSheet(
+                showroomId: 'sr-1',
+                showroomName: 'Popular Hyundai Showroom',
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Verify Reverse Staff Swap button is NOT present
-    expect(find.text('Reverse Staff Swap'), findsNothing);
+      expect(find.text('Swap History'), findsOneWidget);
+      expect(find.text('#SWP-20260927-0001'), findsOneWidget);
+      expect(find.text('Ramesh Kumar ⇄ Suresh Babu'), findsOneWidget);
+      expect(
+        find.text('Popular Hyundai Showroom ⇄ KUN BMW Showroom'),
+        findsOneWidget,
+      );
+      expect(find.text('Coverage: 14:00 – 18:00 (4 hours)'), findsOneWidget);
+    },
+  );
 
-    // Verify locked notice is present
-    expect(
-      find.text('Locked after attendance confirmation. Unlock for Correction before reversing this swap.'),
-      findsOneWidget,
-    );
-  });
+  testWidgets(
+    '4. SwapDetailsModalSheet displays locked notice when canReverse is false',
+    (tester) async {
+      final mockRepo = MockShowroomRepository(
+        mockSwap: mockSwap,
+        mockHistory: [mockSwap],
+      );
 
-  testWidgets('5. SwapStaffModalSheet renders Coverage Period section with live Duration calculation', (tester) async {
-    final mockRepo = MockShowroomRepository(
-      mockSwap: mockSwap,
-      mockHistory: [mockSwap],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          showroomRepositoryProvider.overrideWithValue(mockRepo),
-          showroomsProvider.overrideWith((ref) => MockShowroomsNotifier(mockRepo)),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: SwapStaffModalSheet(
-              showroomId: 'sr-1',
-              showroomName: 'Popular Hyundai Showroom',
-              selectedDate: testDate,
-              currentShowroomStaff: [swappedAssignment],
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [showroomRepositoryProvider.overrideWithValue(mockRepo)],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SwapDetailsModalSheet(
+                showroomId: 'sr-1',
+                swapId: 'SWP-20260927-0001',
+                canReverse: false,
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Verify Coverage Period section title & live duration
-    expect(find.text('SWAP COVERAGE PERIOD'), findsOneWidget);
-    expect(find.text('Duration: 9 hours'), findsOneWidget); // Default 09:00 - 18:00
-    expect(find.text('Start Time'), findsOneWidget);
-    expect(find.text('End Time'), findsOneWidget);
+      // Verify Reverse Staff Swap button is NOT present
+      expect(find.text('Reverse Staff Swap'), findsNothing);
 
-    // Tap "Afternoon (14:00-18:00)" preset
-    await tester.tap(find.text('Afternoon (14:00-18:00)'));
-    await tester.pumpAndSettle();
+      // Verify locked notice is present
+      expect(
+        find.text(
+          'Locked after attendance confirmation. Unlock for Correction before reversing this swap.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
-    expect(find.text('Duration: 4 hours'), findsOneWidget);
-  });
+  testWidgets(
+    '5. SwapStaffModalSheet renders Coverage Period section with live Duration calculation',
+    (tester) async {
+      final mockRepo = MockShowroomRepository(
+        mockSwap: mockSwap,
+        mockHistory: [mockSwap],
+      );
 
-  testWidgets('6. ShowroomAttendanceTab renders Swap History, Swap Staff action buttons and row swap icon', (tester) async {
-    bool swapStaffOpened = false;
-    bool swapHistoryOpened = false;
-
-    final mockRepo = MockShowroomRepository(
-      mockSwap: mockSwap,
-      mockHistory: [mockSwap],
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          showroomRepositoryProvider.overrideWithValue(mockRepo),
-          showroomsProvider.overrideWith((ref) => MockShowroomsNotifier(mockRepo)),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: ShowroomAttendanceTab(
-              showroomId: 'sr-1',
-              canAssignStaff: true,
-              canConfirmAttendance: true,
-              isOwner: true,
-              onOpenAssignStaffSheet: () {},
-              onOpenEditStaffSessionSheet: (_) {},
-              onRemoveAssignment: (_) {},
-              onOpenSwapStaffSheet: (_) => swapStaffOpened = true,
-              onOpenSwapHistorySheet: () => swapHistoryOpened = true,
-              onOpenSwapDetailsSheet: (_) {},
-              onConfirmSubmitAttendance: () {},
-              onConfirmUnlockAttendance: () {},
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            showroomRepositoryProvider.overrideWithValue(mockRepo),
+            showroomsProvider.overrideWith(
+              (ref) => MockShowroomsNotifier(mockRepo),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: SwapStaffModalSheet(
+                showroomId: 'sr-1',
+                showroomName: 'Popular Hyundai Showroom',
+                selectedDate: testDate,
+                currentShowroomStaff: [swappedAssignment],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    // Verify header action buttons exist
-    expect(find.byKey(const Key('swap_history_button')), findsOneWidget);
-    expect(find.byKey(const Key('swap_staff_button')), findsOneWidget);
+      // Verify Coverage Period section title & live duration
+      expect(find.text('SWAP COVERAGE PERIOD'), findsOneWidget);
+      expect(
+        find.text('Duration: 9 hours'),
+        findsOneWidget,
+      ); // Default 09:00 - 18:00
+      expect(find.text('Start Time'), findsOneWidget);
+      expect(find.text('End Time'), findsOneWidget);
 
-    // Tap Swap History
-    await tester.tap(find.byKey(const Key('swap_history_button')));
-    expect(swapHistoryOpened, isTrue);
+      // Tap "Afternoon (14:00-18:00)" preset
+      await tester.tap(find.text('Afternoon (14:00-18:00)'));
+      await tester.pumpAndSettle();
 
-    // Tap Swap Staff
-    await tester.tap(find.byKey(const Key('swap_staff_button')));
-    expect(swapStaffOpened, isTrue);
-  });
+      expect(find.text('Duration: 4 hours'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '6. ShowroomAttendanceTab renders Swap History, Swap Staff action buttons and row swap icon',
+    (tester) async {
+      bool swapStaffOpened = false;
+      bool swapHistoryOpened = false;
+
+      final mockRepo = MockShowroomRepository(
+        mockSwap: mockSwap,
+        mockHistory: [mockSwap],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            showroomRepositoryProvider.overrideWithValue(mockRepo),
+            showroomsProvider.overrideWith(
+              (ref) => MockShowroomsNotifier(mockRepo),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: ShowroomAttendanceTab(
+                showroomId: 'sr-1',
+                canAssignStaff: true,
+                canConfirmAttendance: true,
+                isOwner: true,
+                onOpenAssignStaffSheet: () {},
+                onOpenEditStaffSessionSheet: (_) {},
+                onRemoveAssignment: (_) {},
+                onOpenSwapStaffSheet: (_) => swapStaffOpened = true,
+                onOpenSwapHistorySheet: () => swapHistoryOpened = true,
+                onOpenSwapDetailsSheet: (_) {},
+                onConfirmSubmitAttendance: () {},
+                onConfirmUnlockAttendance: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Verify header action buttons exist
+      expect(find.byKey(const Key('swap_history_button')), findsOneWidget);
+      expect(find.byKey(const Key('swap_staff_button')), findsOneWidget);
+
+      // Tap Swap History
+      await tester.tap(find.byKey(const Key('swap_history_button')));
+      expect(swapHistoryOpened, isTrue);
+
+      // Tap Swap Staff
+      await tester.tap(find.byKey(const Key('swap_staff_button')));
+      expect(swapStaffOpened, isTrue);
+    },
+  );
 }

@@ -16,7 +16,8 @@ class CustomerApi {
       'page': page,
       'pageSize': pageSize,
       if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
-      if (paymentStatus != null && paymentStatus.trim().isNotEmpty) 'paymentStatus': paymentStatus.trim(),
+      if (paymentStatus != null && paymentStatus.trim().isNotEmpty)
+        'paymentStatus': paymentStatus.trim(),
     };
 
     final response = await _dio.get(
@@ -45,7 +46,9 @@ class CustomerApi {
 
   Future<Customer?> getCustomerByRegistration(String registrationNumber) async {
     try {
-      final response = await _dio.get('/customers/by-registration/$registrationNumber');
+      final response = await _dio.get(
+        '/customers/by-registration/$registrationNumber',
+      );
       if (response.data == null) return null;
       return Customer.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
@@ -56,22 +59,21 @@ class CustomerApi {
 
   Future<CustomerHistoryResponse> getCustomerHistory(String id) async {
     final response = await _dio.get('/customers/$id/history');
-    return CustomerHistoryResponse.fromJson(response.data as Map<String, dynamic>);
+    return CustomerHistoryResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<Customer> createCustomer(CreateCustomerRequest request) async {
-    final response = await _dio.post(
-      '/customers',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/customers', data: request.toJson());
     return Customer.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
-    final response = await _dio.put(
-      '/customers/$id',
-      data: request.toJson(),
-    );
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
+    final response = await _dio.put('/customers/$id', data: request.toJson());
     return Customer.fromJson(response.data as Map<String, dynamic>);
   }
 

@@ -66,26 +66,28 @@ void main() {
           (ref) => TestLoginNotifier(repo, initialState),
         ),
       ],
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: const LoginScreen(),
-      ),
+      child: MaterialApp(theme: AppTheme.light, home: const LoginScreen()),
     );
   }
 
   group('LoginScreen Widget Tests', () {
-    testWidgets('renders brand title, subtitle, input fields and Sign In button', (tester) async {
-      await tester.pumpWidget(createLoginTestWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders brand title, subtitle, input fields and Sign In button',
+      (tester) async {
+        await tester.pumpWidget(createLoginTestWidget());
+        await tester.pumpAndSettle();
 
-      expect(find.text('E6 Car Spa'), findsOneWidget);
-      expect(find.text('Management Suite'), findsOneWidget);
-      expect(find.text('Username'), findsOneWidget);
-      expect(find.text('Password'), findsOneWidget);
-      expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
-    });
+        expect(find.text('E6 Car Spa'), findsOneWidget);
+        expect(find.text('Management Suite'), findsOneWidget);
+        expect(find.text('Username'), findsOneWidget);
+        expect(find.text('Password'), findsOneWidget);
+        expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
+      },
+    );
 
-    testWidgets('shows validation error when submitting empty form', (tester) async {
+    testWidgets('shows validation error when submitting empty form', (
+      tester,
+    ) async {
       await tester.pumpWidget(createLoginTestWidget());
       await tester.pumpAndSettle();
 
@@ -95,18 +97,23 @@ void main() {
       expect(find.text('Please enter your username.'), findsOneWidget);
     });
 
-    testWidgets('shows validation error when username entered but password empty', (tester) async {
-      await tester.pumpWidget(createLoginTestWidget());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'shows validation error when username entered but password empty',
+      (tester) async {
+        await tester.pumpWidget(createLoginTestWidget());
+        await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField).first, 'testuser');
-      await tester.tap(find.widgetWithText(AppButton, 'Sign In'));
-      await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField).first, 'testuser');
+        await tester.tap(find.widgetWithText(AppButton, 'Sign In'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Please enter your password.'), findsOneWidget);
-    });
+        expect(find.text('Please enter your password.'), findsOneWidget);
+      },
+    );
 
-    testWidgets('displays error banner when AuthFailure state is emitted', (tester) async {
+    testWidgets('displays error banner when AuthFailure state is emitted', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createLoginTestWidget(
           initialState: const AuthFailure('Invalid username or password.'),
@@ -119,9 +126,7 @@ void main() {
 
     testWidgets('displays loading state during authentication', (tester) async {
       await tester.pumpWidget(
-        createLoginTestWidget(
-          initialState: const Authenticating(),
-        ),
+        createLoginTestWidget(initialState: const Authenticating()),
       );
       await tester.pump();
 
@@ -139,24 +144,28 @@ void main() {
       expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     });
 
-    testWidgets('renders custom business profile name and logo widget when available', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authRepositoryProvider.overrideWithValue(StubAuthRepo()),
-            authNotifierProvider.overrideWith(
-              (ref) => TestLoginNotifier(StubAuthRepo(), const Unauthenticated()),
+    testWidgets(
+      'renders custom business profile name and logo widget when available',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authRepositoryProvider.overrideWithValue(StubAuthRepo()),
+              authNotifierProvider.overrideWith(
+                (ref) =>
+                    TestLoginNotifier(StubAuthRepo(), const Unauthenticated()),
+              ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const LoginScreen(),
             ),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const LoginScreen(),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Management Suite'), findsOneWidget);
-    });
+        expect(find.text('Management Suite'), findsOneWidget);
+      },
+    );
   });
 }

@@ -11,10 +11,7 @@ import '../../providers/staff_salary_providers.dart';
 class EnterSalaryBottomSheet extends ConsumerStatefulWidget {
   final StaffSalaryItem item;
 
-  const EnterSalaryBottomSheet({
-    super.key,
-    required this.item,
-  });
+  const EnterSalaryBottomSheet({super.key, required this.item});
 
   static Future<void> show(BuildContext context, StaffSalaryItem item) {
     return showModalBottomSheet(
@@ -26,10 +23,12 @@ class EnterSalaryBottomSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<EnterSalaryBottomSheet> createState() => _EnterSalaryBottomSheetState();
+  ConsumerState<EnterSalaryBottomSheet> createState() =>
+      _EnterSalaryBottomSheetState();
 }
 
-class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet> {
+class _EnterSalaryBottomSheetState
+    extends ConsumerState<EnterSalaryBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _salaryController;
   late final TextEditingController _notesController;
@@ -41,7 +40,9 @@ class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet>
     super.initState();
     _enteredSalary = widget.item.enteredSalary ?? 0.0;
     _salaryController = TextEditingController(
-      text: widget.item.enteredSalary != null ? widget.item.enteredSalary!.toStringAsFixed(0) : '',
+      text: widget.item.enteredSalary != null
+          ? widget.item.enteredSalary!.toStringAsFixed(0)
+          : '',
     );
     _notesController = TextEditingController(text: widget.item.notes ?? '');
     _salaryController.addListener(_onSalaryChanged);
@@ -70,13 +71,17 @@ class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet>
       _errorMessage = null;
     });
 
-    final error = await ref.read(salaryActionProvider.notifier).saveEnteredSalary(
-      staffId: widget.item.staffId,
-      periodFrom: widget.item.periodFrom,
-      periodTo: widget.item.periodTo,
-      enteredSalary: _enteredSalary,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-    );
+    final error = await ref
+        .read(salaryActionProvider.notifier)
+        .saveEnteredSalary(
+          staffId: widget.item.staffId,
+          periodFrom: widget.item.periodFrom,
+          periodTo: widget.item.periodTo,
+          enteredSalary: _enteredSalary,
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
 
     if (!mounted) return;
 
@@ -123,16 +128,23 @@ class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet>
                     children: [
                       Text(
                         'Enter Salary Amount',
-                        style: AppTextStyles.headingMedium.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.headingMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         '${widget.item.staffName} (${widget.item.periodFrom} to ${widget.item.periodTo})',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -150,7 +162,10 @@ class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet>
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
 
@@ -196,10 +211,18 @@ class _EnterSalaryBottomSheetState extends ConsumerState<EnterSalaryBottomSheet>
                   children: [
                     const Text(
                       'Live Payroll Calculation Breakdown',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const Divider(height: 16, color: AppColors.border),
-                    _buildCalcRow('Entered Gross Salary', '₹${_enteredSalary.toStringAsFixed(2)}', isBold: false),
+                    _buildCalcRow(
+                      'Entered Gross Salary',
+                      '₹${_enteredSalary.toStringAsFixed(2)}',
+                      isBold: false,
+                    ),
                     const SizedBox(height: 6),
                     _buildCalcRow(
                       'Applicable Advance (through Period To)',

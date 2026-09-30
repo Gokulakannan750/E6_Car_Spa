@@ -101,7 +101,10 @@ class AddressInfoCard extends StatelessWidget {
                   hintText: 'e.g. Erode',
                   isRequired: true,
                   isEnabled: isEnabled,
-                  prefixIcon: const Icon(Icons.location_city_outlined, size: 20),
+                  prefixIcon: const Icon(
+                    Icons.location_city_outlined,
+                    size: 20,
+                  ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
                       return 'City is required';

@@ -40,7 +40,8 @@ class RecordPaymentRequest {
   Map<String, dynamic> toJson() => {
     'amount': amount,
     'paymentMethod': paymentMethod,
-    if (reference != null && reference!.trim().isNotEmpty) 'reference': reference!.trim(),
+    if (reference != null && reference!.trim().isNotEmpty)
+      'reference': reference!.trim(),
     if (paymentDate != null) 'paymentDate': paymentDate!.toIso8601String(),
   };
 }

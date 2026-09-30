@@ -5,10 +5,7 @@ import '../../models/outside_job_model.dart';
 class VehicleLocationBadge extends StatelessWidget {
   final VehicleLocation? location;
 
-  const VehicleLocationBadge({
-    super.key,
-    required this.location,
-  });
+  const VehicleLocationBadge({super.key, required this.location});
 
   @override
   Widget build(BuildContext context) {

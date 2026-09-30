@@ -126,7 +126,9 @@ class UserCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 1),
+                                horizontal: 6,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withAlpha(20),
                                 borderRadius: BorderRadius.circular(6),
@@ -164,7 +166,9 @@ class UserCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: user.isActive
                             ? const Color(0xFFECFDF5)
@@ -212,8 +216,11 @@ class UserCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.email_outlined,
-                      size: 14, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.email_outlined,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -242,8 +249,11 @@ class UserCard extends StatelessWidget {
                       if (isOwner)
                         const Row(
                           children: [
-                            Icon(Icons.all_inclusive_rounded,
-                                size: 14, color: Color(0xFF7C3AED)),
+                            Icon(
+                              Icons.all_inclusive_rounded,
+                              size: 14,
+                              color: Color(0xFF7C3AED),
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Full Access (All Modules)',
@@ -258,8 +268,11 @@ class UserCard extends StatelessWidget {
                       else
                         Row(
                           children: [
-                            const Icon(Icons.lock_open_rounded,
-                                size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.lock_open_rounded,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${user.permissions.length} permissions granted',
@@ -275,8 +288,11 @@ class UserCard extends StatelessWidget {
                       // Last Login
                       Row(
                         children: [
-                          const Icon(Icons.access_time_rounded,
-                              size: 13, color: AppColors.textTertiary),
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 13,
+                            color: AppColors.textTertiary,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Last login: $formattedLastLogin',
@@ -321,7 +337,9 @@ class UserCard extends StatelessWidget {
                               ? const Color(0xFFDC2626)
                               : const Color(0xFF059669),
                         ),
-                        tooltip: user.isActive ? 'Deactivate User' : 'Activate User',
+                        tooltip: user.isActive
+                            ? 'Deactivate User'
+                            : 'Activate User',
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
                         style: IconButton.styleFrom(

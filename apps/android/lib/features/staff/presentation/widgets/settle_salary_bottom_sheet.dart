@@ -11,10 +11,7 @@ import '../../providers/staff_salary_providers.dart';
 class SettleSalaryBottomSheet extends ConsumerStatefulWidget {
   final StaffSalaryItem item;
 
-  const SettleSalaryBottomSheet({
-    super.key,
-    required this.item,
-  });
+  const SettleSalaryBottomSheet({super.key, required this.item});
 
   static Future<void> show(BuildContext context, StaffSalaryItem item) {
     return showModalBottomSheet(
@@ -26,10 +23,12 @@ class SettleSalaryBottomSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<SettleSalaryBottomSheet> createState() => _SettleSalaryBottomSheetState();
+  ConsumerState<SettleSalaryBottomSheet> createState() =>
+      _SettleSalaryBottomSheetState();
 }
 
-class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomSheet> {
+class _SettleSalaryBottomSheetState
+    extends ConsumerState<SettleSalaryBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _notesController;
   String? _errorMessage;
@@ -59,13 +58,17 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
       _errorMessage = null;
     });
 
-    final error = await ref.read(salaryActionProvider.notifier).settleSalary(
-      staffId: widget.item.staffId,
-      periodFrom: widget.item.periodFrom,
-      periodTo: widget.item.periodTo,
-      enteredSalary: enteredSalary,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-    );
+    final error = await ref
+        .read(salaryActionProvider.notifier)
+        .settleSalary(
+          staffId: widget.item.staffId,
+          periodFrom: widget.item.periodFrom,
+          periodTo: widget.item.periodTo,
+          enteredSalary: enteredSalary,
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
 
     if (!mounted) return;
 
@@ -114,16 +117,23 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
                     children: [
                       Text(
                         'Confirm Salary Settlement',
-                        style: AppTextStyles.headingMedium.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.headingMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         '${item.staffName} (${item.periodFrom} to ${item.periodTo})',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -141,7 +151,10 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
 
@@ -155,7 +168,10 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
                 ),
                 child: Column(
                   children: [
-                    _buildRow('Gross Entered Salary', '₹${enteredSalary.toStringAsFixed(2)}'),
+                    _buildRow(
+                      'Gross Entered Salary',
+                      '₹${enteredSalary.toStringAsFixed(2)}',
+                    ),
                     const SizedBox(height: 8),
                     _buildRow(
                       'Advance Recovery Deduction',
@@ -172,7 +188,10 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
                       fontSize: 16,
                     ),
                     const SizedBox(height: 8),
-                    _buildRow('Remaining Advance After Settlement', '₹${remainingAdvance.toStringAsFixed(2)}'),
+                    _buildRow(
+                      'Remaining Advance After Settlement',
+                      '₹${remainingAdvance.toStringAsFixed(2)}',
+                    ),
                   ],
                 ),
               ),
@@ -184,17 +203,26 @@ class _SettleSalaryBottomSheetState extends ConsumerState<SettleSalaryBottomShee
                 decoration: BoxDecoration(
                   color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.warningDark.withAlpha(60)),
+                  border: Border.all(
+                    color: AppColors.warningDark.withAlpha(60),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Icon(Icons.info_outline_rounded, size: 18, color: AppColors.warningDark),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: AppColors.warningDark,
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Settlement is authoritative and atomic. Recovered advances will be settled and this payroll record will be permanently locked.',
-                        style: TextStyle(fontSize: 11, color: AppColors.warningDark),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.warningDark,
+                        ),
                       ),
                     ),
                   ],

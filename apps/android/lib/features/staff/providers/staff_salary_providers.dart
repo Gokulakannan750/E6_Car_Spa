@@ -17,33 +17,39 @@ String _getDefaultPeriodTo() {
   return '${now.year}-$monthStr-$dayStr';
 }
 
-final salaryPeriodFromProvider = StateProvider<String>((ref) => _getDefaultPeriodFrom());
-final salaryPeriodToProvider = StateProvider<String>((ref) => _getDefaultPeriodTo());
+final salaryPeriodFromProvider = StateProvider<String>(
+  (ref) => _getDefaultPeriodFrom(),
+);
+final salaryPeriodToProvider = StateProvider<String>(
+  (ref) => _getDefaultPeriodTo(),
+);
 final salaryStatusFilterProvider = StateProvider<String>((ref) => 'All');
 final salarySearchQueryProvider = StateProvider<String>((ref) => '');
 
-final salaryRosterProvider = FutureProvider.autoDispose<StaffSalaryRosterResponse>((ref) async {
-  final fromDate = ref.watch(salaryPeriodFromProvider);
-  final toDate = ref.watch(salaryPeriodToProvider);
-  final status = ref.watch(salaryStatusFilterProvider);
-  final search = ref.watch(salarySearchQueryProvider);
-  final repo = ref.watch(staffRepositoryProvider);
+final salaryRosterProvider =
+    FutureProvider.autoDispose<StaffSalaryRosterResponse>((ref) async {
+      final fromDate = ref.watch(salaryPeriodFromProvider);
+      final toDate = ref.watch(salaryPeriodToProvider);
+      final status = ref.watch(salaryStatusFilterProvider);
+      final search = ref.watch(salarySearchQueryProvider);
+      final repo = ref.watch(staffRepositoryProvider);
 
-  final apiStatus = status == 'All' ? null : status;
-  final apiSearch = search.trim().isEmpty ? null : search.trim();
+      final apiStatus = status == 'All' ? null : status;
+      final apiSearch = search.trim().isEmpty ? null : search.trim();
 
-  return repo.getSalaryRoster(
-    fromDate: fromDate,
-    toDate: toDate,
-    status: apiStatus,
-    search: apiSearch,
-  );
-});
+      return repo.getSalaryRoster(
+        fromDate: fromDate,
+        toDate: toDate,
+        status: apiStatus,
+        search: apiSearch,
+      );
+    });
 
-final salarySettlementHistoryProvider = FutureProvider.autoDispose.family<List<StaffSalarySettlement>, String>((ref, staffId) async {
-  final repo = ref.watch(staffRepositoryProvider);
-  return repo.getSettlementHistory(staffId);
-});
+final salarySettlementHistoryProvider = FutureProvider.autoDispose
+    .family<List<StaffSalarySettlement>, String>((ref, staffId) async {
+      final repo = ref.watch(staffRepositoryProvider);
+      return repo.getSettlementHistory(staffId);
+    });
 
 class SalaryActionState {
   final bool isSubmitting;
@@ -66,7 +72,9 @@ class SalaryActionState {
     return SalaryActionState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -75,7 +83,8 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
   final StaffRepository _repository;
   final Ref _ref;
 
-  SalaryActionNotifier(this._repository, this._ref) : super(const SalaryActionState());
+  SalaryActionNotifier(this._repository, this._ref)
+    : super(const SalaryActionState());
 
   Future<String?> saveEnteredSalary({
     required String staffId,
@@ -84,7 +93,11 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
     required double enteredSalary,
     String? notes,
   }) async {
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       await _repository.saveEnteredSalary(
         staffId: staffId,
@@ -93,7 +106,10 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
         enteredSalary: enteredSalary,
         notes: notes,
       );
-      state = state.copyWith(isSubmitting: false, successMessage: 'Salary amount saved successfully');
+      state = state.copyWith(
+        isSubmitting: false,
+        successMessage: 'Salary amount saved successfully',
+      );
       _ref.invalidate(salaryRosterProvider);
       return null;
     } catch (e) {
@@ -110,7 +126,11 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
     required double enteredSalary,
     String? notes,
   }) async {
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
     try {
       await _repository.settleSalary(
         staffId: staffId,
@@ -119,7 +139,10 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
         enteredSalary: enteredSalary,
         notes: notes,
       );
-      state = state.copyWith(isSubmitting: false, successMessage: 'Salary settled & advances recovered atomically');
+      state = state.copyWith(
+        isSubmitting: false,
+        successMessage: 'Salary settled & advances recovered atomically',
+      );
       _ref.invalidate(salaryRosterProvider);
       _ref.invalidate(salarySettlementHistoryProvider(staffId));
       return null;
@@ -131,7 +154,8 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
   }
 }
 
-final salaryActionProvider = StateNotifierProvider<SalaryActionNotifier, SalaryActionState>((ref) {
-  final repo = ref.watch(staffRepositoryProvider);
-  return SalaryActionNotifier(repo, ref);
-});
+final salaryActionProvider =
+    StateNotifierProvider<SalaryActionNotifier, SalaryActionState>((ref) {
+      final repo = ref.watch(staffRepositoryProvider);
+      return SalaryActionNotifier(repo, ref);
+    });

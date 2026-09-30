@@ -92,7 +92,7 @@ void main() {
             'timestamp': '2026-08-25T14:30:00Z',
             'referenceId': 'e6f9a0c1-0000-0000-0000-000000000001',
             'status': 'Success',
-          }
+          },
         ],
       };
 
@@ -110,46 +110,49 @@ void main() {
       expect(model.recentActivity.first.title, 'Payment received (UPI)');
     });
 
-    test('SalesReportResponseModel deserializes rows and summary correctly', () {
-      final json = {
-        'items': [
-          {
-            'invoiceId': 'inv-1',
-            'invoiceNumber': 'INV-2026-000001',
-            'invoiceDate': '2026-08-20T10:00:00Z',
-            'customerName': 'Alice Smith',
-            'customerPhone': '+91 9876543210',
-            'registrationNumber': 'TN 38 AA 1234',
-            'subtotal': 2000.0,
-            'discount': 200.0,
-            'gst': 324.0,
+    test(
+      'SalesReportResponseModel deserializes rows and summary correctly',
+      () {
+        final json = {
+          'items': [
+            {
+              'invoiceId': 'inv-1',
+              'invoiceNumber': 'INV-2026-000001',
+              'invoiceDate': '2026-08-20T10:00:00Z',
+              'customerName': 'Alice Smith',
+              'customerPhone': '+91 9876543210',
+              'registrationNumber': 'TN 38 AA 1234',
+              'subtotal': 2000.0,
+              'discount': 200.0,
+              'gst': 324.0,
+              'totalAmount': 2124.0,
+              'paidAmount': 2124.0,
+              'balanceAmount': 0.0,
+              'status': 2, // Paid
+            },
+          ],
+          'totalCount': 1,
+          'page': 1,
+          'pageSize': 20,
+          'summary': {
+            'totalSubtotal': 2000.0,
+            'totalDiscount': 200.0,
+            'totalGst': 324.0,
             'totalAmount': 2124.0,
-            'paidAmount': 2124.0,
-            'balanceAmount': 0.0,
-            'status': 2, // Paid
-          }
-        ],
-        'totalCount': 1,
-        'page': 1,
-        'pageSize': 20,
-        'summary': {
-          'totalSubtotal': 2000.0,
-          'totalDiscount': 200.0,
-          'totalGst': 324.0,
-          'totalAmount': 2124.0,
-          'totalPaid': 2124.0,
-          'totalBalance': 0.0,
-          'invoiceCount': 1,
-        }
-      };
+            'totalPaid': 2124.0,
+            'totalBalance': 0.0,
+            'invoiceCount': 1,
+          },
+        };
 
-      final model = SalesReportResponseModel.fromJson(json);
+        final model = SalesReportResponseModel.fromJson(json);
 
-      expect(model.totalCount, 1);
-      expect(model.items.first.customerName, 'Alice Smith');
-      expect(model.items.first.status, InvoiceStatus.paid);
-      expect(model.summary.totalAmount, 2124.0);
-    });
+        expect(model.totalCount, 1);
+        expect(model.items.first.customerName, 'Alice Smith');
+        expect(model.items.first.status, InvoiceStatus.paid);
+        expect(model.summary.totalAmount, 2124.0);
+      },
+    );
 
     test('PaymentReportResponseModel parses voided and active payments', () {
       final json = {
@@ -165,7 +168,7 @@ void main() {
             'amount': 2500.0,
             'isVoided': false,
             'voidedAt': null,
-          }
+          },
         ],
         'totalCount': 1,
         'page': 1,
@@ -179,7 +182,7 @@ void main() {
           'bankTransferAmount': 0.0,
           'voidedTransactionCount': 0,
           'voidedAmount': 0.0,
-        }
+        },
       };
 
       final model = PaymentReportResponseModel.fromJson(json);
@@ -204,7 +207,7 @@ void main() {
             'balanceAmount': 3000.0,
             'status': 'PartiallyPaid',
             'ageInDays': 25,
-          }
+          },
         ],
         'totalCount': 1,
         'page': 1,
@@ -214,7 +217,7 @@ void main() {
           'totalInvoiceAmount': 5000.0,
           'totalPaidAmount': 2000.0,
           'invoiceCount': 1,
-        }
+        },
       };
 
       final model = OutstandingInvoiceReportResponseModel.fromJson(json);
@@ -245,7 +248,7 @@ void main() {
             'taxableAmount': 5000.0,
             'gstAmount': 900.0,
             'totalAmount': 5900.0,
-          }
+          },
         ],
       };
 
@@ -273,7 +276,7 @@ void main() {
             'invoiceId': 'inv-3',
             'invoiceNumber': 'INV-2026-000003',
             'invoiceStatus': 2,
-          }
+          },
         ],
         'totalCount': 1,
         'page': 1,
@@ -286,7 +289,7 @@ void main() {
           'cancelledCount': 0,
           'invoicedCount': 1,
           'totalRevenue': 3500.0,
-        }
+        },
       };
 
       final model = JobCardReportResponseModel.fromJson(json);
@@ -311,7 +314,7 @@ void main() {
             'paymentStatus': 'Paid',
             'attendanceConfirmed': true,
             'attendanceConfirmedAt': '2026-08-24T18:00:00Z',
-          }
+          },
         ],
         'totalCount': 1,
         'page': 1,
@@ -325,7 +328,7 @@ void main() {
           'paidDaysCount': 1,
           'partiallyPaidDaysCount': 0,
           'unpaidDaysCount': 0,
-        }
+        },
       };
 
       final model = ShowroomReportResponseModel.fromJson(json);
@@ -346,7 +349,7 @@ void main() {
             'daysAssigned': 6,
             'totalVehiclesAttended': 24,
             'dailyAverage': 4.0,
-          }
+          },
         ],
         'totalStaff': 1,
         'totalDaysAssigned': 6,
@@ -361,45 +364,48 @@ void main() {
       expect(model.totalVehiclesAttended, 24);
     });
 
-    test('StaffAdvanceReportResponseModel parses advance history & obsolescence', () {
-      final json = {
-        'items': [
-          {
-            'id': 'adv-1',
-            'staffId': 'st-1',
-            'staffName': 'Ramesh Kumar',
-            'staffPhone': '+91 9444455555',
-            'staffRole': 'Senior Detailer',
-            'advanceDate': '2026-08-10T10:00:00Z',
-            'amount': 3000.0,
-            'reason': 'Medical emergency',
-            'notes': 'Salary deduction in Aug payroll',
-            'status': 'Outstanding',
-            'settledAt': null,
-            'settledByName': null,
-            'obsoletedAt': null,
-            'obsoletedByName': null,
-            'obsoleteReason': null,
-          }
-        ],
-        'totalCount': 1,
-        'page': 1,
-        'pageSize': 20,
-        'summary': {
-          'outstandingAmount': 3000.0,
-          'settledAmount': 0.0,
-          'obsoleteAmount': 0.0,
-          'outstandingCount': 1,
-          'settledCount': 0,
-          'obsoleteCount': 0,
-        }
-      };
+    test(
+      'StaffAdvanceReportResponseModel parses advance history & obsolescence',
+      () {
+        final json = {
+          'items': [
+            {
+              'id': 'adv-1',
+              'staffId': 'st-1',
+              'staffName': 'Ramesh Kumar',
+              'staffPhone': '+91 9444455555',
+              'staffRole': 'Senior Detailer',
+              'advanceDate': '2026-08-10T10:00:00Z',
+              'amount': 3000.0,
+              'reason': 'Medical emergency',
+              'notes': 'Salary deduction in Aug payroll',
+              'status': 'Outstanding',
+              'settledAt': null,
+              'settledByName': null,
+              'obsoletedAt': null,
+              'obsoletedByName': null,
+              'obsoleteReason': null,
+            },
+          ],
+          'totalCount': 1,
+          'page': 1,
+          'pageSize': 20,
+          'summary': {
+            'outstandingAmount': 3000.0,
+            'settledAmount': 0.0,
+            'obsoleteAmount': 0.0,
+            'outstandingCount': 1,
+            'settledCount': 0,
+            'obsoleteCount': 0,
+          },
+        };
 
-      final model = StaffAdvanceReportResponseModel.fromJson(json);
+        final model = StaffAdvanceReportResponseModel.fromJson(json);
 
-      expect(model.items.first.amount, 3000.0);
-      expect(model.items.first.status, 'Outstanding');
-      expect(model.summary.outstandingAmount, 3000.0);
-    });
+        expect(model.items.first.amount, 3000.0);
+        expect(model.items.first.status, 'Outstanding');
+        expect(model.summary.outstandingAmount, 3000.0);
+      },
+    );
   });
 }

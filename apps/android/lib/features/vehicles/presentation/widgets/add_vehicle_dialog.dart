@@ -84,7 +84,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
   @override
   void initState() {
     super.initState();
-    _regController = TextEditingController(text: normalizeRegistration(widget.initialRegNumber));
+    _regController = TextEditingController(
+      text: normalizeRegistration(widget.initialRegNumber),
+    );
   }
 
   @override
@@ -111,12 +113,16 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
         registrationNumber: _regController.text.trim().toUpperCase(),
         make: _makeController.text.trim(),
         model: _modelController.text.trim(),
-        variant: _variantController.text.trim().isEmpty ? null : _variantController.text.trim(),
+        variant: _variantController.text.trim().isEmpty
+            ? null
+            : _variantController.text.trim(),
         color: null,
         customerId: widget.customerId,
       );
 
-      final vehicle = await ref.read(vehicleRepositoryProvider).createVehicle(request);
+      final vehicle = await ref
+          .read(vehicleRepositoryProvider)
+          .createVehicle(request);
       ref.invalidate(customerDetailsProvider(widget.customerId));
       ref.read(customerListProvider.notifier).loadCustomers(silent: true);
 
@@ -152,7 +158,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
             try {
               final existing = await ref
                   .read(vehicleRepositoryProvider)
-                  .getVehicleByRegistration(_regController.text.trim().toUpperCase());
+                  .getVehicleByRegistration(
+                    _regController.text.trim().toUpperCase(),
+                  );
               if (existing != null) {
                 existingVehId = existing.id;
                 existingCustId = existing.customerId;
@@ -172,7 +180,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
               registrationNumber: _regController.text.trim().toUpperCase(),
               make: make ?? _makeController.text.trim(),
               model: model ?? _modelController.text.trim(),
-              variant: variant ?? (_variantController.text.trim().isEmpty ? null : _variantController.text.trim()),
+              variant:
+                  variant ??
+                  (_variantController.text.trim().isEmpty
+                      ? null
+                      : _variantController.text.trim()),
               currentCustomerId: existingCustId,
               currentCustomerName: existingCustName ?? 'Another Customer',
             );
@@ -184,7 +196,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
             try {
               existingVehicle = await ref
                   .read(vehicleRepositoryProvider)
-                  .getVehicleByRegistration(_regController.text.trim().toUpperCase());
+                  .getVehicleByRegistration(
+                    _regController.text.trim().toUpperCase(),
+                  );
             } catch (_) {}
 
             existingVehicle ??= Vehicle(
@@ -192,7 +206,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
               registrationNumber: _regController.text.trim().toUpperCase(),
               make: make ?? _makeController.text.trim(),
               model: model ?? _modelController.text.trim(),
-              variant: variant ?? (_variantController.text.trim().isEmpty ? null : _variantController.text.trim()),
+              variant:
+                  variant ??
+                  (_variantController.text.trim().isEmpty
+                      ? null
+                      : _variantController.text.trim()),
               customerId: widget.customerId,
               customerName: widget.customerName ?? existingCustName,
               createdAt: DateTime.now(),
@@ -210,9 +228,12 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
           _isSubmitting = false;
           _vehicleConflict = conflict;
           if (conflict != null) {
-            _errorMessage = 'Vehicle ${conflict.registrationNumber} is already registered to ${conflict.currentCustomerName}.';
+            _errorMessage =
+                'Vehicle ${conflict.registrationNumber} is already registered to ${conflict.currentCustomerName}.';
           } else {
-            _errorMessage = e is ApiException ? e.message : e.toString().replaceAll('ApiException: ', '');
+            _errorMessage = e is ApiException
+                ? e.message
+                : e.toString().replaceAll('ApiException: ', '');
           }
         });
       }
@@ -238,7 +259,10 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
             const SizedBox(height: 12),
             Text(
               'Transferring ownership will assign it to ${widget.customerName ?? 'the current customer'}. All historical service records, job cards, and invoices will remain intact with the previous owner.',
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -311,7 +335,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _transferError = e is ApiException ? e.message : e.toString().replaceAll('ApiException: ', '');
+          _transferError = e is ApiException
+              ? e.message
+              : e.toString().replaceAll('ApiException: ', '');
         });
       }
     }
@@ -363,7 +389,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.errorDark,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -390,14 +418,16 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Vehicle Already Registered',
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.warningDark,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              color: AppColors.warningDark,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -419,17 +449,29 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: AppColors.errorLight,
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: AppColors.error),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: AppColors.error,
+                                            ),
                                           ),
                                           child: Row(
                                             children: [
-                                              const Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                                              const Icon(
+                                                Icons.error_outline,
+                                                color: AppColors.error,
+                                                size: 16,
+                                              ),
                                               const SizedBox(width: 6),
                                               Expanded(
                                                 child: Text(
                                                   'Transfer failed: $_transferError',
-                                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.errorDark),
+                                                  style: AppTextStyles.bodySmall
+                                                      .copyWith(
+                                                        color:
+                                                            AppColors.errorDark,
+                                                      ),
                                                 ),
                                               ),
                                             ],
@@ -477,12 +519,11 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                       label: 'Registration Number',
                       hint: 'e.g. TN01AB1234',
                       textCapitalization: TextCapitalization.characters,
-                      inputFormatters: const [
-                        UpperCaseTextFormatter(),
-                      ],
+                      inputFormatters: const [UpperCaseTextFormatter()],
                       prefixIcon: const Icon(Icons.directions_car_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Registration number is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Registration number is required';
                         return null;
                       },
                     ),
@@ -494,9 +535,12 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                             controller: _makeController,
                             label: 'Make',
                             hint: 'e.g. Hyundai',
-                            prefixIcon: const Icon(Icons.branding_watermark_outlined),
+                            prefixIcon: const Icon(
+                              Icons.branding_watermark_outlined,
+                            ),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Make is required';
+                              if (val == null || val.trim().isEmpty)
+                                return 'Make is required';
                               return null;
                             },
                           ),
@@ -509,7 +553,8 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                             hint: 'e.g. Creta',
                             prefixIcon: const Icon(Icons.car_repair_outlined),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty) return 'Model is required';
+                              if (val == null || val.trim().isEmpty)
+                                return 'Model is required';
                               return null;
                             },
                           ),
@@ -538,10 +583,20 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                                   },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: AppColors.borderDark),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),

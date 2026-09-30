@@ -45,12 +45,17 @@ void main() {
     expect(state.filteredStaff.first.name, 'Suresh Detailer');
 
     // Search query
-    state = state.copyWith(statusFilter: StaffStatusFilter.all, searchQuery: 'Ramesh');
+    state = state.copyWith(
+      statusFilter: StaffStatusFilter.all,
+      searchQuery: 'Ramesh',
+    );
     expect(state.filteredStaff.length, 1);
     expect(state.filteredStaff.first.name, 'Ramesh Supervisor');
   });
 
-  testWidgets('StaffCard renders + Advance and triggers callback', (tester) async {
+  testWidgets('StaffCard renders + Advance and triggers callback', (
+    tester,
+  ) async {
     bool advanceTapped = false;
     bool editTapped = false;
     bool historyTapped = false;

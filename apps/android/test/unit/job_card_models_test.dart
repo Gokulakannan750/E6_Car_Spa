@@ -14,7 +14,10 @@ void main() {
       expect(JobCardStatus.fromInt(7), JobCardStatus.cancelled);
 
       expect(JobCardStatus.fromString('InProgress'), JobCardStatus.inProgress);
-      expect(JobCardStatus.fromString('QualityCheck'), JobCardStatus.qualityCheck);
+      expect(
+        JobCardStatus.fromString('QualityCheck'),
+        JobCardStatus.qualityCheck,
+      );
       expect(JobCardStatus.fromString('Paid'), JobCardStatus.paid);
       expect(JobCardStatus.fromString('Unknown'), JobCardStatus.draft);
     });
@@ -106,7 +109,7 @@ void main() {
             serviceId: 's-1',
             quantity: 2,
             discountAmount: 20.0,
-          )
+          ),
         ],
       );
 

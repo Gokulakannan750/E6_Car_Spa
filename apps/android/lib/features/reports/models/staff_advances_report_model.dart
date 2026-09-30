@@ -37,23 +37,48 @@ class StaffAdvanceReportRowModel {
     return StaffAdvanceReportRowModel(
       id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
       staffId: json['staffId']?.toString() ?? json['StaffId']?.toString() ?? '',
-      staffName: json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
-      staffPhone: json['staffPhone']?.toString() ?? json['StaffPhone']?.toString(),
+      staffName:
+          json['staffName']?.toString() ?? json['StaffName']?.toString() ?? '',
+      staffPhone:
+          json['staffPhone']?.toString() ?? json['StaffPhone']?.toString(),
       staffRole: json['staffRole']?.toString() ?? json['StaffRole']?.toString(),
-      advanceDate: DateTime.tryParse(json['advanceDate']?.toString() ?? json['AdvanceDate']?.toString() ?? '') ?? DateTime.now(),
+      advanceDate:
+          DateTime.tryParse(
+            json['advanceDate']?.toString() ??
+                json['AdvanceDate']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
       amount: ((json['amount'] ?? json['Amount'] ?? 0.0) as num).toDouble(),
       reason: json['reason']?.toString() ?? json['Reason']?.toString() ?? '',
       notes: json['notes']?.toString() ?? json['Notes']?.toString(),
-      status: json['status']?.toString() ?? json['Status']?.toString() ?? 'Outstanding',
+      status:
+          json['status']?.toString() ??
+          json['Status']?.toString() ??
+          'Outstanding',
       settledAt: json['settledAt'] != null || json['SettledAt'] != null
-          ? DateTime.tryParse(json['settledAt']?.toString() ?? json['SettledAt']?.toString() ?? '')
+          ? DateTime.tryParse(
+              json['settledAt']?.toString() ??
+                  json['SettledAt']?.toString() ??
+                  '',
+            )
           : null,
-      settledByName: json['settledByName']?.toString() ?? json['SettledByName']?.toString(),
+      settledByName:
+          json['settledByName']?.toString() ??
+          json['SettledByName']?.toString(),
       obsoletedAt: json['obsoletedAt'] != null || json['ObsoletedAt'] != null
-          ? DateTime.tryParse(json['obsoletedAt']?.toString() ?? json['ObsoletedAt']?.toString() ?? '')
+          ? DateTime.tryParse(
+              json['obsoletedAt']?.toString() ??
+                  json['ObsoletedAt']?.toString() ??
+                  '',
+            )
           : null,
-      obsoletedByName: json['obsoletedByName']?.toString() ?? json['ObsoletedByName']?.toString(),
-      obsoleteReason: json['obsoleteReason']?.toString() ?? json['ObsoleteReason']?.toString(),
+      obsoletedByName:
+          json['obsoletedByName']?.toString() ??
+          json['ObsoletedByName']?.toString(),
+      obsoleteReason:
+          json['obsoleteReason']?.toString() ??
+          json['ObsoleteReason']?.toString(),
     );
   }
 }
@@ -77,12 +102,24 @@ class StaffAdvanceReportSummaryModel {
 
   factory StaffAdvanceReportSummaryModel.fromJson(Map<String, dynamic> json) {
     return StaffAdvanceReportSummaryModel(
-      outstandingAmount: ((json['outstandingAmount'] ?? json['OutstandingAmount'] ?? 0.0) as num).toDouble(),
-      settledAmount: ((json['settledAmount'] ?? json['SettledAmount'] ?? 0.0) as num).toDouble(),
-      obsoleteAmount: ((json['obsoleteAmount'] ?? json['ObsoleteAmount'] ?? 0.0) as num).toDouble(),
-      outstandingCount: json['outstandingCount'] as int? ?? json['OutstandingCount'] as int? ?? 0,
-      settledCount: json['settledCount'] as int? ?? json['SettledCount'] as int? ?? 0,
-      obsoleteCount: json['obsoleteCount'] as int? ?? json['ObsoleteCount'] as int? ?? 0,
+      outstandingAmount:
+          ((json['outstandingAmount'] ?? json['OutstandingAmount'] ?? 0.0)
+                  as num)
+              .toDouble(),
+      settledAmount:
+          ((json['settledAmount'] ?? json['SettledAmount'] ?? 0.0) as num)
+              .toDouble(),
+      obsoleteAmount:
+          ((json['obsoleteAmount'] ?? json['ObsoleteAmount'] ?? 0.0) as num)
+              .toDouble(),
+      outstandingCount:
+          json['outstandingCount'] as int? ??
+          json['OutstandingCount'] as int? ??
+          0,
+      settledCount:
+          json['settledCount'] as int? ?? json['SettledCount'] as int? ?? 0,
+      obsoleteCount:
+          json['obsoleteCount'] as int? ?? json['ObsoleteCount'] as int? ?? 0,
     );
   }
 }
@@ -103,13 +140,24 @@ class StaffAdvanceReportResponseModel {
   });
 
   factory StaffAdvanceReportResponseModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return StaffAdvanceReportResponseModel(
-      items: rawItems.map((item) => StaffAdvanceReportRowModel.fromJson(item as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map(
+            (item) => StaffAdvanceReportRowModel.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       totalCount: json['totalCount'] as int? ?? json['TotalCount'] as int? ?? 0,
       page: json['page'] as int? ?? json['Page'] as int? ?? 1,
       pageSize: json['pageSize'] as int? ?? json['PageSize'] as int? ?? 20,
-      summary: StaffAdvanceReportSummaryModel.fromJson((json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>),
+      summary: StaffAdvanceReportSummaryModel.fromJson(
+        (json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>,
+      ),
     );
   }
 }

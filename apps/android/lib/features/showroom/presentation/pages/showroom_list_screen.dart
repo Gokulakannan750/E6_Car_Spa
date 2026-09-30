@@ -76,7 +76,9 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
       builder: (sheetContext) => ShowroomFormSheet(
         showroom: showroom,
         onUpdate: (id, request) async {
-          await ref.read(showroomsProvider.notifier).updateShowroom(id, request);
+          await ref
+              .read(showroomsProvider.notifier)
+              .updateShowroom(id, request);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -95,7 +97,9 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('${showroom.isActive ? 'Deactivate' : 'Activate'} Showroom'),
+        title: Text(
+          '${showroom.isActive ? 'Deactivate' : 'Activate'} Showroom',
+        ),
         content: Text('Are you sure you want to $action "${showroom.name}"?'),
         actions: [
           TextButton(
@@ -104,7 +108,9 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: showroom.isActive ? AppColors.warning : AppColors.success,
+              backgroundColor: showroom.isActive
+                  ? AppColors.warning
+                  : AppColors.success,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(showroom.isActive ? 'Deactivate' : 'Activate'),
@@ -115,7 +121,9 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
 
     if (confirmed == true) {
       try {
-        await ref.read(showroomsProvider.notifier).toggleShowroomActive(showroom.id);
+        await ref
+            .read(showroomsProvider.notifier)
+            .toggleShowroomActive(showroom.id);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -138,15 +146,17 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
   }
 
   void _openShowroomDetail(Showroom showroom) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ShowroomDetailScreen(showroom: showroom),
-      ),
-    ).then((_) {
-      if (mounted) {
-        ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
-      }
-    });
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => ShowroomDetailScreen(showroom: showroom),
+          ),
+        )
+        .then((_) {
+          if (mounted) {
+            ref.read(showroomsProvider.notifier).loadShowrooms(silent: true);
+          }
+        });
   }
 
   @override
@@ -183,10 +193,7 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
             children: [
               const E6BrandBadge(),
               const SizedBox(width: 10),
-              Text(
-                'Showroom',
-                style: AppTextStyles.appBarTitle,
-              ),
+              Text('Showroom', style: AppTextStyles.appBarTitle),
             ],
           ),
           backgroundColor: Colors.white,
@@ -202,167 +209,194 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
                   ),
                 );
               },
-              icon: const Icon(Icons.account_balance_wallet_outlined,
-                  color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.account_balance_wallet_outlined,
+                color: AppColors.textPrimary,
+              ),
               tooltip: 'Showroom Receivables',
             ),
             IconButton(
-              onPressed: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
-              icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+              onPressed: () =>
+                  ref.read(showroomsProvider.notifier).loadShowrooms(),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                color: AppColors.textPrimary,
+              ),
               tooltip: 'Refresh',
             ),
             const AppLogoutAction(),
           ],
         ),
-      floatingActionButton: canManage
-          ? FloatingActionButton.extended(
-              onPressed: _openCreateShowroomSheet,
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.add_business_outlined, color: Colors.white),
-              label: const Text(
-                'Add Showroom',
-                style: TextStyle(
+        floatingActionButton: canManage
+            ? FloatingActionButton.extended(
+                onPressed: _openCreateShowroomSheet,
+                backgroundColor: AppColors.primary,
+                icon: const Icon(
+                  Icons.add_business_outlined,
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                ),
+                label: const Text(
+                  'Add Showroom',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            : null,
+        body: RefreshIndicator(
+          onRefresh: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
+          child: Column(
+            children: [
+              // KPI Summary Cards Banner
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    _buildKpiCard(
+                      title: 'Total Showrooms',
+                      value: '${state.totalShowroomsCount}',
+                      icon: Icons.storefront_outlined,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildKpiCard(
+                      title: 'Active Hubs',
+                      value: '${state.activeShowroomsCount}',
+                      icon: Icons.check_circle_outline,
+                      color: AppColors.success,
+                    ),
+                    const SizedBox(width: 8),
+                    _buildKpiCard(
+                      title: "Today's Staff",
+                      value: '${state.totalStaffTodayCount}',
+                      icon: Icons.people_alt_outlined,
+                      color: AppColors.info,
+                    ),
+                  ],
                 ),
               ),
-            )
-          : null,
-      body: RefreshIndicator(
-        onRefresh: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
-        child: Column(
-          children: [
-            // KPI Summary Cards Banner
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  _buildKpiCard(
-                    title: 'Total Showrooms',
-                    value: '${state.totalShowroomsCount}',
-                    icon: Icons.storefront_outlined,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildKpiCard(
-                    title: 'Active Hubs',
-                    value: '${state.activeShowroomsCount}',
-                    icon: Icons.check_circle_outline,
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildKpiCard(
-                    title: "Today's Staff",
-                    value: '${state.totalStaffTodayCount}',
-                    icon: Icons.people_alt_outlined,
-                    color: AppColors.info,
-                  ),
-                ],
-              ),
-            ),
 
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: AppSearchField(
-                controller: _searchController,
-                hint: 'Search showrooms by name, address, phone...',
-                onChanged: (val) {
-                  ref.read(showroomsProvider.notifier).setSearchTerm(val);
-                },
-                onClear: () {
-                  _searchController.clear();
-                  ref.read(showroomsProvider.notifier).setSearchTerm('');
-                },
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                child: AppSearchField(
+                  controller: _searchController,
+                  hint: 'Search showrooms by name, address, phone...',
+                  onChanged: (val) {
+                    ref.read(showroomsProvider.notifier).setSearchTerm(val);
+                  },
+                  onClear: () {
+                    _searchController.clear();
+                    ref.read(showroomsProvider.notifier).setSearchTerm('');
+                  },
+                ),
               ),
-            ),
 
-            // Status Filter Chips
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  _buildFilterChip('All', 'all', state.statusFilter),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Active', 'active', state.statusFilter),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Inactive', 'inactive', state.statusFilter),
-                ],
+              // Status Filter Chips
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Row(
+                  children: [
+                    _buildFilterChip('All', 'all', state.statusFilter),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Active', 'active', state.statusFilter),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      'Inactive',
+                      'inactive',
+                      state.statusFilter,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
+              const SizedBox(height: 6),
 
-            // Main List View
-            Expanded(
-              child: state.isLoading && state.showrooms.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : state.errorMessage != null && state.showrooms.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                                const SizedBox(height: 12),
-                                Text(
-                                  state.errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+              // Main List View
+              Expanded(
+                child: state.isLoading && state.showrooms.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : state.errorMessage != null && state.showrooms.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: AppColors.error,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                state.errorMessage!,
+                                textAlign: TextAlign.center,
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.error,
                                 ),
-                                const SizedBox(height: 16),
-                                OutlinedButton.icon(
-                                  onPressed: () => ref.read(showroomsProvider.notifier).loadShowrooms(),
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Try Again'),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () => ref
+                                    .read(showroomsProvider.notifier)
+                                    .loadShowrooms(),
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Try Again'),
+                              ),
+                            ],
                           ),
-                        )
-                      : state.filteredShowrooms.isEmpty
-                          ? ListView(
-                              children: [
-                                const SizedBox(height: 48),
-                                AppEmptyState(
-                                  title: state.searchTerm.isNotEmpty
-                                      ? 'No matching showrooms'
-                                      : 'No showrooms found',
-                                  message: state.searchTerm.isNotEmpty
-                                      ? 'Try adjusting your search or filter criteria.'
-                                      : 'Get started by creating your first customer showroom.',
-                                  icon: Icons.storefront_outlined,
-                                  actionLabel: canManage && state.searchTerm.isEmpty
-                                      ? 'Add Showroom'
-                                      : null,
-                                  onAction: canManage && state.searchTerm.isEmpty
-                                      ? _openCreateShowroomSheet
-                                      : null,
-                                ),
-                              ],
-                            )
-                          : ListView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              itemCount: state.filteredShowrooms.length,
-                              padding: const EdgeInsets.only(bottom: 88, top: 4),
-                              itemBuilder: (context, index) {
-                                final showroom = state.filteredShowrooms[index];
-                                return ShowroomCard(
-                                  showroom: showroom,
-                                  canManage: canManage,
-                                  onTap: () => _openShowroomDetail(showroom),
-                                  onEdit: () => _openEditShowroomSheet(showroom),
-                                  onToggleActive: () => _handleToggleActive(showroom),
-                                );
-                              },
-                            ),
-            ),
-          ],
+                        ),
+                      )
+                    : state.filteredShowrooms.isEmpty
+                    ? ListView(
+                        children: [
+                          const SizedBox(height: 48),
+                          AppEmptyState(
+                            title: state.searchTerm.isNotEmpty
+                                ? 'No matching showrooms'
+                                : 'No showrooms found',
+                            message: state.searchTerm.isNotEmpty
+                                ? 'Try adjusting your search or filter criteria.'
+                                : 'Get started by creating your first customer showroom.',
+                            icon: Icons.storefront_outlined,
+                            actionLabel: canManage && state.searchTerm.isEmpty
+                                ? 'Add Showroom'
+                                : null,
+                            onAction: canManage && state.searchTerm.isEmpty
+                                ? _openCreateShowroomSheet
+                                : null,
+                          ),
+                        ],
+                      )
+                    : ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: state.filteredShowrooms.length,
+                        padding: const EdgeInsets.only(bottom: 88, top: 4),
+                        itemBuilder: (context, index) {
+                          final showroom = state.filteredShowrooms[index];
+                          return ShowroomCard(
+                            showroom: showroom,
+                            canManage: canManage,
+                            onTap: () => _openShowroomDetail(showroom),
+                            onEdit: () => _openEditShowroomSheet(showroom),
+                            onToggleActive: () => _handleToggleActive(showroom),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildKpiCard({
     required String title,

@@ -25,7 +25,8 @@ class AuthUser {
       email: json['email'] as String?,
       role: json['role'] as String? ?? '',
       isOwner: json['isOwner'] as bool? ?? false,
-      permissions: (json['permissions'] as List<dynamic>?)
+      permissions:
+          (json['permissions'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],

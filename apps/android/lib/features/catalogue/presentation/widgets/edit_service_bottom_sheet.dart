@@ -29,18 +29,18 @@ class EditServiceBottomSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EditServiceBottomSheet(
-        service: service,
-        onSaved: onSaved,
-      ),
+      builder: (context) =>
+          EditServiceBottomSheet(service: service, onSaved: onSaved),
     );
   }
 
   @override
-  ConsumerState<EditServiceBottomSheet> createState() => _EditServiceBottomSheetState();
+  ConsumerState<EditServiceBottomSheet> createState() =>
+      _EditServiceBottomSheetState();
 }
 
-class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet> {
+class _EditServiceBottomSheetState
+    extends ConsumerState<EditServiceBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _priceController;
@@ -50,7 +50,6 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
   late bool _isActive;
   bool _isSubmitting = false;
   String? _errorMessage;
-
 
   @override
   void initState() {
@@ -91,11 +90,15 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
         price: price,
         taxPercentage: widget.service.taxPercentage,
         category: _selectedCategory?.trim(),
-        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
         isActive: _isActive,
       );
 
-      await ref.read(catalogueProvider.notifier).updateService(widget.service.id, request);
+      await ref
+          .read(catalogueProvider.notifier)
+          .updateService(widget.service.id, request);
       widget.onSaved?.call();
 
       if (mounted) {
@@ -176,7 +179,9 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                         ),
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.errorDark,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -189,8 +194,10 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                       hint: 'e.g. Premium Foam Wash',
                       prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Service name is required';
-                        if (val.trim().length > 100) return 'Name cannot exceed 100 characters';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Service name is required';
+                        if (val.trim().length > 100)
+                          return 'Name cannot exceed 100 characters';
                         return null;
                       },
                     ),
@@ -198,22 +205,35 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
 
                     // Category Dropdown
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedCategory != null && categoryList.contains(_selectedCategory)
+                      initialValue:
+                          _selectedCategory != null &&
+                              categoryList.contains(_selectedCategory)
                           ? _selectedCategory
-                          : (categoryList.isNotEmpty ? categoryList.first : null),
+                          : (categoryList.isNotEmpty
+                                ? categoryList.first
+                                : null),
                       decoration: InputDecoration(
                         labelText: 'Category',
-                        prefixIcon: const Icon(Icons.category_outlined, color: AppColors.textSecondary),
+                        prefixIcon: const Icon(
+                          Icons.category_outlined,
+                          color: AppColors.textSecondary,
+                        ),
                         border: const OutlineInputBorder(),
                         enabledBorder: const OutlineInputBorder(
                           borderSide: BorderSide(color: AppColors.border),
                         ),
                         focusedBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: AppColors.accent, width: 2),
+                          borderSide: BorderSide(
+                            color: AppColors.accent,
+                            width: 2,
+                          ),
                         ),
                         filled: true,
                         fillColor: AppColors.card,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       items: categoryList.map((cat) {
                         return DropdownMenuItem<String>(
@@ -227,7 +247,8 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                         });
                       },
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Category is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Category is required';
                         return null;
                       },
                     ),
@@ -238,10 +259,13 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                       controller: _priceController,
                       label: 'Price (₹)',
                       hint: 'e.g. 650',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       prefixIcon: const Icon(Icons.currency_rupee),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Price is required';
+                        if (val == null || val.trim().isEmpty)
+                          return 'Price is required';
                         final num = double.tryParse(val.trim());
                         if (num == null || num < 0) return 'Enter valid amount';
                         return null;
@@ -267,7 +291,10 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
 
                     // Active Toggle
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(10),
@@ -281,11 +308,17 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                             children: [
                               Text(
                                 'Service Active Status',
-                                style: AppTextStyles.labelLarge.copyWith(fontWeight: FontWeight.w600),
+                                style: AppTextStyles.labelLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               Text(
-                                _isActive ? 'Available for job card booking' : 'Hidden from new job cards',
-                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                _isActive
+                                    ? 'Available for job card booking'
+                                    : 'Hidden from new job cards',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -313,12 +346,19 @@ class _EditServiceBottomSheetState extends ConsumerState<EditServiceBottomSheet>
                                   },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: const BorderSide(color: AppColors.borderDark),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             child: const Text(
                               'Cancel',
-                              style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                         ),

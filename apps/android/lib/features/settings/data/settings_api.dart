@@ -13,7 +13,9 @@ class SettingsApi {
   /// Retrieves the anonymous public branding profile (businessName, logoPath, updatedAt)
   Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
     final response = await _dio.get('/public/business-profile');
-    return PublicBusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+    return PublicBusinessProfileModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Retrieves the current Business Profile & Invoice Configuration
@@ -39,20 +41,13 @@ class SettingsApi {
     required String filename,
   }) async {
     final formData = FormData.fromMap({
-      'file': MultipartFile.fromBytes(
-        bytes,
-        filename: filename,
-      ),
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
     });
 
     final response = await _dio.post(
       '/settings/business/logo',
       data: formData,
-      options: Options(
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      ),
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
     );
     return LogoUploadResponseModel.fromJson(
       response.data as Map<String, dynamic>,
@@ -68,7 +63,9 @@ class SettingsApi {
   /// Retrieves the current canonical System Preferences
   Future<SystemPreferencesModel> getSystemPreferences() async {
     final response = await _dio.get('/settings/system');
-    return SystemPreferencesModel.fromJson(response.data as Map<String, dynamic>);
+    return SystemPreferencesModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Updates the canonical System Preferences
@@ -79,6 +76,8 @@ class SettingsApi {
       '/settings/system',
       data: preferences.toJson(),
     );
-    return SystemPreferencesModel.fromJson(response.data as Map<String, dynamic>);
+    return SystemPreferencesModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 }

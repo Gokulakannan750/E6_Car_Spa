@@ -36,8 +36,9 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
           ? initialAmount.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')
           : '',
     );
-    _notesController =
-        TextEditingController(text: widget.currentBill?.notes ?? '');
+    _notesController = TextEditingController(
+      text: widget.currentBill?.notes ?? '',
+    );
   }
 
   @override
@@ -85,7 +86,8 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    final isEditing = widget.currentBill != null && widget.currentBill!.amount > 0;
+    final isEditing =
+        widget.currentBill != null && widget.currentBill!.amount > 0;
 
     return Container(
       decoration: const BoxDecoration(
@@ -131,7 +133,10 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -150,14 +155,18 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 20),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.error),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
                     ],
@@ -177,8 +186,9 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
@@ -202,7 +212,9 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 validator: (value) {
@@ -232,8 +244,9 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: 'Add any remarks or details for this daily bill...',
-                  hintStyle: AppTextStyles.bodyMedium
-                      .copyWith(color: AppColors.textSecondary.withAlpha(150)),
+                  hintStyle: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary.withAlpha(150),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -241,7 +254,9 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),

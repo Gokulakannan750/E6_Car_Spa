@@ -3,44 +3,51 @@ import 'package:e6_car_spa/features/customers/models/customer_model.dart';
 
 void main() {
   group('Customer Models Unit Tests', () {
-    test('Customer parses from backend JSON correctly with payment aggregations', () {
-      final json = {
-        'id': 'cust-123',
-        'name': 'Ramesh Kumar',
-        'phoneNumber': '9876543210',
-        'email': 'ramesh@example.com',
-        'address': '123 Main St, Chennai',
-        'vehicleCount': 2,
-        'invoiceCount': 5,
-        'totalInvoicedAmount': 10000.0,
-        'totalPaidAmount': 8500.0,
-        'totalOutstandingAmount': 1500.0,
-        'paymentStatus': 'Payment Pending',
-        'createdAt': '2026-08-25T10:00:00Z',
-        'updatedAt': '2026-08-25T10:00:00Z',
-      };
+    test(
+      'Customer parses from backend JSON correctly with payment aggregations',
+      () {
+        final json = {
+          'id': 'cust-123',
+          'name': 'Ramesh Kumar',
+          'phoneNumber': '9876543210',
+          'email': 'ramesh@example.com',
+          'address': '123 Main St, Chennai',
+          'vehicleCount': 2,
+          'invoiceCount': 5,
+          'totalInvoicedAmount': 10000.0,
+          'totalPaidAmount': 8500.0,
+          'totalOutstandingAmount': 1500.0,
+          'paymentStatus': 'Payment Pending',
+          'createdAt': '2026-08-25T10:00:00Z',
+          'updatedAt': '2026-08-25T10:00:00Z',
+        };
 
-      final customer = Customer.fromJson(json);
+        final customer = Customer.fromJson(json);
 
-      expect(customer.id, 'cust-123');
-      expect(customer.name, 'Ramesh Kumar');
-      expect(customer.phoneNumber, '9876543210');
-      expect(customer.email, 'ramesh@example.com');
-      expect(customer.address, '123 Main St, Chennai');
-      expect(customer.vehicleCount, 2);
-      expect(customer.invoiceCount, 5);
-      expect(customer.totalInvoicedAmount, 10000.0);
-      expect(customer.totalPaidAmount, 8500.0);
-      expect(customer.totalOutstandingAmount, 1500.0);
-      expect(customer.paymentStatus, 'Payment Pending');
-      expect(customer.initials, 'RK');
-    });
+        expect(customer.id, 'cust-123');
+        expect(customer.name, 'Ramesh Kumar');
+        expect(customer.phoneNumber, '9876543210');
+        expect(customer.email, 'ramesh@example.com');
+        expect(customer.address, '123 Main St, Chennai');
+        expect(customer.vehicleCount, 2);
+        expect(customer.invoiceCount, 5);
+        expect(customer.totalInvoicedAmount, 10000.0);
+        expect(customer.totalPaidAmount, 8500.0);
+        expect(customer.totalOutstandingAmount, 1500.0);
+        expect(customer.paymentStatus, 'Payment Pending');
+        expect(customer.initials, 'RK');
+      },
+    );
 
     test('Customer initials handles single and multi-word names', () {
       const c1 = Customer(id: '1', name: 'Ramesh', phoneNumber: '123');
       expect(c1.initials, 'R');
 
-      const c2 = Customer(id: '2', name: 'Ramesh Kumar Sharma', phoneNumber: '123');
+      const c2 = Customer(
+        id: '2',
+        name: 'Ramesh Kumar Sharma',
+        phoneNumber: '123',
+      );
       expect(c2.initials, 'RK');
 
       const c3 = Customer(id: '3', name: '', phoneNumber: '123');
@@ -100,7 +107,7 @@ void main() {
             'status': 'InProgress',
             'totalAmount': 1500.0,
             'vehicleNumber': 'TN01AB1234',
-          }
+          },
         ],
       };
 

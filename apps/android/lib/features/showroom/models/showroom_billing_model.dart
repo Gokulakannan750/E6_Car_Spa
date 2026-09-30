@@ -41,8 +41,8 @@ class ShowroomPayment {
           (json['showroomDailyBillId'] ?? json['ShowroomDailyBillId'] ?? '')
               .toString(),
       amount: parseDouble(json['amount'] ?? json['Amount']),
-      paymentMethod:
-          (json['paymentMethod'] ?? json['PaymentMethod'] ?? 'Cash').toString(),
+      paymentMethod: (json['paymentMethod'] ?? json['PaymentMethod'] ?? 'Cash')
+          .toString(),
       reference: (json['reference'] ?? json['Reference'])?.toString(),
       paymentDate: parseDate(json['paymentDate'] ?? json['PaymentDate']),
       notes: (json['notes'] ?? json['Notes'])?.toString(),
@@ -63,9 +63,11 @@ class ShowroomPayment {
     };
   }
 
-  String get formattedAmount =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(amount);
+  String get formattedAmount => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(amount);
 
   String get formattedDate =>
       DateFormat('dd MMM yyyy, hh:mm a').format(paymentDate.toLocal());
@@ -117,22 +119,23 @@ class ShowroomDailyBill {
     List<ShowroomPayment> parsePayments(dynamic val) {
       if (val == null || val is! List) return const [];
       return val
-          .map((item) =>
-              ShowroomPayment.fromJson(item as Map<String, dynamic>))
+          .map((item) => ShowroomPayment.fromJson(item as Map<String, dynamic>))
           .toList();
     }
 
     return ShowroomDailyBill(
       id: (json['id'] ?? json['Id'] ?? '').toString(),
       showroomId: (json['showroomId'] ?? json['ShowroomId'] ?? '').toString(),
-      showroomName:
-          (json['showroomName'] ?? json['ShowroomName'] ?? '').toString(),
+      showroomName: (json['showroomName'] ?? json['ShowroomName'] ?? '')
+          .toString(),
       date: parseDate(json['date'] ?? json['Date']),
       amount: parseDouble(json['amount'] ?? json['Amount']),
-      amountReceived:
-          parseDouble(json['amountReceived'] ?? json['AmountReceived']),
-      balanceAmount:
-          parseDouble(json['balanceAmount'] ?? json['BalanceAmount']),
+      amountReceived: parseDouble(
+        json['amountReceived'] ?? json['AmountReceived'],
+      ),
+      balanceAmount: parseDouble(
+        json['balanceAmount'] ?? json['BalanceAmount'],
+      ),
       status: (json['status'] ?? json['Status'] ?? 'Unpaid').toString(),
       notes: (json['notes'] ?? json['Notes'])?.toString(),
       payments: parsePayments(json['payments'] ?? json['Payments']),
@@ -161,28 +164,32 @@ class ShowroomDailyBill {
   }
 
   bool get isPaid =>
-      status.toLowerCase() == 'paid' ||
-      (amount > 0 && balanceAmount <= 0.001);
+      status.toLowerCase() == 'paid' || (amount > 0 && balanceAmount <= 0.001);
 
   bool get isPartiallyPaid =>
       status.toLowerCase() == 'partiallypaid' ||
       (amountReceived > 0 && balanceAmount > 0.001);
 
   bool get isUnpaid =>
-      status.toLowerCase() == 'unpaid' ||
-      (amountReceived <= 0 && amount > 0);
+      status.toLowerCase() == 'unpaid' || (amountReceived <= 0 && amount > 0);
 
-  String get formattedAmount =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(amount);
+  String get formattedAmount => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(amount);
 
-  String get formattedReceived =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(amountReceived);
+  String get formattedReceived => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(amountReceived);
 
-  String get formattedBalance =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(balanceAmount);
+  String get formattedBalance => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(balanceAmount);
 }
 
 /// Request DTO for setting/updating daily bill.
@@ -190,15 +197,10 @@ class SetShowroomDailyBillRequest {
   final double amount;
   final String? notes;
 
-  const SetShowroomDailyBillRequest({
-    required this.amount,
-    this.notes,
-  });
+  const SetShowroomDailyBillRequest({required this.amount, this.notes});
 
   Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{
-      'amount': amount,
-    };
+    final map = <String, dynamic>{'amount': amount};
     if (notes != null && notes!.trim().isNotEmpty) {
       map['notes'] = notes!.trim();
     }
@@ -286,10 +288,12 @@ class ShowroomDailyHistoryRow {
       staffCount: parseInt(json['staffCount'] ?? json['StaffCount']),
       totalVehicles: parseInt(json['totalVehicles'] ?? json['TotalVehicles']),
       billedAmount: parseDouble(json['billedAmount'] ?? json['BilledAmount']),
-      receivedAmount:
-          parseDouble(json['receivedAmount'] ?? json['ReceivedAmount']),
-      balanceAmount:
-          parseDouble(json['balanceAmount'] ?? json['BalanceAmount']),
+      receivedAmount: parseDouble(
+        json['receivedAmount'] ?? json['ReceivedAmount'],
+      ),
+      balanceAmount: parseDouble(
+        json['balanceAmount'] ?? json['BalanceAmount'],
+      ),
       status: (json['status'] ?? json['Status'] ?? 'Unpaid').toString(),
       hasBill: json['hasBill'] == true || json['HasBill'] == true,
     );
@@ -308,17 +312,23 @@ class ShowroomDailyHistoryRow {
     };
   }
 
-  String get formattedBilled =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(billedAmount);
+  String get formattedBilled => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(billedAmount);
 
-  String get formattedReceived =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(receivedAmount);
+  String get formattedReceived => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(receivedAmount);
 
-  String get formattedBalance =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(balanceAmount);
+  String get formattedBalance => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(balanceAmount);
 
   String get dateString => DateFormat('yyyy-MM-dd').format(date);
 }
@@ -362,10 +372,12 @@ class ShowroomStaffProductivity {
       staffPhone: (json['staffPhone'] ?? json['StaffPhone'] ?? '').toString(),
       staffRole: (json['staffRole'] ?? json['StaffRole'])?.toString(),
       daysAssigned: parseInt(json['daysAssigned'] ?? json['DaysAssigned']),
-      totalVehiclesAttended:
-          parseInt(json['totalVehiclesAttended'] ?? json['TotalVehiclesAttended']),
-      averageVehiclesPerDay:
-          parseDouble(json['averageVehiclesPerDay'] ?? json['AverageVehiclesPerDay']),
+      totalVehiclesAttended: parseInt(
+        json['totalVehiclesAttended'] ?? json['TotalVehiclesAttended'],
+      ),
+      averageVehiclesPerDay: parseDouble(
+        json['averageVehiclesPerDay'] ?? json['AverageVehiclesPerDay'],
+      ),
     );
   }
 
@@ -442,46 +454,60 @@ class ShowroomSummary {
     List<ShowroomDailyHistoryRow> parseHistory(dynamic val) {
       if (val == null || val is! List) return const [];
       return val
-          .map((item) =>
-              ShowroomDailyHistoryRow.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                ShowroomDailyHistoryRow.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
     }
 
     List<ShowroomStaffProductivity> parseProductivity(dynamic val) {
       if (val == null || val is! List) return const [];
       return val
-          .map((item) =>
-              ShowroomStaffProductivity.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => ShowroomStaffProductivity.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
           .toList();
     }
 
     return ShowroomSummary(
       showroomId: (json['showroomId'] ?? json['ShowroomId'] ?? '').toString(),
-      showroomName:
-          (json['showroomName'] ?? json['ShowroomName'] ?? '').toString(),
+      showroomName: (json['showroomName'] ?? json['ShowroomName'] ?? '')
+          .toString(),
       fromDate: parseDate(json['fromDate'] ?? json['FromDate']),
       toDate: parseDate(json['toDate'] ?? json['ToDate']),
-      totalDaysWithActivity:
-          parseInt(json['totalDaysWithActivity'] ?? json['TotalDaysWithActivity']),
-      totalStaffAssignments:
-          parseInt(json['totalStaffAssignments'] ?? json['TotalStaffAssignments']),
-      totalVehiclesAttended:
-          parseInt(json['totalVehiclesAttended'] ?? json['TotalVehiclesAttended']),
-      averageVehiclesPerDay:
-          parseDouble(json['averageVehiclesPerDay'] ?? json['AverageVehiclesPerDay']),
+      totalDaysWithActivity: parseInt(
+        json['totalDaysWithActivity'] ?? json['TotalDaysWithActivity'],
+      ),
+      totalStaffAssignments: parseInt(
+        json['totalStaffAssignments'] ?? json['TotalStaffAssignments'],
+      ),
+      totalVehiclesAttended: parseInt(
+        json['totalVehiclesAttended'] ?? json['TotalVehiclesAttended'],
+      ),
+      averageVehiclesPerDay: parseDouble(
+        json['averageVehiclesPerDay'] ?? json['AverageVehiclesPerDay'],
+      ),
       totalBilled: parseDouble(json['totalBilled'] ?? json['TotalBilled']),
-      totalReceived:
-          parseDouble(json['totalReceived'] ?? json['TotalReceived']),
-      outstandingAmount:
-          parseDouble(json['outstandingAmount'] ?? json['OutstandingAmount']),
+      totalReceived: parseDouble(
+        json['totalReceived'] ?? json['TotalReceived'],
+      ),
+      outstandingAmount: parseDouble(
+        json['outstandingAmount'] ?? json['OutstandingAmount'],
+      ),
       paidDaysCount: parseInt(json['paidDaysCount'] ?? json['PaidDaysCount']),
-      partiallyPaidDaysCount:
-          parseInt(json['partiallyPaidDaysCount'] ?? json['PartiallyPaidDaysCount']),
-      unpaidDaysCount:
-          parseInt(json['unpaidDaysCount'] ?? json['UnpaidDaysCount']),
+      partiallyPaidDaysCount: parseInt(
+        json['partiallyPaidDaysCount'] ?? json['PartiallyPaidDaysCount'],
+      ),
+      unpaidDaysCount: parseInt(
+        json['unpaidDaysCount'] ?? json['UnpaidDaysCount'],
+      ),
       dailyHistory: parseHistory(json['dailyHistory'] ?? json['DailyHistory']),
-      staffProductivity:
-          parseProductivity(json['staffProductivity'] ?? json['StaffProductivity']),
+      staffProductivity: parseProductivity(
+        json['staffProductivity'] ?? json['StaffProductivity'],
+      ),
     );
   }
 
@@ -506,17 +532,23 @@ class ShowroomSummary {
     };
   }
 
-  String get formattedBilled =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(totalBilled);
+  String get formattedBilled => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(totalBilled);
 
-  String get formattedReceived =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(totalReceived);
+  String get formattedReceived => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(totalReceived);
 
-  String get formattedOutstanding =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(outstandingAmount);
+  String get formattedOutstanding => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(outstandingAmount);
 }
 
 /// Global Cross-Showroom Outstanding Overview model.
@@ -558,18 +590,21 @@ class ShowroomOutstandingOverview {
 
     return ShowroomOutstandingOverview(
       showroomId: (json['showroomId'] ?? json['ShowroomId'] ?? '').toString(),
-      showroomName:
-          (json['showroomName'] ?? json['ShowroomName'] ?? '').toString(),
+      showroomName: (json['showroomName'] ?? json['ShowroomName'] ?? '')
+          .toString(),
       address: (json['address'] ?? json['Address'] ?? '').toString(),
       phone: (json['phone'] ?? json['Phone'])?.toString(),
       isActive: json['isActive'] == true || json['IsActive'] == true,
       totalBilled: parseDouble(json['totalBilled'] ?? json['TotalBilled']),
-      totalReceived:
-          parseDouble(json['totalReceived'] ?? json['TotalReceived']),
-      outstandingAmount:
-          parseDouble(json['outstandingAmount'] ?? json['OutstandingAmount']),
-      unpaidDaysCount:
-          parseInt(json['unpaidDaysCount'] ?? json['UnpaidDaysCount']),
+      totalReceived: parseDouble(
+        json['totalReceived'] ?? json['TotalReceived'],
+      ),
+      outstandingAmount: parseDouble(
+        json['outstandingAmount'] ?? json['OutstandingAmount'],
+      ),
+      unpaidDaysCount: parseInt(
+        json['unpaidDaysCount'] ?? json['UnpaidDaysCount'],
+      ),
     );
   }
 
@@ -587,15 +622,21 @@ class ShowroomOutstandingOverview {
     };
   }
 
-  String get formattedBilled =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(totalBilled);
+  String get formattedBilled => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(totalBilled);
 
-  String get formattedReceived =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(totalReceived);
+  String get formattedReceived => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(totalReceived);
 
-  String get formattedOutstanding =>
-      NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-          .format(outstandingAmount);
+  String get formattedOutstanding => NumberFormat.currency(
+    locale: 'en_IN',
+    symbol: '₹',
+    decimalDigits: 2,
+  ).format(outstandingAmount);
 }

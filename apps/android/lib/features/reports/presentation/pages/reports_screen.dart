@@ -44,7 +44,10 @@ class ReportsScreen extends ConsumerWidget {
     final canViewGst = _hasPermission(ref, 'reports.gst');
     final canViewJobCards = _hasPermission(ref, 'reports.job_cards');
     final canViewShowrooms = _hasPermission(ref, 'reports.showrooms');
-    final canViewProductivity = _hasPermission(ref, 'reports.staff_productivity');
+    final canViewProductivity = _hasPermission(
+      ref,
+      'reports.staff_productivity',
+    );
     final canViewAdvances = _hasPermission(ref, 'reports.staff_advances');
 
     if (!canViewReports) {
@@ -93,7 +96,9 @@ class ReportsScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               dashboardAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading executive metrics...'),
+                loading: () => const AppLoadingState(
+                  message: 'Loading executive metrics...',
+                ),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(reportsDashboardProvider),
@@ -109,9 +114,16 @@ class ReportsScreen extends ConsumerWidget {
                   final billedRevenue = sales.netSales;
                   final collections = paymentCollection.totalReceived;
                   final outstanding = sales.outstanding;
-                  final totalInvoices = invoiceKpis.generatedCount + invoiceKpis.partiallyPaidCount + invoiceKpis.paidCount;
-                  final avgTicket = totalInvoices > 0 ? billedRevenue / totalInvoices : 0.0;
-                  final collectionRate = billedRevenue > 0 ? (collections / billedRevenue) * 100 : 0.0;
+                  final totalInvoices =
+                      invoiceKpis.generatedCount +
+                      invoiceKpis.partiallyPaidCount +
+                      invoiceKpis.paidCount;
+                  final avgTicket = totalInvoices > 0
+                      ? billedRevenue / totalInvoices
+                      : 0.0;
+                  final collectionRate = billedRevenue > 0
+                      ? (collections / billedRevenue) * 100
+                      : 0.0;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,16 +144,21 @@ class ReportsScreen extends ConsumerWidget {
                             subtitle: '$totalInvoices finalized invoices',
                             icon: Icons.receipt_long,
                             accentColor: AppColors.primary,
-                            onTap: canViewSales ? () => context.go('/reports/sales') : null,
+                            onTap: canViewSales
+                                ? () => context.go('/reports/sales')
+                                : null,
                           ),
                           // Collections Received
                           ReportKpiCard(
                             title: 'Collections',
                             amountValue: collections,
-                            subtitle: '${collectionRate.toStringAsFixed(1)}% collection rate',
+                            subtitle:
+                                '${collectionRate.toStringAsFixed(1)}% collection rate',
                             icon: Icons.trending_up,
                             accentColor: AppColors.success,
-                            onTap: canViewPayments ? () => context.go('/reports/payments') : null,
+                            onTap: canViewPayments
+                                ? () => context.go('/reports/payments')
+                                : null,
                           ),
                           // Outstanding Balance
                           ReportKpiCard(
@@ -150,16 +167,22 @@ class ReportsScreen extends ConsumerWidget {
                             subtitle: 'Pending receivables',
                             icon: Icons.trending_down,
                             accentColor: AppColors.warning,
-                            onTap: canViewInvoices ? () => context.go('/reports/outstanding') : null,
+                            onTap: canViewInvoices
+                                ? () => context.go('/reports/outstanding')
+                                : null,
                           ),
                           // Operations & Job Cards
                           ReportKpiCard(
                             title: 'Job Cards',
-                            stringValue: '${jobKpis.completedJobCards} / ${jobKpis.totalJobCards}',
-                            subtitle: 'Avg Ticket: ${_formatCurrency(avgTicket)}',
+                            stringValue:
+                                '${jobKpis.completedJobCards} / ${jobKpis.totalJobCards}',
+                            subtitle:
+                                'Avg Ticket: ${_formatCurrency(avgTicket)}',
                             icon: Icons.directions_car,
                             accentColor: const Color(0xFF0284C7), // Sky Blue
-                            onTap: canViewJobCards ? () => context.go('/reports/job-cards') : null,
+                            onTap: canViewJobCards
+                                ? () => context.go('/reports/job-cards')
+                                : null,
                           ),
                         ],
                       ),
@@ -167,10 +190,15 @@ class ReportsScreen extends ConsumerWidget {
 
                       // 3. Secondary Metrics Banner
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.card,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusMD,
+                          ),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -178,21 +206,36 @@ class ReportsScreen extends ConsumerWidget {
                           children: [
                             _buildMiniMetric(
                               label: 'Staff Advances',
-                              value: _formatCurrency(advances.outstandingAmount),
+                              value: _formatCurrency(
+                                advances.outstandingAmount,
+                              ),
                               color: AppColors.warning,
-                              onTap: canViewAdvances ? () => context.go('/reports/staff-advances') : null,
+                              onTap: canViewAdvances
+                                  ? () => context.go('/reports/staff-advances')
+                                  : null,
                             ),
-                            Container(width: 1, height: 28, color: AppColors.border),
+                            Container(
+                              width: 1,
+                              height: 28,
+                              color: AppColors.border,
+                            ),
                             _buildMiniMetric(
                               label: 'Showroom Billed',
                               value: _formatCurrency(showroom.totalBilled),
                               color: AppColors.primary,
-                              onTap: canViewShowrooms ? () => context.go('/reports/showrooms') : null,
+                              onTap: canViewShowrooms
+                                  ? () => context.go('/reports/showrooms')
+                                  : null,
                             ),
-                            Container(width: 1, height: 28, color: AppColors.border),
+                            Container(
+                              width: 1,
+                              height: 28,
+                              color: AppColors.border,
+                            ),
                             _buildMiniMetric(
                               label: 'Vehicles Serviced',
-                              value: '${dashboard.vehicleActivity.vehiclesServiced}',
+                              value:
+                                  '${dashboard.vehicleActivity.vehiclesServiced}',
                               color: AppColors.success,
                             ),
                           ],
@@ -207,9 +250,7 @@ class ReportsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      JobStatusChart(
-                        jobCardKpis: jobKpis,
-                      ),
+                      JobStatusChart(jobCardKpis: jobKpis),
                       const SizedBox(height: 20),
 
                       // 5. Detailed Sub-Reports Section
@@ -278,23 +319,23 @@ class ReportsScreen extends ConsumerWidget {
                               title: 'Productivity',
                               subtitle: 'Staff vehicle attendance',
                               icon: Icons.people_outline,
-                              onTap: () => context.go('/reports/staff-productivity'),
+                              onTap: () =>
+                                  context.go('/reports/staff-productivity'),
                             ),
                           if (canViewAdvances)
                             _buildReportTile(
                               title: 'Staff Advances',
                               subtitle: 'Recovery & settlements',
                               icon: Icons.account_balance_wallet_outlined,
-                              onTap: () => context.go('/reports/staff-advances'),
+                              onTap: () =>
+                                  context.go('/reports/staff-advances'),
                             ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
                       // 6. Recent Operational Activity Feed
-                      RecentActivityCard(
-                        activities: dashboard.recentActivity,
-                      ),
+                      RecentActivityCard(activities: dashboard.recentActivity),
                     ],
                   );
                 },
@@ -393,7 +434,11 @@ class ReportsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, size: 16, color: AppColors.textTertiary),
+            const Icon(
+              Icons.chevron_right,
+              size: 16,
+              color: AppColors.textTertiary,
+            ),
           ],
         ),
       ),

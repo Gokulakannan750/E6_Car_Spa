@@ -7,10 +7,7 @@ import '../../models/report_dashboard_model.dart';
 class RecentActivityCard extends StatelessWidget {
   final List<RecentActivityItemModel> activities;
 
-  const RecentActivityCard({
-    super.key,
-    required this.activities,
-  });
+  const RecentActivityCard({super.key, required this.activities});
 
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
@@ -62,7 +59,11 @@ class RecentActivityCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   'No recent activity recorded.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             )
@@ -71,7 +72,8 @@ class RecentActivityCard extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: activities.length > 5 ? 5 : activities.length,
-              separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 16),
+              separatorBuilder: (context, index) =>
+                  const Divider(color: AppColors.border, height: 16),
               itemBuilder: (context, index) {
                 final item = activities[index];
                 final dateFormat = DateFormat('dd MMM, hh:mm a');
@@ -83,7 +85,9 @@ class RecentActivityCard extends StatelessWidget {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: _getActivityColor(item.activityType).withValues(alpha: 0.1),
+                        color: _getActivityColor(
+                          item.activityType,
+                        ).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppTheme.radiusSM),
                       ),
                       child: Icon(

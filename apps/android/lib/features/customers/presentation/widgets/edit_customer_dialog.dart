@@ -13,11 +13,7 @@ class EditCustomerDialog extends ConsumerStatefulWidget {
   final Customer customer;
   final ValueChanged<Customer>? onUpdated;
 
-  const EditCustomerDialog({
-    super.key,
-    required this.customer,
-    this.onUpdated,
-  });
+  const EditCustomerDialog({super.key, required this.customer, this.onUpdated});
 
   static Future<Customer?> show(
     BuildContext context, {
@@ -28,10 +24,8 @@ class EditCustomerDialog extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EditCustomerDialog(
-        customer: customer,
-        onUpdated: onUpdated,
-      ),
+      builder: (context) =>
+          EditCustomerDialog(customer: customer, onUpdated: onUpdated),
     );
   }
 
@@ -55,7 +49,9 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
     _nameController = TextEditingController(text: widget.customer.name);
     _phoneController = TextEditingController(text: widget.customer.phoneNumber);
     _emailController = TextEditingController(text: widget.customer.email ?? '');
-    _addressController = TextEditingController(text: widget.customer.address ?? '');
+    _addressController = TextEditingController(
+      text: widget.customer.address ?? '',
+    );
   }
 
   @override
@@ -115,8 +111,13 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          final msg = e.toString().replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
-          _errorMessage = msg.isNotEmpty ? msg : 'Unable to update customer details.';
+          final msg = e
+              .toString()
+              .replaceAll('ApiException: ', '')
+              .replaceAll('Exception: ', '');
+          _errorMessage = msg.isNotEmpty
+              ? msg
+              : 'Unable to update customer details.';
         });
       }
     }
@@ -164,11 +165,17 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                         decoration: BoxDecoration(
                           color: AppColors.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.error_outline, size: 18, color: AppColors.error),
+                            const Icon(
+                              Icons.error_outline,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -194,7 +201,8 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       isRequired: true,
                       prefixIcon: const Icon(Icons.person_outline, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                      onFieldSubmitted: (_) =>
+                          FocusScope.of(context).nextFocus(),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {
                           return 'Customer name is required.';
@@ -214,7 +222,8 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       maxLength: 10,
                       prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                      onFieldSubmitted: (_) =>
+                          FocusScope.of(context).nextFocus(),
                       inputFormatters: [
                         FilteringTextInputFormatter.digitsOnly,
                         LengthLimitingTextInputFormatter(10),
@@ -239,7 +248,8 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: const Icon(Icons.email_outlined, size: 20),
                       textInputAction: TextInputAction.next,
-                      onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                      onFieldSubmitted: (_) =>
+                          FocusScope.of(context).nextFocus(),
                     ),
                     const SizedBox(height: 14),
 
@@ -248,7 +258,10 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       controller: _addressController,
                       label: 'Address / City',
                       hintText: 'e.g. 12 Anna Salai, Chennai (Optional)',
-                      prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        size: 20,
+                      ),
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _handleSubmit(),
                     ),
@@ -259,7 +272,9 @@ class _EditCustomerDialogState extends ConsumerState<EditCustomerDialog> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: const BorderSide(color: AppColors.border),

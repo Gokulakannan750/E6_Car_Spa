@@ -40,8 +40,11 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
 
   String _formatCurrency(double? amt) {
     if (amt == null) return '-';
-    return NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2)
-        .format(amt);
+    return NumberFormat.currency(
+      locale: 'en_IN',
+      symbol: '₹',
+      decimalDigits: 2,
+    ).format(amt);
   }
 
   // ── Dialogs ─────────────────────────────────────────────────────────────
@@ -99,6 +102,192 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
     }
   }
 
+  Future<void> _showEditCostDialog(OutsideJob job) async {
+    if (widget.isLocked) return;
+    final costCtrl = TextEditingController(
+      text: job.vendorCost != null ? job.vendorCost!.toStringAsFixed(2) : '',
+    );
+    String? errorText;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'Edit Vendor Cost',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Service: ${job.serviceName}',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text('Vendor: ${job.vendorName}', style: AppTextStyles.caption),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('input_edit_vendor_cost'),
+                controller: costCtrl,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Vendor Cost (₹) *',
+                  errorText: errorText,
+                  prefixText: '₹ ',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('btn_save_vendor_cost'),
+              onPressed: () async {
+                final costVal = double.tryParse(costCtrl.text.trim());
+                if (costVal == null || costVal < 0) {
+                  setDialogState(() {
+                    errorText = 'Enter a valid non-negative cost.';
+                  });
+                  return;
+                }
+                final success = await ref
+                    .read(outsideJobsProvider(widget.jobCardId).notifier)
+                    .updateCost(job.id, costVal);
+                if (success && ctx.mounted) {
+                  Navigator.of(ctx).pop(true);
+                } else if (ctx.mounted) {
+                  final st = ref.read(outsideJobsProvider(widget.jobCardId));
+                  setDialogState(() {
+                    errorText = st.submitError ?? 'Failed to update cost.';
+                  });
+                }
+              },
+              child: const Text('Save Cost'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vendor cost updated successfully.'),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      ref.read(outsideJobsProvider(widget.jobCardId).notifier).load();
+      ref.read(jobCardDetailsProvider(widget.jobCardId).notifier).loadDetails();
+    }
+  }
+
+  Future<void> _showDeleteMovementDialog(OutsideJob job) async {
+    if (widget.isLocked) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Remove Movement',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to remove the outside job movement record for "${job.serviceName}" at ${job.vendorName}?',
+              style: AppTextStyles.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This movement will be marked obsolete and excluded from invoice calculations and history.',
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('btn_confirm_delete_movement'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Confirm Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final success = await ref
+          .read(outsideJobsProvider(widget.jobCardId).notifier)
+          .deleteJob(job.id);
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Movement record removed.'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        ref.read(outsideJobsProvider(widget.jobCardId).notifier).load();
+        ref
+            .read(jobCardDetailsProvider(widget.jobCardId).notifier)
+            .loadDetails();
+        ref.read(jobCardListProvider.notifier).loadJobCards();
+      } else {
+        final st = ref.read(outsideJobsProvider(widget.jobCardId));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              st.submitError ?? 'Failed to remove movement record.',
+            ),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   // ── Build ───────────────────────────────────────────────────────────────
 
   @override
@@ -135,8 +324,11 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                       color: AppColors.primaryContainer,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.local_shipping_rounded,
-                        color: AppColors.textOnPrimary, size: 18),
+                    child: const Icon(
+                      Icons.local_shipping_rounded,
+                      color: AppColors.textOnPrimary,
+                      size: 18,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -173,8 +365,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
           ),
 
           // ── Expanded Content ───────────────────────────────────────
-          if (_isExpanded)
-            _buildBody(state),
+          if (_isExpanded) _buildBody(state),
         ],
       ),
     );
@@ -194,9 +385,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: isOverdue
-              ? AppColors.errorLight
-              : AppColors.warningLight,
+          color: isOverdue ? AppColors.errorLight : AppColors.warningLight,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(
             color: isOverdue
@@ -265,9 +454,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
     if (state.isLoading) {
       return const Padding(
         padding: EdgeInsets.all(24),
-        child: Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
@@ -282,8 +469,9 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () =>
-                  ref.read(outsideJobsProvider(widget.jobCardId).notifier).load(),
+              onPressed: () => ref
+                  .read(outsideJobsProvider(widget.jobCardId).notifier)
+                  .load(),
               child: const Text('Retry'),
             ),
           ],
@@ -303,19 +491,38 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
           if (state.activeJob == null)
             Padding(
               padding: EdgeInsets.only(
-                  bottom: state.historicalJobs.isNotEmpty ? 16 : 0),
+                bottom: state.historicalJobs.isNotEmpty ? 16 : 0,
+              ),
               child: OutlinedButton.icon(
                 key: const Key('btn_send_outside'),
                 onPressed: widget.isLocked ? null : _showSendOutsideSheet,
-                icon: Icon(widget.isLocked ? Icons.lock_outline_rounded : Icons.add_rounded, size: 18),
-                label: Text(widget.isLocked ? 'Send Vehicle Outside (Locked)' : 'Send Vehicle Outside'),
+                icon: Icon(
+                  widget.isLocked
+                      ? Icons.lock_outline_rounded
+                      : Icons.add_rounded,
+                  size: 18,
+                ),
+                label: Text(
+                  widget.isLocked
+                      ? 'Send Vehicle Outside (Locked)'
+                      : 'Send Vehicle Outside',
+                ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: widget.isLocked ? AppColors.textSecondary : AppColors.primary,
-                  side: BorderSide(color: widget.isLocked ? AppColors.border : AppColors.primary),
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  foregroundColor: widget.isLocked
+                      ? AppColors.textSecondary
+                      : AppColors.primary,
+                  side: BorderSide(
+                    color: widget.isLocked
+                        ? AppColors.border
+                        : AppColors.primary,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 20,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),
@@ -337,13 +544,17 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
                 children: [
-                  Icon(Icons.local_shipping_outlined,
-                      size: 36, color: AppColors.textTertiary),
+                  Icon(
+                    Icons.local_shipping_outlined,
+                    size: 36,
+                    color: AppColors.textTertiary,
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     'No external jobs recorded',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(fontWeight: FontWeight.w600),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -366,9 +577,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isOverdue
-            ? AppColors.errorLight
-            : AppColors.warningLight,
+        color: isOverdue ? AppColors.errorLight : AppColors.warningLight,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isOverdue
@@ -422,20 +631,27 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
           // Vendor
           Row(
             children: [
-              const Icon(Icons.store_outlined, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.store_outlined,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Vendor: ${job.vendorName}',
-                style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               if (job.vendorPhone != null && job.vendorPhone!.isNotEmpty) ...[
                 const SizedBox(width: 8),
-                Icon(Icons.phone_outlined, size: 12, color: AppColors.textTertiary),
-                const SizedBox(width: 3),
-                Text(
-                  job.vendorPhone!,
-                  style: AppTextStyles.caption,
+                Icon(
+                  Icons.phone_outlined,
+                  size: 12,
+                  color: AppColors.textTertiary,
                 ),
+                const SizedBox(width: 3),
+                Text(job.vendorPhone!, style: AppTextStyles.caption),
               ],
             ],
           ),
@@ -461,10 +677,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
 
           if (job.notes != null && job.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              'Notes: ${job.notes}',
-              style: AppTextStyles.caption,
-            ),
+            Text('Notes: ${job.notes}', style: AppTextStyles.caption),
           ],
 
           const SizedBox(height: 12),
@@ -475,15 +688,22 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                 child: FilledButton.icon(
                   key: const Key('btn_mark_returned'),
                   onPressed: () => _showReturnSheet(job),
-                  icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                  icon: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 16,
+                  ),
                   label: const Text('Mark Returned'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -493,15 +713,35 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                 onPressed: () => _showCancelDialog(job),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.error,
-                  side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  side: BorderSide(
+                    color: AppColors.error.withValues(alpha: 0.4),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 16,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: const Text('Cancel',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
               ),
+              if (!widget.isLocked) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  key: Key('btn_delete_active_${job.id}'),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 18,
+                    color: AppColors.error,
+                  ),
+                  tooltip: 'Remove Movement',
+                  onPressed: () => _showDeleteMovementDialog(job),
+                ),
+              ],
             ],
           ),
         ],
@@ -546,26 +786,27 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
               Expanded(
                 child: Text(
                   job.serviceName,
-                  style: AppTextStyles.bodySmall
-                      .copyWith(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isReturned
                       ? AppColors.successLight
                       : (isCancelled
-                          ? AppColors.surfaceAlt
-                          : AppColors.warningLight),
+                            ? AppColors.surfaceAlt
+                            : AppColors.warningLight),
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
                     color: isReturned
                         ? AppColors.success.withValues(alpha: 0.4)
                         : (isCancelled
-                            ? AppColors.border
-                            : AppColors.warning.withValues(alpha: 0.4)),
+                              ? AppColors.border
+                              : AppColors.warning.withValues(alpha: 0.4)),
                   ),
                 ),
                 child: Row(
@@ -575,14 +816,14 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                       isReturned
                           ? Icons.check_circle_rounded
                           : (isCancelled
-                              ? Icons.cancel_rounded
-                              : Icons.local_shipping_rounded),
+                                ? Icons.cancel_rounded
+                                : Icons.local_shipping_rounded),
                       size: 12,
                       color: isReturned
                           ? AppColors.success
                           : (isCancelled
-                              ? AppColors.textSecondary
-                              : AppColors.warning),
+                                ? AppColors.textSecondary
+                                : AppColors.warning),
                     ),
                     const SizedBox(width: 3),
                     Text(
@@ -595,8 +836,8 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                         color: isReturned
                             ? AppColors.successDark
                             : (isCancelled
-                                ? AppColors.textSecondary
-                                : AppColors.warningDark),
+                                  ? AppColors.textSecondary
+                                  : AppColors.warningDark),
                       ),
                     ),
                   ],
@@ -624,8 +865,62 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
           if (job.cancellationReason != null &&
               job.cancellationReason!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Reason: ${job.cancellationReason}',
-                style: AppTextStyles.caption.copyWith(color: AppColors.error)),
+            Text(
+              'Reason: ${job.cancellationReason}',
+              style: AppTextStyles.caption.copyWith(color: AppColors.error),
+            ),
+          ],
+          if (!widget.isLocked) ...[
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (!isCancelled)
+                  TextButton.icon(
+                    key: Key('btn_edit_cost_${job.id}'),
+                    onPressed: () => _showEditCostDialog(job),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
+                    label: const Text(
+                      'Edit Cost',
+                      style: TextStyle(fontSize: 12, color: AppColors.primary),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  key: Key('btn_delete_movement_${job.id}'),
+                  onPressed: () => _showDeleteMovementDialog(job),
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 14,
+                    color: AppColors.error,
+                  ),
+                  label: const Text(
+                    'Remove',
+                    style: TextStyle(fontSize: 12, color: AppColors.error),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
           ],
         ],
       ),
@@ -638,8 +933,9 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
         style: AppTextStyles.caption,
         children: [
           TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w500)),
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
           TextSpan(text: value),
         ],
       ),
@@ -683,6 +979,7 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
   final _newVendorNameCtrl = TextEditingController();
   final _newVendorPhoneCtrl = TextEditingController();
   final _newVendorSpecialtyCtrl = TextEditingController();
+  String? _newVendorPhoneError;
 
   @override
   void initState() {
@@ -716,19 +1013,38 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
     );
     if (time == null || !mounted) return;
     setState(() {
-      _sentAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _sentAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
     });
   }
 
   Future<void> _handleCreateVendor() async {
-    if (_newVendorNameCtrl.text.trim().isEmpty) return;
+    final name = _newVendorNameCtrl.text.trim();
+    if (name.isEmpty) return;
 
-    final vendor = await ref.read(vendorsProvider.notifier).createVendor(
+    final phone = _newVendorPhoneCtrl.text.trim();
+    if (phone.isNotEmpty && !RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
+      setState(() {
+        _newVendorPhoneError = 'Phone number must be exactly 10 digits.';
+      });
+      return;
+    } else {
+      setState(() {
+        _newVendorPhoneError = null;
+      });
+    }
+
+    final vendor = await ref
+        .read(vendorsProvider.notifier)
+        .createVendor(
           CreateVendorRequest(
-            name: _newVendorNameCtrl.text.trim(),
-            phone: _newVendorPhoneCtrl.text.trim().isEmpty
-                ? null
-                : _newVendorPhoneCtrl.text.trim(),
+            name: name,
+            phone: phone.isEmpty ? null : phone,
             serviceSpecialty: _newVendorSpecialtyCtrl.text.trim().isEmpty
                 ? null
                 : _newVendorSpecialtyCtrl.text.trim(),
@@ -741,6 +1057,7 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
         _showNewVendorForm = false;
         _newVendorNameCtrl.clear();
         _newVendorPhoneCtrl.clear();
+        _newVendorPhoneError = null;
         _newVendorSpecialtyCtrl.clear();
       });
     }
@@ -752,7 +1069,8 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
       setState(() => _error = 'Please select a vendor.');
       return;
     }
-    if (_sentByType == 'Staff' && (_selectedStaffId == null || _selectedStaffId!.isEmpty)) {
+    if (_sentByType == 'Staff' &&
+        (_selectedStaffId == null || _selectedStaffId!.isEmpty)) {
       setState(() => _error = 'Please select a staff member.');
       return;
     }
@@ -763,22 +1081,27 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
     });
 
     final staffList = ref.read(staffProvider).activeStaff;
-    final selectedStaff = staffList.where((s) => s.id == _selectedStaffId).firstOrNull;
+    final selectedStaff = staffList
+        .where((s) => s.id == _selectedStaffId)
+        .firstOrNull;
 
-    final success =
-        await ref.read(outsideJobsProvider(widget.jobCardId).notifier).sendOutside(
-              CreateOutsideJobRequest(
-                vendorId: _selectedVendorId!,
-                serviceName: _serviceNameCtrl.text.trim(),
-                sentAt: _sentAt,
-                sentByType: _sentByType,
-                sentByStaffId: _sentByType == 'Staff' ? _selectedStaffId : null,
-                sentByStaffName: _sentByType == 'Staff' ? selectedStaff?.name : null,
-                notes: _notesCtrl.text.trim().isEmpty
-                    ? null
-                    : _notesCtrl.text.trim(),
-              ),
-            );
+    final success = await ref
+        .read(outsideJobsProvider(widget.jobCardId).notifier)
+        .sendOutside(
+          CreateOutsideJobRequest(
+            vendorId: _selectedVendorId!,
+            serviceName: _serviceNameCtrl.text.trim(),
+            sentAt: _sentAt,
+            sentByType: _sentByType,
+            sentByStaffId: _sentByType == 'Staff' ? _selectedStaffId : null,
+            sentByStaffName: _sentByType == 'Staff'
+                ? selectedStaff?.name
+                : null,
+            notes: _notesCtrl.text.trim().isEmpty
+                ? null
+                : _notesCtrl.text.trim(),
+          ),
+        );
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -787,7 +1110,9 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
       Navigator.of(context).pop(true);
     } else {
       final state = ref.read(outsideJobsProvider(widget.jobCardId));
-      setState(() => _error = state.submitError ?? 'Failed to send vehicle outside.');
+      setState(
+        () => _error = state.submitError ?? 'Failed to send vehicle outside.',
+      );
     }
   }
 
@@ -837,15 +1162,20 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 // Title
                 Row(
                   children: [
-                    const Icon(Icons.local_shipping_rounded,
-                        size: 22, color: AppColors.primary),
+                    const Icon(
+                      Icons.local_shipping_rounded,
+                      size: 22,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Send Vehicle Outside',
-                              style: AppTextStyles.headingMedium),
+                          Text(
+                            'Send Vehicle Outside',
+                            style: AppTextStyles.headingMedium,
+                          ),
                           Text(
                             '${widget.vehicleRegistration} • ${widget.vehicleModel}',
                             style: AppTextStyles.caption,
@@ -870,37 +1200,51 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                       color: AppColors.errorLight,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                          color: AppColors.error.withValues(alpha: 0.3)),
+                        color: AppColors.error.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline_rounded,
-                            size: 16, color: AppColors.error),
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 16,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(_error!,
-                              style: AppTextStyles.caption
-                                  .copyWith(color: AppColors.error)),
+                          child: Text(
+                            _error!,
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.error,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
 
                 // 1. Outside Service *
-                Text('Outside Service *',
-                    style: AppTextStyles.labelMedium
-                        .copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Outside Service *',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _serviceNameCtrl,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Outside service is required' : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Outside service is required'
+                      : null,
                   decoration: InputDecoration(
                     hintText: 'e.g. Denting & Painting, Wheel Alignment',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -909,18 +1253,25 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Outside Shop / Vendor *',
-                        style: AppTextStyles.labelMedium
-                            .copyWith(fontWeight: FontWeight.w600)),
+                    Text(
+                      'Outside Shop / Vendor *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     TextButton.icon(
-                      onPressed: () =>
-                          setState(() => _showNewVendorForm = !_showNewVendorForm),
+                      key: const Key('btn_toggle_new_vendor'),
+                      onPressed: () => setState(
+                        () => _showNewVendorForm = !_showNewVendorForm,
+                      ),
                       icon: Icon(
                         _showNewVendorForm ? Icons.close : Icons.add,
                         size: 14,
                       ),
-                      label: Text(_showNewVendorForm ? 'Cancel' : 'New Vendor',
-                          style: const TextStyle(fontSize: 12)),
+                      label: Text(
+                        _showNewVendorForm ? 'Cancel' : 'New Vendor',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
                 ),
@@ -938,13 +1289,17 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         TextFormField(
+                          key: const Key('input_new_vendor_name'),
                           controller: _newVendorNameCtrl,
                           decoration: InputDecoration(
                             labelText: 'Vendor Name *',
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -952,31 +1307,41 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                           children: [
                             Expanded(
                               child: TextFormField(
+                                key: const Key('input_new_vendor_phone'),
                                 controller: _newVendorPhoneCtrl,
                                 keyboardType: TextInputType.phone,
                                 decoration: InputDecoration(
                                   labelText: 'Phone',
+                                  errorText: _newVendorPhoneError,
                                   border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(8)),
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 10),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
                                 ),
+                                onChanged: (_) {
+                                  if (_newVendorPhoneError != null) {
+                                    setState(() => _newVendorPhoneError = null);
+                                  }
+                                },
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextFormField(
+                                key: const Key('input_new_vendor_specialty'),
                                 controller: _newVendorSpecialtyCtrl,
                                 decoration: InputDecoration(
                                   labelText: 'Specialty',
                                   border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(8)),
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 10),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
                                 ),
                               ),
                             ),
@@ -984,22 +1349,28 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                         ),
                         const SizedBox(height: 8),
                         FilledButton(
+                          key: const Key('btn_create_vendor'),
                           onPressed: vendorsState.isSubmitting
                               ? null
                               : _handleCreateVendor,
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.primary,
                           ),
-                          child: Text(vendorsState.isSubmitting
-                              ? 'Creating…'
-                              : 'Create Vendor'),
+                          child: Text(
+                            vendorsState.isSubmitting
+                                ? 'Creating…'
+                                : 'Create Vendor',
+                          ),
                         ),
                         if (vendorsState.submitError != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(vendorsState.submitError!,
-                                style: AppTextStyles.caption
-                                    .copyWith(color: AppColors.error)),
+                            child: Text(
+                              vendorsState.submitError!,
+                              style: AppTextStyles.caption.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -1008,15 +1379,23 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 ],
 
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedVendorId,
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Please select a vendor' : null,
+                  key: ValueKey('vendor_select_$_selectedVendorId'),
+                  initialValue:
+                      vendorsState.vendors.any((v) => v.id == _selectedVendorId)
+                      ? _selectedVendorId
+                      : null,
+                  validator: (v) => (v == null || v.isEmpty)
+                      ? 'Please select a vendor'
+                      : null,
                   decoration: InputDecoration(
                     hintText: 'Select Vendor',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                   items: vendorsState.vendors.map((v) {
                     return DropdownMenuItem(
@@ -1032,9 +1411,12 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 const SizedBox(height: 16),
 
                 // 3. Sent Date & Time *
-                Text('Sent Date & Time *',
-                    style: AppTextStyles.labelMedium
-                        .copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Sent Date & Time *',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 InkWell(
                   onTap: _pickSentAt,
@@ -1042,12 +1424,16 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                   child: InputDecorator(
                     decoration: InputDecoration(
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       suffixIcon: const Icon(
-                          Icons.calendar_today_rounded,
-                          size: 16),
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                      ),
                     ),
                     child: Text(
                       dateFormat.format(_sentAt),
@@ -1058,17 +1444,23 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 const SizedBox(height: 16),
 
                 // 4. Sent By *
-                Text('Sent By *',
-                    style: AppTextStyles.labelMedium
-                        .copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Sent By *',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
                   initialValue: _sentByType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                   items: const [
                     DropdownMenuItem(
@@ -1093,9 +1485,12 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 ),
                 if (_sentByType == 'Staff') ...[
                   const SizedBox(height: 12),
-                  Text('Staff Member *',
-                      style: AppTextStyles.labelMedium
-                          .copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    'Staff Member *',
+                    style: AppTextStyles.labelMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     initialValue: _selectedStaffId,
@@ -1107,12 +1502,17 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                     },
                     decoration: InputDecoration(
                       hintText: activeStaff.isEmpty
-                          ? (staffState.isLoading ? 'Loading staff…' : 'No active staff available')
+                          ? (staffState.isLoading
+                                ? 'Loading staff…'
+                                : 'No active staff available')
                           : 'Select Staff Member',
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                     ),
                     items: activeStaff.map((s) {
                       return DropdownMenuItem(
@@ -1129,19 +1529,26 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 const SizedBox(height: 16),
 
                 // 5. Notes
-                Text('Notes',
-                    style: AppTextStyles.labelMedium
-                        .copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Notes',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _notesCtrl,
                   maxLines: 2,
                   decoration: InputDecoration(
-                    hintText: 'e.g. Specific work requested, customer instructions, etc.',
+                    hintText:
+                        'e.g. Specific work requested, customer instructions, etc.',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1155,15 +1562,18 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           side: const BorderSide(color: AppColors.border),
                         ),
-                        child: const Text('Cancel',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            )),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1180,17 +1590,20 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                                 ),
                               )
                             : const Icon(Icons.send_rounded, size: 16),
-                        label: Text(_isSubmitting
-                            ? 'Sending…'
-                            : 'Send Outside'),
+                        label: Text(
+                          _isSubmitting ? 'Sending…' : 'Send Outside',
+                        ),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           textStyle: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -1213,10 +1626,7 @@ class _MarkReturnedSheet extends ConsumerStatefulWidget {
   final OutsideJob outsideJob;
   final String jobCardId;
 
-  const _MarkReturnedSheet({
-    required this.outsideJob,
-    required this.jobCardId,
-  });
+  const _MarkReturnedSheet({required this.outsideJob, required this.jobCardId});
 
   @override
   ConsumerState<_MarkReturnedSheet> createState() => _MarkReturnedSheetState();
@@ -1258,8 +1668,13 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
     );
     if (time == null || !mounted) return;
     setState(() {
-      _returnedAt =
-          DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _returnedAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
     });
   }
 
@@ -1291,8 +1706,7 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
       Navigator.of(context).pop(true);
     } else {
       final state = ref.read(outsideJobsProvider(widget.jobCardId));
-      setState(
-          () => _error = state.submitError ?? 'Failed to mark returned.');
+      setState(() => _error = state.submitError ?? 'Failed to mark returned.');
     }
   }
 
@@ -1330,15 +1744,20 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
 
             Row(
               children: [
-                const Icon(Icons.check_circle_outline_rounded,
-                    size: 22, color: AppColors.success),
+                const Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 22,
+                  color: AppColors.success,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mark Vehicle Returned',
-                          style: AppTextStyles.headingMedium),
+                      Text(
+                        'Mark Vehicle Returned',
+                        style: AppTextStyles.headingMedium,
+                      ),
                       Text(
                         '${widget.outsideJob.serviceName} • ${widget.outsideJob.vendorName}',
                         style: AppTextStyles.caption,
@@ -1362,15 +1781,19 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
                   color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(_error!,
-                    style:
-                        AppTextStyles.caption.copyWith(color: AppColors.error)),
+                child: Text(
+                  _error!,
+                  style: AppTextStyles.caption.copyWith(color: AppColors.error),
+                ),
               ),
 
             // Return date
-            Text('Returned Date & Time *',
-                style: AppTextStyles.labelMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Returned Date & Time *',
+              style: AppTextStyles.labelMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             InkWell(
               onTap: _pickReturnedAt,
@@ -1378,11 +1801,16 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
               child: InputDecorator(
                 decoration: InputDecoration(
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  suffixIcon:
-                      const Icon(Icons.calendar_today_rounded, size: 16),
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  suffixIcon: const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                  ),
                 ),
                 child: Text(
                   dateFormat.format(_returnedAt),
@@ -1393,28 +1821,38 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
             const SizedBox(height: 16),
 
             // Final Cost
-            Text('Final Vendor Cost (₹)',
-                style: AppTextStyles.labelMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Final Vendor Cost (₹)',
+              style: AppTextStyles.labelMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _finalCostCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: InputDecoration(
                 hintText: 'Final bill from vendor',
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
             ),
             const SizedBox(height: 16),
 
             // Notes
-            Text('Inspection / Return Notes',
-                style: AppTextStyles.labelMedium
-                    .copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Inspection / Return Notes',
+              style: AppTextStyles.labelMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             TextFormField(
               controller: _returnNotesCtrl,
@@ -1422,9 +1860,12 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
               decoration: InputDecoration(
                 hintText: 'e.g. Work inspected, quality ok',
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 12),
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -1436,19 +1877,25 @@ class _MarkReturnedSheetState extends ConsumerState<_MarkReturnedSheet> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.check_circle_rounded, size: 18),
               label: Text(
-                  _isSubmitting ? 'Recording…' : 'Confirm Vehicle Returned'),
+                _isSubmitting ? 'Recording…' : 'Confirm Vehicle Returned',
+              ),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                textStyle:
-                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -1522,13 +1969,19 @@ class _CancelOutsideJobDialogState
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: AppColors.error, size: 22),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.error,
+            size: 22,
+          ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('Cancel Outside Job',
-                style: AppTextStyles.headingMedium
-                    .copyWith(color: AppColors.error)),
+            child: Text(
+              'Cancel Outside Job',
+              style: AppTextStyles.headingMedium.copyWith(
+                color: AppColors.error,
+              ),
+            ),
           ),
         ],
       ),
@@ -1544,19 +1997,23 @@ class _CancelOutsideJobDialogState
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_error!,
-                  style:
-                      AppTextStyles.caption.copyWith(color: AppColors.error)),
+              child: Text(
+                _error!,
+                style: AppTextStyles.caption.copyWith(color: AppColors.error),
+              ),
             ),
           TextFormField(
             controller: _reasonCtrl,
             maxLines: 2,
             decoration: InputDecoration(
               labelText: 'Cancellation Reason *',
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
             ),
           ),
         ],

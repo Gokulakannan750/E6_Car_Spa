@@ -91,7 +91,8 @@ class _MockServiceRepository implements ServiceRepository {
   }
 }
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
   @override
   Future<bool> login(String username, String password) async => true;
@@ -146,68 +147,84 @@ void main() {
     return ProviderScope(
       overrides: [
         serviceRepositoryProvider.overrideWithValue(repository),
-        serviceCategoriesProvider.overrideWith((ref) async => repository.getCategories()),
-        authNotifierProvider.overrideWith((ref) => _TestAuthNotifier(const Authenticated(adminUser))),
+        serviceCategoriesProvider.overrideWith(
+          (ref) async => repository.getCategories(),
+        ),
+        authNotifierProvider.overrideWith(
+          (ref) => _TestAuthNotifier(const Authenticated(adminUser)),
+        ),
       ],
-      child: MaterialApp(
-        home: Scaffold(body: child),
-      ),
+      child: MaterialApp(home: Scaffold(body: child)),
     );
   }
 
   group('Service Duration Removal & Compatibility Tests', () {
-    testWidgets('1. Add Service does not show Estimated Duration field or label', (tester) async {
+    testWidgets(
+      '1. Add Service does not show Estimated Duration field or label',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final repo = _MockServiceRepository()
+          ..categoriesToReturn = ['Exterior Detailing'];
+
+        await tester.pumpWidget(
+          createTestApp(child: const AddServiceBottomSheet(), repository: repo),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Add Service'), findsWidgets);
+        expect(find.text('Estimated Duration (Minutes)'), findsNothing);
+        expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
+        expect(find.text('Duration (Minutes)'), findsNothing);
+        expect(find.byIcon(Icons.schedule), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2. Edit Service does not show Estimated Duration field or label',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final repo = _MockServiceRepository()
+          ..categoriesToReturn = ['Protection Packages'];
+
+        await tester.pumpWidget(
+          createTestApp(
+            child: EditServiceBottomSheet(service: sampleServiceWithDuration),
+            repository: repo,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edit Service'), findsWidgets);
+        expect(find.text('Estimated Duration (Minutes)'), findsNothing);
+        expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
+        expect(find.text('Duration (Minutes)'), findsNothing);
+        expect(find.byIcon(Icons.schedule), findsNothing);
+      },
+    );
+
+    testWidgets('3. Service creation succeeds without Duration', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final repo = _MockServiceRepository()..categoriesToReturn = ['Exterior Detailing'];
-
-      await tester.pumpWidget(createTestApp(
-        child: const AddServiceBottomSheet(),
-        repository: repo,
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Add Service'), findsWidgets);
-      expect(find.text('Estimated Duration (Minutes)'), findsNothing);
-      expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
-      expect(find.text('Duration (Minutes)'), findsNothing);
-      expect(find.byIcon(Icons.schedule), findsNothing);
-    });
-
-    testWidgets('2. Edit Service does not show Estimated Duration field or label', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final repo = _MockServiceRepository()..categoriesToReturn = ['Protection Packages'];
-
-      await tester.pumpWidget(createTestApp(
-        child: EditServiceBottomSheet(service: sampleServiceWithDuration),
-        repository: repo,
-      ));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Edit Service'), findsWidgets);
-      expect(find.text('Estimated Duration (Minutes)'), findsNothing);
-      expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
-      expect(find.text('Duration (Minutes)'), findsNothing);
-      expect(find.byIcon(Icons.schedule), findsNothing);
-    });
-
-    testWidgets('3. Service creation succeeds without Duration', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final repo = _MockServiceRepository()..categoriesToReturn = ['Exterior Detailing'];
+      final repo = _MockServiceRepository()
+        ..categoriesToReturn = ['Exterior Detailing'];
       bool created = false;
 
-      await tester.pumpWidget(createTestApp(
-        child: AddServiceBottomSheet(onCreated: () => created = true),
-        repository: repo,
-      ));
+      await tester.pumpWidget(
+        createTestApp(
+          child: AddServiceBottomSheet(onCreated: () => created = true),
+          repository: repo,
+        ),
+      );
       await tester.pumpAndSettle();
 
       final textFields = find.byType(TextFormField);
@@ -228,76 +245,88 @@ void main() {
       expect(json.containsKey('durationMinutes'), isFalse);
     });
 
-    testWidgets('4 & 6. Service editing succeeds without Duration and does NOT send durationMinutes: null', (tester) async {
+    testWidgets(
+      '4 & 6. Service editing succeeds without Duration and does NOT send durationMinutes: null',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final repo = _MockServiceRepository()
+          ..servicesToReturn = [sampleServiceWithDuration]
+          ..categoriesToReturn = ['Protection Packages'];
+        bool saved = false;
+
+        await tester.pumpWidget(
+          createTestApp(
+            child: EditServiceBottomSheet(
+              service: sampleServiceWithDuration,
+              onSaved: () => saved = true,
+            ),
+            repository: repo,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final textFields = find.byType(TextFormField);
+        // Change name and price
+        await tester.enterText(textFields.at(0), 'Ceramic Coating Platinum');
+        await tester.enterText(textFields.at(1), '30000');
+
+        await tester.tap(find.widgetWithText(AppButton, 'Save Changes'));
+        await tester.pumpAndSettle();
+
+        expect(saved, isTrue);
+        expect(repo.lastUpdateRequest, isNotNull);
+        expect(repo.lastUpdateRequest!.name, 'Ceramic Coating Platinum');
+        expect(repo.lastUpdateRequest!.price, 30000.0);
+        expect(repo.lastUpdateRequest!.durationMinutes, isNull);
+
+        // CRITICAL PAYLOAD VERIFICATION:
+        // Must NOT contain durationMinutes in the serialized JSON
+        expect(repo.lastUpdateRawJson, isNotNull);
+        expect(repo.lastUpdateRawJson!.containsKey('durationMinutes'), isFalse);
+      },
+    );
+
+    testWidgets(
+      '7. Existing ServiceModel deserializes DurationMinutes from legacy record',
+      (tester) async {
+        final legacyJson = {
+          'id': 'legacy-uuid-1',
+          'name': 'Legacy Diamond Coat',
+          'category': 'Protection Packages',
+          'price': 45000.0,
+          'taxPercentage': 18.0,
+          'durationMinutes': 240,
+          'isActive': true,
+          'createdAt': '2026-01-01T00:00:00Z',
+        };
+
+        final service = Service.fromJson(legacyJson);
+        expect(service.id, 'legacy-uuid-1');
+        expect(service.name, 'Legacy Diamond Coat');
+        expect(service.durationMinutes, 240);
+      },
+    );
+
+    testWidgets('8. Catalogue service cards do NOT display Duration', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       final repo = _MockServiceRepository()
-        ..servicesToReturn = [sampleServiceWithDuration]
-        ..categoriesToReturn = ['Protection Packages'];
-      bool saved = false;
-
-      await tester.pumpWidget(createTestApp(
-        child: EditServiceBottomSheet(
-          service: sampleServiceWithDuration,
-          onSaved: () => saved = true,
-        ),
-        repository: repo,
-      ));
-      await tester.pumpAndSettle();
-
-      final textFields = find.byType(TextFormField);
-      // Change name and price
-      await tester.enterText(textFields.at(0), 'Ceramic Coating Platinum');
-      await tester.enterText(textFields.at(1), '30000');
-
-      await tester.tap(find.widgetWithText(AppButton, 'Save Changes'));
-      await tester.pumpAndSettle();
-
-      expect(saved, isTrue);
-      expect(repo.lastUpdateRequest, isNotNull);
-      expect(repo.lastUpdateRequest!.name, 'Ceramic Coating Platinum');
-      expect(repo.lastUpdateRequest!.price, 30000.0);
-      expect(repo.lastUpdateRequest!.durationMinutes, isNull);
-
-      // CRITICAL PAYLOAD VERIFICATION:
-      // Must NOT contain durationMinutes in the serialized JSON
-      expect(repo.lastUpdateRawJson, isNotNull);
-      expect(repo.lastUpdateRawJson!.containsKey('durationMinutes'), isFalse);
-    });
-
-    testWidgets('7. Existing ServiceModel deserializes DurationMinutes from legacy record', (tester) async {
-      final legacyJson = {
-        'id': 'legacy-uuid-1',
-        'name': 'Legacy Diamond Coat',
-        'category': 'Protection Packages',
-        'price': 45000.0,
-        'taxPercentage': 18.0,
-        'durationMinutes': 240,
-        'isActive': true,
-        'createdAt': '2026-01-01T00:00:00Z',
-      };
-
-      final service = Service.fromJson(legacyJson);
-      expect(service.id, 'legacy-uuid-1');
-      expect(service.name, 'Legacy Diamond Coat');
-      expect(service.durationMinutes, 240);
-    });
-
-    testWidgets('8. Catalogue service cards do NOT display Duration', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final repo = _MockServiceRepository()
-        ..servicesToReturn = [sampleServiceWithDuration, sampleServiceWithoutDuration]
+        ..servicesToReturn = [
+          sampleServiceWithDuration,
+          sampleServiceWithoutDuration,
+        ]
         ..categoriesToReturn = ['Protection Packages', 'Exterior Detailing'];
 
-      await tester.pumpWidget(createTestApp(
-        child: const CatalogueScreen(),
-        repository: repo,
-      ));
+      await tester.pumpWidget(
+        createTestApp(child: const CatalogueScreen(), repository: repo),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Ceramic Coating Gold'), findsOneWidget);
@@ -309,55 +338,61 @@ void main() {
       expect(find.byIcon(Icons.schedule), findsNothing);
     });
 
-    testWidgets('10 & 11. Dynamic backend services and all 5 categories remain available', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      '10 & 11. Dynamic backend services and all 5 categories remain available',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final repo = _MockServiceRepository()
-        ..servicesToReturn = [sampleServiceWithoutDuration]
-        ..categoriesToReturn = ['Exterior Detailing'];
+        final repo = _MockServiceRepository()
+          ..servicesToReturn = [sampleServiceWithoutDuration]
+          ..categoriesToReturn = ['Exterior Detailing'];
 
-      await tester.pumpWidget(createTestApp(
-        child: const CatalogueScreen(),
-        repository: repo,
-      ));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestApp(child: const CatalogueScreen(), repository: repo),
+        );
+        await tester.pumpAndSettle();
 
-      // All 5 categories must be in the filter chips
-      expect(find.text('All Categories'), findsOneWidget);
-      for (final cat in kCatalogueCategories) {
-        expect(find.text(cat), findsWidgets);
-      }
-    });
+        // All 5 categories must be in the filter chips
+        expect(find.text('All Categories'), findsOneWidget);
+        for (final cat in kCatalogueCategories) {
+          expect(find.text(cat), findsWidgets);
+        }
+      },
+    );
 
-    test('12. Regression: editing service preserves stored duration without erasing it', () {
-      // Simulate backend behavior when client sends UpdateServiceRequest without durationMinutes
-      final originalService = Service(
-        id: 'svc-999',
-        name: 'Original Name',
-        category: 'Interior Care',
-        price: 1500.0,
-        taxPercentage: 18.0,
-        durationMinutes: 60, // Stored duration
-        isActive: true,
-        createdAt: DateTime.now(),
-      );
+    test(
+      '12. Regression: editing service preserves stored duration without erasing it',
+      () {
+        // Simulate backend behavior when client sends UpdateServiceRequest without durationMinutes
+        final originalService = Service(
+          id: 'svc-999',
+          name: 'Original Name',
+          category: 'Interior Care',
+          price: 1500.0,
+          taxPercentage: 18.0,
+          durationMinutes: 60, // Stored duration
+          isActive: true,
+          createdAt: DateTime.now(),
+        );
 
-      const updateReq = UpdateServiceRequest(
-        name: 'Updated Name',
-        price: 1800.0,
-        category: 'Interior Care',
-        isActive: true,
-      );
+        const updateReq = UpdateServiceRequest(
+          name: 'Updated Name',
+          price: 1800.0,
+          category: 'Interior Care',
+          isActive: true,
+        );
 
-      // Verify request payload does NOT contain durationMinutes
-      final json = updateReq.toJson();
-      expect(json.containsKey('durationMinutes'), isFalse);
+        // Verify request payload does NOT contain durationMinutes
+        final json = updateReq.toJson();
+        expect(json.containsKey('durationMinutes'), isFalse);
 
-      // Simulate backend service update (DurationMinutes = request.DurationMinutes.HasValue ? ... : original)
-      final int? newDuration = updateReq.durationMinutes ?? originalService.durationMinutes;
-      expect(newDuration, 60); // Preserved!
-    });
+        // Simulate backend service update (DurationMinutes = request.DurationMinutes.HasValue ? ... : original)
+        final int? newDuration =
+            updateReq.durationMinutes ?? originalService.durationMinutes;
+        expect(newDuration, 60); // Preserved!
+      },
+    );
   });
 }

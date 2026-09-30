@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ChevronRight, X, LogOut, Shield, KeyRound, User as UserIcon } from 'lucide-react';
+import { ChevronRight, X, LogOut, Shield, KeyRound, User as UserIcon, RotateCw } from 'lucide-react';
+import { useQueryClient, useIsFetching } from '@tanstack/react-query';
 import { cn } from '../../utils/cn';
 import type { User } from '../../types/app';
 import { useAuth } from '../../features/auth/auth-context';
@@ -15,10 +16,25 @@ interface HeaderProps {
 }
 
 export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = '', onSearchChange }: HeaderProps) {
+	const queryClient = useQueryClient();
+	const isFetching = useIsFetching();
+	const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 	const { user: authUser, logout } = useAuth();
 	const { profile, logoUrl, hasCustomLogo } = useBusinessProfile();
 	const [imgError, setImgError] = useState(false);
 	const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+	const handleRefresh = async () => {
+		if (isFetching > 0 || isManualRefreshing) return;
+		setIsManualRefreshing(true);
+		try {
+			await queryClient.invalidateQueries({ type: 'active' });
+		} catch (err) {
+			console.error('Failed to refresh data:', err);
+		} finally {
+			setIsManualRefreshing(false);
+		}
+	};
 
 	useEffect(() => {
 		setImgError(false);
@@ -140,6 +156,30 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 				</div>
 
 				{actions && <div className="flex items-center gap-2">{actions}</div>}
+
+				{/* Global Refresh Button */}
+				<button
+					type="button"
+					onClick={handleRefresh}
+					disabled={isFetching > 0 || isManualRefreshing}
+					className={cn(
+						'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all text-xs font-medium',
+						'focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60',
+						(isFetching > 0 || isManualRefreshing) && 'cursor-not-allowed'
+					)}
+					title={isFetching > 0 || isManualRefreshing ? 'Refreshing data…' : 'Refresh data'}
+					data-testid="btn-global-refresh"
+				>
+					<RotateCw
+						className={cn(
+							'w-3.5 h-3.5 text-slate-600',
+							(isFetching > 0 || isManualRefreshing) && 'animate-spin text-blue-600'
+						)}
+					/>
+					<span className="hidden sm:inline">
+						{isFetching > 0 || isManualRefreshing ? 'Refreshing…' : 'Refresh'}
+					</span>
+				</button>
 
 				{/* Live System Status Dot */}
 				<div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium" title="All systems operational">

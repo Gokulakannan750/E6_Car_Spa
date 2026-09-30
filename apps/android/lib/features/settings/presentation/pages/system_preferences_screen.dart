@@ -148,9 +148,7 @@ class _SystemPreferencesScreenState
               ),
             ],
           ),
-          actions: const [
-            AppLogoutAction(),
-          ],
+          actions: const [AppLogoutAction()],
         ),
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -158,8 +156,10 @@ class _SystemPreferencesScreenState
             // Status Banner if present
             if (state.message != null) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.successLight,
                   borderRadius: BorderRadius.circular(12),
@@ -167,8 +167,11 @@ class _SystemPreferencesScreenState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_outline,
-                        color: AppColors.success, size: 20),
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -189,8 +192,10 @@ class _SystemPreferencesScreenState
             // Error Banner if present
             if (state.errorMessage != null) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(12),
@@ -198,8 +203,11 @@ class _SystemPreferencesScreenState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded,
-                        color: AppColors.error, size: 20),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -235,7 +243,9 @@ class _SystemPreferencesScreenState
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map((fmt) {
+                  children: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map((
+                    fmt,
+                  ) {
                     final isSelected = _currentPrefs.dateFormat == fmt;
                     return ChoiceChip(
                       label: Text(fmt),
@@ -243,8 +253,9 @@ class _SystemPreferencesScreenState
                       onSelected: (val) {
                         if (val) {
                           setState(() {
-                            _currentPrefs =
-                                _currentPrefs.copyWith(dateFormat: fmt);
+                            _currentPrefs = _currentPrefs.copyWith(
+                              dateFormat: fmt,
+                            );
                           });
                         }
                       },
@@ -277,8 +288,9 @@ class _SystemPreferencesScreenState
                   selected: {_currentPrefs.timeFormat},
                   onSelectionChanged: (set) {
                     setState(() {
-                      _currentPrefs =
-                          _currentPrefs.copyWith(timeFormat: set.first);
+                      _currentPrefs = _currentPrefs.copyWith(
+                        timeFormat: set.first,
+                      );
                     });
                   },
                 ),
@@ -304,7 +316,10 @@ class _SystemPreferencesScreenState
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
@@ -312,7 +327,11 @@ class _SystemPreferencesScreenState
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.currency_rupee_rounded, size: 20, color: AppColors.success),
+                      Icon(
+                        Icons.currency_rupee_rounded,
+                        size: 20,
+                        color: AppColors.success,
+                      ),
                       SizedBox(width: 10),
                       Text(
                         '₹ (INR) — Indian Rupee',
@@ -337,20 +356,15 @@ class _SystemPreferencesScreenState
                 const SizedBox(height: 8),
                 SegmentedButton<int>(
                   segments: const [
-                    ButtonSegment(
-                      value: 2,
-                      label: Text('2 Decimals (.00)'),
-                    ),
-                    ButtonSegment(
-                      value: 0,
-                      label: Text('0 Decimals (Whole)'),
-                    ),
+                    ButtonSegment(value: 2, label: Text('2 Decimals (.00)')),
+                    ButtonSegment(value: 0, label: Text('0 Decimals (Whole)')),
                   ],
                   selected: {_currentPrefs.decimalPrecision},
                   onSelectionChanged: (set) {
                     setState(() {
-                      _currentPrefs =
-                          _currentPrefs.copyWith(decimalPrecision: set.first);
+                      _currentPrefs = _currentPrefs.copyWith(
+                        decimalPrecision: set.first,
+                      );
                     });
                   },
                 ),
@@ -383,8 +397,9 @@ class _SystemPreferencesScreenState
                   selected: {_currentPrefs.defaultPrintCopies},
                   onSelectionChanged: (set) {
                     setState(() {
-                      _currentPrefs =
-                          _currentPrefs.copyWith(defaultPrintCopies: set.first);
+                      _currentPrefs = _currentPrefs.copyWith(
+                        defaultPrintCopies: set.first,
+                      );
                     });
                   },
                 ),
@@ -409,8 +424,9 @@ class _SystemPreferencesScreenState
                   value: _currentPrefs.autoPrintReceipt,
                   onChanged: (val) {
                     setState(() {
-                      _currentPrefs =
-                          _currentPrefs.copyWith(autoPrintReceipt: val);
+                      _currentPrefs = _currentPrefs.copyWith(
+                        autoPrintReceipt: val,
+                      );
                     });
                   },
                 ),
@@ -436,33 +452,38 @@ class _SystemPreferencesScreenState
                 const SizedBox(height: 4),
                 const Text(
                   'Frequency to sync job status and staff updates in the background',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
-                  children: [
-                    {'label': 'Manual / Off', 'val': 0},
-                    {'label': '15 Seconds', 'val': 15},
-                    {'label': '30 Seconds (Default)', 'val': 30},
-                    {'label': '60 Seconds', 'val': 60},
-                  ].map((item) {
-                    final val = item['val'] as int;
-                    final label = item['label'] as String;
-                    final isSelected = _currentPrefs.refreshInterval == val;
-                    return ChoiceChip(
-                      label: Text(label),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _currentPrefs =
-                                _currentPrefs.copyWith(refreshInterval: val);
-                          });
-                        }
-                      },
-                    );
-                  }).toList(),
+                  children:
+                      [
+                        {'label': 'Manual / Off', 'val': 0},
+                        {'label': '15 Seconds', 'val': 15},
+                        {'label': '30 Seconds (Default)', 'val': 30},
+                        {'label': '60 Seconds', 'val': 60},
+                      ].map((item) {
+                        final val = item['val'] as int;
+                        final label = item['label'] as String;
+                        final isSelected = _currentPrefs.refreshInterval == val;
+                        return ChoiceChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() {
+                                _currentPrefs = _currentPrefs.copyWith(
+                                  refreshInterval: val,
+                                );
+                              });
+                            }
+                          },
+                        );
+                      }).toList(),
                 ),
               ],
             ),
@@ -515,9 +536,10 @@ class _SystemPreferencesScreenState
                                   shape: BoxShape.circle,
                                   color: state.connectivityStatus == 'Online'
                                       ? AppColors.success
-                                      : state.connectivityStatus == 'Unreachable'
-                                          ? AppColors.error
-                                          : Colors.amber,
+                                      : state.connectivityStatus ==
+                                            'Unreachable'
+                                      ? AppColors.error
+                                      : Colors.amber,
                                 ),
                               ),
                               const SizedBox(width: 6),
@@ -529,9 +551,10 @@ class _SystemPreferencesScreenState
                                     fontWeight: FontWeight.w700,
                                     color: state.connectivityStatus == 'Online'
                                         ? AppColors.success
-                                        : state.connectivityStatus == 'Unreachable'
-                                            ? AppColors.error
-                                            : Colors.amber.shade800,
+                                        : state.connectivityStatus ==
+                                              'Unreachable'
+                                        ? AppColors.error
+                                        : Colors.amber.shade800,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -547,8 +570,10 @@ class _SystemPreferencesScreenState
                       onPressed: state.isCheckingConnectivity
                           ? null
                           : () => ref
-                              .read(systemPreferencesNotifierProvider.notifier)
-                              .testConnectivity(),
+                                .read(
+                                  systemPreferencesNotifierProvider.notifier,
+                                )
+                                .testConnectivity(),
                       icon: state.isCheckingConnectivity
                           ? const SizedBox(
                               width: 14,
@@ -660,10 +685,7 @@ class _SystemPreferencesScreenState
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.textSecondary,
-          ),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
         ),
         Flexible(
           child: Text(

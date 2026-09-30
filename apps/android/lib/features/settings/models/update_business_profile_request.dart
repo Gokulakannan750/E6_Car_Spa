@@ -31,26 +31,25 @@ class UpdateBusinessProfileRequest {
     return {
       'businessName': businessName.trim(),
       'addressLine1': addressLine1.trim(),
-      'addressLine2':
-          addressLine2 == null || addressLine2!.trim().isEmpty
-              ? null
-              : addressLine2!.trim(),
+      'addressLine2': addressLine2 == null || addressLine2!.trim().isEmpty
+          ? null
+          : addressLine2!.trim(),
       'city': city.trim(),
       'state': state.trim(),
       'postalCode': postalCode.trim(),
       'phone': phone.trim(),
       'email': email.trim().toLowerCase(),
-      'gstin':
-          gstin == null || gstin!.trim().isEmpty ? null : gstin!.trim().toUpperCase(),
+      'gstin': gstin == null || gstin!.trim().isEmpty
+          ? null
+          : gstin!.trim().toUpperCase(),
       'logoPath': logoPath,
-      'invoicePrefix':
-          invoicePrefix == null || invoicePrefix!.trim().isEmpty
-              ? 'INV'
-              : invoicePrefix!.trim().toUpperCase(),
+      'invoicePrefix': invoicePrefix == null || invoicePrefix!.trim().isEmpty
+          ? 'INV'
+          : invoicePrefix!.trim().toUpperCase(),
       'termsAndConditions':
           termsAndConditions == null || termsAndConditions!.trim().isEmpty
-              ? null
-              : termsAndConditions!.trim(),
+          ? null
+          : termsAndConditions!.trim(),
     };
   }
 }

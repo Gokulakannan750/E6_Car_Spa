@@ -28,17 +28,21 @@ class Service {
     return Service(
       id: json['id'] as String? ?? json['Id'] as String? ?? '',
       name: json['name'] as String? ?? json['Name'] as String? ?? '',
-      description: json['description'] as String? ?? json['Description'] as String?,
+      description:
+          json['description'] as String? ?? json['Description'] as String?,
       category: json['category'] as String? ?? json['Category'] as String?,
       price: ((json['price'] ?? json['Price'] ?? 0.0) as num).toDouble(),
-      taxPercentage: ((json['taxPercentage'] ?? json['TaxPercentage'] ?? 18.0) as num).toDouble(),
-      durationMinutes: json['durationMinutes'] as int? ?? json['DurationMinutes'] as int?,
+      taxPercentage:
+          ((json['taxPercentage'] ?? json['TaxPercentage'] ?? 18.0) as num)
+              .toDouble(),
+      durationMinutes:
+          json['durationMinutes'] as int? ?? json['DurationMinutes'] as int?,
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString())
-              : null),
+                ? DateTime.tryParse(json['CreatedAt'].toString())
+                : null),
     );
   }
 
@@ -72,9 +76,14 @@ class ServiceListResponse {
   });
 
   factory ServiceListResponse.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return ServiceListResponse(
-      items: rawItems.map((e) => Service.fromJson(e as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map((e) => Service.fromJson(e as Map<String, dynamic>))
+          .toList(),
       totalCount: (json['totalCount'] ?? json['TotalCount'] ?? 0) as int,
       page: (json['page'] ?? json['Page'] ?? 1) as int,
       pageSize: (json['pageSize'] ?? json['PageSize'] ?? 50) as int,
@@ -105,8 +114,10 @@ class CreateServiceRequest {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
-      if (category != null && category!.trim().isNotEmpty) 'category': category!.trim(),
+      if (description != null && description!.trim().isNotEmpty)
+        'description': description!.trim(),
+      if (category != null && category!.trim().isNotEmpty)
+        'category': category!.trim(),
       'price': price,
       'taxPercentage': taxPercentage,
       if (durationMinutes != null) 'durationMinutes': durationMinutes,
@@ -138,8 +149,10 @@ class UpdateServiceRequest {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      if (description != null && description!.trim().isNotEmpty) 'description': description!.trim(),
-      if (category != null && category!.trim().isNotEmpty) 'category': category!.trim(),
+      if (description != null && description!.trim().isNotEmpty)
+        'description': description!.trim(),
+      if (category != null && category!.trim().isNotEmpty)
+        'category': category!.trim(),
       'price': price,
       'taxPercentage': taxPercentage,
       if (durationMinutes != null) 'durationMinutes': durationMinutes,

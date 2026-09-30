@@ -14,7 +14,8 @@ class ShowroomAttendanceTab extends ConsumerWidget {
   final bool canConfirmAttendance;
   final bool isOwner;
   final VoidCallback onOpenAssignStaffSheet;
-  final void Function(DailyStaffAssignment assignment) onOpenEditStaffSessionSheet;
+  final void Function(DailyStaffAssignment assignment)
+  onOpenEditStaffSessionSheet;
   final void Function(DailyStaffAssignment assignment) onRemoveAssignment;
   final void Function(DailyStaffAssignment? assignment)? onOpenSwapStaffSheet;
   final void Function(String swapId)? onOpenSwapDetailsSheet;
@@ -42,10 +43,13 @@ class ShowroomAttendanceTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dailyState = ref.watch(dailyStaffProvider(showroomId));
     final isLocked = dailyState.isAttendanceConfirmed;
-    final dateHeading = DateFormat('dd MMM yyyy').format(dailyState.selectedDate);
+    final dateHeading = DateFormat(
+      'dd MMM yyyy',
+    ).format(dailyState.selectedDate);
 
     return RefreshIndicator(
-      onRefresh: () => ref.read(dailyStaffProvider(showroomId).notifier).loadDailyStaff(),
+      onRefresh: () =>
+          ref.read(dailyStaffProvider(showroomId).notifier).loadDailyStaff(),
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -66,7 +70,8 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                   const SizedBox(width: 8),
                   _buildMetricCard(
                     title: 'Scheduled Hours',
-                    value: '${dailyState.totalScheduledHours.toStringAsFixed(1)}h',
+                    value:
+                        '${dailyState.totalScheduledHours.toStringAsFixed(1)}h',
                     icon: Icons.access_time_rounded,
                     color: AppColors.info,
                   ),
@@ -112,7 +117,10 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withAlpha(25),
                                 borderRadius: BorderRadius.circular(10),
@@ -136,21 +144,37 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                             IconButton(
                               key: const Key('swap_history_button'),
                               onPressed: onOpenSwapHistorySheet,
-                              icon: const Icon(Icons.history, size: 20, color: Colors.purple),
+                              icon: const Icon(
+                                Icons.history,
+                                size: 20,
+                                color: Colors.purple,
+                              ),
                               tooltip: 'Swap History',
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
                             ),
-                          if (canAssignStaff && !isLocked && onOpenSwapStaffSheet != null)
+                          if (canAssignStaff &&
+                              !isLocked &&
+                              onOpenSwapStaffSheet != null)
                             IconButton(
                               key: const Key('swap_staff_button'),
                               onPressed: () => onOpenSwapStaffSheet!(null),
-                              icon: const Icon(Icons.swap_horiz, size: 20, color: Colors.purple),
+                              icon: const Icon(
+                                Icons.swap_horiz,
+                                size: 20,
+                                color: Colors.purple,
+                              ),
                               tooltip: 'Swap Staff',
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
                             ),
                           const SizedBox(width: 4),
                           Text(
@@ -189,17 +213,24 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         dailyState.errorMessage!,
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
-                        onPressed: () =>
-                            ref.read(dailyStaffProvider(showroomId).notifier).loadDailyStaff(),
+                        onPressed: () => ref
+                            .read(dailyStaffProvider(showroomId).notifier)
+                            .loadDailyStaff(),
                         icon: const Icon(Icons.refresh),
                         label: const Text('Try Again'),
                       ),
@@ -219,8 +250,12 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                       ? 'Attendance is confirmed and locked for this date.'
                       : 'Tap "+ Assign Staff" below to schedule staff members to this showroom for this date.',
                   icon: Icons.people_outline,
-                  actionLabel: (canAssignStaff && !isLocked) ? 'Assign Staff' : null,
-                  onAction: (canAssignStaff && !isLocked) ? onOpenAssignStaffSheet : null,
+                  actionLabel: (canAssignStaff && !isLocked)
+                      ? 'Assign Staff'
+                      : null,
+                  onAction: (canAssignStaff && !isLocked)
+                      ? onOpenAssignStaffSheet
+                      : null,
                 ),
               ),
             )
@@ -228,29 +263,31 @@ class ShowroomAttendanceTab extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.only(bottom: 88, top: 2),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (itemContext, index) {
-                    final assignment = dailyState.staffAssignments[index];
-                    return DailyStaffAssignmentCard(
-                      assignment: assignment,
-                      canManage: canAssignStaff,
-                      isLocked: isLocked,
-                      onEdit: (canAssignStaff && !isLocked)
-                          ? () => onOpenEditStaffSessionSheet(assignment)
-                          : null,
-                      onRemove: (canAssignStaff && !isLocked)
-                          ? () => onRemoveAssignment(assignment)
-                          : null,
-                      onSwap: (canAssignStaff && !isLocked && onOpenSwapStaffSheet != null)
-                          ? () => onOpenSwapStaffSheet!(assignment)
-                          : null,
-                      onViewSwap: (assignment.swapId != null && onOpenSwapDetailsSheet != null)
-                          ? () => onOpenSwapDetailsSheet!(assignment.swapId!)
-                          : null,
-                    );
-                  },
-                  childCount: dailyState.staffAssignments.length,
-                ),
+                delegate: SliverChildBuilderDelegate((itemContext, index) {
+                  final assignment = dailyState.staffAssignments[index];
+                  return DailyStaffAssignmentCard(
+                    assignment: assignment,
+                    canManage: canAssignStaff,
+                    isLocked: isLocked,
+                    onEdit: (canAssignStaff && !isLocked)
+                        ? () => onOpenEditStaffSessionSheet(assignment)
+                        : null,
+                    onRemove: (canAssignStaff && !isLocked)
+                        ? () => onRemoveAssignment(assignment)
+                        : null,
+                    onSwap:
+                        (canAssignStaff &&
+                            !isLocked &&
+                            onOpenSwapStaffSheet != null)
+                        ? () => onOpenSwapStaffSheet!(assignment)
+                        : null,
+                    onViewSwap:
+                        (assignment.swapId != null &&
+                            onOpenSwapDetailsSheet != null)
+                        ? () => onOpenSwapDetailsSheet!(assignment.swapId!)
+                        : null,
+                  );
+                }, childCount: dailyState.staffAssignments.length),
               ),
             ),
         ],
@@ -267,10 +304,12 @@ class ShowroomAttendanceTab extends ConsumerWidget {
     final isConfirmed = dailyState.isAttendanceConfirmed;
 
     if (isConfirmed) {
-      final confirmedByName = dailyState.attendanceConfirmedByName ?? 'Authorized User';
+      final confirmedByName =
+          dailyState.attendanceConfirmedByName ?? 'Authorized User';
       final confirmedAtStr = dailyState.attendanceConfirmedAt != null
-          ? DateFormat('dd MMM yyyy, hh:mm a')
-              .format(dailyState.attendanceConfirmedAt!.toLocal())
+          ? DateFormat(
+              'dd MMM yyyy, hh:mm a',
+            ).format(dailyState.attendanceConfirmedAt!.toLocal())
           : null;
 
       return Container(
@@ -318,7 +357,10 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.readyBorder.withAlpha(60),
                               borderRadius: BorderRadius.circular(4),
@@ -326,7 +368,11 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.lock_outline, size: 10, color: AppColors.readyText),
+                                const Icon(
+                                  Icons.lock_outline,
+                                  size: 10,
+                                  color: AppColors.readyText,
+                                ),
                                 const SizedBox(width: 2),
                                 Text(
                                   'Locked',
@@ -362,7 +408,9 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                 alignment: Alignment.centerRight,
                 child: OutlinedButton.icon(
                   key: const Key('unlock_attendance_button'),
-                  onPressed: dailyState.isUnlocking ? null : onConfirmUnlockAttendance,
+                  onPressed: dailyState.isUnlocking
+                      ? null
+                      : onConfirmUnlockAttendance,
                   icon: dailyState.isUnlocking
                       ? const SizedBox(
                           width: 12,
@@ -370,10 +418,16 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.lock_open_outlined, size: 14),
-                  label: const Text('Correct', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  label: const Text(
+                    'Correct',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     side: const BorderSide(color: AppColors.readyBorder),
                     foregroundColor: AppColors.readyText,
                   ),
@@ -431,7 +485,10 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.qualityCheckBorder.withAlpha(60),
                             borderRadius: BorderRadius.circular(4),
@@ -466,7 +523,9 @@ class ShowroomAttendanceTab extends ConsumerWidget {
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 key: const Key('confirm_attendance_button'),
-                onPressed: dailyState.isConfirming ? null : onConfirmSubmitAttendance,
+                onPressed: dailyState.isConfirming
+                    ? null
+                    : onConfirmSubmitAttendance,
                 icon: dailyState.isConfirming
                     ? const SizedBox(
                         width: 14,
@@ -484,7 +543,10 @@ class ShowroomAttendanceTab extends ConsumerWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                 ),
               ),
             ),

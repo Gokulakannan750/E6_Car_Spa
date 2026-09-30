@@ -72,7 +72,8 @@ class InvoiceConfigCard extends StatelessWidget {
           AppTextField(
             controller: termsController,
             label: 'Standard Terms & Conditions',
-            hintText: 'e.g. Payment due within 7 days. Goods once sold cannot be returned.',
+            hintText:
+                'e.g. Payment due within 7 days. Goods once sold cannot be returned.',
             isRequired: false,
             isEnabled: isEnabled,
             maxLines: 3,

@@ -18,7 +18,11 @@ class MockServiceRepository extends ServiceRepository {
   MockServiceRepository() : super(ServiceApi(Dio()));
 
   List<Service> servicesToReturn = [];
-  List<String> categoriesToReturn = ['Exterior Detailing', 'Interior Care', 'Protection Packages'];
+  List<String> categoriesToReturn = [
+    'Exterior Detailing',
+    'Interior Care',
+    'Protection Packages',
+  ];
   bool shouldThrow = false;
   int getCalls = 0;
   UpdateServiceRequest? lastUpdateRequest;
@@ -41,7 +45,9 @@ class MockServiceRepository extends ServiceRepository {
       list = list.where((s) => s.category == category).toList();
     }
     if (search != null && search.isNotEmpty) {
-      list = list.where((s) => s.name.toLowerCase().contains(search.toLowerCase())).toList();
+      list = list
+          .where((s) => s.name.toLowerCase().contains(search.toLowerCase()))
+          .toList();
     }
     return ServiceListResponse(
       items: list,
@@ -81,7 +87,8 @@ class MockServiceRepository extends ServiceRepository {
   }
 }
 
-class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   FakeAuthNotifier(AuthUser user) : super(Authenticated(user));
 
   @override
@@ -90,6 +97,7 @@ class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier 
   Future<void> logout() async {
     state = const Unauthenticated();
   }
+
   @override
   Future<void> restoreSession() async {}
   @override
@@ -129,25 +137,30 @@ void main() {
   );
 
   group('CatalogueScreen State & Error Operations', () {
-    testWidgets('Renders error state with retry button and reloads on retry', (tester) async {
+    testWidgets('Renders error state with retry button and reloads on retry', (
+      tester,
+    ) async {
       final mockRepo = MockServiceRepository()..shouldThrow = true;
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             serviceRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
-          ),
+          child: const MaterialApp(home: CatalogueScreen()),
         ),
       );
 
       await tester.pumpAndSettle();
 
       expect(find.byType(AppErrorState), findsOneWidget);
-      expect(find.textContaining('Failed to load catalogue from server'), findsOneWidget);
+      expect(
+        find.textContaining('Failed to load catalogue from server'),
+        findsOneWidget,
+      );
 
       // Fix repo and retry
       mockRepo.shouldThrow = false;
@@ -160,169 +173,188 @@ void main() {
       expect(find.text('Foam Wash Deluxe'), findsOneWidget);
     });
 
-    testWidgets('Renders empty state when system has no catalogue services', (tester) async {
+    testWidgets('Renders empty state when system has no catalogue services', (
+      tester,
+    ) async {
       final mockRepo = MockServiceRepository()..servicesToReturn = [];
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             serviceRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
+            authNotifierProvider.overrideWith(
+              (ref) => FakeAuthNotifier(managerUser),
+            ),
           ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
-          ),
+          child: const MaterialApp(home: CatalogueScreen()),
         ),
       );
 
       await tester.pumpAndSettle();
 
       expect(find.text('No services found'), findsOneWidget);
-      expect(find.text('No catalogue services available in the system.'), findsOneWidget);
+      expect(
+        find.text('No catalogue services available in the system.'),
+        findsOneWidget,
+      );
     });
   });
 
   group('CatalogueScreen Search and Category Filtering', () {
-    testWidgets('Category chips filter services and All Categories resets filter', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Category chips filter services and All Categories resets filter',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockServiceRepository()
-        ..servicesToReturn = [sampleService1, sampleService2]
-        ..categoriesToReturn = ['Exterior Detailing', 'Interior Care', 'Protection Packages'];
+        final mockRepo = MockServiceRepository()
+          ..servicesToReturn = [sampleService1, sampleService2]
+          ..categoriesToReturn = [
+            'Exterior Detailing',
+            'Interior Care',
+            'Protection Packages',
+          ];
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
-          ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serviceRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(managerUser),
+              ),
+            ],
+            child: const MaterialApp(home: CatalogueScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('Foam Wash Deluxe'), findsOneWidget);
-      expect(find.text('Deep Interior Vacuum'), findsOneWidget);
+        expect(find.text('Foam Wash Deluxe'), findsOneWidget);
+        expect(find.text('Deep Interior Vacuum'), findsOneWidget);
 
-      // Tap 'Interior Care' chip
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Interior Care'));
-      await tester.pumpAndSettle();
+        // Tap 'Interior Care' chip
+        await tester.tap(find.widgetWithText(ChoiceChip, 'Interior Care'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Deep Interior Vacuum'), findsOneWidget);
-      expect(find.text('Foam Wash Deluxe'), findsNothing);
+        expect(find.text('Deep Interior Vacuum'), findsOneWidget);
+        expect(find.text('Foam Wash Deluxe'), findsNothing);
 
-      // Tap 'All Categories' chip
-      await tester.tap(find.widgetWithText(ChoiceChip, 'All Categories'));
-      await tester.pumpAndSettle();
+        // Tap 'All Categories' chip
+        await tester.tap(find.widgetWithText(ChoiceChip, 'All Categories'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Foam Wash Deluxe'), findsOneWidget);
-      expect(find.text('Deep Interior Vacuum'), findsOneWidget);
-    });
+        expect(find.text('Foam Wash Deluxe'), findsOneWidget);
+        expect(find.text('Deep Interior Vacuum'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Search field filters services dynamically and shows zero match message', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Search field filters services dynamically and shows zero match message',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockServiceRepository()
-        ..servicesToReturn = [sampleService1, sampleService2];
+        final mockRepo = MockServiceRepository()
+          ..servicesToReturn = [sampleService1, sampleService2];
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith((ref) => FakeAuthNotifier(managerUser)),
-          ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serviceRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(managerUser),
+              ),
+            ],
+            child: const MaterialApp(home: CatalogueScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Enter search term
-      await tester.enterText(find.byType(TextField).first, 'Foam');
-      await tester.pumpAndSettle();
+        // Enter search term
+        await tester.enterText(find.byType(TextField).first, 'Foam');
+        await tester.pumpAndSettle();
 
-      expect(find.text('Foam Wash Deluxe'), findsOneWidget);
-      expect(find.text('Deep Interior Vacuum'), findsNothing);
+        expect(find.text('Foam Wash Deluxe'), findsOneWidget);
+        expect(find.text('Deep Interior Vacuum'), findsNothing);
 
-      // Enter non-matching search term
-      await tester.enterText(find.byType(TextField).first, 'NonexistentServiceXYZ');
-      await tester.pumpAndSettle();
+        // Enter non-matching search term
+        await tester.enterText(
+          find.byType(TextField).first,
+          'NonexistentServiceXYZ',
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('No services found'), findsOneWidget);
-      expect(find.text('No services match your search and category filter.'), findsOneWidget);
+        expect(find.text('No services found'), findsOneWidget);
+        expect(
+          find.text('No services match your search and category filter.'),
+          findsOneWidget,
+        );
 
-      // Clear search
-      await tester.tap(find.byIcon(Icons.clear_rounded));
-      await tester.pumpAndSettle();
+        // Clear search
+        await tester.tap(find.byIcon(Icons.clear_rounded));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Foam Wash Deluxe'), findsOneWidget);
-      expect(find.text('Deep Interior Vacuum'), findsOneWidget);
-    });
+        expect(find.text('Foam Wash Deluxe'), findsOneWidget);
+        expect(find.text('Deep Interior Vacuum'), findsOneWidget);
+      },
+    );
   });
 
   group('EditServiceBottomSheet Flow & Validations', () {
-    testWidgets('Validates name and price in edit bottom sheet and does not show duration', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Validates name and price in edit bottom sheet and does not show duration',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockServiceRepository();
+        final mockRepo = MockServiceRepository();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(mockRepo),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: EditServiceBottomSheet(
-                service: sampleService1,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRepositoryProvider.overrideWithValue(mockRepo)],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: EditServiceBottomSheet(service: sampleService1),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Verify duration does not exist
-      expect(find.text('Estimated Duration (Minutes)'), findsNothing);
+        // Verify duration does not exist
+        expect(find.text('Estimated Duration (Minutes)'), findsNothing);
 
-      // Clear name and enter invalid price
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), ''); // Service Name
-      await tester.enterText(textFields.at(1), ''); // Price
-      await tester.pumpAndSettle();
+        // Clear name and enter invalid price
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.at(0), ''); // Service Name
+        await tester.enterText(textFields.at(1), ''); // Price
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(AppButton, 'Save Changes'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Save Changes'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Service name is required'), findsOneWidget);
-      expect(find.text('Price is required'), findsOneWidget);
-    });
+        expect(find.text('Service name is required'), findsOneWidget);
+        expect(find.text('Price is required'), findsOneWidget);
+      },
+    );
 
     testWidgets('Successfully submits updated service details', (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockServiceRepository()..servicesToReturn = [sampleService1];
+      final mockRepo = MockServiceRepository()
+        ..servicesToReturn = [sampleService1];
       bool savedCallbackCalled = false;
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(mockRepo),
-          ],
+          overrides: [serviceRepositoryProvider.overrideWithValue(mockRepo)],
           child: MaterialApp(
             home: Scaffold(
               body: EditServiceBottomSheet(

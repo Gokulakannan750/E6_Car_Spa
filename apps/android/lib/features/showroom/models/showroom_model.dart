@@ -34,7 +34,8 @@ class Showroom {
           ? parts.first.substring(0, 2).toUpperCase()
           : parts.first.toUpperCase();
     }
-    return (parts.first.substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts[1].substring(0, 1))
+        .toUpperCase();
   }
 
   factory Showroom.fromJson(Map<String, dynamic> json) {
@@ -45,16 +46,23 @@ class Showroom {
       phone: json['phone'] as String? ?? json['Phone'] as String?,
       gstin: json['gstin'] as String? ?? json['Gstin'] as String?,
       isActive: (json['isActive'] ?? json['IsActive'] ?? true) as bool,
-      activeStaffCountToday: (json['activeStaffCountToday'] ?? json['ActiveStaffCountToday'] ?? 0) as int,
-      totalVehiclesToday: (json['totalVehiclesToday'] ?? json['TotalVehiclesToday'] ?? 0) as int,
+      activeStaffCountToday:
+          (json['activeStaffCountToday'] ?? json['ActiveStaffCountToday'] ?? 0)
+              as int,
+      totalVehiclesToday:
+          (json['totalVehiclesToday'] ?? json['TotalVehiclesToday'] ?? 0)
+              as int,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : (json['CreatedAt'] != null
-              ? DateTime.tryParse(json['CreatedAt'].toString()) ?? DateTime.now()
-              : DateTime.now()),
+                ? DateTime.tryParse(json['CreatedAt'].toString()) ??
+                      DateTime.now()
+                : DateTime.now()),
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())
-          : (json['UpdatedAt'] != null ? DateTime.tryParse(json['UpdatedAt'].toString()) : null),
+          : (json['UpdatedAt'] != null
+                ? DateTime.tryParse(json['UpdatedAt'].toString())
+                : null),
     );
   }
 
@@ -91,7 +99,8 @@ class Showroom {
       phone: phone ?? this.phone,
       gstin: clearGstin ? null : (gstin ?? this.gstin),
       isActive: isActive ?? this.isActive,
-      activeStaffCountToday: activeStaffCountToday ?? this.activeStaffCountToday,
+      activeStaffCountToday:
+          activeStaffCountToday ?? this.activeStaffCountToday,
       totalVehiclesToday: totalVehiclesToday ?? this.totalVehiclesToday,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -147,7 +156,9 @@ class UpdateShowroomRequest {
     if (name != null) 'name': name,
     if (address != null) 'address': address,
     if (phone != null) 'phone': phone,
-    'gstin': (gstin == null || gstin!.trim().isEmpty) ? null : gstin!.trim().toUpperCase(),
+    'gstin': (gstin == null || gstin!.trim().isEmpty)
+        ? null
+        : gstin!.trim().toUpperCase(),
     if (isActive != null) 'isActive': isActive,
   };
 }

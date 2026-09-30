@@ -45,7 +45,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
         elevation: 0,
         title: const Text(
           'New Job Card',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: AppColors.textPrimary,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close, color: AppColors.textPrimary),
@@ -102,7 +106,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   : (isActive ? AppColors.primary : AppColors.surfaceAlt),
               shape: BoxShape.circle,
               border: Border.all(
-                color: isDone || isActive ? AppColors.primary : AppColors.outline,
+                color: isDone || isActive
+                    ? AppColors.primary
+                    : AppColors.outline,
                 width: 1.5,
               ),
             ),
@@ -112,7 +118,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   : Text(
                       '${stepIndex + 1}',
                       style: TextStyle(
-                        color: isActive ? Colors.white : AppColors.textSecondary,
+                        color: isActive
+                            ? Colors.white
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
@@ -123,7 +131,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
           Text(
             title,
             style: TextStyle(
-              color: isActive || isDone ? AppColors.primary : AppColors.textSecondary,
+              color: isActive || isDone
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
               fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
               fontSize: 11,
             ),
@@ -149,18 +159,25 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
   // ── STEP 0: CUSTOMER & VEHICLE ────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildStep0CustomerVehicle(NewJobCardState state, NewJobCardNotifier notifier) {
+  Widget _buildStep0CustomerVehicle(
+    NewJobCardState state,
+    NewJobCardNotifier notifier,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           'Customer & Vehicle Details',
-          style: AppTextStyles.displaySmall.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.displaySmall.copyWith(
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Search existing customer by phone number or vehicle registration.',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -173,10 +190,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 controller: _lookupController,
                 hint: 'Phone or vehicle registration',
                 textCapitalization: TextCapitalization.characters,
-                inputFormatters: const [
-                  UpperCaseTextFormatter(),
-                ],
-                prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary),
+                inputFormatters: const [UpperCaseTextFormatter()],
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textTertiary,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -187,7 +205,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 onPressed: state.isSearching
                     ? null
@@ -204,9 +224,15 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
-                    : const Text('Search', style: TextStyle(fontWeight: FontWeight.w600)),
+                    : const Text(
+                        'Search',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
               ),
             ),
           ],
@@ -223,12 +249,18 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                const Icon(
+                  Icons.info_outline,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     state.lookupError!,
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ],
@@ -244,10 +276,15 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             foregroundColor: AppColors.primary,
             side: const BorderSide(color: AppColors.primary, width: 1.2),
             padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           icon: const Icon(Icons.person_add_outlined, size: 18),
-          label: const Text('Create New Customer', style: TextStyle(fontWeight: FontWeight.w600)),
+          label: const Text(
+            'Create New Customer',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
           onPressed: () {
             AddCustomerDialog.show(
               context,
@@ -268,7 +305,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.primary, width: 1.5),
               boxShadow: const [
-                BoxShadow(color: Color(0x0A0453CD), blurRadius: 8, offset: Offset(0, 2)),
+                BoxShadow(
+                  color: Color(0x0A0453CD),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
             padding: const EdgeInsets.all(16),
@@ -285,7 +326,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Center(
-                        child: Icon(Icons.person_rounded, size: 22, color: AppColors.primary),
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 22,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -305,11 +350,16 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                               ),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.readyBg,
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: AppColors.readyBorder),
+                                  border: Border.all(
+                                    color: AppColors.readyBorder,
+                                  ),
                                 ),
                                 child: const Text(
                                   'Selected',
@@ -325,12 +375,18 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                           const SizedBox(height: 2),
                           Text(
                             state.customer!.phoneNumber,
-                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.check_circle, color: AppColors.primary, size: 22),
+                    const Icon(
+                      Icons.check_circle,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                   ],
                 ),
               ],
@@ -344,29 +400,58 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             children: [
               Text(
                 'Customer Vehicles',
-                style: AppTextStyles.headingMedium.copyWith(color: AppColors.textPrimary),
+                style: AppTextStyles.headingMedium.copyWith(
+                  color: AppColors.textPrimary,
+                ),
               ),
               TextButton.icon(
                 icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
-                label: const Text('Add Vehicle', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.primary)),
+                label: const Text(
+                  'Add Vehicle',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
                 onPressed: () {
                   AddVehicleDialog.show(
                     context,
                     customerId: state.customer!.id,
                     customerName: state.customer!.name,
-                    initialRegNumber: RegExp(r'^[0-9]+$').hasMatch(_lookupController.text)
+                    initialRegNumber:
+                        RegExp(r'^[0-9]+$').hasMatch(_lookupController.text)
                         ? null
                         : _lookupController.text.trim().toUpperCase(),
                     onCreated: (newVeh) {
-                      final updatedList = state.customerVehicles.any((v) =>
-                              v.id == newVeh.id ||
-                              v.registrationNumber.trim().toUpperCase() == newVeh.registrationNumber.trim().toUpperCase())
-                          ? state.customerVehicles.map((v) =>
-                              (v.id == newVeh.id || v.registrationNumber.trim().toUpperCase() == newVeh.registrationNumber.trim().toUpperCase())
-                                  ? newVeh
-                                  : v).toList()
+                      final updatedList =
+                          state.customerVehicles.any(
+                            (v) =>
+                                v.id == newVeh.id ||
+                                v.registrationNumber.trim().toUpperCase() ==
+                                    newVeh.registrationNumber
+                                        .trim()
+                                        .toUpperCase(),
+                          )
+                          ? state.customerVehicles
+                                .map(
+                                  (v) =>
+                                      (v.id == newVeh.id ||
+                                          v.registrationNumber
+                                                  .trim()
+                                                  .toUpperCase() ==
+                                              newVeh.registrationNumber
+                                                  .trim()
+                                                  .toUpperCase())
+                                      ? newVeh
+                                      : v,
+                                )
+                                .toList()
                           : [...state.customerVehicles, newVeh];
-                      notifier.selectCustomer(state.customer!, updatedList, vehicle: newVeh);
+                      notifier.selectCustomer(
+                        state.customer!,
+                        updatedList,
+                        vehicle: newVeh,
+                      );
                     },
                   );
                 },
@@ -386,7 +471,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               child: Center(
                 child: Text(
                   'No vehicle registered for this customer yet. Tap "+ Add Vehicle" above.',
-                  style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -404,8 +491,16 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   vehicle: v,
                   onTap: () => notifier.selectVehicle(v),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: AppColors.primary, size: 24)
-                      : const Icon(Icons.radio_button_unchecked, color: AppColors.textTertiary, size: 24),
+                      ? const Icon(
+                          Icons.check_circle,
+                          color: AppColors.primary,
+                          size: 24,
+                        )
+                      : const Icon(
+                          Icons.radio_button_unchecked,
+                          color: AppColors.textTertiary,
+                          size: 24,
+                        ),
                 );
               },
             ),
@@ -418,7 +513,10 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
   // ── STEP 1: SERVICES ──────────────────────────────────────────────────────
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildStep1Services(NewJobCardState state, NewJobCardNotifier notifier) {
+  Widget _buildStep1Services(
+    NewJobCardState state,
+    NewJobCardNotifier notifier,
+  ) {
     final search = _serviceSearchController.text.trim().toLowerCase();
     final filteredServices = state.availableServices.where((s) {
       if (search.isEmpty) return true;
@@ -439,12 +537,16 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 children: [
                   Text(
                     'Select Services',
-                    style: AppTextStyles.displaySmall.copyWith(color: AppColors.textPrimary),
+                    style: AppTextStyles.displaySmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Add detailing, washing, and protection services',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -455,11 +557,19 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 foregroundColor: AppColors.primary,
                 elevation: 0,
                 side: const BorderSide(color: AppColors.inProgressBorder),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('Custom Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+              label: const Text(
+                'Custom Service',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              ),
               onPressed: () {
                 AddCustomServiceDialog.show(
                   context,
@@ -481,7 +591,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.inProgressBorder, width: 1.5),
               boxShadow: const [
-                BoxShadow(color: Color(0x0A0453CD), blurRadius: 8, offset: Offset(0, 2)),
+                BoxShadow(
+                  color: Color(0x0A0453CD),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
             padding: const EdgeInsets.all(14),
@@ -493,17 +607,29 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.shopping_bag_outlined, color: AppColors.primary, size: 18),
+                        const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           'Added Services (${state.selectedServices.length})',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
                     Text(
                       '₹${state.previewSubtotal.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -519,12 +645,19 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                             children: [
                               Text(
                                 item.service.name,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textPrimary),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '₹${item.service.price.toStringAsFixed(2)} × ${item.quantity} = ₹${item.subtotal.toStringAsFixed(2)}',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -540,24 +673,43 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               InkWell(
-                                onTap: () => notifier.updateQuantity(item.service.id, item.quantity - 1),
+                                onTap: () => notifier.updateQuantity(
+                                  item.service.id,
+                                  item.quantity - 1,
+                                ),
                                 child: const Padding(
                                   padding: EdgeInsets.all(4),
-                                  child: Icon(Icons.remove, size: 16, color: AppColors.textPrimary),
+                                  child: Icon(
+                                    Icons.remove,
+                                    size: 16,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                                 child: Text(
                                   '${item.quantity}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                               InkWell(
-                                onTap: () => notifier.updateQuantity(item.service.id, item.quantity + 1),
+                                onTap: () => notifier.updateQuantity(
+                                  item.service.id,
+                                  item.quantity + 1,
+                                ),
                                 child: const Padding(
                                   padding: EdgeInsets.all(4),
-                                  child: Icon(Icons.add, size: 16, color: AppColors.primary),
+                                  child: Icon(
+                                    Icons.add,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -565,8 +717,13 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
-                          onPressed: () => notifier.removeService(item.service.id),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: AppColors.error,
+                            size: 20,
+                          ),
+                          onPressed: () =>
+                              notifier.removeService(item.service.id),
                         ),
                       ],
                     ),
@@ -591,7 +748,12 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
         const SizedBox(height: 12),
 
         if (state.isLoadingServices)
-          const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
         else if (filteredServices.isEmpty)
           Container(
             padding: const EdgeInsets.all(24),
@@ -600,7 +762,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.border),
             ),
-            child: const Center(child: Text('No services found matching search.')),
+            child: const Center(
+              child: Text('No services found matching search.'),
+            ),
           )
         else
           ListView.separated(
@@ -617,7 +781,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isAdded ? AppColors.inProgressBorder : AppColors.border,
+                    color: isAdded
+                        ? AppColors.inProgressBorder
+                        : AppColors.border,
                     width: isAdded ? 1.5 : 1,
                   ),
                 ),
@@ -630,20 +796,31 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         children: [
                           Text(
                             svc.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.surfaceAlt,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   svc.category ?? 'General Services',
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -651,24 +828,48 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             '₹${svc.price.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isAdded ? AppColors.accentPill : AppColors.primary,
-                        foregroundColor: isAdded ? AppColors.primary : Colors.white,
+                        backgroundColor: isAdded
+                            ? AppColors.accentPill
+                            : AppColors.primary,
+                        foregroundColor: isAdded
+                            ? AppColors.primary
+                            : Colors.white,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
-                          side: isAdded ? const BorderSide(color: AppColors.inProgressBorder) : BorderSide.none,
+                          side: isAdded
+                              ? const BorderSide(
+                                  color: AppColors.inProgressBorder,
+                                )
+                              : BorderSide.none,
                         ),
                       ),
-                      icon: Icon(isAdded ? Icons.add : Icons.add_rounded, size: 16),
-                      label: Text(isAdded ? '+ Add More' : 'Add', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      icon: Icon(
+                        isAdded ? Icons.add : Icons.add_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        isAdded ? '+ Add More' : 'Add',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
                       onPressed: () => notifier.addService(svc),
                     ),
                   ],
@@ -690,12 +891,16 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
       children: [
         Text(
           'Review & Confirm',
-          style: AppTextStyles.displaySmall.copyWith(color: AppColors.textPrimary),
+          style: AppTextStyles.displaySmall.copyWith(
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           'Verify all details before creating the Job Card on the server.',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 16),
 
@@ -709,7 +914,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             ),
             child: Text(
               state.submitError!,
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.errorDark),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.errorDark,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -728,23 +935,38 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.person_pin_outlined, color: AppColors.primary, size: 18),
+                  Icon(
+                    Icons.person_pin_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Customer & Vehicle',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ],
               ),
               const Divider(height: 16, color: AppColors.border),
               Text(
                 'Customer: ${state.customer?.name ?? ''} (${state.customer?.phoneNumber ?? ''})',
-                style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Vehicle: ${state.selectedVehicle?.registrationNumber.toUpperCase() ?? ''} — ${state.selectedVehicle?.displayName ?? ''}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
@@ -767,11 +989,19 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.build_circle_outlined, color: AppColors.primary, size: 18),
+                      const Icon(
+                        Icons.build_circle_outlined,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Selected Services (${state.selectedServices.length})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -784,8 +1014,21 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('${item.service.name} (×${item.quantity})', style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
-                      Text('₹${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                      Text(
+                        '${item.service.name} (×${item.quantity})',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        '₹${item.subtotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -808,8 +1051,17 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Apply GST / Tax (18%)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                subtitle: const Text('When disabled, generates a non-GST job card', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                title: const Text(
+                  'Apply GST / Tax (18%)',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'When disabled, generates a non-GST job card',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
                 value: state.isGstEnabled,
                 activeTrackColor: AppColors.primary,
                 onChanged: (val) => notifier.setGstEnabled(val),
@@ -837,9 +1089,15 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              _buildSummaryRow('Estimated Subtotal', '₹${state.previewSubtotal.toStringAsFixed(2)}'),
+              _buildSummaryRow(
+                'Estimated Subtotal',
+                '₹${state.previewSubtotal.toStringAsFixed(2)}',
+              ),
               const SizedBox(height: 6),
-              _buildSummaryRow('Estimated GST (18%)', '₹${state.previewTax.toStringAsFixed(2)}'),
+              _buildSummaryRow(
+                'Estimated GST (18%)',
+                '₹${state.previewTax.toStringAsFixed(2)}',
+              ),
               const Divider(height: 18, color: AppColors.border),
               _buildSummaryRow(
                 'Estimated Total',
@@ -906,11 +1164,21 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.textPrimary,
                 side: const BorderSide(color: AppColors.borderDark),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              onPressed: state.isSubmitting ? null : () => notifier.setStep(state.step - 1),
-              child: const Text('Back', style: TextStyle(fontWeight: FontWeight.w600)),
+              onPressed: state.isSubmitting
+                  ? null
+                  : () => notifier.setStep(state.step - 1),
+              child: const Text(
+                'Back',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
             ),
             const SizedBox(width: 12),
           ],
@@ -924,7 +1192,11 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                     notifier.setStep(1);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select both a customer and a vehicle.')),
+                      const SnackBar(
+                        content: Text(
+                          'Please select both a customer and a vehicle.',
+                        ),
+                      ),
                     );
                   }
                 } else if (state.step == 1) {
@@ -932,7 +1204,9 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                     notifier.setStep(2);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please add at least one service.')),
+                      const SnackBar(
+                        content: Text('Please add at least one service.'),
+                      ),
                     );
                   }
                 } else if (state.step == 2) {

@@ -56,17 +56,14 @@ class PermissionGroupModel {
   final String module;
   final List<PermissionModel> permissions;
 
-  const PermissionGroupModel({
-    required this.module,
-    required this.permissions,
-  });
+  const PermissionGroupModel({required this.module, required this.permissions});
 
   factory PermissionGroupModel.fromJson(Map<String, dynamic> json) {
     return PermissionGroupModel(
       module: json['module'] as String? ?? '',
-      permissions: (json['permissions'] as List<dynamic>?)
-              ?.map((e) =>
-                  PermissionModel.fromJson(e as Map<String, dynamic>))
+      permissions:
+          (json['permissions'] as List<dynamic>?)
+              ?.map((e) => PermissionModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
     );

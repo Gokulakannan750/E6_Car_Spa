@@ -157,17 +157,21 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(showroomBillingProvider(widget.showroom.id));
-    final canManageBilling = _hasPermission('showroom.manage_billing') ||
+    final canManageBilling =
+        _hasPermission('showroom.manage_billing') ||
         _hasPermission('showroom.manage');
-    final canRecordPayment = _hasPermission('showroom.record_payment') ||
+    final canRecordPayment =
+        _hasPermission('showroom.record_payment') ||
         _hasPermission('showroom.manage');
     final canDeletePayment = _hasPermission('showroom.delete_payment');
-    final canViewHistory = _hasPermission('showroom.view_history') ||
+    final canViewHistory =
+        _hasPermission('showroom.view_history') ||
         _hasPermission('showroom.view');
 
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(showroomBillingProvider(widget.showroom.id).notifier).refresh(),
+      onRefresh: () => ref
+          .read(showroomBillingProvider(widget.showroom.id).notifier)
+          .refresh(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: 88, top: 4),
@@ -187,11 +191,13 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                     child: _buildSubTabButton(
                       label: 'Daily Bill',
                       icon: Icons.receipt_long_rounded,
-                      isActive:
-                          state.activeTab == ShowroomBillingTabMode.daily,
+                      isActive: state.activeTab == ShowroomBillingTabMode.daily,
                       onTap: () => ref
                           .read(
-                              showroomBillingProvider(widget.showroom.id).notifier)
+                            showroomBillingProvider(
+                              widget.showroom.id,
+                            ).notifier,
+                          )
                           .setTab(ShowroomBillingTabMode.daily),
                     ),
                   ),
@@ -203,8 +209,11 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                         isActive:
                             state.activeTab == ShowroomBillingTabMode.history,
                         onTap: () => ref
-                            .read(showroomBillingProvider(widget.showroom.id)
-                                .notifier)
+                            .read(
+                              showroomBillingProvider(
+                                widget.showroom.id,
+                              ).notifier,
+                            )
                             .setTab(ShowroomBillingTabMode.history),
                       ),
                     ),
@@ -270,8 +279,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                   label,
                   style: AppTextStyles.labelMedium.copyWith(
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color:
-                        isActive ? AppColors.primary : AppColors.textSecondary,
+                    color: isActive
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -429,8 +439,10 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                 const SizedBox(height: 10),
                 Container(
                   width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(8),
@@ -469,7 +481,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 8),
+                            vertical: 10,
+                            horizontal: 8,
+                          ),
                           side: const BorderSide(color: AppColors.primary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -509,7 +523,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.success,
                           padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 8),
+                            vertical: 10,
+                            horizontal: 8,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -560,8 +576,7 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withAlpha(20),
                   borderRadius: BorderRadius.circular(10),
@@ -591,8 +606,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
               message: hasBill
                   ? 'Tap "Record Payment" to record customer collections for this date.'
                   : 'Set the daily billed amount to start recording payment transactions.',
-              actionLabel:
-                  canManageBilling && !hasBill ? 'Set Daily Bill' : null,
+              actionLabel: canManageBilling && !hasBill
+                  ? 'Set Daily Bill'
+                  : null,
               onAction: canManageBilling && !hasBill
                   ? () => _openSetDailyBillModal(bill)
                   : null,
@@ -738,15 +754,24 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
             child: Row(
               children: [
                 _buildPresetChip(
-                    'This Month', BillingHistoryPreset.thisMonth, state),
+                  'This Month',
+                  BillingHistoryPreset.thisMonth,
+                  state,
+                ),
                 const SizedBox(width: 8),
                 _buildPresetChip('Today', BillingHistoryPreset.today, state),
                 const SizedBox(width: 8),
                 _buildPresetChip(
-                    'This Week', BillingHistoryPreset.thisWeek, state),
+                  'This Week',
+                  BillingHistoryPreset.thisWeek,
+                  state,
+                ),
                 const SizedBox(width: 8),
                 _buildPresetChip(
-                    'Last Month', BillingHistoryPreset.lastMonth, state),
+                  'Last Month',
+                  BillingHistoryPreset.lastMonth,
+                  state,
+                ),
                 const SizedBox(width: 8),
                 _buildCustomPresetChip(state),
               ],
@@ -827,7 +852,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(6),
@@ -860,7 +887,9 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 6),
+                          horizontal: 8,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(6),
@@ -966,9 +995,7 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
       side: BorderSide(
         color: isSelected ? AppColors.primary : AppColors.border,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -995,15 +1022,12 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
       side: BorderSide(
         color: isSelected ? AppColors.primary : AppColors.border,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
   Widget _buildDailyHistoryRowCard(ShowroomDailyHistoryRow row) {
-    final isSelectedDate =
-        DateUtils.isSameDay(row.date, widget.selectedDate);
+    final isSelectedDate = DateUtils.isSameDay(row.date, widget.selectedDate);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

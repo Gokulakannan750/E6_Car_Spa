@@ -445,6 +445,7 @@ export function InvoiceDetailPage() {
 			queryClient.invalidateQueries({ queryKey: ['customers'] });
 			queryClient.invalidateQueries({ queryKey: ['invoices'] });
 			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 
 			// Automatically poll/refresh notification status for InvoiceFinalized
 			startPolling('InvoiceFinalized');
@@ -563,6 +564,7 @@ export function InvoiceDetailPage() {
 			queryClient.invalidateQueries({ queryKey: ['customers'] });
 			queryClient.invalidateQueries({ queryKey: ['invoices'] });
 			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 
 			// Automatically poll/refresh notification status for PaymentCompleted
 			startPolling('PaymentCompleted');
@@ -591,6 +593,7 @@ export function InvoiceDetailPage() {
 			queryClient.invalidateQueries({ queryKey: ['customers'] });
 			queryClient.invalidateQueries({ queryKey: ['invoices'] });
 			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to cancel invoice.';
 			setCancelNotice(msg);

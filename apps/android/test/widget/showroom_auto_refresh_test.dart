@@ -48,9 +48,11 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
     }
     if (search != null && search.isNotEmpty) {
       list = list
-          .where((s) =>
-              s.name.toLowerCase().contains(search.toLowerCase()) ||
-              s.address.toLowerCase().contains(search.toLowerCase()))
+          .where(
+            (s) =>
+                s.name.toLowerCase().contains(search.toLowerCase()) ||
+                s.address.toLowerCase().contains(search.toLowerCase()),
+          )
           .toList();
     }
     return list;
@@ -77,7 +79,10 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
   }
 
   @override
-  Future<Showroom> updateShowroom(String id, UpdateShowroomRequest request) async {
+  Future<Showroom> updateShowroom(
+    String id,
+    UpdateShowroomRequest request,
+  ) async {
     final idx = showrooms.indexWhere((s) => s.id == id);
     if (idx == -1) throw const ApiException(message: 'Not found');
     final existing = showrooms[idx];
@@ -96,12 +101,17 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
   Future<void> toggleShowroomActive(String id) async {
     final idx = showrooms.indexWhere((s) => s.id == id);
     if (idx != -1) {
-      showrooms[idx] = showrooms[idx].copyWith(isActive: !showrooms[idx].isActive);
+      showrooms[idx] = showrooms[idx].copyWith(
+        isActive: !showrooms[idx].isActive,
+      );
     }
   }
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     return DailyStaffResponse(
       showroomId: showroomId,
       showroomName: 'Honda Center',
@@ -113,10 +123,13 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
   }
 
   @override
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async => [];
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async => [];
 
   @override
-  Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async => [];
+  Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async =>
+      [];
 
   @override
   Future<List<ShowroomVehicleWork>> getShowroomVehicleWorks(
@@ -124,11 +137,13 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
     DateTime? date,
     String? staffId,
     String? vehicleTypeId,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
-  Future<ShowroomOperationsSummary> getShowroomOperationsSummary(String showroomId, DateTime date) async {
+  Future<ShowroomOperationsSummary> getShowroomOperationsSummary(
+    String showroomId,
+    DateTime date,
+  ) async {
     return ShowroomOperationsSummary(
       showroomId: showroomId,
       fromDate: date,
@@ -140,7 +155,10 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
   }
 
   @override
-  Future<ShowroomDailyBill> getShowroomDailyBill(String showroomId, DateTime date) async {
+  Future<ShowroomDailyBill> getShowroomDailyBill(
+    String showroomId,
+    DateTime date,
+  ) async {
     return ShowroomDailyBill(
       id: 'bill-1',
       showroomId: showroomId,
@@ -156,7 +174,8 @@ class _AutoRefreshMockShowroomRepository extends ShowroomRepository {
   }
 }
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
 
   @override
@@ -178,7 +197,12 @@ void main() {
     fullName: 'Admin User',
     role: 'Admin',
     isOwner: true,
-    permissions: ['showroom.view', 'showroom.manage', 'showroom.assign_staff', 'showroom.confirm_attendance'],
+    permissions: [
+      'showroom.view',
+      'showroom.manage',
+      'showroom.assign_staff',
+      'showroom.confirm_attendance',
+    ],
   );
 
   Widget createTestWidget(ShowroomRepository repo, {int refreshInterval = 30}) {
@@ -192,197 +216,203 @@ void main() {
           SystemPreferencesModel(refreshInterval: refreshInterval),
         ),
       ],
-      child: const MaterialApp(
-        home: ShowroomListScreen(),
-      ),
+      child: const MaterialApp(home: ShowroomListScreen()),
     );
   }
 
   group('Showroom Cross-Platform Auto-Sync Tests', () {
     testWidgets(
-        '1. Windows adds a showroom -> Android ShowroomList sitting open auto-refreshes after interval without navigation',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
+      '1. Windows adds a showroom -> Android ShowroomList sitting open auto-refreshes after interval without navigation',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
 
-      await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
+        await tester.pumpAndSettle();
 
-      // Initial state: 1 showroom
-      expect(find.text('Honda Center'), findsOneWidget);
-      expect(find.text('Toyota North'), findsNothing);
-      expect(repo.getShowroomsCalls, 1);
+        // Initial state: 1 showroom
+        expect(find.text('Honda Center'), findsOneWidget);
+        expect(find.text('Toyota North'), findsNothing);
+        expect(repo.getShowroomsCalls, 1);
 
-      // Simulate external creation from Windows/Web
-      repo.showrooms.add(
-        Showroom(
-          id: 'sr-2',
-          name: 'Toyota North',
-          address: '456 Northern Ave',
-          phone: '9123456780',
-          isActive: true,
-          createdAt: DateTime.now(),
-        ),
-      );
-
-      // Advance clock before interval: Toyota North not yet visible
-      await tester.pump(const Duration(seconds: 10));
-      expect(find.text('Toyota North'), findsNothing);
-
-      // Advance clock past 15s refresh interval
-      await tester.pump(const Duration(seconds: 6));
-      await tester.pumpAndSettle();
-
-      // New showroom automatically appears on Android without manual action
-      expect(find.text('Toyota North'), findsOneWidget);
-      expect(find.text('Honda Center'), findsOneWidget);
-      expect(repo.getShowroomsCalls, greaterThanOrEqualTo(2));
-    });
-
-    testWidgets(
-        '2. Windows edits a showroom -> Android sitting open automatically updates showroom details',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
-
-      await tester.pumpWidget(createTestWidget(repo, refreshInterval: 30));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Honda Center'), findsOneWidget);
-
-      // Simulate Windows modifying showroom name and address
-      repo.showrooms[0] = repo.showrooms[0].copyWith(
-        name: 'Honda Premium Spa',
-        address: '789 Elite Blvd',
-      );
-
-      // Advance time past 30s interval
-      await tester.pump(const Duration(seconds: 31));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Honda Premium Spa'), findsOneWidget);
-      expect(find.text('Honda Center'), findsNothing);
-    });
-
-    testWidgets(
-        '3. Windows deactivates a showroom -> Android sitting open reflects inactive status',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
-
-      await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Active'), findsWidgets);
-
-      // Simulate Windows deactivating showroom
-      repo.showrooms[0] = repo.showrooms[0].copyWith(isActive: false);
-
-      await tester.pump(const Duration(seconds: 16));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Inactive'), findsWidgets);
-    });
-
-    testWidgets(
-        '4. Manual / Off (interval = 0) disables automatic polling completely',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
-
-      await tester.pumpWidget(createTestWidget(repo, refreshInterval: 0));
-      await tester.pumpAndSettle();
-
-      final initialCalls = repo.getShowroomsCalls;
-
-      // Add showroom externally
-      repo.showrooms.add(
-        Showroom(
-          id: 'sr-99',
-          name: 'Manual Only Spa',
-          address: '99 Off Road',
-          isActive: true,
-          createdAt: DateTime.now(),
-        ),
-      );
-
-      // Advance 120 seconds
-      await tester.pump(const Duration(seconds: 120));
-      await tester.pumpAndSettle();
-
-      // No new polling calls should have occurred
-      expect(repo.getShowroomsCalls, initialCalls);
-      expect(find.text('Manual Only Spa'), findsNothing);
-    });
-
-    testWidgets(
-        '5. Transient network failure during auto-refresh does not crash or spam UI errors',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
-
-      await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Honda Center'), findsOneWidget);
-
-      // Simulate network drop
-      repo.shouldThrowOnGet = true;
-
-      // Advance past refresh interval
-      await tester.pump(const Duration(seconds: 16));
-      await tester.pumpAndSettle();
-
-      // Screen remains completely functional and shows existing data
-      expect(find.text('Honda Center'), findsOneWidget);
-
-      // Restore network
-      repo.shouldThrowOnGet = false;
-      repo.showrooms.add(
-        Showroom(
-          id: 'sr-3',
-          name: 'Recovered Spa',
-          address: '333 Recover Ave',
-          isActive: true,
-          createdAt: DateTime.now(),
-        ),
-      );
-
-      // Next poll recovers automatically
-      await tester.pump(const Duration(seconds: 16));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Recovered Spa'), findsOneWidget);
-    });
-
-    testWidgets(
-        '6. ShowroomDetailScreen updates showroom details in real time on auto-refresh',
-        (tester) async {
-      final repo = _AutoRefreshMockShowroomRepository();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            showroomRepositoryProvider.overrideWithValue(repo),
-            authNotifierProvider.overrideWith(
-              (ref) => _TestAuthNotifier(const Authenticated(adminUser)),
-            ),
-            systemPreferencesProvider.overrideWithValue(
-              const SystemPreferencesModel(refreshInterval: 15),
-            ),
-          ],
-          child: MaterialApp(
-            home: ShowroomDetailScreen(showroom: repo.showrooms[0]),
+        // Simulate external creation from Windows/Web
+        repo.showrooms.add(
+          Showroom(
+            id: 'sr-2',
+            name: 'Toyota North',
+            address: '456 Northern Ave',
+            phone: '9123456780',
+            isActive: true,
+            createdAt: DateTime.now(),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
 
-      expect(find.text('Honda Center'), findsWidgets);
+        // Advance clock before interval: Toyota North not yet visible
+        await tester.pump(const Duration(seconds: 10));
+        expect(find.text('Toyota North'), findsNothing);
 
-      // Simulate Windows update
-      repo.showrooms[0] = repo.showrooms[0].copyWith(name: 'Honda Flagship Hub');
+        // Advance clock past 15s refresh interval
+        await tester.pump(const Duration(seconds: 6));
+        await tester.pumpAndSettle();
 
-      await tester.pump(const Duration(seconds: 16));
-      await tester.pumpAndSettle();
+        // New showroom automatically appears on Android without manual action
+        expect(find.text('Toyota North'), findsOneWidget);
+        expect(find.text('Honda Center'), findsOneWidget);
+        expect(repo.getShowroomsCalls, greaterThanOrEqualTo(2));
+      },
+    );
 
-      expect(find.text('Honda Flagship Hub'), findsWidgets);
-      expect(find.text('Honda Center'), findsNothing);
-    });
+    testWidgets(
+      '2. Windows edits a showroom -> Android sitting open automatically updates showroom details',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
+
+        await tester.pumpWidget(createTestWidget(repo, refreshInterval: 30));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Honda Center'), findsOneWidget);
+
+        // Simulate Windows modifying showroom name and address
+        repo.showrooms[0] = repo.showrooms[0].copyWith(
+          name: 'Honda Premium Spa',
+          address: '789 Elite Blvd',
+        );
+
+        // Advance time past 30s interval
+        await tester.pump(const Duration(seconds: 31));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Honda Premium Spa'), findsOneWidget);
+        expect(find.text('Honda Center'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '3. Windows deactivates a showroom -> Android sitting open reflects inactive status',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
+
+        await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Active'), findsWidgets);
+
+        // Simulate Windows deactivating showroom
+        repo.showrooms[0] = repo.showrooms[0].copyWith(isActive: false);
+
+        await tester.pump(const Duration(seconds: 16));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Inactive'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      '4. Manual / Off (interval = 0) disables automatic polling completely',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
+
+        await tester.pumpWidget(createTestWidget(repo, refreshInterval: 0));
+        await tester.pumpAndSettle();
+
+        final initialCalls = repo.getShowroomsCalls;
+
+        // Add showroom externally
+        repo.showrooms.add(
+          Showroom(
+            id: 'sr-99',
+            name: 'Manual Only Spa',
+            address: '99 Off Road',
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+
+        // Advance 120 seconds
+        await tester.pump(const Duration(seconds: 120));
+        await tester.pumpAndSettle();
+
+        // No new polling calls should have occurred
+        expect(repo.getShowroomsCalls, initialCalls);
+        expect(find.text('Manual Only Spa'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '5. Transient network failure during auto-refresh does not crash or spam UI errors',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
+
+        await tester.pumpWidget(createTestWidget(repo, refreshInterval: 15));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Honda Center'), findsOneWidget);
+
+        // Simulate network drop
+        repo.shouldThrowOnGet = true;
+
+        // Advance past refresh interval
+        await tester.pump(const Duration(seconds: 16));
+        await tester.pumpAndSettle();
+
+        // Screen remains completely functional and shows existing data
+        expect(find.text('Honda Center'), findsOneWidget);
+
+        // Restore network
+        repo.shouldThrowOnGet = false;
+        repo.showrooms.add(
+          Showroom(
+            id: 'sr-3',
+            name: 'Recovered Spa',
+            address: '333 Recover Ave',
+            isActive: true,
+            createdAt: DateTime.now(),
+          ),
+        );
+
+        // Next poll recovers automatically
+        await tester.pump(const Duration(seconds: 16));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Recovered Spa'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      '6. ShowroomDetailScreen updates showroom details in real time on auto-refresh',
+      (tester) async {
+        final repo = _AutoRefreshMockShowroomRepository();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              showroomRepositoryProvider.overrideWithValue(repo),
+              authNotifierProvider.overrideWith(
+                (ref) => _TestAuthNotifier(const Authenticated(adminUser)),
+              ),
+              systemPreferencesProvider.overrideWithValue(
+                const SystemPreferencesModel(refreshInterval: 15),
+              ),
+            ],
+            child: MaterialApp(
+              home: ShowroomDetailScreen(showroom: repo.showrooms[0]),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Honda Center'), findsWidgets);
+
+        // Simulate Windows update
+        repo.showrooms[0] = repo.showrooms[0].copyWith(
+          name: 'Honda Flagship Hub',
+        );
+
+        await tester.pump(const Duration(seconds: 16));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Honda Flagship Hub'), findsWidgets);
+        expect(find.text('Honda Center'), findsNothing);
+      },
+    );
   });
 }

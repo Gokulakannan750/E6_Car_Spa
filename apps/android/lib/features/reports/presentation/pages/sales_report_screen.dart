@@ -43,7 +43,8 @@ class SalesReportScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               salesAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading sales report...'),
+                loading: () =>
+                    const AppLoadingState(message: 'Loading sales report...'),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(salesReportProvider),
@@ -60,7 +61,9 @@ class SalesReportScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,18 +92,38 @@ class SalesReportScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Invoices', summary.invoiceCount.toString()),
-                                _buildSummaryItem('Collected', _formatCurrency(summary.totalPaid), color: AppColors.success),
-                                _buildSummaryItem('Balance', _formatCurrency(summary.totalBalance), color: AppColors.warning),
+                                _buildSummaryItem(
+                                  'Invoices',
+                                  summary.invoiceCount.toString(),
+                                ),
+                                _buildSummaryItem(
+                                  'Collected',
+                                  _formatCurrency(summary.totalPaid),
+                                  color: AppColors.success,
+                                ),
+                                _buildSummaryItem(
+                                  'Balance',
+                                  _formatCurrency(summary.totalBalance),
+                                  color: AppColors.warning,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Subtotal', _formatCurrency(summary.totalSubtotal)),
-                                _buildSummaryItem('Discount', _formatCurrency(summary.totalDiscount)),
-                                _buildSummaryItem('GST', _formatCurrency(summary.totalGst)),
+                                _buildSummaryItem(
+                                  'Subtotal',
+                                  _formatCurrency(summary.totalSubtotal),
+                                ),
+                                _buildSummaryItem(
+                                  'Discount',
+                                  _formatCurrency(summary.totalDiscount),
+                                ),
+                                _buildSummaryItem(
+                                  'GST',
+                                  _formatCurrency(summary.totalGst),
+                                ),
                               ],
                             ),
                           ],
@@ -127,7 +150,8 @@ class SalesReportScreen extends ConsumerWidget {
                       if (items.isEmpty)
                         const AppEmptyState(
                           title: 'No sales found',
-                          message: 'No finalized invoices found in the selected date range.',
+                          message:
+                              'No finalized invoices found in the selected date range.',
                           icon: Icons.receipt_long_outlined,
                         )
                       else
@@ -135,7 +159,8 @@ class SalesReportScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final inv = items[index];
                             final dateFormat = DateFormat('dd MMM yyyy');
@@ -144,14 +169,17 @@ class SalesReportScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Draft',
@@ -183,37 +211,54 @@ class SalesReportScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  const Divider(color: AppColors.border, height: 1),
+                                  const Divider(
+                                    color: AppColors.border,
+                                    height: 1,
+                                  ),
                                   const SizedBox(height: 8),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Total Amount',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textTertiary,
+                                            ),
                                           ),
                                           Text(
                                             _formatCurrency(inv.totalAmount),
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                         ],
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           const Text(
                                             'Paid / Balance',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textTertiary,
+                                            ),
                                           ),
                                           Text(
                                             '${_formatCurrency(inv.paidAmount)} / ${_formatCurrency(inv.balanceAmount)}',
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
-                                              color: inv.balanceAmount > 0 ? AppColors.warning : AppColors.success,
+                                              color: inv.balanceAmount > 0
+                                                  ? AppColors.warning
+                                                  : AppColors.success,
                                             ),
                                           ),
                                         ],

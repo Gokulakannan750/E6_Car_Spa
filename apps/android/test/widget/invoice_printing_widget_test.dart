@@ -98,102 +98,117 @@ void main() {
   );
 
   group('Invoice Printing Actions & Job Card Verification', () {
-    testWidgets('InvoiceDetailsScreen displays Print action in AppBar and bottom bar for paid invoice', (tester) async {
-      final fakeRepo = _FakeInvoiceRepo(invoice: sampleInvoice);
+    testWidgets(
+      'InvoiceDetailsScreen displays Print action in AppBar and bottom bar for paid invoice',
+      (tester) async {
+        final fakeRepo = _FakeInvoiceRepo(invoice: sampleInvoice);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceRepositoryProvider.overrideWithValue(fakeRepo),
-            invoiceDetailsProvider('inv-101').overrideWith(
-              (ref) => InvoiceDetailsNotifier(fakeRepo, 'inv-101', ref),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              invoiceRepositoryProvider.overrideWithValue(fakeRepo),
+              invoiceDetailsProvider('inv-101').overrideWith(
+                (ref) => InvoiceDetailsNotifier(fakeRepo, 'inv-101', ref),
+              ),
+            ],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-101'),
             ),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-101'),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Verify AppBar print button exists
-      expect(find.byKey(const Key('print_invoice_appbar_button')), findsOneWidget);
+        // Verify AppBar print button exists
+        expect(
+          find.byKey(const Key('print_invoice_appbar_button')),
+          findsOneWidget,
+        );
 
-      // Verify Bottom bar print button exists for paid invoice
-      expect(find.byKey(const Key('print_paid_invoice_button')), findsOneWidget);
-    });
+        // Verify Bottom bar print button exists for paid invoice
+        expect(
+          find.byKey(const Key('print_paid_invoice_button')),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('JobCardDetailsScreen does NOT display a Print button (Task 3C requirement)', (tester) async {
-      final fakeRepo = _FakeJobCardRepo(jobCard: sampleJobCard);
+    testWidgets(
+      'JobCardDetailsScreen does NOT display a Print button (Task 3C requirement)',
+      (tester) async {
+        final fakeRepo = _FakeJobCardRepo(jobCard: sampleJobCard);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            jobCardRepositoryProvider.overrideWithValue(fakeRepo),
-            jobCardDetailsProvider('jc-101').overrideWith(
-              (ref) => JobCardDetailsNotifier('jc-101', fakeRepo),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              jobCardRepositoryProvider.overrideWithValue(fakeRepo),
+              jobCardDetailsProvider('jc-101').overrideWith(
+                (ref) => JobCardDetailsNotifier('jc-101', fakeRepo),
+              ),
+            ],
+            child: const MaterialApp(
+              home: JobCardDetailsScreen(jobCardId: 'jc-101'),
             ),
-          ],
-          child: const MaterialApp(
-            home: JobCardDetailsScreen(jobCardId: 'jc-101'),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Job card details MUST NOT have a print action button
-      expect(find.byKey(const Key('job_card_preview_button')), findsNothing);
-      expect(find.byIcon(Icons.print_outlined), findsNothing);
-    });
+        // Job card details MUST NOT have a print action button
+        expect(find.byKey(const Key('job_card_preview_button')), findsNothing);
+        expect(find.byIcon(Icons.print_outlined), findsNothing);
+      },
+    );
 
-    testWidgets('InvoicePrintPreviewDialog renders preview header and close button', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => InvoicePrintPreviewDialog(
-                        invoice: sampleInvoice,
-                        businessProfile: const BusinessProfileModel(
-                          id: 'prof-1',
-                          businessName: 'E6 Car Spa',
-                          addressLine1: '36, Geetha Nagar Main Road',
-                          city: 'Erode',
-                          state: 'Tamil Nadu',
-                          postalCode: '638011',
-                          phone: '9578749449',
-                          email: 'e6carspaerd@gmail.com',
+    testWidgets(
+      'InvoicePrintPreviewDialog renders preview header and close button',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) => ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => InvoicePrintPreviewDialog(
+                          invoice: sampleInvoice,
+                          businessProfile: const BusinessProfileModel(
+                            id: 'prof-1',
+                            businessName: 'E6 Car Spa',
+                            addressLine1: '36, Geetha Nagar Main Road',
+                            city: 'Erode',
+                            state: 'Tamil Nadu',
+                            postalCode: '638011',
+                            phone: '9578749449',
+                            email: 'e6carspaerd@gmail.com',
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: const Text('Open Preview'),
+                      );
+                    },
+                    child: const Text('Open Preview'),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.tap(find.text('Open Preview'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(find.text('Open Preview'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('Invoice Preview (INV-2026-0001)'), findsOneWidget);
-      expect(find.byTooltip('Close Preview'), findsOneWidget);
-      expect(find.byTooltip('Print Invoice'), findsOneWidget);
+        expect(find.text('Invoice Preview (INV-2026-0001)'), findsOneWidget);
+        expect(find.byTooltip('Close Preview'), findsOneWidget);
+        expect(find.byTooltip('Print Invoice'), findsOneWidget);
 
-      // Close dialog
-      await tester.tap(find.byTooltip('Close Preview'));
-      await tester.pumpAndSettle();
+        // Close dialog
+        await tester.tap(find.byTooltip('Close Preview'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Invoice Preview (INV-2026-0001)'), findsNothing);
-    });
+        expect(find.text('Invoice Preview (INV-2026-0001)'), findsNothing);
+      },
+    );
   });
 }

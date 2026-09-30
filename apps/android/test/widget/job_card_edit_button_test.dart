@@ -23,8 +23,17 @@ class _FakeJobCardRepo implements JobCardRepository {
 }
 
 void main() {
-  const dummyCustomer = CustomerSummary(id: 'c1', name: 'John Doe', phoneNumber: '9876543210');
-  const dummyVehicle = VehicleSummary(id: 'v1', registrationNumber: 'TN38AB1234', make: 'Hyundai', model: 'Creta');
+  const dummyCustomer = CustomerSummary(
+    id: 'c1',
+    name: 'John Doe',
+    phoneNumber: '9876543210',
+  );
+  const dummyVehicle = VehicleSummary(
+    id: 'v1',
+    registrationNumber: 'TN38AB1234',
+    make: 'Hyundai',
+    model: 'Creta',
+  );
   const dummyService = JobCardServiceItem(
     id: 's1',
     serviceId: 'svc1',
@@ -63,43 +72,55 @@ void main() {
   );
 
   group('Job Card Details Edit Button Tests', () {
-    testWidgets('Edit button visible when user has jobcards.edit and job card is editable', (tester) async {
-      const user = AuthUser(
-        id: 'u1',
-        fullName: 'Manager',
-        username: 'mgr',
-        role: 'Manager',
-        isOwner: false,
-        permissions: ['jobcards.view', 'jobcards.edit'],
-      );
+    testWidgets(
+      'Edit button visible when user has jobcards.edit and job card is editable',
+      (tester) async {
+        const user = AuthUser(
+          id: 'u1',
+          fullName: 'Manager',
+          username: 'mgr',
+          role: 'Manager',
+          isOwner: false,
+          permissions: ['jobcards.view', 'jobcards.edit'],
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => AuthNotifierMock(const Authenticated(user))),
-            jobCardRepositoryProvider.overrideWithValue(_FakeJobCardRepo(editableJobCard)),
-            jobCardDetailsProvider('jc-1').overrideWith(
-              (ref) => JobCardDetailsNotifier(
-                'jc-1',
-                _FakeJobCardRepo(editableJobCard),
-                JobCardDetailsState(isLoading: false, jobCard: editableJobCard),
-                false,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authNotifierProvider.overrideWith(
+                (ref) => AuthNotifierMock(const Authenticated(user)),
               ),
+              jobCardRepositoryProvider.overrideWithValue(
+                _FakeJobCardRepo(editableJobCard),
+              ),
+              jobCardDetailsProvider('jc-1').overrideWith(
+                (ref) => JobCardDetailsNotifier(
+                  'jc-1',
+                  _FakeJobCardRepo(editableJobCard),
+                  JobCardDetailsState(
+                    isLoading: false,
+                    jobCard: editableJobCard,
+                  ),
+                  false,
+                ),
+              ),
+            ],
+            child: const MaterialApp(
+              home: JobCardDetailsScreen(jobCardId: 'jc-1'),
             ),
-          ],
-          child: const MaterialApp(
-            home: JobCardDetailsScreen(jobCardId: 'jc-1'),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('edit_job_card_button')), findsOneWidget);
-      expect(find.byKey(const Key('edit_services_button')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('edit_job_card_button')), findsOneWidget);
+        expect(find.byKey(const Key('edit_services_button')), findsOneWidget);
+      },
+    );
 
-    testWidgets('Edit button hidden when user lacks jobcards.edit permission', (tester) async {
+    testWidgets('Edit button hidden when user lacks jobcards.edit permission', (
+      tester,
+    ) async {
       const user = AuthUser(
         id: 'u2',
         fullName: 'Viewer',
@@ -112,8 +133,12 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authNotifierProvider.overrideWith((ref) => AuthNotifierMock(const Authenticated(user))),
-            jobCardRepositoryProvider.overrideWithValue(_FakeJobCardRepo(editableJobCard)),
+            authNotifierProvider.overrideWith(
+              (ref) => AuthNotifierMock(const Authenticated(user)),
+            ),
+            jobCardRepositoryProvider.overrideWithValue(
+              _FakeJobCardRepo(editableJobCard),
+            ),
             jobCardDetailsProvider('jc-1').overrideWith(
               (ref) => JobCardDetailsNotifier(
                 'jc-1',
@@ -135,7 +160,9 @@ void main() {
       expect(find.byKey(const Key('edit_services_button')), findsNothing);
     });
 
-    testWidgets('Edit button hidden when job card is locked by invoice', (tester) async {
+    testWidgets('Edit button hidden when job card is locked by invoice', (
+      tester,
+    ) async {
       const user = AuthUser(
         id: 'u1',
         fullName: 'Manager',
@@ -148,8 +175,12 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authNotifierProvider.overrideWith((ref) => AuthNotifierMock(const Authenticated(user))),
-            jobCardRepositoryProvider.overrideWithValue(_FakeJobCardRepo(lockedJobCard)),
+            authNotifierProvider.overrideWith(
+              (ref) => AuthNotifierMock(const Authenticated(user)),
+            ),
+            jobCardRepositoryProvider.overrideWithValue(
+              _FakeJobCardRepo(lockedJobCard),
+            ),
             jobCardDetailsProvider('jc-2').overrideWith(
               (ref) => JobCardDetailsNotifier(
                 'jc-2',
@@ -174,7 +205,8 @@ void main() {
   });
 }
 
-class AuthNotifierMock extends StateNotifier<AuthState> implements AuthNotifier {
+class AuthNotifierMock extends StateNotifier<AuthState>
+    implements AuthNotifier {
   AuthNotifierMock(super.initial);
 
   @override

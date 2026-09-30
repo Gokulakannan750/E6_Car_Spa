@@ -18,7 +18,8 @@ class RecordPaymentBottomSheet extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required double balanceAmount,
-    required Future<String?> Function(RecordPaymentRequest request) onRecordPayment,
+    required Future<String?> Function(RecordPaymentRequest request)
+    onRecordPayment,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -32,7 +33,8 @@ class RecordPaymentBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<RecordPaymentBottomSheet> createState() => _RecordPaymentBottomSheetState();
+  State<RecordPaymentBottomSheet> createState() =>
+      _RecordPaymentBottomSheetState();
 }
 
 class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
@@ -73,12 +75,18 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
 
     final rawAmount = double.tryParse(_amountController.text.trim());
     if (rawAmount == null || rawAmount <= 0) {
-      setState(() => _errorMessage = 'Please enter a valid payment amount greater than ₹0.');
+      setState(
+        () => _errorMessage =
+            'Please enter a valid payment amount greater than ₹0.',
+      );
       return;
     }
 
     if (rawAmount > widget.balanceAmount) {
-      setState(() => _errorMessage = 'Payment amount cannot exceed the balance of ₹${widget.balanceAmount.toStringAsFixed(2)}.');
+      setState(
+        () => _errorMessage =
+            'Payment amount cannot exceed the balance of ₹${widget.balanceAmount.toStringAsFixed(2)}.',
+      );
       return;
     }
 
@@ -90,7 +98,9 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
     final request = RecordPaymentRequest(
       amount: rawAmount,
       paymentMethod: _selectedMethod.value,
-      reference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
+      reference: _referenceController.text.trim().isEmpty
+          ? null
+          : _referenceController.text.trim(),
     );
 
     final errorMsg = await widget.onRecordPayment(request);
@@ -124,7 +134,8 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
           // ── Pinned Fixed Header ─────────────────────────────────────────
           AppModalHeader(
             title: 'Record Payment',
-            subtitle: 'Balance Due: ₹${widget.balanceAmount.toStringAsFixed(2)}',
+            subtitle:
+                'Balance Due: ₹${widget.balanceAmount.toStringAsFixed(2)}',
             icon: Icons.payments_rounded,
             iconBgColor: AppColors.primaryContainer,
             iconColor: AppColors.textOnPrimary,
@@ -138,199 +149,253 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-
-            // ── Error Banner (if any) ───────────────────────────────────────
-            if (_errorMessage != null) ...[
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline, size: 16, color: AppColors.error),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 12),
+                  // ── Error Banner (if any) ───────────────────────────────────────
+                  if (_errorMessage != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppColors.error.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: AppColors.error,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 12),
                   ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
 
-            // ── Payment Method Selector ─────────────────────────────────────
-            const Text(
-              'Payment Method',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: PaymentMethod.values.map((method) {
-                final isSelected = _selectedMethod == method;
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        method.icon,
-                        size: 16,
-                        color: isSelected ? Colors.white : AppColors.primary,
+                  // ── Payment Method Selector ─────────────────────────────────────
+                  const Text(
+                    'Payment Method',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: PaymentMethod.values.map((method) {
+                      final isSelected = _selectedMethod == method;
+                      return ChoiceChip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              method.icon,
+                              size: 16,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(method.label),
+                          ],
+                        ),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          if (selected)
+                            setState(() => _selectedMethod = method);
+                        },
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                        selectedColor: AppColors.primary,
+                        backgroundColor: AppColors.surfaceAlt,
+                        showCheckmark: false,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Amount Field ────────────────────────────────────────────────
+                  const Text(
+                    'Payment Amount (₹)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                        child: Text(
+                          '₹',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 6),
-                      Text(method.label),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 0,
+                        minHeight: 0,
+                      ),
+                      hintText: '0.00',
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Reference / UTR Field ───────────────────────────────────────
+                  const Text(
+                    'Reference / Transaction ID (Optional)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _referenceController,
+                    decoration: InputDecoration(
+                      hintText: _referenceHint,
+                      hintStyle: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Action Buttons (Cancel + Record Payment) ─────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          key: const Key('modal_cancel_button'),
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  FocusScope.of(context).unfocus();
+                                  Navigator.of(context).pop();
+                                },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.borderDark),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: AppButton(
+                          label: 'Record Payment',
+                          icon: Icons.check_circle_outline,
+                          isLoading: _isLoading,
+                          onPressed: _submit,
+                        ),
+                      ),
                     ],
                   ),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedMethod = method);
-                  },
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    fontSize: 12,
-                  ),
-                  selectedColor: AppColors.primary,
-                  backgroundColor: AppColors.surfaceAlt,
-                  showCheckmark: false,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Amount Field ────────────────────────────────────────────────
-            const Text(
-              'Payment Amount (₹)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                ],
               ),
             ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-              decoration: InputDecoration(
-                prefixIcon: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  child: Text('₹', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                ),
-                prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-                hintText: '0.00',
-                filled: true,
-                fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── Reference / UTR Field ───────────────────────────────────────
-            const Text(
-              'Reference / Transaction ID (Optional)',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _referenceController,
-              decoration: InputDecoration(
-                hintText: _referenceHint,
-                hintStyle: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                filled: true,
-                fillColor: AppColors.surfaceAlt,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Action Buttons (Cancel + Record Payment) ─────────────────────
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    key: const Key('modal_cancel_button'),
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            FocusScope.of(context).unfocus();
-                            Navigator.of(context).pop();
-                          },
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.borderDark),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: AppButton(
-                    label: 'Record Payment',
-                    icon: Icons.check_circle_outline,
-                    isLoading: _isLoading,
-                    onPressed: _submit,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

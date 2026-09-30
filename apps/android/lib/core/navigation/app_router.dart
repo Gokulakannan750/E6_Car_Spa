@@ -6,13 +6,10 @@ import '../../features/auth/presentation/pages/first_time_setup_screen.dart';
 import '../../features/auth/presentation/pages/login_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/providers/auth_state.dart';
-import '../../features/catalogue/presentation/pages/catalogue_screen.dart';
-import '../../features/customers/presentation/pages/customers_screen.dart';
+import '../../features/billing/presentation/pages/billing_screen.dart';
 import '../../features/customers/presentation/pages/customer_details_screen.dart';
 import '../../features/dashboard/presentation/pages/dashboard_screen.dart';
 import '../../features/invoices/presentation/pages/invoice_details_screen.dart';
-import '../../features/invoices/presentation/pages/invoices_screen.dart';
-import '../../features/jobcards/presentation/pages/job_cards_screen.dart';
 import '../../features/jobcards/presentation/pages/job_card_details_screen.dart';
 import '../../features/jobcards/presentation/pages/new_job_card_screen.dart';
 import '../../features/reports/presentation/pages/reports_screen.dart';
@@ -25,8 +22,8 @@ import '../../features/reports/presentation/pages/showroom_report_screen.dart';
 import '../../features/reports/presentation/pages/staff_productivity_screen.dart';
 import '../../features/reports/presentation/pages/staff_advances_report_screen.dart';
 import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
+import '../../features/staff/presentation/pages/monthly_attendance_report_screen.dart';
 import '../../features/staff/presentation/pages/staff_screen.dart';
-import '../../features/staffadvances/presentation/pages/staff_advances_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
 import '../../features/settings/presentation/pages/company_settings_screen.dart';
 import '../../features/settings/presentation/pages/system_preferences_screen.dart';
@@ -45,7 +42,8 @@ class RouterNotifier extends ChangeNotifier {
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authNotifierProvider);
     final location = state.matchedLocation;
-    final isAuthRoute = location == AppRoutes.login ||
+    final isAuthRoute =
+        location == AppRoutes.login ||
         location == AppRoutes.forgotPassword ||
         location == AppRoutes.firstTimeSetup;
 
@@ -56,7 +54,9 @@ class RouterNotifier extends ChangeNotifier {
 
     // Uninitialized database requires initial Owner setup
     if (authState is SetupRequired) {
-      return location == AppRoutes.firstTimeSetup ? null : AppRoutes.firstTimeSetup;
+      return location == AppRoutes.firstTimeSetup
+          ? null
+          : AppRoutes.firstTimeSetup;
     }
 
     final isAuthenticated = authState is Authenticated;
@@ -102,9 +102,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Forgot Password Page')),
-        ),
+        builder: (context, state) =>
+            const Scaffold(body: Center(child: Text('Forgot Password Page'))),
       ),
 
       ShellRoute(
@@ -112,15 +111,42 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(currentLocation: state.matchedLocation, child: child),
         routes: [
           GoRoute(
-            path: AppRoutes.dashboard,
+            path: AppRoutes.billing,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
+              child: BillingScreen(initialTabIndex: 0),
             ),
+            routes: [
+              GoRoute(
+                path: 'customers',
+                redirect: (context, state) => AppRoutes.customers,
+              ),
+              GoRoute(
+                path: 'job-cards',
+                redirect: (context, state) => AppRoutes.jobCards,
+              ),
+              GoRoute(
+                path: 'invoices',
+                redirect: (context, state) => AppRoutes.quotationsInvoices,
+              ),
+              GoRoute(
+                path: 'catalogue',
+                redirect: (context, state) => AppRoutes.catalogue,
+              ),
+              GoRoute(
+                path: 'services',
+                redirect: (context, state) => AppRoutes.catalogue,
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoutes.dashboard,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
           GoRoute(
             path: AppRoutes.customers,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: CustomersScreen(),
+              child: BillingScreen(initialTabIndex: 0),
             ),
             routes: [
               GoRoute(
@@ -137,14 +163,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.jobCards,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: JobCardsScreen(),
+              child: BillingScreen(initialTabIndex: 1),
             ),
             routes: [
               GoRoute(
                 path: 'new',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: NewJobCardScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: NewJobCardScreen()),
               ),
               GoRoute(
                 path: ':id',
@@ -160,7 +185,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.quotationsInvoices,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: InvoicesScreen(),
+              child: BillingScreen(initialTabIndex: 2),
             ),
             routes: [
               GoRoute(
@@ -177,14 +202,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.catalogue,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: CatalogueScreen(),
+              child: BillingScreen(initialTabIndex: 3),
             ),
           ),
           GoRoute(
             path: AppRoutes.staff,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: StaffScreen(initialTabIndex: 0),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: StaffScreen(initialTabIndex: 0)),
             routes: [
               GoRoute(
                 path: 'attendance',
@@ -193,9 +217,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
               GoRoute(
-                path: 'monthly-report',
+                path: 'advances',
                 pageBuilder: (context, state) => const NoTransitionPage(
                   child: StaffScreen(initialTabIndex: 2),
+                ),
+              ),
+              GoRoute(
+                path: 'monthly-report',
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: MonthlyAttendanceReportScreen(),
                 ),
               ),
               GoRoute(
@@ -208,95 +238,79 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.staffAdvances,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: StaffAdvancesScreen(),
-            ),
+            redirect: (context, state) => AppRoutes.staffAdvancesTab,
           ),
           GoRoute(
             path: AppRoutes.reports,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ReportsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ReportsScreen()),
             routes: [
               GoRoute(
                 path: 'sales',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: SalesReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: SalesReportScreen()),
               ),
               GoRoute(
                 path: 'payments',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: PaymentsReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: PaymentsReportScreen()),
               ),
               GoRoute(
                 path: 'outstanding',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: OutstandingInvoicesScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: OutstandingInvoicesScreen()),
               ),
               GoRoute(
                 path: 'gst',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: GstReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: GstReportScreen()),
               ),
               GoRoute(
                 path: 'job-cards',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: JobCardReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: JobCardReportScreen()),
               ),
               GoRoute(
                 path: 'showrooms',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: ShowroomReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ShowroomReportScreen()),
               ),
               GoRoute(
                 path: 'staff-productivity',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: StaffProductivityScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: StaffProductivityScreen()),
               ),
               GoRoute(
                 path: 'staff-advances',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: StaffAdvancesReportScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: StaffAdvancesReportScreen()),
               ),
             ],
           ),
           GoRoute(
             path: AppRoutes.showroom,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: ShowroomListScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: ShowroomListScreen()),
           ),
           GoRoute(
             path: AppRoutes.settings,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SettingsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: SettingsScreen()),
             routes: [
               GoRoute(
                 path: 'company',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: CompanySettingsScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: CompanySettingsScreen()),
               ),
               GoRoute(
                 path: 'users',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: UsersScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: UsersScreen()),
               ),
               GoRoute(
                 path: 'preferences',
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: SystemPreferencesScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: SystemPreferencesScreen()),
               ),
             ],
           ),

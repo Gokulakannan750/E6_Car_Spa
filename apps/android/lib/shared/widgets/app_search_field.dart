@@ -53,12 +53,22 @@ class AppSearchField extends StatelessWidget {
       style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hint ?? placeholder ?? 'Search...',
-        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondary),
+        hintStyle: const TextStyle(
+          fontSize: 13,
+          color: AppColors.textSecondary,
+        ),
+        prefixIcon: const Icon(
+          Icons.search,
+          size: 20,
+          color: AppColors.textSecondary,
+        ),
         suffixIcon: buildSuffix(),
         filled: true,
         fillColor: AppColors.surfaceAlt,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.border),
@@ -75,4 +85,3 @@ class AppSearchField extends StatelessWidget {
     );
   }
 }
-

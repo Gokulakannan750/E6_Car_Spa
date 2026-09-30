@@ -3,8 +3,17 @@ import 'package:e6_car_spa/features/jobcards/models/job_card_model.dart';
 
 void main() {
   group('JobCard isLocked logic tests', () {
-    const customer = CustomerSummary(id: 'c1', name: 'John', phoneNumber: '9876543210');
-    const vehicle = VehicleSummary(id: 'v1', registrationNumber: 'KA01AB1234', make: 'Hyundai', model: 'Creta');
+    const customer = CustomerSummary(
+      id: 'c1',
+      name: 'John',
+      phoneNumber: '9876543210',
+    );
+    const vehicle = VehicleSummary(
+      id: 'v1',
+      registrationNumber: 'KA01AB1234',
+      make: 'Hyundai',
+      model: 'Creta',
+    );
 
     test('JobCard without invoice is not locked', () {
       const jc = JobCard(
@@ -75,23 +84,26 @@ void main() {
       expect(jc.isLocked, isTrue);
     });
 
-    test('JobCard with cancelled invoice that had an issued invoice number remains locked', () {
-      const jc = JobCard(
-        id: 'jc-5',
-        jobCardNumber: 'JC-2026-0005',
-        customer: customer,
-        vehicle: vehicle,
-        status: JobCardStatus.invoiced,
-        services: [],
-        subtotal: 500,
-        totalAmount: 590,
-        invoiceId: 'inv-4',
-        invoiceNumber: 'INV-2026-0003',
-        invoiceStatus: 'Cancelled',
-      );
+    test(
+      'JobCard with cancelled invoice that had an issued invoice number remains locked',
+      () {
+        const jc = JobCard(
+          id: 'jc-5',
+          jobCardNumber: 'JC-2026-0005',
+          customer: customer,
+          vehicle: vehicle,
+          status: JobCardStatus.invoiced,
+          services: [],
+          subtotal: 500,
+          totalAmount: 590,
+          invoiceId: 'inv-4',
+          invoiceNumber: 'INV-2026-0003',
+          invoiceStatus: 'Cancelled',
+        );
 
-      expect(jc.isLocked, isTrue);
-    });
+        expect(jc.isLocked, isTrue);
+      },
+    );
   });
 
   group('JobCardListItem isLocked logic tests', () {

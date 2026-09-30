@@ -68,7 +68,9 @@ void main() {
   });
 
   group('Job Card Widget Tests', () {
-    testWidgets('JobCardsScreen renders filter chips, job cards and amounts', (tester) async {
+    testWidgets('JobCardsScreen renders filter chips, job cards and amounts', (
+      tester,
+    ) async {
       const mockItems = <JobCardListItem>[
         JobCardListItem(
           id: 'jc-1',
@@ -120,152 +122,171 @@ void main() {
       expect(find.text('New Job Card'), findsOneWidget);
     });
 
-    testWidgets('JobCardDetailsScreen renders customer, vehicle, services and totals', (tester) async {
-      const mockJobCard = JobCard(
-        id: 'jc-1',
-        jobCardNumber: 'JC-2026-0001',
-        status: JobCardStatus.inProgress,
-        customer: CustomerSummary(
-          id: 'c-1',
-          name: 'Ramesh Kumar',
-          phoneNumber: '9876543210',
-        ),
-        vehicle: VehicleSummary(
-          id: 'v-1',
-          registrationNumber: 'TN01AB1234',
-          make: 'Hyundai',
-          model: 'Creta',
-        ),
-        services: [
-          JobCardServiceItem(
-            id: 's-1',
-            serviceId: 'svc-1',
-            serviceName: 'Premium Foam Wash',
-            quantity: 1,
-            unitPrice: 650.0,
-            taxPercentage: 18.0,
-            discountAmount: 0.0,
-            lineTotal: 767.0,
+    testWidgets(
+      'JobCardDetailsScreen renders customer, vehicle, services and totals',
+      (tester) async {
+        const mockJobCard = JobCard(
+          id: 'jc-1',
+          jobCardNumber: 'JC-2026-0001',
+          status: JobCardStatus.inProgress,
+          customer: CustomerSummary(
+            id: 'c-1',
+            name: 'Ramesh Kumar',
+            phoneNumber: '9876543210',
           ),
-        ],
-        subtotal: 650.0,
-        discountAmount: 0.0,
-        taxAmount: 117.0,
-        totalAmount: 767.0,
-        notes: 'Full body wash and interior sanitize',
-      );
-
-      final fakeRepo = _FakeJobCardRepo(detailCard: mockJobCard);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            jobCardRepositoryProvider.overrideWithValue(fakeRepo),
-            jobCardDetailsProvider('jc-1').overrideWith(
-              (ref) => JobCardDetailsNotifier(
-                'jc-1',
-                fakeRepo,
-                const JobCardDetailsState(
-                  jobCard: mockJobCard,
-                  isLoading: false,
-                ),
-                false,
-              ),
+          vehicle: VehicleSummary(
+            id: 'v-1',
+            registrationNumber: 'TN01AB1234',
+            make: 'Hyundai',
+            model: 'Creta',
+          ),
+          services: [
+            JobCardServiceItem(
+              id: 's-1',
+              serviceId: 'svc-1',
+              serviceName: 'Premium Foam Wash',
+              quantity: 1,
+              unitPrice: 650.0,
+              taxPercentage: 18.0,
+              discountAmount: 0.0,
+              lineTotal: 767.0,
             ),
           ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const JobCardDetailsScreen(jobCardId: 'jc-1'),
-          ),
-        ),
-      );
+          subtotal: 650.0,
+          discountAmount: 0.0,
+          taxAmount: 117.0,
+          totalAmount: 767.0,
+          notes: 'Full body wash and interior sanitize',
+        );
 
-      await tester.pump();
+        final fakeRepo = _FakeJobCardRepo(detailCard: mockJobCard);
 
-      expect(find.text('JC-2026-0001'), findsWidgets);
-      expect(find.text('Ramesh Kumar'), findsOneWidget);
-      expect(find.text('TN01AB1234'), findsOneWidget);
-      expect(find.text('Premium Foam Wash'), findsOneWidget);
-      expect(find.text('₹650.00'), findsWidgets); // Subtotal
-      expect(find.text('₹117.00'), findsOneWidget); // Tax
-      expect(find.text('₹767.00'), findsWidgets); // Line total & Total Amount
-      expect(find.text('Full body wash and interior sanitize'), findsOneWidget);
-
-      // Verify Mark as Finished button renders with success green variant and color
-      final finishBtn = tester.widget<AppButton>(find.widgetWithText(AppButton, 'Mark as Finished'));
-      expect(finishBtn.variant, AppButtonVariant.success);
-
-      final finishElevated = tester.widget<ElevatedButton>(
-        find.descendant(
-          of: find.widgetWithText(AppButton, 'Mark as Finished'),
-          matching: find.byType(ElevatedButton),
-        ),
-      );
-      expect(finishElevated.style?.backgroundColor?.resolve({}), AppColors.success);
-    });
-
-    testWidgets('JobCardDetailsScreen renders View Invoice with primary blue variant when invoice exists', (tester) async {
-      const invoicedJobCard = JobCard(
-        id: 'jc-2',
-        jobCardNumber: 'JC-2026-0002',
-        status: JobCardStatus.invoiced,
-        customer: CustomerSummary(
-          id: 'c-1',
-          name: 'Ramesh Kumar',
-          phoneNumber: '9876543210',
-        ),
-        vehicle: VehicleSummary(
-          id: 'v-1',
-          registrationNumber: 'TN01AB1234',
-          make: 'Hyundai',
-          model: 'Creta',
-        ),
-        services: [],
-        subtotal: 0.0,
-        totalAmount: 0.0,
-        invoiceId: 'inv-123',
-        invoiceNumber: 'INV-2026-001',
-      );
-
-      final fakeRepo = _FakeJobCardRepo(detailCard: invoicedJobCard);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            jobCardRepositoryProvider.overrideWithValue(fakeRepo),
-            jobCardDetailsProvider('jc-2').overrideWith(
-              (ref) => JobCardDetailsNotifier(
-                'jc-2',
-                fakeRepo,
-                const JobCardDetailsState(
-                  jobCard: invoicedJobCard,
-                  isLoading: false,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              jobCardRepositoryProvider.overrideWithValue(fakeRepo),
+              jobCardDetailsProvider('jc-1').overrideWith(
+                (ref) => JobCardDetailsNotifier(
+                  'jc-1',
+                  fakeRepo,
+                  const JobCardDetailsState(
+                    jobCard: mockJobCard,
+                    isLoading: false,
+                  ),
+                  false,
                 ),
-                false,
               ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const JobCardDetailsScreen(jobCardId: 'jc-1'),
             ),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const JobCardDetailsScreen(jobCardId: 'jc-2'),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
+        await tester.pump();
 
-      // Verify View Invoice button renders with primary blue variant and color
-      final viewInvoiceBtn = tester.widget<AppButton>(find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'));
-      expect(viewInvoiceBtn.variant, AppButtonVariant.primary);
+        expect(find.text('JC-2026-0001'), findsWidgets);
+        expect(find.text('Ramesh Kumar'), findsOneWidget);
+        expect(find.text('TN01AB1234'), findsOneWidget);
+        expect(find.text('Premium Foam Wash'), findsOneWidget);
+        expect(find.text('₹650.00'), findsWidgets); // Subtotal
+        expect(find.text('₹117.00'), findsOneWidget); // Tax
+        expect(find.text('₹767.00'), findsWidgets); // Line total & Total Amount
+        expect(
+          find.text('Full body wash and interior sanitize'),
+          findsOneWidget,
+        );
 
-      final viewInvoiceElevated = tester.widget<ElevatedButton>(
-        find.descendant(
-          of: find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'),
-          matching: find.byType(ElevatedButton),
-        ),
-      );
-      expect(viewInvoiceElevated.style?.backgroundColor?.resolve({}), AppColors.primary);
-    });
+        // Verify Mark as Finished button renders with success green variant and color
+        final finishBtn = tester.widget<AppButton>(
+          find.widgetWithText(AppButton, 'Mark as Finished'),
+        );
+        expect(finishBtn.variant, AppButtonVariant.success);
+
+        final finishElevated = tester.widget<ElevatedButton>(
+          find.descendant(
+            of: find.widgetWithText(AppButton, 'Mark as Finished'),
+            matching: find.byType(ElevatedButton),
+          ),
+        );
+        expect(
+          finishElevated.style?.backgroundColor?.resolve({}),
+          AppColors.success,
+        );
+      },
+    );
+
+    testWidgets(
+      'JobCardDetailsScreen renders View Invoice with primary blue variant when invoice exists',
+      (tester) async {
+        const invoicedJobCard = JobCard(
+          id: 'jc-2',
+          jobCardNumber: 'JC-2026-0002',
+          status: JobCardStatus.invoiced,
+          customer: CustomerSummary(
+            id: 'c-1',
+            name: 'Ramesh Kumar',
+            phoneNumber: '9876543210',
+          ),
+          vehicle: VehicleSummary(
+            id: 'v-1',
+            registrationNumber: 'TN01AB1234',
+            make: 'Hyundai',
+            model: 'Creta',
+          ),
+          services: [],
+          subtotal: 0.0,
+          totalAmount: 0.0,
+          invoiceId: 'inv-123',
+          invoiceNumber: 'INV-2026-001',
+        );
+
+        final fakeRepo = _FakeJobCardRepo(detailCard: invoicedJobCard);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              jobCardRepositoryProvider.overrideWithValue(fakeRepo),
+              jobCardDetailsProvider('jc-2').overrideWith(
+                (ref) => JobCardDetailsNotifier(
+                  'jc-2',
+                  fakeRepo,
+                  const JobCardDetailsState(
+                    jobCard: invoicedJobCard,
+                    isLoading: false,
+                  ),
+                  false,
+                ),
+              ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const JobCardDetailsScreen(jobCardId: 'jc-2'),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        // Verify View Invoice button renders with primary blue variant and color
+        final viewInvoiceBtn = tester.widget<AppButton>(
+          find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'),
+        );
+        expect(viewInvoiceBtn.variant, AppButtonVariant.primary);
+
+        final viewInvoiceElevated = tester.widget<ElevatedButton>(
+          find.descendant(
+            of: find.widgetWithText(AppButton, 'View Invoice (#INV-2026-001)'),
+            matching: find.byType(ElevatedButton),
+          ),
+        );
+        expect(
+          viewInvoiceElevated.style?.backgroundColor?.resolve({}),
+          AppColors.primary,
+        );
+      },
+    );
   });
 }
 

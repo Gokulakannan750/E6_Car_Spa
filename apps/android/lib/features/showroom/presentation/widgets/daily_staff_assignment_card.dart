@@ -33,9 +33,7 @@ class DailyStaffAssignmentCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isTransfer
-              ? Colors.purple.withAlpha(50)
-              : AppColors.border,
+          color: isTransfer ? Colors.purple.withAlpha(50) : AppColors.border,
         ),
         boxShadow: [
           BoxShadow(
@@ -155,16 +153,25 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                           onTap: onViewSwap,
                           borderRadius: BorderRadius.circular(4),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.purple.withAlpha(25),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.purple.withAlpha(80)),
+                              border: Border.all(
+                                color: Colors.purple.withAlpha(80),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.swap_horiz, size: 12, color: Colors.purple),
+                                const Icon(
+                                  Icons.swap_horiz,
+                                  size: 12,
+                                  color: Colors.purple,
+                                ),
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
@@ -198,7 +205,10 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                       tooltip: 'View Swap Traceability',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   if (onSwap != null)
                     IconButton(
@@ -208,7 +218,10 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                       tooltip: 'Swap Staff',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   if (onEdit != null)
                     IconButton(
@@ -218,7 +231,10 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                       tooltip: 'Edit Session',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   if (onRemove != null)
                     IconButton(
@@ -228,7 +244,10 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                       tooltip: 'Remove Session',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                 ] else if (isLocked) ...[
                   const SizedBox(width: 4),
@@ -240,10 +259,16 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                       tooltip: 'View Swap Traceability',
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
                     ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
@@ -251,11 +276,18 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 12, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.lock_outline,
+                          size: 12,
+                          color: AppColors.textSecondary,
+                        ),
                         SizedBox(width: 3),
                         Text(
                           'Locked',
-                          style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -304,9 +336,7 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.primary.withAlpha(20),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: AppColors.primary.withAlpha(50),
-                    ),
+                    border: Border.all(color: AppColors.primary.withAlpha(50)),
                   ),
                   child: Text(
                     assignment.displayHours,
@@ -328,23 +358,23 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                     color: assignment.isSwapped
                         ? Colors.purple.withAlpha(25)
                         : isTransfer
-                            ? Colors.purple.withAlpha(20)
-                            : AppColors.surfaceAlt,
+                        ? Colors.purple.withAlpha(20)
+                        : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(
                       color: assignment.isSwapped
                           ? Colors.purple.withAlpha(80)
                           : isTransfer
-                              ? Colors.purple.withAlpha(60)
-                              : AppColors.border,
+                          ? Colors.purple.withAlpha(60)
+                          : AppColors.border,
                     ),
                   ),
                   child: Text(
                     assignment.isSwapped
                         ? 'Swapped'
                         : isTransfer
-                            ? 'Temporary Transfer'
-                            : 'Regular',
+                        ? 'Temporary Transfer'
+                        : 'Regular',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -378,22 +408,30 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ] else if (isTransfer || (assignment.homeShowroomName != null && assignment.homeShowroomName!.isNotEmpty)) ...[
+            ] else if (isTransfer ||
+                (assignment.homeShowroomName != null &&
+                    assignment.homeShowroomName!.isNotEmpty)) ...[
               const SizedBox(height: 6),
               Row(
                 children: [
                   Icon(
                     Icons.home_work_outlined,
                     size: 13,
-                    color: isTransfer ? Colors.purple.shade600 : AppColors.textSecondary,
+                    color: isTransfer
+                        ? Colors.purple.shade600
+                        : AppColors.textSecondary,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Home: ${assignment.displayHomeShowroom}',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontSize: 11,
-                      fontWeight: isTransfer ? FontWeight.w600 : FontWeight.normal,
-                      color: isTransfer ? Colors.purple.shade700 : AppColors.textSecondary,
+                      fontWeight: isTransfer
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: isTransfer
+                          ? Colors.purple.shade700
+                          : AppColors.textSecondary,
                     ),
                   ),
                   if (assignment.transferReason != null &&

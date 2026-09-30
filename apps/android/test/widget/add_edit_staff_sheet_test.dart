@@ -7,21 +7,22 @@ import 'package:e6_car_spa/shared/widgets/app_button.dart';
 
 void main() {
   group('AddEditStaffBottomSheet Widget Tests', () {
-    testWidgets('renders Create Staff modal with fields and header', (tester) async {
+    testWidgets('renders Create Staff modal with fields and header', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AddEditStaffBottomSheet())),
       );
 
       expect(find.text('Add Staff Member'), findsOneWidget);
-      expect(find.text('Add an employee to the workshop directory'), findsOneWidget);
+      expect(
+        find.text('Add an employee to the workshop directory'),
+        findsOneWidget,
+      );
       expect(find.text('Full Name *'), findsOneWidget);
       expect(find.text('Phone Number *'), findsOneWidget);
       expect(find.text('Aadhaar Number *'), findsOneWidget);
@@ -29,36 +30,35 @@ void main() {
       expect(find.byKey(const Key('modal_cancel_button')), findsOneWidget);
     });
 
-    testWidgets('validates required name field before submitting', (tester) async {
+    testWidgets('validates required name field before submitting', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AddEditStaffBottomSheet())),
       );
 
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Please enter the staff member\'s name.'), findsOneWidget);
+      expect(
+        find.text('Please enter the staff member\'s name.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('validates 10-digit phone number field before submitting', (tester) async {
+    testWidgets('validates 10-digit phone number field before submitting', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AddEditStaffBottomSheet())),
       );
 
       // Enter name but leave phone empty
@@ -73,20 +73,21 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Phone number must be exactly 10 digits'), findsOneWidget);
+      expect(
+        find.text('Phone number must be exactly 10 digits'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('validates 12-digit Aadhaar number before submitting', (tester) async {
+    testWidgets('validates 12-digit Aadhaar number before submitting', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: AddEditStaffBottomSheet())),
       );
 
       await tester.enterText(find.byType(TextField).at(0), 'Ramesh Kumar');
@@ -96,52 +97,66 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Aadhaar number is required for new staff.'), findsOneWidget);
+      expect(
+        find.text('Aadhaar number is required for new staff.'),
+        findsOneWidget,
+      );
 
       // Invalid 11-digit Aadhaar
       await tester.enterText(find.byType(TextField).at(5), '12345678901');
       await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Aadhaar number must be exactly 12 numeric digits.'), findsOneWidget);
+      expect(
+        find.text('Aadhaar number must be exactly 12 numeric digits.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('submits valid request and invokes onCreate callback with normalized Aadhaar', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'submits valid request and invokes onCreate callback with normalized Aadhaar',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      CreateStaffRequest? submittedRequest;
+        CreateStaffRequest? submittedRequest;
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(
-              onCreate: (req) async {
-                submittedRequest = req;
-                return null; // Success
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AddEditStaffBottomSheet(
+                onCreate: (req) async {
+                  submittedRequest = req;
+                  return null; // Success
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.enterText(find.byType(TextField).at(0), 'Ramesh Detailer');
-      await tester.enterText(find.byType(TextField).at(1), '9876543210');
-      await tester.enterText(find.byType(TextField).at(2), 'Floor Supervisor');
-      await tester.enterText(find.byType(TextField).at(5), '1234 5678 9012');
+        await tester.enterText(find.byType(TextField).at(0), 'Ramesh Detailer');
+        await tester.enterText(find.byType(TextField).at(1), '9876543210');
+        await tester.enterText(
+          find.byType(TextField).at(2),
+          'Floor Supervisor',
+        );
+        await tester.enterText(find.byType(TextField).at(5), '1234 5678 9012');
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
+        await tester.pumpAndSettle();
 
-      expect(submittedRequest, isNotNull);
-      expect(submittedRequest!.name, 'Ramesh Detailer');
-      expect(submittedRequest!.phoneNumber, '9876543210');
-      expect(submittedRequest!.role, 'Floor Supervisor');
-      expect(submittedRequest!.aadhaarNumber, '123456789012');
-    });
+        expect(submittedRequest, isNotNull);
+        expect(submittedRequest!.name, 'Ramesh Detailer');
+        expect(submittedRequest!.phoneNumber, '9876543210');
+        expect(submittedRequest!.role, 'Floor Supervisor');
+        expect(submittedRequest!.aadhaarNumber, '123456789012');
+      },
+    );
 
-    testWidgets('renders Edit mode prepopulated with existing staff data', (tester) async {
+    testWidgets('renders Edit mode prepopulated with existing staff data', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -159,11 +174,7 @@ void main() {
 
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(
-              staff: existingStaff,
-            ),
-          ),
+          home: Scaffold(body: AddEditStaffBottomSheet(staff: existingStaff)),
         ),
       );
 
@@ -176,33 +187,39 @@ void main() {
       expect(find.widgetWithText(AppButton, 'Save Changes'), findsOneWidget);
     });
 
-    testWidgets('displays error banner and preserves inputs when API returns error', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'displays error banner and preserves inputs when API returns error',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: AddEditStaffBottomSheet(
-              onCreate: (req) async {
-                return 'Staff member with this phone number already exists.';
-              },
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AddEditStaffBottomSheet(
+                onCreate: (req) async {
+                  return 'Staff member with this phone number already exists.';
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.enterText(find.byType(TextField).at(0), 'Duplicate Name');
-      await tester.enterText(find.byType(TextField).at(1), '9876543210');
-      await tester.enterText(find.byType(TextField).at(5), '123456789012');
+        await tester.enterText(find.byType(TextField).at(0), 'Duplicate Name');
+        await tester.enterText(find.byType(TextField).at(1), '9876543210');
+        await tester.enterText(find.byType(TextField).at(5), '123456789012');
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create Staff'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Staff member with this phone number already exists.'), findsOneWidget);
-      expect(find.text('Duplicate Name'), findsOneWidget);
-      expect(find.text('9876543210'), findsOneWidget);
-    });
+        expect(
+          find.text('Staff member with this phone number already exists.'),
+          findsOneWidget,
+        );
+        expect(find.text('Duplicate Name'), findsOneWidget);
+        expect(find.text('9876543210'), findsOneWidget);
+      },
+    );
   });
 }

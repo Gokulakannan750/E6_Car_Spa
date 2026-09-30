@@ -258,6 +258,11 @@ public class OutsideJobService : IOutsideJobService
         if (job == null)
             throw new KeyNotFoundException($"Outside job with ID '{id}' not found.");
 
+        if (request.VendorCost.HasValue && request.VendorCost.Value < 0)
+            throw new ArgumentOutOfRangeException(nameof(request.VendorCost), "Vendor cost cannot be negative.");
+
+        await EnsureJobCardNotLockedAsync(job.JobCardId, "Outside job cannot be marked returned after invoice generation.", cancellationToken);
+
         if (job.Status != OutsideJobStatus.Outside)
             throw new InvalidOperationException($"Outside job is in status '{job.Status}' and cannot be marked returned.");
 
@@ -340,6 +345,9 @@ public class OutsideJobService : IOutsideJobService
         UpdateOutsideJobRequest request,
         CancellationToken cancellationToken = default)
     {
+        if (request.VendorCost.HasValue && request.VendorCost.Value < 0)
+            throw new ArgumentOutOfRangeException(nameof(request.VendorCost), "Vendor cost cannot be negative.");
+
         var job = await _db.OutsideJobs
             .Include(o => o.JobCard)
             .Include(o => o.Vehicle)
@@ -348,6 +356,8 @@ public class OutsideJobService : IOutsideJobService
             .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted, cancellationToken);
 
         if (job == null) return null;
+
+        await EnsureJobCardNotLockedAsync(job.JobCardId, "Outside job cannot be updated after invoice generation.", cancellationToken);
 
         if (job.Status == OutsideJobStatus.Returned || job.Status == OutsideJobStatus.Cancelled)
             throw new InvalidOperationException($"Cannot edit an outside job that is '{job.Status}'.");
@@ -376,6 +386,176 @@ public class OutsideJobService : IOutsideJobService
             cancellationToken: cancellationToken);
 
         return ToDto(job, job.JobCard.JobCardNumber, job.Vehicle, job.Customer, vendor);
+    }
+
+    public async Task<OutsideJobDto> UpdateCostAsync(
+        Guid id,
+        UpdateOutsideJobCostRequest request,
+        Guid? userId = null,
+        string? userName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (request.VendorCost < 0)
+            throw new ArgumentOutOfRangeException(nameof(request.VendorCost), "Vendor cost cannot be negative.");
+
+        var job = await _db.OutsideJobs
+            .Include(o => o.JobCard)
+            .Include(o => o.Vehicle)
+            .Include(o => o.Customer)
+            .Include(o => o.Vendor)
+            .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted, cancellationToken);
+
+        if (job == null)
+            throw new KeyNotFoundException($"Outside job with ID '{id}' not found.");
+
+        await EnsureJobCardNotLockedAsync(job.JobCardId, "Vendor cost cannot be modified after invoice generation.", cancellationToken);
+
+        job.VendorCost = request.VendorCost;
+        job.UpdatedAt = DateTime.UtcNow;
+
+        // If there is an existing draft invoice for this job card, update the corresponding invoice item
+        var draftInvoice = await _db.Invoices
+            .Include(i => i.InvoiceItems)
+            .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
+
+        if (draftInvoice != null)
+        {
+            var item = draftInvoice.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+            if (item != null)
+            {
+                item.UnitPrice = request.VendorCost;
+                item.TaxableAmount = Math.Round(request.VendorCost * item.Quantity, 2);
+                var taxRate = draftInvoice.IsGstEnabled ? 18m : 0m;
+                item.TaxAmount = draftInvoice.IsGstEnabled ? Math.Round(item.TaxableAmount * taxRate / 100m, 2) : 0m;
+                item.TotalAmount = item.TaxableAmount + item.TaxAmount - item.Discount;
+                item.UpdatedAt = DateTime.UtcNow;
+
+                var subtotal = Math.Round(draftInvoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
+                draftInvoice.Subtotal = subtotal;
+                var gstBase = Math.Max(0m, subtotal - draftInvoice.Discount);
+                draftInvoice.TaxableAmount = gstBase;
+                var cgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
+                var sgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
+                draftInvoice.GstAmount = cgst + sgst;
+                draftInvoice.TotalAmount = gstBase + draftInvoice.GstAmount;
+                draftInvoice.BalanceAmount = Math.Max(0m, draftInvoice.TotalAmount - draftInvoice.PaidAmount);
+                draftInvoice.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "outsidejobs.edit",
+            module: "OutsideJobs",
+            description: $"Vendor cost for outside job '{job.ServiceName}' on vehicle '{job.Vehicle.RegistrationNumber}' updated to {request.VendorCost:C}.",
+            userId: userId,
+            userName: userName,
+            entityType: "OutsideJob",
+            entityId: job.Id,
+            entityReference: job.JobCard.JobCardNumber,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        return ToDto(job, job.JobCard.JobCardNumber, job.Vehicle, job.Customer, job.Vendor);
+    }
+
+    public async Task<bool> DeleteAsync(
+        Guid id,
+        Guid? userId = null,
+        string? userName = null,
+        CancellationToken cancellationToken = default)
+    {
+        var job = await _db.OutsideJobs
+            .Include(o => o.JobCard)
+            .Include(o => o.Vehicle)
+            .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted, cancellationToken);
+
+        if (job == null) return false;
+
+        await EnsureJobCardNotLockedAsync(job.JobCardId, "Outside job movements cannot be deleted after invoice generation.", cancellationToken);
+
+        var isBilledOnGeneratedInvoice = await _db.InvoiceItems.AnyAsync(
+            ii => ii.OutsideJobId == id &&
+                  !ii.IsDeleted &&
+                  ii.Invoice != null &&
+                  !ii.Invoice.IsDeleted &&
+                  (!string.IsNullOrEmpty(ii.Invoice.InvoiceNumber) || ii.Invoice.Status != InvoiceStatus.Draft),
+            cancellationToken);
+
+        if (isBilledOnGeneratedInvoice)
+        {
+            throw new ConflictException("This movement cannot be deleted because it is part of a generated invoice.");
+        }
+
+        job.IsDeleted = true;
+        job.UpdatedAt = DateTime.UtcNow;
+
+        var draftInvoice = await _db.Invoices
+            .Include(i => i.InvoiceItems)
+            .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
+
+        if (draftInvoice != null)
+        {
+            var item = draftInvoice.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+            if (item != null)
+            {
+                item.IsDeleted = true;
+                item.UpdatedAt = DateTime.UtcNow;
+
+                var subtotal = Math.Round(draftInvoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
+                draftInvoice.Subtotal = subtotal;
+                var gstBase = Math.Max(0m, subtotal - draftInvoice.Discount);
+                draftInvoice.TaxableAmount = gstBase;
+                var cgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
+                var sgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
+                draftInvoice.GstAmount = cgst + sgst;
+                draftInvoice.TotalAmount = gstBase + draftInvoice.GstAmount;
+                draftInvoice.BalanceAmount = Math.Max(0m, draftInvoice.TotalAmount - draftInvoice.PaidAmount);
+                draftInvoice.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        await _auditLogService.RecordAsync(
+            action: "outsidejobs.delete",
+            module: "OutsideJobs",
+            description: $"Outside job '{job.ServiceName}' for vehicle '{job.Vehicle.RegistrationNumber}' deleted/marked obsolete.",
+            userId: userId,
+            userName: userName,
+            entityType: "OutsideJob",
+            entityId: job.Id,
+            entityReference: job.JobCard.JobCardNumber,
+            outcome: "Success",
+            cancellationToken: cancellationToken);
+
+        return true;
+    }
+
+    private async Task EnsureJobCardNotLockedAsync(Guid jobCardId, string actionDescription, CancellationToken cancellationToken)
+    {
+        var jobCard = await _db.JobCards.FirstOrDefaultAsync(j => j.Id == jobCardId && !j.IsDeleted, cancellationToken);
+        if (jobCard == null)
+            throw new KeyNotFoundException($"Job Card with ID '{jobCardId}' not found.");
+
+        if (jobCard.Status == JobCardStatus.Invoiced ||
+            jobCard.Status == JobCardStatus.Paid ||
+            jobCard.Status == JobCardStatus.Delivered)
+        {
+            throw new ConflictException($"This job card is locked because an invoice has already been generated. {actionDescription}");
+        }
+
+        var isInvoiceGenerated = await _db.Invoices.AnyAsync(
+            i => i.JobCardId == jobCardId &&
+                 !i.IsDeleted &&
+                 (!string.IsNullOrEmpty(i.InvoiceNumber) || i.Status != InvoiceStatus.Draft),
+            cancellationToken);
+
+        if (isInvoiceGenerated)
+        {
+            throw new ConflictException($"This job card is locked because an invoice has already been generated. {actionDescription}");
+        }
     }
 
     public async Task<VehicleLocationDto> GetVehicleLocationByJobCardIdAsync(Guid jobCardId, CancellationToken cancellationToken = default)

@@ -25,7 +25,8 @@ class CompanySettingsScreen extends ConsumerStatefulWidget {
   const CompanySettingsScreen({super.key});
 
   @override
-  ConsumerState<CompanySettingsScreen> createState() => _CompanySettingsScreenState();
+  ConsumerState<CompanySettingsScreen> createState() =>
+      _CompanySettingsScreenState();
 }
 
 class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
@@ -137,7 +138,9 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Business profile and invoice settings saved successfully.'),
+          content: Text(
+            'Business profile and invoice settings saved successfully.',
+          ),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -148,10 +151,9 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
   Future<void> _handleUploadLogo(XFile pickedFile) async {
     final bytes = await pickedFile.readAsBytes();
     final filename = pickedFile.name;
-    await ref.read(settingsNotifierProvider.notifier).uploadLogo(
-          bytes: bytes,
-          filename: filename,
-        );
+    await ref
+        .read(settingsNotifierProvider.notifier)
+        .uploadLogo(bytes: bytes, filename: filename);
   }
 
   Future<void> _handleRemoveLogo() async {
@@ -172,7 +174,8 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
     final authUser = authState is Authenticated ? authState.user : null;
 
     final canView = authUser != null && authUser.hasPermission('settings.view');
-    final canManage = authUser != null &&
+    final canManage =
+        authUser != null &&
         (authUser.isOwner || authUser.hasPermission('settings.business'));
 
     final state = ref.watch(settingsNotifierProvider);
@@ -217,9 +220,7 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               ),
             ],
           ),
-          actions: const [
-            AppLogoutAction(),
-          ],
+          actions: const [AppLogoutAction()],
         ),
         body: !canView
             ? const AppEmptyState(
@@ -230,13 +231,13 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               )
             : switch (state) {
                 SettingsInitial() || SettingsLoading() => const AppLoadingState(
-                    message: 'Loading business profile...',
-                  ),
+                  message: 'Loading business profile...',
+                ),
                 SettingsError(message: final msg) => AppErrorState(
-                    message: msg,
-                    onRetry: () =>
-                        ref.read(settingsNotifierProvider.notifier).loadProfile(),
-                  ),
+                  message: msg,
+                  onRetry: () =>
+                      ref.read(settingsNotifierProvider.notifier).loadProfile(),
+                ),
                 SettingsLoaded(
                   profile: final profile,
                   isSaving: final isSaving,
@@ -316,8 +317,10 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               // View-only banner if not manager
               if (!canManage) ...[
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(12),
@@ -325,8 +328,11 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.visibility_outlined,
-                          color: AppColors.primary, size: 20),
+                      Icon(
+                        Icons.visibility_outlined,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -347,8 +353,10 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               // Success Banner
               if (successMsg != null) ...[
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.successLight,
                     borderRadius: BorderRadius.circular(12),
@@ -356,8 +364,11 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_outline,
-                          color: AppColors.success, size: 20),
+                      const Icon(
+                        Icons.check_circle_outline,
+                        color: AppColors.success,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -378,8 +389,10 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               // Error Banner
               if (errorMsg != null) ...[
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.errorLight,
                     borderRadius: BorderRadius.circular(12),
@@ -387,8 +400,11 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 20),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(

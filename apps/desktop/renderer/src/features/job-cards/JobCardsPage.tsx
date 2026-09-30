@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
-import { getJobCards, createInvoiceFromJobCard } from '../../lib/api';
+import { getJobCards, createInvoiceFromJobCard, getOutsideJobsByJobCardId } from '../../lib/api';
 import type { JobCardListDto } from '../../lib/api';
 
 export function JobCardsPage() {
@@ -64,9 +64,31 @@ export function JobCardsPage() {
 		if (convertingId) return;
 		setConvertingId(jobCard.id);
 		setConvertError(null);
+
+		// Pre-check: Ensure all active outside jobs have a valid vendor cost before calling invoice generation
+		try {
+			const outsideJobs = await getOutsideJobsByJobCardId(jobCard.id);
+			const activeJobs = outsideJobs.filter((oj) => oj.status !== 3); // 3 = Cancelled
+			const missingCost = activeJobs.filter(
+				(oj) => oj.vendorCost === null || oj.vendorCost === undefined || oj.vendorCost <= 0
+			);
+			if (missingCost.length > 0) {
+				const names = missingCost.map((oj) => `'${oj.serviceName}'`).join(', ');
+				setConvertError(
+					`Vendor cost is required for all outside jobs before generating the invoice. Missing cost for: ${names}. Please open Job Card ${jobCard.jobCardNumber} and update Vendor Cost in Movement History.`
+				);
+				setConvertingId(null);
+				return;
+			}
+		} catch (checkErr) {
+			console.warn('Outside jobs pre-check skipped due to error:', checkErr);
+		}
+
 		try {
 			const invoice = await createInvoiceFromJobCard(jobCard.id);
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['job-card', jobCard.id] });
 			queryClient.invalidateQueries({ queryKey: ['invoices'] });
 			queryClient.invalidateQueries({ queryKey: ['customer-history'] });
 			queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -80,6 +102,7 @@ export function JobCardsPage() {
 			// Duplicate invoice protection: if an invoice already exists, refresh job cards to get current invoice state
 			if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('conflict')) {
 				queryClient.invalidateQueries({ queryKey: ['jobCards'] });
+				queryClient.invalidateQueries({ queryKey: ['job-cards'] });
 			}
 		} finally {
 			setConvertingId(null);

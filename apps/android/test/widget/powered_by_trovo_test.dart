@@ -5,13 +5,13 @@ import 'package:e6_car_spa/shared/widgets/powered_by_trovo.dart';
 
 void main() {
   group('PoweredByTrovo Widget Tests', () {
-    testWidgets('renders Powered by Trovo Tech Solutions text correctly', (tester) async {
+    testWidgets('renders Powered by Trovo Tech Solutions text correctly', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
-          home: const Scaffold(
-            body: PoweredByTrovo(),
-          ),
+          home: const Scaffold(body: PoweredByTrovo()),
         ),
       );
       await tester.pumpAndSettle();
@@ -19,7 +19,9 @@ void main() {
       expect(find.text('Powered by Trovo Tech Solutions'), findsOneWidget);
     });
 
-    testWidgets('applies custom padding and style when provided', (tester) async {
+    testWidgets('applies custom padding and style when provided', (
+      tester,
+    ) async {
       const customStyle = TextStyle(fontSize: 16, color: Colors.blue);
       const customPadding = EdgeInsets.all(16);
 
@@ -37,7 +39,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final textWidget = tester.widget<Text>(find.text('Powered by Trovo Tech Solutions'));
+      final textWidget = tester.widget<Text>(
+        find.text('Powered by Trovo Tech Solutions'),
+      );
       expect(textWidget.style?.fontSize, 16);
       expect(textWidget.style?.color, Colors.blue);
       expect(textWidget.textAlign, TextAlign.start);

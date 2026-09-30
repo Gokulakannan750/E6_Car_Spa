@@ -39,7 +39,12 @@ class _FakeServiceRepository implements ServiceRepository {
 
   @override
   Future<List<String>> getCategories() async {
-    return ['Exterior Detailing', 'Interior Care', 'Protection Packages', 'Others'];
+    return [
+      'Exterior Detailing',
+      'Interior Care',
+      'Protection Packages',
+      'Others',
+    ];
   }
 
   @override
@@ -61,7 +66,8 @@ class _FakeServiceRepository implements ServiceRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   TestAuthNotifier(super.initialState);
 
   @override
@@ -102,140 +108,156 @@ void main() {
   );
 
   group('Catalogue Create Service UI & Validation Tests', () {
-    testWidgets('AddServiceBottomSheet renders form without any GST field and enforces validation', (tester) async {
-      final fakeRepo = _FakeServiceRepository();
+    testWidgets(
+      'AddServiceBottomSheet renders form without any GST field and enforces validation',
+      (tester) async {
+        final fakeRepo = _FakeServiceRepository();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: AddServiceBottomSheet(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRepositoryProvider.overrideWithValue(fakeRepo)],
+            child: const MaterialApp(
+              home: Scaffold(body: AddServiceBottomSheet()),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Verify header and fields exist
-      expect(find.text('Add Service'), findsWidgets);
-      expect(find.text('Service Name *'), findsOneWidget);
-      expect(find.text('Category *'), findsOneWidget);
-      expect(find.text('Price (₹) *'), findsOneWidget);
-      expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
-      expect(find.text('Description / Scope (Optional)'), findsOneWidget);
-      expect(find.text('Service Active Status'), findsOneWidget);
+        // Verify header and fields exist
+        expect(find.text('Add Service'), findsWidgets);
+        expect(find.text('Service Name *'), findsOneWidget);
+        expect(find.text('Category *'), findsOneWidget);
+        expect(find.text('Price (₹) *'), findsOneWidget);
+        expect(find.text('Estimated Duration (Minutes) *'), findsNothing);
+        expect(find.text('Description / Scope (Optional)'), findsOneWidget);
+        expect(find.text('Service Active Status'), findsOneWidget);
 
-      // Verify GST field does NOT exist
-      expect(find.text('GST (%)'), findsNothing);
-      expect(find.text('Tax Percentage'), findsNothing);
+        // Verify GST field does NOT exist
+        expect(find.text('GST (%)'), findsNothing);
+        expect(find.text('Tax Percentage'), findsNothing);
 
-      // Attempt submit without filling required fields
-      await tester.tap(find.byKey(const Key('modal_add_service_button')));
-      await tester.pumpAndSettle();
+        // Attempt submit without filling required fields
+        await tester.tap(find.byKey(const Key('modal_add_service_button')));
+        await tester.pumpAndSettle();
 
-      // Verify validation errors
-      expect(find.text('Service name is required'), findsOneWidget);
-      expect(find.text('Price is required'), findsOneWidget);
-      expect(find.text('Duration is required'), findsNothing);
-    });
+        // Verify validation errors
+        expect(find.text('Service name is required'), findsOneWidget);
+        expect(find.text('Price is required'), findsOneWidget);
+        expect(find.text('Duration is required'), findsNothing);
+      },
+    );
 
-    testWidgets('AddServiceBottomSheet successfully submits new service with authoritative categories', (tester) async {
-      final fakeRepo = _FakeServiceRepository();
-      bool createdCallbackCalled = false;
+    testWidgets(
+      'AddServiceBottomSheet successfully submits new service with authoritative categories',
+      (tester) async {
+        final fakeRepo = _FakeServiceRepository();
+        bool createdCallbackCalled = false;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
-          child: MaterialApp(
-            home: Builder(
-              builder: (ctx) => Scaffold(
-                body: ElevatedButton(
-                  onPressed: () => AddServiceBottomSheet.show(
-                    ctx,
-                    onCreated: () => createdCallbackCalled = true,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [serviceRepositoryProvider.overrideWithValue(fakeRepo)],
+            child: MaterialApp(
+              home: Builder(
+                builder: (ctx) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () => AddServiceBottomSheet.show(
+                      ctx,
+                      onCreated: () => createdCallbackCalled = true,
+                    ),
+                    child: const Text('Open Add Sheet'),
                   ),
-                  child: const Text('Open Add Sheet'),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Open sheet
-      await tester.tap(find.text('Open Add Sheet'));
-      await tester.pumpAndSettle();
+        // Open sheet
+        await tester.tap(find.text('Open Add Sheet'));
+        await tester.pumpAndSettle();
 
-      // Enter valid form data: Name, Price, Description
-      await tester.enterText(find.byType(TextFormField).at(0), 'Android Test Service');
-      await tester.enterText(find.byType(TextFormField).at(1), '1500');
-      await tester.enterText(find.byType(TextFormField).at(2), 'Real phone testing');
+        // Enter valid form data: Name, Price, Description
+        await tester.enterText(
+          find.byType(TextFormField).at(0),
+          'Android Test Service',
+        );
+        await tester.enterText(find.byType(TextFormField).at(1), '1500');
+        await tester.enterText(
+          find.byType(TextFormField).at(2),
+          'Real phone testing',
+        );
 
-      // Tap submit
-      await tester.tap(find.byKey(const Key('modal_add_service_button')));
-      await tester.pumpAndSettle();
+        // Tap submit
+        await tester.tap(find.byKey(const Key('modal_add_service_button')));
+        await tester.pumpAndSettle();
 
-      expect(createdCallbackCalled, isTrue);
-      expect(fakeRepo.lastCreateRequest, isNotNull);
-      expect(fakeRepo.lastCreateRequest!.name, 'Android Test Service');
-      expect(fakeRepo.lastCreateRequest!.price, 1500.0);
-      expect(fakeRepo.lastCreateRequest!.durationMinutes, isNull);
-      expect(fakeRepo.lastCreateRequest!.description, 'Real phone testing');
-      expect(fakeRepo.lastCreateRequest!.taxPercentage, 18.0); // preserved internally
-      expect(fakeRepo.lastCreateRequest!.isActive, isTrue);
-    });
+        expect(createdCallbackCalled, isTrue);
+        expect(fakeRepo.lastCreateRequest, isNotNull);
+        expect(fakeRepo.lastCreateRequest!.name, 'Android Test Service');
+        expect(fakeRepo.lastCreateRequest!.price, 1500.0);
+        expect(fakeRepo.lastCreateRequest!.durationMinutes, isNull);
+        expect(fakeRepo.lastCreateRequest!.description, 'Real phone testing');
+        expect(
+          fakeRepo.lastCreateRequest!.taxPercentage,
+          18.0,
+        ); // preserved internally
+        expect(fakeRepo.lastCreateRequest!.isActive, isTrue);
+      },
+    );
   });
 
   group('CatalogueScreen Add Service Permission Tests', () {
-    testWidgets('Add Service FAB is visible when user has catalogue.create permission', (tester) async {
-      final fakeRepo = _FakeServiceRepository();
+    testWidgets(
+      'Add Service FAB is visible when user has catalogue.create permission',
+      (tester) async {
+        final fakeRepo = _FakeServiceRepository();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(fakeRepo),
-            authNotifierProvider.overrideWith((ref) => TestAuthNotifier(const Authenticated(userWithCreate))),
-          ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serviceRepositoryProvider.overrideWithValue(fakeRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => TestAuthNotifier(const Authenticated(userWithCreate)),
+              ),
+            ],
+            child: const MaterialApp(home: CatalogueScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // FAB is visible
-      expect(find.byKey(const Key('add_service_fab')), findsOneWidget);
-      expect(find.text('Add Service'), findsOneWidget);
-    });
+        // FAB is visible
+        expect(find.byKey(const Key('add_service_fab')), findsOneWidget);
+        expect(find.text('Add Service'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Add Service FAB is hidden when user lacks catalogue.create permission', (tester) async {
-      final fakeRepo = _FakeServiceRepository();
+    testWidgets(
+      'Add Service FAB is hidden when user lacks catalogue.create permission',
+      (tester) async {
+        final fakeRepo = _FakeServiceRepository();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            serviceRepositoryProvider.overrideWithValue(fakeRepo),
-            authNotifierProvider.overrideWith((ref) => TestAuthNotifier(const Authenticated(userWithoutCreate))),
-          ],
-          child: const MaterialApp(
-            home: CatalogueScreen(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serviceRepositoryProvider.overrideWithValue(fakeRepo),
+              authNotifierProvider.overrideWith(
+                (ref) =>
+                    TestAuthNotifier(const Authenticated(userWithoutCreate)),
+              ),
+            ],
+            child: const MaterialApp(home: CatalogueScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // FAB is NOT visible
-      expect(find.byKey(const Key('add_service_fab')), findsNothing);
-    });
+        // FAB is NOT visible
+        expect(find.byKey(const Key('add_service_fab')), findsNothing);
+      },
+    );
   });
 }

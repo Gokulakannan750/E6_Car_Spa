@@ -55,10 +55,7 @@ class UsersRepository {
     }
   }
 
-  Future<UserModel> updateUser(
-    String id,
-    UpdateUserRequest request,
-  ) async {
+  Future<UserModel> updateUser(String id, UpdateUserRequest request) async {
     try {
       return await _api.updateUser(id, request);
     } on DioException catch (e) {

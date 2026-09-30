@@ -9,28 +9,38 @@ void main() {
       expect(FormatUtils.formatCurrency(500), '₹500.00');
     });
 
-    test('formatCurrency formats with 0 decimal precision and Rupee symbol', () {
-      const prefs = SystemPreferencesModel(
-        decimalPrecision: 0,
-      );
+    test(
+      'formatCurrency formats with 0 decimal precision and Rupee symbol',
+      () {
+        const prefs = SystemPreferencesModel(decimalPrecision: 0);
 
-      expect(FormatUtils.formatCurrency(1250.5, prefs), '₹1,251');
-      expect(FormatUtils.formatCurrency(500, prefs), '₹500');
-    });
+        expect(FormatUtils.formatCurrency(1250.5, prefs), '₹1,251');
+        expect(FormatUtils.formatCurrency(500, prefs), '₹500');
+      },
+    );
 
     test('formatDate formats DD/MM/YYYY, MM/DD/YYYY, and YYYY-MM-DD', () {
       final date = DateTime(2026, 9, 27);
 
       expect(
-        FormatUtils.formatDate(date, const SystemPreferencesModel(dateFormat: 'DD/MM/YYYY')),
+        FormatUtils.formatDate(
+          date,
+          const SystemPreferencesModel(dateFormat: 'DD/MM/YYYY'),
+        ),
         '27/09/2026',
       );
       expect(
-        FormatUtils.formatDate(date, const SystemPreferencesModel(dateFormat: 'MM/DD/YYYY')),
+        FormatUtils.formatDate(
+          date,
+          const SystemPreferencesModel(dateFormat: 'MM/DD/YYYY'),
+        ),
         '09/27/2026',
       );
       expect(
-        FormatUtils.formatDate(date, const SystemPreferencesModel(dateFormat: 'YYYY-MM-DD')),
+        FormatUtils.formatDate(
+          date,
+          const SystemPreferencesModel(dateFormat: 'YYYY-MM-DD'),
+        ),
         '2026-09-27',
       );
     });
@@ -39,11 +49,17 @@ void main() {
       final time = DateTime(2026, 9, 27, 14, 30);
 
       expect(
-        FormatUtils.formatTime(time, const SystemPreferencesModel(timeFormat: '12h')),
+        FormatUtils.formatTime(
+          time,
+          const SystemPreferencesModel(timeFormat: '12h'),
+        ),
         '02:30 PM',
       );
       expect(
-        FormatUtils.formatTime(time, const SystemPreferencesModel(timeFormat: '24h')),
+        FormatUtils.formatTime(
+          time,
+          const SystemPreferencesModel(timeFormat: '24h'),
+        ),
         '14:30',
       );
     });
@@ -51,7 +67,13 @@ void main() {
     test('formatDateTime formats combined timestamp', () {
       final dt = DateTime(2026, 9, 27, 14, 30);
       expect(
-        FormatUtils.formatDateTime(dt, const SystemPreferencesModel(dateFormat: 'DD/MM/YYYY', timeFormat: '12h')),
+        FormatUtils.formatDateTime(
+          dt,
+          const SystemPreferencesModel(
+            dateFormat: 'DD/MM/YYYY',
+            timeFormat: '12h',
+          ),
+        ),
         '27/09/2026 02:30 PM',
       );
     });

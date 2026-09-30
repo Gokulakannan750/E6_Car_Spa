@@ -120,7 +120,7 @@ class ReportDateFilterState {
 
 class ReportDateFilterNotifier extends StateNotifier<ReportDateFilterState> {
   ReportDateFilterNotifier()
-      : super(ReportDateFilterState.fromPreset(ReportDatePreset.thisMonth));
+    : super(ReportDateFilterState.fromPreset(ReportDatePreset.thisMonth));
 
   void setPreset(ReportDatePreset preset) {
     state = ReportDateFilterState.fromPreset(preset);
@@ -136,72 +136,90 @@ class ReportDateFilterNotifier extends StateNotifier<ReportDateFilterState> {
 }
 
 final reportDateFilterProvider =
-    StateNotifierProvider<ReportDateFilterNotifier, ReportDateFilterState>((ref) {
-  return ReportDateFilterNotifier();
-});
+    StateNotifierProvider<ReportDateFilterNotifier, ReportDateFilterState>((
+      ref,
+    ) {
+      return ReportDateFilterNotifier();
+    });
 
 /// Selected Showroom Filter Provider
 final selectedReportShowroomIdProvider = StateProvider<String?>((ref) => null);
 
 /// Staff Productivity Filters
-final staffProductivityStaffFilterProvider = StateProvider<String?>((ref) => null);
-final staffProductivityVehicleTypeFilterProvider = StateProvider<String?>((ref) => null);
-final staffProductivityWorkTypeFilterProvider = StateProvider<String?>((ref) => null);
-final staffProductivityAssignmentFilterProvider = StateProvider<String?>((ref) => null);
+final staffProductivityStaffFilterProvider = StateProvider<String?>(
+  (ref) => null,
+);
+final staffProductivityVehicleTypeFilterProvider = StateProvider<String?>(
+  (ref) => null,
+);
+final staffProductivityWorkTypeFilterProvider = StateProvider<String?>(
+  (ref) => null,
+);
+final staffProductivityAssignmentFilterProvider = StateProvider<String?>(
+  (ref) => null,
+);
 
 /// 1. Dashboard Summary Provider
-final reportsDashboardProvider = FutureProvider.autoDispose<DashboardSummaryModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final reportsDashboardProvider =
+    FutureProvider.autoDispose<DashboardSummaryModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getDashboardSummary(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-  );
-});
+      return repository.getDashboardSummary(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+      );
+    });
 
 /// 2. Sales Report Provider
-final salesReportProvider = FutureProvider.autoDispose<SalesReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final salesReportProvider =
+    FutureProvider.autoDispose<SalesReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getSalesReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getSalesReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 3. Payment Collection Report Provider
-final paymentsReportProvider = FutureProvider.autoDispose<PaymentReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final paymentsReportProvider =
+    FutureProvider.autoDispose<PaymentReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getPaymentCollectionReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    includeVoided: true,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getPaymentCollectionReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        includeVoided: true,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 4. Outstanding Invoices Report Provider
-final outstandingInvoicesProvider = FutureProvider.autoDispose<OutstandingInvoiceReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final outstandingInvoicesProvider =
+    FutureProvider.autoDispose<OutstandingInvoiceReportResponseModel>((
+      ref,
+    ) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getOutstandingInvoicesReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getOutstandingInvoicesReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 5. GST Report Provider
-final gstReportProvider = FutureProvider.autoDispose<GstReportModel>((ref) async {
+final gstReportProvider = FutureProvider.autoDispose<GstReportModel>((
+  ref,
+) async {
   final repository = ref.watch(reportsRepositoryProvider);
   final filter = ref.watch(reportDateFilterProvider);
 
@@ -212,76 +230,87 @@ final gstReportProvider = FutureProvider.autoDispose<GstReportModel>((ref) async
 });
 
 /// 6. Job Cards Report Provider
-final jobCardsReportProvider = FutureProvider.autoDispose<JobCardReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final jobCardsReportProvider =
+    FutureProvider.autoDispose<JobCardReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getJobCardReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getJobCardReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 7. Showrooms Report Provider
-final showroomReportProvider = FutureProvider.autoDispose<ShowroomReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
-  final showroomId = ref.watch(selectedReportShowroomIdProvider);
+final showroomReportProvider =
+    FutureProvider.autoDispose<ShowroomReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
+      final showroomId = ref.watch(selectedReportShowroomIdProvider);
 
-  return repository.getShowroomReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    showroomId: showroomId,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getShowroomReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        showroomId: showroomId,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 8. Staff Productivity Report Provider
-final staffProductivityProvider = FutureProvider.autoDispose<StaffProductivityReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
-  final showroomId = ref.watch(selectedReportShowroomIdProvider);
-  final staffId = ref.watch(staffProductivityStaffFilterProvider);
-  final vehicleTypeId = ref.watch(staffProductivityVehicleTypeFilterProvider);
-  final workTypeId = ref.watch(staffProductivityWorkTypeFilterProvider);
-  final assignmentType = ref.watch(staffProductivityAssignmentFilterProvider);
+final staffProductivityProvider =
+    FutureProvider.autoDispose<StaffProductivityReportResponseModel>((
+      ref,
+    ) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
+      final showroomId = ref.watch(selectedReportShowroomIdProvider);
+      final staffId = ref.watch(staffProductivityStaffFilterProvider);
+      final vehicleTypeId = ref.watch(
+        staffProductivityVehicleTypeFilterProvider,
+      );
+      final workTypeId = ref.watch(staffProductivityWorkTypeFilterProvider);
+      final assignmentType = ref.watch(
+        staffProductivityAssignmentFilterProvider,
+      );
 
-  return repository.getStaffProductivityReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    showroomId: showroomId,
-    staffId: staffId,
-    vehicleTypeId: vehicleTypeId,
-    workTypeId: workTypeId,
-    assignmentType: assignmentType,
-  );
-});
+      return repository.getStaffProductivityReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        showroomId: showroomId,
+        staffId: staffId,
+        vehicleTypeId: vehicleTypeId,
+        workTypeId: workTypeId,
+        assignmentType: assignmentType,
+      );
+    });
 
 /// 9. Staff Advances Report Provider
-final staffAdvancesReportProvider = FutureProvider.autoDispose<StaffAdvanceReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
+final staffAdvancesReportProvider =
+    FutureProvider.autoDispose<StaffAdvanceReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
 
-  return repository.getStaffAdvancesReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    page: 1,
-    pageSize: 100,
-  );
-});
+      return repository.getStaffAdvancesReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        page: 1,
+        pageSize: 100,
+      );
+    });
 
 /// 10. Monthly / Range Showroom Report Provider
-final monthlyShowroomReportProvider = FutureProvider.autoDispose<MonthlyShowroomReportResponseModel>((ref) async {
-  final repository = ref.watch(reportsRepositoryProvider);
-  final filter = ref.watch(reportDateFilterProvider);
-  final showroomId = ref.watch(selectedReportShowroomIdProvider);
+final monthlyShowroomReportProvider =
+    FutureProvider.autoDispose<MonthlyShowroomReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
+      final showroomId = ref.watch(selectedReportShowroomIdProvider);
 
-  return repository.getMonthlyShowroomReport(
-    fromDate: filter.startDate,
-    toDate: filter.endDate,
-    showroomId: showroomId,
-  );
-});
+      return repository.getMonthlyShowroomReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        showroomId: showroomId,
+      );
+    });

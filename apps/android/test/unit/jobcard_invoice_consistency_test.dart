@@ -16,7 +16,8 @@ class _StubInvoiceRepoForConsistency extends InvoiceRepository {
   bool shouldThrowOnGenerate = false;
   List<InvoiceWhatsAppStatus> whatsAppStatuses = [];
 
-  _StubInvoiceRepoForConsistency(this.invoiceToReturn) : super(InvoiceApi(Dio()));
+  _StubInvoiceRepoForConsistency(this.invoiceToReturn)
+    : super(InvoiceApi(Dio()));
 
   @override
   Future<InvoiceListResponse> getInvoices({
@@ -27,7 +28,12 @@ class _StubInvoiceRepoForConsistency extends InvoiceRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    return const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const InvoiceListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -45,7 +51,10 @@ class _StubInvoiceRepoForConsistency extends InvoiceRepository {
   }
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     return PaymentDto(
       id: 'pay-stub',
       invoiceId: invoiceId,
@@ -57,7 +66,9 @@ class _StubInvoiceRepoForConsistency extends InvoiceRepository {
   }
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     return whatsAppStatuses;
   }
 }
@@ -86,156 +97,197 @@ class _FakeInvoiceApiForJobCard extends InvoiceApi {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    return const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const InvoiceListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 }
 
 void main() {
   group('Job Card ↔ Invoice State Consistency', () {
-    test('createFromJobCard returns draft invoice with correct customer and vehicle associations', () async {
-      final expectedInvoice = Invoice(
-        id: 'inv-new-1',
-        invoiceNumber: null,
-        jobCardId: 'jc-1',
-        jobCardNumber: 'JC-2026-000001',
-        customerId: 'c-1',
-        customerName: 'Aravind Kumar',
-        customerPhone: '9876543210',
-        vehicleId: 'v-1',
-        registrationNumber: 'TN01AB1234',
-        vehicleMake: 'Hyundai',
-        vehicleModel: 'Creta',
-        vehicleVariant: 'SX(O)',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 2500.0,
-        taxableAmount: 2500.0,
-        gstAmount: 450.0,
-        totalAmount: 2950.0,
-        balanceAmount: 2950.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
+    test(
+      'createFromJobCard returns draft invoice with correct customer and vehicle associations',
+      () async {
+        final expectedInvoice = Invoice(
+          id: 'inv-new-1',
+          invoiceNumber: null,
+          jobCardId: 'jc-1',
+          jobCardNumber: 'JC-2026-000001',
+          customerId: 'c-1',
+          customerName: 'Aravind Kumar',
+          customerPhone: '9876543210',
+          vehicleId: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          vehicleMake: 'Hyundai',
+          vehicleModel: 'Creta',
+          vehicleVariant: 'SX(O)',
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 2500.0,
+          taxableAmount: 2500.0,
+          gstAmount: 450.0,
+          totalAmount: 2950.0,
+          balanceAmount: 2950.0,
+          status: InvoiceStatus.draft,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
 
-      final fakeApi = _FakeInvoiceApiForJobCard()..mockInvoice = expectedInvoice;
-      final repository = InvoiceRepository(fakeApi);
+        final fakeApi = _FakeInvoiceApiForJobCard()
+          ..mockInvoice = expectedInvoice;
+        final repository = InvoiceRepository(fakeApi);
 
-      final invoice = await repository.createFromJobCard('jc-1');
+        final invoice = await repository.createFromJobCard('jc-1');
 
-      expect(invoice.isDraft, true);
-      expect(invoice.isFinalized, false);
-      expect(invoice.jobCardId, 'jc-1');
-      expect(invoice.jobCardNumber, 'JC-2026-000001');
-      expect(invoice.customerId, 'c-1');
-      expect(invoice.customerName, 'Aravind Kumar');
-      expect(invoice.vehicleId, 'v-1');
-      expect(invoice.registrationNumber, 'TN01AB1234');
-      expect(invoice.vehicleMake, 'Hyundai');
-      expect(invoice.vehicleModel, 'Creta');
-      expect(invoice.vehicleVariant, 'SX(O)');
-      expect(invoice.invoiceNumber, isNull);
-    });
+        expect(invoice.isDraft, true);
+        expect(invoice.isFinalized, false);
+        expect(invoice.jobCardId, 'jc-1');
+        expect(invoice.jobCardNumber, 'JC-2026-000001');
+        expect(invoice.customerId, 'c-1');
+        expect(invoice.customerName, 'Aravind Kumar');
+        expect(invoice.vehicleId, 'v-1');
+        expect(invoice.registrationNumber, 'TN01AB1234');
+        expect(invoice.vehicleMake, 'Hyundai');
+        expect(invoice.vehicleModel, 'Creta');
+        expect(invoice.vehicleVariant, 'SX(O)');
+        expect(invoice.invoiceNumber, isNull);
+      },
+    );
 
-    test('JobCard with invoiceNumber is locked, consistent with finalized invoice', () {
-      // A finalized invoice produces a JobCard that is locked
-      const lockedJobCard = JobCard(
-        id: 'jc-1',
-        jobCardNumber: 'JC-2026-000001',
-        customer: CustomerSummary(id: 'c-1', name: 'Aravind', phoneNumber: '9876543210'),
-        vehicle: VehicleSummary(id: 'v-1', registrationNumber: 'TN01AB1234', make: 'Hyundai', model: 'Creta'),
-        status: JobCardStatus.invoiced,
-        services: [],
-        subtotal: 2500.0,
-        totalAmount: 2950.0,
-        invoiceId: 'inv-1',
-        invoiceNumber: 'INV-2026-000001',
-      );
+    test(
+      'JobCard with invoiceNumber is locked, consistent with finalized invoice',
+      () {
+        // A finalized invoice produces a JobCard that is locked
+        const lockedJobCard = JobCard(
+          id: 'jc-1',
+          jobCardNumber: 'JC-2026-000001',
+          customer: CustomerSummary(
+            id: 'c-1',
+            name: 'Aravind',
+            phoneNumber: '9876543210',
+          ),
+          vehicle: VehicleSummary(
+            id: 'v-1',
+            registrationNumber: 'TN01AB1234',
+            make: 'Hyundai',
+            model: 'Creta',
+          ),
+          status: JobCardStatus.invoiced,
+          services: [],
+          subtotal: 2500.0,
+          totalAmount: 2950.0,
+          invoiceId: 'inv-1',
+          invoiceNumber: 'INV-2026-000001',
+        );
 
-      // JobCard with invoice is locked
-      expect(lockedJobCard.isLocked, true);
+        // JobCard with invoice is locked
+        expect(lockedJobCard.isLocked, true);
 
-      // The corresponding invoice is finalized
-      final correspondingInvoice = Invoice(
-        id: 'inv-1',
-        invoiceNumber: 'INV-2026-000001',
-        jobCardId: 'jc-1',
-        jobCardNumber: 'JC-2026-000001',
-        customerId: 'c-1',
-        customerName: 'Aravind',
-        customerPhone: '9876543210',
-        vehicleId: 'v-1',
-        registrationNumber: 'TN01AB1234',
-        vehicleMake: 'Hyundai',
-        vehicleModel: 'Creta',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 2500.0,
-        taxableAmount: 2500.0,
-        gstAmount: 450.0,
-        totalAmount: 2950.0,
-        balanceAmount: 2950.0,
-        status: InvoiceStatus.generated,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
+        // The corresponding invoice is finalized
+        final correspondingInvoice = Invoice(
+          id: 'inv-1',
+          invoiceNumber: 'INV-2026-000001',
+          jobCardId: 'jc-1',
+          jobCardNumber: 'JC-2026-000001',
+          customerId: 'c-1',
+          customerName: 'Aravind',
+          customerPhone: '9876543210',
+          vehicleId: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          vehicleMake: 'Hyundai',
+          vehicleModel: 'Creta',
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 2500.0,
+          taxableAmount: 2500.0,
+          gstAmount: 450.0,
+          totalAmount: 2950.0,
+          balanceAmount: 2950.0,
+          status: InvoiceStatus.generated,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
 
-      expect(correspondingInvoice.isFinalized, true);
-      expect(correspondingInvoice.isDraft, false);
+        expect(correspondingInvoice.isFinalized, true);
+        expect(correspondingInvoice.isDraft, false);
 
-      // Consistency: both agree on the locked/finalized state
-      expect(lockedJobCard.isLocked, correspondingInvoice.isFinalized);
-    });
+        // Consistency: both agree on the locked/finalized state
+        expect(lockedJobCard.isLocked, correspondingInvoice.isFinalized);
+      },
+    );
 
-    test('failed generateInvoice does NOT report invoice as finalized', () async {
-      final draftInvoice = Invoice(
-        id: 'inv-draft-1',
-        invoiceNumber: null,
-        jobCardId: 'jc-1',
-        jobCardNumber: 'JC-2026-000001',
-        customerId: 'c-1',
-        customerName: 'Aravind',
-        customerPhone: '9876543210',
-        vehicleId: 'v-1',
-        registrationNumber: 'TN01AB1234',
-        vehicleMake: 'Hyundai',
-        vehicleModel: 'Creta',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 1000.0,
-        taxableAmount: 1000.0,
-        gstAmount: 180.0,
-        totalAmount: 1180.0,
-        balanceAmount: 1180.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
+    test(
+      'failed generateInvoice does NOT report invoice as finalized',
+      () async {
+        final draftInvoice = Invoice(
+          id: 'inv-draft-1',
+          invoiceNumber: null,
+          jobCardId: 'jc-1',
+          jobCardNumber: 'JC-2026-000001',
+          customerId: 'c-1',
+          customerName: 'Aravind',
+          customerPhone: '9876543210',
+          vehicleId: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          vehicleMake: 'Hyundai',
+          vehicleModel: 'Creta',
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 1000.0,
+          taxableAmount: 1000.0,
+          gstAmount: 180.0,
+          totalAmount: 1180.0,
+          balanceAmount: 1180.0,
+          status: InvoiceStatus.draft,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
 
-      final repo = _StubInvoiceRepoForConsistency(draftInvoice)..shouldThrowOnGenerate = true;
-      final container = ProviderContainer(overrides: [invoiceRepositoryProvider.overrideWithValue(repo)]);
-      addTearDown(container.dispose);
+        final repo = _StubInvoiceRepoForConsistency(draftInvoice)
+          ..shouldThrowOnGenerate = true;
+        final container = ProviderContainer(
+          overrides: [invoiceRepositoryProvider.overrideWithValue(repo)],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(invoiceDetailsProvider('inv-draft-1').notifier);
-      await notifier.loadDetails();
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-draft-1').notifier,
+        );
+        await notifier.loadDetails();
 
-      // Attempt generation — it will fail
-      final result = await notifier.generateInvoice();
-      expect(result, isNull);
+        // Attempt generation — it will fail
+        final result = await notifier.generateInvoice();
+        expect(result, isNull);
 
-      final state = container.read(invoiceDetailsProvider('inv-draft-1'));
-      // CRITICAL: invoice must NOT be incorrectly marked as finalized
-      expect(state.invoice!.isDraft, true);
-      expect(state.invoice!.isFinalized, false);
-      expect(state.invoice!.invoiceNumber, isNull);
-      expect(state.isGenerating, false);
-      expect(state.errorMessage, 'Invoice generation failed due to template error.');
-    });
+        final state = container.read(invoiceDetailsProvider('inv-draft-1'));
+        // CRITICAL: invoice must NOT be incorrectly marked as finalized
+        expect(state.invoice!.isDraft, true);
+        expect(state.invoice!.isFinalized, false);
+        expect(state.invoice!.invoiceNumber, isNull);
+        expect(state.isGenerating, false);
+        expect(
+          state.errorMessage,
+          'Invoice generation failed due to template error.',
+        );
+      },
+    );
 
     test('payment updates balance but JobCard remains locked', () {
       // Before payment: invoiced JobCard is locked
       const jobCard = JobCard(
         id: 'jc-1',
         jobCardNumber: 'JC-2026-000001',
-        customer: CustomerSummary(id: 'c-1', name: 'Aravind', phoneNumber: '9876543210'),
-        vehicle: VehicleSummary(id: 'v-1', registrationNumber: 'TN01AB1234', make: 'Hyundai', model: 'Creta'),
+        customer: CustomerSummary(
+          id: 'c-1',
+          name: 'Aravind',
+          phoneNumber: '9876543210',
+        ),
+        vehicle: VehicleSummary(
+          id: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          make: 'Hyundai',
+          model: 'Creta',
+        ),
         status: JobCardStatus.paid,
         services: [],
         subtotal: 2500.0,
@@ -394,82 +446,85 @@ void main() {
       expect(overdue.isPaid, false);
     });
 
-    test('Invoice.vehicleDisplayName formats with and without variant correctly', () {
-      // Without variant
-      final noVariant = Invoice(
-        id: 'inv-v1',
-        jobCardId: 'jc-1',
-        jobCardNumber: 'JC-001',
-        customerId: 'c-1',
-        customerName: 'Test',
-        customerPhone: '1234567890',
-        vehicleId: 'v-1',
-        registrationNumber: 'TN01AB1234',
-        vehicleMake: 'Hyundai',
-        vehicleModel: 'Creta',
-        vehicleVariant: null,
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 0.0,
-        taxableAmount: 0.0,
-        gstAmount: 0.0,
-        totalAmount: 0.0,
-        balanceAmount: 0.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
-      expect(noVariant.vehicleDisplayName, 'Hyundai Creta');
+    test(
+      'Invoice.vehicleDisplayName formats with and without variant correctly',
+      () {
+        // Without variant
+        final noVariant = Invoice(
+          id: 'inv-v1',
+          jobCardId: 'jc-1',
+          jobCardNumber: 'JC-001',
+          customerId: 'c-1',
+          customerName: 'Test',
+          customerPhone: '1234567890',
+          vehicleId: 'v-1',
+          registrationNumber: 'TN01AB1234',
+          vehicleMake: 'Hyundai',
+          vehicleModel: 'Creta',
+          vehicleVariant: null,
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 0.0,
+          taxableAmount: 0.0,
+          gstAmount: 0.0,
+          totalAmount: 0.0,
+          balanceAmount: 0.0,
+          status: InvoiceStatus.draft,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
+        expect(noVariant.vehicleDisplayName, 'Hyundai Creta');
 
-      // With variant
-      final withVariant = Invoice(
-        id: 'inv-v2',
-        jobCardId: 'jc-2',
-        jobCardNumber: 'JC-002',
-        customerId: 'c-1',
-        customerName: 'Test',
-        customerPhone: '1234567890',
-        vehicleId: 'v-2',
-        registrationNumber: 'TN01CD5678',
-        vehicleMake: 'Honda',
-        vehicleModel: 'City',
-        vehicleVariant: 'ZX CVT',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 0.0,
-        taxableAmount: 0.0,
-        gstAmount: 0.0,
-        totalAmount: 0.0,
-        balanceAmount: 0.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
-      expect(withVariant.vehicleDisplayName, 'Honda City (ZX CVT)');
+        // With variant
+        final withVariant = Invoice(
+          id: 'inv-v2',
+          jobCardId: 'jc-2',
+          jobCardNumber: 'JC-002',
+          customerId: 'c-1',
+          customerName: 'Test',
+          customerPhone: '1234567890',
+          vehicleId: 'v-2',
+          registrationNumber: 'TN01CD5678',
+          vehicleMake: 'Honda',
+          vehicleModel: 'City',
+          vehicleVariant: 'ZX CVT',
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 0.0,
+          taxableAmount: 0.0,
+          gstAmount: 0.0,
+          totalAmount: 0.0,
+          balanceAmount: 0.0,
+          status: InvoiceStatus.draft,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
+        expect(withVariant.vehicleDisplayName, 'Honda City (ZX CVT)');
 
-      // Empty variant (whitespace only) — should not show parentheses
-      final emptyVariant = Invoice(
-        id: 'inv-v3',
-        jobCardId: 'jc-3',
-        jobCardNumber: 'JC-003',
-        customerId: 'c-1',
-        customerName: 'Test',
-        customerPhone: '1234567890',
-        vehicleId: 'v-3',
-        registrationNumber: 'TN01EF9012',
-        vehicleMake: 'Tata',
-        vehicleModel: 'Nexon',
-        vehicleVariant: '   ',
-        invoiceDate: DateTime(2026, 9, 8),
-        subtotal: 0.0,
-        taxableAmount: 0.0,
-        gstAmount: 0.0,
-        totalAmount: 0.0,
-        balanceAmount: 0.0,
-        status: InvoiceStatus.draft,
-        items: const [],
-        createdAt: DateTime(2026, 9, 8),
-      );
-      expect(emptyVariant.vehicleDisplayName, 'Tata Nexon');
-      expect(emptyVariant.vehicleDisplayName.contains('('), false);
-    });
+        // Empty variant (whitespace only) — should not show parentheses
+        final emptyVariant = Invoice(
+          id: 'inv-v3',
+          jobCardId: 'jc-3',
+          jobCardNumber: 'JC-003',
+          customerId: 'c-1',
+          customerName: 'Test',
+          customerPhone: '1234567890',
+          vehicleId: 'v-3',
+          registrationNumber: 'TN01EF9012',
+          vehicleMake: 'Tata',
+          vehicleModel: 'Nexon',
+          vehicleVariant: '   ',
+          invoiceDate: DateTime(2026, 9, 8),
+          subtotal: 0.0,
+          taxableAmount: 0.0,
+          gstAmount: 0.0,
+          totalAmount: 0.0,
+          balanceAmount: 0.0,
+          status: InvoiceStatus.draft,
+          items: const [],
+          createdAt: DateTime(2026, 9, 8),
+        );
+        expect(emptyVariant.vehicleDisplayName, 'Tata Nexon');
+        expect(emptyVariant.vehicleDisplayName.contains('('), false);
+      },
+    );
   });
 }

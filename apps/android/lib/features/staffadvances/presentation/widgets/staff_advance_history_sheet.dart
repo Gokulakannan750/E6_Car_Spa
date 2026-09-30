@@ -24,12 +24,28 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
     final decimalPart = parts[1];
 
     final reg = RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))');
-    final formattedInt = integerPart.replaceAllMapped(reg, (Match m) => '${m[1]},');
+    final formattedInt = integerPart.replaceAllMapped(
+      reg,
+      (Match m) => '${m[1]},',
+    );
     return '₹$formattedInt.$decimalPart';
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -74,23 +90,32 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
 
           Expanded(
             child: historyAsync.when(
-              loading: () => const AppLoadingState(message: 'Loading advance history...'),
+              loading: () =>
+                  const AppLoadingState(message: 'Loading advance history...'),
               error: (err, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 36, color: AppColors.error),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 36,
+                        color: AppColors.error,
+                      ),
                       const SizedBox(height: 10),
                       Text(
                         'Could not load advance history.',
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.error),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         err.toString(),
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -116,13 +141,21 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
                             value: _formatCurrency(history.totalAdvancesAmount),
                             color: AppColors.textPrimary,
                           ),
-                          Container(width: 1, height: 28, color: AppColors.border),
+                          Container(
+                            width: 1,
+                            height: 28,
+                            color: AppColors.border,
+                          ),
                           _StatItem(
                             label: 'Outstanding',
                             value: _formatCurrency(history.outstandingAmount),
                             color: AppColors.warning,
                           ),
-                          Container(width: 1, height: 28, color: AppColors.border),
+                          Container(
+                            width: 1,
+                            height: 28,
+                            color: AppColors.border,
+                          ),
                           _StatItem(
                             label: 'Settled',
                             value: _formatCurrency(history.settledAmount),
@@ -140,18 +173,25 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.receipt_long_outlined, size: 36, color: AppColors.textSecondary),
+                                  const Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 36,
+                                    color: AppColors.textSecondary,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     'No advances found for this staff member.',
-                                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
                             )
                           : ListView.separated(
                               itemCount: history.advances.length,
-                              separatorBuilder: (context, index) => const SizedBox(height: 10),
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 10),
                               itemBuilder: (context, index) {
                                 final adv = history.advances[index];
                                 return Container(
@@ -162,17 +202,20 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
                                     border: Border.all(color: AppColors.border),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             _formatCurrency(adv.amount),
-                                            style: AppTextStyles.headingSmall.copyWith(
-                                              fontFamily: 'monospace',
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                            style: AppTextStyles.headingSmall
+                                                .copyWith(
+                                                  fontFamily: 'monospace',
+                                                  fontWeight: FontWeight.w700,
+                                                ),
                                           ),
                                           StatusBadge(
                                             label: adv.status.label,
@@ -184,38 +227,66 @@ class StaffAdvanceHistorySheet extends ConsumerWidget {
                                       const SizedBox(height: 6),
                                       Row(
                                         children: [
-                                          const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textSecondary),
+                                          const Icon(
+                                            Icons.calendar_today_outlined,
+                                            size: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
                                           const SizedBox(width: 4),
                                           Text(
                                             _formatDate(adv.advanceDate),
-                                            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                                            style: AppTextStyles.bodySmall
+                                                .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
                                           ),
                                           const SizedBox(width: 10),
-                                          const Icon(Icons.label_outline, size: 12, color: AppColors.textSecondary),
+                                          const Icon(
+                                            Icons.label_outline,
+                                            size: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
                                               adv.reason,
-                                              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
+                                              style: AppTextStyles.bodySmall
+                                                  .copyWith(
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      if (adv.isSettled && adv.settledAt != null)
+                                      if (adv.isSettled &&
+                                          adv.settledAt != null)
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                          ),
                                           child: Text(
                                             'Settled on ${_formatDate(adv.settledAt!)}',
-                                            style: AppTextStyles.labelSmall.copyWith(color: AppColors.success),
+                                            style: AppTextStyles.labelSmall
+                                                .copyWith(
+                                                  color: AppColors.success,
+                                                ),
                                           ),
                                         ),
-                                      if (adv.isObsolete && adv.obsoleteReason != null)
+                                      if (adv.isObsolete &&
+                                          adv.obsoleteReason != null)
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                          ),
                                           child: Text(
                                             'Obsoleted: ${adv.obsoleteReason}',
-                                            style: AppTextStyles.labelSmall.copyWith(color: AppColors.error),
+                                            style: AppTextStyles.labelSmall
+                                                .copyWith(
+                                                  color: AppColors.error,
+                                                ),
                                           ),
                                         ),
                                     ],
@@ -252,7 +323,10 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+          ),
         ),
         const SizedBox(height: 2),
         Text(

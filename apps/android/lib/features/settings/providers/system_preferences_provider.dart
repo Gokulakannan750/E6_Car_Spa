@@ -13,7 +13,8 @@ class SystemPreferencesState {
   final bool isSaving;
   final String? message;
   final String? errorMessage;
-  final String connectivityStatus; // 'Online', 'Unreachable', 'Checking', 'Unknown'
+  final String
+  connectivityStatus; // 'Online', 'Unreachable', 'Checking', 'Unknown'
   final bool isCheckingConnectivity;
   final DateTime? lastCheckedAt;
 
@@ -45,9 +46,12 @@ class SystemPreferencesState {
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       message: clearMessage ? null : (message ?? this.message),
-      errorMessage: clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
       connectivityStatus: connectivityStatus ?? this.connectivityStatus,
-      isCheckingConnectivity: isCheckingConnectivity ?? this.isCheckingConnectivity,
+      isCheckingConnectivity:
+          isCheckingConnectivity ?? this.isCheckingConnectivity,
       lastCheckedAt: lastCheckedAt ?? this.lastCheckedAt,
     );
   }
@@ -58,14 +62,18 @@ final systemPreferencesStorageProvider = Provider<FlutterSecureStorage>((ref) {
 });
 
 final systemPreferencesNotifierProvider =
-    StateNotifierProvider<SystemPreferencesNotifier, SystemPreferencesState>((ref) {
-  final repository = ref.watch(settingsRepositoryProvider);
-  final dio = ref.watch(dioProvider);
-  return SystemPreferencesNotifier(repository: repository, dio: dio);
-});
+    StateNotifierProvider<SystemPreferencesNotifier, SystemPreferencesState>((
+      ref,
+    ) {
+      final repository = ref.watch(settingsRepositoryProvider);
+      final dio = ref.watch(dioProvider);
+      return SystemPreferencesNotifier(repository: repository, dio: dio);
+    });
 
 final systemPreferencesProvider = Provider<SystemPreferencesModel>((ref) {
-  return ref.watch(systemPreferencesNotifierProvider.select((s) => s.preferences));
+  return ref.watch(
+    systemPreferencesNotifierProvider.select((s) => s.preferences),
+  );
 });
 
 class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
@@ -75,9 +83,9 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
   SystemPreferencesNotifier({
     required SettingsRepository repository,
     required Dio dio,
-  })  : _repository = repository,
-        _dio = dio,
-        super(const SystemPreferencesState());
+  }) : _repository = repository,
+       _dio = dio,
+       super(const SystemPreferencesState());
 
   Future<void> loadPreferences() async {
     state = state.copyWith(
@@ -87,10 +95,7 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
     );
     try {
       final prefs = await _repository.getSystemPreferences();
-      state = state.copyWith(
-        preferences: prefs,
-        isLoading: false,
-      );
+      state = state.copyWith(preferences: prefs, isLoading: false);
     } catch (_) {
       final cached = await _repository.getCachedSystemPreferences();
       state = state.copyWith(
@@ -140,7 +145,9 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
         message: 'Preferences reset to standard defaults.',
       );
     } catch (_) {
-      await _repository.saveCachedSystemPreferences(SystemPreferencesModel.defaultPreferences);
+      await _repository.saveCachedSystemPreferences(
+        SystemPreferencesModel.defaultPreferences,
+      );
       state = state.copyWith(
         preferences: SystemPreferencesModel.defaultPreferences,
         isSaving: false,
@@ -167,7 +174,8 @@ class SystemPreferencesNotifier extends StateNotifier<SystemPreferencesState> {
         ),
       );
 
-      final isOnline = response.statusCode != null && response.statusCode! < 500;
+      final isOnline =
+          response.statusCode != null && response.statusCode! < 500;
       state = state.copyWith(
         isCheckingConnectivity: false,
         connectivityStatus: isOnline ? 'Online' : 'Unreachable',

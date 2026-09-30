@@ -16,10 +16,12 @@ class ShowroomReportScreen extends ConsumerStatefulWidget {
   const ShowroomReportScreen({super.key});
 
   @override
-  ConsumerState<ShowroomReportScreen> createState() => _ShowroomReportScreenState();
+  ConsumerState<ShowroomReportScreen> createState() =>
+      _ShowroomReportScreenState();
 }
 
-class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> with SingleTickerProviderStateMixin {
+class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -75,7 +77,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
 
                     // 2. Showroom Selector
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.card,
                         borderRadius: BorderRadius.circular(AppTheme.radiusMD),
@@ -83,7 +88,11 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.storefront, size: 18, color: AppColors.primary),
+                          const Icon(
+                            Icons.storefront,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 10),
                           const Text(
                             'Showroom:',
@@ -100,21 +109,42 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                                 value: selectedShowroomId,
                                 isDense: true,
                                 isExpanded: true,
-                                hint: const Text('All Showrooms', style: TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                                hint: const Text(
+                                  'All Showrooms',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
                                 items: [
                                   const DropdownMenuItem<String?>(
                                     value: null,
-                                    child: Text('All Showrooms', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    child: Text(
+                                      'All Showrooms',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                   ),
                                   ...showroomsState.showrooms.map(
                                     (s) => DropdownMenuItem<String?>(
                                       value: s.id,
-                                      child: Text(s.name, style: const TextStyle(fontSize: 13)),
+                                      child: Text(
+                                        s.name,
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
                                     ),
                                   ),
                                 ],
                                 onChanged: (val) {
-                                  ref.read(selectedReportShowroomIdProvider.notifier).state = val;
+                                  ref
+                                          .read(
+                                            selectedReportShowroomIdProvider
+                                                .notifier,
+                                          )
+                                          .state =
+                                      val;
                                 },
                               ),
                             ),
@@ -136,8 +166,14 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                   unselectedLabelColor: AppColors.textSecondary,
                   indicatorColor: AppColors.primary,
                   indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                  unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  labelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                   tabs: const [
                     Tab(text: 'Overview'),
                     Tab(text: 'Vehicles & Services'),
@@ -151,7 +187,9 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
           ];
         },
         body: reportAsync.when(
-          loading: () => const AppLoadingState(message: 'Generating showroom 7-sheet report...'),
+          loading: () => const AppLoadingState(
+            message: 'Generating showroom 7-sheet report...',
+          ),
           error: (error, _) => AppErrorState(
             message: error.toString(),
             onRetry: () => ref.invalidate(monthlyShowroomReportProvider),
@@ -160,7 +198,8 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
             if (report.showrooms.isEmpty) {
               return const AppEmptyState(
                 title: 'No showroom data',
-                message: 'No showroom activity was recorded for the selected period.',
+                message:
+                    'No showroom activity was recorded for the selected period.',
                 icon: Icons.storefront_outlined,
               );
             }
@@ -243,7 +282,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                         ),
                         const Text(
                           'Total Billed',
-                          style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF94A3B8),
+                          ),
                         ),
                       ],
                     ),
@@ -255,9 +297,18 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildKpiItem('Total Services', s.totalServicesPerformed.toString()),
-                    _buildKpiItem('Active Staff', s.totalActiveStaff.toString()),
-                    _buildKpiItem('Staff Hours', '${s.totalStaffHours.toStringAsFixed(1)}h'),
+                    _buildKpiItem(
+                      'Total Services',
+                      s.totalServicesPerformed.toString(),
+                    ),
+                    _buildKpiItem(
+                      'Active Staff',
+                      s.totalActiveStaff.toString(),
+                    ),
+                    _buildKpiItem(
+                      'Staff Hours',
+                      '${s.totalStaffHours.toStringAsFixed(1)}h',
+                    ),
                     _buildKpiItem('Swaps', s.totalSwaps.toString()),
                   ],
                 ),
@@ -267,10 +318,16 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
           const SizedBox(height: 20),
 
           // Vehicle Type Breakdown
-          _buildSectionHeader('Vehicle Type Breakdown', Icons.directions_car_outlined),
+          _buildSectionHeader(
+            'Vehicle Type Breakdown',
+            Icons.directions_car_outlined,
+          ),
           const SizedBox(height: 8),
           if (showroom.vehicleTypeSummary.isEmpty)
-            const Text('No vehicle type data available.', style: TextStyle(fontSize: 12, color: AppColors.textTertiary))
+            const Text(
+              'No vehicle type data available.',
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+            )
           else
             Container(
               decoration: BoxDecoration(
@@ -282,14 +339,34 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: showroom.vehicleTypeSummary.length,
-                separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 1),
+                separatorBuilder: (context, index) =>
+                    const Divider(color: AppColors.border, height: 1),
                 itemBuilder: (context, index) {
                   final vt = showroom.vehicleTypeSummary[index];
                   return ListTile(
                     dense: true,
-                    title: Text(vt.vehicleTypeName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: Text('${vt.totalServices} services • ${vt.totalStaffHours.toStringAsFixed(1)}h', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    trailing: Text('${vt.totalVehicles} cars', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    title: Text(
+                      vt.vehicleTypeName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${vt.totalServices} services • ${vt.totalStaffHours.toStringAsFixed(1)}h',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    trailing: Text(
+                      '${vt.totalVehicles} cars',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -297,10 +374,16 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
           const SizedBox(height: 20),
 
           // Service Breakdown
-          _buildSectionHeader('Service Summary Breakdown', Icons.build_outlined),
+          _buildSectionHeader(
+            'Service Summary Breakdown',
+            Icons.build_outlined,
+          ),
           const SizedBox(height: 8),
           if (showroom.serviceSummary.isEmpty)
-            const Text('No service data available.', style: TextStyle(fontSize: 12, color: AppColors.textTertiary))
+            const Text(
+              'No service data available.',
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+            )
           else
             Container(
               decoration: BoxDecoration(
@@ -312,14 +395,34 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: showroom.serviceSummary.length,
-                separatorBuilder: (context, index) => const Divider(color: AppColors.border, height: 1),
+                separatorBuilder: (context, index) =>
+                    const Divider(color: AppColors.border, height: 1),
                 itemBuilder: (context, index) {
                   final srv = showroom.serviceSummary[index];
                   return ListTile(
                     dense: true,
-                    title: Text(srv.serviceName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                    subtitle: Text('${srv.serviceCategory} • ${srv.totalStaffHours.toStringAsFixed(1)}h', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    trailing: Text('${srv.totalVehicles} cars', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    title: Text(
+                      srv.serviceName,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${srv.serviceCategory} • ${srv.totalStaffHours.toStringAsFixed(1)}h',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    trailing: Text(
+                      '${srv.totalVehicles} cars',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   );
                 },
               ),
@@ -374,9 +477,14 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSwapped ? const Color(0xFFFEF3C7) : AppColors.surfaceAlt,
+                      color: isSwapped
+                          ? const Color(0xFFFEF3C7)
+                          : AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -384,7 +492,9 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isSwapped ? const Color(0xFF92400E) : AppColors.textSecondary,
+                        color: isSwapped
+                            ? const Color(0xFF92400E)
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -393,18 +503,28 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
               const SizedBox(height: 4),
               Text(
                 'Staff: ${row.staffName} (${row.staffRole ?? 'Staff'})',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 'Services: ${row.servicesSummary}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               if (isSwapped && row.originalStaffName != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   'Original Staff: ${row.originalStaffName} • Swap ID: ${row.swapId ?? 'SWP'}',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFFD97706)),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xFFD97706),
+                  ),
                 ),
               ],
               const SizedBox(height: 6),
@@ -413,12 +533,20 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 children: [
                   Text(
                     '${row.vehicleQuantity} vehicle • ${row.workingHours.toStringAsFixed(1)} hrs',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
                   if (row.notes != null && row.notes!.isNotEmpty)
                     Text(
                       row.notes!,
-                      style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: AppColors.textTertiary),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.textTertiary,
+                      ),
                     ),
                 ],
               ),
@@ -436,7 +564,8 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
     if (staffList.isEmpty) {
       return const AppEmptyState(
         title: 'No staff productivity summary',
-        message: 'No staff members performed work in this showroom for the selected period.',
+        message:
+            'No staff members performed work in this showroom for the selected period.',
         icon: Icons.people_outline,
       );
     }
@@ -463,17 +592,28 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 children: [
                   Text(
                     staff.staffName,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '${staff.workloadSharePercent.toStringAsFixed(1)}% Share',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],
@@ -481,7 +621,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
               const SizedBox(height: 2),
               Text(
                 '${staff.role ?? 'Staff'} • ${staff.homeShowroom} • ${staff.assignmentType}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               const Divider(color: AppColors.border, height: 1),
@@ -491,7 +634,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 children: [
                   _buildStaffStat('Vehicles', staff.totalVehicles.toString()),
                   _buildStaffStat('Services', staff.totalServices.toString()),
-                  _buildStaffStat('Hours', '${staff.totalHours.toStringAsFixed(1)}h'),
+                  _buildStaffStat(
+                    'Hours',
+                    '${staff.totalHours.toStringAsFixed(1)}h',
+                  ),
                   _buildStaffStat('Attendance', '${staff.attendanceDays} days'),
                 ],
               ),
@@ -538,10 +684,17 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                 children: [
                   Text(
                     att.staffName,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: isConfirmed
                           ? AppColors.success.withValues(alpha: 0.1)
@@ -553,7 +706,9 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isConfirmed ? AppColors.success : AppColors.warning,
+                        color: isConfirmed
+                            ? AppColors.success
+                            : AppColors.warning,
                       ),
                     ),
                   ),
@@ -562,13 +717,19 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
               const SizedBox(height: 4),
               Text(
                 '${dateFormat.format(att.date)} • ${att.attendanceStatus} • ${att.actualHours.toStringAsFixed(1)} hrs',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               if (att.confirmedByName != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   'Confirmed by: ${att.confirmedByName}',
-                  style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ],
             ],
@@ -586,7 +747,8 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
     if (swaps.isEmpty) {
       return const AppEmptyState(
         title: 'No staff swaps',
-        message: 'No staff swaps were performed for this showroom in the selected date range.',
+        message:
+            'No staff swaps were performed for this showroom in the selected date range.',
         icon: Icons.swap_horiz_outlined,
       );
     }
@@ -605,7 +767,9 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
             color: AppColors.card,
             borderRadius: BorderRadius.circular(AppTheme.radiusMD),
             border: Border.all(
-              color: isReversed ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+              color: isReversed
+                  ? const Color(0xFFEF4444)
+                  : const Color(0xFFF59E0B),
             ),
           ),
           child: Column(
@@ -623,7 +787,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: isReversed
                           ? const Color(0xFFFEE2E2)
@@ -635,7 +802,9 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: isReversed ? const Color(0xFFB91C1C) : const Color(0xFF92400E),
+                        color: isReversed
+                            ? const Color(0xFFB91C1C)
+                            : const Color(0xFF92400E),
                       ),
                     ),
                   ),
@@ -647,15 +816,27 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                   Expanded(
                     child: Text(
                       'Original: ${swap.staffAName}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                  const Icon(Icons.arrow_forward, size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.arrow_forward,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Replacement: ${swap.staffBName}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -663,13 +844,20 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
               const SizedBox(height: 4),
               Text(
                 'Period: ${swap.swapStartTime ?? '09:00'} – ${swap.swapEndTime ?? '17:00'} (${swap.swapHours.toStringAsFixed(1)} hrs)',
-                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
               ),
               if (swap.reason != null && swap.reason!.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(
                   'Reason: ${swap.reason}',
-                  style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textTertiary),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ],
               if (isReversed) ...[
@@ -682,7 +870,10 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
                   ),
                   child: Text(
                     'Reversed by ${swap.reversedByName ?? 'Admin'}: ${swap.reversalReason ?? 'Swap reversed'}',
-                    style: const TextStyle(fontSize: 10, color: Color(0xFFB91C1C)),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFFB91C1C),
+                    ),
                   ),
                 ),
               ],
@@ -719,9 +910,19 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen> wit
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textTertiary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }
@@ -755,11 +956,12 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.surface,
-      child: tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: AppColors.surface, child: tabBar);
   }
 
   @override

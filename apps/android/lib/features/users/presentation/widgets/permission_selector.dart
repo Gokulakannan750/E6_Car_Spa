@@ -51,10 +51,7 @@ class PermissionSelector extends StatelessWidget {
         child: const Center(
           child: Text(
             'No permissions available to configure.',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ),
       );
@@ -63,8 +60,9 @@ class PermissionSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: groups.map((group) {
-        final selectedCount =
-            group.permissions.where((p) => selected.contains(p.code)).length;
+        final selectedCount = group.permissions
+            .where((p) => selected.contains(p.code))
+            .length;
         final totalCount = group.permissions.length;
 
         return Container(
@@ -78,7 +76,10 @@ class PermissionSelector extends StatelessWidget {
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
               initiallyExpanded: selectedCount > 0,
-              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
               title: Row(
                 children: [
                   Expanded(
@@ -93,8 +94,10 @@ class PermissionSelector extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: selectedCount > 0
                           ? AppColors.primary.withAlpha(20)
@@ -117,8 +120,10 @@ class PermissionSelector extends StatelessWidget {
               children: [
                 if (!disabled)
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -126,7 +131,9 @@ class PermissionSelector extends StatelessWidget {
                           onPressed: () => _selectAllModule(group.permissions),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -140,14 +147,18 @@ class PermissionSelector extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('|',
-                            style: TextStyle(color: AppColors.border)),
+                        const Text(
+                          '|',
+                          style: TextStyle(color: AppColors.border),
+                        ),
                         const SizedBox(width: 8),
                         TextButton(
                           onPressed: () => _clearAllModule(group.permissions),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -169,17 +180,22 @@ class PermissionSelector extends StatelessWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(12),
                   itemCount: group.permissions.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 6),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 6),
                   itemBuilder: (context, index) {
                     final perm = group.permissions[index];
                     final isChecked = selected.contains(perm.code);
 
                     return InkWell(
-                      onTap: disabled ? null : () => _togglePermission(perm.code),
+                      onTap: disabled
+                          ? null
+                          : () => _togglePermission(perm.code),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: isChecked
                               ? const Color(0xFFEFF6FF)

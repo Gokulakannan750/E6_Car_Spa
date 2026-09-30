@@ -15,7 +15,10 @@ void main() {
 
       expect(InvoiceStatus.fromString('Draft'), InvoiceStatus.draft);
       expect(InvoiceStatus.fromString('Generated'), InvoiceStatus.generated);
-      expect(InvoiceStatus.fromString('PartiallyPaid'), InvoiceStatus.partiallyPaid);
+      expect(
+        InvoiceStatus.fromString('PartiallyPaid'),
+        InvoiceStatus.partiallyPaid,
+      );
       expect(InvoiceStatus.fromString('Paid'), InvoiceStatus.paid);
       expect(InvoiceStatus.fromString('Cancelled'), InvoiceStatus.cancelled);
       expect(InvoiceStatus.fromString('Unknown'), InvoiceStatus.draft);
@@ -25,7 +28,10 @@ void main() {
       expect(PaymentMethod.fromString('Cash'), PaymentMethod.cash);
       expect(PaymentMethod.fromString('UPI'), PaymentMethod.upi);
       expect(PaymentMethod.fromString('Card'), PaymentMethod.card);
-      expect(PaymentMethod.fromString('BankTransfer'), PaymentMethod.bankTransfer);
+      expect(
+        PaymentMethod.fromString('BankTransfer'),
+        PaymentMethod.bankTransfer,
+      );
       expect(PaymentMethod.fromString('Unknown'), PaymentMethod.cash);
     });
 
@@ -66,7 +72,7 @@ void main() {
             'taxableAmount': 9500.0,
             'taxAmount': 1710.0,
             'totalAmount': 11210.0,
-          }
+          },
         ],
         'payments': [
           {
@@ -77,7 +83,7 @@ void main() {
             'reference': 'UPI/1234567890',
             'paymentDate': '2026-08-25T12:00:00Z',
             'createdAt': '2026-08-25T12:00:00Z',
-          }
+          },
         ],
         'createdAt': '2026-08-25T10:00:00Z',
         'updatedAt': '2026-08-25T12:00:00Z',
@@ -112,40 +118,43 @@ void main() {
       expect(invoice.payments.first.amount, 5000.0);
     });
 
-    test('Invoice draft detection works correctly when invoiceNumber is null', () {
-      final json = {
-        'id': 'inv-draft',
-        'invoiceNumber': null,
-        'jobCardId': 'jc-1',
-        'jobCardNumber': 'JC-001',
-        'customerId': 'c-1',
-        'customerName': 'Test',
-        'customerPhone': '123',
-        'vehicleId': 'v-1',
-        'registrationNumber': 'TN01',
-        'vehicleMake': 'Maruti',
-        'vehicleModel': 'Swift',
-        'invoiceDate': '2026-08-25T00:00:00Z',
-        'subtotal': 1000.0,
-        'discount': 0.0,
-        'taxableAmount': 1000.0,
-        'gstAmount': 180.0,
-        'totalAmount': 1180.0,
-        'paidAmount': 0.0,
-        'balanceAmount': 1180.0,
-        'status': 0,
-        'isGstEnabled': true,
-        'items': [],
-        'payments': [],
-        'createdAt': '2026-08-25T00:00:00Z',
-      };
+    test(
+      'Invoice draft detection works correctly when invoiceNumber is null',
+      () {
+        final json = {
+          'id': 'inv-draft',
+          'invoiceNumber': null,
+          'jobCardId': 'jc-1',
+          'jobCardNumber': 'JC-001',
+          'customerId': 'c-1',
+          'customerName': 'Test',
+          'customerPhone': '123',
+          'vehicleId': 'v-1',
+          'registrationNumber': 'TN01',
+          'vehicleMake': 'Maruti',
+          'vehicleModel': 'Swift',
+          'invoiceDate': '2026-08-25T00:00:00Z',
+          'subtotal': 1000.0,
+          'discount': 0.0,
+          'taxableAmount': 1000.0,
+          'gstAmount': 180.0,
+          'totalAmount': 1180.0,
+          'paidAmount': 0.0,
+          'balanceAmount': 1180.0,
+          'status': 0,
+          'isGstEnabled': true,
+          'items': [],
+          'payments': [],
+          'createdAt': '2026-08-25T00:00:00Z',
+        };
 
-      final invoice = Invoice.fromJson(json);
+        final invoice = Invoice.fromJson(json);
 
-      expect(invoice.isDraft, true);
-      expect(invoice.isFinalized, false);
-      expect(invoice.status, InvoiceStatus.draft);
-    });
+        expect(invoice.isDraft, true);
+        expect(invoice.isFinalized, false);
+        expect(invoice.status, InvoiceStatus.draft);
+      },
+    );
 
     test('InvoiceListItem parses list response item', () {
       final json = {
@@ -178,137 +187,160 @@ void main() {
       expect(item.isDraft, false);
     });
 
-    test('UpdateInvoiceRequest and RecordPaymentRequest serialize correctly', () {
-      const updateReq = UpdateInvoiceRequest(
-        discount: 250.0,
-        notes: 'VIP customer discount',
-        isGstEnabled: true,
-      );
-      final updateJson = updateReq.toJson();
-      expect(updateJson['discount'], 250.0);
-      expect(updateJson['notes'], 'VIP customer discount');
-      expect(updateJson['isGstEnabled'], true);
+    test(
+      'UpdateInvoiceRequest and RecordPaymentRequest serialize correctly',
+      () {
+        const updateReq = UpdateInvoiceRequest(
+          discount: 250.0,
+          notes: 'VIP customer discount',
+          isGstEnabled: true,
+        );
+        final updateJson = updateReq.toJson();
+        expect(updateJson['discount'], 250.0);
+        expect(updateJson['notes'], 'VIP customer discount');
+        expect(updateJson['isGstEnabled'], true);
 
-      final payReq = RecordPaymentRequest(
-        amount: 1500.0,
-        paymentMethod: 'UPI',
-        reference: 'UPI/9876543210',
-        paymentDate: DateTime(2026, 8, 25, 12, 0, 0),
-      );
-      final payJson = payReq.toJson();
-      expect(payJson['amount'], 1500.0);
-      expect(payJson['paymentMethod'], 'UPI');
-      expect(payJson['reference'], 'UPI/9876543210');
-      expect(payJson['paymentDate'], isNotNull);
-    });
+        final payReq = RecordPaymentRequest(
+          amount: 1500.0,
+          paymentMethod: 'UPI',
+          reference: 'UPI/9876543210',
+          paymentDate: DateTime(2026, 8, 25, 12, 0, 0),
+        );
+        final payJson = payReq.toJson();
+        expect(payJson['amount'], 1500.0);
+        expect(payJson['paymentMethod'], 'UPI');
+        expect(payJson['reference'], 'UPI/9876543210');
+        expect(payJson['paymentDate'], isNotNull);
+      },
+    );
 
-    test('InvoiceListItem parses backend status 6 or "Generated" correctly', () {
-      final jsonInt6 = {
-        'id': 'inv-item-6',
-        'invoiceNumber': 'INV-2026-000019',
-        'jobCardNumber': 'JC-2026-000029',
-        'customerName': 'Gokul',
-        'customerPhone': '9578749449',
-        'registrationNumber': 'TN33AA1111',
-        'vehicle': 'Tata Nexon',
-        'invoiceDate': '2026-08-25T00:00:00Z',
-        'totalAmount': 2500.0,
-        'paidAmount': 0.0,
-        'balanceAmount': 2500.0,
-        'status': 6,
-        'createdAt': '2026-08-25T10:00:00Z',
-      };
+    test(
+      'InvoiceListItem parses backend status 6 or "Generated" correctly',
+      () {
+        final jsonInt6 = {
+          'id': 'inv-item-6',
+          'invoiceNumber': 'INV-2026-000019',
+          'jobCardNumber': 'JC-2026-000029',
+          'customerName': 'Gokul',
+          'customerPhone': '9578749449',
+          'registrationNumber': 'TN33AA1111',
+          'vehicle': 'Tata Nexon',
+          'invoiceDate': '2026-08-25T00:00:00Z',
+          'totalAmount': 2500.0,
+          'paidAmount': 0.0,
+          'balanceAmount': 2500.0,
+          'status': 6,
+          'createdAt': '2026-08-25T10:00:00Z',
+        };
 
-      final item6 = InvoiceListItem.fromJson(jsonInt6);
-      expect(item6.status, InvoiceStatus.generated);
-      expect(item6.isDraft, false);
-      expect(item6.isFinalized, true);
-      expect(item6.displayStatusText, 'Payment Pending');
+        final item6 = InvoiceListItem.fromJson(jsonInt6);
+        expect(item6.status, InvoiceStatus.generated);
+        expect(item6.isDraft, false);
+        expect(item6.isFinalized, true);
+        expect(item6.displayStatusText, 'Payment Pending');
 
-      final jsonStr = Map<String, dynamic>.from(jsonInt6);
-      jsonStr['status'] = 'Generated';
-      final itemStr = InvoiceListItem.fromJson(jsonStr);
-      expect(itemStr.status, InvoiceStatus.generated);
-      expect(itemStr.isDraft, false);
-      expect(itemStr.isFinalized, true);
-      expect(itemStr.displayStatusText, 'Payment Pending');
-    });
+        final jsonStr = Map<String, dynamic>.from(jsonInt6);
+        jsonStr['status'] = 'Generated';
+        final itemStr = InvoiceListItem.fromJson(jsonStr);
+        expect(itemStr.status, InvoiceStatus.generated);
+        expect(itemStr.isDraft, false);
+        expect(itemStr.isFinalized, true);
+        expect(itemStr.displayStatusText, 'Payment Pending');
+      },
+    );
 
-    test('InvoiceListItem promotes draft status to generated when invoiceNumber exists', () {
-      final jsonLegacy = {
-        'id': 'inv-item-legacy',
-        'invoiceNumber': 'INV-2026-000019',
-        'jobCardNumber': 'JC-2026-000029',
-        'customerName': 'Gokul',
-        'customerPhone': '9578749449',
-        'registrationNumber': 'TN33AA1111',
-        'vehicle': 'Tata Nexon',
-        'invoiceDate': '2026-08-25T00:00:00Z',
-        'totalAmount': 2500.0,
-        'paidAmount': 0.0,
-        'balanceAmount': 2500.0,
-        'status': 0, // Backend passed 0/Draft, but invoiceNumber exists
-        'createdAt': '2026-08-25T10:00:00Z',
-      };
+    test(
+      'InvoiceListItem promotes draft status to generated when invoiceNumber exists',
+      () {
+        final jsonLegacy = {
+          'id': 'inv-item-legacy',
+          'invoiceNumber': 'INV-2026-000019',
+          'jobCardNumber': 'JC-2026-000029',
+          'customerName': 'Gokul',
+          'customerPhone': '9578749449',
+          'registrationNumber': 'TN33AA1111',
+          'vehicle': 'Tata Nexon',
+          'invoiceDate': '2026-08-25T00:00:00Z',
+          'totalAmount': 2500.0,
+          'paidAmount': 0.0,
+          'balanceAmount': 2500.0,
+          'status': 0, // Backend passed 0/Draft, but invoiceNumber exists
+          'createdAt': '2026-08-25T10:00:00Z',
+        };
 
-      final item = InvoiceListItem.fromJson(jsonLegacy);
-      expect(item.status, InvoiceStatus.generated);
-      expect(item.isDraft, false);
-      expect(item.isFinalized, true);
-      expect(item.displayStatusText, 'Payment Pending');
-    });
+        final item = InvoiceListItem.fromJson(jsonLegacy);
+        expect(item.status, InvoiceStatus.generated);
+        expect(item.isDraft, false);
+        expect(item.isFinalized, true);
+        expect(item.displayStatusText, 'Payment Pending');
+      },
+    );
 
-    test('InvoiceListItem preserves draft status when invoiceNumber is null or empty', () {
-      final jsonDraft = {
-        'id': 'inv-item-draft',
-        'invoiceNumber': null,
-        'jobCardNumber': 'JC-2026-000029',
-        'customerName': 'Gokul',
-        'customerPhone': '9578749449',
-        'registrationNumber': 'TN33AA1111',
-        'vehicle': 'Tata Nexon',
-        'invoiceDate': '2026-08-25T00:00:00Z',
-        'totalAmount': 2500.0,
-        'paidAmount': 0.0,
-        'balanceAmount': 2500.0,
-        'status': 0,
-        'createdAt': '2026-08-25T10:00:00Z',
-      };
+    test(
+      'InvoiceListItem preserves draft status when invoiceNumber is null or empty',
+      () {
+        final jsonDraft = {
+          'id': 'inv-item-draft',
+          'invoiceNumber': null,
+          'jobCardNumber': 'JC-2026-000029',
+          'customerName': 'Gokul',
+          'customerPhone': '9578749449',
+          'registrationNumber': 'TN33AA1111',
+          'vehicle': 'Tata Nexon',
+          'invoiceDate': '2026-08-25T00:00:00Z',
+          'totalAmount': 2500.0,
+          'paidAmount': 0.0,
+          'balanceAmount': 2500.0,
+          'status': 0,
+          'createdAt': '2026-08-25T10:00:00Z',
+        };
 
-      final item = InvoiceListItem.fromJson(jsonDraft);
-      expect(item.status, InvoiceStatus.draft);
-      expect(item.isDraft, true);
-      expect(item.isFinalized, false);
-      expect(item.displayStatusText, 'Draft');
-    });
+        final item = InvoiceListItem.fromJson(jsonDraft);
+        expect(item.status, InvoiceStatus.draft);
+        expect(item.isDraft, true);
+        expect(item.isFinalized, false);
+        expect(item.displayStatusText, 'Draft');
+      },
+    );
 
-    test('InvoiceListItem preserves partially paid, paid, and cancelled statuses', () {
-      final base = {
-        'id': 'inv-test',
-        'invoiceNumber': 'INV-2026-000019',
-        'jobCardNumber': 'JC-2026-000029',
-        'customerName': 'Gokul',
-        'customerPhone': '9578749449',
-        'registrationNumber': 'TN33AA1111',
-        'vehicle': 'Tata Nexon',
-        'invoiceDate': '2026-08-25T00:00:00Z',
-        'totalAmount': 2500.0,
-        'paidAmount': 1000.0,
-        'balanceAmount': 1500.0,
-        'createdAt': '2026-08-25T10:00:00Z',
-      };
+    test(
+      'InvoiceListItem preserves partially paid, paid, and cancelled statuses',
+      () {
+        final base = {
+          'id': 'inv-test',
+          'invoiceNumber': 'INV-2026-000019',
+          'jobCardNumber': 'JC-2026-000029',
+          'customerName': 'Gokul',
+          'customerPhone': '9578749449',
+          'registrationNumber': 'TN33AA1111',
+          'vehicle': 'Tata Nexon',
+          'invoiceDate': '2026-08-25T00:00:00Z',
+          'totalAmount': 2500.0,
+          'paidAmount': 1000.0,
+          'balanceAmount': 1500.0,
+          'createdAt': '2026-08-25T10:00:00Z',
+        };
 
-      final itemPartiallyPaid = InvoiceListItem.fromJson({...base, 'status': 3});
-      expect(itemPartiallyPaid.status, InvoiceStatus.partiallyPaid);
-      expect(itemPartiallyPaid.displayStatusText, 'Partially Paid');
+        final itemPartiallyPaid = InvoiceListItem.fromJson({
+          ...base,
+          'status': 3,
+        });
+        expect(itemPartiallyPaid.status, InvoiceStatus.partiallyPaid);
+        expect(itemPartiallyPaid.displayStatusText, 'Partially Paid');
 
-      final itemPaid = InvoiceListItem.fromJson({...base, 'status': 2, 'paidAmount': 2500.0, 'balanceAmount': 0.0});
-      expect(itemPaid.status, InvoiceStatus.paid);
-      expect(itemPaid.displayStatusText, 'Paid');
+        final itemPaid = InvoiceListItem.fromJson({
+          ...base,
+          'status': 2,
+          'paidAmount': 2500.0,
+          'balanceAmount': 0.0,
+        });
+        expect(itemPaid.status, InvoiceStatus.paid);
+        expect(itemPaid.displayStatusText, 'Paid');
 
-      final itemCancelled = InvoiceListItem.fromJson({...base, 'status': 4});
-      expect(itemCancelled.status, InvoiceStatus.cancelled);
-      expect(itemCancelled.displayStatusText, 'Cancelled');
-    });
+        final itemCancelled = InvoiceListItem.fromJson({...base, 'status': 4});
+        expect(itemCancelled.status, InvoiceStatus.cancelled);
+        expect(itemCancelled.displayStatusText, 'Cancelled');
+      },
+    );
   });
 }

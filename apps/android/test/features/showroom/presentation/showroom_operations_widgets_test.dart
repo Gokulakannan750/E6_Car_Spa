@@ -55,37 +55,46 @@ class FakeFullShowroomRepository implements ShowroomRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     return DailyStaffResponse(
       showroomId: showroomId,
       showroomName: 'Test Showroom',
       date: date,
-      totalVehiclesAttended: vehicleWorks.fold(0, (s, w) => s + w.vehicleQuantity),
+      totalVehiclesAttended: vehicleWorks.fold(
+        0,
+        (s, w) => s + w.vehicleQuantity,
+      ),
       isAttendanceConfirmed: false,
-      staffAssignments: customStaffAssignments ?? [
-        DailyStaffAssignment(
-          id: 'assign-1',
-          showroomId: showroomId,
-          showroomName: 'Test Showroom',
-          staffId: 'staff-1',
-          staffMasterId: 'STF001',
-          staffName: 'Ramesh Kumar',
-          staffPhone: '9840123456',
-          staffRole: 'Technician',
-          date: date,
-          startTime: '09:00',
-          endTime: '18:00',
-          workingHours: 9.0,
-          assignmentType: 'Regular',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-      ],
+      staffAssignments:
+          customStaffAssignments ??
+          [
+            DailyStaffAssignment(
+              id: 'assign-1',
+              showroomId: showroomId,
+              showroomName: 'Test Showroom',
+              staffId: 'staff-1',
+              staffMasterId: 'STF001',
+              staffName: 'Ramesh Kumar',
+              staffPhone: '9840123456',
+              staffRole: 'Technician',
+              date: date,
+              startTime: '09:00',
+              endTime: '18:00',
+              workingHours: 9.0,
+              assignmentType: 'Regular',
+              createdAt: DateTime(2026, 9, 27),
+            ),
+          ],
     );
   }
 
   @override
-  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({bool? isActive}) async =>
-      vehicleTypes;
+  Future<List<ShowroomVehicleType>> getShowroomVehicleTypes({
+    bool? isActive,
+  }) async => vehicleTypes;
 
   @override
   Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async =>
@@ -125,15 +134,19 @@ class FakeFullShowroomRepository implements ShowroomRepository {
       timeRecorded: '10:00 AM',
       notes: request.notes,
       serviceItems: (request.serviceItems ?? [])
-          .map((s) => ShowroomVehicleWorkItem(
-                id: 'item-${s.workTypeId}',
-                showroomVehicleWorkId: 'work-${vehicleWorks.length + 1}',
-                workTypeId: s.workTypeId,
-                workTypeCode: s.workTypeId == 'wt-1' ? 'WASH' : 'VACUUM',
-                workTypeName: s.workTypeId == 'wt-1' ? 'Full Wash' : 'Interior Vacuum',
-                quantity: s.quantity,
-                createdAt: DateTime.now(),
-              ))
+          .map(
+            (s) => ShowroomVehicleWorkItem(
+              id: 'item-${s.workTypeId}',
+              showroomVehicleWorkId: 'work-${vehicleWorks.length + 1}',
+              workTypeId: s.workTypeId,
+              workTypeCode: s.workTypeId == 'wt-1' ? 'WASH' : 'VACUUM',
+              workTypeName: s.workTypeId == 'wt-1'
+                  ? 'Full Wash'
+                  : 'Interior Vacuum',
+              quantity: s.quantity,
+              createdAt: DateTime.now(),
+            ),
+          )
           .toList(),
       createdAt: DateTime.now(),
     );
@@ -160,15 +173,17 @@ class FakeFullShowroomRepository implements ShowroomRepository {
         timeRecorded: '10:15 AM',
         notes: v.notes,
         serviceItems: v.workTypeIds
-            .map((id) => ShowroomVehicleWorkItem(
-                  id: 'item-$id',
-                  showroomVehicleWorkId: 'work-batch-${vehicleWorks.length + 1}',
-                  workTypeId: id,
-                  workTypeCode: id == 'wt-1' ? 'WASH' : 'VACUUM',
-                  workTypeName: id == 'wt-1' ? 'Full Wash' : 'Interior Vacuum',
-                  quantity: 1,
-                  createdAt: DateTime.now(),
-                ))
+            .map(
+              (id) => ShowroomVehicleWorkItem(
+                id: 'item-$id',
+                showroomVehicleWorkId: 'work-batch-${vehicleWorks.length + 1}',
+                workTypeId: id,
+                workTypeCode: id == 'wt-1' ? 'WASH' : 'VACUUM',
+                workTypeName: id == 'wt-1' ? 'Full Wash' : 'Interior Vacuum',
+                quantity: 1,
+                createdAt: DateTime.now(),
+              ),
+            )
             .toList(),
         createdAt: DateTime.now(),
       );
@@ -192,23 +207,29 @@ class FakeFullShowroomRepository implements ShowroomRepository {
       staffId: request.staffId ?? prev.staffId,
       staffName: prev.staffName,
       vehicleTypeId: request.vehicleTypeId ?? prev.vehicleTypeId,
-      vehicleTypeName: (request.vehicleTypeId ?? prev.vehicleTypeId) == 'vt-1' ? 'Sedan' : 'SUV',
+      vehicleTypeName: (request.vehicleTypeId ?? prev.vehicleTypeId) == 'vt-1'
+          ? 'Sedan'
+          : 'SUV',
       vehicleQuantity: request.vehicleQuantity ?? prev.vehicleQuantity,
       date: request.date ?? prev.date,
       timeRecorded: prev.timeRecorded,
       notes: request.notes ?? prev.notes,
       serviceItems: (request.serviceItems != null)
           ? request.serviceItems!
-              .map((s) => ShowroomVehicleWorkItem(
+                .map(
+                  (s) => ShowroomVehicleWorkItem(
                     id: 'item-${s.workTypeId}',
                     showroomVehicleWorkId: prev.id,
                     workTypeId: s.workTypeId,
                     workTypeCode: s.workTypeId == 'wt-1' ? 'WASH' : 'VACUUM',
-                    workTypeName: s.workTypeId == 'wt-1' ? 'Full Wash' : 'Interior Vacuum',
+                    workTypeName: s.workTypeId == 'wt-1'
+                        ? 'Full Wash'
+                        : 'Interior Vacuum',
                     quantity: s.quantity,
                     createdAt: DateTime.now(),
-                  ))
-              .toList()
+                  ),
+                )
+                .toList()
           : prev.serviceItems,
       createdAt: prev.createdAt,
     );
@@ -217,7 +238,10 @@ class FakeFullShowroomRepository implements ShowroomRepository {
   }
 
   @override
-  Future<void> deleteShowroomVehicleWork(String showroomId, String workId) async {
+  Future<void> deleteShowroomVehicleWork(
+    String showroomId,
+    String workId,
+  ) async {
     vehicleWorks.removeWhere((w) => w.id == workId);
   }
 
@@ -226,9 +250,17 @@ class FakeFullShowroomRepository implements ShowroomRepository {
     String showroomId,
     DateTime date,
   ) async {
-    final works = vehicleWorks.where((w) => w.showroomId == showroomId).toList();
-    final totalVehicles = works.fold<int>(0, (sum, w) => sum + w.vehicleQuantity);
-    final totalServices = works.fold<int>(0, (sum, w) => sum + w.serviceItems.length);
+    final works = vehicleWorks
+        .where((w) => w.showroomId == showroomId)
+        .toList();
+    final totalVehicles = works.fold<int>(
+      0,
+      (sum, w) => sum + w.vehicleQuantity,
+    );
+    final totalServices = works.fold<int>(
+      0,
+      (sum, w) => sum + w.serviceItems.length,
+    );
 
     return ShowroomOperationsSummary(
       showroomId: showroomId,
@@ -246,7 +278,7 @@ class FakeFullShowroomRepository implements ShowroomRepository {
                 vehicleTypeCode: 'SEDAN',
                 vehicleTypeName: 'Sedan',
                 totalVehicles: totalVehicles,
-              )
+              ),
             ]
           : [],
       workTypeBreakdown: totalServices > 0
@@ -256,7 +288,7 @@ class FakeFullShowroomRepository implements ShowroomRepository {
                 workTypeCode: 'WASH',
                 workTypeName: 'Full Wash',
                 totalQuantity: totalServices,
-              )
+              ),
             ]
           : [],
       staffProductivityBreakdown: const [],
@@ -288,25 +320,26 @@ class FakeFullShowroomRepository implements ShowroomRepository {
   }
 }
 
-class FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   FakeAuthNotifier()
-      : super(
-          const Authenticated(
-            AuthUser(
-              id: 'owner-1',
-              username: 'owner',
-              fullName: 'Owner User',
-              role: 'Owner',
-              isOwner: true,
-              permissions: [
-                'showroom.view',
-                'showroom.manage',
-                'showroom.assign_staff',
-                'showroom.confirm_attendance',
-              ],
-            ),
+    : super(
+        const Authenticated(
+          AuthUser(
+            id: 'owner-1',
+            username: 'owner',
+            fullName: 'Owner User',
+            role: 'Owner',
+            isOwner: true,
+            permissions: [
+              'showroom.view',
+              'showroom.manage',
+              'showroom.assign_staff',
+              'showroom.confirm_attendance',
+            ],
           ),
-        );
+        ),
+      );
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -333,7 +366,8 @@ void main() {
         home: MediaQuery(
           data: MediaQueryData(size: Size(width, height)),
           child: Scaffold(
-            body: child ??
+            body:
+                child ??
                 ShowroomDetailScreen(
                   showroom: Showroom(
                     id: 'sr-1',
@@ -352,8 +386,9 @@ void main() {
   }
 
   group('VehicleWorkCard Widget Tests', () {
-    testWidgets('renders staff name, vehicle type, quantity and services',
-        (tester) async {
+    testWidgets('renders staff name, vehicle type, quantity and services', (
+      tester,
+    ) async {
       final work = ShowroomVehicleWork(
         id: 'w-1',
         showroomId: 'sr-1',
@@ -412,85 +447,98 @@ void main() {
   });
 
   group('ShowroomOperationsTab Widget Tests', () {
-    testWidgets('renders KPI cards, active staff, empty state when no works recorded',
-        (tester) async {
-      await tester.pumpWidget(
-        createTestWidget(
-          child: ShowroomOperationsTab(
-            showroomId: 'sr-1',
-            showroomName: 'Test Showroom',
-            selectedDate: DateTime(2026, 9, 27),
+    testWidgets(
+      'renders KPI cards, active staff, empty state when no works recorded',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestWidget(
+            child: ShowroomOperationsTab(
+              showroomId: 'sr-1',
+              showroomName: 'Test Showroom',
+              selectedDate: DateTime(2026, 9, 27),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Vehicles Handled'), findsOneWidget);
-      expect(find.text('Services Done'), findsOneWidget);
-      expect(find.text('Active Sessions'), findsOneWidget);
-      expect(find.text('Staff on Duty (1)'), findsOneWidget);
-      // The provider initializes with DateTime.now() as selectedDate, so dateHeading uses today
-      final expectedDateHeading = DateFormat('dd MMM yyyy').format(DateTime.now());
-      expect(find.text('No vehicle work recorded for $expectedDateHeading'), findsOneWidget);
-    });
+        expect(find.text('Vehicles Handled'), findsOneWidget);
+        expect(find.text('Services Done'), findsOneWidget);
+        expect(find.text('Active Sessions'), findsOneWidget);
+        expect(find.text('Staff on Duty (1)'), findsOneWidget);
+        // The provider initializes with DateTime.now() as selectedDate, so dateHeading uses today
+        final expectedDateHeading = DateFormat(
+          'dd MMM yyyy',
+        ).format(DateTime.now());
+        expect(
+          find.text('No vehicle work recorded for $expectedDateHeading'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('renders recorded vehicle works and breakdowns when data exists',
-        (tester) async {
-      fakeRepo.vehicleWorks.add(ShowroomVehicleWork(
-        id: 'work-1',
-        showroomId: 'sr-1',
-        staffId: 'staff-1',
-        staffName: 'Ramesh Kumar',
-        vehicleTypeId: 'vt-1',
-        vehicleTypeName: 'Sedan',
-        vehicleQuantity: 3,
-        date: DateTime(2026, 9, 27),
-        timeRecorded: '09:45 AM',
-        serviceItems: [
-          ShowroomVehicleWorkItem(
-            id: 'item-1',
-            showroomVehicleWorkId: 'work-1',
-            workTypeId: 'wt-1',
-            workTypeCode: 'WASH',
-            workTypeName: 'Full Wash',
-            quantity: 1,
+    testWidgets(
+      'renders recorded vehicle works and breakdowns when data exists',
+      (tester) async {
+        fakeRepo.vehicleWorks.add(
+          ShowroomVehicleWork(
+            id: 'work-1',
+            showroomId: 'sr-1',
+            staffId: 'staff-1',
+            staffName: 'Ramesh Kumar',
+            vehicleTypeId: 'vt-1',
+            vehicleTypeName: 'Sedan',
+            vehicleQuantity: 3,
+            date: DateTime(2026, 9, 27),
+            timeRecorded: '09:45 AM',
+            serviceItems: [
+              ShowroomVehicleWorkItem(
+                id: 'item-1',
+                showroomVehicleWorkId: 'work-1',
+                workTypeId: 'wt-1',
+                workTypeCode: 'WASH',
+                workTypeName: 'Full Wash',
+                quantity: 1,
+                createdAt: DateTime.now(),
+              ),
+            ],
             createdAt: DateTime.now(),
           ),
-        ],
-        createdAt: DateTime.now(),
-      ));
+        );
 
-      await tester.pumpWidget(
-        createTestWidget(
-          child: ShowroomOperationsTab(
-            showroomId: 'sr-1',
-            showroomName: 'Test Showroom',
-            selectedDate: DateTime(2026, 9, 27),
+        await tester.pumpWidget(
+          createTestWidget(
+            child: ShowroomOperationsTab(
+              showroomId: 'sr-1',
+              showroomName: 'Test Showroom',
+              selectedDate: DateTime(2026, 9, 27),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Vehicle Type Breakdown'), findsOneWidget);
-      expect(find.text('Sedan: 3'), findsOneWidget);
-      expect(find.text('Service Breakdown'), findsOneWidget);
-      expect(find.text('Full Wash: 1'), findsOneWidget);
-      expect(find.text('Daily Vehicle Work'), findsOneWidget);
-      expect(find.text('Ramesh Kumar'), findsWidgets);
-    });
+        expect(find.text('Vehicle Type Breakdown'), findsOneWidget);
+        expect(find.text('Sedan: 3'), findsOneWidget);
+        expect(find.text('Service Breakdown'), findsOneWidget);
+        expect(find.text('Full Wash: 1'), findsOneWidget);
+        expect(find.text('Daily Vehicle Work'), findsOneWidget);
+        expect(find.text('Ramesh Kumar'), findsWidgets);
+      },
+    );
 
     testWidgets('renders filter bar and filtering works', (tester) async {
-      fakeRepo.vehicleWorks.add(ShowroomVehicleWork(
-        id: 'work-1',
-        showroomId: 'sr-1',
-        staffId: 'staff-1',
-        staffName: 'Ramesh Kumar',
-        vehicleTypeId: 'vt-1',
-        vehicleTypeName: 'Sedan',
-        vehicleQuantity: 1,
-        date: DateTime(2026, 9, 27),
-        createdAt: DateTime.now(),
-      ));
+      fakeRepo.vehicleWorks.add(
+        ShowroomVehicleWork(
+          id: 'work-1',
+          showroomId: 'sr-1',
+          staffId: 'staff-1',
+          staffName: 'Ramesh Kumar',
+          vehicleTypeId: 'vt-1',
+          vehicleTypeName: 'Sedan',
+          vehicleQuantity: 1,
+          date: DateTime(2026, 9, 27),
+          createdAt: DateTime.now(),
+        ),
+      );
 
       await tester.pumpWidget(
         createTestWidget(
@@ -504,7 +552,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('staff_filter_popup')), findsOneWidget);
-      expect(find.byKey(const Key('vehicle_type_filter_popup')), findsOneWidget);
+      expect(
+        find.byKey(const Key('vehicle_type_filter_popup')),
+        findsOneWidget,
+      );
     });
   });
 
@@ -539,7 +590,9 @@ void main() {
       expect(find.byKey(const Key('vehicle_config_card_1')), findsNothing);
     });
 
-    testWidgets('validation error shows banner if no work type selected', (tester) async {
+    testWidgets('validation error shows banner if no work type selected', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           child: LogVehicleWorkModalSheet(
@@ -568,7 +621,9 @@ void main() {
 
       expect(find.byKey(const Key('modal_error_banner')), findsOneWidget);
       expect(
-        find.text('Please select at least one service/work type for Vehicle #1.'),
+        find.text(
+          'Please select at least one service/work type for Vehicle #1.',
+        ),
         findsOneWidget,
       );
     });
@@ -608,111 +663,128 @@ void main() {
       expect(fakeRepo.vehicleWorks.first.vehicleTypeName, 'Sedan');
     });
 
-    testWidgets('displays all 6 eligible staff on Maruti Nexa for 27 Sept 2026 in dropdown', (tester) async {
-      fakeRepo.customStaffAssignments = [
-        DailyStaffAssignment(
-          id: 'assign-1',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-1',
-          staffMasterId: 'AT01',
-          staffName: 'Aadhaar Test 2',
-          staffPhone: '9840000001',
-          staffRole: 'Detailer',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-        DailyStaffAssignment(
-          id: 'assign-2',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-2',
-          staffMasterId: 'AT02',
-          staffName: 'Aadhaar test',
-          staffPhone: '9840000002',
-          staffRole: 'Technician',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-        DailyStaffAssignment(
-          id: 'assign-3',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-3',
-          staffMasterId: 'DC01',
-          staffName: 'Decoupling Test Staff 1790094580',
-          staffPhone: '9840000003',
-          staffRole: 'Washer',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-        DailyStaffAssignment(
-          id: 'assign-4',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-4',
-          staffMasterId: 'DC02',
-          staffName: 'Decoupling Test Staff 1790094670',
-          staffPhone: '9840000004',
-          staffRole: 'Detailer',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-        DailyStaffAssignment(
-          id: 'assign-5',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-5',
-          staffMasterId: 'DC03',
-          staffName: 'Decoupling Test Staff 1790094600',
-          staffPhone: '9840000005',
-          staffRole: 'Technician',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-        DailyStaffAssignment(
-          id: 'assign-6',
-          showroomId: 'sr-1',
-          showroomName: 'Maruti Nexa',
-          staffId: 'staff-6',
-          staffMasterId: 'MT01',
-          staffName: 'Monthly Test Staff 1790095541',
-          staffPhone: '9840000006',
-          staffRole: 'Detailer',
-          date: DateTime(2026, 9, 27),
-          status: 'Present',
-          createdAt: DateTime(2026, 9, 27),
-        ),
-      ];
-
-      await tester.pumpWidget(
-        createTestWidget(
-          child: LogVehicleWorkModalSheet(
+    testWidgets(
+      'displays all 6 eligible staff on Maruti Nexa for 27 Sept 2026 in dropdown',
+      (tester) async {
+        fakeRepo.customStaffAssignments = [
+          DailyStaffAssignment(
+            id: 'assign-1',
             showroomId: 'sr-1',
             showroomName: 'Maruti Nexa',
-            selectedDate: DateTime(2026, 9, 27),
+            staffId: 'staff-1',
+            staffMasterId: 'AT01',
+            staffName: 'Aadhaar Test 2',
+            staffPhone: '9840000001',
+            staffRole: 'Detailer',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+          DailyStaffAssignment(
+            id: 'assign-2',
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            staffId: 'staff-2',
+            staffMasterId: 'AT02',
+            staffName: 'Aadhaar test',
+            staffPhone: '9840000002',
+            staffRole: 'Technician',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+          DailyStaffAssignment(
+            id: 'assign-3',
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            staffId: 'staff-3',
+            staffMasterId: 'DC01',
+            staffName: 'Decoupling Test Staff 1790094580',
+            staffPhone: '9840000003',
+            staffRole: 'Washer',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+          DailyStaffAssignment(
+            id: 'assign-4',
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            staffId: 'staff-4',
+            staffMasterId: 'DC02',
+            staffName: 'Decoupling Test Staff 1790094670',
+            staffPhone: '9840000004',
+            staffRole: 'Detailer',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+          DailyStaffAssignment(
+            id: 'assign-5',
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            staffId: 'staff-5',
+            staffMasterId: 'DC03',
+            staffName: 'Decoupling Test Staff 1790094600',
+            staffPhone: '9840000005',
+            staffRole: 'Technician',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+          DailyStaffAssignment(
+            id: 'assign-6',
+            showroomId: 'sr-1',
+            showroomName: 'Maruti Nexa',
+            staffId: 'staff-6',
+            staffMasterId: 'MT01',
+            staffName: 'Monthly Test Staff 1790095541',
+            staffPhone: '9840000006',
+            staffRole: 'Detailer',
+            date: DateTime(2026, 9, 27),
+            status: 'Present',
+            createdAt: DateTime(2026, 9, 27),
+          ),
+        ];
 
-      await tester.tap(find.byKey(const Key('staff_dropdown_0')));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(
+            child: LogVehicleWorkModalSheet(
+              showroomId: 'sr-1',
+              showroomName: 'Maruti Nexa',
+              selectedDate: DateTime(2026, 9, 27),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.textContaining('Aadhaar Test 2'), findsWidgets);
-      expect(find.textContaining('Aadhaar test (#AT02)'), findsWidgets);
-      expect(find.textContaining('Decoupling Test Staff 1790094580'), findsWidgets);
-      expect(find.textContaining('Decoupling Test Staff 1790094670'), findsWidgets);
-      expect(find.textContaining('Decoupling Test Staff 1790094600'), findsWidgets);
-      expect(find.textContaining('Monthly Test Staff 1790095541'), findsWidgets);
-    });
+        await tester.tap(find.byKey(const Key('staff_dropdown_0')));
+        await tester.pumpAndSettle();
 
-    testWidgets('excludes staff with Leave or Absent status from dropdown', (tester) async {
+        expect(find.textContaining('Aadhaar Test 2'), findsWidgets);
+        expect(find.textContaining('Aadhaar test (#AT02)'), findsWidgets);
+        expect(
+          find.textContaining('Decoupling Test Staff 1790094580'),
+          findsWidgets,
+        );
+        expect(
+          find.textContaining('Decoupling Test Staff 1790094670'),
+          findsWidgets,
+        );
+        expect(
+          find.textContaining('Decoupling Test Staff 1790094600'),
+          findsWidgets,
+        );
+        expect(
+          find.textContaining('Monthly Test Staff 1790095541'),
+          findsWidgets,
+        );
+      },
+    );
+
+    testWidgets('excludes staff with Leave or Absent status from dropdown', (
+      tester,
+    ) async {
       fakeRepo.customStaffAssignments = [
         DailyStaffAssignment(
           id: 'assign-1',
@@ -816,7 +888,9 @@ void main() {
       expect(find.text('Edit Vehicle Work'), findsOneWidget);
       expect(find.text('Original Note'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+      await tester.tap(
+        find.byKey(const Key('modal_update_vehicle_work_button')),
+      );
       await tester.pumpAndSettle();
 
       expect(fakeRepo.vehicleWorks.first.id, 'work-1');
@@ -854,7 +928,9 @@ void main() {
       expect(find.text('Ramesh Kumar'), findsWidgets);
       expect(find.text('Shift: 09:00 - 18:00'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('modal_confirm_close_session_button')));
+      await tester.tap(
+        find.byKey(const Key('modal_confirm_close_session_button')),
+      );
       await tester.pumpAndSettle();
 
       expect(fakeRepo.closeSessionCalled, true);
@@ -862,59 +938,63 @@ void main() {
   });
 
   group('Responsive 320px Width Tests', () {
-    testWidgets('Operations tab renders cleanly on narrow 320px screen with no overflow',
-        (tester) async {
-      fakeRepo.vehicleWorks.add(ShowroomVehicleWork(
-        id: 'work-1',
-        showroomId: 'sr-1',
-        staffId: 'staff-1',
-        staffName: 'Ramesh Kumar Very Long Name Technician',
-        vehicleTypeId: 'vt-1',
-        vehicleTypeName: 'Sedan Premium Luxury',
-        vehicleQuantity: 2,
-        date: DateTime(2026, 9, 27),
-        timeRecorded: '10:30 AM',
-        notes: 'Special care instructions on long text test',
-        serviceItems: [
-          ShowroomVehicleWorkItem(
-            id: 'item-1',
-            showroomVehicleWorkId: 'work-1',
-            workTypeId: 'wt-1',
-            workTypeCode: 'WASH',
-            workTypeName: 'Full Body Wash Plus Polish',
-            quantity: 1,
-            createdAt: DateTime.now(),
-          ),
-          ShowroomVehicleWorkItem(
-            id: 'item-2',
-            showroomVehicleWorkId: 'work-1',
-            workTypeId: 'wt-2',
-            workTypeCode: 'VACUUM',
-            workTypeName: 'Interior Deep Clean Shampoo',
-            quantity: 1,
-            createdAt: DateTime.now(),
-          ),
-        ],
-        createdAt: DateTime.now(),
-      ));
-
-      await tester.pumpWidget(
-        createTestWidget(
-          width: 320,
-          height: 600,
-          child: ShowroomOperationsTab(
+    testWidgets(
+      'Operations tab renders cleanly on narrow 320px screen with no overflow',
+      (tester) async {
+        fakeRepo.vehicleWorks.add(
+          ShowroomVehicleWork(
+            id: 'work-1',
             showroomId: 'sr-1',
-            showroomName: 'Test Showroom',
-            selectedDate: DateTime(2026, 9, 27),
+            staffId: 'staff-1',
+            staffName: 'Ramesh Kumar Very Long Name Technician',
+            vehicleTypeId: 'vt-1',
+            vehicleTypeName: 'Sedan Premium Luxury',
+            vehicleQuantity: 2,
+            date: DateTime(2026, 9, 27),
+            timeRecorded: '10:30 AM',
+            notes: 'Special care instructions on long text test',
+            serviceItems: [
+              ShowroomVehicleWorkItem(
+                id: 'item-1',
+                showroomVehicleWorkId: 'work-1',
+                workTypeId: 'wt-1',
+                workTypeCode: 'WASH',
+                workTypeName: 'Full Body Wash Plus Polish',
+                quantity: 1,
+                createdAt: DateTime.now(),
+              ),
+              ShowroomVehicleWorkItem(
+                id: 'item-2',
+                showroomVehicleWorkId: 'work-1',
+                workTypeId: 'wt-2',
+                workTypeCode: 'VACUUM',
+                workTypeName: 'Interior Deep Clean Shampoo',
+                quantity: 1,
+                createdAt: DateTime.now(),
+              ),
+            ],
+            createdAt: DateTime.now(),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
 
-      // Ensure no RenderFlex errors occurred
-      expect(tester.takeException(), isNull);
-      expect(find.text('Vehicles Handled'), findsOneWidget);
-      expect(find.text('Daily Vehicle Work'), findsOneWidget);
-    });
+        await tester.pumpWidget(
+          createTestWidget(
+            width: 320,
+            height: 600,
+            child: ShowroomOperationsTab(
+              showroomId: 'sr-1',
+              showroomName: 'Test Showroom',
+              selectedDate: DateTime(2026, 9, 27),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Ensure no RenderFlex errors occurred
+        expect(tester.takeException(), isNull);
+        expect(find.text('Vehicles Handled'), findsOneWidget);
+        expect(find.text('Daily Vehicle Work'), findsOneWidget);
+      },
+    );
   });
 }

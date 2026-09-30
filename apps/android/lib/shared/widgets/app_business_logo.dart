@@ -56,8 +56,10 @@ class AppBusinessLogo extends ConsumerWidget {
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       base = trimmed;
     } else {
-      final baseServerUrl =
-          AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
+      final baseServerUrl = AppEnvironment.apiBaseUrl.replaceAll(
+        RegExp(r'/api/?$'),
+        '',
+      );
       base = '$baseServerUrl${trimmed.startsWith('/') ? '' : '/'}$trimmed';
     }
 
@@ -82,7 +84,8 @@ class AppBusinessLogo extends ConsumerWidget {
     if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
       final effectiveMaxHeight = maxHeight ?? height;
       final effectiveMaxWidth = maxWidth ?? (width ?? (height * 3.5));
-      final hasDecoration = backgroundColor != null || border != null || boxShadow != null;
+      final hasDecoration =
+          backgroundColor != null || border != null || boxShadow != null;
 
       Widget imageWidget = Image.network(
         resolvedUrl,
@@ -155,7 +158,8 @@ class AppBusinessLogo extends ConsumerWidget {
             : null,
         shape: shape,
         borderRadius: br,
-        border: border ??
+        border:
+            border ??
             ((backgroundColor == null && fallbackColor == null)
                 ? Border.all(
                     color: Colors.white.withValues(alpha: 0.18),
@@ -173,7 +177,8 @@ class AppBusinessLogo extends ConsumerWidget {
               )
             : Text(
                 fallbackText,
-                style: textStyle ??
+                style:
+                    textStyle ??
                     TextStyle(
                       color: iconColor ?? Colors.white,
                       fontWeight: FontWeight.w800,

@@ -20,7 +20,8 @@ class StaffAdvancesApi {
       'page': page,
       'pageSize': pageSize,
       if (staffId != null && staffId.isNotEmpty) 'staffId': staffId,
-      if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') 'status': status,
+      if (status != null && status.isNotEmpty && status.toLowerCase() != 'all')
+        'status': status,
       if (fromDate != null) 'fromDate': fromDate.toIso8601String(),
       if (toDate != null) 'toDate': toDate.toIso8601String(),
       if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
@@ -31,7 +32,9 @@ class StaffAdvancesApi {
       queryParameters: queryParameters,
     );
 
-    return StaffAdvanceListResponse.fromJson(response.data as Map<String, dynamic>);
+    return StaffAdvanceListResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   Future<StaffAdvance> getStaffAdvanceById(String id) async {
@@ -39,11 +42,10 @@ class StaffAdvancesApi {
     return StaffAdvance.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<StaffAdvance> createStaffAdvance(CreateStaffAdvanceRequest request) async {
-    final response = await _dio.post(
-      '/staff-advances',
-      data: request.toJson(),
-    );
+  Future<StaffAdvance> createStaffAdvance(
+    CreateStaffAdvanceRequest request,
+  ) async {
+    final response = await _dio.post('/staff-advances', data: request.toJson());
     return StaffAdvance.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -52,7 +54,10 @@ class StaffAdvancesApi {
     return StaffAdvance.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<StaffAdvance> obsoleteStaffAdvance(String id, ObsoleteStaffAdvanceRequest request) async {
+  Future<StaffAdvance> obsoleteStaffAdvance(
+    String id,
+    ObsoleteStaffAdvanceRequest request,
+  ) async {
     final response = await _dio.post(
       '/staff-advances/$id/obsolete',
       data: request.toJson(),

@@ -22,7 +22,8 @@ class AssignStaffModalSheet extends ConsumerStatefulWidget {
     required String assignmentType,
     String? transferReason,
     String? notes,
-  }) onAssign;
+  })
+  onAssign;
 
   const AssignStaffModalSheet({
     super.key,
@@ -40,7 +41,8 @@ class AssignStaffModalSheet extends ConsumerStatefulWidget {
 
 class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _transferReasonController = TextEditingController();
+  final TextEditingController _transferReasonController =
+      TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   String? _selectedStaffId;
@@ -105,7 +107,8 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
   }
 
   Future<void> _pickStartTime() async {
-    final initial = _parseTimeOfDay(_startTime) ?? const TimeOfDay(hour: 9, minute: 0);
+    final initial =
+        _parseTimeOfDay(_startTime) ?? const TimeOfDay(hour: 9, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -126,7 +129,8 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
   }
 
   Future<void> _pickEndTime() async {
-    final initial = _parseTimeOfDay(_endTime) ?? const TimeOfDay(hour: 18, minute: 0);
+    final initial =
+        _parseTimeOfDay(_endTime) ?? const TimeOfDay(hour: 18, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -214,15 +218,19 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
 
     // Filter staff
     final searchTerm = _searchController.text.trim().toLowerCase();
-    final activeStaffList = staffState.staffList.where((s) => s.isActive).where((s) {
-      if (searchTerm.isEmpty) return true;
-      return s.name.toLowerCase().contains(searchTerm) ||
-          s.phoneNumber.contains(searchTerm) ||
-          (s.role != null && s.role!.toLowerCase().contains(searchTerm));
-    }).toList();
+    final activeStaffList = staffState.staffList.where((s) => s.isActive).where(
+      (s) {
+        if (searchTerm.isEmpty) return true;
+        return s.name.toLowerCase().contains(searchTerm) ||
+            s.phoneNumber.contains(searchTerm) ||
+            (s.role != null && s.role!.toLowerCase().contains(searchTerm));
+      },
+    ).toList();
 
     final selectedStaff = _selectedStaffId != null
-        ? staffState.staffList.where((s) => s.id == _selectedStaffId).firstOrNull
+        ? staffState.staffList
+              .where((s) => s.id == _selectedStaffId)
+              .firstOrNull
         : null;
 
     final calculatedHours = calculateSessionHours(_startTime, _endTime);
@@ -272,7 +280,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 18, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 18,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -313,7 +325,9 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                         children: [
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: isTransfer ? Colors.purple : AppColors.primary,
+                            backgroundColor: isTransfer
+                                ? Colors.purple
+                                : AppColors.primary,
                             child: Text(
                               selectedStaff.initials,
                               style: const TextStyle(
@@ -333,10 +347,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                     Expanded(
                                       child: Text(
                                         selectedStaff.name,
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.textPrimary,
+                                            ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
@@ -352,11 +367,15 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
-                                        isTransfer ? 'Temporary Transfer' : 'Regular',
+                                        isTransfer
+                                            ? 'Temporary Transfer'
+                                            : 'Regular',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
-                                          color: isTransfer ? Colors.purple : AppColors.primary,
+                                          color: isTransfer
+                                              ? Colors.purple
+                                              : AppColors.primary,
                                         ),
                                       ),
                                     ),
@@ -377,8 +396,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                           fontSize: 11,
                                         ),
                                       ),
-                                    if (selectedStaff.defaultShowroomName != null &&
-                                        selectedStaff.defaultShowroomName!.isNotEmpty)
+                                    if (selectedStaff.defaultShowroomName !=
+                                            null &&
+                                        selectedStaff
+                                            .defaultShowroomName!
+                                            .isNotEmpty)
                                       Text(
                                         'Home: ${selectedStaff.defaultShowroomName}',
                                         style: AppTextStyles.bodySmall.copyWith(
@@ -399,7 +421,8 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                           IconButton(
                             icon: const Icon(Icons.close, size: 18),
                             color: AppColors.textSecondary,
-                            onPressed: () => setState(() => _selectedStaffId = null),
+                            onPressed: () =>
+                                setState(() => _selectedStaffId = null),
                             tooltip: 'Change staff',
                           ),
                         ],
@@ -434,67 +457,79 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: staffState.isLoading
-                          ? const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()))
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
                           : activeStaffList.isEmpty
-                              ? Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Text(
-                                      'No active staff found.',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  'No active staff found.',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: activeStaffList.length,
+                              separatorBuilder: (context, index) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final staff = activeStaffList[index];
+                                final isAlreadyAssigned = widget
+                                    .alreadyAssignedStaffIds
+                                    .contains(staff.id);
+
+                                return ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    staff.name,
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                )
-                              : ListView.separated(
-                                  shrinkWrap: true,
-                                  itemCount: activeStaffList.length,
-                                  separatorBuilder: (context, index) => const Divider(height: 1),
-                                  itemBuilder: (context, index) {
-                                    final staff = activeStaffList[index];
-                                    final isAlreadyAssigned =
-                                        widget.alreadyAssignedStaffIds.contains(staff.id);
-
-                                    return ListTile(
-                                      dense: true,
-                                      title: Text(
-                                        staff.name,
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w600,
+                                  subtitle: Text(
+                                    '${staff.role ?? 'Staff'} • Home: ${staff.defaultShowroomName ?? 'General'}',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  trailing: isAlreadyAssigned
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surfaceAlt,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Assigned',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: AppColors.textTertiary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 12,
                                         ),
-                                      ),
-                                      subtitle: Text(
-                                        '${staff.role ?? 'Staff'} • Home: ${staff.defaultShowroomName ?? 'General'}',
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          fontSize: 11,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                      trailing: isAlreadyAssigned
-                                          ? Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.surfaceAlt,
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: const Text(
-                                                'Assigned',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: AppColors.textTertiary,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            )
-                                          : const Icon(Icons.arrow_forward_ios, size: 12),
-                                      onTap: () => _onStaffSelected(staff),
-                                    );
-                                  },
-                                ),
+                                  onTap: () => _onStaffSelected(staff),
+                                );
+                              },
+                            ),
                     ),
                     const SizedBox(height: 14),
                   ],
@@ -512,10 +547,22 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _buildSessionTypeChip(ShowroomSessionType.fullDay, 'Full Day (09:00 – 18:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.morning, 'Morning (09:00 – 14:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.afternoon, 'Afternoon (14:00 – 18:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.custom, 'Custom'),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.fullDay,
+                        'Full Day (09:00 – 18:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.morning,
+                        'Morning (09:00 – 14:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.afternoon,
+                        'Afternoon (14:00 – 18:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.custom,
+                        'Custom',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -549,7 +596,8 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                   color: Colors.white,
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _startTime,
@@ -558,7 +606,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -593,7 +645,8 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                   color: Colors.white,
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _endTime,
@@ -602,7 +655,11 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -616,7 +673,10 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
 
                   // Working Hours Badge (Auto-Calculated)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: calculatedHours != null
                           ? AppColors.primary.withAlpha(15)
@@ -659,7 +719,10 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                       controller: _transferReasonController,
                       label: 'Transfer Reason',
                       hintText: 'e.g. Covering shift / Cross-showroom support',
-                      prefixIcon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.swap_horiz_rounded,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(height: 10),
                   ],

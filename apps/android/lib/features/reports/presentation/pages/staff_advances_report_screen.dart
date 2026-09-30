@@ -42,7 +42,8 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               advancesAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading staff advances...'),
+                loading: () =>
+                    const AppLoadingState(message: 'Loading staff advances...'),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(staffAdvancesReportProvider),
@@ -59,7 +60,9 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,15 +91,27 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Outstanding', '${summary.outstandingCount} (${_formatCurrency(summary.outstandingAmount)})', color: AppColors.warning),
-                                _buildSummaryItem('Settled', '${summary.settledCount} (${_formatCurrency(summary.settledAmount)})', color: AppColors.success),
+                                _buildSummaryItem(
+                                  'Outstanding',
+                                  '${summary.outstandingCount} (${_formatCurrency(summary.outstandingAmount)})',
+                                  color: AppColors.warning,
+                                ),
+                                _buildSummaryItem(
+                                  'Settled',
+                                  '${summary.settledCount} (${_formatCurrency(summary.settledAmount)})',
+                                  color: AppColors.success,
+                                ),
                               ],
                             ),
                             if (summary.obsoleteCount > 0) ...[
                               const SizedBox(height: 8),
                               Text(
                                 '${summary.obsoleteCount} marked obsolete (${_formatCurrency(summary.obsoleteAmount)})',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFFFCA5A5), fontStyle: FontStyle.italic),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFFFCA5A5),
+                                  fontStyle: FontStyle.italic,
+                                ),
                               ),
                             ],
                           ],
@@ -118,7 +133,8 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                       if (items.isEmpty)
                         const AppEmptyState(
                           title: 'No staff advances found',
-                          message: 'No advances issued in the selected date range.',
+                          message:
+                              'No advances issued in the selected date range.',
                           icon: Icons.account_balance_wallet_outlined,
                         )
                       else
@@ -126,7 +142,8 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final adv = items[index];
                             final dateFormat = DateFormat('dd MMM yyyy');
@@ -135,14 +152,17 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         adv.staffName,
@@ -153,10 +173,17 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: _getStatusColor(adv.status).withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(4),
+                                          color: _getStatusColor(
+                                            adv.status,
+                                          ).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         child: Text(
                                           adv.status,
@@ -172,22 +199,37 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     '${dateFormat.format(adv.advanceDate)} • ${adv.reason}',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
-                                  if (adv.notes != null && adv.notes!.isNotEmpty)
+                                  if (adv.notes != null &&
+                                      adv.notes!.isNotEmpty)
                                     Text(
                                       adv.notes!,
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textTertiary,
+                                        fontStyle: FontStyle.italic,
+                                      ),
                                     ),
                                   const SizedBox(height: 8),
-                                  const Divider(color: AppColors.border, height: 1),
+                                  const Divider(
+                                    color: AppColors.border,
+                                    height: 1,
+                                  ),
                                   const SizedBox(height: 6),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         adv.staffRole ?? 'Staff',
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textTertiary,
+                                        ),
                                       ),
                                       Text(
                                         _formatCurrency(adv.amount),

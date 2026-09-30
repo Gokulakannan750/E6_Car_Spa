@@ -23,9 +23,13 @@ class AuthApi {
     try {
       final response = await _dio.get('/auth/status');
       if (response.data is Map<String, dynamic>) {
-        return AuthStatusResponse.fromJson(response.data as Map<String, dynamic>);
+        return AuthStatusResponse.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
-      throw const ApiException(message: 'Invalid response format from auth status API.');
+      throw const ApiException(
+        message: 'Invalid response format from auth status API.',
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -42,7 +46,9 @@ class AuthApi {
       if (response.data is Map<String, dynamic>) {
         return AuthUser.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const ApiException(message: 'Invalid response format from bootstrap API.');
+      throw const ApiException(
+        message: 'Invalid response format from bootstrap API.',
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -51,15 +57,14 @@ class AuthApi {
   /// Performs user login against POST /api/auth/login
   Future<LoginResponse> login(LoginRequest request) async {
     try {
-      final response = await _dio.post(
-        '/auth/login',
-        data: request.toJson(),
-      );
+      final response = await _dio.post('/auth/login', data: request.toJson());
 
       if (response.data is Map<String, dynamic>) {
         return LoginResponse.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const ApiException(message: 'Invalid response format from login API.');
+      throw const ApiException(
+        message: 'Invalid response format from login API.',
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -72,15 +77,14 @@ class AuthApi {
           ? Options(headers: {'Authorization': 'Bearer $customToken'})
           : null;
 
-      final response = await _dio.get(
-        '/auth/me',
-        options: options,
-      );
+      final response = await _dio.get('/auth/me', options: options);
 
       if (response.data is Map<String, dynamic>) {
         return AuthUser.fromJson(response.data as Map<String, dynamic>);
       }
-      throw const ApiException(message: 'Invalid response format from user profile API.');
+      throw const ApiException(
+        message: 'Invalid response format from user profile API.',
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

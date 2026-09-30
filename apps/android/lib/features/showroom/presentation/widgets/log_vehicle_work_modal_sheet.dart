@@ -24,8 +24,8 @@ class VehicleConfigItem {
     Set<String>? selectedWorkTypeIds,
     String? initialNotes,
     this.isExpanded = true,
-  })  : selectedWorkTypeIds = selectedWorkTypeIds ?? <String>{},
-        notesController = TextEditingController(text: initialNotes ?? '');
+  }) : selectedWorkTypeIds = selectedWorkTypeIds ?? <String>{},
+       notesController = TextEditingController(text: initialNotes ?? '');
 
   void dispose() {
     notesController.dispose();
@@ -51,8 +51,9 @@ class LogVehicleWorkModalSheet extends ConsumerStatefulWidget {
 
 class _LogVehicleWorkModalSheetState
     extends ConsumerState<LogVehicleWorkModalSheet> {
-  final TextEditingController _quantityController =
-      TextEditingController(text: '1');
+  final TextEditingController _quantityController = TextEditingController(
+    text: '1',
+  );
   final ScrollController _scrollController = ScrollController();
 
   int _quantity = 1;
@@ -67,24 +68,21 @@ class _LogVehicleWorkModalSheetState
 
     // Ensure daily staff is loaded for the target date and initialize defaults
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final dailyNotifier =
-          ref.read(dailyStaffProvider(widget.showroomId).notifier);
-      final currentDailyState =
-          ref.read(dailyStaffProvider(widget.showroomId));
+      final dailyNotifier = ref.read(
+        dailyStaffProvider(widget.showroomId).notifier,
+      );
+      final currentDailyState = ref.read(dailyStaffProvider(widget.showroomId));
 
-      final isSameDate = currentDailyState.selectedDate.year ==
-              widget.selectedDate.year &&
-          currentDailyState.selectedDate.month ==
-              widget.selectedDate.month &&
-          currentDailyState.selectedDate.day ==
-              widget.selectedDate.day;
+      final isSameDate =
+          currentDailyState.selectedDate.year == widget.selectedDate.year &&
+          currentDailyState.selectedDate.month == widget.selectedDate.month &&
+          currentDailyState.selectedDate.day == widget.selectedDate.day;
 
       if (!isSameDate || currentDailyState.dailyStaffResponse == null) {
         dailyNotifier.loadDailyStaff(date: widget.selectedDate);
       }
 
-      final opsState =
-          ref.read(showroomOperationsProvider(widget.showroomId));
+      final opsState = ref.read(showroomOperationsProvider(widget.showroomId));
       if (opsState.vehicleTypes.isNotEmpty && _configs.isNotEmpty) {
         if (_configs[0].vehicleTypeId == null) {
           setState(() {
@@ -120,10 +118,10 @@ class _LogVehicleWorkModalSheetState
       _quantity = newQuantity;
       if (_configs.length < _quantity) {
         // Expand
-        final lastStaffId =
-            _configs.isNotEmpty ? _configs.last.staffId : null;
-        final lastVehicleTypeId =
-            _configs.isNotEmpty ? _configs.last.vehicleTypeId : null;
+        final lastStaffId = _configs.isNotEmpty ? _configs.last.staffId : null;
+        final lastVehicleTypeId = _configs.isNotEmpty
+            ? _configs.last.vehicleTypeId
+            : null;
         final lastWorkTypes = _configs.isNotEmpty
             ? Set<String>.from(_configs.last.selectedWorkTypeIds)
             : <String>{};
@@ -134,7 +132,8 @@ class _LogVehicleWorkModalSheetState
               staffId: lastStaffId,
               vehicleTypeId: lastVehicleTypeId,
               selectedWorkTypeIds: Set<String>.from(lastWorkTypes),
-              isExpanded: _configs.length < 5, // collapse beyond 5 for readability
+              isExpanded:
+                  _configs.length < 5, // collapse beyond 5 for readability
             ),
           );
         }
@@ -191,7 +190,8 @@ class _LogVehicleWorkModalSheetState
       if (config.staffId == null || config.staffId!.isEmpty) {
         setState(() {
           config.isExpanded = true;
-          _errorMessage = 'Please select assigned staff for Vehicle #$itemIndex.';
+          _errorMessage =
+              'Please select assigned staff for Vehicle #$itemIndex.';
         });
         return;
       }
@@ -208,7 +208,8 @@ class _LogVehicleWorkModalSheetState
       if (config.vehicleTypeId == null || config.vehicleTypeId!.isEmpty) {
         setState(() {
           config.isExpanded = true;
-          _errorMessage = 'Please select a vehicle type for Vehicle #$itemIndex.';
+          _errorMessage =
+              'Please select a vehicle type for Vehicle #$itemIndex.';
         });
         return;
       }
@@ -228,8 +229,9 @@ class _LogVehicleWorkModalSheetState
     });
 
     try {
-      final notifier =
-          ref.read(showroomOperationsProvider(widget.showroomId).notifier);
+      final notifier = ref.read(
+        showroomOperationsProvider(widget.showroomId).notifier,
+      );
 
       final staffGroups = <String, List<VehicleConfigItem>>{};
       for (final c in _configs) {
@@ -247,7 +249,9 @@ class _LogVehicleWorkModalSheetState
             vehicleTypeId: single.vehicleTypeId!,
             date: widget.selectedDate,
             serviceItems: single.selectedWorkTypeIds
-                .map((id) => CreateShowroomVehicleWorkItemRequest(workTypeId: id))
+                .map(
+                  (id) => CreateShowroomVehicleWorkItemRequest(workTypeId: id),
+                )
                 .toList(),
             notes: single.notesController.text.trim().isEmpty
                 ? null
@@ -288,8 +292,7 @@ class _LogVehicleWorkModalSheetState
   @override
   Widget build(BuildContext context) {
     final dailyState = ref.watch(dailyStaffProvider(widget.showroomId));
-    final opsState =
-        ref.watch(showroomOperationsProvider(widget.showroomId));
+    final opsState = ref.watch(showroomOperationsProvider(widget.showroomId));
 
     // Deduplicate and filter eligible on-duty staff
     final seenIds = <String>{};
@@ -305,7 +308,9 @@ class _LogVehicleWorkModalSheetState
     }
 
     // Auto-select first staff for config if not selected
-    if (eligibleStaff.isNotEmpty && _configs.isNotEmpty && _configs[0].staffId == null) {
+    if (eligibleStaff.isNotEmpty &&
+        _configs.isNotEmpty &&
+        _configs[0].staffId == null) {
       _configs[0].staffId = eligibleStaff.first.staffId;
     }
 
@@ -346,12 +351,17 @@ class _LogVehicleWorkModalSheetState
                       decoration: BoxDecoration(
                         color: AppColors.error.withAlpha(20),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.error.withAlpha(80)),
+                        border: Border.all(
+                          color: AppColors.error.withAlpha(80),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              color: AppColors.error, size: 18),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: AppColors.error,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -380,8 +390,11 @@ class _LogVehicleWorkModalSheetState
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded,
-                              color: Colors.amber, size: 18),
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: Colors.amber,
+                            size: 18,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -419,7 +432,9 @@ class _LogVehicleWorkModalSheetState
                           children: [
                             IconButton(
                               key: const Key('qty_decrement_btn'),
-                              onPressed: _quantity > 1 ? _decrementQuantity : null,
+                              onPressed: _quantity > 1
+                                  ? _decrementQuantity
+                                  : null,
                               icon: const Icon(Icons.remove, size: 18),
                               visualDensity: VisualDensity.compact,
                               color: AppColors.primary,
@@ -443,14 +458,18 @@ class _LogVehicleWorkModalSheetState
                                 decoration: const InputDecoration(
                                   border: InputBorder.none,
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                 ),
                                 onChanged: _onQuantityChanged,
                               ),
                             ),
                             IconButton(
                               key: const Key('qty_increment_btn'),
-                              onPressed: _quantity < 9999 ? _incrementQuantity : null,
+                              onPressed: _quantity < 9999
+                                  ? _incrementQuantity
+                                  : null,
                               icon: const Icon(Icons.add, size: 18),
                               visualDensity: VisualDensity.compact,
                               color: AppColors.primary,
@@ -639,7 +658,9 @@ class _LogVehicleWorkModalSheetState
                           if (assignment.isTemporaryTransfer &&
                               assignment.homeShowroomName != null &&
                               assignment.homeShowroomName!.isNotEmpty) {
-                            buffer.write(' [Transfer: ${assignment.homeShowroomName}]');
+                            buffer.write(
+                              ' [Transfer: ${assignment.homeShowroomName}]',
+                            );
                           }
                           return DropdownMenuItem<String>(
                             value: assignment.staffId,
@@ -732,8 +753,9 @@ class _LogVehicleWorkModalSheetState
                       spacing: 6,
                       runSpacing: 6,
                       children: workTypes.map((wType) {
-                        final isSelected =
-                            config.selectedWorkTypeIds.contains(wType.id);
+                        final isSelected = config.selectedWorkTypeIds.contains(
+                          wType.id,
+                        );
                         return FilterChip(
                           key: Key('work_type_chip_${index}_${wType.id}'),
                           label: Text(wType.name),

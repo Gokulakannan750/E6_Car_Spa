@@ -15,7 +15,8 @@ class EditStaffSessionModalSheet extends StatefulWidget {
     String? status,
     String? transferReason,
     String? notes,
-  }) onUpdate;
+  })
+  onUpdate;
 
   const EditStaffSessionModalSheet({
     super.key,
@@ -25,10 +26,12 @@ class EditStaffSessionModalSheet extends StatefulWidget {
   });
 
   @override
-  State<EditStaffSessionModalSheet> createState() => _EditStaffSessionModalSheetState();
+  State<EditStaffSessionModalSheet> createState() =>
+      _EditStaffSessionModalSheetState();
 }
 
-class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet> {
+class _EditStaffSessionModalSheetState
+    extends State<EditStaffSessionModalSheet> {
   late ShowroomSessionType _sessionType;
   late String _startTime;
   late String _endTime;
@@ -45,10 +48,12 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
     _startTime = widget.assignment.startTime;
     _endTime = widget.assignment.endTime;
     _status = widget.assignment.status;
-    _transferReasonController =
-        TextEditingController(text: widget.assignment.transferReason ?? '');
-    _notesController =
-        TextEditingController(text: widget.assignment.notes ?? '');
+    _transferReasonController = TextEditingController(
+      text: widget.assignment.transferReason ?? '',
+    );
+    _notesController = TextEditingController(
+      text: widget.assignment.notes ?? '',
+    );
 
     // Match preset if applicable
     if (_startTime == '09:00' && _endTime == '18:00') {
@@ -87,7 +92,8 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
   }
 
   Future<void> _pickStartTime() async {
-    final initial = _parseTimeOfDay(_startTime) ?? const TimeOfDay(hour: 9, minute: 0);
+    final initial =
+        _parseTimeOfDay(_startTime) ?? const TimeOfDay(hour: 9, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -108,7 +114,8 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
   }
 
   Future<void> _pickEndTime() async {
-    final initial = _parseTimeOfDay(_endTime) ?? const TimeOfDay(hour: 18, minute: 0);
+    final initial =
+        _parseTimeOfDay(_endTime) ?? const TimeOfDay(hour: 18, minute: 0);
     final picked = await showTimePicker(
       context: context,
       initialTime: initial,
@@ -230,7 +237,11 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, size: 18, color: AppColors.error),
+                  const Icon(
+                    Icons.error_outline,
+                    size: 18,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -270,7 +281,9 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: isTransfer ? Colors.purple : AppColors.primary,
+                          backgroundColor: isTransfer
+                              ? Colors.purple
+                              : AppColors.primary,
                           child: Text(
                             widget.assignment.initials,
                             style: const TextStyle(
@@ -308,11 +321,15 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
-                                      isTransfer ? 'Temporary Transfer' : 'Regular',
+                                      isTransfer
+                                          ? 'Temporary Transfer'
+                                          : 'Regular',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
-                                        color: isTransfer ? Colors.purple : AppColors.primary,
+                                        color: isTransfer
+                                            ? Colors.purple
+                                            : AppColors.primary,
                                       ),
                                     ),
                                   ),
@@ -376,10 +393,22 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                         value: _status,
                         isExpanded: true,
                         items: [
-                          const DropdownMenuItem(value: 'Present', child: Text('Present')),
-                          const DropdownMenuItem(value: 'HalfDay', child: Text('Half Day')),
-                          const DropdownMenuItem(value: 'Leave', child: Text('Leave')),
-                          const DropdownMenuItem(value: 'Absent', child: Text('Absent')),
+                          const DropdownMenuItem(
+                            value: 'Present',
+                            child: Text('Present'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'HalfDay',
+                            child: Text('Half Day'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Leave',
+                            child: Text('Leave'),
+                          ),
+                          const DropdownMenuItem(
+                            value: 'Absent',
+                            child: Text('Absent'),
+                          ),
                           if (isTransfer)
                             const DropdownMenuItem(
                               value: 'TemporaryTransfer',
@@ -409,10 +438,22 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      _buildSessionTypeChip(ShowroomSessionType.fullDay, 'Full Day (09:00 – 18:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.morning, 'Morning (09:00 – 14:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.afternoon, 'Afternoon (14:00 – 18:00)'),
-                      _buildSessionTypeChip(ShowroomSessionType.custom, 'Custom'),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.fullDay,
+                        'Full Day (09:00 – 18:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.morning,
+                        'Morning (09:00 – 14:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.afternoon,
+                        'Afternoon (14:00 – 18:00)',
+                      ),
+                      _buildSessionTypeChip(
+                        ShowroomSessionType.custom,
+                        'Custom',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -446,7 +487,8 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                                   color: Colors.white,
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _startTime,
@@ -455,7 +497,11 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -490,7 +536,8 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                                   color: Colors.white,
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       _endTime,
@@ -499,7 +546,11 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                      color: AppColors.primary,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -513,7 +564,10 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
 
                   // Calculated Working Hours Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: calculatedHours != null
                           ? AppColors.primary.withAlpha(15)
@@ -556,7 +610,10 @@ class _EditStaffSessionModalSheetState extends State<EditStaffSessionModalSheet>
                       controller: _transferReasonController,
                       label: 'Transfer Reason',
                       hintText: 'e.g. Covering shift',
-                      prefixIcon: const Icon(Icons.swap_horiz_rounded, size: 20),
+                      prefixIcon: const Icon(
+                        Icons.swap_horiz_rounded,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(height: 10),
                   ],

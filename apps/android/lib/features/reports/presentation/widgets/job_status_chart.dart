@@ -6,10 +6,7 @@ import '../../models/report_dashboard_model.dart';
 class JobStatusChart extends StatelessWidget {
   final JobCardKpisModel jobCardKpis;
 
-  const JobStatusChart({
-    super.key,
-    required this.jobCardKpis,
-  });
+  const JobStatusChart({super.key, required this.jobCardKpis});
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +39,11 @@ class JobStatusChart extends StatelessWidget {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.pie_chart_outline, size: 18, color: AppColors.primary),
+                  Icon(
+                    Icons.pie_chart_outline,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   SizedBox(width: 8),
                   Text(
                     'Job Cards Distribution',
@@ -72,7 +73,11 @@ class JobStatusChart extends StatelessWidget {
               child: Center(
                 child: Text(
                   'No job cards created in this period.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textTertiary,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             )

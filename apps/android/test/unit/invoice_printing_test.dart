@@ -66,7 +66,8 @@ void main() {
       phone: '9578749449',
       email: 'e6carspaerd@gmail.com',
       gstin: '33AAAAA0000A1Z5',
-      termsAndConditions: '1. Payment is due upon completion.\n2. Non-refundable.',
+      termsAndConditions:
+          '1. Payment is due upon completion.\n2. Non-refundable.',
     );
 
     test('InvoicePdfGenerator produces valid non-empty PDF bytes', () async {
@@ -80,50 +81,53 @@ void main() {
       expect(pdfBytes.length, greaterThan(1000));
     });
 
-    test('Invoice PDF generation supports GST-disabled non-tax invoices', () async {
-      final nonGstInvoice = Invoice(
-        id: 'inv-102',
-        invoiceNumber: 'INV-2026-0002',
-        jobCardId: 'jc-102',
-        jobCardNumber: 'JC-2026-0002',
-        customerId: 'cust-2',
-        customerName: 'Karthik Raja',
-        customerPhone: '9876543211',
-        vehicleId: 'veh-2',
-        registrationNumber: 'TN33CD5678',
-        vehicleMake: 'Tata',
-        vehicleModel: 'Nexon',
-        invoiceDate: DateTime(2026, 9, 5),
-        subtotal: 2000.0,
-        discount: 0.0,
-        taxableAmount: 2000.0,
-        gstAmount: 0.0,
-        totalAmount: 2000.0,
-        paidAmount: 1000.0,
-        balanceAmount: 1000.0,
-        status: InvoiceStatus.partiallyPaid,
-        isGstEnabled: false,
-        items: const [
-          InvoiceItem(
-            id: 'item-3',
-            description: 'Foam Wash',
-            quantity: 1,
-            unitPrice: 2000.0,
-            taxableAmount: 2000.0,
-            taxAmount: 0.0,
-            totalAmount: 2000.0,
-          ),
-        ],
-        createdAt: DateTime(2026, 9, 5, 11, 0),
-      );
+    test(
+      'Invoice PDF generation supports GST-disabled non-tax invoices',
+      () async {
+        final nonGstInvoice = Invoice(
+          id: 'inv-102',
+          invoiceNumber: 'INV-2026-0002',
+          jobCardId: 'jc-102',
+          jobCardNumber: 'JC-2026-0002',
+          customerId: 'cust-2',
+          customerName: 'Karthik Raja',
+          customerPhone: '9876543211',
+          vehicleId: 'veh-2',
+          registrationNumber: 'TN33CD5678',
+          vehicleMake: 'Tata',
+          vehicleModel: 'Nexon',
+          invoiceDate: DateTime(2026, 9, 5),
+          subtotal: 2000.0,
+          discount: 0.0,
+          taxableAmount: 2000.0,
+          gstAmount: 0.0,
+          totalAmount: 2000.0,
+          paidAmount: 1000.0,
+          balanceAmount: 1000.0,
+          status: InvoiceStatus.partiallyPaid,
+          isGstEnabled: false,
+          items: const [
+            InvoiceItem(
+              id: 'item-3',
+              description: 'Foam Wash',
+              quantity: 1,
+              unitPrice: 2000.0,
+              taxableAmount: 2000.0,
+              taxAmount: 0.0,
+              totalAmount: 2000.0,
+            ),
+          ],
+          createdAt: DateTime(2026, 9, 5, 11, 0),
+        );
 
-      final pdfBytes = await InvoicePdfGenerator.generateInvoicePdf(
-        invoice: nonGstInvoice,
-        businessProfile: sampleProfile,
-      );
+        final pdfBytes = await InvoicePdfGenerator.generateInvoicePdf(
+          invoice: nonGstInvoice,
+          businessProfile: sampleProfile,
+        );
 
-      expect(pdfBytes, isNotNull);
-      expect(pdfBytes.isNotEmpty, isTrue);
-    });
+        expect(pdfBytes, isNotNull);
+        expect(pdfBytes.isNotEmpty, isTrue);
+      },
+    );
   });
 }

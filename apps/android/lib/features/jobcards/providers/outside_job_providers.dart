@@ -61,7 +61,7 @@ class OutsideJobsNotifier extends StateNotifier<OutsideJobsState> {
   final OutsideJobRepository _repository;
 
   OutsideJobsNotifier(this.jobCardId, this._repository)
-      : super(const OutsideJobsState()) {
+    : super(const OutsideJobsState()) {
     load();
   }
 
@@ -110,7 +110,9 @@ class OutsideJobsNotifier extends StateNotifier<OutsideJobsState> {
   }
 
   Future<bool> markReturned(
-      String outsideJobId, MarkOutsideJobReturnedRequest request) async {
+    String outsideJobId,
+    MarkOutsideJobReturnedRequest request,
+  ) async {
     if (!mounted) return false;
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
 
@@ -135,7 +137,9 @@ class OutsideJobsNotifier extends StateNotifier<OutsideJobsState> {
   }
 
   Future<bool> cancelJob(
-      String outsideJobId, CancelOutsideJobRequest request) async {
+    String outsideJobId,
+    CancelOutsideJobRequest request,
+  ) async {
     if (!mounted) return false;
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
 
@@ -158,13 +162,66 @@ class OutsideJobsNotifier extends StateNotifier<OutsideJobsState> {
       return false;
     }
   }
+
+  Future<bool> updateCost(String outsideJobId, double vendorCost) async {
+    if (!mounted) return false;
+    state = state.copyWith(isSubmitting: true, clearSubmitError: true);
+
+    try {
+      await _repository.updateCost(
+        outsideJobId,
+        UpdateOutsideJobCostRequest(vendorCost: vendorCost),
+      );
+      if (!mounted) return true;
+      state = state.copyWith(isSubmitting: false, clearSubmitError: true);
+      await load();
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(isSubmitting: false, submitError: e.message);
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Failed to update vendor cost.',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> deleteJob(String outsideJobId) async {
+    if (!mounted) return false;
+    state = state.copyWith(isSubmitting: true, clearSubmitError: true);
+
+    try {
+      await _repository.deleteOutsideJob(outsideJobId);
+      if (!mounted) return true;
+      state = state.copyWith(isSubmitting: false, clearSubmitError: true);
+      await load();
+      return true;
+    } on ApiException catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(isSubmitting: false, submitError: e.message);
+      return false;
+    } catch (e) {
+      if (!mounted) return false;
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Failed to delete outside job record.',
+      );
+      return false;
+    }
+  }
 }
 
-final outsideJobsProvider = StateNotifierProvider.family<
-    OutsideJobsNotifier, OutsideJobsState, String>((ref, jobCardId) {
-  final repo = ref.watch(outsideJobRepositoryProvider);
-  return OutsideJobsNotifier(jobCardId, repo);
-});
+final outsideJobsProvider =
+    StateNotifierProvider.family<OutsideJobsNotifier, OutsideJobsState, String>(
+      (ref, jobCardId) {
+        final repo = ref.watch(outsideJobRepositoryProvider);
+        return OutsideJobsNotifier(jobCardId, repo);
+      },
+    );
 
 // ── Vendors State ───────────────────────────────────────────────────────────
 
@@ -198,8 +255,7 @@ class VendorsState {
       vendors: vendors ?? this.vendors,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      submitError:
-          clearSubmitError ? null : (submitError ?? this.submitError),
+      submitError: clearSubmitError ? null : (submitError ?? this.submitError),
     );
   }
 }
@@ -218,8 +274,11 @@ class VendorsNotifier extends StateNotifier<VendorsState> {
     try {
       final vendors = await _repository.getVendors(activeOnly: true);
       if (!mounted) return;
-      state =
-          state.copyWith(isLoading: false, vendors: vendors, clearError: true);
+      state = state.copyWith(
+        isLoading: false,
+        vendors: vendors,
+        clearError: true,
+      );
     } on ApiException catch (e) {
       if (!mounted) return;
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -257,8 +316,9 @@ class VendorsNotifier extends StateNotifier<VendorsState> {
   }
 }
 
-final vendorsProvider =
-    StateNotifierProvider<VendorsNotifier, VendorsState>((ref) {
+final vendorsProvider = StateNotifierProvider<VendorsNotifier, VendorsState>((
+  ref,
+) {
   final repo = ref.watch(outsideJobRepositoryProvider);
   return VendorsNotifier(repo);
 });

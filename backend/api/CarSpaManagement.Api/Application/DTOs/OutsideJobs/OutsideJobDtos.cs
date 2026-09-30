@@ -59,12 +59,14 @@ public record CreateOutsideJobRequest(
     string? SentByType = null,
     Guid? SentByStaffId = null,
     string? SentByStaffName = null,
+    [Range(0, double.MaxValue, ErrorMessage = "Vendor cost cannot be negative.")]
     decimal? VendorCost = null,
     [MaxLength(1000)]
     string? Notes = null);
 
 public record MarkOutsideJobReturnedRequest(
     DateTime? ReturnedAt,
+    [Range(0, double.MaxValue, ErrorMessage = "Vendor cost cannot be negative.")]
     decimal? VendorCost,
     [MaxLength(1000)]
     string? ReturnNotes);
@@ -83,9 +85,15 @@ public record UpdateOutsideJobRequest(
     Guid? ServiceId,
     [Required]
     DateTime ExpectedReturnAt,
+    [Range(0, double.MaxValue, ErrorMessage = "Vendor cost cannot be negative.")]
     decimal? VendorCost,
     [MaxLength(1000)]
     string? Notes);
+
+public record UpdateOutsideJobCostRequest(
+    [Required]
+    [Range(0, double.MaxValue, ErrorMessage = "Vendor cost cannot be negative.")]
+    decimal VendorCost);
 
 public record OutsideJobListResponse(
     IReadOnlyList<OutsideJobDto> Items,

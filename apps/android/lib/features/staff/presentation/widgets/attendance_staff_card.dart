@@ -18,7 +18,8 @@ class AttendanceStaffCard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<AttendanceStaffCard> createState() => _AttendanceStaffCardState();
+  ConsumerState<AttendanceStaffCard> createState() =>
+      _AttendanceStaffCardState();
 }
 
 class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
@@ -30,8 +31,12 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
   @override
   void initState() {
     super.initState();
-    _checkInController = TextEditingController(text: widget.item.checkInTime ?? '');
-    _checkOutController = TextEditingController(text: widget.item.checkOutTime ?? '');
+    _checkInController = TextEditingController(
+      text: widget.item.checkInTime ?? '',
+    );
+    _checkOutController = TextEditingController(
+      text: widget.item.checkOutTime ?? '',
+    );
     _notesController = TextEditingController(text: widget.item.notes ?? '');
   }
 
@@ -62,27 +67,43 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
   Future<void> _updateStatus(String newStatus) async {
     if (widget.isConfirmed || !widget.canManage) return;
 
-    await ref.read(attendanceActionProvider.notifier).markAttendance(
-      staffId: widget.item.staffId,
-      attendanceDate: widget.item.attendanceDate,
-      status: newStatus,
-      checkInTime: _checkInController.text.trim().isEmpty ? null : _checkInController.text.trim(),
-      checkOutTime: _checkOutController.text.trim().isEmpty ? null : _checkOutController.text.trim(),
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-    );
+    await ref
+        .read(attendanceActionProvider.notifier)
+        .markAttendance(
+          staffId: widget.item.staffId,
+          attendanceDate: widget.item.attendanceDate,
+          status: newStatus,
+          checkInTime: _checkInController.text.trim().isEmpty
+              ? null
+              : _checkInController.text.trim(),
+          checkOutTime: _checkOutController.text.trim().isEmpty
+              ? null
+              : _checkOutController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
   }
 
   Future<void> _saveDetails() async {
     if (widget.isConfirmed || !widget.canManage) return;
 
-    await ref.read(attendanceActionProvider.notifier).markAttendance(
-      staffId: widget.item.staffId,
-      attendanceDate: widget.item.attendanceDate,
-      status: widget.item.status,
-      checkInTime: _checkInController.text.trim().isEmpty ? null : _checkInController.text.trim(),
-      checkOutTime: _checkOutController.text.trim().isEmpty ? null : _checkOutController.text.trim(),
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-    );
+    await ref
+        .read(attendanceActionProvider.notifier)
+        .markAttendance(
+          staffId: widget.item.staffId,
+          attendanceDate: widget.item.attendanceDate,
+          status: widget.item.status,
+          checkInTime: _checkInController.text.trim().isEmpty
+              ? null
+              : _checkInController.text.trim(),
+          checkOutTime: _checkOutController.text.trim().isEmpty
+              ? null
+              : _checkOutController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
     setState(() {
       _isExpanded = false;
     });
@@ -102,10 +123,10 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
           color: item.status == 'Present'
               ? AppColors.success.withAlpha(100)
               : item.status == 'HalfDay'
-                  ? AppColors.warningDark.withAlpha(100)
-                  : item.status == 'Leave'
-                      ? AppColors.error.withAlpha(100)
-                      : AppColors.border,
+              ? AppColors.warningDark.withAlpha(100)
+              : item.status == 'Leave'
+              ? AppColors.error.withAlpha(100)
+              : AppColors.border,
         ),
       ),
       color: Colors.white,
@@ -121,8 +142,13 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
                   radius: 18,
                   backgroundColor: AppColors.accentPill,
                   child: Text(
-                    item.staffName.isNotEmpty ? item.staffName.substring(0, 1).toUpperCase() : 'S',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                    item.staffName.isNotEmpty
+                        ? item.staffName.substring(0, 1).toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -132,11 +158,16 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
                     children: [
                       Text(
                         item.staffName,
-                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         '${item.staffRole ?? 'Staff'} • ${item.staffPhoneNumber}',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -144,7 +175,9 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
                 if (!isLocked)
                   IconButton(
                     icon: Icon(
-                      _isExpanded ? Icons.expand_less_rounded : Icons.more_horiz_rounded,
+                      _isExpanded
+                          ? Icons.expand_less_rounded
+                          : Icons.more_horiz_rounded,
                       color: AppColors.textSecondary,
                       size: 20,
                     ),
@@ -254,11 +287,19 @@ class _AttendanceStaffCardState extends ConsumerState<AttendanceStaffCard> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     onPressed: _saveDetails,
-                    child: const Text('Save Details', style: TextStyle(fontSize: 12)),
+                    child: const Text(
+                      'Save Details',
+                      style: TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
               ],

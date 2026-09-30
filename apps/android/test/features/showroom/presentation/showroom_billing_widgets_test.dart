@@ -26,10 +26,14 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async => showrooms;
+  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async =>
+      showrooms;
 
   @override
-  Future<DailyStaffResponse> getDailyStaff(String showroomId, DateTime date) async {
+  Future<DailyStaffResponse> getDailyStaff(
+    String showroomId,
+    DateTime date,
+  ) async {
     return DailyStaffResponse(
       showroomId: showroomId,
       showroomName: 'Test Showroom',
@@ -41,7 +45,10 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
   }
 
   @override
-  Future<ShowroomDailyBill> getShowroomDailyBill(String showroomId, DateTime date) async {
+  Future<ShowroomDailyBill> getShowroomDailyBill(
+    String showroomId,
+    DateTime date,
+  ) async {
     return currentBill!;
   }
 
@@ -61,7 +68,9 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
       balanceAmount: request.amount - (currentBill?.amountReceived ?? 0.0),
       status: request.amount <= (currentBill?.amountReceived ?? 0.0)
           ? 'Paid'
-          : ((currentBill?.amountReceived ?? 0.0) > 0 ? 'PartiallyPaid' : 'Unpaid'),
+          : ((currentBill?.amountReceived ?? 0.0) > 0
+                ? 'PartiallyPaid'
+                : 'Unpaid'),
       notes: request.notes,
       payments: currentBill?.payments ?? const [],
       createdAt: DateTime.now(),
@@ -116,7 +125,10 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
     final remainingPayments = (currentBill?.payments ?? [])
         .where((p) => p.id != paymentId)
         .toList();
-    final newReceived = remainingPayments.fold<double>(0, (sum, p) => sum + p.amount);
+    final newReceived = remainingPayments.fold<double>(
+      0,
+      (sum, p) => sum + p.amount,
+    );
     final totalAmount = currentBill?.amount ?? 0.0;
     final newBalance = totalAmount - newReceived;
 
@@ -155,28 +167,31 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
   }
 }
 
-class FakeBillingAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class FakeBillingAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   final List<String> permissions;
-  FakeBillingAuthNotifier({this.permissions = const [
-    'showroom.manage',
-    'showroom.manage_billing',
-    'showroom.record_payment',
-    'showroom.delete_payment',
-    'showroom.view_history',
-    'showroom.view',
-  ]}) : super(
-          Authenticated(
-            AuthUser(
-              id: 'owner-1',
-              username: 'admin',
-              fullName: 'Admin User',
-              email: 'admin@e6carspa.com',
-              role: 'Owner',
-              isOwner: true,
-              permissions: permissions,
-            ),
-          ),
-        );
+  FakeBillingAuthNotifier({
+    this.permissions = const [
+      'showroom.manage',
+      'showroom.manage_billing',
+      'showroom.record_payment',
+      'showroom.delete_payment',
+      'showroom.view_history',
+      'showroom.view',
+    ],
+  }) : super(
+         Authenticated(
+           AuthUser(
+             id: 'owner-1',
+             username: 'admin',
+             fullName: 'Admin User',
+             email: 'admin@e6carspa.com',
+             role: 'Owner',
+             isOwner: true,
+             permissions: permissions,
+           ),
+         ),
+       );
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -290,16 +305,14 @@ void main() {
           (ref) => FakeBillingAuthNotifier(permissions: permissions),
         ),
       ],
-      child: MaterialApp(
-        home: Scaffold(
-          body: child,
-        ),
-      ),
+      child: MaterialApp(home: Scaffold(body: child)),
     );
   }
 
   group('PaymentTransactionCard Widget Tests', () {
-    testWidgets('renders payment details, method badge, and notes', (tester) async {
+    testWidgets('renders payment details, method badge, and notes', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildTestableWidget(
           PaymentTransactionCard(
@@ -343,7 +356,9 @@ void main() {
   });
 
   group('SetDailyBillModalSheet Widget Tests', () {
-    testWidgets('renders initial amount and notes, and submits valid amount', (tester) async {
+    testWidgets('renders initial amount and notes, and submits valid amount', (
+      tester,
+    ) async {
       SetShowroomDailyBillRequest? savedReq;
       await tester.pumpWidget(
         buildTestableWidget(
@@ -369,7 +384,9 @@ void main() {
       expect(savedReq?.amount, 7500.0);
     });
 
-    testWidgets('validation error when amount is empty or invalid', (tester) async {
+    testWidgets('validation error when amount is empty or invalid', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         buildTestableWidget(
           SetDailyBillModalSheet(
@@ -387,7 +404,9 @@ void main() {
   });
 
   group('RecordPaymentModalSheet Widget Tests', () {
-    testWidgets('pre-fills remaining balance and validates amount <= balance', (tester) async {
+    testWidgets('pre-fills remaining balance and validates amount <= balance', (
+      tester,
+    ) async {
       RecordShowroomPaymentRequest? savedReq;
       await tester.pumpWidget(
         buildTestableWidget(
@@ -403,7 +422,10 @@ void main() {
 
       expect(find.widgetWithText(AppButton, 'Record Payment'), findsOneWidget);
       expect(find.text('3500'), findsOneWidget);
-      expect(find.textContaining('Remaining Balance: ₹3,500.00'), findsOneWidget);
+      expect(
+        find.textContaining('Remaining Balance: ₹3,500.00'),
+        findsOneWidget,
+      );
 
       // Enter an amount exceeding remaining balance
       await tester.enterText(find.byType(TextFormField).first, '5000');
@@ -412,7 +434,9 @@ void main() {
 
       // Error message
       expect(
-        find.textContaining('Payment amount cannot exceed remaining balance of ₹3,500.00'),
+        find.textContaining(
+          'Payment amount cannot exceed remaining balance of ₹3,500.00',
+        ),
         findsOneWidget,
       );
       expect(savedReq, isNull);
@@ -431,94 +455,98 @@ void main() {
   });
 
   group('ShowroomBillingTab Widget Tests', () {
-    testWidgets('renders daily bill KPIs, balance, status badge, and payment cards', (tester) async {
-      await tester.pumpWidget(
-        buildTestableWidget(
-          ShowroomBillingTab(
-            showroom: testShowroom,
-            selectedDate: testDate,
+    testWidgets(
+      'renders daily bill KPIs, balance, status badge, and payment cards',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Daily Bill Summary'), findsOneWidget);
-      expect(find.text('Daily Billed'), findsOneWidget);
-      expect(find.text('Received'), findsOneWidget);
-      expect(find.text('Balance Due'), findsOneWidget);
-      expect(find.text('Partially Paid'), findsWidgets);
-      expect(find.text('Payment Ledger'), findsOneWidget);
-      expect(find.text('Ref: UPI-998877'), findsOneWidget);
-    });
+        expect(find.text('Daily Bill Summary'), findsOneWidget);
+        expect(find.text('Daily Billed'), findsOneWidget);
+        expect(find.text('Received'), findsOneWidget);
+        expect(find.text('Balance Due'), findsOneWidget);
+        expect(find.text('Partially Paid'), findsWidgets);
+        expect(find.text('Payment Ledger'), findsOneWidget);
+        expect(find.text('Ref: UPI-998877'), findsOneWidget);
+      },
+    );
 
-    testWidgets('switches to Billing History sub-tab and renders period overview & rows', (tester) async {
-      DateTime? navigatedDate;
-      await tester.pumpWidget(
-        buildTestableWidget(
-          ShowroomBillingTab(
-            showroom: testShowroom,
-            selectedDate: testDate,
-            onSelectDate: (d) => navigatedDate = d,
+    testWidgets(
+      'switches to Billing History sub-tab and renders period overview & rows',
+      (tester) async {
+        DateTime? navigatedDate;
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(
+              showroom: testShowroom,
+              selectedDate: testDate,
+              onSelectDate: (d) => navigatedDate = d,
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      // Switch to Billing History
-      await tester.tap(find.text('Billing History'));
-      await tester.pumpAndSettle();
+        // Switch to Billing History
+        await tester.tap(find.text('Billing History'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Period Overview'), findsOneWidget);
-      expect(find.text('Total Billed'), findsOneWidget);
-      expect(find.text('Outstanding'), findsOneWidget);
-      expect(find.text('Daily History Breakdown'), findsOneWidget);
-      expect(find.text('16 Vehicles • 4 Staff'), findsOneWidget);
+        expect(find.text('Period Overview'), findsOneWidget);
+        expect(find.text('Total Billed'), findsOneWidget);
+        expect(find.text('Outstanding'), findsOneWidget);
+        expect(find.text('Daily History Breakdown'), findsOneWidget);
+        expect(find.text('16 Vehicles • 4 Staff'), findsOneWidget);
 
-      // Tap the daily history row
-      await tester.tap(find.text('16 Vehicles • 4 Staff'));
-      await tester.pumpAndSettle();
+        // Tap the daily history row
+        await tester.tap(find.text('16 Vehicles • 4 Staff'));
+        await tester.pumpAndSettle();
 
-      expect(navigatedDate, isNotNull);
-      expect(navigatedDate?.day, 27);
-    });
+        expect(navigatedDate, isNotNull);
+        expect(navigatedDate?.day, 27);
+      },
+    );
   });
 
   group('ShowroomReceivablesScreen Widget Tests', () {
-    testWidgets('renders global overview banner, search, filter chips, and showroom cards', (tester) async {
-      await tester.pumpWidget(
-        buildTestableWidget(
-          const ShowroomReceivablesScreen(),
-        ),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders global overview banner, search, filter chips, and showroom cards',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(const ShowroomReceivablesScreen()),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Showroom Receivables'), findsOneWidget);
-      expect(find.text('All Showrooms Summary'), findsOneWidget);
-      expect(find.text('BMW Experience Center'), findsOneWidget);
-      expect(find.text('Anna Salai, Chennai'), findsOneWidget);
-      expect(find.text('Due'), findsOneWidget);
-    });
+        expect(find.text('Showroom Receivables'), findsOneWidget);
+        expect(find.text('All Showrooms Summary'), findsOneWidget);
+        expect(find.text('BMW Experience Center'), findsOneWidget);
+        expect(find.text('Anna Salai, Chennai'), findsOneWidget);
+        expect(find.text('Due'), findsOneWidget);
+      },
+    );
   });
 
   group('Responsive Layout Viewport Tests', () {
-    testWidgets('ShowroomBillingTab renders on narrow 320px screen without RenderFlex overflow', (tester) async {
-      tester.view.physicalSize = const Size(320, 640);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'ShowroomBillingTab renders on narrow 320px screen without RenderFlex overflow',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        buildTestableWidget(
-          ShowroomBillingTab(
-            showroom: testShowroom,
-            selectedDate: testDate,
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.text('Daily Bill Summary'), findsOneWidget);
-    });
+        expect(tester.takeException(), isNull);
+        expect(find.text('Daily Bill Summary'), findsOneWidget);
+      },
+    );
   });
 }

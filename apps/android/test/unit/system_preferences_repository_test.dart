@@ -118,61 +118,76 @@ void main() {
       expect(cachedMap['currencySymbol'], '₹');
     });
 
-    test('getSystemPreferences falls back to local cache when API throws connection error', () async {
-      // Seed cache
-      const cached = SystemPreferencesModel(
-        dateFormat: 'MM/DD/YYYY',
-        currencySymbol: '₹',
-      );
-      await fakeStorage.write(
-        key: 'e6_system_preferences',
-        value: jsonEncode(cached.toJson()),
-      );
+    test(
+      'getSystemPreferences falls back to local cache when API throws connection error',
+      () async {
+        // Seed cache
+        const cached = SystemPreferencesModel(
+          dateFormat: 'MM/DD/YYYY',
+          currencySymbol: '₹',
+        );
+        await fakeStorage.write(
+          key: 'e6_system_preferences',
+          value: jsonEncode(cached.toJson()),
+        );
 
-      // Simulate network failure
-      fakeApi.shouldThrow = true;
+        // Simulate network failure
+        fakeApi.shouldThrow = true;
 
-      final result = await repository.getSystemPreferences();
+        final result = await repository.getSystemPreferences();
 
-      expect(result.dateFormat, 'MM/DD/YYYY');
-      expect(result.currencySymbol, '₹');
-    });
+        expect(result.dateFormat, 'MM/DD/YYYY');
+        expect(result.currencySymbol, '₹');
+      },
+    );
 
-    test('updateSystemPreferences updates backend and persists to cache', () async {
-      const newPrefs = SystemPreferencesModel(
-        dateFormat: 'YYYY-MM-DD',
-        timeFormat: '24h',
-        currencySymbol: '€',
-        decimalPrecision: 0,
-        defaultPrintCopies: 3,
-        autoPrintReceipt: false,
-        refreshInterval: 60,
-      );
+    test(
+      'updateSystemPreferences updates backend and persists to cache',
+      () async {
+        const newPrefs = SystemPreferencesModel(
+          dateFormat: 'YYYY-MM-DD',
+          timeFormat: '24h',
+          currencySymbol: '€',
+          decimalPrecision: 0,
+          defaultPrintCopies: 3,
+          autoPrintReceipt: false,
+          refreshInterval: 60,
+        );
 
-      final result = await repository.updateSystemPreferences(newPrefs);
+        final result = await repository.updateSystemPreferences(newPrefs);
 
-      expect(result, equals(newPrefs));
-      expect(fakeApi.remotePreferences, equals(newPrefs));
+        expect(result, equals(newPrefs));
+        expect(fakeApi.remotePreferences, equals(newPrefs));
 
-      final cachedJson = await fakeStorage.read(key: 'e6_system_preferences');
-      expect(cachedJson, isNotNull);
-      final cachedMap = jsonDecode(cachedJson!) as Map<String, dynamic>;
-      expect(cachedMap['refreshInterval'], 60);
-    });
+        final cachedJson = await fakeStorage.read(key: 'e6_system_preferences');
+        expect(cachedJson, isNotNull);
+        final cachedMap = jsonDecode(cachedJson!) as Map<String, dynamic>;
+        expect(cachedMap['refreshInterval'], 60);
+      },
+    );
 
-    test('resetSystemPreferences resets to canonical defaults on backend and cache', () async {
-      // Set non-default first
-      await repository.updateSystemPreferences(
-        const SystemPreferencesModel(currencySymbol: '\$', refreshInterval: 15),
-      );
+    test(
+      'resetSystemPreferences resets to canonical defaults on backend and cache',
+      () async {
+        // Set non-default first
+        await repository.updateSystemPreferences(
+          const SystemPreferencesModel(
+            currencySymbol: '\$',
+            refreshInterval: 15,
+          ),
+        );
 
-      final result = await repository.resetSystemPreferences();
+        final result = await repository.resetSystemPreferences();
 
-      expect(result.currencySymbol, '₹');
-      expect(result.dateFormat, 'DD/MM/YYYY');
-      expect(result.decimalPrecision, 2);
-      expect(result.refreshInterval, 30);
-      expect(fakeApi.remotePreferences, equals(SystemPreferencesModel.defaultPreferences));
-    });
+        expect(result.currencySymbol, '₹');
+        expect(result.dateFormat, 'DD/MM/YYYY');
+        expect(result.decimalPrecision, 2);
+        expect(result.refreshInterval, 30);
+        expect(
+          fakeApi.remotePreferences,
+          equals(SystemPreferencesModel.defaultPreferences),
+        );
+      },
+    );
   });
 }

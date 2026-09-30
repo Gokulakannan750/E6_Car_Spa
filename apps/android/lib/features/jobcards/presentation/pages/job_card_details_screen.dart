@@ -17,26 +17,80 @@ import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/edit_job_card_sheet.dart';
+import '../../../../core/utils/auto_refresh_mixin.dart';
+import '../../../settings/providers/system_preferences_provider.dart';
 import '../widgets/outside_jobs_section.dart';
 import '../widgets/vehicle_location_badge.dart';
+import '../../models/outside_job_model.dart';
+import '../../providers/outside_job_providers.dart';
+import '../../data/outside_job_repository.dart';
 
 class JobCardDetailsScreen extends ConsumerStatefulWidget {
   final String jobCardId;
 
-  const JobCardDetailsScreen({
-    super.key,
-    required this.jobCardId,
-  });
+  const JobCardDetailsScreen({super.key, required this.jobCardId});
 
   @override
-  ConsumerState<JobCardDetailsScreen> createState() => _JobCardDetailsScreenState();
+  ConsumerState<JobCardDetailsScreen> createState() =>
+      _JobCardDetailsScreenState();
 }
 
-class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
+class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
+    with WidgetsBindingObserver, AutoRefreshMixin<JobCardDetailsScreen> {
   bool _isConverting = false;
+  bool _isEditing = false;
+
+  @override
+  void onAutoRefresh() {
+    if (_isEditing || _isConverting) return;
+    final authState = ref.read(authNotifierProvider);
+    final currentUser = authState is Authenticated ? authState.user : null;
+    if (currentUser != null && !currentUser.hasPermission('jobcards.view')) {
+      return;
+    }
+
+    ref
+        .read(jobCardDetailsProvider(widget.jobCardId).notifier)
+        .loadDetails(silent: true);
+    ref.read(outsideJobsProvider(widget.jobCardId).notifier).load();
+  }
 
   Future<void> _handleConvertToInvoice(JobCard jc) async {
     if (_isConverting) return;
+
+    // Pre-check: Ensure all applicable outside jobs have valid vendor cost
+    final outsideState = ref.read(outsideJobsProvider(widget.jobCardId));
+    List<OutsideJob> jobsToCheck = outsideState.jobs;
+    if (jobsToCheck.isEmpty && !outsideState.isLoading) {
+      try {
+        jobsToCheck = await ref
+            .read(outsideJobRepositoryProvider)
+            .getByJobCardId(jc.id);
+      } catch (_) {}
+      if (!mounted) return;
+    }
+
+    final missingCostJobs = jobsToCheck
+        .where(
+          (j) =>
+              j.status != OutsideJobStatus.cancelled &&
+              (j.vendorCost == null || j.vendorCost! <= 0),
+        )
+        .toList();
+
+    if (missingCostJobs.isNotEmpty) {
+      final names = missingCostJobs.map((j) => '"${j.serviceName}"').join(', ');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Vendor cost is required for all outside jobs before generating the invoice. Missing cost for: $names.',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -48,7 +102,10 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
           children: [
             Text(
               'A new Draft Invoice will be created for Job Card ${jc.jobCardNumber}. All services and customer details will be transferred.',
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -60,7 +117,10 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Amount:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const Text(
+                    'Total Amount:',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
                   Text(
                     '₹${jc.totalAmount.toStringAsFixed(2)}',
                     style: const TextStyle(
@@ -94,7 +154,9 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
     setState(() => _isConverting = true);
 
     try {
-      final invoice = await ref.read(invoiceRepositoryProvider).createFromJobCard(jc.id);
+      final invoice = await ref
+          .read(invoiceRepositoryProvider)
+          .createFromJobCard(jc.id);
 
       if (!mounted) return;
 
@@ -130,29 +192,40 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
   }
 
   Future<void> _handleEditJobCard(JobCard jc) async {
-    final result = await EditJobCardSheet.show(
-      context,
-      jobCard: jc,
-    );
-    if (result == true && mounted) {
-      ref.read(jobCardDetailsProvider(widget.jobCardId).notifier).loadDetails();
-      ref.read(jobCardListProvider.notifier).loadJobCards();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Job Card updated successfully.'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    _isEditing = true;
+    try {
+      final result = await EditJobCardSheet.show(context, jobCard: jc);
+      if (result == true && mounted) {
+        ref
+            .read(jobCardDetailsProvider(widget.jobCardId).notifier)
+            .loadDetails();
+        ref.read(jobCardListProvider.notifier).loadJobCards();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Job Card updated successfully.'),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        _isEditing = false;
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final preferences = ref.watch(systemPreferencesProvider);
+    syncRefreshTimerWithPreferences(preferences.refreshInterval);
+
     final authState = ref.watch(authNotifierProvider);
     final currentUser = authState is Authenticated ? authState.user : null;
-    final canView = currentUser == null || currentUser.hasPermission('jobcards.view');
-    final canEdit = currentUser == null || currentUser.hasPermission('jobcards.edit');
+    final canView =
+        currentUser == null || currentUser.hasPermission('jobcards.view');
+    final canEdit =
+        currentUser == null || currentUser.hasPermission('jobcards.edit');
 
     if (!canView) {
       return const AppScreenScaffold(
@@ -172,14 +245,19 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
     }
 
     final state = ref.watch(jobCardDetailsProvider(widget.jobCardId));
-    final notifier = ref.read(jobCardDetailsProvider(widget.jobCardId).notifier);
+    final notifier = ref.read(
+      jobCardDetailsProvider(widget.jobCardId).notifier,
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
           state.jobCard?.jobCardNumber ?? 'Job Card Details',
-          style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontFamily: 'monospace',
+            fontWeight: FontWeight.w700,
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -204,7 +282,9 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
         ],
       ),
       body: _buildBody(context, state, notifier, canEdit),
-      bottomNavigationBar: state.jobCard != null ? _buildBottomBar(context, state.jobCard!) : null,
+      bottomNavigationBar: state.jobCard != null
+          ? _buildBottomBar(context, state.jobCard!)
+          : null,
     );
   }
 
@@ -295,7 +375,11 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.lock_rounded, size: 20, color: Color(0xFFD97706)),
+                    const Icon(
+                      Icons.lock_rounded,
+                      size: 20,
+                      color: Color(0xFFD97706),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -311,7 +395,8 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            jc.invoiceNumber != null && jc.invoiceNumber!.isNotEmpty
+                            jc.invoiceNumber != null &&
+                                    jc.invoiceNumber!.isNotEmpty
                                 ? 'This job card cannot be modified because invoice ${jc.invoiceNumber} has already been generated.'
                                 : 'This job card is locked because its invoice has already been generated.',
                             style: const TextStyle(
@@ -349,7 +434,11 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                             color: AppColors.primaryContainer,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.person, color: AppColors.textOnPrimary, size: 20),
+                          child: const Icon(
+                            Icons.person,
+                            color: AppColors.textOnPrimary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -362,7 +451,9 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                               ),
                               Text(
                                 jc.customer.phoneNumber,
-                                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -380,7 +471,11 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                             color: AppColors.surfaceAlt,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.directions_car, color: AppColors.textPrimary, size: 20),
+                          child: const Icon(
+                            Icons.directions_car,
+                            color: AppColors.textPrimary,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -396,10 +491,14 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                               ),
                               Text(
                                 jc.vehicle.displayName,
-                                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                               const SizedBox(height: 8),
-                              VehicleLocationBadge(location: jc.vehicleLocation),
+                              VehicleLocationBadge(
+                                location: jc.vehicleLocation,
+                              ),
                             ],
                           ),
                         ),
@@ -424,7 +523,13 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                     key: const Key('edit_services_button'),
                     onPressed: () => _handleEditJobCard(jc),
                     icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Edit Services', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    label: const Text(
+                      'Edit Services',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -441,7 +546,8 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(12),
                 itemCount: jc.services.length,
-                separatorBuilder: (_, _) => const Divider(height: 16, color: AppColors.borderLight),
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 16, color: AppColors.borderLight),
                 itemBuilder: (context, index) {
                   final svc = jc.services[index];
                   return Row(
@@ -466,7 +572,9 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                       ),
                       Text(
                         '₹${svc.lineTotal.toStringAsFixed(2)}',
-                        style: AppTextStyles.headingSmall.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.headingSmall.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   );
@@ -487,7 +595,10 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildSummaryRow('Subtotal', '₹${jc.subtotal.toStringAsFixed(2)}'),
+                    _buildSummaryRow(
+                      'Subtotal',
+                      '₹${jc.subtotal.toStringAsFixed(2)}',
+                    ),
                     if (jc.discountAmount > 0) ...[
                       const SizedBox(height: 8),
                       _buildSummaryRow(
@@ -497,7 +608,10 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    _buildSummaryRow('Tax (GST)', '₹${jc.taxAmount.toStringAsFixed(2)}'),
+                    _buildSummaryRow(
+                      'Tax (GST)',
+                      '₹${jc.taxAmount.toStringAsFixed(2)}',
+                    ),
                     const Divider(height: 20, color: AppColors.borderLight),
                     _buildSummaryRow(
                       'Total Amount',
@@ -512,10 +626,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
             // ── Notes Section (if present) ──────────────────────────────────
             if (jc.notes != null && jc.notes!.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text(
-                'Notes / Instructions',
-                style: AppTextStyles.headingMedium,
-              ),
+              Text('Notes / Instructions', style: AppTextStyles.headingMedium),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(14),
@@ -524,10 +635,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.border),
                 ),
-                child: Text(
-                  jc.notes!,
-                  style: AppTextStyles.bodyMedium,
-                ),
+                child: Text(jc.notes!, style: AppTextStyles.bodyMedium),
               ),
             ],
             const SizedBox(height: 16),
@@ -559,12 +667,17 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen> {
           label,
           style: isBold
               ? AppTextStyles.headingMedium
-              : AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              : AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
         ),
         Text(
           value,
           style: isBold
-              ? AppTextStyles.displaySmall.copyWith(fontWeight: FontWeight.w800, color: AppColors.primary)
+              ? AppTextStyles.displaySmall.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                )
               : AppTextStyles.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   color: isNegative ? AppColors.error : AppColors.textPrimary,

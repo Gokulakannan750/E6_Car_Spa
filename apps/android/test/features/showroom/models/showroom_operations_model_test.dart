@@ -68,55 +68,58 @@ void main() {
   });
 
   group('ShowroomVehicleWork & WorkItem Models', () {
-    test('fromJson parses nested service items and calculates display values', () {
-      final json = {
-        'id': 'work-100',
-        'showroomId': 'sr-1',
-        'showroomName': 'Anna Nagar',
-        'staffId': 'staff-1',
-        'staffName': 'Ramesh Kumar',
-        'vehicleTypeId': 'vt-1',
-        'vehicleTypeName': 'Sedan',
-        'vehicleQuantity': 2,
-        'date': '2026-09-27T00:00:00.000Z',
-        'timeRecorded': '10:30 AM',
-        'notes': 'Careful on door scratches',
-        'serviceItems': [
-          {
-            'id': 'item-1',
-            'showroomVehicleWorkId': 'work-100',
-            'workTypeId': 'wt-1',
-            'workTypeCode': 'WASH',
-            'workTypeName': 'Full Wash',
-            'quantity': 1,
-          },
-          {
-            'id': 'item-2',
-            'showroomVehicleWorkId': 'work-100',
-            'workTypeId': 'wt-2',
-            'workTypeCode': 'VACUUM',
-            'workTypeName': 'Deep Vacuum',
-            'quantity': 1,
-          }
-        ],
-        'createdAt': '2026-09-27T10:30:00.000Z',
-      };
+    test(
+      'fromJson parses nested service items and calculates display values',
+      () {
+        final json = {
+          'id': 'work-100',
+          'showroomId': 'sr-1',
+          'showroomName': 'Anna Nagar',
+          'staffId': 'staff-1',
+          'staffName': 'Ramesh Kumar',
+          'vehicleTypeId': 'vt-1',
+          'vehicleTypeName': 'Sedan',
+          'vehicleQuantity': 2,
+          'date': '2026-09-27T00:00:00.000Z',
+          'timeRecorded': '10:30 AM',
+          'notes': 'Careful on door scratches',
+          'serviceItems': [
+            {
+              'id': 'item-1',
+              'showroomVehicleWorkId': 'work-100',
+              'workTypeId': 'wt-1',
+              'workTypeCode': 'WASH',
+              'workTypeName': 'Full Wash',
+              'quantity': 1,
+            },
+            {
+              'id': 'item-2',
+              'showroomVehicleWorkId': 'work-100',
+              'workTypeId': 'wt-2',
+              'workTypeCode': 'VACUUM',
+              'workTypeName': 'Deep Vacuum',
+              'quantity': 1,
+            },
+          ],
+          'createdAt': '2026-09-27T10:30:00.000Z',
+        };
 
-      final work = ShowroomVehicleWork.fromJson(json);
-      expect(work.id, 'work-100');
-      expect(work.displayStaffName, 'Ramesh Kumar');
-      expect(work.displayVehicleType, 'Sedan');
-      expect(work.displayTime, '10:30 AM');
-      expect(work.vehicleQuantity, 2);
-      expect(work.notes, 'Careful on door scratches');
-      expect(work.serviceItems.length, 2);
-      expect(work.serviceItems[0].workTypeName, 'Full Wash');
-      expect(work.serviceTypesSummary, 'Full Wash, Deep Vacuum');
+        final work = ShowroomVehicleWork.fromJson(json);
+        expect(work.id, 'work-100');
+        expect(work.displayStaffName, 'Ramesh Kumar');
+        expect(work.displayVehicleType, 'Sedan');
+        expect(work.displayTime, '10:30 AM');
+        expect(work.vehicleQuantity, 2);
+        expect(work.notes, 'Careful on door scratches');
+        expect(work.serviceItems.length, 2);
+        expect(work.serviceItems[0].workTypeName, 'Full Wash');
+        expect(work.serviceTypesSummary, 'Full Wash, Deep Vacuum');
 
-      final outJson = work.toJson();
-      expect(outJson['id'], 'work-100');
-      expect((outJson['serviceItems'] as List).length, 2);
-    });
+        final outJson = work.toJson();
+        expect(outJson['id'], 'work-100');
+        expect((outJson['serviceItems'] as List).length, 2);
+      },
+    );
   });
 
   group('Request DTOs Serialization', () {
@@ -129,7 +132,10 @@ void main() {
         notes: 'Priority customer',
         serviceItems: [
           const CreateShowroomVehicleWorkItemRequest(workTypeId: 'wt-1'),
-          const CreateShowroomVehicleWorkItemRequest(workTypeId: 'wt-2', quantity: 2),
+          const CreateShowroomVehicleWorkItemRequest(
+            workTypeId: 'wt-2',
+            quantity: 2,
+          ),
         ],
       );
 
@@ -216,7 +222,7 @@ void main() {
             'vehicleTypeCode': 'SUV',
             'vehicleTypeName': 'SUV',
             'totalVehicles': 5,
-          }
+          },
         ],
         'workTypeBreakdown': [
           {
@@ -224,7 +230,7 @@ void main() {
             'workTypeCode': 'WASH',
             'workTypeName': 'Full Wash',
             'totalQuantity': 12,
-          }
+          },
         ],
         'staffProductivityBreakdown': [
           {
@@ -234,7 +240,7 @@ void main() {
             'totalSessions': 1,
             'totalVehiclesHandled': 6,
             'totalServicesPerformed': 12,
-          }
+          },
         ],
       };
 

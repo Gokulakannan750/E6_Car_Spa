@@ -29,13 +29,15 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       useSafeArea: true,
-      builder: (ctx) => Dialog.fullscreen(
-        child: InvoicePrintPreviewDialog(invoice: invoice),
-      ),
+      builder: (ctx) =>
+          Dialog.fullscreen(child: InvoicePrintPreviewDialog(invoice: invoice)),
     );
   }
 
-  static Future<Uint8List?> _loadLogoBytes(String? logoPath, DateTime? updatedAt) async {
+  static Future<Uint8List?> _loadLogoBytes(
+    String? logoPath,
+    DateTime? updatedAt,
+  ) async {
     final resolvedUrl = AppBusinessLogo.resolveLogoUrl(logoPath, updatedAt);
     if (resolvedUrl == null || resolvedUrl.isEmpty) return null;
     try {
@@ -61,10 +63,12 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settingsState = ref.watch(settingsNotifierProvider);
-    final profile = businessProfile ??
+    final profile =
+        businessProfile ??
         (settingsState is SettingsLoaded ? settingsState.profile : null);
 
-    final invoiceNumber = invoice.invoiceNumber ?? (invoice.isDraft ? 'DRAFT' : 'INVOICE');
+    final invoiceNumber =
+        invoice.invoiceNumber ?? (invoice.isDraft ? 'DRAFT' : 'INVOICE');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -88,7 +92,10 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
             icon: const Icon(Icons.print_outlined, color: AppColors.primary),
             tooltip: 'Print Invoice',
             onPressed: () async {
-              final logoBytes = await _loadLogoBytes(profile?.logoPath, profile?.updatedAt);
+              final logoBytes = await _loadLogoBytes(
+                profile?.logoPath,
+                profile?.updatedAt,
+              );
               final pdfBytes = await InvoicePdfGenerator.generateInvoicePdf(
                 invoice: invoice,
                 businessProfile: profile,
@@ -110,7 +117,10 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
         dynamicLayout: false,
         pdfFileName: 'Invoice_${invoice.invoiceNumber ?? invoice.id}.pdf',
         build: (format) async {
-          final logoBytes = await _loadLogoBytes(profile?.logoPath, profile?.updatedAt);
+          final logoBytes = await _loadLogoBytes(
+            profile?.logoPath,
+            profile?.updatedAt,
+          );
           return await InvoicePdfGenerator.generateInvoicePdf(
             invoice: invoice,
             businessProfile: profile,

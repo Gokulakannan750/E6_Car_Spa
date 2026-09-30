@@ -26,13 +26,17 @@ class InvoicePdfGenerator {
     final isGst = invoice.isGstEnabled;
 
     final businessName = businessProfile?.businessName ?? 'E6 Car Spa';
-    final addressLine1 = businessProfile?.addressLine1 ?? '36, Geetha Nagar Main Road';
-    final addressLine2 = businessProfile?.addressLine2 ?? 'Behind Sakthi Mahal, Perundurai Road';
-    final cityStatePin = [
-      businessProfile?.city ?? 'Erode',
-      businessProfile?.state ?? 'Tamil Nadu',
-    ].where((s) => s.isNotEmpty).join(', ') +
-        (businessProfile?.postalCode != null && businessProfile!.postalCode.isNotEmpty
+    final addressLine1 =
+        businessProfile?.addressLine1 ?? '36, Geetha Nagar Main Road';
+    final addressLine2 =
+        businessProfile?.addressLine2 ?? 'Behind Sakthi Mahal, Perundurai Road';
+    final cityStatePin =
+        [
+          businessProfile?.city ?? 'Erode',
+          businessProfile?.state ?? 'Tamil Nadu',
+        ].where((s) => s.isNotEmpty).join(', ') +
+        (businessProfile?.postalCode != null &&
+                businessProfile!.postalCode.isNotEmpty
             ? ' - ${businessProfile.postalCode}'
             : ' - 638011');
     final phone = businessProfile?.phone ?? '9578749449';
@@ -42,8 +46,8 @@ class InvoicePdfGenerator {
     final documentTitle = isDraft
         ? 'DRAFT INVOICE'
         : isGst
-            ? 'TAX INVOICE'
-            : 'INVOICE';
+        ? 'TAX INVOICE'
+        : 'INVOICE';
 
     final cgstAmount = isGst ? invoice.gstAmount / 2 : 0.0;
     final sgstAmount = isGst ? invoice.gstAmount / 2 : 0.0;
@@ -104,21 +108,33 @@ class InvoicePdfGenerator {
                           if (addressLine1.isNotEmpty)
                             pw.Text(
                               addressLine1,
-                              style: pw.TextStyle(fontSize: 8.5, color: mutedTextColor),
+                              style: pw.TextStyle(
+                                fontSize: 8.5,
+                                color: mutedTextColor,
+                              ),
                             ),
                           if (addressLine2.isNotEmpty)
                             pw.Text(
                               addressLine2,
-                              style: pw.TextStyle(fontSize: 8.5, color: mutedTextColor),
+                              style: pw.TextStyle(
+                                fontSize: 8.5,
+                                color: mutedTextColor,
+                              ),
                             ),
                           pw.Text(
                             cityStatePin,
-                            style: pw.TextStyle(fontSize: 8.5, color: mutedTextColor),
+                            style: pw.TextStyle(
+                              fontSize: 8.5,
+                              color: mutedTextColor,
+                            ),
                           ),
                           pw.SizedBox(height: 2),
                           pw.Text(
                             'Phone: $phone${email.isNotEmpty ? '  |  Email: $email' : ''}',
-                            style: pw.TextStyle(fontSize: 8.5, color: mutedTextColor),
+                            style: pw.TextStyle(
+                              fontSize: 8.5,
+                              color: mutedTextColor,
+                            ),
                           ),
                           if (isGst && gstin != null && gstin.isNotEmpty) ...[
                             pw.SizedBox(height: 2),
@@ -183,8 +199,8 @@ class InvoicePdfGenerator {
                       color: invoice.isPaid
                           ? PdfColor.fromHex('#16A34A')
                           : invoice.isCancelled
-                              ? PdfColor.fromHex('#DC2626')
-                              : primaryColor,
+                          ? PdfColor.fromHex('#DC2626')
+                          : primaryColor,
                     ),
                   ),
                 ],
@@ -193,10 +209,7 @@ class InvoicePdfGenerator {
           ),
 
           pw.SizedBox(height: 8),
-          pw.Container(
-            height: 2,
-            color: primaryColor,
-          ),
+          pw.Container(height: 2, color: primaryColor),
           pw.SizedBox(height: 10),
 
           // ── Bill To & Vehicle Details ───────────────────────────────
@@ -243,7 +256,9 @@ class InvoicePdfGenerator {
                   pw.Container(
                     padding: const pw.EdgeInsets.all(5),
                     child: pw.Text(
-                      invoice.registrationNumber.isNotEmpty ? invoice.registrationNumber : '—',
+                      invoice.registrationNumber.isNotEmpty
+                          ? invoice.registrationNumber
+                          : '—',
                       style: pw.TextStyle(
                         fontSize: 9,
                         fontWeight: pw.FontWeight.bold,
@@ -270,7 +285,9 @@ class InvoicePdfGenerator {
                   pw.Container(
                     padding: const pw.EdgeInsets.all(5),
                     child: pw.Text(
-                      invoice.customerPhone.isNotEmpty ? invoice.customerPhone : '—',
+                      invoice.customerPhone.isNotEmpty
+                          ? invoice.customerPhone
+                          : '—',
                       style: pw.TextStyle(fontSize: 8.5, color: darkTextColor),
                     ),
                   ),
@@ -291,9 +308,11 @@ class InvoicePdfGenerator {
                     child: pw.Text(
                       [
                         '${invoice.vehicleMake} ${invoice.vehicleModel}'.trim(),
-                        if (invoice.vehicleVariant != null && invoice.vehicleVariant!.isNotEmpty)
+                        if (invoice.vehicleVariant != null &&
+                            invoice.vehicleVariant!.isNotEmpty)
                           '(${invoice.vehicleVariant})',
-                        if (invoice.vehicleColor != null && invoice.vehicleColor!.isNotEmpty)
+                        if (invoice.vehicleColor != null &&
+                            invoice.vehicleColor!.isNotEmpty)
                           '- ${invoice.vehicleColor}',
                       ].where((s) => s.isNotEmpty).join(' '),
                       style: pw.TextStyle(fontSize: 8.5, color: darkTextColor),
@@ -357,9 +376,19 @@ class InvoicePdfGenerator {
                     children: [
                       _tableCell('$idx', align: pw.TextAlign.center),
                       _tableCell(item.description, align: pw.TextAlign.left),
-                      _tableCell('${item.quantity}', align: pw.TextAlign.center),
-                      _tableCell(_formatCurrency(item.unitPrice), align: pw.TextAlign.right),
-                      _tableCell(_formatCurrency(lineTotal), align: pw.TextAlign.right, isBold: true),
+                      _tableCell(
+                        '${item.quantity}',
+                        align: pw.TextAlign.center,
+                      ),
+                      _tableCell(
+                        _formatCurrency(item.unitPrice),
+                        align: pw.TextAlign.right,
+                      ),
+                      _tableCell(
+                        _formatCurrency(lineTotal),
+                        align: pw.TextAlign.right,
+                        isBold: true,
+                      ),
                     ],
                   );
                 }),
@@ -383,7 +412,9 @@ class InvoicePdfGenerator {
                         padding: const pw.EdgeInsets.all(6),
                         decoration: pw.BoxDecoration(
                           color: tableHeaderBg,
-                          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+                          borderRadius: const pw.BorderRadius.all(
+                            pw.Radius.circular(3),
+                          ),
                           border: pw.Border.all(color: borderColor, width: 0.6),
                         ),
                         child: pw.Column(
@@ -400,7 +431,10 @@ class InvoicePdfGenerator {
                             pw.SizedBox(height: 2),
                             pw.Text(
                               invoice.notes!,
-                              style: pw.TextStyle(fontSize: 8, color: darkTextColor),
+                              style: pw.TextStyle(
+                                fontSize: 8,
+                                color: darkTextColor,
+                              ),
                             ),
                           ],
                         ),
@@ -420,7 +454,11 @@ class InvoicePdfGenerator {
                       businessProfile?.termsAndConditions?.isNotEmpty == true
                           ? businessProfile!.termsAndConditions!
                           : '1. Payment is due upon completion of vehicle detailing services.\n2. Goods/services once provided are non-refundable.\n3. Please inspect your vehicle thoroughly prior to delivery handover.',
-                      style: pw.TextStyle(fontSize: 7.5, color: mutedTextColor, lineSpacing: 1.5),
+                      style: pw.TextStyle(
+                        fontSize: 7.5,
+                        color: mutedTextColor,
+                        lineSpacing: 1.5,
+                      ),
                     ),
                   ],
                 ),
@@ -441,7 +479,10 @@ class InvoicePdfGenerator {
                         textColor: PdfColor.fromHex('#16A34A'),
                       ),
                     if (isGst) ...[
-                      _summaryRow('Taxable Value', _formatCurrency(invoice.taxableAmount)),
+                      _summaryRow(
+                        'Taxable Value',
+                        _formatCurrency(invoice.taxableAmount),
+                      ),
                       _summaryRow('CGST (9%)', _formatCurrency(cgstAmount)),
                       _summaryRow('SGST (9%)', _formatCurrency(sgstAmount)),
                     ],
@@ -453,7 +494,10 @@ class InvoicePdfGenerator {
                       textColor: primaryColor,
                       fontSize: 10,
                     ),
-                    _summaryRow('Amount Paid', _formatCurrency(invoice.paidAmount)),
+                    _summaryRow(
+                      'Amount Paid',
+                      _formatCurrency(invoice.paidAmount),
+                    ),
                     _summaryRow(
                       'Balance Due',
                       _formatCurrency(invoice.balanceAmount),
@@ -501,7 +545,10 @@ class InvoicePdfGenerator {
     return doc.save();
   }
 
-  static pw.Widget _tableHeader(String text, {pw.TextAlign align = pw.TextAlign.left}) {
+  static pw.Widget _tableHeader(
+    String text, {
+    pw.TextAlign align = pw.TextAlign.left,
+  }) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
       child: pw.Text(

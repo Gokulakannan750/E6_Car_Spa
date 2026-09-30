@@ -36,8 +36,8 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
     super.initState();
     final initialAmount = widget.remainingBalance > 0
         ? widget.remainingBalance
-            .toStringAsFixed(2)
-            .replaceAll(RegExp(r'\.00$'), '')
+              .toStringAsFixed(2)
+              .replaceAll(RegExp(r'\.00$'), '')
         : '';
     _amountController = TextEditingController(text: initialAmount);
   }
@@ -166,8 +166,10 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close,
-                        color: AppColors.textSecondary),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -186,14 +188,18 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppColors.error, size: 20),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: AppTextStyles.bodySmall
-                              .copyWith(color: AppColors.error),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
                     ],
@@ -213,8 +219,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _amountController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                 ],
@@ -238,7 +245,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 validator: (value) {
@@ -273,8 +282,11 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                   _buildMethodChip('Cash', Icons.money_rounded),
                   _buildMethodChip('UPI', Icons.qr_code_2_rounded),
                   _buildMethodChip('Card', Icons.credit_card_rounded),
-                  _buildMethodChip('Bank Transfer', Icons.account_balance_rounded,
-                      valueOverride: 'BankTransfer'),
+                  _buildMethodChip(
+                    'Bank Transfer',
+                    Icons.account_balance_rounded,
+                    valueOverride: 'BankTransfer',
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -292,8 +304,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                 controller: _referenceController,
                 decoration: InputDecoration(
                   hintText: 'e.g. UPI Ref, Cheque No, Auth Code',
-                  hintStyle: AppTextStyles.bodyMedium
-                      .copyWith(color: AppColors.textSecondary.withAlpha(150)),
+                  hintStyle: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary.withAlpha(150),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -301,7 +314,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -321,8 +336,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   hintText: 'Add remarks regarding this payment...',
-                  hintStyle: AppTextStyles.bodyMedium
-                      .copyWith(color: AppColors.textSecondary.withAlpha(150)),
+                  hintStyle: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textSecondary.withAlpha(150),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(color: AppColors.border),
@@ -330,7 +346,9 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5),
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -349,8 +367,11 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
     );
   }
 
-  Widget _buildMethodChip(String label, IconData icon,
-      {String? valueOverride}) {
+  Widget _buildMethodChip(
+    String label,
+    IconData icon, {
+    String? valueOverride,
+  }) {
     final value = valueOverride ?? label;
     final isSelected = _paymentMethod == value;
 
@@ -377,9 +398,7 @@ class _RecordPaymentModalSheetState extends State<RecordPaymentModalSheet> {
       side: BorderSide(
         color: isSelected ? AppColors.primary : AppColors.border,
       ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }

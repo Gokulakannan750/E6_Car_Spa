@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
+import '../../../../shared/widgets/app_shell.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
@@ -46,25 +47,23 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(customerListProvider);
     final notifier = ref.read(customerListProvider.notifier);
+    final inBillingSuite = BillingSuiteScope.maybeOf(context);
 
     final scaffold = Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          key: const Key('customers_back_button'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to Dashboard',
-          onPressed: () => context.go(AppRoutes.dashboard),
-        ),
-        title: Text(
-          'Customers',
-          style: AppTextStyles.appBarTitle,
-        ),
-        centerTitle: false,
-        actions: const [
-          AppLogoutAction(),
-        ],
-      ),
+      appBar: inBillingSuite
+          ? null
+          : AppBar(
+              leading: IconButton(
+                key: const Key('customers_back_button'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to Dashboard',
+                onPressed: () => context.go(AppRoutes.dashboard),
+              ),
+              title: Text('Customers', style: AppTextStyles.appBarTitle),
+              centerTitle: false,
+              actions: const [AppLogoutAction()],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => AddCustomerDialog.show(context),
         backgroundColor: AppColors.primary,
@@ -101,7 +100,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
                       children: [
                         _buildStatusChip(
                           'All',
-                          state.paymentStatus == null || state.paymentStatus!.isEmpty,
+                          state.paymentStatus == null ||
+                              state.paymentStatus!.isEmpty,
                           () => notifier.filterByPaymentStatus(null),
                         ),
                         const SizedBox(width: 6),
@@ -114,7 +114,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
                         _buildStatusChip(
                           'Payment Pending',
                           state.paymentStatus == 'Payment Pending',
-                          () => notifier.filterByPaymentStatus('Payment Pending'),
+                          () =>
+                              notifier.filterByPaymentStatus('Payment Pending'),
                         ),
                         const SizedBox(width: 6),
                         _buildStatusChip(
@@ -138,9 +139,10 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
                       Text(
                         state.searchQuery.isNotEmpty
                             ? 'Search results for "${state.searchQuery}"'
-                            : (state.paymentStatus != null && state.paymentStatus!.isNotEmpty
-                                ? '${state.paymentStatus} Customers'
-                                : 'All Customers'),
+                            : (state.paymentStatus != null &&
+                                      state.paymentStatus!.isNotEmpty
+                                  ? '${state.paymentStatus} Customers'
+                                  : 'All Customers'),
                         style: AppTextStyles.labelMedium,
                       ),
                       Text(
@@ -157,13 +159,13 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
             ),
 
             // Customer List content
-            Expanded(
-              child: _buildBody(state, notifier),
-            ),
+            Expanded(child: _buildBody(state, notifier)),
           ],
         ),
       ),
     );
+
+    if (inBillingSuite) return scaffold;
 
     return PopScope(
       canPop: false,
@@ -217,8 +219,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen>
         message: state.searchQuery.isNotEmpty
             ? 'No customer records matching "${state.searchQuery}".'
             : (state.paymentStatus != null && state.paymentStatus!.isNotEmpty
-                ? 'No customers with payment status "${state.paymentStatus}".'
-                : 'Customers are automatically registered when creating a job card.'),
+                  ? 'No customers with payment status "${state.paymentStatus}".'
+                  : 'Customers are automatically registered when creating a job card.'),
         icon: Icons.people_outline,
       );
     }
@@ -242,10 +244,7 @@ class _CustomerCard extends StatelessWidget {
   final Customer customer;
   final VoidCallback onTap;
 
-  const _CustomerCard({
-    required this.customer,
-    required this.onTap,
-  });
+  const _CustomerCard({required this.customer, required this.onTap});
 
   String _formatOutstanding(double amount) {
     if (amount <= 0) return '₹0';
@@ -301,7 +300,11 @@ class _CustomerCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.phone_outlined, size: 14, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           customer.phoneNumber,
@@ -311,11 +314,16 @@ class _CustomerCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    if (customer.email != null && customer.email!.isNotEmpty) ...[
+                    if (customer.email != null &&
+                        customer.email!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(Icons.email_outlined, size: 14, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.email_outlined,
+                            size: 14,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -352,7 +360,10 @@ class _CustomerCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceAlt,
                           borderRadius: BorderRadius.circular(8),
@@ -369,7 +380,10 @@ class _CustomerCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceAlt,
                           borderRadius: BorderRadius.circular(8),
@@ -389,7 +403,11 @@ class _CustomerCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, color: AppColors.textTertiary, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textTertiary,
+                size: 20,
+              ),
             ],
           ),
         ),

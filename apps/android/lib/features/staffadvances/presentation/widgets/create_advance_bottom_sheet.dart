@@ -20,7 +20,8 @@ class CreateAdvanceBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<CreateAdvanceBottomSheet> createState() => _CreateAdvanceBottomSheetState();
+  State<CreateAdvanceBottomSheet> createState() =>
+      _CreateAdvanceBottomSheetState();
 }
 
 class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
@@ -137,7 +138,9 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
       amount: rawAmount,
       advanceDate: _selectedDate,
       reason: reason,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
     );
 
     final error = await widget.onSubmit(request);
@@ -155,7 +158,20 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -201,253 +217,309 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
                     if (_errorMessage != null)
                       Container(
                         margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withAlpha(20),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withAlpha(80)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: AppColors.error, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withAlpha(20),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.error.withAlpha(80),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Field 1: Staff Selector
-              Text(
-                'Staff Member *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              if (widget.activeStaff.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.qualityCheckBg,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.qualityCheckBorder),
-                  ),
-                  child: Text(
-                    'No active staff found. Please add a staff member first.',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
-                  ),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedStaffId,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                    ),
-                  ),
-                  items: widget.activeStaff.map((staff) {
-                    return DropdownMenuItem<String>(
-                      value: staff.id,
-                      child: Text(
-                        '${staff.name}${staff.role != null && staff.role!.isNotEmpty ? ' (${staff.role})' : ''}',
-                        style: AppTextStyles.bodyMedium,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: _isLoading
-                      ? null
-                      : (val) {
-                          setState(() {
-                            _selectedStaffId = val;
-                          });
-                        },
-                ),
-              const SizedBox(height: 14),
-
-              // Field 2: Amount
-              Text(
-                'Advance Amount (₹) *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _amountController,
-                hintText: 'e.g. 3000.00',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 18, color: AppColors.textSecondary),
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 14),
-
-              // Field 3: Date Picker
-              Text(
-                'Advance Date *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              InkWell(
-                onTap: _isLoading ? null : _pickDate,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _formatDate(_selectedDate),
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.primary),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
 
-              // Field 4: Reason Preset
-              Text(
-                'Reason *',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: _reasonPresets.map((preset) {
-                  final isSelected = (_isCustomReason && preset == 'Other (Custom)') ||
-                      (!_isCustomReason && _selectedReasonPreset == preset);
-                  return ChoiceChip(
-                    label: Text(preset),
-                    selected: isSelected,
-                    selectedColor: AppColors.primary.withAlpha(30),
-                    backgroundColor: AppColors.surface,
-                    labelStyle: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                    ),
-                    side: BorderSide(
-                      color: isSelected ? AppColors.primary : AppColors.border,
-                    ),
-                    onSelected: _isLoading
-                        ? null
-                        : (selected) {
-                            if (selected) {
-                              setState(() {
-                                if (preset == 'Other (Custom)') {
-                                  _isCustomReason = true;
-                                } else {
-                                  _isCustomReason = false;
-                                  _selectedReasonPreset = preset;
-                                }
-                              });
-                            }
-                          },
-                  );
-                }).toList(),
-              ),
-
-              if (_isCustomReason) ...[
-                const SizedBox(height: 8),
-                AppTextField(
-                  controller: _customReasonController,
-                  hintText: 'Enter custom reason...',
-                  isEnabled: !_isLoading,
-                ),
-              ],
-              const SizedBox(height: 14),
-
-              // Field 5: Notes
-              Text(
-                'Notes (Optional)',
-                style: AppTextStyles.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              AppTextField(
-                controller: _notesController,
-                hintText: 'Additional notes or context...',
-                maxLines: 2,
-                isEnabled: !_isLoading,
-              ),
-              const SizedBox(height: 24),
-
-              // Submit & Cancel Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('modal_cancel_button'),
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context).pop();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.borderDark),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    // Field 1: Staff Selector
+                    Text(
+                      'Staff Member *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppButton(
-                      label: 'Disburse Advance',
-                      icon: Icons.check_rounded,
-                      isLoading: _isLoading,
-                      onPressed: widget.activeStaff.isEmpty ? null : _handleSubmit,
+                    const SizedBox(height: 6),
+                    if (widget.activeStaff.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.qualityCheckBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.qualityCheckBorder,
+                          ),
+                        ),
+                        child: Text(
+                          'No active staff found. Please add a staff member first.',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedStaffId,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        items: widget.activeStaff.map((staff) {
+                          return DropdownMenuItem<String>(
+                            value: staff.id,
+                            child: Text(
+                              '${staff.name}${staff.role != null && staff.role!.isNotEmpty ? ' (${staff.role})' : ''}',
+                              style: AppTextStyles.bodyMedium,
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: _isLoading
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  _selectedStaffId = val;
+                                });
+                              },
+                      ),
+                    const SizedBox(height: 14),
+
+                    // Field 2: Amount
+                    Text(
+                      'Advance Amount (₹) *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _amountController,
+                      hintText: 'e.g. 3000.00',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.currency_rupee_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Field 3: Date Picker
+                    Text(
+                      'Advance Date *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    InkWell(
+                      onTap: _isLoading ? null : _pickDate,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDate(_selectedDate),
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Field 4: Reason Preset
+                    Text(
+                      'Reason *',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: _reasonPresets.map((preset) {
+                        final isSelected =
+                            (_isCustomReason && preset == 'Other (Custom)') ||
+                            (!_isCustomReason &&
+                                _selectedReasonPreset == preset);
+                        return ChoiceChip(
+                          label: Text(preset),
+                          selected: isSelected,
+                          selectedColor: AppColors.primary.withAlpha(30),
+                          backgroundColor: AppColors.surface,
+                          labelStyle: TextStyle(
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.textPrimary,
+                          ),
+                          side: BorderSide(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
+                          ),
+                          onSelected: _isLoading
+                              ? null
+                              : (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      if (preset == 'Other (Custom)') {
+                                        _isCustomReason = true;
+                                      } else {
+                                        _isCustomReason = false;
+                                        _selectedReasonPreset = preset;
+                                      }
+                                    });
+                                  }
+                                },
+                        );
+                      }).toList(),
+                    ),
+
+                    if (_isCustomReason) ...[
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        controller: _customReasonController,
+                        hintText: 'Enter custom reason...',
+                        isEnabled: !_isLoading,
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+
+                    // Field 5: Notes
+                    Text(
+                      'Notes (Optional)',
+                      style: AppTextStyles.labelMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    AppTextField(
+                      controller: _notesController,
+                      hintText: 'Additional notes or context...',
+                      maxLines: 2,
+                      isEnabled: !_isLoading,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Submit & Cancel Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: const Key('modal_cancel_button'),
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            label: 'Disburse Advance',
+                            icon: Icons.check_rounded,
+                            isLoading: _isLoading,
+                            onPressed: widget.activeStaff.isEmpty
+                                ? null
+                                : _handleSubmit,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

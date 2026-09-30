@@ -28,8 +28,14 @@ class SalaryStaffCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
-    final canManageSalary = user?.isOwner == true || (user?.permissions.contains('staff_salary.manage') ?? false) || (user?.permissions.contains('staff.manage') ?? false);
-    final canSettleSalary = user?.isOwner == true || (user?.permissions.contains('staff_salary.settle') ?? false) || (user?.permissions.contains('staff.manage') ?? false);
+    final canManageSalary =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff_salary.manage') ?? false) ||
+        (user?.permissions.contains('staff.manage') ?? false);
+    final canSettleSalary =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff_salary.settle') ?? false) ||
+        (user?.permissions.contains('staff.manage') ?? false);
 
     final isSettled = item.isSettled;
     final isReady = item.isReady;
@@ -57,8 +63,8 @@ class SalaryStaffCard extends ConsumerWidget {
           color: isSettled
               ? AppColors.success.withAlpha(80)
               : isReady
-                  ? AppColors.primary.withAlpha(80)
-                  : AppColors.border,
+              ? AppColors.primary.withAlpha(80)
+              : AppColors.border,
         ),
       ),
       color: Colors.white,
@@ -74,8 +80,13 @@ class SalaryStaffCard extends ConsumerWidget {
                   radius: 18,
                   backgroundColor: AppColors.accentPill,
                   child: Text(
-                    item.staffName.isNotEmpty ? item.staffName.substring(0, 1).toUpperCase() : 'S',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                    item.staffName.isNotEmpty
+                        ? item.staffName.substring(0, 1).toUpperCase()
+                        : 'S',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -85,19 +96,21 @@ class SalaryStaffCard extends ConsumerWidget {
                     children: [
                       Text(
                         item.staffName,
-                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         '${item.staffRole ?? 'Staff'} • ${item.staffPhoneNumber}',
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                StatusBadge(
-                  label: statusLabel,
-                  type: statusType,
-                ),
+                StatusBadge(label: statusLabel, type: statusType),
               ],
             ),
             const SizedBox(height: 12),
@@ -116,11 +129,23 @@ class SalaryStaffCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Entered Salary', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                        const Text(
+                          'Entered Salary',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
-                          item.enteredSalary != null ? '₹${item.enteredSalary!.toStringAsFixed(0)}' : '—',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textPrimary),
+                          item.enteredSalary != null
+                              ? '₹${item.enteredSalary!.toStringAsFixed(0)}'
+                              : '—',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -131,11 +156,21 @@ class SalaryStaffCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Applicable Advance', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                        const Text(
+                          'Applicable Advance',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
                           '₹${item.outstandingAdvance.toStringAsFixed(0)}',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.warningDark),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: AppColors.warningDark,
+                          ),
                         ),
                       ],
                     ),
@@ -146,14 +181,24 @@ class SalaryStaffCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('Net Final Payout', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                        const Text(
+                          'Net Final Payout',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                         const SizedBox(height: 2),
                         Text(
-                          item.finalSalary != null ? '₹${item.finalSalary!.toStringAsFixed(0)}' : '—',
+                          item.finalSalary != null
+                              ? '₹${item.finalSalary!.toStringAsFixed(0)}'
+                              : '—',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
-                            color: item.finalSalary != null ? AppColors.success : AppColors.textSecondary,
+                            color: item.finalSalary != null
+                                ? AppColors.success
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ],
@@ -173,14 +218,28 @@ class SalaryStaffCard extends ConsumerWidget {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      icon: const Icon(Icons.edit_outlined, size: 15, color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: 15,
+                        color: AppColors.primary,
+                      ),
                       label: Text(
-                        item.enteredSalary != null ? 'Edit Salary' : 'Enter Salary',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        item.enteredSalary != null
+                            ? 'Edit Salary'
+                            : 'Enter Salary',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
                       ),
-                      onPressed: onEnterSalary ?? () => EnterSalaryBottomSheet.show(context, item),
+                      onPressed:
+                          onEnterSalary ??
+                          () => EnterSalaryBottomSheet.show(context, item),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -192,19 +251,42 @@ class SalaryStaffCard extends ConsumerWidget {
                         backgroundColor: AppColors.success,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      icon: const Icon(Icons.check_circle_outline_rounded, size: 15),
-                      label: const Text('Settle', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      onPressed: onSettleSalary ?? () => SettleSalaryBottomSheet.show(context, item),
+                      icon: const Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 15,
+                      ),
+                      label: const Text(
+                        'Settle',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed:
+                          onSettleSalary ??
+                          () => SettleSalaryBottomSheet.show(context, item),
                     ),
                   ),
                   const SizedBox(width: 8),
                 ],
                 IconButton(
-                  icon: const Icon(Icons.history_rounded, size: 20, color: AppColors.textSecondary),
+                  icon: const Icon(
+                    Icons.history_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
                   tooltip: 'Settlement History',
-                  onPressed: onSettlementHistory ?? () => SettlementHistoryBottomSheet.show(context, item.staffId, item.staffName),
+                  onPressed:
+                      onSettlementHistory ??
+                      () => SettlementHistoryBottomSheet.show(
+                        context,
+                        item.staffId,
+                        item.staffName,
+                      ),
                 ),
               ],
             ),

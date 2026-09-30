@@ -27,30 +27,48 @@ void main() {
     });
 
     test('alphabetic / special characters rejected', () {
-      final errorAlpha = PhoneValidator.validate('98765abcde', isRequired: true);
+      final errorAlpha = PhoneValidator.validate(
+        '98765abcde',
+        isRequired: true,
+      );
       expect(errorAlpha, isNotNull);
       expect(errorAlpha, contains('must be exactly 10 digits'));
 
-      final errorSymbols = PhoneValidator.validate('+9198765432', isRequired: true);
+      final errorSymbols = PhoneValidator.validate(
+        '+9198765432',
+        isRequired: true,
+      );
       expect(errorSymbols, isNotNull);
       expect(errorSymbols, contains('must be exactly 10 digits'));
     });
 
     test('empty string handled based on isRequired', () {
-      expect(PhoneValidator.validate('', isRequired: true), contains('is required'));
-      expect(PhoneValidator.validate(null, isRequired: true), contains('is required'));
-      expect(PhoneValidator.validate('   ', isRequired: true), contains('is required'));
+      expect(
+        PhoneValidator.validate('', isRequired: true),
+        contains('is required'),
+      );
+      expect(
+        PhoneValidator.validate(null, isRequired: true),
+        contains('is required'),
+      );
+      expect(
+        PhoneValidator.validate('   ', isRequired: true),
+        contains('is required'),
+      );
 
       expect(PhoneValidator.validate('', isRequired: false), isNull);
       expect(PhoneValidator.validate(null, isRequired: false), isNull);
       expect(PhoneValidator.validate('   ', isRequired: false), isNull);
     });
 
-    test('PhoneValidator.clean strips non-digits and truncates to 10 chars', () {
-      expect(PhoneValidator.clean('+91 98765-43210'), '9198765432');
-      expect(PhoneValidator.clean('987654321012345'), '9876543210');
-      expect(PhoneValidator.clean('abc'), '');
-      expect(PhoneValidator.clean(null), '');
-    });
+    test(
+      'PhoneValidator.clean strips non-digits and truncates to 10 chars',
+      () {
+        expect(PhoneValidator.clean('+91 98765-43210'), '9198765432');
+        expect(PhoneValidator.clean('987654321012345'), '9876543210');
+        expect(PhoneValidator.clean('abc'), '');
+        expect(PhoneValidator.clean(null), '');
+      },
+    );
   });
 }

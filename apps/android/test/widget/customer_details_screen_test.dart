@@ -50,7 +50,10 @@ class _FakeCustomerRepo extends CustomerRepository {
   }
 
   @override
-  Future<Customer> updateCustomer(String id, UpdateCustomerRequest request) async {
+  Future<Customer> updateCustomer(
+    String id,
+    UpdateCustomerRequest request,
+  ) async {
     updateCustomerCallCount++;
     lastUpdateRequest = request;
     if (errorToThrow != null) throw errorToThrow!;
@@ -100,7 +103,9 @@ void main() {
       createdAt: DateTime(2026, 1, 1),
     );
 
-    testWidgets('renders loading state while customer details are fetching', (tester) async {
+    testWidgets('renders loading state while customer details are fetching', (
+      tester,
+    ) async {
       final fakeCustRepo = _FakeCustomerRepo();
       final fakeVehRepo = _FakeVehicleRepo();
 
@@ -129,50 +134,57 @@ void main() {
       expect(find.text('Loading customer profile...'), findsOneWidget);
     });
 
-    testWidgets('renders error state when customer lookup fails and allows retry', (tester) async {
-      final fakeCustRepo = _FakeCustomerRepo();
-      final fakeVehRepo = _FakeVehicleRepo();
-      fakeCustRepo.errorToThrow = const ServerException(message: 'Database connection failed');
+    testWidgets(
+      'renders error state when customer lookup fails and allows retry',
+      (tester) async {
+        final fakeCustRepo = _FakeCustomerRepo();
+        final fakeVehRepo = _FakeVehicleRepo();
+        fakeCustRepo.errorToThrow = const ServerException(
+          message: 'Database connection failed',
+        );
 
-      late CustomerDetailsNotifier notifier;
+        late CustomerDetailsNotifier notifier;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              notifier = CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                const CustomerDetailsState(
-                  isLoading: false,
-                  errorMessage: 'Database connection failed',
-                ),
-                false,
-              );
-              return notifier;
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                notifier = CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  const CustomerDetailsState(
+                    isLoading: false,
+                    errorMessage: 'Database connection failed',
+                  ),
+                  false,
+                );
+                return notifier;
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(find.byType(AppErrorState), findsOneWidget);
-      expect(find.text('Database connection failed'), findsOneWidget);
-      expect(find.text('Try Again'), findsOneWidget);
+        expect(find.byType(AppErrorState), findsOneWidget);
+        expect(find.text('Database connection failed'), findsOneWidget);
+        expect(find.text('Try Again'), findsOneWidget);
 
-      // Tap retry
-      await tester.tap(find.text('Try Again'));
-      await tester.pump();
+        // Tap retry
+        await tester.tap(find.text('Try Again'));
+        await tester.pump();
 
-      expect(fakeCustRepo.getCustomerByIdCallCount, 1);
-    });
+        expect(fakeCustRepo.getCustomerByIdCallCount, 1);
+      },
+    );
 
-    testWidgets('renders customer profile information accurately', (tester) async {
+    testWidgets('renders customer profile information accurately', (
+      tester,
+    ) async {
       final fakeCustRepo = _FakeCustomerRepo();
       fakeCustRepo.mockCustomer = sampleCustomer;
       final fakeVehRepo = _FakeVehicleRepo();
@@ -209,7 +221,9 @@ void main() {
       expect(find.text('RK'), findsOneWidget); // Customer initials
     });
 
-    testWidgets('renders associated vehicles list and Add Vehicle action', (tester) async {
+    testWidgets('renders associated vehicles list and Add Vehicle action', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -249,68 +263,70 @@ void main() {
       expect(find.widgetWithText(TextButton, 'Add Vehicle'), findsOneWidget);
     });
 
-    testWidgets('New Job Card Floating Action Button is enabled and triggers navigation', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'New Job Card Floating Action Button is enabled and triggers navigation',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
-      fakeVehRepo.mockVehicles = [sampleVehicle];
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+        fakeVehRepo.mockVehicles = [sampleVehicle];
 
-      String? navigatedRoute;
+        String? navigatedRoute;
 
-      final router = GoRouter(
-        initialLocation: '/customers/$testCustomerId',
-        routes: [
-          GoRoute(
-            path: '/customers/$testCustomerId',
-            builder: (context, state) => const CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-          GoRoute(
-            path: '/job-cards/new',
-            builder: (context, state) {
-              navigatedRoute = '/job-cards/new';
-              return const Scaffold(body: Text('New Job Card Page'));
-            },
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
+        final router = GoRouter(
+          initialLocation: '/customers/$testCustomerId',
+          routes: [
+            GoRoute(
+              path: '/customers/$testCustomerId',
+              builder: (context, state) =>
+                  const CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+            GoRoute(
+              path: '/job-cards/new',
+              builder: (context, state) {
+                navigatedRoute = '/job-cards/new';
+                return const Scaffold(body: Text('New Job Card Page'));
+              },
+            ),
           ],
-          child: MaterialApp.router(
-            routerConfig: router,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: MaterialApp.router(routerConfig: router),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('New Job Card'), findsOneWidget);
+        expect(find.text('New Job Card'), findsOneWidget);
 
-      await tester.tap(find.text('New Job Card'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('New Job Card'));
+        await tester.pumpAndSettle();
 
-      expect(navigatedRoute, '/job-cards/new');
-      expect(find.text('New Job Card Page'), findsOneWidget);
-    });
+        expect(navigatedRoute, '/job-cards/new');
+        expect(find.text('New Job Card Page'), findsOneWidget);
+      },
+    );
 
     testWidgets('AppBar back button navigates to /customers', (tester) async {
       tester.view.physicalSize = const Size(800, 1400);
@@ -328,7 +344,8 @@ void main() {
         routes: [
           GoRoute(
             path: '/customers/$testCustomerId',
-            builder: (context, state) => const CustomerDetailsScreen(customerId: testCustomerId),
+            builder: (context, state) =>
+                const CustomerDetailsScreen(customerId: testCustomerId),
           ),
           GoRoute(
             path: '/customers',
@@ -359,9 +376,7 @@ void main() {
               );
             }),
           ],
-          child: MaterialApp.router(
-            routerConfig: router,
-          ),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
 
@@ -372,405 +387,442 @@ void main() {
       expect(find.text('Customers Directory'), findsOneWidget);
     });
 
-    testWidgets('Customer Details displays Edit Details and New Job Card with pre-populated edit form', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Customer Details displays Edit Details and New Job Card with pre-populated edit form',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Verify "Edit Details" and "New Job Card" are both displayed
+        expect(find.text('Edit Details'), findsOneWidget);
+        expect(find.text('New Job Card'), findsOneWidget);
+        expect(find.byKey(const Key('edit_details_action')), findsOneWidget);
+
+        // Tap Edit Details bottom button
+        await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
+        await tester.pumpAndSettle();
+
+        // Verify Edit Details form is opened and pre-populated
+        expect(find.text('Update customer contact profile'), findsOneWidget);
+        expect(
+          find.widgetWithText(TextFormField, 'Ramesh Kumar'),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(TextFormField, '9876543210'),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(TextFormField, 'ramesh@example.com'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Editing customer details and clicking Save updates customer and closes dialog',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Open Edit Dialog
+        await tester.tap(find.byKey(const Key('edit_details_action')));
+        await tester.pumpAndSettle();
+
+        // Enter updated details
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.at(0), 'Ramesh Kumar Updated');
+        await tester.enterText(textFields.at(1), '9123456780');
+        await tester.enterText(textFields.at(2), 'updated@example.com');
+        await tester.enterText(textFields.at(3), '123 New Street, Chennai');
+
+        // Click Save Changes
+        await tester.tap(find.byKey(const Key('save_customer_button')));
+        await tester.pumpAndSettle();
+
+        // Verify update was called on repo
+        expect(fakeCustRepo.updateCustomerCallCount, 1);
+        expect(fakeCustRepo.lastUpdateRequest?.name, 'Ramesh Kumar Updated');
+        expect(fakeCustRepo.lastUpdateRequest?.phoneNumber, '9123456780');
+        expect(fakeCustRepo.lastUpdateRequest?.email, 'updated@example.com');
+        expect(
+          fakeCustRepo.lastUpdateRequest?.address,
+          '123 New Street, Chennai',
+        );
+
+        // Verify dialog closed and updated name is visible on screen
+        expect(find.text('Update customer contact profile'), findsNothing);
+        expect(find.text('Ramesh Kumar Updated'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Submitting form via Enter key executes same save handler and closes dialog',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Open Edit Dialog
+        await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
+        await tester.pumpAndSettle();
+
+        // Modify field and submit with Enter/Done action on final field (Address)
+        final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
+        await tester.enterText(nameField, 'Ramesh By Enter');
+        final addressField = find.byType(TextFormField).last;
+        await tester.tap(addressField);
+        await tester.pumpAndSettle();
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(fakeCustRepo.updateCustomerCallCount, 1);
+        expect(fakeCustRepo.lastUpdateRequest?.name, 'Ramesh By Enter');
+        expect(find.text('Update customer contact profile'), findsNothing);
+        expect(find.text('Ramesh By Enter'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Failed save keeps dialog open, preserves entered values, and displays error',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Open Edit Dialog
+        await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
+        await tester.pumpAndSettle();
+
+        // Set repo to fail
+        fakeCustRepo.errorToThrow = const ValidationException(
+          message: 'Customer name already exists.',
+        );
+        final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
+        await tester.enterText(nameField, 'Ramesh Duplicate');
+
+        await tester.tap(find.byKey(const Key('save_customer_button')));
+        await tester.pumpAndSettle();
+
+        // Dialog is STILL open
+        expect(find.text('Update customer contact profile'), findsOneWidget);
+        // Friendly error shown
+        expect(find.text('Customer name already exists.'), findsOneWidget);
+        // Entered value preserved
+        expect(
+          find.widgetWithText(TextFormField, 'Ramesh Duplicate'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'Respects permissions: Edit Details is hidden when user lacks customers.edit',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+
+        const staffWithoutEdit = AuthUser(
+          id: 'u-1',
+          fullName: 'Staff Viewer',
+          username: 'staff_viewer',
+          role: 'Staff',
+          isOwner: false,
+          permissions: ['customers.view'], // no customers.edit
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentUserProvider.overrideWithValue(staffWithoutEdit),
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Verify Edit Details is NOT shown anywhere
+        expect(find.text('Edit Details'), findsNothing);
+        expect(find.byKey(const Key('edit_details_action')), findsNothing);
+        expect(
+          find.byKey(const Key('edit_details_bottom_button')),
+          findsNothing,
+        );
+
+        // New Job Card remains accessible
+        expect(find.text('New Job Card'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Customer Details displays recent activity with payment badges, financial breakdown, filters, and total outstanding card',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final fakeCustRepo = _FakeCustomerRepo();
+        fakeCustRepo.mockCustomer = sampleCustomer;
+        final fakeVehRepo = _FakeVehicleRepo();
+
+        final historyResponse = CustomerHistoryResponse(
+          customerId: testCustomerId,
+          customerName: 'Ramesh Kumar',
+          phoneNumber: '9876543210',
+          totalJobCards: 2,
+          totalVehicles: 1,
+          totalOutstandingAmount: 2852.9,
+          totalPaidAmount: 7085.9,
+          totalInvoicedAmount: 9938.8,
+          jobCards: [
+            CustomerJobCardHistoryItem(
+              jobCardId: 'jc-1',
+              jobCardNumber: 'JC-2026-000028',
+              vehicleNumber: 'TN12A1234',
+              status: 'Invoiced',
+              createdAt: DateTime(2026, 9, 21),
+              totalAmount: 7085.9,
+              invoiceId: 'inv-1',
+              invoiceNumber: 'INV-2026-000028',
+              invoiceStatus: 'Paid',
+              invoiceTotal: 7085.9,
+              paidAmount: 7085.9,
+              outstandingAmount: 0.0,
+              paymentStatus: 'Paid',
+            ),
+            CustomerJobCardHistoryItem(
+              jobCardId: 'jc-2',
+              jobCardNumber: 'JC-2026-000015',
+              vehicleNumber: 'TN01A0004',
+              status: 'Invoiced',
+              createdAt: DateTime(2026, 9, 20),
+              totalAmount: 7852.9,
+              invoiceId: 'inv-2',
+              invoiceNumber: 'INV-2026-000015',
+              invoiceStatus: 'PartiallyPaid',
+              invoiceTotal: 7852.9,
+              paidAmount: 5000.0,
+              outstandingAmount: 2852.9,
+              paymentStatus: 'Pending',
+            ),
           ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              customerRepositoryProvider.overrideWithValue(fakeCustRepo),
+              vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
+              customerDetailsProvider(testCustomerId).overrideWith((ref) {
+                return CustomerDetailsNotifier(
+                  testCustomerId,
+                  fakeCustRepo,
+                  fakeVehRepo,
+                  CustomerDetailsState(
+                    isLoading: false,
+                    customer: sampleCustomer,
+                    vehicles: [sampleVehicle],
+                    history: historyResponse,
+                  ),
+                  false,
+                );
+              }),
+            ],
+            child: const MaterialApp(
+              home: CustomerDetailsScreen(customerId: testCustomerId),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // Verify "Edit Details" and "New Job Card" are both displayed
-      expect(find.text('Edit Details'), findsOneWidget);
-      expect(find.text('New Job Card'), findsOneWidget);
-      expect(find.byKey(const Key('edit_details_action')), findsOneWidget);
+        // Verify Job Cards & Badges
+        expect(find.text('JC-2026-000028'), findsOneWidget);
+        expect(find.text('JC-2026-000015'), findsOneWidget);
+        expect(find.text('PAID'), findsOneWidget);
+        expect(find.text('PARTIALLY PAID'), findsOneWidget);
 
-      // Tap Edit Details bottom button
-      await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
-      await tester.pumpAndSettle();
+        // Verify breakdown text
+        expect(find.text('Paid: ₹5000.00 · Pending: ₹2852.90'), findsOneWidget);
 
-      // Verify Edit Details form is opened and pre-populated
-      expect(find.text('Update customer contact profile'), findsOneWidget);
-      expect(find.widgetWithText(TextFormField, 'Ramesh Kumar'), findsOneWidget);
-      expect(find.widgetWithText(TextFormField, '9876543210'), findsOneWidget);
-      expect(find.widgetWithText(TextFormField, 'ramesh@example.com'), findsOneWidget);
-    });
+        // Verify Payment Summary Card
+        expect(find.text('Payment Summary'), findsOneWidget);
+        expect(find.text('Total Invoiced'), findsOneWidget);
+        expect(find.text('Total Paid'), findsOneWidget);
 
-    testWidgets('Editing customer details and clicking Save updates customer and closes dialog', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+        // Verify Outstanding Amount Card
+        expect(find.text('Outstanding Amount'), findsOneWidget);
+        expect(find.text('₹2852.90'), findsWidgets);
+        expect(find.text('Pending Payment'), findsOneWidget);
 
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
+        // Verify filter chips
+        expect(find.text('All (2)'), findsOneWidget);
+        expect(find.text('Paid (1)'), findsOneWidget);
+        expect(find.text('Partially Paid (1)'), findsOneWidget);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-        ),
-      );
+        // Tap Paid filter chip
+        await tester.tap(find.text('Paid (1)'));
+        await tester.pumpAndSettle();
 
-      await tester.pumpAndSettle();
+        expect(find.text('JC-2026-000028'), findsOneWidget);
+        expect(find.text('JC-2026-000015'), findsNothing);
 
-      // Open Edit Dialog
-      await tester.tap(find.byKey(const Key('edit_details_action')));
-      await tester.pumpAndSettle();
+        // Tap Partially Paid filter chip
+        await tester.tap(find.text('Partially Paid (1)'));
+        await tester.pumpAndSettle();
 
-      // Enter updated details
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), 'Ramesh Kumar Updated');
-      await tester.enterText(textFields.at(1), '9123456780');
-      await tester.enterText(textFields.at(2), 'updated@example.com');
-      await tester.enterText(textFields.at(3), '123 New Street, Chennai');
-
-      // Click Save Changes
-      await tester.tap(find.byKey(const Key('save_customer_button')));
-      await tester.pumpAndSettle();
-
-      // Verify update was called on repo
-      expect(fakeCustRepo.updateCustomerCallCount, 1);
-      expect(fakeCustRepo.lastUpdateRequest?.name, 'Ramesh Kumar Updated');
-      expect(fakeCustRepo.lastUpdateRequest?.phoneNumber, '9123456780');
-      expect(fakeCustRepo.lastUpdateRequest?.email, 'updated@example.com');
-      expect(fakeCustRepo.lastUpdateRequest?.address, '123 New Street, Chennai');
-
-      // Verify dialog closed and updated name is visible on screen
-      expect(find.text('Update customer contact profile'), findsNothing);
-      expect(find.text('Ramesh Kumar Updated'), findsWidgets);
-    });
-
-    testWidgets('Submitting form via Enter key executes same save handler and closes dialog', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Open Edit Dialog
-      await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
-      await tester.pumpAndSettle();
-
-      // Modify field and submit with Enter/Done action on final field (Address)
-      final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
-      await tester.enterText(nameField, 'Ramesh By Enter');
-      final addressField = find.byType(TextFormField).last;
-      await tester.tap(addressField);
-      await tester.pumpAndSettle();
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-
-      expect(fakeCustRepo.updateCustomerCallCount, 1);
-      expect(fakeCustRepo.lastUpdateRequest?.name, 'Ramesh By Enter');
-      expect(find.text('Update customer contact profile'), findsNothing);
-      expect(find.text('Ramesh By Enter'), findsWidgets);
-    });
-
-    testWidgets('Failed save keeps dialog open, preserves entered values, and displays error', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Open Edit Dialog
-      await tester.tap(find.byKey(const Key('edit_details_bottom_button')));
-      await tester.pumpAndSettle();
-
-      // Set repo to fail
-      fakeCustRepo.errorToThrow = const ValidationException(message: 'Customer name already exists.');
-      final nameField = find.widgetWithText(TextFormField, 'Ramesh Kumar');
-      await tester.enterText(nameField, 'Ramesh Duplicate');
-
-      await tester.tap(find.byKey(const Key('save_customer_button')));
-      await tester.pumpAndSettle();
-
-      // Dialog is STILL open
-      expect(find.text('Update customer contact profile'), findsOneWidget);
-      // Friendly error shown
-      expect(find.text('Customer name already exists.'), findsOneWidget);
-      // Entered value preserved
-      expect(find.widgetWithText(TextFormField, 'Ramesh Duplicate'), findsOneWidget);
-    });
-
-    testWidgets('Respects permissions: Edit Details is hidden when user lacks customers.edit', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
-
-      const staffWithoutEdit = AuthUser(
-        id: 'u-1',
-        fullName: 'Staff Viewer',
-        username: 'staff_viewer',
-        role: 'Staff',
-        isOwner: false,
-        permissions: ['customers.view'], // no customers.edit
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(staffWithoutEdit),
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                ),
-                false,
-              );
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Verify Edit Details is NOT shown anywhere
-      expect(find.text('Edit Details'), findsNothing);
-      expect(find.byKey(const Key('edit_details_action')), findsNothing);
-      expect(find.byKey(const Key('edit_details_bottom_button')), findsNothing);
-
-      // New Job Card remains accessible
-      expect(find.text('New Job Card'), findsOneWidget);
-    });
-
-    testWidgets('Customer Details displays recent activity with payment badges, financial breakdown, filters, and total outstanding card', (tester) async {
-      tester.view.physicalSize = const Size(800, 1400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final fakeCustRepo = _FakeCustomerRepo();
-      fakeCustRepo.mockCustomer = sampleCustomer;
-      final fakeVehRepo = _FakeVehicleRepo();
-
-      final historyResponse = CustomerHistoryResponse(
-        customerId: testCustomerId,
-        customerName: 'Ramesh Kumar',
-        phoneNumber: '9876543210',
-        totalJobCards: 2,
-        totalVehicles: 1,
-        totalOutstandingAmount: 2852.9,
-        totalPaidAmount: 7085.9,
-        totalInvoicedAmount: 9938.8,
-        jobCards: [
-          CustomerJobCardHistoryItem(
-            jobCardId: 'jc-1',
-            jobCardNumber: 'JC-2026-000028',
-            vehicleNumber: 'TN12A1234',
-            status: 'Invoiced',
-            createdAt: DateTime(2026, 9, 21),
-            totalAmount: 7085.9,
-            invoiceId: 'inv-1',
-            invoiceNumber: 'INV-2026-000028',
-            invoiceStatus: 'Paid',
-            invoiceTotal: 7085.9,
-            paidAmount: 7085.9,
-            outstandingAmount: 0.0,
-            paymentStatus: 'Paid',
-          ),
-          CustomerJobCardHistoryItem(
-            jobCardId: 'jc-2',
-            jobCardNumber: 'JC-2026-000015',
-            vehicleNumber: 'TN01A0004',
-            status: 'Invoiced',
-            createdAt: DateTime(2026, 9, 20),
-            totalAmount: 7852.9,
-            invoiceId: 'inv-2',
-            invoiceNumber: 'INV-2026-000015',
-            invoiceStatus: 'PartiallyPaid',
-            invoiceTotal: 7852.9,
-            paidAmount: 5000.0,
-            outstandingAmount: 2852.9,
-            paymentStatus: 'Pending',
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            customerRepositoryProvider.overrideWithValue(fakeCustRepo),
-            vehicleRepositoryProvider.overrideWithValue(fakeVehRepo),
-            customerDetailsProvider(testCustomerId).overrideWith((ref) {
-              return CustomerDetailsNotifier(
-                testCustomerId,
-                fakeCustRepo,
-                fakeVehRepo,
-                CustomerDetailsState(
-                  isLoading: false,
-                  customer: sampleCustomer,
-                  vehicles: [sampleVehicle],
-                  history: historyResponse,
-                ),
-                false,
-              );
-            }),
-          ],
-          child: const MaterialApp(
-            home: CustomerDetailsScreen(customerId: testCustomerId),
-          ),
-        ),
-      );
-
-      await tester.pumpAndSettle();
-
-      // Verify Job Cards & Badges
-      expect(find.text('JC-2026-000028'), findsOneWidget);
-      expect(find.text('JC-2026-000015'), findsOneWidget);
-      expect(find.text('PAID'), findsOneWidget);
-      expect(find.text('PARTIALLY PAID'), findsOneWidget);
-
-      // Verify breakdown text
-      expect(find.text('Paid: ₹5000.00 · Pending: ₹2852.90'), findsOneWidget);
-
-      // Verify Payment Summary Card
-      expect(find.text('Payment Summary'), findsOneWidget);
-      expect(find.text('Total Invoiced'), findsOneWidget);
-      expect(find.text('Total Paid'), findsOneWidget);
-
-      // Verify Outstanding Amount Card
-      expect(find.text('Outstanding Amount'), findsOneWidget);
-      expect(find.text('₹2852.90'), findsWidgets);
-      expect(find.text('Pending Payment'), findsOneWidget);
-
-      // Verify filter chips
-      expect(find.text('All (2)'), findsOneWidget);
-      expect(find.text('Paid (1)'), findsOneWidget);
-      expect(find.text('Partially Paid (1)'), findsOneWidget);
-
-      // Tap Paid filter chip
-      await tester.tap(find.text('Paid (1)'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('JC-2026-000028'), findsOneWidget);
-      expect(find.text('JC-2026-000015'), findsNothing);
-
-      // Tap Partially Paid filter chip
-      await tester.tap(find.text('Partially Paid (1)'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('JC-2026-000028'), findsNothing);
-      expect(find.text('JC-2026-000015'), findsOneWidget);
-    });
+        expect(find.text('JC-2026-000028'), findsNothing);
+        expect(find.text('JC-2026-000015'), findsOneWidget);
+      },
+    );
   });
 }
-

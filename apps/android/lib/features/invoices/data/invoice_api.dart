@@ -54,10 +54,7 @@ class InvoiceApi {
   }
 
   Future<Invoice> updateInvoice(String id, UpdateInvoiceRequest request) async {
-    final response = await _dio.put(
-      '/invoices/$id',
-      data: request.toJson(),
-    );
+    final response = await _dio.put('/invoices/$id', data: request.toJson());
     return Invoice.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -66,7 +63,10 @@ class InvoiceApi {
     return Invoice.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     final response = await _dio.post(
       '/invoices/$invoiceId/payments',
       data: request.toJson(),
@@ -77,12 +77,18 @@ class InvoiceApi {
   Future<List<PaymentDto>> getPayments(String invoiceId) async {
     final response = await _dio.get('/invoices/$invoiceId/payments');
     final list = response.data as List<dynamic>? ?? [];
-    return list.map((e) => PaymentDto.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => PaymentDto.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     final response = await _dio.get('/invoices/$invoiceId/whatsapp-status');
     final list = response.data as List<dynamic>? ?? [];
-    return list.map((e) => InvoiceWhatsAppStatus.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => InvoiceWhatsAppStatus.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

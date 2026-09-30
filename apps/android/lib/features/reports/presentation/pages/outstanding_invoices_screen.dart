@@ -42,7 +42,9 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               outstandingAsync.when(
-                loading: () => const AppLoadingState(message: 'Loading outstanding invoices...'),
+                loading: () => const AppLoadingState(
+                  message: 'Loading outstanding invoices...',
+                ),
                 error: (error, _) => AppErrorState(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(outstandingInvoicesProvider),
@@ -59,7 +61,9 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: AppColors.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppTheme.radiusLG),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusLG,
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,9 +92,19 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildSummaryItem('Unpaid Invoices', summary.invoiceCount.toString()),
-                                _buildSummaryItem('Total Invoiced', _formatCurrency(summary.totalInvoiceAmount)),
-                                _buildSummaryItem('Total Paid', _formatCurrency(summary.totalPaidAmount), color: AppColors.success),
+                                _buildSummaryItem(
+                                  'Unpaid Invoices',
+                                  summary.invoiceCount.toString(),
+                                ),
+                                _buildSummaryItem(
+                                  'Total Invoiced',
+                                  _formatCurrency(summary.totalInvoiceAmount),
+                                ),
+                                _buildSummaryItem(
+                                  'Total Paid',
+                                  _formatCurrency(summary.totalPaidAmount),
+                                  color: AppColors.success,
+                                ),
                               ],
                             ),
                           ],
@@ -112,7 +126,8 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                       if (items.isEmpty)
                         const AppEmptyState(
                           title: 'Zero outstanding receivables',
-                          message: 'All customer invoices in this date range are fully settled.',
+                          message:
+                              'All customer invoices in this date range are fully settled.',
                           icon: Icons.check_circle_outline,
                         )
                       else
@@ -120,7 +135,8 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: items.length,
-                          separatorBuilder: (context, index) => const SizedBox(height: 10),
+                          separatorBuilder: (context, index) =>
+                              const SizedBox(height: 10),
                           itemBuilder: (context, index) {
                             final inv = items[index];
                             final dateFormat = DateFormat('dd MMM yyyy');
@@ -129,14 +145,17 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMD,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Invoice',
@@ -147,19 +166,30 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                                         ),
                                       ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: inv.ageInDays > 30
-                                              ? AppColors.error.withValues(alpha: 0.1)
-                                              : AppColors.warning.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                                              ? AppColors.error.withValues(
+                                                  alpha: 0.1,
+                                                )
+                                              : AppColors.warning.withValues(
+                                                  alpha: 0.1,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusSM,
+                                          ),
                                         ),
                                         child: Text(
                                           '${inv.ageInDays} days old',
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
-                                            color: inv.ageInDays > 30 ? AppColors.error : AppColors.warning,
+                                            color: inv.ageInDays > 30
+                                                ? AppColors.error
+                                                : AppColors.warning,
                                           ),
                                         ),
                                       ),
@@ -184,47 +214,74 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                                  const Divider(color: AppColors.border, height: 1),
+                                  const Divider(
+                                    color: AppColors.border,
+                                    height: 1,
+                                  ),
                                   const SizedBox(height: 8),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           const Text(
                                             'Total Billed',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textTertiary,
+                                            ),
                                           ),
                                           Text(
                                             _formatCurrency(inv.totalAmount),
-                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ],
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
                                         children: [
                                           const Text(
                                             'Paid',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textTertiary,
+                                            ),
                                           ),
                                           Text(
                                             _formatCurrency(inv.paidAmount),
-                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success),
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.success,
+                                            ),
                                           ),
                                         ],
                                       ),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
                                           const Text(
                                             'Outstanding',
-                                            style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textTertiary,
+                                            ),
                                           ),
                                           Text(
                                             _formatCurrency(inv.balanceAmount),
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.warning),
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.warning,
+                                            ),
                                           ),
                                         ],
                                       ),

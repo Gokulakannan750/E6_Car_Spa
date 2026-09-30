@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
+import '../../../../shared/widgets/app_shell.dart';
 import '../../../../shared/widgets/app_search_field.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
@@ -55,6 +56,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
     final canView = currentUser?.hasPermission('catalogue.view') ?? false;
     final canEdit = currentUser?.hasPermission('catalogue.edit') ?? false;
     final canCreate = currentUser?.hasPermission('catalogue.create') ?? false;
+    final inBillingSuite = BillingSuiteScope.maybeOf(context);
 
     if (!canView) {
       return const AppScreenScaffold(
@@ -79,22 +81,22 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
 
     final scaffold = Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        leading: IconButton(
-          key: const Key('catalogue_back_button'),
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back to Dashboard',
-          onPressed: () => context.go(AppRoutes.dashboard),
-        ),
-        title: Text(
-          'Service Catalogue',
-          style: AppTextStyles.appBarTitle,
-        ),
-        centerTitle: false,
-        actions: const [
-          AppLogoutAction(),
-        ],
-      ),
+      appBar: inBillingSuite
+          ? null
+          : AppBar(
+              leading: IconButton(
+                key: const Key('catalogue_back_button'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to Dashboard',
+                onPressed: () => context.go(AppRoutes.dashboard),
+              ),
+              title: Text(
+                'Service Catalogue',
+                style: AppTextStyles.appBarTitle,
+              ),
+              centerTitle: false,
+              actions: const [AppLogoutAction()],
+            ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(
               key: const Key('add_service_fab'),
@@ -151,8 +153,12 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                             selected: state.selectedCategory == null,
                             onSelected: (_) => notifier.setCategory(null),
                             labelStyle: TextStyle(
-                              color: state.selectedCategory == null ? Colors.white : AppColors.textPrimary,
-                              fontWeight: state.selectedCategory == null ? FontWeight.w600 : FontWeight.w500,
+                              color: state.selectedCategory == null
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontWeight: state.selectedCategory == null
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                               fontSize: 12,
                             ),
                             selectedColor: AppColors.primary,
@@ -161,7 +167,9 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                               side: BorderSide(
-                                color: state.selectedCategory == null ? AppColors.primary : AppColors.border,
+                                color: state.selectedCategory == null
+                                    ? AppColors.primary
+                                    : AppColors.border,
                               ),
                             ),
                           ),
@@ -173,8 +181,12 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                                 selected: state.selectedCategory == cat,
                                 onSelected: (_) => notifier.setCategory(cat),
                                 labelStyle: TextStyle(
-                                  color: state.selectedCategory == cat ? Colors.white : AppColors.textPrimary,
-                                  fontWeight: state.selectedCategory == cat ? FontWeight.w600 : FontWeight.w500,
+                                  color: state.selectedCategory == cat
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                  fontWeight: state.selectedCategory == cat
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                                   fontSize: 12,
                                 ),
                                 selectedColor: AppColors.primary,
@@ -183,7 +195,9 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                   side: BorderSide(
-                                    color: state.selectedCategory == cat ? AppColors.primary : AppColors.border,
+                                    color: state.selectedCategory == cat
+                                        ? AppColors.primary
+                                        : AppColors.border,
                                   ),
                                 ),
                               ),
@@ -198,13 +212,13 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
             ),
 
             // Service Cards List
-            Expanded(
-              child: _buildBody(state, notifier, canEdit),
-            ),
+            Expanded(child: _buildBody(state, notifier, canEdit)),
           ],
         ),
       ),
     );
+
+    if (inBillingSuite) return scaffold;
 
     return PopScope(
       canPop: false,
@@ -216,7 +230,11 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
     );
   }
 
-  Widget _buildBody(CatalogueState state, CatalogueNotifier notifier, bool canEdit) {
+  Widget _buildBody(
+    CatalogueState state,
+    CatalogueNotifier notifier,
+    bool canEdit,
+  ) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading service catalogue...');
     }
@@ -270,7 +288,11 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                       color: AppColors.accentPill,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.build_circle_outlined, color: AppColors.primary, size: 20),
+                    child: const Icon(
+                      Icons.build_circle_outlined,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -285,7 +307,8 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        if (svc.description != null && svc.description!.isNotEmpty) ...[
+                        if (svc.description != null &&
+                            svc.description!.isNotEmpty) ...[
                           const SizedBox(height: 4),
                           Text(
                             svc.description!,
@@ -323,7 +346,9 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                             if (result == true && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Service "${svc.name}" updated successfully'),
+                                  content: Text(
+                                    'Service "${svc.name}" updated successfully',
+                                  ),
                                   backgroundColor: AppColors.success,
                                   behavior: SnackBarBehavior.floating,
                                 ),
@@ -332,16 +357,25 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                           },
                           borderRadius: BorderRadius.circular(6),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.edit_outlined, size: 13, color: AppColors.primary),
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 13,
+                                  color: AppColors.primary,
+                                ),
                                 SizedBox(width: 3),
                                 Text(
                                   'Edit',
@@ -364,7 +398,10 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(4),
@@ -372,7 +409,11 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                     ),
                     child: Text(
                       svc.category ?? 'General Services',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],

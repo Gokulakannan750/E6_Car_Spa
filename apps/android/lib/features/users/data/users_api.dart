@@ -23,8 +23,7 @@ class UsersApi {
     final response = await _dio.get('/users/permissions');
     final data = response.data as List<dynamic>;
     return data
-        .map((e) =>
-            PermissionGroupModel.fromJson(e as Map<String, dynamic>))
+        .map((e) => PermissionGroupModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
@@ -36,22 +35,13 @@ class UsersApi {
 
   /// Creates a new user account (Manager or Staff)
   Future<UserModel> createUser(CreateUserRequest request) async {
-    final response = await _dio.post(
-      '/users',
-      data: request.toJson(),
-    );
+    final response = await _dio.post('/users', data: request.toJson());
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Updates an existing user account
-  Future<UserModel> updateUser(
-    String id,
-    UpdateUserRequest request,
-  ) async {
-    final response = await _dio.put(
-      '/users/$id',
-      data: request.toJson(),
-    );
+  Future<UserModel> updateUser(String id, UpdateUserRequest request) async {
+    final response = await _dio.put('/users/$id', data: request.toJson());
     return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 

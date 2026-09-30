@@ -20,13 +20,11 @@ import '../widgets/edit_customer_dialog.dart';
 class CustomerDetailsScreen extends ConsumerStatefulWidget {
   final String customerId;
 
-  const CustomerDetailsScreen({
-    super.key,
-    required this.customerId,
-  });
+  const CustomerDetailsScreen({super.key, required this.customerId});
 
   @override
-  ConsumerState<CustomerDetailsScreen> createState() => _CustomerDetailsScreenState();
+  ConsumerState<CustomerDetailsScreen> createState() =>
+      _CustomerDetailsScreenState();
 }
 
 class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
@@ -35,7 +33,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
   void onAutoRefresh() {
     final authUser = ref.read(currentUserProvider);
     if (authUser != null && !authUser.hasPermission('customers.view')) return;
-    ref.read(customerDetailsProvider(widget.customerId).notifier).loadDetails(silent: true);
+    ref
+        .read(customerDetailsProvider(widget.customerId).notifier)
+        .loadDetails(silent: true);
   }
 
   Future<void> _handleEditCustomer(
@@ -44,12 +44,12 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
   ) async {
     final updated = await EditCustomerDialog.show(context, customer: customer);
     if (updated != null) {
-      ref.read(customerDetailsProvider(widget.customerId).notifier).loadDetails();
+      ref
+          .read(customerDetailsProvider(widget.customerId).notifier)
+          .loadDetails();
       ref.read(customerListProvider.notifier).loadCustomers(silent: true);
     }
   }
-
-
 
   String _activityFilter = 'all';
 
@@ -58,9 +58,12 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
     final preferences = ref.watch(systemPreferencesProvider);
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final state = ref.watch(customerDetailsProvider(widget.customerId));
-    final notifier = ref.read(customerDetailsProvider(widget.customerId).notifier);
+    final notifier = ref.read(
+      customerDetailsProvider(widget.customerId).notifier,
+    );
     final authUser = ref.watch(currentUserProvider);
-    final canEdit = authUser == null || authUser.hasPermission('customers.edit');
+    final canEdit =
+        authUser == null || authUser.hasPermission('customers.edit');
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -83,7 +86,10 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
       bottomNavigationBar: state.customer != null
           ? SafeArea(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: const BoxDecoration(
                   color: AppColors.card,
                   border: Border(top: BorderSide(color: AppColors.border)),
@@ -103,7 +109,8 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () => _handleEditCustomer(context, state.customer!),
+                          onPressed: () =>
+                              _handleEditCustomer(context, state.customer!),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -115,10 +122,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                         label: 'New Job Card',
                         icon: Icons.add_task,
                         onPressed: () {
-                          ref.read(newJobCardProvider.notifier).selectCustomer(
-                                state.customer!,
-                                state.vehicles,
-                              );
+                          ref
+                              .read(newJobCardProvider.notifier)
+                              .selectCustomer(state.customer!, state.vehicles);
                           context.go('/job-cards/new');
                         },
                       ),
@@ -196,7 +202,12 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
       color: AppColors.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 88),
+        padding: const EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: 88,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -237,7 +248,11 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.phone, size: 15, color: AppColors.accent),
+                                  const Icon(
+                                    Icons.phone,
+                                    size: 15,
+                                    color: AppColors.accent,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     customer.phoneNumber,
@@ -253,32 +268,46 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                         ),
                       ],
                     ),
-                    if (customer.email != null && customer.email!.isNotEmpty) ...[
+                    if (customer.email != null &&
+                        customer.email!.isNotEmpty) ...[
                       const Divider(height: 24, color: AppColors.borderLight),
                       Row(
                         children: [
-                          const Icon(Icons.email_outlined, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.email_outlined,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               customer.email!,
-                              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ],
-                    if (customer.address != null && customer.address!.isNotEmpty) ...[
+                    if (customer.address != null &&
+                        customer.address!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textSecondary),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               customer.address!,
-                              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],
@@ -308,7 +337,11 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.primary),
+                            const Icon(
+                              Icons.account_balance_wallet_outlined,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(width: 8),
                             Text(
                               'Payment Summary',
@@ -317,7 +350,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                           ],
                         ),
                         _PaymentStatusBadge(
-                          status: state.history?.paymentStatus ?? customer.paymentStatus,
+                          status:
+                              state.history?.paymentStatus ??
+                              customer.paymentStatus,
                         ),
                       ],
                     ),
@@ -327,24 +362,43 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                         Expanded(
                           child: _buildSummaryMetric(
                             'Total Invoiced',
-                            _formatSummaryCurrency(state.history?.totalInvoicedAmount ?? customer.totalInvoicedAmount),
+                            _formatSummaryCurrency(
+                              state.history?.totalInvoicedAmount ??
+                                  customer.totalInvoicedAmount,
+                            ),
                             AppColors.textPrimary,
                           ),
                         ),
-                        Container(height: 36, width: 1, color: AppColors.borderLight),
+                        Container(
+                          height: 36,
+                          width: 1,
+                          color: AppColors.borderLight,
+                        ),
                         Expanded(
                           child: _buildSummaryMetric(
                             'Total Paid',
-                            _formatSummaryCurrency(state.history?.totalPaidAmount ?? customer.totalPaidAmount),
+                            _formatSummaryCurrency(
+                              state.history?.totalPaidAmount ??
+                                  customer.totalPaidAmount,
+                            ),
                             Colors.green.shade800,
                           ),
                         ),
-                        Container(height: 36, width: 1, color: AppColors.borderLight),
+                        Container(
+                          height: 36,
+                          width: 1,
+                          color: AppColors.borderLight,
+                        ),
                         Expanded(
                           child: _buildSummaryMetric(
                             'Outstanding',
-                            _formatSummaryCurrency(state.history?.totalOutstandingAmount ?? customer.totalOutstandingAmount),
-                            (state.history?.totalOutstandingAmount ?? customer.totalOutstandingAmount) > 0
+                            _formatSummaryCurrency(
+                              state.history?.totalOutstandingAmount ??
+                                  customer.totalOutstandingAmount,
+                            ),
+                            (state.history?.totalOutstandingAmount ??
+                                        customer.totalOutstandingAmount) >
+                                    0
                                 ? Colors.amber.shade900
                                 : AppColors.textPrimary,
                           ),
@@ -375,7 +429,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                       customerName: customer.name,
                       onCreated: (newVehicle) {
                         notifier.loadDetails();
-                        ref.read(customerListProvider.notifier).loadCustomers(silent: true);
+                        ref
+                            .read(customerListProvider.notifier)
+                            .loadCustomers(silent: true);
                       },
                     );
                   },
@@ -385,7 +441,10 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
             const SizedBox(height: 8),
             if (state.vehicles.isEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(12),
@@ -394,11 +453,17 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                 child: Center(
                   child: Column(
                     children: [
-                      const Icon(Icons.directions_car_outlined, size: 36, color: AppColors.textTertiary),
+                      const Icon(
+                        Icons.directions_car_outlined,
+                        size: 36,
+                        color: AppColors.textTertiary,
+                      ),
                       const SizedBox(height: 8),
                       Text(
                         'No vehicles registered yet.',
-                        style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
@@ -418,7 +483,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                       icon: const Icon(Icons.add_task, color: AppColors.accent),
                       tooltip: 'New Job Card for this vehicle',
                       onPressed: () {
-                        ref.read(newJobCardProvider.notifier).selectCustomer(
+                        ref
+                            .read(newJobCardProvider.notifier)
+                            .selectCustomer(
                               customer,
                               state.vehicles,
                               vehicle: vehicle,
@@ -435,10 +502,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Recent Activity',
-                  style: AppTextStyles.headingMedium,
-                ),
+                Text('Recent Activity', style: AppTextStyles.headingMedium),
               ],
             ),
             const SizedBox(height: 8),
@@ -463,13 +527,15 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                   _buildActivityFilterChip(
                     label: 'Payment Pending ($paymentPendingCount)',
                     isSelected: _activityFilter == 'payment-pending',
-                    onSelected: () => setState(() => _activityFilter = 'payment-pending'),
+                    onSelected: () =>
+                        setState(() => _activityFilter = 'payment-pending'),
                   ),
                   const SizedBox(width: 8),
                   _buildActivityFilterChip(
                     label: 'Partially Paid ($partiallyPaidCount)',
                     isSelected: _activityFilter == 'partially-paid',
-                    onSelected: () => setState(() => _activityFilter = 'partially-paid'),
+                    onSelected: () =>
+                        setState(() => _activityFilter = 'partially-paid'),
                   ),
                 ],
               ),
@@ -478,7 +544,10 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
 
             if (allJobCards.isEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(12),
@@ -487,13 +556,18 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                 child: Center(
                   child: Text(
                     'No job cards created for this customer yet.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               )
             else if (filteredJobCards.isEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(12),
@@ -502,7 +576,9 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                 child: Center(
                   child: Text(
                     'No $_activityFilter activity records found.',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               )
@@ -523,7 +599,8 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                   final paid = jc.paidAmount ?? 0;
                   final outstanding = jc.outstandingAmount ?? 0;
 
-                  final displayIdentifier = (jc.invoiceNumber != null && jc.invoiceNumber!.isNotEmpty)
+                  final displayIdentifier =
+                      (jc.invoiceNumber != null && jc.invoiceNumber!.isNotEmpty)
                       ? jc.invoiceNumber!
                       : jc.jobCardNumber;
 
@@ -536,7 +613,10 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                     ),
                     color: AppColors.card,
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
                       title: Row(
                         children: [
                           Text(
@@ -545,10 +625,15 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                               color: AppColors.primary,
                             ),
                           ),
-                          if (jc.invoiceNumber != null && jc.jobCardNumber.isNotEmpty && jc.jobCardNumber != jc.invoiceNumber) ...[
+                          if (jc.invoiceNumber != null &&
+                              jc.jobCardNumber.isNotEmpty &&
+                              jc.jobCardNumber != jc.invoiceNumber) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceAlt,
                                 borderRadius: BorderRadius.circular(4),
@@ -586,42 +671,51 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                                 const SizedBox(width: 8),
                                 if (hasInvoice)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: isPaid
                                           ? Colors.green.shade50
                                           : (isPartiallyPaid
-                                              ? Colors.amber.shade50
-                                              : (isCancelled
-                                                  ? Colors.red.shade50
-                                                  : Colors.blue.shade50)),
+                                                ? Colors.amber.shade50
+                                                : (isCancelled
+                                                      ? Colors.red.shade50
+                                                      : Colors.blue.shade50)),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isPaid
                                             ? Colors.green.shade300
                                             : (isPartiallyPaid
-                                                ? Colors.amber.shade300
-                                                : (isCancelled
-                                                    ? Colors.red.shade300
-                                                    : Colors.blue.shade300)),
+                                                  ? Colors.amber.shade300
+                                                  : (isCancelled
+                                                        ? Colors.red.shade300
+                                                        : Colors
+                                                              .blue
+                                                              .shade300)),
                                       ),
                                     ),
                                     child: Text(
                                       isPaid
                                           ? 'PAID'
                                           : (isPartiallyPaid
-                                              ? 'PARTIALLY PAID'
-                                              : (isCancelled ? 'CANCELLED' : 'PAYMENT PENDING')),
+                                                ? 'PARTIALLY PAID'
+                                                : (isCancelled
+                                                      ? 'CANCELLED'
+                                                      : 'PAYMENT PENDING')),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         color: isPaid
                                             ? Colors.green.shade800
                                             : (isPartiallyPaid
-                                                ? Colors.amber.shade900
-                                                : (isCancelled
-                                                    ? Colors.red.shade800
-                                                    : Colors.blue.shade800)),
+                                                  ? Colors.amber.shade900
+                                                  : (isCancelled
+                                                        ? Colors.red.shade800
+                                                        : Colors
+                                                              .blue
+                                                              .shade800)),
                                       ),
                                     ),
                                   )
@@ -629,12 +723,15 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                                   StatusBadge.fromLabel(jc.status),
                               ],
                             ),
-                            if (hasInvoice && (isPaymentPending || isPartiallyPaid)) ...[
+                            if (hasInvoice &&
+                                (isPaymentPending || isPartiallyPaid)) ...[
                               const SizedBox(height: 4),
                               Text(
                                 'Paid: ₹${paid.toStringAsFixed(2)} · Pending: ₹${outstanding.toStringAsFixed(2)}',
                                 style: AppTextStyles.bodySmall.copyWith(
-                                  color: isPartiallyPaid ? Colors.amber.shade800 : AppColors.textSecondary,
+                                  color: isPartiallyPaid
+                                      ? Colors.amber.shade800
+                                      : AppColors.textSecondary,
                                   fontWeight: FontWeight.w500,
                                   fontSize: 11,
                                 ),
@@ -643,16 +740,19 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                           ],
                         ),
                       ),
-                        trailing: const Icon(Icons.chevron_right, color: AppColors.textTertiary),
-                        onTap: () {
-                          if (jc.invoiceId != null && jc.invoiceId!.isNotEmpty) {
-                            context.go('/invoices/${jc.invoiceId}');
-                          } else {
-                            context.go('/job-cards/${jc.jobCardId}');
-                          }
-                        },
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textTertiary,
                       ),
-                    );
+                      onTap: () {
+                        if (jc.invoiceId != null && jc.invoiceId!.isNotEmpty) {
+                          context.go('/invoices/${jc.invoiceId}');
+                        } else {
+                          context.go('/job-cards/${jc.jobCardId}');
+                        }
+                      },
+                    ),
+                  );
                 },
               ),
 
@@ -708,7 +808,8 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                           '₹${(state.history?.totalOutstandingAmount ?? 0).toStringAsFixed(2)}',
                           style: AppTextStyles.headingMedium.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: (state.history?.totalOutstandingAmount ?? 0) > 0
+                            color:
+                                (state.history?.totalOutstandingAmount ?? 0) > 0
                                 ? Colors.amber.shade900
                                 : AppColors.textPrimary,
                           ),
@@ -717,7 +818,10 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: (state.history?.totalOutstandingAmount ?? 0) > 0
                           ? Colors.amber.shade100

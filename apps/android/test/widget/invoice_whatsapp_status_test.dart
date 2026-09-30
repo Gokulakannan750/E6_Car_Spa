@@ -23,13 +23,18 @@ class FakeInvoiceApiForStatusTest extends InvoiceApi {
   }
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async {
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async {
     fetchStatusCallCount++;
     return List.from(mockStatuses);
   }
 
   @override
-  Future<PaymentDto> recordPayment(String invoiceId, RecordPaymentRequest request) async {
+  Future<PaymentDto> recordPayment(
+    String invoiceId,
+    RecordPaymentRequest request,
+  ) async {
     if (mockInvoice != null) {
       final newPaid = mockInvoice!.paidAmount + request.amount;
       mockInvoice = _createFinalizedInvoice(
@@ -90,290 +95,296 @@ void main() {
       fakeApi = FakeInvoiceApiForStatusTest();
     });
 
-    testWidgets('1. Displays WhatsApp Pending status while processing and polls', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice();
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+    testWidgets(
+      '1. Displays WhatsApp Pending status while processing and polls',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice();
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
           ),
-        ),
-      );
+        ];
 
-      // Initial load
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
-      expect(fakeApi.fetchStatusCallCount, greaterThanOrEqualTo(1));
-
-      // Clean up to prevent timer leak
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('2. Automatically updates to "WhatsApp Invoice: Sent" on screen without navigating', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice();
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
-          ),
-        ),
-      );
-
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
-
-      // Backend updates to Sent
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-      ];
-
-      // Advance timer by 2 seconds (polling interval)
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump();
-
-      // Screen must now show Sent WITHOUT navigation or leaving the screen
-      expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
-      expect(find.text('WhatsApp Invoice: Pending'), findsNothing);
-
-      // Polling should have stopped now that Sent is terminal.
-      final callCountAfterSent = fakeApi.fetchStatusCallCount;
-      await tester.pump(const Duration(seconds: 4));
-      expect(fakeApi.fetchStatusCallCount, equals(callCountAfterSent));
-
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('3. Automatically updates to "WhatsApp Invoice: Failed" and stops polling', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice();
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Processing',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
-          ),
-        ),
-      );
-
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('WhatsApp Invoice: Processing'), findsOneWidget);
-
-      // Backend transitions to Failed
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Failed',
-          errorMessage: 'Meta template error',
-        ),
-      ];
-
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump();
-
-      expect(find.text('WhatsApp Invoice: Failed'), findsOneWidget);
-
-      // Polling stopped
-      final callCountAfterFailed = fakeApi.fetchStatusCallCount;
-      await tester.pump(const Duration(seconds: 4));
-      expect(fakeApi.fetchStatusCallCount, equals(callCountAfterFailed));
-
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('4. Automatically updates to "WhatsApp Payment: Sent" after recording payment', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice(total: 1000.0, paid: 0.0);
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-      ];
-
-      late BuildContext savedContext;
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: MaterialApp(
-            home: Builder(
-              builder: (ctx) {
-                savedContext = ctx;
-                return const InvoiceDetailsScreen(invoiceId: 'inv-test-1');
-              },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump();
+        // Initial load
+        await tester.pump();
+        await tester.pump();
 
-      // Initially shows Invoice: Sent
-      expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
-      expect(find.text('WhatsApp Payment: Sent'), findsNothing);
+        expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
+        expect(fakeApi.fetchStatusCallCount, greaterThanOrEqualTo(1));
 
-      // Trigger payment via notifier
-      final container = ProviderScope.containerOf(savedContext);
-      final notifier = container.read(invoiceDetailsProvider('inv-test-1').notifier);
+        // Clean up to prevent timer leak
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
 
-      // Backend will report Payment Sent on subsequent poll
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-        const InvoiceWhatsAppStatus(
-          messageType: 'PaymentCompleted',
-          status: 'Pending',
-        ),
-      ];
-
-      await notifier.recordPayment(
-        const RecordPaymentRequest(amount: 1000.0, paymentMethod: 'UPI'),
-      );
-
-      await tester.pump();
-      expect(find.text('WhatsApp Receipt: Pending'), findsOneWidget);
-
-      // Backend now marks Payment as Sent
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Sent',
-        ),
-        const InvoiceWhatsAppStatus(
-          messageType: 'PaymentCompleted',
-          status: 'Sent',
-        ),
-      ];
-
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump();
-
-      // Both statuses are visible on the currently mounted screen!
-      expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
-      expect(find.text('WhatsApp Receipt: Sent'), findsOneWidget);
-
-      // Polling stops since both are terminal
-      final callCount = fakeApi.fetchStatusCallCount;
-      await tester.pump(const Duration(seconds: 4));
-      expect(fakeApi.fetchStatusCallCount, equals(callCount));
-
-      await tester.pumpWidget(const SizedBox());
-    });
-
-    testWidgets('5. Unmounting screen cancels active polling timer without errors', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice();
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+    testWidgets(
+      '2. Automatically updates to "WhatsApp Invoice: Sent" on screen without navigating',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice();
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
           ),
-        ),
-      );
+        ];
 
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
-
-      // Navigate away / unmount
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: Text('Different Screen')),
-        ),
-      );
-
-      final callCountAtUnmount = fakeApi.fetchStatusCallCount;
-
-      // Advance time by 4 seconds - no more calls should be made
-      await tester.pump(const Duration(seconds: 4));
-      expect(fakeApi.fetchStatusCallCount, equals(callCountAtUnmount));
-    });
-
-    testWidgets('6. Polling stops after maximum attempts (cutoff) to avoid polling forever', (tester) async {
-      fakeApi.mockInvoice = _createFinalizedInvoice();
-      fakeApi.mockStatuses = [
-        const InvoiceWhatsAppStatus(
-          messageType: 'InvoiceFinalized',
-          status: 'Pending',
-        ),
-      ];
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            invoiceApiProvider.overrideWithValue(fakeApi),
-          ],
-          child: const MaterialApp(
-            home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+            ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump();
+        await tester.pump();
+        await tester.pump();
 
-      // Advance past 15 attempts (15 * 2s = 30s)
-      for (int i = 0; i < 20; i++) {
+        expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
+
+        // Backend updates to Sent
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+        ];
+
+        // Advance timer by 2 seconds (polling interval)
         await tester.pump(const Duration(seconds: 2));
-      }
+        await tester.pump();
 
-      final callsAfterMax = fakeApi.fetchStatusCallCount;
-      // Advance more time - should not increase calls any further
-      await tester.pump(const Duration(seconds: 10));
-      expect(fakeApi.fetchStatusCallCount, equals(callsAfterMax));
+        // Screen must now show Sent WITHOUT navigation or leaving the screen
+        expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
+        expect(find.text('WhatsApp Invoice: Pending'), findsNothing);
 
-      await tester.pumpWidget(const SizedBox());
-    });
+        // Polling should have stopped now that Sent is terminal.
+        final callCountAfterSent = fakeApi.fetchStatusCallCount;
+        await tester.pump(const Duration(seconds: 4));
+        expect(fakeApi.fetchStatusCallCount, equals(callCountAfterSent));
+
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets(
+      '3. Automatically updates to "WhatsApp Invoice: Failed" and stops polling',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice();
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Processing',
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('WhatsApp Invoice: Processing'), findsOneWidget);
+
+        // Backend transitions to Failed
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Failed',
+            errorMessage: 'Meta template error',
+          ),
+        ];
+
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump();
+
+        expect(find.text('WhatsApp Invoice: Failed'), findsOneWidget);
+
+        // Polling stopped
+        final callCountAfterFailed = fakeApi.fetchStatusCallCount;
+        await tester.pump(const Duration(seconds: 4));
+        expect(fakeApi.fetchStatusCallCount, equals(callCountAfterFailed));
+
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets(
+      '4. Automatically updates to "WhatsApp Payment: Sent" after recording payment',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice(total: 1000.0, paid: 0.0);
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+        ];
+
+        late BuildContext savedContext;
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: MaterialApp(
+              home: Builder(
+                builder: (ctx) {
+                  savedContext = ctx;
+                  return const InvoiceDetailsScreen(invoiceId: 'inv-test-1');
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        // Initially shows Invoice: Sent
+        expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
+        expect(find.text('WhatsApp Payment: Sent'), findsNothing);
+
+        // Trigger payment via notifier
+        final container = ProviderScope.containerOf(savedContext);
+        final notifier = container.read(
+          invoiceDetailsProvider('inv-test-1').notifier,
+        );
+
+        // Backend will report Payment Sent on subsequent poll
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Pending',
+          ),
+        ];
+
+        await notifier.recordPayment(
+          const RecordPaymentRequest(amount: 1000.0, paymentMethod: 'UPI'),
+        );
+
+        await tester.pump();
+        expect(find.text('WhatsApp Receipt: Pending'), findsOneWidget);
+
+        // Backend now marks Payment as Sent
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Sent',
+          ),
+          const InvoiceWhatsAppStatus(
+            messageType: 'PaymentCompleted',
+            status: 'Sent',
+          ),
+        ];
+
+        await tester.pump(const Duration(seconds: 2));
+        await tester.pump();
+
+        // Both statuses are visible on the currently mounted screen!
+        expect(find.text('WhatsApp Invoice: Sent'), findsOneWidget);
+        expect(find.text('WhatsApp Receipt: Sent'), findsOneWidget);
+
+        // Polling stops since both are terminal
+        final callCount = fakeApi.fetchStatusCallCount;
+        await tester.pump(const Duration(seconds: 4));
+        expect(fakeApi.fetchStatusCallCount, equals(callCount));
+
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+
+    testWidgets(
+      '5. Unmounting screen cancels active polling timer without errors',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice();
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('WhatsApp Invoice: Pending'), findsOneWidget);
+
+        // Navigate away / unmount
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: Text('Different Screen'))),
+        );
+
+        final callCountAtUnmount = fakeApi.fetchStatusCallCount;
+
+        // Advance time by 4 seconds - no more calls should be made
+        await tester.pump(const Duration(seconds: 4));
+        expect(fakeApi.fetchStatusCallCount, equals(callCountAtUnmount));
+      },
+    );
+
+    testWidgets(
+      '6. Polling stops after maximum attempts (cutoff) to avoid polling forever',
+      (tester) async {
+        fakeApi.mockInvoice = _createFinalizedInvoice();
+        fakeApi.mockStatuses = [
+          const InvoiceWhatsAppStatus(
+            messageType: 'InvoiceFinalized',
+            status: 'Pending',
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [invoiceApiProvider.overrideWithValue(fakeApi)],
+            child: const MaterialApp(
+              home: InvoiceDetailsScreen(invoiceId: 'inv-test-1'),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        // Advance past 15 attempts (15 * 2s = 30s)
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(seconds: 2));
+        }
+
+        final callsAfterMax = fakeApi.fetchStatusCallCount;
+        // Advance more time - should not increase calls any further
+        await tester.pump(const Duration(seconds: 10));
+        expect(fakeApi.fetchStatusCallCount, equals(callsAfterMax));
+
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
   });
 }

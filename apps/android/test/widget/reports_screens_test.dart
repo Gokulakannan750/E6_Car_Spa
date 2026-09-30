@@ -51,8 +51,16 @@ void main() {
       totalReceived: 40000.0,
       transactionCount: 10,
       breakdownByMethod: [
-        PaymentMethodBreakdownModel(method: 'Cash', transactionCount: 4, amount: 15000.0),
-        PaymentMethodBreakdownModel(method: 'UPI', transactionCount: 6, amount: 25000.0),
+        PaymentMethodBreakdownModel(
+          method: 'Cash',
+          transactionCount: 4,
+          amount: 15000.0,
+        ),
+        PaymentMethodBreakdownModel(
+          method: 'UPI',
+          transactionCount: 6,
+          amount: 25000.0,
+        ),
       ],
     ),
     showroom: const DashboardShowroomModel(
@@ -110,7 +118,9 @@ void main() {
   );
 
   group('Reports Widgets & Dashboard Screen Tests', () {
-    testWidgets('ReportKpiCard renders formatted currency and title', (tester) async {
+    testWidgets('ReportKpiCard renders formatted currency and title', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -130,7 +140,9 @@ void main() {
       expect(find.text('14 finalized invoices'), findsOneWidget);
     });
 
-    testWidgets('RevenueChart renders net sales and collections comparison', (tester) async {
+    testWidgets('RevenueChart renders net sales and collections comparison', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -151,14 +163,14 @@ void main() {
       expect(find.text('₹40,000.00'), findsOneWidget);
     });
 
-    testWidgets('JobStatusChart renders status breakdown progress bars', (tester) async {
+    testWidgets('JobStatusChart renders status breakdown progress bars', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: SingleChildScrollView(
-              child: JobStatusChart(
-                jobCardKpis: testDashboard.jobCardKpis,
-              ),
+              child: JobStatusChart(jobCardKpis: testDashboard.jobCardKpis),
             ),
           ),
         ),
@@ -169,31 +181,34 @@ void main() {
       expect(find.text('Completed / Delivered'), findsOneWidget);
     });
 
-    testWidgets('ReportsScreen renders full dashboard when user has permissions', (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(testUser),
-            reportsDashboardProvider.overrideWith((ref) => Future.value(testDashboard)),
-          ],
-          child: const MaterialApp(
-            home: ReportsScreen(),
+    testWidgets(
+      'ReportsScreen renders full dashboard when user has permissions',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentUserProvider.overrideWithValue(testUser),
+              reportsDashboardProvider.overrideWith(
+                (ref) => Future.value(testDashboard),
+              ),
+            ],
+            child: const MaterialApp(home: ReportsScreen()),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Reports & Analytics'), findsOneWidget);
-      expect(find.text('BILLED REVENUE'), findsOneWidget);
-      expect(find.text('COLLECTIONS'), findsOneWidget);
-      expect(find.text('OUTSTANDING'), findsOneWidget);
-      expect(find.text('JOB CARDS'), findsOneWidget);
-      expect(find.text('Detailed Analytical Reports'), findsOneWidget);
-      expect(find.text('Sales Report'), findsOneWidget);
-      expect(find.text('GST Summary'), findsOneWidget);
-      expect(find.text('Staff Advances'), findsWidgets);
-    });
+        expect(find.text('Reports & Analytics'), findsOneWidget);
+        expect(find.text('BILLED REVENUE'), findsOneWidget);
+        expect(find.text('COLLECTIONS'), findsOneWidget);
+        expect(find.text('OUTSTANDING'), findsOneWidget);
+        expect(find.text('JOB CARDS'), findsOneWidget);
+        expect(find.text('Detailed Analytical Reports'), findsOneWidget);
+        expect(find.text('Sales Report'), findsOneWidget);
+        expect(find.text('GST Summary'), findsOneWidget);
+        expect(find.text('Staff Advances'), findsWidgets);
+      },
+    );
   });
 }

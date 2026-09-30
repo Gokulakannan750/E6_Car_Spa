@@ -27,12 +27,28 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
     final decimalPart = parts[1];
 
     final reg = RegExp(r'(\d+?)(?=(\d\d)+(\d)(?!\d))');
-    final formattedInt = integerPart.replaceAllMapped(reg, (Match m) => '${m[1]},');
+    final formattedInt = integerPart.replaceAllMapped(
+      reg,
+      (Match m) => '${m[1]},',
+    );
     return '₹$formattedInt.$decimalPart';
   }
 
   String _formatDate(DateTime date) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
@@ -77,7 +93,11 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
                     color: AppColors.readyBg,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.check_circle_outline, color: AppColors.success, size: 22),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.success,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -104,12 +124,18 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.error,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                   ],
@@ -118,7 +144,9 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
 
             Text(
               'Are you sure you want to mark this advance as fully settled?',
-              style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 14),
 
@@ -132,7 +160,10 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
               ),
               child: Column(
                 children: [
-                  _SummaryRow(label: 'Staff Member', value: widget.advance.staffName),
+                  _SummaryRow(
+                    label: 'Staff Member',
+                    value: widget.advance.staffName,
+                  ),
                   const SizedBox(height: 6),
                   _SummaryRow(
                     label: 'Advance Amount',
@@ -141,7 +172,10 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
                     valueColor: AppColors.primary,
                   ),
                   const SizedBox(height: 6),
-                  _SummaryRow(label: 'Advance Date', value: _formatDate(widget.advance.advanceDate)),
+                  _SummaryRow(
+                    label: 'Advance Date',
+                    value: _formatDate(widget.advance.advanceDate),
+                  ),
                   const SizedBox(height: 6),
                   _SummaryRow(label: 'Reason', value: widget.advance.reason),
                 ],
@@ -154,13 +188,20 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -171,15 +212,23 @@ class _SettleAdvanceDialogState extends State<SettleAdvanceDialog> {
                       backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : const Text('Settle Advance', style: TextStyle(fontWeight: FontWeight.w700)),
+                        : const Text(
+                            'Settle Advance',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                   ),
                 ),
               ],
@@ -211,7 +260,9 @@ class _SummaryRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         Text(
           value,

@@ -9,9 +9,10 @@ import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
+import '../../../staffadvances/providers/staff_advances_provider.dart';
 import '../../providers/staff_attendance_providers.dart';
 import '../../providers/staff_provider.dart';
-import 'monthly_attendance_report_tab.dart';
+import 'staff_advances_tab.dart';
 import 'staff_attendance_tab.dart';
 import 'staff_directory_tab.dart';
 import 'staff_salary_tab.dart';
@@ -19,50 +20,49 @@ import 'staff_salary_tab.dart';
 class StaffScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
 
-  const StaffScreen({
-    super.key,
-    this.initialTabIndex = 0,
-  });
+  const StaffScreen({super.key, this.initialTabIndex = 0});
 
   @override
   ConsumerState<StaffScreen> createState() => _StaffScreenState();
 }
 
 class _StaffScreenState extends ConsumerState<StaffScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver, AutoRefreshMixin<StaffScreen> {
+    with
+        SingleTickerProviderStateMixin,
+        WidgetsBindingObserver,
+        AutoRefreshMixin<StaffScreen> {
   late final TabController _tabController;
 
   @override
   void onAutoRefresh() {
     final authState = ref.read(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
-    final canViewStaff = user?.isOwner == true ||
+    final canViewStaff =
+        user?.isOwner == true ||
         user?.permissions.contains('staff.view') == true;
-    if (!canViewStaff) return;
+    if (canViewStaff) {
+      ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+      final date = ref.read(selectedAttendanceDateProvider);
+      ref.invalidate(dailyAttendanceProvider(date));
+      ref.invalidate(monthlyAttendanceReportProvider);
+    }
 
-    ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
-    final date = ref.read(selectedAttendanceDateProvider);
-    ref.invalidate(dailyAttendanceProvider(date));
-    ref.invalidate(monthlyAttendanceReportProvider);
+    final canViewAdvances =
+        user?.isOwner == true ||
+        user?.permissions.contains('staff_advances.view') == true;
+    if (canViewAdvances) {
+      ref.read(staffAdvancesProvider.notifier).loadAdvances(silent: true);
+    }
   }
 
   static const List<Tab> _tabs = [
+    Tab(icon: Icon(Icons.people_outline, size: 20), text: 'Directory'),
+    Tab(icon: Icon(Icons.fact_check_outlined, size: 20), text: 'Attendance'),
     Tab(
-      icon: Icon(Icons.people_outline, size: 20),
-      text: 'Directory',
+      icon: Icon(Icons.account_balance_wallet_outlined, size: 20),
+      text: 'Staff Advances',
     ),
-    Tab(
-      icon: Icon(Icons.fact_check_outlined, size: 20),
-      text: 'Attendance',
-    ),
-    Tab(
-      icon: Icon(Icons.calendar_month_outlined, size: 20),
-      text: 'Monthly Report',
-    ),
-    Tab(
-      icon: Icon(Icons.payments_outlined, size: 20),
-      text: 'Salary',
-    ),
+    Tab(icon: Icon(Icons.payments_outlined, size: 20), text: 'Salary'),
   ];
 
   @override
@@ -106,7 +106,8 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
 
-    final canViewStaff = user?.isOwner == true ||
+    final canViewStaff =
+        user?.isOwner == true ||
         user?.permissions.contains('staff.view') == true;
 
     if (!canViewStaff) {
@@ -133,20 +134,24 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.lock_outline, size: 56, color: AppColors.error),
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 56,
+                    color: AppColors.error,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Access Restricted',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'You do not have permission to access Staff Management (staff.view).',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -178,12 +183,12 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
             onPressed: _handleBackNavigation,
           ),
           title: const Text('Staff Suite'),
-          elevation: 0,
           actions: [
             IconButton(
-              icon: const Icon(Icons.account_balance_wallet_outlined),
-              tooltip: 'Staff Advances',
-              onPressed: () => context.push(AppRoutes.staffAdvances),
+              key: const Key('staff_monthly_report_button'),
+              icon: const Icon(Icons.assessment_outlined),
+              tooltip: 'Monthly Attendance Report',
+              onPressed: () => context.go(AppRoutes.staffMonthlyReport),
             ),
             const AppLogoutAction(),
           ],
@@ -193,7 +198,9 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
             tabAlignment: TabAlignment.start,
             indicatorColor: Theme.of(context).colorScheme.primary,
             labelColor: Theme.of(context).colorScheme.primary,
-            unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onSurfaceVariant,
             tabs: _tabs,
           ),
         ),
@@ -202,7 +209,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
           children: const [
             StaffDirectoryTab(),
             StaffAttendanceTab(),
-            MonthlyAttendanceReportTab(),
+            StaffAdvancesTab(),
             StaffSalaryTab(),
           ],
         ),

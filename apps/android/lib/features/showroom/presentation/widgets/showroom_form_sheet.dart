@@ -12,7 +12,8 @@ import '../../models/showroom_model.dart';
 class ShowroomFormSheet extends StatefulWidget {
   final Showroom? showroom;
   final Future<void> Function(CreateShowroomRequest request)? onCreate;
-  final Future<void> Function(String id, UpdateShowroomRequest request)? onUpdate;
+  final Future<void> Function(String id, UpdateShowroomRequest request)?
+  onUpdate;
 
   const ShowroomFormSheet({
     super.key,
@@ -20,9 +21,9 @@ class ShowroomFormSheet extends StatefulWidget {
     this.onCreate,
     this.onUpdate,
   }) : assert(
-          showroom == null ? onCreate != null : onUpdate != null,
-          'Either onCreate or onUpdate must be provided',
-        );
+         showroom == null ? onCreate != null : onUpdate != null,
+         'Either onCreate or onUpdate must be provided',
+       );
 
   @override
   State<ShowroomFormSheet> createState() => _ShowroomFormSheetState();
@@ -130,8 +131,12 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
           // Pinned Fixed Header
           AppModalHeader(
             title: _isEditing ? 'Edit Showroom' : 'Add New Showroom',
-            subtitle: _isEditing ? 'Update showroom branch details' : 'Register a new showroom branch',
-            icon: _isEditing ? Icons.edit_outlined : Icons.add_business_outlined,
+            subtitle: _isEditing
+                ? 'Update showroom branch details'
+                : 'Register a new showroom branch',
+            icon: _isEditing
+                ? Icons.edit_outlined
+                : Icons.add_business_outlined,
             iconBgColor: AppColors.primary.withAlpha(20),
             iconColor: AppColors.primary,
             showDragHandle: true,
@@ -148,193 +153,221 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
                   children: [
                     // Error Banner
                     if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.errorLight,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.error.withAlpha(80)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, size: 18, color: AppColors.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.errorDark,
-                            fontWeight: FontWeight.w500,
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.error.withAlpha(80),
                           ),
                         ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.errorDark,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(height: 16),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
 
-              // Showroom Name Field
-              AppTextField(
-                controller: _nameController,
-                label: 'Showroom Name *',
-                hintText: 'e.g. E6 Car Spa - Anna Nagar',
-                prefixIcon: const Icon(Icons.storefront_outlined),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Showroom name is required';
-                  }
-                  if (val.trim().length > 150) {
-                    return 'Showroom name must be 150 characters or less';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
+                    // Showroom Name Field
+                    AppTextField(
+                      controller: _nameController,
+                      label: 'Showroom Name *',
+                      hintText: 'e.g. E6 Car Spa - Anna Nagar',
+                      prefixIcon: const Icon(Icons.storefront_outlined),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Showroom name is required';
+                        }
+                        if (val.trim().length > 150) {
+                          return 'Showroom name must be 150 characters or less';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
 
-              // Address Field
-              AppTextField(
-                controller: _addressController,
-                label: 'Address *',
-                hintText: 'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040',
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                maxLines: 2,
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Address is required';
-                  }
-                  if (val.trim().length > 500) {
-                    return 'Address must be 500 characters or less';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
+                    // Address Field
+                    AppTextField(
+                      controller: _addressController,
+                      label: 'Address *',
+                      hintText:
+                          'e.g. Plot 12, 2nd Avenue, Anna Nagar, Chennai - 600040',
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      maxLines: 2,
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) {
+                          return 'Address is required';
+                        }
+                        if (val.trim().length > 500) {
+                          return 'Address must be 500 characters or less';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
 
-              // Contact Phone Field
-              AppTextField(
-                controller: _phoneController,
-                label: 'Contact Phone (Optional)',
-                hintText: 'e.g. 9840154321',
-                prefixIcon: const Icon(Icons.phone_outlined),
-                keyboardType: TextInputType.phone,
-                inputFormatters: PhoneValidator.formatters,
-                maxLength: 10,
-                validator: (val) => PhoneValidator.validate(val, isRequired: false, fieldName: 'Contact phone'),
-              ),
-              const SizedBox(height: 14),
+                    // Contact Phone Field
+                    AppTextField(
+                      controller: _phoneController,
+                      label: 'Contact Phone (Optional)',
+                      hintText: 'e.g. 9840154321',
+                      prefixIcon: const Icon(Icons.phone_outlined),
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: PhoneValidator.formatters,
+                      maxLength: 10,
+                      validator: (val) => PhoneValidator.validate(
+                        val,
+                        isRequired: false,
+                        fieldName: 'Contact phone',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
-              // GSTIN Field
-              AppTextField(
-                controller: _gstinController,
-                label: 'GSTIN (Optional)',
-                hintText: 'e.g. 33AAAAA0000A1Z5',
-                prefixIcon: const Icon(Icons.receipt_outlined),
-                textCapitalization: TextCapitalization.characters,
-                maxLength: 15,
-                inputFormatters: [
-                  const UpperCaseTextFormatter(),
-                  LengthLimitingTextInputFormatter(15),
-                ],
-                helperText: '15-character Indian Goods & Services Tax ID',
-                validator: (val) {
-                  if (val != null && val.trim().isNotEmpty) {
-                    final gstinRegex = RegExp(
-                      r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
-                      caseSensitive: false,
-                    );
-                    if (!gstinRegex.hasMatch(val.trim())) {
-                      return 'Invalid GSTIN format (e.g. 33AAAAA0000A1Z5)';
-                    }
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
+                    // GSTIN Field
+                    AppTextField(
+                      controller: _gstinController,
+                      label: 'GSTIN (Optional)',
+                      hintText: 'e.g. 33AAAAA0000A1Z5',
+                      prefixIcon: const Icon(Icons.receipt_outlined),
+                      textCapitalization: TextCapitalization.characters,
+                      maxLength: 15,
+                      inputFormatters: [
+                        const UpperCaseTextFormatter(),
+                        LengthLimitingTextInputFormatter(15),
+                      ],
+                      helperText: '15-character Indian Goods & Services Tax ID',
+                      validator: (val) {
+                        if (val != null && val.trim().isNotEmpty) {
+                          final gstinRegex = RegExp(
+                            r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+                            caseSensitive: false,
+                          );
+                          if (!gstinRegex.hasMatch(val.trim())) {
+                            return 'Invalid GSTIN format (e.g. 33AAAAA0000A1Z5)';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
 
-              // Active Switch Card
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    // Active Switch Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Active Status',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Active Status',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Showroom is operational & accepts staff roster',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Showroom is operational & accepts staff roster',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
+                          const SizedBox(width: 8),
+                          Switch.adaptive(
+                            value: _isActive,
+                            activeTrackColor: AppColors.primary,
+                            onChanged: (val) => setState(() => _isActive = val),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Switch.adaptive(
-                      value: _isActive,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (val) => setState(() => _isActive = val),
+                    const SizedBox(height: 22),
+
+                    // Bottom action buttons (Cancel + Submit)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            key: const Key('modal_cancel_button'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () {
+                                    FocusScope.of(context).unfocus();
+                                    Navigator.of(context).pop();
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(
+                                color: AppColors.borderDark,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: AppButton(
+                            label: _isEditing
+                                ? 'Save Changes'
+                                : 'Create Showroom',
+                            icon: _isEditing
+                                ? Icons.save_outlined
+                                : Icons.add_business_outlined,
+                            isLoading: _isSubmitting,
+                            onPressed: _handleSubmit,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 22),
-
-              // Bottom action buttons (Cancel + Submit)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('modal_cancel_button'),
-                      onPressed: _isSubmitting
-                          ? null
-                          : () {
-                              FocusScope.of(context).unfocus();
-                              Navigator.of(context).pop();
-                            },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppColors.borderDark),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: AppButton(
-                      label: _isEditing ? 'Save Changes' : 'Create Showroom',
-                      icon: _isEditing ? Icons.save_outlined : Icons.add_business_outlined,
-                      isLoading: _isSubmitting,
-                      onPressed: _handleSubmit,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ),
-  ],
-),
-);
+    );
   }
 }

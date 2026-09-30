@@ -102,11 +102,19 @@ class AppColors {
   static const Color loginGradientEnd = Color(0xFF450A0A); // Red-950
   static const Color loginAccent = Color(0xFFDC2626); // Red-600
   static const Color loginCardBg = Color(0xF2140606); // Deep obsidian wine
-  static const Color loginCardBorder = Color(0x4DDC2626); // Subtle red border glow
-  static const Color loginInputFill = Color(0xCC220B0B); // Dark crimson input fill
+  static const Color loginCardBorder = Color(
+    0x4DDC2626,
+  ); // Subtle red border glow
+  static const Color loginInputFill = Color(
+    0xCC220B0B,
+  ); // Dark crimson input fill
   static const Color loginInputBorder = Color(0x737F1D1D); // Muted red border
-  static const Color loginTextSecondary = Color(0xCCFECACA); // Muted red-tinted white (80%)
-  static const Color loginTextMuted = Color(0x80FECACA); // Subdued red-tinted white (50%)
+  static const Color loginTextSecondary = Color(
+    0xCCFECACA,
+  ); // Muted red-tinted white (80%)
+  static const Color loginTextMuted = Color(
+    0x80FECACA,
+  ); // Subdued red-tinted white (50%)
 
   // Brand Gradients (matching the login and desktop aesthetic)
   static const LinearGradient brandGradient = LinearGradient(
@@ -119,4 +127,3 @@ class AppColors {
     ],
   );
 }
-

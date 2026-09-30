@@ -32,10 +32,7 @@ class AuthRepository {
   /// Performs login, stores token and user in secure storage, and returns AuthUser
   Future<AuthUser> login(String username, String password) async {
     final response = await _api.login(
-      LoginRequest(
-        username: username.trim(),
-        password: password,
-      ),
+      LoginRequest(username: username.trim(), password: password),
     );
 
     await _storage.saveToken(response.token);

@@ -145,7 +145,9 @@ void main() {
     });
 
     test('updateBusinessProfile returns updated profile on success', () async {
-      final updatedProfile = sampleProfile.copyWith(businessName: 'E6 Auto Spa');
+      final updatedProfile = sampleProfile.copyWith(
+        businessName: 'E6 Auto Spa',
+      );
       mockApi.profileToReturn = updatedProfile;
 
       final request = UpdateBusinessProfileRequest(
@@ -199,11 +201,13 @@ void main() {
 
       expect(
         () => repository.getBusinessProfile(),
-        throwsA(isA<ApiException>().having(
-          (e) => e.message,
-          'message',
-          contains('Invalid Indian GSTIN structure.'),
-        )),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            contains('Invalid Indian GSTIN structure.'),
+          ),
+        ),
       );
     });
 
@@ -224,56 +228,65 @@ void main() {
       );
     });
 
-    test('getPublicBusinessProfile saves to public branding cache and NEVER writes to protected profile cache', () async {
-      mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
-        businessName: 'Public Brand Name',
-        logoPath: '/logos/public.png',
-      );
+    test(
+      'getPublicBusinessProfile saves to public branding cache and NEVER writes to protected profile cache',
+      () async {
+        mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
+          businessName: 'Public Brand Name',
+          logoPath: '/logos/public.png',
+        );
 
-      final result = await repository.getPublicBusinessProfile();
+        final result = await repository.getPublicBusinessProfile();
 
-      expect(result.businessName, 'Public Brand Name');
-      expect(result.logoPath, '/logos/public.png');
+        expect(result.businessName, 'Public Brand Name');
+        expect(result.logoPath, '/logos/public.png');
 
-      // 1. Verify public cache has data
-      final cachedPublic = await repository.getCachedPublicBranding();
-      expect(cachedPublic, isNotNull);
-      expect(cachedPublic!.businessName, 'Public Brand Name');
+        // 1. Verify public cache has data
+        final cachedPublic = await repository.getCachedPublicBranding();
+        expect(cachedPublic, isNotNull);
+        expect(cachedPublic!.businessName, 'Public Brand Name');
 
-      // 2. CRITICAL INVARIANT: Protected profile cache remains null!
-      final cachedProtected = await repository.getCachedBusinessProfile();
-      expect(cachedProtected, isNull);
-      expect(mockStorage.data.containsKey('e6_cached_business_profile'), isFalse);
-    });
+        // 2. CRITICAL INVARIANT: Protected profile cache remains null!
+        final cachedProtected = await repository.getCachedBusinessProfile();
+        expect(cachedProtected, isNull);
+        expect(
+          mockStorage.data.containsKey('e6_cached_business_profile'),
+          isFalse,
+        );
+      },
+    );
 
-    test('getPublicBusinessProfile never overwrites protected settings of a previously cached full profile', () async {
-      mockApi.profileToReturn = sampleProfile;
-      await repository.getBusinessProfile();
+    test(
+      'getPublicBusinessProfile never overwrites protected settings of a previously cached full profile',
+      () async {
+        mockApi.profileToReturn = sampleProfile;
+        await repository.getBusinessProfile();
 
-      // Verify protected settings are cached
-      var cached = await repository.getCachedBusinessProfile();
-      expect(cached?.gstin, '33AAAAA0000A1Z5');
-      expect(cached?.invoicePrefix, 'INV');
-      expect(cached?.addressLine1, '36, Geetha Nagar');
-      expect(cached?.city, 'Erode');
-      expect(cached?.phone, '+91 9578749449');
-      expect(cached?.email, 'e6carspaerd@gmail.com');
+        // Verify protected settings are cached
+        var cached = await repository.getCachedBusinessProfile();
+        expect(cached?.gstin, '33AAAAA0000A1Z5');
+        expect(cached?.invoicePrefix, 'INV');
+        expect(cached?.addressLine1, '36, Geetha Nagar');
+        expect(cached?.city, 'Erode');
+        expect(cached?.phone, '+91 9578749449');
+        expect(cached?.email, 'e6carspaerd@gmail.com');
 
-      // Now fetch public profile
-      mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
-        businessName: 'Updated Brand Name',
-        logoPath: '/new/logo.png',
-      );
-      await repository.getPublicBusinessProfile();
+        // Now fetch public profile
+        mockApi.publicProfileToReturn = const PublicBusinessProfileModel(
+          businessName: 'Updated Brand Name',
+          logoPath: '/new/logo.png',
+        );
+        await repository.getPublicBusinessProfile();
 
-      // Verify protected settings in storage were NOT corrupted or blanked out
-      cached = await repository.getCachedBusinessProfile();
-      expect(cached?.gstin, '33AAAAA0000A1Z5');
-      expect(cached?.invoicePrefix, 'INV');
-      expect(cached?.addressLine1, '36, Geetha Nagar');
-      expect(cached?.city, 'Erode');
-      expect(cached?.phone, '+91 9578749449');
-      expect(cached?.email, 'e6carspaerd@gmail.com');
-    });
+        // Verify protected settings in storage were NOT corrupted or blanked out
+        cached = await repository.getCachedBusinessProfile();
+        expect(cached?.gstin, '33AAAAA0000A1Z5');
+        expect(cached?.invoicePrefix, 'INV');
+        expect(cached?.addressLine1, '36, Geetha Nagar');
+        expect(cached?.city, 'Erode');
+        expect(cached?.phone, '+91 9578749449');
+        expect(cached?.email, 'e6carspaerd@gmail.com');
+      },
+    );
   });
 }

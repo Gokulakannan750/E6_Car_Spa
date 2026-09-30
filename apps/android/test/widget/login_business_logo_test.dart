@@ -46,8 +46,10 @@ class FakeSettingsNotifier extends StateNotifier<SettingsState>
   Future<bool> updateProfile(dynamic request) async => true;
 
   @override
-  Future<bool> uploadLogo({required List<int> bytes, required String filename}) async =>
-      true;
+  Future<bool> uploadLogo({
+    required List<int> bytes,
+    required String filename,
+  }) async => true;
 
   @override
   Future<bool> removeLogo() async => true;
@@ -95,7 +97,10 @@ void main() {
   }) {
     final authRepo = StubAuthRepo();
     final effectiveNotifier =
-        notifier ?? FakeSettingsNotifier(settingsState ?? const SettingsLoaded(profile: defaultProfile));
+        notifier ??
+        FakeSettingsNotifier(
+          settingsState ?? const SettingsLoaded(profile: defaultProfile),
+        );
 
     return ProviderScope(
       overrides: [
@@ -103,76 +108,91 @@ void main() {
         authNotifierProvider.overrideWith((ref) => TestLoginNotifier(authRepo)),
         settingsNotifierProvider.overrideWith((ref) => effectiveNotifier),
       ],
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: const LoginScreen(),
-      ),
+      child: MaterialApp(theme: AppTheme.light, home: const LoginScreen()),
     );
   }
 
   group('LoginScreen Business Logo Tests', () {
-    testWidgets('displays fallback icon and default name when no custom logo configured', (tester) async {
-      await tester.pumpWidget(createLoginTestWidget(
-        settingsState: const SettingsLoaded(profile: defaultProfile),
-      ));
-      await tester.pumpAndSettle();
-
-      // Fallback icon and default name
-      expect(find.byType(AppBusinessLogo), findsOneWidget);
-      expect(find.byIcon(Icons.local_car_wash_rounded), findsOneWidget);
-      expect(find.text('E6 Car Spa'), findsOneWidget);
-      expect(find.text('Management Suite'), findsOneWidget);
-    });
-
-    testWidgets('displays configured business logo and business name when logo exists', (tester) async {
-      await tester.pumpWidget(createLoginTestWidget(
-        settingsState: const SettingsLoaded(profile: customProfile),
-      ));
-      await tester.pump();
-
-      // Should render AppBusinessLogo containing Image.network
-      expect(find.byType(AppBusinessLogo), findsOneWidget);
-      expect(find.byType(Image), findsOneWidget);
-      expect(find.text('Apex Detailing Studio'), findsOneWidget);
-    });
-
-    testWidgets('dynamically updates logo and business name when profile state changes', (tester) async {
-      final notifier = FakeSettingsNotifier(const SettingsLoaded(profile: defaultProfile));
-
-      await tester.pumpWidget(createLoginTestWidget(notifier: notifier));
-      await tester.pumpAndSettle();
-
-      expect(find.text('E6 Car Spa'), findsOneWidget);
-      expect(find.byIcon(Icons.local_car_wash_rounded), findsOneWidget);
-
-      // Now update the profile dynamically (e.g. cross-device settings update)
-      notifier.setProfile(customProfile);
-      await tester.pump();
-
-      expect(find.text('Apex Detailing Studio'), findsOneWidget);
-      expect(find.byType(Image), findsOneWidget);
-    });
-
-    testWidgets('falls back to default icon when image network error occurs without crashing', (tester) async {
-      final logoWidget = MaterialApp(
-        home: Scaffold(
-          body: AppBusinessLogo(
-            height: 72,
-            maxHeight: 72,
-            maxWidth: 240,
-            borderRadius: 16,
-            fallbackIcon: Icons.local_car_wash_rounded,
-            customLogoPath: 'http://nonexistent.domain.invalid/logo.png',
+    testWidgets(
+      'displays fallback icon and default name when no custom logo configured',
+      (tester) async {
+        await tester.pumpWidget(
+          createLoginTestWidget(
+            settingsState: const SettingsLoaded(profile: defaultProfile),
           ),
-        ),
-      );
+        );
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(ProviderScope(child: logoWidget));
-      await tester.pump();
+        // Fallback icon and default name
+        expect(find.byType(AppBusinessLogo), findsOneWidget);
+        expect(find.byIcon(Icons.local_car_wash_rounded), findsOneWidget);
+        expect(find.text('E6 Car Spa'), findsOneWidget);
+        expect(find.text('Management Suite'), findsOneWidget);
+      },
+    );
 
-      // When network fails or image cannot be decoded in test environment,
-      // AppBusinessLogo handles errorBuilder and displays fallback
-      expect(find.byType(AppBusinessLogo), findsOneWidget);
-    });
+    testWidgets(
+      'displays configured business logo and business name when logo exists',
+      (tester) async {
+        await tester.pumpWidget(
+          createLoginTestWidget(
+            settingsState: const SettingsLoaded(profile: customProfile),
+          ),
+        );
+        await tester.pump();
+
+        // Should render AppBusinessLogo containing Image.network
+        expect(find.byType(AppBusinessLogo), findsOneWidget);
+        expect(find.byType(Image), findsOneWidget);
+        expect(find.text('Apex Detailing Studio'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'dynamically updates logo and business name when profile state changes',
+      (tester) async {
+        final notifier = FakeSettingsNotifier(
+          const SettingsLoaded(profile: defaultProfile),
+        );
+
+        await tester.pumpWidget(createLoginTestWidget(notifier: notifier));
+        await tester.pumpAndSettle();
+
+        expect(find.text('E6 Car Spa'), findsOneWidget);
+        expect(find.byIcon(Icons.local_car_wash_rounded), findsOneWidget);
+
+        // Now update the profile dynamically (e.g. cross-device settings update)
+        notifier.setProfile(customProfile);
+        await tester.pump();
+
+        expect(find.text('Apex Detailing Studio'), findsOneWidget);
+        expect(find.byType(Image), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'falls back to default icon when image network error occurs without crashing',
+      (tester) async {
+        final logoWidget = MaterialApp(
+          home: Scaffold(
+            body: AppBusinessLogo(
+              height: 72,
+              maxHeight: 72,
+              maxWidth: 240,
+              borderRadius: 16,
+              fallbackIcon: Icons.local_car_wash_rounded,
+              customLogoPath: 'http://nonexistent.domain.invalid/logo.png',
+            ),
+          ),
+        );
+
+        await tester.pumpWidget(ProviderScope(child: logoWidget));
+        await tester.pump();
+
+        // When network fails or image cannot be decoded in test environment,
+        // AppBusinessLogo handles errorBuilder and displays fallback
+        expect(find.byType(AppBusinessLogo), findsOneWidget);
+      },
+    );
   });
 }

@@ -27,7 +27,9 @@ class RevenueChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalSales = sales.netSales;
     final totalCollected = paymentCollection.totalReceived;
-    final collectionRate = totalSales > 0 ? (totalCollected / totalSales) * 100 : 0.0;
+    final collectionRate = totalSales > 0
+        ? (totalCollected / totalSales) * 100
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -69,7 +71,9 @@ class RevenueChart extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSM),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Text(
                   '${collectionRate.toStringAsFixed(1)}% Collected',
@@ -96,14 +100,18 @@ class RevenueChart extends StatelessWidget {
             label: 'Collections Received',
             amount: totalCollected,
             color: AppColors.success,
-            fraction: totalSales > 0 ? (totalCollected / totalSales).clamp(0.0, 1.0) : (totalCollected > 0 ? 1.0 : 0.0),
+            fraction: totalSales > 0
+                ? (totalCollected / totalSales).clamp(0.0, 1.0)
+                : (totalCollected > 0 ? 1.0 : 0.0),
           ),
           const SizedBox(height: 10),
           _buildComparisonRow(
             label: 'Outstanding Balance',
             amount: sales.outstanding,
             color: AppColors.warning,
-            fraction: totalSales > 0 ? (sales.outstanding / totalSales).clamp(0.0, 1.0) : (sales.outstanding > 0 ? 1.0 : 0.0),
+            fraction: totalSales > 0
+                ? (sales.outstanding / totalSales).clamp(0.0, 1.0)
+                : (sales.outstanding > 0 ? 1.0 : 0.0),
           ),
 
           const SizedBox(height: 20),
@@ -121,18 +129,25 @@ class RevenueChart extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          if (paymentCollection.breakdownByMethod.isEmpty || totalCollected == 0)
+          if (paymentCollection.breakdownByMethod.isEmpty ||
+              totalCollected == 0)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No payment transactions recorded in this period.',
-                style: TextStyle(fontSize: 12, color: AppColors.textTertiary, fontStyle: FontStyle.italic),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textTertiary,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             )
           else
             Column(
               children: paymentCollection.breakdownByMethod.map((item) {
-                final percentage = totalCollected > 0 ? (item.amount / totalCollected) * 100 : 0.0;
+                final percentage = totalCollected > 0
+                    ? (item.amount / totalCollected) * 100
+                    : 0.0;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(
@@ -154,7 +169,9 @@ class RevenueChart extends StatelessWidget {
                           child: LinearProgressIndicator(
                             value: (percentage / 100).clamp(0.0, 1.0),
                             backgroundColor: AppColors.surfaceAlt,
-                            valueColor: AlwaysStoppedAnimation<Color>(_getMethodColor(item.method)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _getMethodColor(item.method),
+                            ),
                             minHeight: 6,
                           ),
                         ),

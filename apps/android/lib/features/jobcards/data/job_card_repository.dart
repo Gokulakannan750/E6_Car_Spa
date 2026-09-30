@@ -68,7 +68,11 @@ class JobCardRepository {
     int pageSize = 20,
   }) async {
     try {
-      return await _api.getJobCardsByCustomer(customerId, page: page, pageSize: pageSize);
+      return await _api.getJobCardsByCustomer(
+        customerId,
+        page: page,
+        pageSize: pageSize,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -80,7 +84,11 @@ class JobCardRepository {
     int pageSize = 20,
   }) async {
     try {
-      return await _api.getJobCardsByVehicle(vehicleId, page: page, pageSize: pageSize);
+      return await _api.getJobCardsByVehicle(
+        vehicleId,
+        page: page,
+        pageSize: pageSize,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -94,7 +102,10 @@ class JobCardRepository {
     }
   }
 
-  Future<JobCard> updateJobCardServices(String id, UpdateJobCardServicesRequest request) async {
+  Future<JobCard> updateJobCardServices(
+    String id,
+    UpdateJobCardServicesRequest request,
+  ) async {
     try {
       return await _api.updateJobCardServices(id, request);
     } on DioException catch (e) {

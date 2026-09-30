@@ -40,7 +40,9 @@ class _AutoRefreshMockServiceRepository extends ServiceRepository {
       list = list.where((s) => s.category == category).toList();
     }
     if (search != null && search.isNotEmpty) {
-      list = list.where((s) => s.name.toLowerCase().contains(search.toLowerCase())).toList();
+      list = list
+          .where((s) => s.name.toLowerCase().contains(search.toLowerCase()))
+          .toList();
     }
     return ServiceListResponse(
       items: list,
@@ -71,7 +73,8 @@ class _AutoRefreshMockServiceRepository extends ServiceRepository {
   }
 }
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
 
   @override
@@ -100,165 +103,177 @@ void main() {
     return ProviderScope(
       overrides: [
         serviceRepositoryProvider.overrideWithValue(repo),
-        authNotifierProvider.overrideWith((ref) => _TestAuthNotifier(const Authenticated(managerUser))),
+        authNotifierProvider.overrideWith(
+          (ref) => _TestAuthNotifier(const Authenticated(managerUser)),
+        ),
         systemPreferencesProvider.overrideWithValue(
-          SystemPreferencesModel.defaultPreferences.copyWith(refreshInterval: refreshInterval),
+          SystemPreferencesModel.defaultPreferences.copyWith(
+            refreshInterval: refreshInterval,
+          ),
         ),
       ],
-      child: const MaterialApp(
-        home: CatalogueScreen(),
-      ),
+      child: const MaterialApp(home: CatalogueScreen()),
     );
   }
 
   group('Android Catalogue Auto-Refresh Tests', () {
-    testWidgets('1. Windows adds a service -> Android Catalogue sitting open auto-refreshes after 12s without navigation',
-        (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
+    testWidgets(
+      '1. Windows adds a service -> Android Catalogue sitting open auto-refreshes after 12s without navigation',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-1',
+              name: 'Service A',
+              category: 'General Services',
+              price: 500.0,
+              durationMinutes: 30,
+              isActive: true,
+            ),
+          ];
+
+        // Mount Catalogue screen
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
+
+        // Initial state: Only Service A is displayed
+        expect(find.text('Service A'), findsOneWidget);
+        expect(find.text('Cross Platform Windows Test'), findsNothing);
+        expect(repo.getServicesCalls, 1);
+
+        // Windows creates a new service on backend
+        repo.services.add(
           const Service(
-            id: 'svc-1',
-            name: 'Service A',
+            id: 'svc-windows-1',
+            name: 'Cross Platform Windows Test',
             category: 'General Services',
-            price: 500.0,
-            durationMinutes: 30,
+            price: 1500.0,
+            durationMinutes: 60,
             isActive: true,
           ),
-        ];
+        );
 
-      // Mount Catalogue screen
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
+        // Advance time by 12 seconds (existing auto-refresh interval)
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
 
-      // Initial state: Only Service A is displayed
-      expect(find.text('Service A'), findsOneWidget);
-      expect(find.text('Cross Platform Windows Test'), findsNothing);
-      expect(repo.getServicesCalls, 1);
+        // Verify GET /api/services was called again automatically
+        expect(repo.getServicesCalls, greaterThanOrEqualTo(2));
 
-      // Windows creates a new service on backend
-      repo.services.add(
-        const Service(
-          id: 'svc-windows-1',
-          name: 'Cross Platform Windows Test',
-          category: 'General Services',
-          price: 1500.0,
-          durationMinutes: 60,
-          isActive: true,
-        ),
-      );
+        // The new service appears in the UI WITHOUT any navigation or manual action
+        expect(find.text('Service A'), findsOneWidget);
+        expect(find.text('Cross Platform Windows Test'), findsOneWidget);
+        expect(find.text('₹1500.00'), findsOneWidget);
+      },
+    );
 
-      // Advance time by 12 seconds (existing auto-refresh interval)
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
+    testWidgets(
+      '2. Category filter updates with newly refreshed service after 12s',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-initial',
+              name: 'Initial Exterior Wash',
+              category: 'Exterior Detailing',
+              price: 700.0,
+              isActive: true,
+            ),
+          ];
 
-      // Verify GET /api/services was called again automatically
-      expect(repo.getServicesCalls, greaterThanOrEqualTo(2));
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
 
-      // The new service appears in the UI WITHOUT any navigation or manual action
-      expect(find.text('Service A'), findsOneWidget);
-      expect(find.text('Cross Platform Windows Test'), findsOneWidget);
-      expect(find.text('₹1500.00'), findsOneWidget);
-    });
+        // Select 'General Services' category filter
+        await tester.tap(find.widgetWithText(ChoiceChip, 'General Services'));
+        await tester.pumpAndSettle();
 
-    testWidgets('2. Category filter updates with newly refreshed service after 12s', (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
+        // Initial exterior wash is not in General Services
+        expect(find.text('Initial Exterior Wash'), findsNothing);
+
+        // Windows creates two services: one in 'General Services', one in 'Exterior Detailing'
+        repo.services.addAll([
           const Service(
-            id: 'svc-initial',
-            name: 'Initial Exterior Wash',
+            id: 'svc-gen-new',
+            name: 'Engine Bay General Clean',
+            category: 'General Services',
+            price: 1200.0,
+            isActive: true,
+          ),
+          const Service(
+            id: 'svc-ext-new',
+            name: 'Graphene Coat Exterior',
             category: 'Exterior Detailing',
-            price: 700.0,
+            price: 5000.0,
             isActive: true,
           ),
-        ];
+        ]);
 
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
+        // Advance 12 seconds for auto-refresh
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
 
-      // Select 'General Services' category filter
-      await tester.tap(find.widgetWithText(ChoiceChip, 'General Services'));
-      await tester.pumpAndSettle();
+        // The service in 'General Services' appears in the active category
+        expect(find.text('Engine Bay General Clean'), findsOneWidget);
+        // The service in 'Exterior Detailing' is filtered out of current view
+        expect(find.text('Graphene Coat Exterior'), findsNothing);
 
-      // Initial exterior wash is not in General Services
-      expect(find.text('Initial Exterior Wash'), findsNothing);
+        // When switching category to 'Exterior Detailing', it appears
+        await tester.tap(find.widgetWithText(ChoiceChip, 'Exterior Detailing'));
+        await tester.pumpAndSettle();
 
-      // Windows creates two services: one in 'General Services', one in 'Exterior Detailing'
-      repo.services.addAll([
-        const Service(
-          id: 'svc-gen-new',
-          name: 'Engine Bay General Clean',
-          category: 'General Services',
-          price: 1200.0,
-          isActive: true,
-        ),
-        const Service(
-          id: 'svc-ext-new',
-          name: 'Graphene Coat Exterior',
-          category: 'Exterior Detailing',
-          price: 5000.0,
-          isActive: true,
-        ),
-      ]);
+        expect(find.text('Graphene Coat Exterior'), findsOneWidget);
+        expect(find.text('Engine Bay General Clean'), findsNothing);
+      },
+    );
 
-      // Advance 12 seconds for auto-refresh
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
+    testWidgets(
+      '3. Search finds newly auto-refreshed service without page reload',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-1',
+              name: 'Basic Wash',
+              category: 'General Services',
+              price: 300.0,
+              isActive: true,
+            ),
+          ];
 
-      // The service in 'General Services' appears in the active category
-      expect(find.text('Engine Bay General Clean'), findsOneWidget);
-      // The service in 'Exterior Detailing' is filtered out of current view
-      expect(find.text('Graphene Coat Exterior'), findsNothing);
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
 
-      // When switching category to 'Exterior Detailing', it appears
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Exterior Detailing'));
-      await tester.pumpAndSettle();
+        expect(find.text('Basic Wash'), findsOneWidget);
 
-      expect(find.text('Graphene Coat Exterior'), findsOneWidget);
-      expect(find.text('Engine Bay General Clean'), findsNothing);
-    });
-
-    testWidgets('3. Search finds newly auto-refreshed service without page reload', (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
+        // Windows creates 'Test Ceramic Service'
+        repo.services.add(
           const Service(
-            id: 'svc-1',
-            name: 'Basic Wash',
-            category: 'General Services',
-            price: 300.0,
+            id: 'svc-ceramic',
+            name: 'Test Ceramic Service',
+            category: 'Protection Packages',
+            price: 12000.0,
+            description: 'High durability coating',
             isActive: true,
           ),
-        ];
+        );
 
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
+        // Wait for auto-refresh interval
+        await tester.pump(const Duration(seconds: 12));
+        await tester.pump();
 
-      expect(find.text('Basic Wash'), findsOneWidget);
+        // Now search for 'Ceramic'
+        await tester.enterText(find.byType(TextField).first, 'Ceramic');
+        await tester.pumpAndSettle();
 
-      // Windows creates 'Test Ceramic Service'
-      repo.services.add(
-        const Service(
-          id: 'svc-ceramic',
-          name: 'Test Ceramic Service',
-          category: 'Protection Packages',
-          price: 12000.0,
-          description: 'High durability coating',
-          isActive: true,
-        ),
-      );
+        expect(find.text('Test Ceramic Service'), findsOneWidget);
+        expect(find.text('Basic Wash'), findsNothing);
+      },
+    );
 
-      // Wait for auto-refresh interval
-      await tester.pump(const Duration(seconds: 12));
-      await tester.pump();
-
-      // Now search for 'Ceramic'
-      await tester.enterText(find.byType(TextField).first, 'Ceramic');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Test Ceramic Service'), findsOneWidget);
-      expect(find.text('Basic Wash'), findsNothing);
-    });
-
-    testWidgets('4. App lifecycle resume triggers auto-refresh', (tester) async {
+    testWidgets('4. App lifecycle resume triggers auto-refresh', (
+      tester,
+    ) async {
       final repo = _AutoRefreshMockServiceRepository()
         ..services = [
           const Service(
@@ -302,120 +317,137 @@ void main() {
       expect(find.text('Background Synced Service'), findsOneWidget);
     });
 
-    testWidgets('5. Android local service creation continues to update catalogue immediately', (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
-          const Service(
-            id: 'svc-1',
-            name: 'Initial Service',
-            category: 'General Services',
-            price: 450.0,
-            isActive: true,
-          ),
-        ];
-
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
-
-      // Call createService via provider
-      final element = tester.element(find.byType(CatalogueScreen));
-      final container = ProviderScope.containerOf(element);
-
-      await container.read(catalogueProvider.notifier).createService(
-            const CreateServiceRequest(
-              name: 'Android Created Service',
+    testWidgets(
+      '5. Android local service creation continues to update catalogue immediately',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-1',
+              name: 'Initial Service',
               category: 'General Services',
-              price: 999.0,
+              price: 450.0,
               isActive: true,
             ),
-          );
+          ];
 
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Android Created Service'), findsOneWidget);
-    });
+        // Call createService via provider
+        final element = tester.element(find.byType(CatalogueScreen));
+        final container = ProviderScope.containerOf(element);
 
-    testWidgets('6. Simulated API progression (Service A -> Service A & Service B) updates provider state directly',
-        (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
+        await container
+            .read(catalogueProvider.notifier)
+            .createService(
+              const CreateServiceRequest(
+                name: 'Android Created Service',
+                category: 'General Services',
+                price: 999.0,
+                isActive: true,
+              ),
+            );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('Android Created Service'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      '6. Simulated API progression (Service A -> Service A & Service B) updates provider state directly',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-a',
+              name: 'Service A',
+              category: 'General Services',
+              price: 500.0,
+              isActive: true,
+            ),
+          ];
+
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
+
+        final element = tester.element(find.byType(CatalogueScreen));
+        final container = ProviderScope.containerOf(element);
+
+        // Initial provider state: [Service A]
+        expect(container.read(catalogueProvider).services.map((s) => s.name), [
+          'Service A',
+        ]);
+
+        // Backend now returns Service A and Service B
+        repo.services.add(
           const Service(
-            id: 'svc-a',
-            name: 'Service A',
+            id: 'svc-b',
+            name: 'Service B',
             category: 'General Services',
-            price: 500.0,
+            price: 750.0,
             isActive: true,
           ),
-        ];
+        );
 
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
+        // Trigger silent refresh
+        await container
+            .read(catalogueProvider.notifier)
+            .loadCatalogue(silent: true);
+        await tester.pump();
 
-      final element = tester.element(find.byType(CatalogueScreen));
-      final container = ProviderScope.containerOf(element);
+        // Expected provider state: [Service A, Service B]
+        expect(container.read(catalogueProvider).services.map((s) => s.name), [
+          'Service A',
+          'Service B',
+        ]);
+        expect(find.text('Service A'), findsOneWidget);
+        expect(find.text('Service B'), findsOneWidget);
+      },
+    );
 
-      // Initial provider state: [Service A]
-      expect(container.read(catalogueProvider).services.map((s) => s.name), ['Service A']);
+    testWidgets(
+      '7. Auto-refresh runs silently without flashing full-page loading spinner',
+      (tester) async {
+        final repo = _AutoRefreshMockServiceRepository()
+          ..services = [
+            const Service(
+              id: 'svc-1',
+              name: 'Service Steady',
+              category: 'General Services',
+              price: 500.0,
+              isActive: true,
+            ),
+          ];
 
-      // Backend now returns Service A and Service B
-      repo.services.add(
-        const Service(
-          id: 'svc-b',
-          name: 'Service B',
-          category: 'General Services',
-          price: 750.0,
-          isActive: true,
-        ),
-      );
+        await tester.pumpWidget(createTestWidget(repo));
+        await tester.pumpAndSettle();
 
-      // Trigger silent refresh
-      await container.read(catalogueProvider.notifier).loadCatalogue(silent: true);
-      await tester.pump();
+        expect(find.text('Service Steady'), findsOneWidget);
 
-      // Expected provider state: [Service A, Service B]
-      expect(container.read(catalogueProvider).services.map((s) => s.name), ['Service A', 'Service B']);
-      expect(find.text('Service A'), findsOneWidget);
-      expect(find.text('Service B'), findsOneWidget);
-    });
-
-    testWidgets('7. Auto-refresh runs silently without flashing full-page loading spinner', (tester) async {
-      final repo = _AutoRefreshMockServiceRepository()
-        ..services = [
+        // Add a service
+        repo.services.add(
           const Service(
-            id: 'svc-1',
-            name: 'Service Steady',
+            id: 'svc-2',
+            name: 'Service Steady 2',
             category: 'General Services',
-            price: 500.0,
+            price: 600.0,
             isActive: true,
           ),
-        ];
+        );
 
-      await tester.pumpWidget(createTestWidget(repo));
-      await tester.pumpAndSettle();
+        // Advance time by 12s - auto-refresh triggers with silent: true
+        await tester.pump(const Duration(seconds: 12));
 
-      expect(find.text('Service Steady'), findsOneWidget);
+        // Assert that full-page loading spinner is NOT displayed during silent auto-refresh
+        expect(find.text('Loading service catalogue...'), findsNothing);
 
-      // Add a service
-      repo.services.add(
-        const Service(
-          id: 'svc-2',
-          name: 'Service Steady 2',
-          category: 'General Services',
-          price: 600.0,
-          isActive: true,
-        ),
-      );
+        await tester.pump();
 
-      // Advance time by 12s - auto-refresh triggers with silent: true
-      await tester.pump(const Duration(seconds: 12));
-
-      // Assert that full-page loading spinner is NOT displayed during silent auto-refresh
-      expect(find.text('Loading service catalogue...'), findsNothing);
-
-      await tester.pump();
-
-      // The new item appears smoothly
-      expect(find.text('Service Steady 2'), findsOneWidget);
-    });
+        // The new item appears smoothly
+        expect(find.text('Service Steady 2'), findsOneWidget);
+      },
+    );
   });
 }

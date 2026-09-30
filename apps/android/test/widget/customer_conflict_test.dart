@@ -17,7 +17,8 @@ class StubCustomerRepo extends CustomerRepository {
   bool shouldThrowConflict = false;
   bool shouldThrowServer = false;
   CreateCustomerRequest? lastCreatedRequest;
-  String conflictMessage = 'A customer with phone number 9876543210 already exists.';
+  String conflictMessage =
+      'A customer with phone number 9876543210 already exists.';
 
   StubCustomerRepo() : super(CustomerApi(Dio()));
 
@@ -28,7 +29,12 @@ class StubCustomerRepo extends CustomerRepository {
     String? search,
     String? paymentStatus,
   }) async {
-    return const CustomerListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const CustomerListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -68,9 +74,7 @@ void main() {
     Function(Customer)? onCreated,
   }) {
     return ProviderScope(
-      overrides: [
-        customerRepositoryProvider.overrideWithValue(repo),
-      ],
+      overrides: [customerRepositoryProvider.overrideWithValue(repo)],
       child: MaterialApp(
         theme: AppTheme.light,
         home: Scaffold(
@@ -84,62 +88,75 @@ void main() {
   }
 
   group('AddCustomerDialog - Phone Conflict & Validation Tests', () {
-    testWidgets('renders customer form fields and pre-populates initial phone number', (tester) async {
-      final repo = StubCustomerRepo();
-      await tester.pumpWidget(createTestWidget(repo: repo, initialPhone: '9876543210'));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'renders customer form fields and pre-populates initial phone number',
+      (tester) async {
+        final repo = StubCustomerRepo();
+        await tester.pumpWidget(
+          createTestWidget(repo: repo, initialPhone: '9876543210'),
+        );
+        await tester.pumpAndSettle();
 
-      // Header text from AppModalHeader
-      expect(find.text('Add New Customer'), findsOneWidget);
+        // Header text from AppModalHeader
+        expect(find.text('Add New Customer'), findsOneWidget);
 
-      // Field labels rendered by AppTextField
-      expect(find.text('Full Name'), findsOneWidget);
-      expect(find.text('Phone Number'), findsOneWidget);
-      expect(find.text('Email (Optional)'), findsOneWidget);
-      expect(find.text('Address (Optional)'), findsOneWidget);
+        // Field labels rendered by AppTextField
+        expect(find.text('Full Name'), findsOneWidget);
+        expect(find.text('Phone Number'), findsOneWidget);
+        expect(find.text('Email (Optional)'), findsOneWidget);
+        expect(find.text('Address (Optional)'), findsOneWidget);
 
-      // Pre-populated phone value
-      expect(find.text('9876543210'), findsOneWidget);
+        // Pre-populated phone value
+        expect(find.text('9876543210'), findsOneWidget);
 
-      // Submit button uses AppButton with label 'Create Customer'
-      expect(find.widgetWithText(AppButton, 'Create Customer'), findsOneWidget);
-    });
+        // Submit button uses AppButton with label 'Create Customer'
+        expect(
+          find.widgetWithText(AppButton, 'Create Customer'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('validates required name and 10-digit phone number before submitting', (tester) async {
-      final repo = StubCustomerRepo();
-      await tester.pumpWidget(createTestWidget(repo: repo));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'validates required name and 10-digit phone number before submitting',
+      (tester) async {
+        final repo = StubCustomerRepo();
+        await tester.pumpWidget(createTestWidget(repo: repo));
+        await tester.pumpAndSettle();
 
-      // Attempt to submit empty form
-      await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
-      await tester.pumpAndSettle();
+        // Attempt to submit empty form
+        await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
+        await tester.pumpAndSettle();
 
-      // Validation messages from production validators
-      expect(find.text('Customer name is required'), findsOneWidget);
-      expect(find.text('Phone number is required'), findsOneWidget);
-      expect(repo.lastCreatedRequest, isNull);
+        // Validation messages from production validators
+        expect(find.text('Customer name is required'), findsOneWidget);
+        expect(find.text('Phone number is required'), findsOneWidget);
+        expect(repo.lastCreatedRequest, isNull);
 
-      // Enter valid name but invalid phone (<10 digits)
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), 'Gokul Sharma');
-      await tester.enterText(textFields.at(1), '98765');
+        // Enter valid name but invalid phone (<10 digits)
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.at(0), 'Gokul Sharma');
+        await tester.enterText(textFields.at(1), '98765');
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
+        await tester.pumpAndSettle();
 
-      // PhoneValidator returns this exact message
-      expect(find.text('Phone number must be exactly 10 digits'), findsOneWidget);
-      expect(repo.lastCreatedRequest, isNull);
-    });
+        // PhoneValidator returns this exact message
+        expect(
+          find.text('Phone number must be exactly 10 digits'),
+          findsOneWidget,
+        );
+        expect(repo.lastCreatedRequest, isNull);
+      },
+    );
 
     testWidgets('successfully submits valid customer details', (tester) async {
       final repo = StubCustomerRepo();
       Customer? createdCustomer;
 
-      await tester.pumpWidget(createTestWidget(
-        repo: repo,
-        onCreated: (c) => createdCustomer = c,
-      ));
+      await tester.pumpWidget(
+        createTestWidget(repo: repo, onCreated: (c) => createdCustomer = c),
+      );
       await tester.pumpAndSettle();
 
       final textFields = find.byType(TextFormField);
@@ -159,72 +176,84 @@ void main() {
       expect(createdCustomer?.name, 'Aravind Swamy');
     });
 
-    testWidgets('handles HTTP 409 duplicate phone conflict without crash and preserves inputs', (tester) async {
-      final repo = StubCustomerRepo()..shouldThrowConflict = true;
+    testWidgets(
+      'handles HTTP 409 duplicate phone conflict without crash and preserves inputs',
+      (tester) async {
+        final repo = StubCustomerRepo()..shouldThrowConflict = true;
 
-      await tester.pumpWidget(createTestWidget(repo: repo));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createTestWidget(repo: repo));
+        await tester.pumpAndSettle();
 
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), 'Meena Kumari');
-      await tester.enterText(textFields.at(1), '9876543210');
-      await tester.enterText(textFields.at(2), 'meena@example.com');
-      await tester.enterText(textFields.at(3), '45 Anna Nagar, Erode');
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.at(0), 'Meena Kumari');
+        await tester.enterText(textFields.at(1), '9876543210');
+        await tester.enterText(textFields.at(2), 'meena@example.com');
+        await tester.enterText(textFields.at(3), '45 Anna Nagar, Erode');
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
+        await tester.pumpAndSettle();
 
-      // Error is displayed via toString().replaceAll('ApiException: ', '')
-      // ConflictException.toString() => 'ApiException[409]: <message> at <endpoint>'
-      // After replaceAll => '[409]: <message> at <endpoint>'
-      // The error banner should contain part of the conflict message
-      expect(
-        find.textContaining('A customer with phone number 9876543210 already exists.'),
-        findsOneWidget,
-      );
+        // Error is displayed via toString().replaceAll('ApiException: ', '')
+        // ConflictException.toString() => 'ApiException[409]: <message> at <endpoint>'
+        // After replaceAll => '[409]: <message> at <endpoint>'
+        // The error banner should contain part of the conflict message
+        expect(
+          find.textContaining(
+            'A customer with phone number 9876543210 already exists.',
+          ),
+          findsOneWidget,
+        );
 
-      // User entered text is preserved in form fields
-      expect(find.text('Meena Kumari'), findsOneWidget);
-      expect(find.text('9876543210'), findsOneWidget);
-      expect(find.text('meena@example.com'), findsOneWidget);
-      expect(find.text('45 Anna Nagar, Erode'), findsOneWidget);
+        // User entered text is preserved in form fields
+        expect(find.text('Meena Kumari'), findsOneWidget);
+        expect(find.text('9876543210'), findsOneWidget);
+        expect(find.text('meena@example.com'), findsOneWidget);
+        expect(find.text('45 Anna Nagar, Erode'), findsOneWidget);
 
-      // Dialog remains active — button still visible
-      expect(find.widgetWithText(AppButton, 'Create Customer'), findsOneWidget);
-    });
+        // Dialog remains active — button still visible
+        expect(
+          find.widgetWithText(AppButton, 'Create Customer'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('allows user to edit phone number and successfully retry after conflict', (tester) async {
-      final repo = StubCustomerRepo()..shouldThrowConflict = true;
-      Customer? createdCustomer;
+    testWidgets(
+      'allows user to edit phone number and successfully retry after conflict',
+      (tester) async {
+        final repo = StubCustomerRepo()..shouldThrowConflict = true;
+        Customer? createdCustomer;
 
-      await tester.pumpWidget(createTestWidget(
-        repo: repo,
-        onCreated: (c) => createdCustomer = c,
-      ));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(repo: repo, onCreated: (c) => createdCustomer = c),
+        );
+        await tester.pumpAndSettle();
 
-      final textFields = find.byType(TextFormField);
-      await tester.enterText(textFields.at(0), 'Meena Kumari');
-      await tester.enterText(textFields.at(1), '9876543210');
+        final textFields = find.byType(TextFormField);
+        await tester.enterText(textFields.at(0), 'Meena Kumari');
+        await tester.enterText(textFields.at(1), '9876543210');
 
-      // First submit - fails with 409
-      await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
-      await tester.pumpAndSettle();
+        // First submit - fails with 409
+        await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
+        await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('A customer with phone number 9876543210 already exists.'),
-        findsOneWidget,
-      );
+        expect(
+          find.textContaining(
+            'A customer with phone number 9876543210 already exists.',
+          ),
+          findsOneWidget,
+        );
 
-      // Correct phone number and retry
-      repo.shouldThrowConflict = false;
-      await tester.enterText(textFields.at(1), '9876543211');
+        // Correct phone number and retry
+        repo.shouldThrowConflict = false;
+        await tester.enterText(textFields.at(1), '9876543211');
 
-      await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(AppButton, 'Create Customer'));
+        await tester.pumpAndSettle();
 
-      expect(repo.lastCreatedRequest!.phoneNumber, '9876543211');
-      expect(createdCustomer?.phoneNumber, '9876543211');
-    });
+        expect(repo.lastCreatedRequest!.phoneNumber, '9876543211');
+        expect(createdCustomer?.phoneNumber, '9876543211');
+      },
+    );
   });
 }

@@ -33,11 +33,7 @@ class AppErrorState extends StatelessWidget {
                 color: AppColors.errorLight,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 40,
-                color: AppColors.error,
-              ),
+              child: Icon(icon, size: 40, color: AppColors.error),
             ),
             const SizedBox(height: 16),
             Text(

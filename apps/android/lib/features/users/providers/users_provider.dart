@@ -7,9 +7,9 @@ import 'users_state.dart';
 
 final usersNotifierProvider =
     StateNotifierProvider.autoDispose<UsersNotifier, UsersState>((ref) {
-  final repository = ref.watch(usersRepositoryProvider);
-  return UsersNotifier(repository)..loadUsers();
-});
+      final repository = ref.watch(usersRepositoryProvider);
+      return UsersNotifier(repository)..loadUsers();
+    });
 
 class UsersNotifier extends StateNotifier<UsersState> {
   final UsersRepository _repository;
@@ -31,10 +31,12 @@ class UsersNotifier extends StateNotifier<UsersState> {
       final users = results[0] as List<dynamic>;
       final permissions = results[1] as List<dynamic>;
 
-      final previousSearch =
-          currentState is UsersLoaded ? currentState.searchQuery : '';
-      final previousFilter =
-          currentState is UsersLoaded ? currentState.statusFilter : UserStatusFilter.all;
+      final previousSearch = currentState is UsersLoaded
+          ? currentState.searchQuery
+          : '';
+      final previousFilter = currentState is UsersLoaded
+          ? currentState.statusFilter
+          : UserStatusFilter.all;
 
       state = UsersLoaded(
         users: users.cast(),
@@ -43,8 +45,9 @@ class UsersNotifier extends StateNotifier<UsersState> {
         statusFilter: previousFilter,
       );
     } catch (e) {
-      final message =
-          e is ApiException ? e.message : 'Failed to load users and permissions.';
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to load users and permissions.';
       state = UsersError(message);
     }
   }
@@ -93,8 +96,9 @@ class UsersNotifier extends StateNotifier<UsersState> {
       }
       return true;
     } catch (e) {
-      final message =
-          e is ApiException ? e.message : 'Failed to create user account.';
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to create user account.';
       state = currentState.copyWith(
         isMutating: false,
         mutationErrorMessage: message,
@@ -125,8 +129,9 @@ class UsersNotifier extends StateNotifier<UsersState> {
       }
       return true;
     } catch (e) {
-      final message =
-          e is ApiException ? e.message : 'Failed to update user account.';
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to update user account.';
       state = currentState.copyWith(
         isMutating: false,
         mutationErrorMessage: message,
@@ -152,14 +157,14 @@ class UsersNotifier extends StateNotifier<UsersState> {
         final statusStr = updated.isActive ? 'activated' : 'deactivated';
         state = (state as UsersLoaded).copyWith(
           isMutating: false,
-          mutationSuccessMessage:
-              'User "${updated.fullName}" was $statusStr.',
+          mutationSuccessMessage: 'User "${updated.fullName}" was $statusStr.',
         );
       }
       return true;
     } catch (e) {
-      final message =
-          e is ApiException ? e.message : 'Failed to change user status.';
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to change user status.';
       state = currentState.copyWith(
         isMutating: false,
         mutationErrorMessage: message,

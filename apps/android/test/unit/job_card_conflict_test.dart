@@ -38,7 +38,12 @@ class StubJobCardRepo extends JobCardRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    return const JobCardListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const JobCardListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
@@ -107,12 +112,18 @@ class StubCustomerRepo extends CustomerRepository {
     String? search,
     String? paymentStatus,
   }) async {
-    return const CustomerListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+    return const CustomerListResponse(
+      items: [],
+      totalCount: 0,
+      page: 1,
+      pageSize: 20,
+    );
   }
 
   @override
   Future<Customer> getCustomerById(String id) async {
-    return customerToReturn ?? Customer(id: id, name: 'Owner Customer', phoneNumber: '9876543210');
+    return customerToReturn ??
+        Customer(id: id, name: 'Owner Customer', phoneNumber: '9876543210');
   }
 }
 
@@ -137,7 +148,10 @@ class StubVehicleRepo extends VehicleRepository {
   }
 
   @override
-  Future<Vehicle> transferOwnership(String vehicleId, String newCustomerId) async {
+  Future<Vehicle> transferOwnership(
+    String vehicleId,
+    String newCustomerId,
+  ) async {
     transferredVehicleId = vehicleId;
     transferredCustomerId = newCustomerId;
     return Vehicle(
@@ -163,8 +177,20 @@ class StubServiceRepo extends ServiceRepository {
   }) async {
     return const ServiceListResponse(
       items: [
-        Service(id: 's1', name: 'Foam Wash', price: 500.0, taxPercentage: 18.0, isActive: true),
-        Service(id: 's2', name: 'Interior Detailing', price: 1000.0, taxPercentage: 18.0, isActive: true),
+        Service(
+          id: 's1',
+          name: 'Foam Wash',
+          price: 500.0,
+          taxPercentage: 18.0,
+          isActive: true,
+        ),
+        Service(
+          id: 's2',
+          name: 'Interior Detailing',
+          price: 1000.0,
+          taxPercentage: 18.0,
+          isActive: true,
+        ),
       ],
       totalCount: 2,
       page: 1,
@@ -175,7 +201,11 @@ class StubServiceRepo extends ServiceRepository {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const _testCustomer = Customer(id: 'c1', name: 'Aravind Swamy', phoneNumber: '9876543210');
+const _testCustomer = Customer(
+  id: 'c1',
+  name: 'Aravind Swamy',
+  phoneNumber: '9876543210',
+);
 const _testVehicle = Vehicle(
   id: 'v1',
   registrationNumber: 'TN01AB1234',
@@ -183,10 +213,17 @@ const _testVehicle = Vehicle(
   model: 'Creta',
   customerId: 'c1',
 );
-const _testService = Service(id: 's1', name: 'Foam Wash', price: 500.0, taxPercentage: 18.0, isActive: true);
+const _testService = Service(
+  id: 's1',
+  name: 'Foam Wash',
+  price: 500.0,
+  taxPercentage: 18.0,
+  isActive: true,
+);
 
 /// Creates a container with stub repos, populates the wizard with a customer, vehicle, and service.
-({ProviderContainer container, StubJobCardRepo jobCardRepo}) createReadyWizard() {
+({ProviderContainer container, StubJobCardRepo jobCardRepo})
+createReadyWizard() {
   final jobCardRepo = StubJobCardRepo();
   final container = ProviderContainer(
     overrides: [
@@ -206,46 +243,55 @@ const _testService = Service(id: 's1', name: 'Foam Wash', price: 500.0, taxPerce
 
 void main() {
   group('Job Card Creation - Conflict & Edge Case Tests', () {
-    test('submitJobCard returns null and sets submitError when no customer/vehicle/services selected', () async {
-      final container = ProviderContainer(
-        overrides: [
-          jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
-          customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
-          vehicleRepositoryProvider.overrideWithValue(StubVehicleRepo()),
-          serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'submitJobCard returns null and sets submitError when no customer/vehicle/services selected',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
+            customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
+            vehicleRepositoryProvider.overrideWithValue(StubVehicleRepo()),
+            serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      // State starts with no customer/vehicle/services
-      final notifier = container.read(newJobCardProvider.notifier);
-      final result = await notifier.submitJobCard();
+        // State starts with no customer/vehicle/services
+        final notifier = container.read(newJobCardProvider.notifier);
+        final result = await notifier.submitJobCard();
 
-      expect(result, isNull);
-      final state = container.read(newJobCardProvider);
-      expect(state.submitError, 'Please complete all required steps before submitting.');
-      expect(state.isSubmitting, false);
-    });
+        expect(result, isNull);
+        final state = container.read(newJobCardProvider);
+        expect(
+          state.submitError,
+          'Please complete all required steps before submitting.',
+        );
+        expect(state.isSubmitting, false);
+      },
+    );
 
-    test('submitJobCard succeeds and returns created job card when wizard is complete', () async {
-      final (:container, :jobCardRepo) = createReadyWizard();
-      addTearDown(container.dispose);
+    test(
+      'submitJobCard succeeds and returns created job card when wizard is complete',
+      () async {
+        final (:container, :jobCardRepo) = createReadyWizard();
+        addTearDown(container.dispose);
 
-      final notifier = container.read(newJobCardProvider.notifier);
-      final result = await notifier.submitJobCard();
+        final notifier = container.read(newJobCardProvider.notifier);
+        final result = await notifier.submitJobCard();
 
-      expect(result, isNotNull);
-      expect(result!.jobCardNumber, 'JC-20260908-001');
-      expect(jobCardRepo.lastCreateRequest, isNotNull);
-      expect(jobCardRepo.lastCreateRequest!.customerId, 'c1');
-      expect(jobCardRepo.lastCreateRequest!.vehicleId, 'v1');
-      expect(jobCardRepo.lastCreateRequest!.services.length, 1);
-      expect(jobCardRepo.lastCreateRequest!.services.first.serviceId, 's1');
+        expect(result, isNotNull);
+        expect(result!.jobCardNumber, 'JC-20260908-001');
+        expect(jobCardRepo.lastCreateRequest, isNotNull);
+        expect(jobCardRepo.lastCreateRequest!.customerId, 'c1');
+        expect(jobCardRepo.lastCreateRequest!.vehicleId, 'v1');
+        expect(jobCardRepo.lastCreateRequest!.services.length, 1);
+        expect(jobCardRepo.lastCreateRequest!.services.first.serviceId, 's1');
 
-      final state = container.read(newJobCardProvider);
-      expect(state.isSubmitting, false);
-      expect(state.submitError, isNull);
-    });
+        final state = container.read(newJobCardProvider);
+        expect(state.isSubmitting, false);
+        expect(state.submitError, isNull);
+      },
+    );
 
     test('submitJobCard handles HTTP 409 conflict gracefully', () async {
       final (:container, :jobCardRepo) = createReadyWizard();
@@ -257,7 +303,10 @@ void main() {
 
       expect(result, isNull);
       final state = container.read(newJobCardProvider);
-      expect(state.submitError, 'A job card already exists for this vehicle today.');
+      expect(
+        state.submitError,
+        'A job card already exists for this vehicle today.',
+      );
       expect(state.isSubmitting, false);
 
       // Wizard state (customer/vehicle/services) is preserved for retry
@@ -290,43 +339,55 @@ void main() {
 
       expect(result, isNull);
       final state = container.read(newJobCardProvider);
-      expect(state.submitError, "You don't have permission to create job cards.");
+      expect(
+        state.submitError,
+        "You don't have permission to create job cards.",
+      );
       expect(state.isSubmitting, false);
     });
 
-    test('submitJobCard can succeed on retry after conflict is resolved', () async {
-      final (:container, :jobCardRepo) = createReadyWizard();
-      addTearDown(container.dispose);
-      jobCardRepo.shouldThrowConflict = true;
+    test(
+      'submitJobCard can succeed on retry after conflict is resolved',
+      () async {
+        final (:container, :jobCardRepo) = createReadyWizard();
+        addTearDown(container.dispose);
+        jobCardRepo.shouldThrowConflict = true;
 
-      final notifier = container.read(newJobCardProvider.notifier);
+        final notifier = container.read(newJobCardProvider.notifier);
 
-      // First attempt fails with 409
-      final first = await notifier.submitJobCard();
-      expect(first, isNull);
-      expect(container.read(newJobCardProvider).submitError, isNotNull);
+        // First attempt fails with 409
+        final first = await notifier.submitJobCard();
+        expect(first, isNull);
+        expect(container.read(newJobCardProvider).submitError, isNotNull);
 
-      // Resolve conflict and retry
-      jobCardRepo.shouldThrowConflict = false;
-      final second = await notifier.submitJobCard();
-      expect(second, isNotNull);
-      expect(second!.jobCardNumber, 'JC-20260908-001');
-      expect(container.read(newJobCardProvider).submitError, isNull);
-    });
+        // Resolve conflict and retry
+        jobCardRepo.shouldThrowConflict = false;
+        final second = await notifier.submitJobCard();
+        expect(second, isNotNull);
+        expect(second!.jobCardNumber, 'JC-20260908-001');
+        expect(container.read(newJobCardProvider).submitError, isNull);
+      },
+    );
 
-    test('submitJobCard passes isGstEnabled and notes from wizard state', () async {
-      final (:container, :jobCardRepo) = createReadyWizard();
-      addTearDown(container.dispose);
+    test(
+      'submitJobCard passes isGstEnabled and notes from wizard state',
+      () async {
+        final (:container, :jobCardRepo) = createReadyWizard();
+        addTearDown(container.dispose);
 
-      final notifier = container.read(newJobCardProvider.notifier);
-      notifier.setNotes('Please use ceramic coating');
-      notifier.setGstEnabled(false);
+        final notifier = container.read(newJobCardProvider.notifier);
+        notifier.setNotes('Please use ceramic coating');
+        notifier.setGstEnabled(false);
 
-      await notifier.submitJobCard();
+        await notifier.submitJobCard();
 
-      expect(jobCardRepo.lastCreateRequest!.notes, 'Please use ceramic coating');
-      expect(jobCardRepo.lastCreateRequest!.isGstEnabled, false);
-    });
+        expect(
+          jobCardRepo.lastCreateRequest!.notes,
+          'Please use ceramic coating',
+        );
+        expect(jobCardRepo.lastCreateRequest!.isGstEnabled, false);
+      },
+    );
   });
 
   group('JobCard.isLocked - Status Immutability Rules', () {
@@ -339,8 +400,17 @@ void main() {
       return JobCard(
         id: 'jc1',
         jobCardNumber: 'JC-001',
-        customer: const CustomerSummary(id: 'c1', name: 'Test', phoneNumber: '1234567890'),
-        vehicle: const VehicleSummary(id: 'v1', registrationNumber: 'TN01AB1234', make: 'Hyundai', model: 'Creta'),
+        customer: const CustomerSummary(
+          id: 'c1',
+          name: 'Test',
+          phoneNumber: '1234567890',
+        ),
+        vehicle: const VehicleSummary(
+          id: 'v1',
+          registrationNumber: 'TN01AB1234',
+          make: 'Hyundai',
+          model: 'Creta',
+        ),
         status: status,
         services: const [],
         subtotal: 500.0,
@@ -384,32 +454,41 @@ void main() {
       expect(jc.isLocked, true);
     });
 
-    test('draft job card with invoiceId and non-draft invoice status is locked', () {
-      final jc = makeJobCard(
-        status: JobCardStatus.draft,
-        invoiceId: 'inv-1',
-        invoiceStatus: 'Finalized',
-      );
-      expect(jc.isLocked, true);
-    });
+    test(
+      'draft job card with invoiceId and non-draft invoice status is locked',
+      () {
+        final jc = makeJobCard(
+          status: JobCardStatus.draft,
+          invoiceId: 'inv-1',
+          invoiceStatus: 'Finalized',
+        );
+        expect(jc.isLocked, true);
+      },
+    );
 
-    test('draft job card with invoiceId and draft invoice status is NOT locked', () {
-      final jc = makeJobCard(
-        status: JobCardStatus.draft,
-        invoiceId: 'inv-1',
-        invoiceStatus: 'draft',
-      );
-      expect(jc.isLocked, false);
-    });
+    test(
+      'draft job card with invoiceId and draft invoice status is NOT locked',
+      () {
+        final jc = makeJobCard(
+          status: JobCardStatus.draft,
+          invoiceId: 'inv-1',
+          invoiceStatus: 'draft',
+        );
+        expect(jc.isLocked, false);
+      },
+    );
 
-    test('draft job card with invoiceId and "0" invoice status is NOT locked', () {
-      final jc = makeJobCard(
-        status: JobCardStatus.draft,
-        invoiceId: 'inv-1',
-        invoiceStatus: '0',
-      );
-      expect(jc.isLocked, false);
-    });
+    test(
+      'draft job card with invoiceId and "0" invoice status is NOT locked',
+      () {
+        final jc = makeJobCard(
+          status: JobCardStatus.draft,
+          invoiceId: 'inv-1',
+          invoiceStatus: '0',
+        );
+        expect(jc.isLocked, false);
+      },
+    );
 
     test('cancelled job card without invoice is NOT locked', () {
       final jc = makeJobCard(status: JobCardStatus.cancelled);
@@ -437,8 +516,14 @@ void main() {
     test('fromString parses case-insensitively', () {
       expect(JobCardStatus.fromString('In Progress'), JobCardStatus.inProgress);
       expect(JobCardStatus.fromString('IN PROGRESS'), JobCardStatus.inProgress);
-      expect(JobCardStatus.fromString('qualitycheck'), JobCardStatus.qualityCheck);
-      expect(JobCardStatus.fromString('Quality Check'), JobCardStatus.qualityCheck);
+      expect(
+        JobCardStatus.fromString('qualitycheck'),
+        JobCardStatus.qualityCheck,
+      );
+      expect(
+        JobCardStatus.fromString('Quality Check'),
+        JobCardStatus.qualityCheck,
+      );
     });
 
     test('fromString defaults to draft for unknown strings', () {
@@ -448,121 +533,147 @@ void main() {
   });
 
   group('NewJobCardNotifier - Vehicle Lookup & Case-Insensitive Normalization', () {
-    test('lookupByRegistration normalizes lowercase, uppercase, and mixed-case input', () async {
-      final vehicleRepo = StubVehicleRepo();
-      final container = ProviderContainer(
-        overrides: [
-          jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
-          customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
-          vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
-          serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'lookupByRegistration normalizes lowercase, uppercase, and mixed-case input',
+      () async {
+        final vehicleRepo = StubVehicleRepo();
+        final container = ProviderContainer(
+          overrides: [
+            jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
+            customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
+            vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
+            serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final notifier = container.read(newJobCardProvider.notifier);
+        final notifier = container.read(newJobCardProvider.notifier);
 
-      // 1. Lowercase
-      await notifier.lookupByRegistration('tn56p3334');
-      expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
+        // 1. Lowercase
+        await notifier.lookupByRegistration('tn56p3334');
+        expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
 
-      // 2. Mixed case with whitespace
-      await notifier.lookupByRegistration('  tN56p3334 ');
-      expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
+        // 2. Mixed case with whitespace
+        await notifier.lookupByRegistration('  tN56p3334 ');
+        expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
 
-      // 3. Uppercase
-      await notifier.lookupByRegistration('TN56P3334');
-      expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
-    });
+        // 3. Uppercase
+        await notifier.lookupByRegistration('TN56P3334');
+        expect(vehicleRepo.lastLookedUpReg, 'TN56P3334');
+      },
+    );
 
-    test('Case 1: Same-customer vehicle duplicate detection works across case variations', () async {
-      final vehicleRepo = StubVehicleRepo();
-      final container = ProviderContainer(
-        overrides: [
-          jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
-          customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
-          vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
-          serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'Case 1: Same-customer vehicle duplicate detection works across case variations',
+      () async {
+        final vehicleRepo = StubVehicleRepo();
+        final container = ProviderContainer(
+          overrides: [
+            jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
+            customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
+            vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
+            serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      const customer = Customer(id: 'c1', name: 'Gokula Kannan', phoneNumber: '9876543210');
-      const existingVehicle = Vehicle(
-        id: 'v-101',
-        registrationNumber: 'TN56P3334',
-        make: 'Maruti',
-        model: 'Baleno',
-        customerId: 'c1',
-      );
+        const customer = Customer(
+          id: 'c1',
+          name: 'Gokula Kannan',
+          phoneNumber: '9876543210',
+        );
+        const existingVehicle = Vehicle(
+          id: 'v-101',
+          registrationNumber: 'TN56P3334',
+          make: 'Maruti',
+          model: 'Baleno',
+          customerId: 'c1',
+        );
 
-      final notifier = container.read(newJobCardProvider.notifier);
-      notifier.selectCustomer(customer, [existingVehicle]);
+        final notifier = container.read(newJobCardProvider.notifier);
+        notifier.selectCustomer(customer, [existingVehicle]);
 
-      // Lookup returns vehicle with same ID/registration for same customer
-      vehicleRepo.vehicleToReturn = const Vehicle(
-        id: 'v-101',
-        registrationNumber: 'tn56p3334', // simulated lowercase from backend
-        make: 'Maruti',
-        model: 'Baleno',
-        customerId: 'c1',
-      );
+        // Lookup returns vehicle with same ID/registration for same customer
+        vehicleRepo.vehicleToReturn = const Vehicle(
+          id: 'v-101',
+          registrationNumber: 'tn56p3334', // simulated lowercase from backend
+          make: 'Maruti',
+          model: 'Baleno',
+          customerId: 'c1',
+        );
 
-      await notifier.lookupByRegistration('tn56p3334');
+        await notifier.lookupByRegistration('tn56p3334');
 
-      final state = container.read(newJobCardProvider);
-      expect(state.selectedVehicle?.id, 'v-101');
-      expect(state.selectedVehicle?.registrationNumber, 'TN56P3334');
-      // Should not duplicate in customerVehicles
-      expect(state.customerVehicles.length, 1);
-      expect(state.lookupError, isNull);
-    });
+        final state = container.read(newJobCardProvider);
+        expect(state.selectedVehicle?.id, 'v-101');
+        expect(state.selectedVehicle?.registrationNumber, 'TN56P3334');
+        // Should not duplicate in customerVehicles
+        expect(state.customerVehicles.length, 1);
+        expect(state.lookupError, isNull);
+      },
+    );
 
-    test('Case 2: Different-customer ownership conflict detection works across case variations', () async {
-      final vehicleRepo = StubVehicleRepo();
-      final container = ProviderContainer(
-        overrides: [
-          jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
-          customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
-          vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
-          serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
-        ],
-      );
-      addTearDown(container.dispose);
+    test(
+      'Case 2: Different-customer ownership conflict detection works across case variations',
+      () async {
+        final vehicleRepo = StubVehicleRepo();
+        final container = ProviderContainer(
+          overrides: [
+            jobCardRepositoryProvider.overrideWithValue(StubJobCardRepo()),
+            customerRepositoryProvider.overrideWithValue(StubCustomerRepo()),
+            vehicleRepositoryProvider.overrideWithValue(vehicleRepo),
+            serviceRepositoryProvider.overrideWithValue(StubServiceRepo()),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      const currentCustomer = Customer(id: 'c2', name: 'New Customer', phoneNumber: '9876543211');
-      final notifier = container.read(newJobCardProvider.notifier);
-      notifier.selectCustomer(currentCustomer, []);
+        const currentCustomer = Customer(
+          id: 'c2',
+          name: 'New Customer',
+          phoneNumber: '9876543211',
+        );
+        final notifier = container.read(newJobCardProvider.notifier);
+        notifier.selectCustomer(currentCustomer, []);
 
-      // Vehicle belongs to customer 'c1' (Gokula Kannan)
-      vehicleRepo.vehicleToReturn = const Vehicle(
-        id: 'v-101',
-        registrationNumber: 'TN56P3334',
-        make: 'Maruti',
-        model: 'Baleno',
-        customerId: 'c1',
-        customerName: 'Gokula Kannan',
-      );
+        // Vehicle belongs to customer 'c1' (Gokula Kannan)
+        vehicleRepo.vehicleToReturn = const Vehicle(
+          id: 'v-101',
+          registrationNumber: 'TN56P3334',
+          make: 'Maruti',
+          model: 'Baleno',
+          customerId: 'c1',
+          customerName: 'Gokula Kannan',
+        );
 
-      // User searches with lowercase
-      await notifier.lookupByRegistration('tn56p3334');
+        // User searches with lowercase
+        await notifier.lookupByRegistration('tn56p3334');
 
-      final state = container.read(newJobCardProvider);
-      expect(state.lookupError, contains('TN56P3334 is already registered to Gokula Kannan'));
-      expect(state.lookupError, contains('transfer ownership'));
-    });
+        final state = container.read(newJobCardProvider);
+        expect(
+          state.lookupError,
+          contains('TN56P3334 is already registered to Gokula Kannan'),
+        );
+        expect(state.lookupError, contains('transfer ownership'));
+      },
+    );
 
-    test('Ownership transfer preserves exact vehicle and customer GUIDs regardless of registration casing', () async {
-      final vehicleRepo = StubVehicleRepo();
-      const vehicleId = '3e44b988-7cd3-46c2-a003-24fb9857b946';
-      const targetCustomerId = 'cust-destination-guid-777';
+    test(
+      'Ownership transfer preserves exact vehicle and customer GUIDs regardless of registration casing',
+      () async {
+        final vehicleRepo = StubVehicleRepo();
+        const vehicleId = '3e44b988-7cd3-46c2-a003-24fb9857b946';
+        const targetCustomerId = 'cust-destination-guid-777';
 
-      final transferred = await vehicleRepo.transferOwnership(vehicleId, targetCustomerId);
+        final transferred = await vehicleRepo.transferOwnership(
+          vehicleId,
+          targetCustomerId,
+        );
 
-      expect(transferred.id, vehicleId);
-      expect(transferred.customerId, targetCustomerId);
-      expect(vehicleRepo.transferredVehicleId, vehicleId);
-      expect(vehicleRepo.transferredCustomerId, targetCustomerId);
-    });
+        expect(transferred.id, vehicleId);
+        expect(transferred.customerId, targetCustomerId);
+        expect(vehicleRepo.transferredVehicleId, vehicleId);
+        expect(vehicleRepo.transferredCustomerId, targetCustomerId);
+      },
+    );
   });
 }

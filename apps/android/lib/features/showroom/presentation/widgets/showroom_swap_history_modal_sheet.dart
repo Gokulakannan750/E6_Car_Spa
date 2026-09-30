@@ -112,7 +112,11 @@ class _ShowroomSwapHistoryModalSheetState
                     color: Colors.purple.withAlpha(25),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.history, color: Colors.purple, size: 22),
+                  child: const Icon(
+                    Icons.history,
+                    color: Colors.purple,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -154,198 +158,212 @@ class _ShowroomSwapHistoryModalSheetState
                     ),
                   )
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.error_outline, size: 40, color: AppColors.error),
-                              const SizedBox(height: 10),
-                              Text(_error!, style: const TextStyle(color: AppColors.error)),
-                              const SizedBox(height: 12),
-                              OutlinedButton(
-                                onPressed: _loadHistory,
-                                child: const Text('Retry'),
-                              ),
-                            ],
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 40,
+                            color: AppColors.error,
                           ),
-                        ),
-                      )
-                    : _swaps.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                          const SizedBox(height: 10),
+                          Text(
+                            _error!,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: _loadHistory,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _swaps.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.swap_horiz,
+                            size: 48,
+                            color: AppColors.textSecondary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No staff swaps recorded for this showroom.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _swaps.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (ctx, index) {
+                      final swap = _swaps[index];
+                      return InkWell(
+                        onTap: () => _openSwapDetails(swap.swapId),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Icon(
-                                    Icons.swap_horiz,
-                                    size: 48,
-                                    color: AppColors.textSecondary,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.withAlpha(25),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      '#${swap.swapId}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.purple.shade900,
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'No staff swaps recorded for this showroom.',
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.textSecondary,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: swap.status == 'Completed'
+                                          ? AppColors.readyBg
+                                          : Colors.amber.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: swap.status == 'Completed'
+                                            ? AppColors.readyBorder
+                                            : Colors.amber.shade300,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      swap.status,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: swap.status == 'Completed'
+                                            ? AppColors.success
+                                            : Colors.amber.shade900,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _swaps.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 10),
-                            itemBuilder: (ctx, index) {
-                              final swap = _swaps[index];
-                              return InkWell(
-                                onTap: () => _openSwapDetails(swap.swapId),
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceAlt,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: AppColors.border),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${swap.staffAName} ⇄ ${swap.staffBName}',
+                                      style: AppTextStyles.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${swap.showroomAName} ⇄ ${swap.showroomBName}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              if (swap.coverageStartTime != null &&
+                                  swap.coverageEndTime != null) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withAlpha(12),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.purple.withAlpha(35),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.purple.withAlpha(25),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              '#${swap.swapId}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontFamily: 'monospace',
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.purple.shade900,
-                                              ),
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: swap.status == 'Completed'
-                                                  ? AppColors.readyBg
-                                                  : Colors.amber.shade50,
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: swap.status == 'Completed'
-                                                    ? AppColors.readyBorder
-                                                    : Colors.amber.shade300,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              swap.status,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                color: swap.status == 'Completed'
-                                                    ? AppColors.success
-                                                    : Colors.amber.shade900,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      const Icon(
+                                        Icons.access_time,
+                                        size: 12,
+                                        color: Colors.purple,
                                       ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              '${swap.staffAName} ⇄ ${swap.staffBName}',
-                                              style: AppTextStyles.bodyMedium
-                                                  .copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(width: 4),
                                       Text(
-                                        '${swap.showroomAName} ⇄ ${swap.showroomBName}',
-                                        style: const TextStyle(
+                                        'Coverage: ${swap.coverageStartTime} – ${swap.coverageEndTime} (${swap.coverageDurationFormatted ?? (swap.coverageDurationHours != null ? "${swap.coverageDurationHours} hours" : "")})',
+                                        style: TextStyle(
                                           fontSize: 11,
-                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.purple.shade900,
                                         ),
-                                      ),
-                                      if (swap.coverageStartTime != null && swap.coverageEndTime != null) ...[
-                                        const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: Colors.purple.withAlpha(12),
-                                            borderRadius: BorderRadius.circular(6),
-                                            border: Border.all(color: Colors.purple.withAlpha(35)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.access_time, size: 12, color: Colors.purple),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'Coverage: ${swap.coverageStartTime} – ${swap.coverageEndTime} (${swap.coverageDurationFormatted ?? (swap.coverageDurationHours != null ? "${swap.coverageDurationHours} hours" : "")})',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.purple.shade900,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            dateFormat.format(swap.date),
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                          const Text(
-                                            'View Details ›',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.purple,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            },
+                              ],
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    dateFormat.format(swap.date),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  const Text(
+                                    'View Details ›',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.purple,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

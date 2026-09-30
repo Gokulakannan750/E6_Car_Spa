@@ -132,6 +132,21 @@ public class InvoiceService : IInvoiceService
 		if (existingInvoice is not null)
 			throw new InvalidOperationException($"An invoice already exists for this Job Card: {existingInvoice.InvoiceNumber ?? existingInvoice.Id.ToString()}");
 
+		// Check outside jobs: Vendor cost is mandatory for all active outside jobs before generating the invoice
+		var activeOutsideJobs = (jobCard.OutsideJobs ?? Enumerable.Empty<OutsideJob>())
+			.Where(oj => !oj.IsDeleted && oj.Status != OutsideJobStatus.Cancelled)
+			.ToList();
+
+		var missingCostJobs = activeOutsideJobs
+			.Where(oj => !oj.VendorCost.HasValue || oj.VendorCost.Value <= 0)
+			.ToList();
+
+		if (missingCostJobs.Any())
+		{
+			var missingNames = string.Join(", ", missingCostJobs.Select(j => $"'{j.ServiceName}'"));
+			throw new InvalidOperationException($"Vendor cost is required for all outside jobs before generating the invoice. Missing cost for: {missingNames}.");
+		}
+
 		var now = DateTime.UtcNow;
 
 		var isGstEnabled = jobCard.JobCardServices.Any(s => !s.IsDeleted && s.TaxPercentage > 0);
@@ -165,9 +180,8 @@ public class InvoiceService : IInvoiceService
 			.ToList();
 
 		// Add billable outside jobs (Returned status with a final vendor cost)
-		var eligibleOutsideJobs = (jobCard.OutsideJobs ?? Enumerable.Empty<OutsideJob>())
-			.Where(oj => !oj.IsDeleted
-				&& oj.Status == OutsideJobStatus.Returned
+		var eligibleOutsideJobs = activeOutsideJobs
+			.Where(oj => oj.Status == OutsideJobStatus.Returned
 				&& oj.VendorCost.HasValue
 				&& oj.VendorCost.Value > 0)
 			.ToList();
@@ -335,17 +349,54 @@ public class InvoiceService : IInvoiceService
 		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
 			throw new InvalidOperationException("Invoice has already been generated.");
 
-		// Sync any newly-returned outside jobs that aren't already on the invoice
+		// Outside Jobs Validation: Vendor cost is mandatory for all active outside jobs before generating the invoice
 		if (invoice.JobCard?.OutsideJobs != null)
 		{
+			var activeOutsideJobs = invoice.JobCard.OutsideJobs
+				.Where(oj => !oj.IsDeleted && oj.Status != OutsideJobStatus.Cancelled)
+				.ToList();
+
+			var missingCostJobs = activeOutsideJobs
+				.Where(oj => !oj.VendorCost.HasValue || oj.VendorCost.Value <= 0)
+				.ToList();
+
+			if (missingCostJobs.Any())
+			{
+				var missingNames = string.Join(", ", missingCostJobs.Select(j => $"'{j.ServiceName}'"));
+				throw new InvalidOperationException($"Vendor cost is required for all outside jobs before generating the invoice. Missing cost for: {missingNames}.");
+			}
+
+			// Clean up any draft invoice items for outside jobs that have since been deleted or cancelled
+			foreach (var item in invoice.InvoiceItems.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue))
+			{
+				var oj = invoice.JobCard!.OutsideJobs.FirstOrDefault(o => o.Id == item.OutsideJobId!.Value);
+				if (oj == null || oj.IsDeleted || oj.Status == OutsideJobStatus.Cancelled)
+				{
+					item.IsDeleted = true;
+					item.UpdatedAt = DateTime.UtcNow;
+				}
+				else if (oj.VendorCost.HasValue && oj.VendorCost.Value > 0 && item.UnitPrice != oj.VendorCost.Value)
+				{
+					// Update item if vendor cost was modified
+					var ojBase = Math.Round(oj.VendorCost.Value, 2);
+					var ojTaxRate = invoice.IsGstEnabled ? 18m : 0m;
+					var ojTax = invoice.IsGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
+					item.UnitPrice = ojBase;
+					item.TaxableAmount = ojBase;
+					item.TaxAmount = ojTax;
+					item.TotalAmount = ojBase + ojTax;
+					item.UpdatedAt = DateTime.UtcNow;
+				}
+			}
+
+			// Sync any newly-returned outside jobs that aren't already on the invoice
 			var existingOjIds = invoice.InvoiceItems
 				.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue)
 				.Select(it => it.OutsideJobId!.Value)
 				.ToHashSet();
 
-			var newEligibleOjs = invoice.JobCard.OutsideJobs
-				.Where(oj => !oj.IsDeleted
-					&& oj.Status == OutsideJobStatus.Returned
+			var newEligibleOjs = activeOutsideJobs
+				.Where(oj => oj.Status == OutsideJobStatus.Returned
 					&& oj.VendorCost.HasValue
 					&& oj.VendorCost.Value > 0
 					&& !existingOjIds.Contains(oj.Id))

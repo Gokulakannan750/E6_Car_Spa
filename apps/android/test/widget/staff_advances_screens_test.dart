@@ -51,7 +51,9 @@ class FakeStaffApi extends StaffApi {
 
 void main() {
   group('Staff Advances Widget Tests', () {
-    testWidgets('AdvanceKpiSection renders KPI figures accurately', (tester) async {
+    testWidgets('AdvanceKpiSection renders KPI figures accurately', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -72,7 +74,9 @@ void main() {
       expect(find.text('2'), findsOneWidget);
     });
 
-    testWidgets('AdvanceCard renders advance data and action buttons', (tester) async {
+    testWidgets('AdvanceCard renders advance data and action buttons', (
+      tester,
+    ) async {
       final advance = StaffAdvance(
         id: 'adv-100',
         staffId: 'staff-1',
@@ -123,7 +127,9 @@ void main() {
       expect(historyClicked, isTrue);
     });
 
-    testWidgets('StaffCard renders staff details and history action', (tester) async {
+    testWidgets('StaffCard renders staff details and history action', (
+      tester,
+    ) async {
       const staff = Staff(
         id: 'staff-1',
         name: 'Ramesh Kumar',
@@ -176,9 +182,7 @@ void main() {
             staffAdvancesApiProvider.overrideWithValue(fakeAdvancesApi),
             staffApiProvider.overrideWithValue(fakeStaffApi),
           ],
-          child: const MaterialApp(
-            home: StaffAdvancesScreen(),
-          ),
+          child: const MaterialApp(home: StaffAdvancesScreen()),
         ),
       );
 

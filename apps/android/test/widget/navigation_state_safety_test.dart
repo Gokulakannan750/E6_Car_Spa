@@ -25,7 +25,10 @@ class StubAuthRepo extends AuthRepository {
 }
 
 class TestNavigationAuthNotifier extends AuthNotifier {
-  TestNavigationAuthNotifier(super.repo, [AuthState initial = const Unauthenticated()]) {
+  TestNavigationAuthNotifier(
+    super.repo, [
+    AuthState initial = const Unauthenticated(),
+  ]) {
     state = initial;
   }
 
@@ -64,15 +67,18 @@ void main() {
   );
 
   group('Navigation Deep-Link Route Guards', () {
-    testWidgets('Unauthenticated deep-link to /showroom redirects to /login', (tester) async {
-      final authNotifier = TestNavigationAuthNotifier(StubAuthRepo(), const Unauthenticated());
+    testWidgets('Unauthenticated deep-link to /showroom redirects to /login', (
+      tester,
+    ) async {
+      final authNotifier = TestNavigationAuthNotifier(
+        StubAuthRepo(),
+        const Unauthenticated(),
+      );
       late GoRouter testRouter;
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => authNotifier),
-          ],
+          overrides: [authNotifierProvider.overrideWith((ref) => authNotifier)],
           child: Consumer(
             builder: (context, ref, _) {
               final router = ref.watch(routerProvider);
@@ -97,15 +103,18 @@ void main() {
       expect(find.byType(AppShell), findsNothing);
     });
 
-    testWidgets('Unauthenticated deep-link to /settings redirects to /login', (tester) async {
-      final authNotifier = TestNavigationAuthNotifier(StubAuthRepo(), const Unauthenticated());
+    testWidgets('Unauthenticated deep-link to /settings redirects to /login', (
+      tester,
+    ) async {
+      final authNotifier = TestNavigationAuthNotifier(
+        StubAuthRepo(),
+        const Unauthenticated(),
+      );
       late GoRouter testRouter;
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => authNotifier),
-          ],
+          overrides: [authNotifierProvider.overrideWith((ref) => authNotifier)],
           child: Consumer(
             builder: (context, ref, _) {
               final router = ref.watch(routerProvider);
@@ -128,46 +137,55 @@ void main() {
       expect(find.byType(AppShell), findsNothing);
     });
 
-    testWidgets('Unauthenticated deep-link to /staff-advances redirects to /login', (tester) async {
-      final authNotifier = TestNavigationAuthNotifier(StubAuthRepo(), const Unauthenticated());
-      late GoRouter testRouter;
+    testWidgets(
+      'Unauthenticated deep-link to /staff-advances redirects to /login',
+      (tester) async {
+        final authNotifier = TestNavigationAuthNotifier(
+          StubAuthRepo(),
+          const Unauthenticated(),
+        );
+        late GoRouter testRouter;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => authNotifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              testRouter = router;
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authNotifierProvider.overrideWith((ref) => authNotifier),
+            ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                testRouter = router;
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
+                );
+              },
+            ),
           ),
-        ),
+        );
+
+        await tester.pumpAndSettle();
+
+        testRouter.go(AppRoutes.staffAdvances);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(find.byType(AppShell), findsNothing);
+      },
+    );
+
+    testWidgets('Unauthenticated deep-link to /catalogue redirects to /login', (
+      tester,
+    ) async {
+      final authNotifier = TestNavigationAuthNotifier(
+        StubAuthRepo(),
+        const Unauthenticated(),
       );
-
-      await tester.pumpAndSettle();
-
-      testRouter.go(AppRoutes.staffAdvances);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.byType(AppShell), findsNothing);
-    });
-
-    testWidgets('Unauthenticated deep-link to /catalogue redirects to /login', (tester) async {
-      final authNotifier = TestNavigationAuthNotifier(StubAuthRepo(), const Unauthenticated());
       late GoRouter testRouter;
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => authNotifier),
-          ],
+          overrides: [authNotifierProvider.overrideWith((ref) => authNotifier)],
           child: Consumer(
             builder: (context, ref, _) {
               final router = ref.watch(routerProvider);
@@ -192,86 +210,92 @@ void main() {
   });
 
   group('Session Expiration & UI Teardown Safety', () {
-    testWidgets('Session expiration tears down protected AppShell and redirects to /login', (tester) async {
-      final authNotifier = TestNavigationAuthNotifier(
-        StubAuthRepo(),
-        const Authenticated(authorizedUser),
-      );
+    testWidgets(
+      'Session expiration tears down protected AppShell and redirects to /login',
+      (tester) async {
+        final authNotifier = TestNavigationAuthNotifier(
+          StubAuthRepo(),
+          const Authenticated(authorizedUser),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authNotifierProvider.overrideWith((ref) => authNotifier),
-          ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              final router = ref.watch(routerProvider);
-              return MaterialApp.router(
-                theme: AppTheme.light,
-                routerConfig: router,
-              );
-            },
-          ),
-        ),
-      );
-
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-
-      // Authenticated session is in AppShell
-      expect(find.byType(AppShell), findsOneWidget);
-      expect(find.byType(LoginScreen), findsNothing);
-
-      // Trigger session expiration (e.g. 401 response or token expiry)
-      authNotifier.expireSession();
-      await tester.pumpAndSettle();
-
-      // Protected UI is completely torn down, user is back on login
-      expect(find.byType(AppShell), findsNothing);
-      expect(find.byType(LoginScreen), findsOneWidget);
-      expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
-    });
-  });
-
-  group('Concurrency & Double-Tap Safety Guards', () {
-    testWidgets('AppButton disabled during isLoading prevents duplicate tap callbacks', (tester) async {
-      int tapCount = 0;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return AppButton(
-                  label: 'Submit Action',
-                  isLoading: tapCount > 0,
-                  onPressed: () {
-                    tapCount++;
-                    setState(() {});
-                  },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authNotifierProvider.overrideWith((ref) => authNotifier),
+            ],
+            child: Consumer(
+              builder: (context, ref, _) {
+                final router = ref.watch(routerProvider);
+                return MaterialApp.router(
+                  theme: AppTheme.light,
+                  routerConfig: router,
                 );
               },
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
 
-      // First tap executes callback
-      await tester.tap(find.text('Submit Action'));
-      await tester.pump();
+        // Authenticated session is in AppShell
+        expect(find.byType(AppShell), findsOneWidget);
+        expect(find.byType(LoginScreen), findsNothing);
 
-      expect(tapCount, 1);
-      // Button enters loading state
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        // Trigger session expiration (e.g. 401 response or token expiry)
+        authNotifier.expireSession();
+        await tester.pumpAndSettle();
 
-      // Rapid consecutive tap while in loading state
-      await tester.tap(find.byType(AppButton), warnIfMissed: false);
-      await tester.pump();
+        // Protected UI is completely torn down, user is back on login
+        expect(find.byType(AppShell), findsNothing);
+        expect(find.byType(LoginScreen), findsOneWidget);
+        expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
+      },
+    );
+  });
 
-      // tapCount must remain 1 (no duplicate submission)
-      expect(tapCount, 1);
-    });
+  group('Concurrency & Double-Tap Safety Guards', () {
+    testWidgets(
+      'AppButton disabled during isLoading prevents duplicate tap callbacks',
+      (tester) async {
+        int tapCount = 0;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return AppButton(
+                    label: 'Submit Action',
+                    isLoading: tapCount > 0,
+                    onPressed: () {
+                      tapCount++;
+                      setState(() {});
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // First tap executes callback
+        await tester.tap(find.text('Submit Action'));
+        await tester.pump();
+
+        expect(tapCount, 1);
+        // Button enters loading state
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Rapid consecutive tap while in loading state
+        await tester.tap(find.byType(AppButton), warnIfMissed: false);
+        await tester.pump();
+
+        // tapCount must remain 1 (no duplicate submission)
+        expect(tapCount, 1);
+      },
+    );
   });
 }

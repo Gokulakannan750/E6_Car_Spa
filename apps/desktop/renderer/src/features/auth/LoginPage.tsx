@@ -13,7 +13,7 @@ import bannerImage from '../../assets/login-banner.jpg';
 
 
 export default function LoginPage() {
-	const { isAuthenticated, isInitialized, isLoading } = useAuth();
+	const { isAuthenticated, isInitialized, isLoading, checkInitialization } = useAuth();
 	const cachedProfile = getCachedBusinessProfile();
 	const [publicProfile, setPublicProfile] = useState<PublicBusinessProfileDto | null>(() => {
 		if (cachedProfile) {
@@ -26,6 +26,11 @@ export default function LoginPage() {
 		return null;
 	});
 	const [imgError, setImgError] = useState(false);
+
+	useEffect(() => {
+		// Revalidate auth initialization state upon navigating to login
+		checkInitialization(false, true);
+	}, [checkInitialization]);
 
 	useEffect(() => {
 		let isMounted = true;

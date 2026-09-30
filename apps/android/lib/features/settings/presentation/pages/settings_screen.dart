@@ -97,9 +97,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ],
           ),
-          actions: const [
-            AppLogoutAction(),
-          ],
+          actions: const [AppLogoutAction()],
         ),
         body: visibleSections.isEmpty
             ? const Center(
@@ -114,7 +112,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               )
             : ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 children: [
                   // Workspace Description
                   const Padding(
@@ -162,10 +163,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsCard(
-    BuildContext context,
-    _SettingsWorkspaceItem item,
-  ) {
+  Widget _buildSettingsCard(BuildContext context, _SettingsWorkspaceItem item) {
     return Material(
       key: Key('settings_card_${item.title}'),
       color: Colors.white,

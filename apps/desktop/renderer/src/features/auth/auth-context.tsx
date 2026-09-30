@@ -1,4 +1,4 @@
-import { useState, useCallback, useContext, createContext, useEffect, type ReactNode } from 'react';
+import { useState, useCallback, useContext, createContext, useEffect, useRef, type ReactNode } from 'react';
 import {
 	getAuthStatus,
 	getMe,
@@ -26,7 +26,7 @@ export interface AuthContextValue {
 	logout: () => void;
 	clearSessionExpiredMessage: () => void;
 	refreshAuth: () => Promise<void>;
-	checkInitialization: (isInitialStartup?: boolean) => Promise<boolean>;
+	checkInitialization: (isInitialStartup?: boolean, force?: boolean) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -53,6 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
 	const setCurrentUser = useAppStore((s) => s.setCurrentUser);
 
+	const isInitializedRef = useRef<boolean | null>(isInitialized);
+	isInitializedRef.current = isInitialized;
+
+	const inFlightCheckRef = useRef<Promise<boolean> | null>(null);
+	const lastCheckTimeRef = useRef<number>(0);
+
 	const syncAppStoreUser = useCallback((u: AuthUser | null) => {
 		if (!u) {
 			setCurrentUser(null);
@@ -72,30 +78,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		});
 	}, [setCurrentUser]);
 
-	const checkInitialization = useCallback(async (isInitialStartup: boolean = false) => {
-		try {
-			const res = await getAuthStatus();
-			setIsInitialized(res.initialized);
-			return res.initialized;
-		} catch (err) {
-			console.error('Failed to check auth status:', err);
-			// During initial startup when state is unknown, default to true to allow login attempt (Case 5).
-			// If already on FirstTimeSetup (isInitialized === false), retain false on network error so
-			// the screen is preserved and not prematurely exited.
-			if (isInitialStartup) {
-				setIsInitialized(true);
-				return true;
-			}
-			return false;
+	const checkInitialization = useCallback((isInitialStartup: boolean = false, force: boolean = false): Promise<boolean> => {
+		if (inFlightCheckRef.current) {
+			return inFlightCheckRef.current;
 		}
-	}, []);
 
-	const logout = useCallback(() => {
+		const now = Date.now();
+		if (!force && !isInitialStartup && isInitializedRef.current !== null && (now - lastCheckTimeRef.current) < 500) {
+			return Promise.resolve(isInitializedRef.current);
+		}
+
+		const checkPromise = (async () => {
+			try {
+				const res = await getAuthStatus();
+				lastCheckTimeRef.current = Date.now();
+				setIsInitialized(res.initialized);
+				if (!res.initialized) {
+					// Database has zero users: cleanly wipe local session so app routes to setup
+					setAuthToken(null);
+					setTokenState(null);
+					setUser(null);
+					syncAppStoreUser(null);
+					if (typeof localStorage !== 'undefined') {
+						localStorage.removeItem(USER_STORAGE_KEY);
+					}
+				}
+				return res.initialized;
+			} catch (err) {
+				console.error('Failed to check auth status:', err);
+				// During initial startup when state is unknown, default to true to allow login attempt.
+				// If already known, preserve existing state so network errors do not disrupt the screen.
+				if (isInitialStartup) {
+					setIsInitialized(true);
+					return true;
+				}
+				return isInitializedRef.current ?? false;
+			} finally {
+				inFlightCheckRef.current = null;
+			}
+		})();
+
+		inFlightCheckRef.current = checkPromise;
+		return checkPromise;
+	}, [syncAppStoreUser]);
+
+	const logout = useCallback(async () => {
 		setAuthToken(null);
 		setTokenState(null);
 		setUser(null);
 		syncAppStoreUser(null);
-	}, [syncAppStoreUser]);
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem(USER_STORAGE_KEY);
+		}
+		try {
+			await checkInitialization(false, true);
+		} catch {
+			// ignore network error
+		}
+	}, [checkInitialization, syncAppStoreUser]);
 
 	const refreshAuth = useCallback(async () => {
 		const storedToken = await initAuthToken();
@@ -118,14 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}, [logout, syncAppStoreUser]);
 
-	// Initial load: check auth status and existing token
+	// Initial load and window lifecycle revalidation
 	useEffect(() => {
 		let isMounted = true;
 
 		async function init() {
 			setIsLoading(true);
 			try {
-				const initialized = await checkInitialization(true);
+				const initialized = await checkInitialization(true, true);
 				if (initialized) {
 					const existingToken = await initAuthToken();
 					if (existingToken) {
@@ -153,17 +193,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		init();
 
-
-		const handleUnauthorized = () => {
-			if (isMounted) {
-				setSessionExpiredMessage('Session expired. Please log in again.');
-				logout();
+		const handleRevalidation = async () => {
+			if (!isMounted) return;
+			try {
+				await checkInitialization(false, false);
+			} catch {
+				// transient failure
 			}
 		};
 
+		const handleFocus = () => {
+			handleRevalidation();
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				handleRevalidation();
+			}
+		};
+
+		const handleUnauthorized = async () => {
+			if (!isMounted) return;
+			setSessionExpiredMessage('Session expired. Please log in again.');
+			setAuthToken(null);
+			setTokenState(null);
+			setUser(null);
+			syncAppStoreUser(null);
+			if (typeof localStorage !== 'undefined') {
+				localStorage.removeItem(USER_STORAGE_KEY);
+			}
+			// Case D: Re-check auth initialization state
+			try {
+				await checkInitialization(false, true);
+			} catch {
+				// network error, retain existing
+			}
+		};
+
+		window.addEventListener('focus', handleFocus);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('auth:unauthorized', handleUnauthorized);
+
 		return () => {
 			isMounted = false;
+			window.removeEventListener('focus', handleFocus);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('auth:unauthorized', handleUnauthorized);
 		};
 	}, [checkInitialization, logout, syncAppStoreUser]);

@@ -222,16 +222,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/attendance',
-				lazy: async () => {
-					const m = await loadAttendance();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="staff_advances.view">
-								<m.AttendancePage />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/staff-attendance" replace />,
 			},
 			{
 				path: '/staff-salary',
@@ -248,16 +239,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/salary',
-				lazy: async () => {
-					const m = await loadSalary();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="staff_advances.view">
-								<m.SalaryPage />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/staff-salary" replace />,
 			},
 			{
 				path: '/reports',
@@ -352,16 +334,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/reports/audit',
-				lazy: async () => {
-					const m = await loadAudit();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="audit.view">
-								<m.AuditLogPage />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/audit" replace />,
 			},
 			{
 				path: '/showroom',

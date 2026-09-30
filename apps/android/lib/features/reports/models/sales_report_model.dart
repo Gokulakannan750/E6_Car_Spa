@@ -44,18 +44,44 @@ class SalesReportRowModel {
 
   factory SalesReportRowModel.fromJson(Map<String, dynamic> json) {
     return SalesReportRowModel(
-      invoiceId: json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
-      invoiceNumber: json['invoiceNumber']?.toString() ?? json['InvoiceNumber']?.toString(),
-      invoiceDate: DateTime.tryParse(json['invoiceDate']?.toString() ?? json['InvoiceDate']?.toString() ?? '') ?? DateTime.now(),
-      customerName: json['customerName']?.toString() ?? json['CustomerName']?.toString() ?? '',
-      customerPhone: json['customerPhone']?.toString() ?? json['CustomerPhone']?.toString() ?? '',
-      registrationNumber: (json['registrationNumber']?.toString() ?? json['RegistrationNumber']?.toString() ?? '').trim().toUpperCase(),
-      subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num).toDouble(),
-      discount: ((json['discount'] ?? json['Discount'] ?? 0.0) as num).toDouble(),
+      invoiceId:
+          json['invoiceId']?.toString() ?? json['InvoiceId']?.toString() ?? '',
+      invoiceNumber:
+          json['invoiceNumber']?.toString() ??
+          json['InvoiceNumber']?.toString(),
+      invoiceDate:
+          DateTime.tryParse(
+            json['invoiceDate']?.toString() ??
+                json['InvoiceDate']?.toString() ??
+                '',
+          ) ??
+          DateTime.now(),
+      customerName:
+          json['customerName']?.toString() ??
+          json['CustomerName']?.toString() ??
+          '',
+      customerPhone:
+          json['customerPhone']?.toString() ??
+          json['CustomerPhone']?.toString() ??
+          '',
+      registrationNumber:
+          (json['registrationNumber']?.toString() ??
+                  json['RegistrationNumber']?.toString() ??
+                  '')
+              .trim()
+              .toUpperCase(),
+      subtotal: ((json['subtotal'] ?? json['Subtotal'] ?? 0.0) as num)
+          .toDouble(),
+      discount: ((json['discount'] ?? json['Discount'] ?? 0.0) as num)
+          .toDouble(),
       gst: ((json['gst'] ?? json['Gst'] ?? 0.0) as num).toDouble(),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
-      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num).toDouble(),
-      balanceAmount: ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num).toDouble(),
+      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
+          .toDouble(),
+      paidAmount: ((json['paidAmount'] ?? json['PaidAmount'] ?? 0.0) as num)
+          .toDouble(),
+      balanceAmount:
+          ((json['balanceAmount'] ?? json['BalanceAmount'] ?? 0.0) as num)
+              .toDouble(),
       status: _parseInvoiceStatus(json['status'] ?? json['Status']),
     );
   }
@@ -82,13 +108,23 @@ class SalesReportSummaryModel {
 
   factory SalesReportSummaryModel.fromJson(Map<String, dynamic> json) {
     return SalesReportSummaryModel(
-      totalSubtotal: ((json['totalSubtotal'] ?? json['TotalSubtotal'] ?? 0.0) as num).toDouble(),
-      totalDiscount: ((json['totalDiscount'] ?? json['TotalDiscount'] ?? 0.0) as num).toDouble(),
-      totalGst: ((json['totalGst'] ?? json['TotalGst'] ?? 0.0) as num).toDouble(),
-      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num).toDouble(),
-      totalPaid: ((json['totalPaid'] ?? json['TotalPaid'] ?? 0.0) as num).toDouble(),
-      totalBalance: ((json['totalBalance'] ?? json['TotalBalance'] ?? 0.0) as num).toDouble(),
-      invoiceCount: json['invoiceCount'] as int? ?? json['InvoiceCount'] as int? ?? 0,
+      totalSubtotal:
+          ((json['totalSubtotal'] ?? json['TotalSubtotal'] ?? 0.0) as num)
+              .toDouble(),
+      totalDiscount:
+          ((json['totalDiscount'] ?? json['TotalDiscount'] ?? 0.0) as num)
+              .toDouble(),
+      totalGst: ((json['totalGst'] ?? json['TotalGst'] ?? 0.0) as num)
+          .toDouble(),
+      totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
+          .toDouble(),
+      totalPaid: ((json['totalPaid'] ?? json['TotalPaid'] ?? 0.0) as num)
+          .toDouble(),
+      totalBalance:
+          ((json['totalBalance'] ?? json['TotalBalance'] ?? 0.0) as num)
+              .toDouble(),
+      invoiceCount:
+          json['invoiceCount'] as int? ?? json['InvoiceCount'] as int? ?? 0,
     );
   }
 }
@@ -109,13 +145,23 @@ class SalesReportResponseModel {
   });
 
   factory SalesReportResponseModel.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'] as List<dynamic>? ?? json['Items'] as List<dynamic>? ?? [];
+    final rawItems =
+        json['items'] as List<dynamic>? ??
+        json['Items'] as List<dynamic>? ??
+        [];
     return SalesReportResponseModel(
-      items: rawItems.map((item) => SalesReportRowModel.fromJson(item as Map<String, dynamic>)).toList(),
+      items: rawItems
+          .map(
+            (item) =>
+                SalesReportRowModel.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(),
       totalCount: json['totalCount'] as int? ?? json['TotalCount'] as int? ?? 0,
       page: json['page'] as int? ?? json['Page'] as int? ?? 1,
       pageSize: json['pageSize'] as int? ?? json['PageSize'] as int? ?? 20,
-      summary: SalesReportSummaryModel.fromJson((json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>),
+      summary: SalesReportSummaryModel.fromJson(
+        (json['summary'] ?? json['Summary'] ?? {}) as Map<String, dynamic>,
+      ),
     );
   }
 }

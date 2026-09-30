@@ -70,7 +70,7 @@ void main() {
             'paymentMethod': 'Card',
             'paymentDate': '2026-09-27T14:00:00.000Z',
             'createdAt': '2026-09-27T14:00:00.000Z',
-          }
+          },
         ],
         'createdAt': '2026-09-27T09:00:00.000Z',
       };
@@ -205,7 +205,7 @@ void main() {
             'balanceAmount': 0.0,
             'status': 'Paid',
             'hasBill': true,
-          }
+          },
         ],
         'staffProductivity': [
           {
@@ -216,7 +216,7 @@ void main() {
             'daysAssigned': 20,
             'totalVehiclesAttended': 180,
             'averageVehiclesPerDay': 9.0,
-          }
+          },
         ],
       };
 

@@ -19,7 +19,8 @@ class SwapDetailsModalSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SwapDetailsModalSheet> createState() => _SwapDetailsModalSheetState();
+  ConsumerState<SwapDetailsModalSheet> createState() =>
+      _SwapDetailsModalSheetState();
 }
 
 class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
@@ -115,7 +116,9 @@ class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Staff swap #${widget.swapId} reversed successfully.'),
+            content: Text(
+              'Staff swap #${widget.swapId} reversed successfully.',
+            ),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -172,7 +175,11 @@ class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
                     color: Colors.purple.withAlpha(25),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.swap_horiz, color: Colors.purple, size: 22),
+                  child: const Icon(
+                    Icons.swap_horiz,
+                    color: Colors.purple,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -217,270 +224,314 @@ class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
                     ),
                   )
                 : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 40,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _error!,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: _fetchDetails,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Status Banner
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withAlpha(15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.purple.withAlpha(50),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Icon(Icons.error_outline, size: 40, color: AppColors.error),
-                              const SizedBox(height: 10),
-                              Text(_error!, style: const TextStyle(color: AppColors.error)),
-                              const SizedBox(height: 12),
-                              OutlinedButton(
-                                onPressed: _fetchDetails,
-                                child: const Text('Retry'),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Effective Date',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    dateFormat.format(_swap!.date),
+                                    style: AppTextStyles.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.purple.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _swap!.status == 'Completed'
+                                      ? AppColors.readyBg
+                                      : Colors.amber.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: _swap!.status == 'Completed'
+                                        ? AppColors.readyBorder
+                                        : Colors.amber.shade300,
+                                  ),
+                                ),
+                                child: Text(
+                                  _swap!.status.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: _swap!.status == 'Completed'
+                                        ? AppColors.success
+                                        : Colors.amber.shade900,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Status Banner
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.withAlpha(15),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.purple.withAlpha(50)),
+                        const SizedBox(height: 16),
+
+                        // Coverage Period Card (if present)
+                        if (_swap!.coverageStartTime != null &&
+                            _swap!.coverageEndTime != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withAlpha(12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.purple.withAlpha(45),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withAlpha(20),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.access_time,
+                                    color: Colors.purple,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Effective Date',
+                                        'SWAP COVERAGE PERIOD',
                                         style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10,
+                                          letterSpacing: 0.5,
+                                          color: Colors.purple.shade900,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        dateFormat.format(_swap!.date),
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.purple.shade900,
-                                        ),
+                                        '${_swap!.coverageStartTime} – ${_swap!.coverageEndTime} (${_swap!.coverageDurationFormatted ?? (_swap!.coverageDurationHours != null ? "${_swap!.coverageDurationHours} hours" : "")})',
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.purple.shade900,
+                                            ),
                                       ),
                                     ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _swap!.status == 'Completed'
-                                          ? AppColors.readyBg
-                                          : Colors.amber.shade50,
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: _swap!.status == 'Completed'
-                                            ? AppColors.readyBorder
-                                            : Colors.amber.shade300,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      _swap!.status.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: _swap!.status == 'Completed'
-                                            ? AppColors.success
-                                            : Colors.amber.shade900,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Coverage Period Card (if present)
-                            if (_swap!.coverageStartTime != null && _swap!.coverageEndTime != null) ...[
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.withAlpha(12),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.purple.withAlpha(45)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple.withAlpha(20),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(Icons.access_time, color: Colors.purple, size: 20),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'SWAP COVERAGE PERIOD',
-                                            style: AppTextStyles.bodySmall.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 10,
-                                              letterSpacing: 0.5,
-                                              color: Colors.purple.shade900,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${_swap!.coverageStartTime} – ${_swap!.coverageEndTime} (${_swap!.coverageDurationFormatted ?? (_swap!.coverageDurationHours != null ? "${_swap!.coverageDurationHours} hours" : "")})',
-                                            style: AppTextStyles.bodyMedium.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.purple.shade900,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                            ],
-
-                            // Staff A & B Cards
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Staff A
-                                Expanded(
-                                  child: _buildStaffCard(
-                                    badge: 'Staff A',
-                                    name: _swap!.staffAName,
-                                    masterId: _swap!.staffAMasterId,
-                                    role: _swap!.staffARole,
-                                    origShowroom: _swap!.showroomAName,
-                                    assignedShowroom: _swap!.showroomBName,
-                                  ),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 30),
-                                  child: Icon(Icons.swap_horiz, color: Colors.purple, size: 24),
-                                ),
-                                // Staff B
-                                Expanded(
-                                  child: _buildStaffCard(
-                                    badge: 'Staff B',
-                                    name: _swap!.staffBName,
-                                    masterId: _swap!.staffBMasterId,
-                                    role: _swap!.staffBRole,
-                                    origShowroom: _swap!.showroomBName,
-                                    assignedShowroom: _swap!.showroomAName,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
-                            // Audit Metadata Card
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'AUDIT TRAIL METADATA',
-                                    style: AppTextStyles.bodySmall.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 10,
-                                      letterSpacing: 0.5,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildAuditRow(
-                                    'Performed By:',
-                                    _swap!.performedByName ?? 'Admin User',
-                                  ),
-                                  const SizedBox(height: 6),
-                                  _buildAuditRow(
-                                    'Timestamp:',
-                                    dateTimeFormat.format(_swap!.createdAt.toLocal()),
-                                  ),
-                                  if (_swap!.reason != null && _swap!.reason!.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    _buildAuditRow('Reason:', _swap!.reason!),
-                                  ],
-                                  if (_swap!.notes != null && _swap!.notes!.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    _buildAuditRow('Notes:', _swap!.notes!),
-                                  ],
-                                ],
+                        // Staff A & B Cards
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Staff A
+                            Expanded(
+                              child: _buildStaffCard(
+                                badge: 'Staff A',
+                                name: _swap!.staffAName,
+                                masterId: _swap!.staffAMasterId,
+                                role: _swap!.staffARole,
+                                origShowroom: _swap!.showroomAName,
+                                assignedShowroom: _swap!.showroomBName,
                               ),
                             ),
-                            const SizedBox(height: 24),
-
-                            // Action: Reverse Swap
-                            if (widget.canReverse && _swap!.status == 'Completed')
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.amber.shade900,
-                                    side: BorderSide(color: Colors.amber.shade700),
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                  ),
-                                  onPressed: _isReversing ? null : _handleReverse,
-                                  icon: _isReversing
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        )
-                                      : const Icon(Icons.undo),
-                                  label: Text(
-                                    _isReversing ? 'Reversing...' : 'Reverse Staff Swap',
-                                    style: const TextStyle(fontWeight: FontWeight.w700),
-                                  ),
-                                ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 30,
                               ),
-                            if (!widget.canReverse && _swap!.status == 'Completed')
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceAlt,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: AppColors.border),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.lock_outline, size: 16, color: AppColors.textSecondary),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        'Locked after attendance confirmation. Unlock for Correction before reversing this swap.',
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.textSecondary,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              child: Icon(
+                                Icons.swap_horiz,
+                                color: Colors.purple,
+                                size: 24,
                               ),
+                            ),
+                            // Staff B
+                            Expanded(
+                              child: _buildStaffCard(
+                                badge: 'Staff B',
+                                name: _swap!.staffBName,
+                                masterId: _swap!.staffBMasterId,
+                                role: _swap!.staffBRole,
+                                origShowroom: _swap!.showroomBName,
+                                assignedShowroom: _swap!.showroomAName,
+                              ),
+                            ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 16),
+
+                        // Audit Metadata Card
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'AUDIT TRAIL METADATA',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              _buildAuditRow(
+                                'Performed By:',
+                                _swap!.performedByName ?? 'Admin User',
+                              ),
+                              const SizedBox(height: 6),
+                              _buildAuditRow(
+                                'Timestamp:',
+                                dateTimeFormat.format(
+                                  _swap!.createdAt.toLocal(),
+                                ),
+                              ),
+                              if (_swap!.reason != null &&
+                                  _swap!.reason!.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildAuditRow('Reason:', _swap!.reason!),
+                              ],
+                              if (_swap!.notes != null &&
+                                  _swap!.notes!.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                _buildAuditRow('Notes:', _swap!.notes!),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Action: Reverse Swap
+                        if (widget.canReverse && _swap!.status == 'Completed')
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.amber.shade900,
+                                side: BorderSide(color: Colors.amber.shade700),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              onPressed: _isReversing ? null : _handleReverse,
+                              icon: _isReversing
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.undo),
+                              label: Text(
+                                _isReversing
+                                    ? 'Reversing...'
+                                    : 'Reverse Staff Swap',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (!widget.canReverse && _swap!.status == 'Completed')
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceAlt,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.lock_outline,
+                                  size: 16,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Locked after attendance confirmation. Unlock for Correction before reversing this swap.',
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textSecondary,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
           ),
         ],
       ),
@@ -547,12 +598,18 @@ class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
           if (role != null && role.isNotEmpty)
             Text(
               role,
-              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+              ),
             ),
           const SizedBox(height: 8),
           Text(
             'From: $origShowroom',
-            style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

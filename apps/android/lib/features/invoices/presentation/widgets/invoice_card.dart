@@ -8,15 +8,12 @@ class InvoiceCard extends StatelessWidget {
   final InvoiceListItem item;
   final VoidCallback onTap;
 
-  const InvoiceCard({
-    super.key,
-    required this.item,
-    required this.onTap,
-  });
+  const InvoiceCard({super.key, required this.item, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final hasNumber = item.invoiceNumber != null && item.invoiceNumber!.trim().isNotEmpty;
+    final hasNumber =
+        item.invoiceNumber != null && item.invoiceNumber!.trim().isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -70,11 +67,20 @@ class InvoiceCard extends StatelessWidget {
                                 )
                               else
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.warning.withValues(alpha: 0.15),
+                                    color: AppColors.warning.withValues(
+                                      alpha: 0.15,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
+                                    border: Border.all(
+                                      color: AppColors.warning.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                    ),
                                   ),
                                   child: Text(
                                     'Draft',
@@ -115,12 +121,18 @@ class InvoiceCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.person_outline, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.person_outline,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 item.customerName,
-                                style: AppTextStyles.headingSmall.copyWith(fontSize: 13),
+                                style: AppTextStyles.headingSmall.copyWith(
+                                  fontSize: 13,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -129,7 +141,11 @@ class InvoiceCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(Icons.phone_outlined, size: 13, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 13,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               item.customerPhone,
@@ -151,12 +167,19 @@ class InvoiceCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const Icon(Icons.directions_car_outlined, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.directions_car_outlined,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
                                 item.vehicle,
-                                style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600, fontSize: 12),
+                                style: AppTextStyles.bodyMedium.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -165,7 +188,10 @@ class InvoiceCard extends StatelessWidget {
                         if (item.registrationNumber.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.surfaceAlt,
                               borderRadius: BorderRadius.circular(4),
@@ -193,11 +219,17 @@ class InvoiceCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 13,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(item.invoiceDate),
-                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ],
                   ),
