@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import XLSX from 'xlsx-js-style';
+import * as XLSX from 'xlsx';
 import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
@@ -10,8 +10,8 @@ import {
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
 
-vi.mock('xlsx-js-style', async (importOriginal) => {
-	const actual = await importOriginal<any>();
+vi.mock('xlsx', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('xlsx')>();
 	return {
 		...actual,
 		writeFile: vi.fn(),

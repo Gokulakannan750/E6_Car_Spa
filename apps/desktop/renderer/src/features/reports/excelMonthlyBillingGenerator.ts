@@ -1,22 +1,14 @@
 /**
  * E6 Car Spa Management — Monthly Billing Reports Excel Generator
  *
- * Generates ONE professional, beautifully formatted Excel workbook for the selected reporting month:
+ * Generates ONE professional, structured Excel workbook for the selected reporting month:
  *   - SHEET 1: "Monthly Summary" (Executive presentation, KPIs, Invoice & Payment breakdown, Reconciliation note)
  *   - SHEETS 2..N: Daily sheets ("01-Oct", "02-Oct", ... "31-Oct") with Job Cards, Invoices, and Services sections.
  *
- * Visual Palette & Styling:
- *   - Primary Dark Blue: #0B3A6E
- *   - E6 Blue: #0B5ED7
- *   - Light Blue Fill: #EAF2FF
- *   - Success Green: #198754 / Fill #EAF7EF
- *   - Warning Orange: #F59E0B / Fill #FFF4E0
- *   - Danger Red: #DC3545 / Fill #FDECEC
- *   - Neutral Dark Text: #1F2937
- *   - Border Gray: #D1D5DB
+ * Uses standard SheetJS (xlsx) without Node-specific runtime dependencies.
  */
 
-import XLSX from 'xlsx-js-style';
+import * as XLSX from 'xlsx';
 import type {
 	MonthlyBillingReportResponse,
 	MonthlyBillingSummaryDto,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import XLSX from 'xlsx-js-style';
+import * as XLSX from 'xlsx';
 import {
 	generateMonthlyBillingWorkbook,
 } from './excelMonthlyBillingGenerator';
