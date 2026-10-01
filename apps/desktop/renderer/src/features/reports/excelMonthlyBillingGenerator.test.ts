@@ -1,24 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as XLSX from 'xlsx';
 import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
-	generateMonthlySummaryWorksheet,
-	generateDailySheetWorksheet,
-	generateMonthlyBillingWorkbook,
+	createMonthlyBillingWorkbook,
+	buildMonthlySummarySheet,
+	buildDailySheet,
 	generateAndDownloadMonthlyBillingReport,
+	ARGB,
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
+import ExcelJS from 'exceljs';
 
-vi.mock('xlsx', async (importOriginal) => {
-	const actual = await importOriginal<typeof import('xlsx')>();
-	return {
-		...actual,
-		writeFile: vi.fn(),
-	};
-});
-
-describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Structure', () => {
+describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workbook Structure', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -48,27 +41,36 @@ describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Struc
 			totalServiceQuantity: 95,
 		};
 
-		const ws = generateMonthlySummaryWorksheet(mockSummary, 'October 2026', 31);
+		const workbook = new ExcelJS.Workbook();
+		const ws = buildMonthlySummarySheet(workbook, mockSummary, 'October 2026', 31);
 		expect(ws).toBeDefined();
 
 		// Title cell A1
-		expect(ws['A1']).toBeDefined();
-		expect(ws['A1'].v).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
-		expect(ws['A1'].s?.fill?.fgColor?.rgb).toBe('0B3A6E');
-		expect(ws['A1'].s?.font?.color?.rgb).toBe('FFFFFF');
-		expect(ws['A1'].s?.font?.sz).toBe(16);
+		const cellA1 = ws.getCell('A1');
+		expect(cellA1.value).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
+		expect(cellA1.font?.bold).toBe(true);
+		expect(cellA1.font?.color?.argb).toBe(ARGB.WHITE);
+		expect(cellA1.fill).toEqual({
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: ARGB.PRIMARY_DARK },
+		});
+		expect(ws.getRow(1).height).toBe(34);
 
 		// Subtitle cell A2
-		expect(ws['A2']).toBeDefined();
-		expect(ws['A2'].v).toBe('MONTHLY EXECUTIVE SUMMARY');
-		expect(ws['A2'].s?.fill?.fgColor?.rgb).toBe('EAF2FF');
+		const cellA2 = ws.getCell('A2');
+		expect(cellA2.value).toBe('MONTHLY EXECUTIVE SUMMARY');
+		expect(cellA2.font?.bold).toBe(true);
+		expect(cellA2.font?.color?.argb).toBe(ARGB.PRIMARY_DARK);
+		expect(cellA2.fill).toEqual({
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: ARGB.SECONDARY_LIGHT_BLUE },
+		});
 
-		// Merges and formatting
-		expect(ws['!merges']).toBeDefined();
-		expect(ws['!merges']?.length).toBeGreaterThan(5);
-		expect(ws['!rows']).toBeDefined();
-		expect(ws['!cols']).toBeDefined();
-		expect(ws['!pageSetup']?.orientation).toBe('portrait');
+		// Check Page Setup
+		expect(ws.pageSetup.orientation).toBe('portrait');
+		expect(ws.pageSetup.fitToWidth).toBe(1);
 	});
 
 	it('creates empty daily sheet with styled "No billing activity" banner when hasActivity is false', () => {
@@ -93,11 +95,18 @@ describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Struc
 			services: [],
 		};
 
-		const ws = generateDailySheetWorksheet(emptyDailySheet, 'October 2026');
+		const workbook = new ExcelJS.Workbook();
+		const ws = buildDailySheet(workbook, emptyDailySheet, 'October 2026');
 		expect(ws).toBeDefined();
-		expect(ws['A1']?.v).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 01-OCT-2026');
-		expect(ws['A7']?.v).toBe('No billing activity for this date.');
-		expect(ws['A7']?.s?.fill?.fgColor?.rgb).toBe('F3F4F6');
+
+		// Header checks
+		expect(ws.getCell('A1').value).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 01-OCT-2026');
+		expect(ws.getCell('A7').value).toBe('No billing activity for this date.');
+		expect(ws.getCell('A7').fill).toEqual({
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: ARGB.LIGHT_GRAY_FILL },
+		});
 	});
 
 	it('creates active daily sheet with styled Job Cards, Invoices, and Services sections', () => {
@@ -168,28 +177,32 @@ describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Struc
 			],
 		};
 
-		const ws = generateDailySheetWorksheet(activeDailySheet, 'October 2026');
+		const workbook = new ExcelJS.Workbook();
+		const ws = buildDailySheet(workbook, activeDailySheet, 'October 2026');
 		expect(ws).toBeDefined();
 
 		// Header checks
-		expect(ws['A1']?.v).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 15-OCT-2026');
-		expect(ws['!pageSetup']?.orientation).toBe('landscape');
+		expect(ws.getCell('A1').value).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 15-OCT-2026');
+		expect(ws.pageSetup.orientation).toBe('landscape');
 
-		// Check values exist across the sheet cells
-		const cellValues = Object.keys(ws)
-			.filter((k) => !k.startsWith('!'))
-			.map((k) => ws[k].v);
+		// Check all values are present in sheet
+		const values: string[] = [];
+		ws.eachRow((row) => {
+			row.eachCell((cell) => {
+				if (cell.value) values.push(String(cell.value));
+			});
+		});
 
-		expect(cellValues).toContain('SECTION 1: JOB CARDS (1 records)');
-		expect(cellValues).toContain('JC-101');
-		expect(cellValues).toContain('SECTION 2: INVOICES (1 records)');
-		expect(cellValues).toContain('INV-101');
-		expect(cellValues).toContain('SECTION 3: SERVICES (2 items)');
-		expect(cellValues).toContain('Full Wash');
-		expect(cellValues).toContain('Teflon Coating');
-		expect(cellValues).toContain('TOTAL JOB CARDS');
-		expect(cellValues).toContain('TOTAL INVOICES');
-		expect(cellValues).toContain('TOTAL SERVICES');
+		expect(values).toContain('SECTION 1: JOB CARDS (1 records)');
+		expect(values).toContain('JC-101');
+		expect(values).toContain('SECTION 2: INVOICES (1 records)');
+		expect(values).toContain('INV-101');
+		expect(values).toContain('SECTION 3: SERVICES (2 items)');
+		expect(values).toContain('Full Wash');
+		expect(values).toContain('Teflon Coating');
+		expect(values).toContain('TOTAL JOB CARDS');
+		expect(values).toContain('TOTAL INVOICES');
+		expect(values).toContain('TOTAL SERVICES');
 	});
 
 	it('generates complete workbook with Monthly Summary and 31 daily sheets for October', () => {
@@ -246,15 +259,27 @@ describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Struc
 			dailySheets,
 		};
 
-		const wb = generateMonthlyBillingWorkbook(mockReport);
+		const wb = createMonthlyBillingWorkbook(mockReport);
 		// Sheet 1: Monthly Summary + 31 daily sheets = 32 sheets total
-		expect(wb.SheetNames.length).toBe(32);
-		expect(wb.SheetNames[0]).toBe('Monthly Summary');
-		expect(wb.SheetNames[1]).toBe('01-Oct');
-		expect(wb.SheetNames[31]).toBe('31-Oct');
+		expect(wb.worksheets.length).toBe(32);
+		expect(wb.worksheets[0].name).toBe('Monthly Summary');
+		expect(wb.worksheets[1].name).toBe('01-Oct');
+		expect(wb.worksheets[31].name).toBe('31-Oct');
 	});
 
-	it('triggers XLSX.writeFile with correct file name in generateAndDownloadMonthlyBillingReport', () => {
+	it('generates workbook buffer and creates downloadable blob in generateAndDownloadMonthlyBillingReport', async () => {
+		// Mock DOM URL and createElement
+		const mockClick = vi.fn();
+		const mockAppendChild = vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
+		const mockRemoveChild = vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+		window.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		window.URL.revokeObjectURL = vi.fn();
+
+		const createElementSpy = vi.spyOn(document, 'createElement').mockReturnValue({
+			click: mockClick,
+			setAttribute: vi.fn(),
+		} as any);
+
 		const mockReport: MonthlyBillingReportResponse = {
 			year: 2026,
 			month: 10,
@@ -283,9 +308,12 @@ describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Struc
 			dailySheets: [],
 		};
 
-		const fileName = generateAndDownloadMonthlyBillingReport(mockReport);
+		const fileName = await generateAndDownloadMonthlyBillingReport(mockReport);
 		expect(fileName).toBe('E6_Car_Spa_Billing_Report_October_2026.xlsx');
-		expect(XLSX.writeFile).toHaveBeenCalledWith(expect.anything(), 'E6_Car_Spa_Billing_Report_October_2026.xlsx');
+		expect(mockClick).toHaveBeenCalled();
+
+		createElementSpy.mockRestore();
+		mockAppendChild.mockRestore();
+		mockRemoveChild.mockRestore();
 	});
 });
-

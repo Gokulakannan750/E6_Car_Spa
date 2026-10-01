@@ -78,11 +78,11 @@ export function BillingReportsView({ data, isLoading: isParentLoading, bounds, f
 		queryFn: () => getMonthlyBillingReport({ year: selectedYear, month: selectedMonth }),
 	});
 
-	const handleExportExcel = () => {
+	const handleExportExcel = async () => {
 		if (!monthlyReport) return;
 		setIsExporting(true);
 		try {
-			generateAndDownloadMonthlyBillingReport(monthlyReport);
+			await generateAndDownloadMonthlyBillingReport(monthlyReport);
 		} catch (err) {
 			console.error('Failed to export Monthly Billing Excel:', err);
 		} finally {

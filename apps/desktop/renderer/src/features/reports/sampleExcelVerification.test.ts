@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import * as XLSX from 'xlsx';
 import {
-	generateMonthlyBillingWorkbook,
+	createMonthlyBillingWorkbook,
+	ARGB,
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
 
-describe('Sample Excel Workbook Generation Verification', () => {
-	it('generates a real September 2026 Excel file and verifies formatting integrity', () => {
+describe('Sample Excel Workbook Generation Verification (ExcelJS)', () => {
+	it('generates a real September 2026 Excel file and verifies formatting integrity', async () => {
 		const dailySheets = Array.from({ length: 30 }, (_, i) => {
 			const day = i + 1;
 			const dayStr = String(day).padStart(2, '0');
@@ -157,23 +157,29 @@ describe('Sample Excel Workbook Generation Verification', () => {
 			dailySheets,
 		};
 
-		const wb = generateMonthlyBillingWorkbook(sampleReport);
+		const wb = createMonthlyBillingWorkbook(sampleReport);
 
 		// Verify Sheet Count: Monthly Summary + 30 daily sheets = 31 sheets
-		expect(wb.SheetNames.length).toBe(31);
-		expect(wb.SheetNames[0]).toBe('Monthly Summary');
-		expect(wb.SheetNames[1]).toBe('01-Sep');
-		expect(wb.SheetNames[30]).toBe('30-Sep');
+		expect(wb.worksheets.length).toBe(31);
+		expect(wb.worksheets[0].name).toBe('Monthly Summary');
+		expect(wb.worksheets[1].name).toBe('01-Sep');
+		expect(wb.worksheets[30].name).toBe('30-Sep');
 
 		// Verify Monthly Summary cells & styles
-		const summaryWs = wb.Sheets['Monthly Summary'];
-		expect(summaryWs['A1'].v).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
-		expect(summaryWs['A1'].s?.fill?.fgColor?.rgb).toBe('0B3A6E');
-		expect(summaryWs['A2'].v).toBe('MONTHLY EXECUTIVE SUMMARY');
+		const summaryWs = wb.getWorksheet('Monthly Summary');
+		expect(summaryWs).toBeDefined();
+		expect(summaryWs?.getCell('A1').value).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
+		expect(summaryWs?.getCell('A1').font?.bold).toBe(true);
+		expect(summaryWs?.getCell('A1').fill).toEqual({
+			type: 'pattern',
+			pattern: 'solid',
+			fgColor: { argb: ARGB.PRIMARY_DARK },
+		});
+		expect(summaryWs?.getCell('A2').value).toBe('MONTHLY EXECUTIVE SUMMARY');
 
-		// Verify buffer writing without disk pollution
-		const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-		expect(buf).toBeDefined();
-		expect(buf.length).toBeGreaterThan(5000);
+		// Verify Excel buffer write
+		const buffer = await wb.xlsx.writeBuffer();
+		expect(buffer).toBeDefined();
+		expect(buffer.byteLength).toBeGreaterThan(10000);
 	});
 });
