@@ -42,11 +42,11 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 
 			// 4. E6 Reports
 			expect(screen.getByRole('heading', { name: 'E6 Reports', level: 3 })).toBeInTheDocument();
-			expect(screen.getByText('Business, billing, staff and showroom reports')).toBeInTheDocument();
-			expect(screen.getByText('Business Reports')).toBeInTheDocument();
-			expect(screen.getByText('Operational Reports')).toBeInTheDocument();
-			expect(screen.getByText('Financial Reports')).toBeInTheDocument();
-			expect(screen.getByText('Custom Reports')).toBeInTheDocument();
+			expect(screen.getByText('Billing, staff, showroom and outside job reports')).toBeInTheDocument();
+			expect(screen.getByText('Billing Reports')).toBeInTheDocument();
+			expect(screen.getByText('Staff Reports')).toBeInTheDocument();
+			expect(screen.getByText('Showroom Reports')).toBeInTheDocument();
+			expect(screen.getByText('Outside Jobs')).toBeInTheDocument();
 
 			// 5. E6 Settings
 			expect(screen.getByRole('heading', { name: 'E6 Settings', level: 3 })).toBeInTheDocument();

@@ -194,13 +194,15 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			});
 
 			expect(screen.getByText('Suite Home')).toBeInTheDocument();
-			expect(screen.getByText('Business Reports')).toBeInTheDocument();
 			expect(screen.getByText('Billing Reports')).toBeInTheDocument();
 			expect(screen.getByText('Staff Reports')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Reports')).toBeInTheDocument();
+			expect(screen.getByText('Outside Jobs')).toBeInTheDocument();
 			expect(screen.getByText('Custom Reports')).toBeInTheDocument();
 			expect(screen.getByText('Audit Trail')).toBeInTheDocument();
 
+			expect(screen.queryByText('Business Reports')).not.toBeInTheDocument();
+			expect(screen.queryByText('Dashboard Overview')).not.toBeInTheDocument();
 			expect(screen.queryByText('Customers')).not.toBeInTheDocument();
 			expect(screen.queryByText('Job Cards')).not.toBeInTheDocument();
 			expect(screen.queryByText('Showrooms')).not.toBeInTheDocument();

@@ -13,6 +13,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getDashboardSummary: vi.fn(),
 		getShowrooms: vi.fn(),
 		getMonthlyShowroomReport: vi.fn(),
+		getOutsideJobsReport: vi.fn(),
 	};
 });
 
@@ -216,6 +217,15 @@ describe('ReportsPage Component', () => {
 				},
 			],
 		});
+		vi.mocked(api.getOutsideJobsReport).mockResolvedValue({
+			totalOutsideCount: 0,
+			totalOverdueCount: 0,
+			totalActiveCost: 0,
+			totalHistoricalCost: 0,
+			currentlyOutside: [],
+			history: [],
+			vendorSummary: [],
+		});
 	});
 
 	it('renders Reports page header and executive KPI summary cards from backend summary on /reports', async () => {
@@ -229,15 +239,28 @@ describe('ReportsPage Component', () => {
 		await waitFor(() => {
 			expect(screen.getAllByText('₹8,000.00').length).toBeGreaterThan(0);
 			expect(screen.getAllByText('₹7,000.00').length).toBeGreaterThan(0);
-			expect(screen.getAllByText('₹3,500.00').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('₹1,000.00').length).toBeGreaterThan(0);
 		});
 
 		expect(screen.getByRole('heading', { level: 1, name: /reports & business analytics/i })).toBeInTheDocument();
-		expect(screen.getAllByText('Billed Revenue').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('Collections Received').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('Total Outstanding').length).toBeGreaterThan(0);
-		expect(screen.getAllByText('Job Cards Completed').length).toBeGreaterThan(0);
-		expect(screen.getByText('Report Workspaces & Detailed Analytics')).toBeInTheDocument();
+		expect(screen.getAllByText('Total Invoiced').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('Total Payments Collected').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('Invoice Receivables').length).toBeGreaterThan(0);
+
+		// Verified Reports sub-tabs
+		expect(screen.getByRole('button', { name: /billing reports/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /staff reports/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /showroom reports/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /outside jobs/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /custom reports/i })).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /audit trail/i })).toBeInTheDocument();
+
+		// Obsolete tabs must NOT exist
+		expect(screen.queryByRole('button', { name: /dashboard overview/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /business reports/i })).not.toBeInTheDocument();
+
+		// Opens directly into Billing Reports
+		expect(screen.getByText('Invoice Status Distribution')).toBeInTheDocument();
 	});
 
 	it('supports switching date presets (e.g. 7D, 30D, This Month, YTD) and fetches backend report', async () => {
@@ -283,23 +306,6 @@ describe('ReportsPage Component', () => {
 		});
 	});
 
-	it('renders top performing services table in Business Reports view on /reports/business', async () => {
-		renderWithProviders(
-			<Routes>
-				<Route path="/reports/*" element={<ReportsPage />} />
-			</Routes>,
-			{ initialEntries: ['/reports/business'] }
-		);
-
-		await waitFor(() => {
-			expect(screen.getByText('Top Performing Services')).toBeInTheDocument();
-			expect(screen.getByText('Ceramic Coating')).toBeInTheDocument();
-			expect(screen.getByText('Foam Wash & Wax')).toBeInTheDocument();
-			expect(screen.getByText('₹6,000.00')).toBeInTheDocument();
-			expect(screen.getByText('₹2,000.00')).toBeInTheDocument();
-		});
-	});
-
 	it('renders error banner with retry button on query rejection', async () => {
 		vi.mocked(api.getDashboardSummary).mockRejectedValue(new Error('Network error loading reports'));
 
@@ -316,18 +322,16 @@ describe('ReportsPage Component', () => {
 		});
 	});
 
-	it('renders Business Reports view when navigating to ?type=business or /reports/business', async () => {
+	it('renders Outside Jobs Reports view when navigating to ?type=outside-jobs', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/reports/*" element={<ReportsPage />} />
 			</Routes>,
-			{ initialEntries: ['/reports?type=business'] }
+			{ initialEntries: ['/reports?type=outside-jobs'] }
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Revenue vs Collections Timeline')).toBeInTheDocument();
-			expect(screen.getByText('Top Performing Services')).toBeInTheDocument();
-			expect(screen.getByText('Ceramic Coating')).toBeInTheDocument();
+			expect(screen.getByText('Outside Jobs & External Movements')).toBeInTheDocument();
 		});
 	});
 
@@ -415,16 +419,7 @@ describe('ReportsPage Component', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getAllByText('Billed Revenue').length).toBeGreaterThan(0);
-		});
-
-		// Switch to Billing tab button
-		const billingBtn = screen.getByRole('button', { name: /billing reports/i });
-		fireEvent.click(billingBtn);
-
-		await waitFor(() => {
-			expect(screen.getByText('Invoice Status Distribution')).toBeInTheDocument();
-			expect(screen.getByText('Collections by Payment Method')).toBeInTheDocument();
+			expect(screen.getAllByText('Total Invoiced').length).toBeGreaterThan(0);
 		});
 
 		// Switch to Staff tab button
@@ -436,22 +431,25 @@ describe('ReportsPage Component', () => {
 			expect(screen.getByText('Outstanding Advances')).toBeInTheDocument();
 		});
 
-		// Switch to Business Reports tab button
-		const businessBtn = screen.getByRole('button', { name: /business reports/i });
-		fireEvent.click(businessBtn);
+		// Switch to Outside Jobs tab button
+		const outsideJobsBtn = screen.getByRole('button', { name: /outside jobs/i });
+		fireEvent.click(outsideJobsBtn);
 
 		await waitFor(() => {
-			expect(screen.getByText('Revenue vs Collections Timeline')).toBeInTheDocument();
-			expect(screen.getByText('Top Performing Services')).toBeInTheDocument();
+			expect(screen.getByText('Outside Jobs & External Movements')).toBeInTheDocument();
 		});
 
-		// Switch back to Dashboard Overview tab button
-		const overviewBtn = screen.getByRole('button', { name: /dashboard overview/i });
-		fireEvent.click(overviewBtn);
+		// Switch back to Billing Reports tab button
+		const billingBtn = screen.getByRole('button', { name: /billing reports/i });
+		fireEvent.click(billingBtn);
 
 		await waitFor(() => {
-			expect(screen.getByText('Report Workspaces & Detailed Analytics')).toBeInTheDocument();
-			expect(screen.getAllByText('Billed Revenue').length).toBeGreaterThan(0);
+			expect(screen.getByText('Invoice Status Distribution')).toBeInTheDocument();
+			expect(screen.getAllByText('Total Invoiced').length).toBeGreaterThan(0);
 		});
+
+		// Assert removed tabs do not exist
+		expect(screen.queryByRole('button', { name: /dashboard overview/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /business reports/i })).not.toBeInTheDocument();
 	});
 });

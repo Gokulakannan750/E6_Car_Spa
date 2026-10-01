@@ -243,29 +243,15 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/reports',
-				lazy: async () => {
-					const m = await loadReports();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
-								<m.ReportsPage />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/reports/billing" replace />,
+			},
+			{
+				path: '/reports/dashboard',
+				element: <Navigate to="/reports/billing" replace />,
 			},
 			{
 				path: '/reports/business',
-				lazy: async () => {
-					const m = await loadReports();
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
-								<m.ReportsPage />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/reports/billing" replace />,
 			},
 			{
 				path: '/reports/billing',

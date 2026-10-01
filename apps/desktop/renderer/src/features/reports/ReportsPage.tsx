@@ -3,7 +3,6 @@ import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
 	BarChart3,
-	TrendingUp,
 	FileSpreadsheet,
 	Users,
 	Store,
@@ -13,11 +12,10 @@ import {
 	RefreshCw,
 	AlertCircle,
 	Truck,
+	History,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { getDashboardSummary } from '../../lib/api';
-import { ReportsDashboardView } from './ReportsDashboardView';
-import { BusinessReportsView } from './BusinessReportsView';
 import { BillingReportsView } from './BillingReportsView';
 import { StaffReportsView } from './StaffReportsView';
 import { ShowroomReportsView } from './ShowroomReportsView';
@@ -25,7 +23,7 @@ import { CustomReportsView } from './CustomReportsView';
 import { OutsideJobsReportsView } from './OutsideJobsReportsView';
 import * as XLSX from 'xlsx';
 
-export type ReportType = 'dashboard' | 'business' | 'billing' | 'staff' | 'showroom' | 'outside-jobs' | 'custom';
+export type ReportType = 'billing' | 'staff' | 'showroom' | 'outside-jobs' | 'custom' | 'audit';
 export type DatePreset = 'today' | '7d' | '30d' | 'month' | 'year' | 'custom';
 
 function formatINR(val?: number | null): string {
@@ -90,19 +88,17 @@ export function ReportsPage() {
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	// Determine active report type from query param or pathname
+	// Determine active report type from query param or pathname (defaults strictly to billing)
 	const activeType: ReportType = useMemo(() => {
 		const param = searchParams.get('type');
-		if (param === 'business' || param === 'billing' || param === 'staff' || param === 'showroom' || param === 'outside-jobs' || param === 'custom') {
+		if (param === 'staff' || param === 'showroom' || param === 'outside-jobs' || param === 'custom') {
 			return param;
 		}
-		if (location.pathname.endsWith('/business')) return 'business';
-		if (location.pathname.endsWith('/billing')) return 'billing';
 		if (location.pathname.endsWith('/staff')) return 'staff';
 		if (location.pathname.endsWith('/showroom')) return 'showroom';
 		if (location.pathname.endsWith('/outside-jobs')) return 'outside-jobs';
 		if (location.pathname.endsWith('/custom')) return 'custom';
-		return 'dashboard';
+		return 'billing';
 	}, [searchParams, location.pathname]);
 
 	// ── Date Filter State ─────────────────────────────────────────────────────
@@ -130,8 +126,8 @@ export function ReportsPage() {
 	});
 
 	const handleTabSelect = (type: ReportType) => {
-		if (type === 'dashboard') {
-			navigate('/reports');
+		if (type === 'audit') {
+			navigate('/audit');
 		} else {
 			navigate(`/reports/${type}`);
 		}
@@ -298,32 +294,6 @@ export function ReportsPage() {
 			<div className="flex items-center gap-2 overflow-x-auto border-b border-outline-variant pb-px">
 				<button
 					type="button"
-					onClick={() => handleTabSelect('dashboard')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'dashboard'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<BarChart3 className="w-4 h-4" />
-					<span>Dashboard Overview</span>
-				</button>
-
-				<button
-					type="button"
-					onClick={() => handleTabSelect('business')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'business'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<TrendingUp className="w-4 h-4" />
-					<span>Business Reports</span>
-				</button>
-
-				<button
-					type="button"
 					onClick={() => handleTabSelect('billing')}
 					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
 						activeType === 'billing'
@@ -386,6 +356,15 @@ export function ReportsPage() {
 					<SlidersHorizontal className="w-4 h-4" />
 					<span>Custom Reports</span>
 				</button>
+
+				<button
+					type="button"
+					onClick={() => handleTabSelect('audit')}
+					className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant"
+				>
+					<History className="w-4 h-4" />
+					<span>Audit Trail</span>
+				</button>
 			</div>
 
 			{/* ── Error Banner State ────────────────────────────────────────────── */}
@@ -404,24 +383,6 @@ export function ReportsPage() {
 			)}
 
 			{/* ── Render Specific Report Page View ──────────────────────────────── */}
-			{activeType === 'dashboard' && (
-				<ReportsDashboardView
-					data={dashboardData}
-					isLoading={isLoading}
-					bounds={bounds}
-					formatINR={formatINR}
-				/>
-			)}
-
-			{activeType === 'business' && (
-				<BusinessReportsView
-					data={dashboardData}
-					isLoading={isLoading}
-					bounds={bounds}
-					formatINR={formatINR}
-				/>
-			)}
-
 			{activeType === 'billing' && (
 				<BillingReportsView
 					data={dashboardData}

@@ -14,15 +14,13 @@ import {
 	Wallet,
 	Clock,
 	CheckSquare,
-	TrendingUp,
-	BarChart2,
-	IndianRupee,
-	SlidersHorizontal,
 	Building2,
 	Percent,
 	Shield,
 	Sliders,
 	ArrowRight,
+	FileSpreadsheet,
+	Truck,
 } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { useAppStore } from '../../stores/app';
@@ -171,7 +169,7 @@ export function DashboardPage() {
 		{
 			id: 'reports',
 			name: 'E6 Reports',
-			description: 'Business, billing, staff and showroom reports',
+			description: 'Billing, staff, showroom and outside job reports',
 			accent: '#7C3AED',
 			iconBg: 'bg-purple-50',
 			iconColor: 'text-[#7C3AED]',
@@ -181,10 +179,10 @@ export function DashboardPage() {
 			hoverClass: 'launcher-card-reports',
 			icon: <BarChart3 className="w-6 h-6" />,
 			features: [
-				{ label: 'Business Reports', icon: <TrendingUp className="w-4 h-4 text-slate-400 shrink-0" /> },
-				{ label: 'Operational Reports', icon: <BarChart2 className="w-4 h-4 text-slate-400 shrink-0" /> },
-				{ label: 'Financial Reports', icon: <IndianRupee className="w-4 h-4 text-slate-400 shrink-0" /> },
-				{ label: 'Custom Reports', icon: <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Billing Reports', icon: <FileSpreadsheet className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Staff Reports', icon: <Users className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Showroom Reports', icon: <Store className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Outside Jobs', icon: <Truck className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/reports',
 			shortcutKey: 'Alt + 4',

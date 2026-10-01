@@ -24,6 +24,7 @@ import {
 	Sliders,
 	Building2,
 	MessageSquare,
+	Truck,
 } from 'lucide-react';
 
 import type { NavigationItem } from '../types/app';
@@ -246,12 +247,6 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			icon: 'Home',
 		},
 		{
-			label: 'Business Reports',
-			path: '/reports/business',
-			icon: 'TrendingUp',
-			requiresPermission: 'reports.view',
-		},
-		{
 			label: 'Billing Reports',
 			path: '/reports/billing',
 			icon: 'FileSpreadsheet',
@@ -267,6 +262,12 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			label: 'Showroom Reports',
 			path: '/reports/showroom',
 			icon: 'Store',
+			requiresPermission: 'reports.view',
+		},
+		{
+			label: 'Outside Jobs',
+			path: '/reports/outside-jobs',
+			icon: 'Truck',
 			requiresPermission: 'reports.view',
 		},
 		{
@@ -406,21 +407,14 @@ export function isItemActive(
 	}
 
 	if (item.path === '/reports') {
-		// Reports Dashboard is active on /reports without competing sub-routes or queries
-		return normPath === '/reports' && (!search || !search.includes('type='));
-	}
-
-	if (item.path === '/reports/business') {
-		return (
-			normPath === '/reports/business' ||
-			(normPath === '/reports' && search.includes('type=business'))
-		);
+		return normPath === '/reports' || normPath.startsWith('/reports/');
 	}
 
 	if (item.path === '/reports/billing') {
 		return (
 			normPath === '/reports/billing' ||
-			(normPath === '/reports' && search.includes('type=billing'))
+			normPath === '/reports' ||
+			(normPath === '/reports' && (search.includes('type=billing') || !search.includes('type=')))
 		);
 	}
 
@@ -435,6 +429,13 @@ export function isItemActive(
 		return (
 			normPath === '/reports/showroom' ||
 			(normPath === '/reports' && search.includes('type=showroom'))
+		);
+	}
+
+	if (item.path === '/reports/outside-jobs') {
+		return (
+			normPath === '/reports/outside-jobs' ||
+			(normPath === '/reports' && search.includes('type=outside-jobs'))
 		);
 	}
 
@@ -526,4 +527,5 @@ export const ICON_MAP: Record<
 	Sliders,
 	Building2,
 	MessageSquare,
+	Truck,
 };
