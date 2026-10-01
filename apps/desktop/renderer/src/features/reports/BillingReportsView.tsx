@@ -21,7 +21,7 @@ import {
 } from '../../lib/api';
 import { generateAndDownloadMonthlyBillingReport } from './excelMonthlyBillingGenerator';
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
 	'January',
 	'February',
 	'March',
@@ -34,7 +34,7 @@ const MONTH_NAMES = [
 	'October',
 	'November',
 	'December',
-];
+] as const;
 
 interface BillingReportsViewProps {
 	data?: DashboardSummaryDto;
