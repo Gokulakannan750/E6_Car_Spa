@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import * as XLSX from 'xlsx';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import XLSX from 'xlsx-js-style';
 import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
@@ -10,29 +10,25 @@ import {
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
 
-vi.mock('xlsx', () => {
-	const actual = vi.importActual('xlsx');
+vi.mock('xlsx-js-style', async (importOriginal) => {
+	const actual = await importOriginal<any>();
 	return {
 		...actual,
-		utils: {
-			book_new: vi.fn(() => ({ SheetNames: [], Sheets: {} })),
-			aoa_to_sheet: vi.fn((data: any[][]) => ({ '!data': data })),
-			book_append_sheet: vi.fn((wb: any, ws: any, name: string) => {
-				wb.SheetNames.push(name);
-				wb.Sheets[name] = ws;
-			}),
-		},
 		writeFile: vi.fn(),
 	};
 });
 
-describe('excelMonthlyBillingGenerator', () => {
+describe('excelMonthlyBillingGenerator — Professional Styling & Workbook Structure', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
 	it('formats date and datetime displays correctly', () => {
 		expect(formatDateDisplay('2026-10-15T00:00:00Z')).toBe('15-Oct-2026');
 		expect(formatDateTimeDisplay('2026-10-15T14:30:00Z')).toContain('15-Oct-2026');
 	});
 
-	it('creates Monthly Summary worksheet with correct metadata and KPIs', () => {
+	it('creates Monthly Summary worksheet with executive styling, title, KPIs, and reconciliation note', () => {
 		const mockSummary = {
 			monthName: 'October 2026',
 			startDate: '2026-10-01T00:00:00Z',
@@ -53,11 +49,29 @@ describe('excelMonthlyBillingGenerator', () => {
 		};
 
 		const ws = generateMonthlySummaryWorksheet(mockSummary, 'October 2026', 31);
-		expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalled();
 		expect(ws).toBeDefined();
+
+		// Title cell A1
+		expect(ws['A1']).toBeDefined();
+		expect(ws['A1'].v).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
+		expect(ws['A1'].s?.fill?.fgColor?.rgb).toBe('0B3A6E');
+		expect(ws['A1'].s?.font?.color?.rgb).toBe('FFFFFF');
+		expect(ws['A1'].s?.font?.sz).toBe(16);
+
+		// Subtitle cell A2
+		expect(ws['A2']).toBeDefined();
+		expect(ws['A2'].v).toBe('MONTHLY EXECUTIVE SUMMARY');
+		expect(ws['A2'].s?.fill?.fgColor?.rgb).toBe('EAF2FF');
+
+		// Merges and formatting
+		expect(ws['!merges']).toBeDefined();
+		expect(ws['!merges']?.length).toBeGreaterThan(5);
+		expect(ws['!rows']).toBeDefined();
+		expect(ws['!cols']).toBeDefined();
+		expect(ws['!pageSetup']?.orientation).toBe('portrait');
 	});
 
-	it('creates empty daily sheet when hasActivity is false', () => {
+	it('creates empty daily sheet with styled "No billing activity" banner when hasActivity is false', () => {
 		const emptyDailySheet = {
 			day: 1,
 			date: '2026-10-01T00:00:00Z',
@@ -81,14 +95,12 @@ describe('excelMonthlyBillingGenerator', () => {
 
 		const ws = generateDailySheetWorksheet(emptyDailySheet, 'October 2026');
 		expect(ws).toBeDefined();
-		expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalledWith(
-			expect.arrayContaining([
-				expect.arrayContaining(['No billing activity for this date.']),
-			])
-		);
+		expect(ws['A1']?.v).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 01-OCT-2026');
+		expect(ws['A7']?.v).toBe('No billing activity for this date.');
+		expect(ws['A7']?.s?.fill?.fgColor?.rgb).toBe('F3F4F6');
 	});
 
-	it('creates active daily sheet with Job Cards, Invoices, and Services tables', () => {
+	it('creates active daily sheet with styled Job Cards, Invoices, and Services sections', () => {
 		const activeDailySheet = {
 			day: 15,
 			date: '2026-10-15T00:00:00Z',
@@ -158,13 +170,26 @@ describe('excelMonthlyBillingGenerator', () => {
 
 		const ws = generateDailySheetWorksheet(activeDailySheet, 'October 2026');
 		expect(ws).toBeDefined();
-		expect(XLSX.utils.aoa_to_sheet).toHaveBeenCalledWith(
-			expect.arrayContaining([
-				expect.arrayContaining(['SECTION 1: JOB CARDS']),
-				expect.arrayContaining(['SECTION 2: INVOICES']),
-				expect.arrayContaining(['SECTION 3: SERVICES']),
-			])
-		);
+
+		// Header checks
+		expect(ws['A1']?.v).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 15-OCT-2026');
+		expect(ws['!pageSetup']?.orientation).toBe('landscape');
+
+		// Check values exist across the sheet cells
+		const cellValues = Object.keys(ws)
+			.filter((k) => !k.startsWith('!'))
+			.map((k) => ws[k].v);
+
+		expect(cellValues).toContain('SECTION 1: JOB CARDS (1 records)');
+		expect(cellValues).toContain('JC-101');
+		expect(cellValues).toContain('SECTION 2: INVOICES (1 records)');
+		expect(cellValues).toContain('INV-101');
+		expect(cellValues).toContain('SECTION 3: SERVICES (2 items)');
+		expect(cellValues).toContain('Full Wash');
+		expect(cellValues).toContain('Teflon Coating');
+		expect(cellValues).toContain('TOTAL JOB CARDS');
+		expect(cellValues).toContain('TOTAL INVOICES');
+		expect(cellValues).toContain('TOTAL SERVICES');
 	});
 
 	it('generates complete workbook with Monthly Summary and 31 daily sheets for October', () => {
@@ -263,3 +288,4 @@ describe('excelMonthlyBillingGenerator', () => {
 		expect(XLSX.writeFile).toHaveBeenCalledWith(expect.anything(), 'E6_Car_Spa_Billing_Report_October_2026.xlsx');
 	});
 });
+
