@@ -46,10 +46,17 @@ class _SettleSalaryBottomSheetState
   }
 
   Future<void> _handleSettle() async {
-    final enteredSalary = widget.item.enteredSalary ?? 0.0;
-    if (enteredSalary <= 0) {
+    if (widget.item.enteredSalary == null) {
       setState(() {
-        _errorMessage = 'Entered salary must be greater than zero to settle.';
+        _errorMessage = 'Please enter a valid salary amount before settling.';
+      });
+      return;
+    }
+
+    final enteredSalary = widget.item.enteredSalary!;
+    if (enteredSalary < 0) {
+      setState(() {
+        _errorMessage = 'Entered salary cannot be negative.';
       });
       return;
     }
@@ -89,7 +96,7 @@ class _SettleSalaryBottomSheetState
     final advance = item.outstandingAdvance;
     final advanceDeduction = min(advance, enteredSalary);
     final finalSalary = max(0.0, enteredSalary - advanceDeduction);
-    final remainingAdvance = max(0.0, advance - enteredSalary);
+    final remainingAdvance = max(0.0, advance - advanceDeduction);
 
     return Container(
       padding: EdgeInsets.only(
@@ -116,7 +123,7 @@ class _SettleSalaryBottomSheetState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Confirm Salary Settlement',
+                        'Confirm Staff Salary Settlement',
                         style: AppTextStyles.headingMedium.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -218,7 +225,7 @@ class _SettleSalaryBottomSheetState
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Settlement is authoritative and atomic. Recovered advances will be settled and this payroll record will be permanently locked.',
+                        'This operation is irreversible and will atomically recover outstanding staff advances in FIFO order. Confirming will lock this payroll period permanently as Settled.',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.warningDark,
@@ -239,7 +246,7 @@ class _SettleSalaryBottomSheetState
               const SizedBox(height: 24),
 
               AppButton(
-                label: 'Confirm & Disburse Settlement',
+                label: 'Confirm & Settle Salary',
                 icon: Icons.check_circle_outline_rounded,
                 isLoading: actionState.isSubmitting,
                 onPressed: actionState.isSubmitting ? null : _handleSettle,

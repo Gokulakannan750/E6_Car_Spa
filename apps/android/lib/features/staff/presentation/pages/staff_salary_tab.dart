@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/providers/auth_state.dart';
 import '../../models/staff_salary_models.dart';
 import '../../providers/staff_salary_providers.dart';
 import '../widgets/enter_salary_bottom_sheet.dart';
+import '../widgets/salary_details_bottom_sheet.dart';
 import '../widgets/salary_staff_card.dart';
 import '../widgets/settle_salary_bottom_sheet.dart';
 import '../widgets/settlement_history_bottom_sheet.dart';
@@ -97,12 +100,13 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
     }
   }
 
-  void _openEnterSalary(StaffSalaryItem item) {
+  void _openEnterSalary(StaffSalaryItem item, {bool canSettle = false}) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => EnterSalaryBottomSheet(item: item),
+      builder: (ctx) =>
+          EnterSalaryBottomSheet(item: item, canSettle: canSettle),
     );
   }
 
@@ -127,12 +131,24 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
     );
   }
 
+  void _openSalaryDetails(StaffSalaryItem item, {bool canSettle = false}) {
+    SalaryDetailsBottomSheet.show(context, item, canSettle: canSettle);
+  }
+
   @override
   Widget build(BuildContext context) {
     final fromDateStr = ref.watch(salaryPeriodFromProvider);
     final toDateStr = ref.watch(salaryPeriodToProvider);
     final selectedFilter = ref.watch(salaryStatusFilterProvider);
     final rosterAsync = ref.watch(salaryRosterProvider);
+
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState is Authenticated ? authState.user : null;
+    final canSettle =
+        user?.isOwner == true ||
+        (user?.permissions.contains('staff_salary.settle') ?? false) ||
+        (user?.permissions.contains('staff.edit') ?? false) ||
+        (user?.permissions.contains('staff.manage') ?? false);
 
     final fromDate = _parseDate(fromDateStr);
     final toDate = _parseDate(toDateStr);
@@ -210,6 +226,9 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                               totalAdvance: roster.totalAdvanceDeductions,
                               totalNetPayable: roster.totalFinalSalary,
                               staffCount: roster.totalStaffCount,
+                              settledCount: roster.settledCount,
+                              readyCount: roster.readyCount,
+                              notEnteredCount: roster.notEnteredCount,
                             ),
                             const SizedBox(height: 12),
                           ],
@@ -257,10 +276,17 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                               padding: const EdgeInsets.only(bottom: 12),
                               child: SalaryStaffCard(
                                 item: item,
-                                onEnterSalary: () => _openEnterSalary(item),
+                                onEnterSalary: () => _openEnterSalary(
+                                  item,
+                                  canSettle: canSettle,
+                                ),
                                 onSettleSalary: () => _openSettleSalary(item),
                                 onSettlementHistory: () =>
                                     _openSettlementHistory(item),
+                                onViewDetails: () => _openSalaryDetails(
+                                  item,
+                                  canSettle: canSettle,
+                                ),
                               ),
                             );
                           },
@@ -459,9 +485,9 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
   Widget _buildFilterChips(String current) {
     const filters = [
       {'label': 'All Staff', 'value': 'All'},
-      {'label': 'Pending Settlement', 'value': 'Unsettled'},
+      {'label': 'Ready for Settlement', 'value': 'Ready'},
       {'label': 'Settled', 'value': 'Settled'},
-      {'label': 'With Advances', 'value': 'WithAdvances'},
+      {'label': 'Not Entered', 'value': 'NotEntered'},
     ];
 
     return SingleChildScrollView(
@@ -492,34 +518,79 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
     required double totalAdvance,
     required double totalNetPayable,
     required int staffCount,
+    required int settledCount,
+    required int readyCount,
+    required int notEnteredCount,
   }) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildMetricCard(
-            label: 'Total Entered',
-            value: _currencyFormat.format(totalEntered),
-            color: const Color(0xFF0453CD),
-            icon: Icons.payments_outlined,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.people_outline,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$settledCount / $staffCount Settled',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '· $readyCount Ready · $notEnteredCount Not Entered',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildMetricCard(
-            label: 'Advance Rec.',
-            value: _currencyFormat.format(totalAdvance),
-            color: const Color(0xFFD97706),
-            icon: Icons.money_off,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildMetricCard(
-            label: 'Net Payable',
-            value: _currencyFormat.format(totalNetPayable),
-            color: const Color(0xFF16A34A),
-            icon: Icons.account_balance_wallet,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildMetricCard(
+                label: 'Total Entered',
+                value: _currencyFormat.format(totalEntered),
+                color: const Color(0xFF0453CD),
+                icon: Icons.payments_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildMetricCard(
+                label: 'Advance Rec.',
+                value: _currencyFormat.format(totalAdvance),
+                color: const Color(0xFFD97706),
+                icon: Icons.money_off,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildMetricCard(
+                label: 'Net Payable',
+                value: _currencyFormat.format(totalNetPayable),
+                color: const Color(0xFF16A34A),
+                icon: Icons.account_balance_wallet,
+              ),
+            ),
+          ],
         ),
       ],
     );

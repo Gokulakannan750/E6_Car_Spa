@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../shared/widgets/status_badge.dart';
@@ -7,6 +8,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
 import '../../models/staff_salary_models.dart';
 import 'enter_salary_bottom_sheet.dart';
+import 'salary_details_bottom_sheet.dart';
 import 'settle_salary_bottom_sheet.dart';
 import 'settlement_history_bottom_sheet.dart';
 
@@ -15,6 +17,7 @@ class SalaryStaffCard extends ConsumerWidget {
   final VoidCallback? onEnterSalary;
   final VoidCallback? onSettleSalary;
   final VoidCallback? onSettlementHistory;
+  final VoidCallback? onViewDetails;
 
   const SalaryStaffCard({
     super.key,
@@ -22,7 +25,18 @@ class SalaryStaffCard extends ConsumerWidget {
     this.onEnterSalary,
     this.onSettleSalary,
     this.onSettlementHistory,
+    this.onViewDetails,
   });
+
+  String _formatPeriod(String from, String to) {
+    try {
+      final f = DateFormat('dd MMM yyyy').format(DateTime.parse(from));
+      final t = DateFormat('dd MMM yyyy').format(DateTime.parse(to));
+      return '$f — $t';
+    } catch (_) {
+      return '$from — $to';
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,10 +45,12 @@ class SalaryStaffCard extends ConsumerWidget {
     final canManageSalary =
         user?.isOwner == true ||
         (user?.permissions.contains('staff_salary.manage') ?? false) ||
+        (user?.permissions.contains('staff.edit') ?? false) ||
         (user?.permissions.contains('staff.manage') ?? false);
     final canSettleSalary =
         user?.isOwner == true ||
         (user?.permissions.contains('staff_salary.settle') ?? false) ||
+        (user?.permissions.contains('staff.edit') ?? false) ||
         (user?.permissions.contains('staff.manage') ?? false);
 
     final isSettled = item.isSettled;
@@ -111,6 +127,27 @@ class SalaryStaffCard extends ConsumerWidget {
                   ),
                 ),
                 StatusBadge(label: statusLabel, type: statusType),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // Salary Period Row
+            Row(
+              children: [
+                const Icon(
+                  Icons.calendar_today_outlined,
+                  size: 12,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _formatPeriod(item.periodFrom, item.periodTo),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -212,7 +249,7 @@ class SalaryStaffCard extends ConsumerWidget {
             // Action Buttons
             Row(
               children: [
-                if (!isSettled && canManageSalary) ...[
+                if (isSettled) ...[
                   Expanded(
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
@@ -223,55 +260,109 @@ class SalaryStaffCard extends ConsumerWidget {
                         ),
                       ),
                       icon: const Icon(
-                        Icons.edit_outlined,
+                        Icons.visibility_outlined,
                         size: 15,
                         color: AppColors.primary,
                       ),
-                      label: Text(
-                        item.enteredSalary != null
-                            ? 'Edit Salary'
-                            : 'Enter Salary',
-                        style: const TextStyle(
+                      label: const Text(
+                        'View Details',
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,
                         ),
                       ),
                       onPressed:
-                          onEnterSalary ??
-                          () => EnterSalaryBottomSheet.show(context, item),
+                          onViewDetails ??
+                          () => SalaryDetailsBottomSheet.show(
+                            context,
+                            item,
+                            canSettle: canSettleSalary,
+                          ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                ],
-                if (!isSettled && isReady && canSettleSalary) ...[
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                ] else ...[
+                  if (canManageSalary) ...[
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          side: const BorderSide(color: AppColors.primary),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 15,
-                      ),
-                      label: const Text(
-                        'Settle',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          size: 15,
+                          color: AppColors.primary,
                         ),
+                        label: Text(
+                          item.enteredSalary != null
+                              ? 'Edit Salary'
+                              : 'Enter Salary',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        onPressed:
+                            onEnterSalary ??
+                            () => EnterSalaryBottomSheet.show(
+                              context,
+                              item,
+                              canSettle: canSettleSalary,
+                            ),
                       ),
-                      onPressed:
-                          onSettleSalary ??
-                          () => SettleSalaryBottomSheet.show(context, item),
                     ),
+                    const SizedBox(width: 8),
+                  ],
+                  if (isReady && canSettleSalary) ...[
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 15,
+                        ),
+                        label: const Text(
+                          'Settle',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed:
+                            onSettleSalary ??
+                            () => SettleSalaryBottomSheet.show(context, item),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  IconButton(
+                    icon: const Icon(
+                      Icons.visibility_outlined,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    tooltip: 'View Details',
+                    onPressed:
+                        onViewDetails ??
+                        () => SalaryDetailsBottomSheet.show(
+                          context,
+                          item,
+                          canSettle: canSettleSalary,
+                        ),
                   ),
-                  const SizedBox(width: 8),
                 ],
                 IconButton(
                   icon: const Icon(

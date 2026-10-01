@@ -3,22 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../models/staff_salary_models.dart';
 import '../../providers/staff_salary_providers.dart';
+import 'settle_salary_bottom_sheet.dart';
 
 class EnterSalaryBottomSheet extends ConsumerStatefulWidget {
   final StaffSalaryItem item;
+  final bool canSettle;
 
-  const EnterSalaryBottomSheet({super.key, required this.item});
+  const EnterSalaryBottomSheet({
+    super.key,
+    required this.item,
+    this.canSettle = false,
+  });
 
-  static Future<void> show(BuildContext context, StaffSalaryItem item) {
+  static Future<void> show(
+    BuildContext context,
+    StaffSalaryItem item, {
+    bool canSettle = false,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => EnterSalaryBottomSheet(item: item),
+      builder: (context) =>
+          EnterSalaryBottomSheet(item: item, canSettle: canSettle),
     );
   }
 
@@ -94,13 +104,48 @@ class _EnterSalaryBottomSheetState
     }
   }
 
+  void _handleProceedToSettle() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final updatedItem = StaffSalaryItem(
+      staffId: widget.item.staffId,
+      staffName: widget.item.staffName,
+      staffRole: widget.item.staffRole,
+      staffPhoneNumber: widget.item.staffPhoneNumber,
+      isActive: widget.item.isActive,
+      periodFrom: widget.item.periodFrom,
+      periodTo: widget.item.periodTo,
+      enteredSalary: _enteredSalary,
+      outstandingAdvance: widget.item.outstandingAdvance,
+      advanceDeduction: min(widget.item.outstandingAdvance, _enteredSalary),
+      finalSalary: max(
+        0.0,
+        _enteredSalary - min(widget.item.outstandingAdvance, _enteredSalary),
+      ),
+      remainingAdvance: max(
+        0.0,
+        widget.item.outstandingAdvance -
+            min(widget.item.outstandingAdvance, _enteredSalary),
+      ),
+      status: 'Ready',
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      settlementId: widget.item.settlementId,
+    );
+
+    Navigator.pop(context);
+    SettleSalaryBottomSheet.show(context, updatedItem);
+  }
+
   @override
   Widget build(BuildContext context) {
     final actionState = ref.watch(salaryActionProvider);
     final advance = widget.item.outstandingAdvance;
     final advanceDeduction = min(advance, _enteredSalary);
     final finalSalary = max(0.0, _enteredSalary - advanceDeduction);
-    final remainingAdvance = max(0.0, advance - _enteredSalary);
+    final remainingAdvance = max(0.0, advance - advanceDeduction);
+    final isEditing = widget.item.isReady;
 
     return Container(
       padding: EdgeInsets.only(
@@ -127,7 +172,7 @@ class _EnterSalaryBottomSheetState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Enter Salary Amount',
+                        isEditing ? 'Edit Staff Salary' : 'Enter Staff Salary',
                         style: AppTextStyles.headingMedium.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -182,7 +227,7 @@ class _EnterSalaryBottomSheetState
                   }
                   final numVal = double.tryParse(val.trim());
                   if (numVal == null || numVal < 0) {
-                    return 'Please enter a valid non-negative amount';
+                    return 'Please enter a valid salary amount (₹0 or greater)';
                   }
                   return null;
                 },
@@ -192,8 +237,8 @@ class _EnterSalaryBottomSheetState
               // Notes
               AppTextField(
                 controller: _notesController,
-                label: 'Notes / Remarks (Optional)',
-                hintText: 'e.g. Bonus included or overtime adjustment',
+                label: 'Payroll Notes (Optional)',
+                hintText: 'e.g. Regular monthly payout or adjustment',
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
@@ -256,10 +301,63 @@ class _EnterSalaryBottomSheetState
               ),
               const SizedBox(height: 24),
 
-              AppButton(
-                label: 'Save Salary Amount',
-                isLoading: actionState.isSubmitting,
-                onPressed: actionState.isSubmitting ? null : _handleSubmit,
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: actionState.isSubmitting
+                          ? null
+                          : _handleSubmit,
+                      child: actionState.isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text(
+                              'Save Salary',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                    ),
+                  ),
+                  if (widget.canSettle) ...[
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                        ),
+                        label: const Text(
+                          'Proceed to Settle',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: actionState.isSubmitting
+                            ? null
+                            : _handleProceedToSettle,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

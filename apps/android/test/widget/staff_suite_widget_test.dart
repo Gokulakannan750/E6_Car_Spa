@@ -224,7 +224,7 @@ void main() {
         expect(find.text('Total Entered'), findsOneWidget);
         expect(find.text('Advance Rec.'), findsOneWidget);
         expect(find.text('Net Payable'), findsOneWidget);
-        expect(find.text('Ready for Settlement'), findsOneWidget);
+        expect(find.text('Ready for Settlement'), findsWidgets);
       },
     );
 

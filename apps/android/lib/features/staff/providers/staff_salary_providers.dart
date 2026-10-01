@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
+import '../../staffadvances/providers/staff_advances_provider.dart';
 import '../data/staff_repository.dart';
 import '../models/staff_salary_models.dart';
+import 'staff_provider.dart';
 
 String _getDefaultPeriodFrom() {
   final now = DateTime.now();
@@ -145,6 +147,8 @@ class SalaryActionNotifier extends StateNotifier<SalaryActionState> {
       );
       _ref.invalidate(salaryRosterProvider);
       _ref.invalidate(salarySettlementHistoryProvider(staffId));
+      _ref.invalidate(staffAdvancesProvider);
+      _ref.read(staffProvider.notifier).loadStaff(silent: true);
       return null;
     } catch (e) {
       final msg = e is ApiException ? e.message : e.toString();

@@ -40,9 +40,11 @@ class StaffSalaryItem {
     this.settlementId,
   });
 
-  bool get isSettled => status == 'Settled' || settlementId != null;
-  bool get isReady => status == 'Ready';
-  bool get isNotEntered => status == 'NotEntered' || enteredSalary == null;
+  bool get isSettled => status.toLowerCase() == 'settled';
+  bool get isReady => status.toLowerCase() == 'ready';
+  bool get isNotEntered =>
+      status.toLowerCase() == 'notentered' ||
+      (!isReady && !isSettled && enteredSalary == null);
 
   factory StaffSalaryItem.fromJson(Map<String, dynamic> json) {
     DateTime? parsedSettledAt;
