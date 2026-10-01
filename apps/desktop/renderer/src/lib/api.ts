@@ -3662,6 +3662,119 @@ export async function getMonthlyShowroomReport(params: {
 }
 
 // ============================================================================
+// Monthly Billing Report (Daily Sheets + Monthly Summary Excel Export Support)
+// ============================================================================
+
+export interface DailyTotalsDto {
+	jobCardTotal: number;
+	invoiceTotal: number;
+	amountPaid: number;
+	amountPending: number;
+	jobCardCount: number;
+	invoiceCount: number;
+	serviceCount: number;
+	serviceTotalQuantity: number;
+}
+
+export interface DailyJobCardRowDto {
+	jobCardId: string;
+	jobCardNumber: string;
+	jobCardDate: string;
+	customerName: string;
+	vehicleRegistration: string;
+	vehicle: string;
+	jobCardStatus: string;
+	totalServices: number;
+	jobCardTotal: number;
+}
+
+export interface DailyInvoiceRowDto {
+	invoiceId: string;
+	invoiceNumber: string;
+	invoiceDate: string;
+	jobCardNumber: string;
+	customerName: string;
+	vehicleRegistration: string;
+	invoiceStatus: string;
+	invoiceTotal: number;
+	amountPaid: number;
+	amountPending: number;
+}
+
+export interface DailyServiceRowDto {
+	serviceItemId: string;
+	jobCardNumber: string;
+	invoiceNumber?: string | null;
+	customerName: string;
+	serviceName: string;
+	quantity: number;
+	rate: number;
+	amount: number;
+}
+
+export interface DailyBillingSheetDto {
+	day: number;
+	date: string;
+	dateFormatted: string;
+	sheetName: string;
+	hasActivity: boolean;
+	totals: DailyTotalsDto;
+	jobCards: DailyJobCardRowDto[];
+	invoices: DailyInvoiceRowDto[];
+	services: DailyServiceRowDto[];
+}
+
+export interface MonthlyBillingSummaryDto {
+	monthName: string;
+	startDate: string;
+	endDate: string;
+	generatedAt: string;
+	totalJobCardsCreated: number;
+	totalJobCardsFinished: number;
+	totalInvoices: number;
+	totalInvoicesPaid: number;
+	totalInvoicesPendingPayment: number;
+	totalInvoicesDraft: number;
+	totalInvoicesCancelled: number;
+	totalInvoiceAmount: number;
+	totalAmountPaid: number;
+	totalAmountPending: number;
+	totalServicesPerformed: number;
+	totalServiceQuantity: number;
+}
+
+export interface MonthlyBillingReportResponse {
+	year: number;
+	month: number;
+	monthName: string;
+	fromDate: string;
+	toDate: string;
+	daysInMonth: number;
+	summary: MonthlyBillingSummaryDto;
+	dailySheets: DailyBillingSheetDto[];
+}
+
+export async function getMonthlyBillingReport(params: {
+	year?: number;
+	month?: number;
+	fromDate?: string;
+	toDate?: string;
+}): Promise<MonthlyBillingReportResponse> {
+	const qs = new URLSearchParams();
+	if (params.year != null) qs.set('year', String(params.year));
+	if (params.month != null) qs.set('month', String(params.month));
+	if (params.fromDate) qs.set('fromDate', params.fromDate);
+	if (params.toDate) qs.set('toDate', params.toDate);
+	const suffix = qs.toString() ? '?' + qs.toString() : '';
+	return request<MonthlyBillingReportResponse>(
+		'/api/reports/billing/monthly' + suffix,
+		{},
+		'view monthly billing report'
+	);
+}
+
+
+// ============================================================================
 // System Preferences
 // ============================================================================
 

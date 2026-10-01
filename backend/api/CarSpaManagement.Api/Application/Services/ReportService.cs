@@ -2035,5 +2035,226 @@ public class ReportService : IReportService
             TotalActiveCost: totalActiveCost,
             TotalHistoricalCost: totalHistoricalCost);
     }
+
+    // ── 12. Monthly Billing Report (Workbook Generation Support) ─────────────
+    public async Task<MonthlyBillingReportResponse> GetMonthlyBillingReportAsync(
+        int? year = null,
+        int? month = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        int repYear;
+        int repMonth;
+
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            var sUtc = ToUtcDate(fromDate.Value);
+            repYear = sUtc.Year;
+            repMonth = sUtc.Month;
+        }
+        else
+        {
+            repYear = year ?? DateTime.UtcNow.Year;
+            repMonth = month ?? DateTime.UtcNow.Month;
+        }
+
+        if (repMonth < 1) repMonth = 1;
+        if (repMonth > 12) repMonth = 12;
+
+        int daysInMonth = DateTime.DaysInMonth(repYear, repMonth);
+        var startUtc = DateTime.SpecifyKind(new DateTime(repYear, repMonth, 1, 0, 0, 0), DateTimeKind.Utc);
+        var endOfDayExclusive = DateTime.SpecifyKind(new DateTime(repYear, repMonth, 1).AddMonths(1), DateTimeKind.Utc);
+
+        var fromDateOnly = DateTime.SpecifyKind(new DateTime(repYear, repMonth, 1), DateTimeKind.Utc);
+        var toDateOnly = DateTime.SpecifyKind(new DateTime(repYear, repMonth, daysInMonth), DateTimeKind.Utc);
+
+        var monthName = new DateTime(repYear, repMonth, 1).ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+        // 1. Fetch Job Cards for the selected month with related details
+        var jobCards = await _db.JobCards
+            .AsNoTracking()
+            .Include(j => j.Customer)
+            .Include(j => j.Vehicle)
+            .Include(j => j.JobCardServices)
+            .Where(j => !j.IsDeleted && j.CreatedAt >= startUtc && j.CreatedAt < endOfDayExclusive)
+            .OrderBy(j => j.CreatedAt)
+            .ToListAsync(ct);
+
+        // 2. Fetch Invoices issued in the selected month
+        var invoices = await _db.Invoices
+            .AsNoTracking()
+            .Include(i => i.Customer)
+            .Include(i => i.Vehicle)
+            .Include(i => i.JobCard)
+            .Where(i => !i.IsDeleted && i.InvoiceDate >= fromDateOnly && i.InvoiceDate <= toDateOnly)
+            .OrderBy(i => i.InvoiceDate)
+            .ThenBy(i => i.CreatedAt)
+            .ToListAsync(ct);
+
+        // 3. Map JobCardId to InvoiceNumber for all job cards in the month
+        var jobCardIds = jobCards.Select(j => j.Id).Distinct().ToList();
+        var invoicesForJobCards = await _db.Invoices
+            .AsNoTracking()
+            .Where(i => !i.IsDeleted && jobCardIds.Contains(i.JobCardId))
+            .Select(i => new { i.JobCardId, i.InvoiceNumber })
+            .ToListAsync(ct);
+
+        var jcToInvoiceMap = invoicesForJobCards
+            .Where(x => !string.IsNullOrEmpty(x.InvoiceNumber))
+            .GroupBy(x => x.JobCardId)
+            .ToDictionary(g => g.Key, g => g.First().InvoiceNumber!);
+
+        // Also add any invoices already fetched in `invoices`
+        foreach (var inv in invoices)
+        {
+            if (!string.IsNullOrEmpty(inv.InvoiceNumber) && !jcToInvoiceMap.ContainsKey(inv.JobCardId))
+            {
+                jcToInvoiceMap[inv.JobCardId] = inv.InvoiceNumber;
+            }
+        }
+
+        // 4. Construct daily sheets for 1 .. daysInMonth
+        var dailySheets = new List<DailyBillingSheetDto>();
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var dayDate = new DateTime(repYear, repMonth, day);
+            var sheetName = $"{day:D2}-{dayDate.ToString("MMM", System.Globalization.CultureInfo.InvariantCulture)}";
+            var dateFormatted = dayDate.ToString("dd-MMM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+            // Job cards created on this calendar date
+            var dayJobCards = jobCards
+                .Where(j => j.CreatedAt.Date == dayDate.Date)
+                .OrderBy(j => j.CreatedAt)
+                .ToList();
+
+            // Invoices issued on this calendar date
+            var dayInvoices = invoices
+                .Where(i => i.InvoiceDate.Date == dayDate.Date)
+                .OrderBy(i => i.CreatedAt)
+                .ToList();
+
+            // Services associated with job cards created on this date
+            var dayServices = new List<DailyServiceRowDto>();
+            foreach (var jc in dayJobCards)
+            {
+                var invNum = jcToInvoiceMap.TryGetValue(jc.Id, out var inNum) ? inNum : null;
+                var custName = jc.Customer?.Name ?? "Walk-in";
+
+                foreach (var s in jc.JobCardServices.Where(x => !x.IsDeleted))
+                {
+                    dayServices.Add(new DailyServiceRowDto(
+                        ServiceItemId: s.Id,
+                        JobCardNumber: jc.JobCardNumber,
+                        InvoiceNumber: invNum,
+                        CustomerName: custName,
+                        ServiceName: s.ServiceName,
+                        Quantity: s.Quantity,
+                        Rate: s.UnitPrice,
+                        Amount: s.LineTotal
+                    ));
+                }
+            }
+
+            var jcRows = dayJobCards.Select(j =>
+            {
+                var vehicleStr = $"{j.Vehicle?.Make} {j.Vehicle?.Model}".Trim();
+                if (string.IsNullOrEmpty(vehicleStr)) vehicleStr = "—";
+
+                return new DailyJobCardRowDto(
+                    JobCardId: j.Id,
+                    JobCardNumber: j.JobCardNumber,
+                    JobCardDate: j.CreatedAt,
+                    CustomerName: j.Customer?.Name ?? "Walk-in",
+                    VehicleRegistration: j.Vehicle?.RegistrationNumber ?? "—",
+                    Vehicle: vehicleStr,
+                    JobCardStatus: j.Status.ToString(),
+                    TotalServices: j.JobCardServices.Count(s => !s.IsDeleted),
+                    JobCardTotal: j.TotalAmount
+                );
+            }).ToList();
+
+            var invRows = dayInvoices.Select(i => new DailyInvoiceRowDto(
+                InvoiceId: i.Id,
+                InvoiceNumber: i.InvoiceNumber ?? "—",
+                InvoiceDate: i.InvoiceDate,
+                JobCardNumber: i.JobCard?.JobCardNumber ?? "—",
+                CustomerName: i.Customer?.Name ?? "Walk-in",
+                VehicleRegistration: i.Vehicle?.RegistrationNumber ?? "—",
+                InvoiceStatus: i.Status.ToString(),
+                InvoiceTotal: i.TotalAmount,
+                AmountPaid: i.PaidAmount,
+                AmountPending: i.BalanceAmount
+            )).ToList();
+
+            var totals = new DailyTotalsDto(
+                JobCardTotal: jcRows.Sum(j => j.JobCardTotal),
+                InvoiceTotal: invRows.Sum(i => i.InvoiceTotal),
+                AmountPaid: invRows.Sum(i => i.AmountPaid),
+                AmountPending: invRows.Sum(i => i.AmountPending),
+                JobCardCount: jcRows.Count,
+                InvoiceCount: invRows.Count,
+                ServiceCount: dayServices.Count,
+                ServiceTotalQuantity: dayServices.Sum(s => s.Quantity)
+            );
+
+            var hasActivity = jcRows.Count > 0 || invRows.Count > 0 || dayServices.Count > 0;
+
+            dailySheets.Add(new DailyBillingSheetDto(
+                Day: day,
+                Date: DateTime.SpecifyKind(dayDate, DateTimeKind.Utc),
+                DateFormatted: dateFormatted,
+                SheetName: sheetName,
+                HasActivity: hasActivity,
+                Totals: totals,
+                JobCards: jcRows,
+                Invoices: invRows,
+                Services: dayServices
+            ));
+        }
+
+        // 5. Construct Monthly Summary
+        var finishedJobCardCount = jobCards.Count(j =>
+            j.Status == JobCardStatus.Ready ||
+            j.Status == JobCardStatus.Invoiced ||
+            j.Status == JobCardStatus.Paid ||
+            j.Status == JobCardStatus.Delivered);
+
+        var summary = new MonthlyBillingSummaryDto(
+            MonthName: monthName,
+            StartDate: fromDateOnly,
+            EndDate: toDateOnly,
+            GeneratedAt: DateTime.UtcNow,
+            TotalJobCardsCreated: dailySheets.Sum(d => d.JobCards.Count),
+            TotalJobCardsFinished: finishedJobCardCount,
+            TotalInvoices: dailySheets.Sum(d => d.Invoices.Count),
+            TotalInvoicesPaid: invoices.Count(i => i.Status == InvoiceStatus.Paid),
+            TotalInvoicesPendingPayment: invoices.Count(i =>
+                i.Status == InvoiceStatus.Generated ||
+                i.Status == InvoiceStatus.PartiallyPaid ||
+                i.Status == InvoiceStatus.Sent ||
+                i.Status == InvoiceStatus.Overdue),
+            TotalInvoicesDraft: invoices.Count(i => i.Status == InvoiceStatus.Draft),
+            TotalInvoicesCancelled: invoices.Count(i => i.Status == InvoiceStatus.Cancelled),
+            TotalInvoiceAmount: dailySheets.Sum(d => d.Totals.InvoiceTotal),
+            TotalAmountPaid: dailySheets.Sum(d => d.Totals.AmountPaid),
+            TotalAmountPending: dailySheets.Sum(d => d.Totals.AmountPending),
+            TotalServicesPerformed: dailySheets.Sum(d => d.Totals.ServiceCount),
+            TotalServiceQuantity: dailySheets.Sum(d => d.Totals.ServiceTotalQuantity)
+        );
+
+        return new MonthlyBillingReportResponse(
+            Year: repYear,
+            Month: repMonth,
+            MonthName: monthName,
+            FromDate: fromDateOnly,
+            ToDate: toDateOnly,
+            DaysInMonth: daysInMonth,
+            Summary: summary,
+            DailySheets: dailySheets
+        );
+    }
 }
+
 

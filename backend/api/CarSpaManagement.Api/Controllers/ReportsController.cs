@@ -222,4 +222,31 @@ public class ReportsController : ControllerBase
         var result = await _reportService.GetOutsideJobsReportAsync(fromDate, toDate, vendorId, vehicleId, status, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Comprehensive monthly billing report with Daily Sheets and Monthly Summary.
+    /// </summary>
+    [HttpGet("billing/monthly")]
+    [RequirePermission("reports.view")]
+    [EnableRateLimiting("reports-heavy")]
+    public async Task<IActionResult> GetMonthlyBillingReport(
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        if (year.HasValue && (year < 2000 || year > 2100))
+        {
+            return BadRequest(new { message = "Invalid year specified. Must be between 2000 and 2100." });
+        }
+        if (month.HasValue && (month < 1 || month > 12))
+        {
+            return BadRequest(new { message = "Invalid month specified. Must be between 1 and 12." });
+        }
+
+        var result = await _reportService.GetMonthlyBillingReportAsync(year, month, fromDate, toDate, ct);
+        return Ok(result);
+    }
 }
+

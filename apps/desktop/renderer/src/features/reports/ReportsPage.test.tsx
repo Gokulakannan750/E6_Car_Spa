@@ -14,6 +14,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getShowrooms: vi.fn(),
 		getMonthlyShowroomReport: vi.fn(),
 		getOutsideJobsReport: vi.fn(),
+		getMonthlyBillingReport: vi.fn(),
 	};
 });
 
@@ -225,6 +226,33 @@ describe('ReportsPage Component', () => {
 			currentlyOutside: [],
 			history: [],
 			vendorSummary: [],
+		});
+		vi.mocked(api.getMonthlyBillingReport).mockResolvedValue({
+			year: 2026,
+			month: 10,
+			monthName: 'October 2026',
+			fromDate: '2026-10-01T00:00:00Z',
+			toDate: '2026-10-31T00:00:00Z',
+			daysInMonth: 31,
+			summary: {
+				monthName: 'October 2026',
+				startDate: '2026-10-01T00:00:00Z',
+				endDate: '2026-10-31T00:00:00Z',
+				generatedAt: '2026-10-31T23:59:59Z',
+				totalJobCardsCreated: 10,
+				totalJobCardsFinished: 6,
+				totalInvoices: 9,
+				totalInvoicesPaid: 4,
+				totalInvoicesPendingPayment: 4,
+				totalInvoicesDraft: 1,
+				totalInvoicesCancelled: 0,
+				totalInvoiceAmount: 8000,
+				totalAmountPaid: 7000,
+				totalAmountPending: 1000,
+				totalServicesPerformed: 12,
+				totalServiceQuantity: 12,
+			},
+			dailySheets: [],
 		});
 	});
 
