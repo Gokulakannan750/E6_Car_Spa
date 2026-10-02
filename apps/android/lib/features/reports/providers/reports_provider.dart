@@ -9,6 +9,8 @@ import '../models/job_card_report_model.dart';
 import '../models/showroom_report_model.dart';
 import '../models/staff_productivity_report_model.dart';
 import '../models/staff_advances_report_model.dart';
+import '../models/monthly_billing_report_model.dart';
+import '../models/outside_job_report_model.dart';
 
 enum ReportDatePreset {
   today,
@@ -314,3 +316,41 @@ final monthlyShowroomReportProvider =
         showroomId: showroomId,
       );
     });
+
+/// 11. Monthly Billing Report Selected Year & Month Providers
+final monthlyBillingReportYearProvider = StateProvider<int>(
+  (ref) => DateTime.now().year,
+);
+final monthlyBillingReportMonthProvider = StateProvider<int>(
+  (ref) => DateTime.now().month,
+);
+
+/// Monthly Billing Report Provider
+final monthlyBillingReportProvider =
+    FutureProvider.autoDispose<MonthlyBillingReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final year = ref.watch(monthlyBillingReportYearProvider);
+      final month = ref.watch(monthlyBillingReportMonthProvider);
+
+      return repository.getMonthlyBillingReport(year: year, month: month);
+    });
+
+/// 12. Outside Jobs Report Filters & Provider
+final outsideJobsVendorFilterProvider = StateProvider<String?>((ref) => null);
+final outsideJobsStatusFilterProvider = StateProvider<int?>((ref) => null);
+
+final outsideJobsReportProvider =
+    FutureProvider.autoDispose<OutsideJobReportResponseModel>((ref) async {
+      final repository = ref.watch(reportsRepositoryProvider);
+      final filter = ref.watch(reportDateFilterProvider);
+      final vendorId = ref.watch(outsideJobsVendorFilterProvider);
+      final status = ref.watch(outsideJobsStatusFilterProvider);
+
+      return repository.getOutsideJobsReport(
+        fromDate: filter.startDate,
+        toDate: filter.endDate,
+        vendorId: vendorId,
+        status: status,
+      );
+    });
+

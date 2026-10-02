@@ -8,7 +8,6 @@ import {
 	Store,
 	SlidersHorizontal,
 	Calendar,
-	Download,
 	RefreshCw,
 	AlertCircle,
 	Truck,
@@ -21,7 +20,6 @@ import { StaffReportsView } from './StaffReportsView';
 import { ShowroomReportsView } from './ShowroomReportsView';
 import { CustomReportsView } from './CustomReportsView';
 import { OutsideJobsReportsView } from './OutsideJobsReportsView';
-import * as XLSX from 'xlsx';
 
 export type ReportType = 'billing' | 'staff' | 'showroom' | 'outside-jobs' | 'custom' | 'audit';
 export type DatePreset = 'today' | '7d' | '30d' | 'month' | 'year' | 'custom';
@@ -109,8 +107,6 @@ export function ReportsPage() {
 		return formatDateStr(d);
 	});
 	const [customEnd, setCustomEnd] = useState<string>(() => formatDateStr(new Date()));
-	const [isExporting, setIsExporting] = useState(false);
-
 	const bounds = useMemo(() => getDateBounds(preset, customStart, customEnd), [preset, customStart, customEnd]);
 
 	// ── Live Backend Aggregated Reports Query ────────────────────────────────
@@ -133,85 +129,6 @@ export function ReportsPage() {
 		}
 	};
 
-	// ── Excel Export Handler ─────────────────────────────────────────────────
-	const handleExportExcel = () => {
-		if (!dashboardData) return;
-		setIsExporting(true);
-
-		try {
-			const wb = XLSX.utils.book_new();
-
-			// Sheet 1: Executive Summary
-			const summaryData = [
-				['E6 Car Spa Management Suite - Comprehensive Financial Report', ''],
-				['Report Period', `${bounds.startStr} to ${bounds.endStr} (${bounds.label})`],
-				['Generated At', new Date().toLocaleString('en-IN')],
-				['', ''],
-				['EXECUTIVE FINANCIAL METRICS', 'AMOUNT (INR)'],
-				['Gross Subtotal', dashboardData.sales.grossSubtotal],
-				['Total Discount', dashboardData.sales.totalDiscount],
-				['GST Amount', dashboardData.sales.gstAmount],
-				['Net Billed Revenue', dashboardData.sales.netSales],
-				['Total Cash Collections Received', dashboardData.paymentCollection.totalReceived],
-				['Total Invoice Outstanding Balance', dashboardData.invoiceKpis.totalOutstandingAmount],
-				['Total Staff Advance Outstanding', dashboardData.staffAdvances.outstandingAmount],
-				['Combined Total Outstanding Liability', dashboardData.outstanding.totalOutstandingCombined],
-				['', ''],
-				['OPERATIONAL METRICS', 'COUNT'],
-				['Total Job Cards', dashboardData.jobCardKpis.totalJobCards],
-				['Completed Job Cards', dashboardData.jobCardKpis.completedJobCards],
-				['Active Showrooms', dashboardData.showroom.activeShowroomsCount],
-				['Total Showroom Billed', dashboardData.showroom.totalBilled],
-				['Total Showroom Received', dashboardData.showroom.totalReceived],
-				['Total Showroom Outstanding', dashboardData.showroom.totalOutstanding],
-				['Vehicles Attended at Showrooms', dashboardData.showroom.vehiclesAttended],
-			];
-			const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-			wsSummary['!cols'] = [{ wch: 38 }, { wch: 25 }];
-			XLSX.utils.book_append_sheet(wb, wsSummary, 'Executive Summary');
-
-			// Sheet 2: Top Performing Services
-			const sHeaders = ['Service Name', 'Category', 'Quantity / Bookings', 'Total Revenue Generated (INR)'];
-			const sRows = (dashboardData.topServices || []).map((s) => [s.name, s.category || 'General Services', s.count, s.revenue]);
-			const wsServices = XLSX.utils.aoa_to_sheet([sHeaders, ...sRows]);
-			wsServices['!cols'] = [{ wch: 35 }, { wch: 22 }, { wch: 22 }, { wch: 28 }];
-			XLSX.utils.book_append_sheet(wb, wsServices, 'Top Services');
-
-			// Sheet 3: Payment Collections Breakdown
-			const pHeaders = ['Payment Method', 'Transaction Count', 'Total Collected (INR)'];
-			const pRows = (dashboardData.paymentCollection.breakdownByMethod || []).map((m) => [
-				m.method,
-				m.transactionCount,
-				m.amount,
-			]);
-			const wsPayments = XLSX.utils.aoa_to_sheet([pHeaders, ...pRows]);
-			wsPayments['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 25 }];
-			XLSX.utils.book_append_sheet(wb, wsPayments, 'Payment Methods');
-
-			// Sheet 4: Staff Advances Log
-			const advHeaders = ['Date', 'Employee Name', 'Role', 'Amount (INR)', 'Reason', 'Status'];
-			const advRows = (dashboardData.recentAdvances || []).map((a) => [
-				new Date(a.advanceDate).toLocaleDateString('en-IN'),
-				a.staffName,
-				a.staffRole || 'Staff',
-				a.amount,
-				a.reason || '',
-				a.status || 'Outstanding',
-			]);
-			const wsAdvances = XLSX.utils.aoa_to_sheet([advHeaders, ...advRows]);
-			wsAdvances['!cols'] = [{ wch: 14 }, { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 28 }, { wch: 16 }];
-			XLSX.utils.book_append_sheet(wb, wsAdvances, 'Staff Advances');
-
-			// Save file
-			const fileName = `E6_Car_Spa_Report_${bounds.startStr}_to_${bounds.endStr}.xlsx`;
-			XLSX.writeFile(wb, fileName);
-		} catch (err) {
-			console.error('Failed to export Excel report:', err);
-		} finally {
-			setIsExporting(false);
-		}
-	};
-
 	return (
 		<div className="space-y-6 animate-fade-in pb-12">
 			{/* ── Main Header ─────────────────────────────────────────────────── */}
@@ -226,7 +143,7 @@ export function ReportsPage() {
 					</p>
 				</div>
 
-				{/* Date Preset Filter Bar & Export */}
+				{/* Date Preset Filter Bar */}
 				<div className="flex flex-wrap items-center gap-2">
 					<div className="flex items-center bg-surface-container-high rounded-lg p-1 border border-outline-variant text-xs">
 						{(['today', '7d', '30d', 'month', 'year', 'custom'] as DatePreset[]).map((p) => {
@@ -276,17 +193,6 @@ export function ReportsPage() {
 							/>
 						</div>
 					)}
-
-					<Button
-						variant="secondary"
-						size="sm"
-						icon={<Download className="w-4 h-4" />}
-						onClick={handleExportExcel}
-						disabled={isLoading || isExporting || !dashboardData}
-						title="Export Excel Report"
-					>
-						{isExporting ? 'Exporting...' : 'Export Excel'}
-					</Button>
 				</div>
 			</div>
 

@@ -54,12 +54,16 @@ class AppRoutes {
   static const String staffSalary = '/staff/salary';
   static const String staffAdvances = '/staff-advances';
   static const String reports = '/reports';
+  static const String billingReport = '/reports/billing';
+  static const String outsideJobsReport = '/reports/outside-jobs';
+  static const String staffReport = '/reports/staff';
   static const String salesReport = '/reports/sales';
   static const String paymentsReport = '/reports/payments';
   static const String outstandingInvoices = '/reports/outstanding';
   static const String gstReport = '/reports/gst';
   static const String jobCardsReport = '/reports/job-cards';
   static const String showroomReport = '/reports/showrooms';
+  static const String showroomReportCanonical = '/reports/showroom';
   static const String staffProductivityReport = '/reports/staff-productivity';
   static const String staffAdvancesReport = '/reports/staff-advances';
   static const String showroom = '/showroom';

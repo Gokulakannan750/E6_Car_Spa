@@ -12,6 +12,8 @@ import '../../features/dashboard/presentation/pages/dashboard_screen.dart';
 import '../../features/invoices/presentation/pages/invoice_details_screen.dart';
 import '../../features/jobcards/presentation/pages/job_card_details_screen.dart';
 import '../../features/jobcards/presentation/pages/new_job_card_screen.dart';
+import '../../features/reports/presentation/pages/billing_report_screen.dart';
+import '../../features/reports/presentation/pages/outside_jobs_report_screen.dart';
 import '../../features/reports/presentation/pages/reports_screen.dart';
 import '../../features/reports/presentation/pages/sales_report_screen.dart';
 import '../../features/reports/presentation/pages/payments_report_screen.dart';
@@ -245,6 +247,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ReportsScreen()),
             routes: [
+              GoRoute(
+                path: 'billing',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: BillingReportScreen()),
+              ),
+              GoRoute(
+                path: 'outside-jobs',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: OutsideJobsReportScreen()),
+              ),
+              GoRoute(
+                path: 'staff',
+                redirect: (context, state) => AppRoutes.staffAdvancesReport,
+              ),
+              GoRoute(
+                path: 'showroom',
+                redirect: (context, state) => AppRoutes.showroomReport,
+              ),
               GoRoute(
                 path: 'sales',
                 pageBuilder: (context, state) =>

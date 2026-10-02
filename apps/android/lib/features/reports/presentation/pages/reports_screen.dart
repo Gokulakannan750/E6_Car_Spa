@@ -128,7 +128,70 @@ class ReportsScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 2. Primary 4 Executive KPI Cards Grid
+                      // 2. Primary 4 Canonical Report Modules (Level 1 -> Level 2)
+                      const Text(
+                        'Report Modules',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.45,
+                        children: [
+                          _buildPrimaryModuleCard(
+                            title: 'Billing Reports',
+                            subtitle: 'Monthly billing & daily sheets',
+                            icon: Icons.receipt_long,
+                            color: AppColors.primary,
+                            onTap: () => context.go('/reports/billing'),
+                          ),
+                          if (canViewAdvances)
+                            _buildPrimaryModuleCard(
+                              title: 'Staff Reports',
+                              subtitle: 'Advances, log & settlements',
+                              icon: Icons.people,
+                              color: const Color(0xFF8B5CF6), // Purple
+                              onTap: () => context.go('/reports/staff-advances'),
+                            ),
+                          if (canViewShowrooms)
+                            _buildPrimaryModuleCard(
+                              title: 'Showroom Reports',
+                              subtitle: 'Monthly ops & productivity',
+                              icon: Icons.storefront,
+                              color: const Color(0xFF0284C7), // Sky blue
+                              onTap: () => context.go('/reports/showrooms'),
+                            ),
+                          _buildPrimaryModuleCard(
+                            title: 'Outside Jobs',
+                            subtitle: 'External movement & vendors',
+                            icon: Icons.local_shipping,
+                            color: const Color(0xFFF59E0B), // Amber
+                            onTap: () => context.go('/reports/outside-jobs'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 3. Executive KPI Cards Grid
+                      const Text(
+                        'Period Executive Summary',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
@@ -179,7 +242,7 @@ class ReportsScreen extends ConsumerWidget {
                             subtitle:
                                 'Avg Ticket: ${_formatCurrency(avgTicket)}',
                             icon: Icons.directions_car,
-                            accentColor: const Color(0xFF0284C7), // Sky Blue
+                            accentColor: const Color(0xFF0284C7),
                             onTap: canViewJobCards
                                 ? () => context.go('/reports/job-cards')
                                 : null,
@@ -188,7 +251,7 @@ class ReportsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
 
-                      // 3. Secondary Metrics Banner
+                      // 4. Secondary Metrics Banner
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -243,7 +306,7 @@ class ReportsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // 4. Charts Row
+                      // 5. Charts Row
                       RevenueChart(
                         sales: sales,
                         paymentCollection: paymentCollection,
@@ -253,7 +316,7 @@ class ReportsScreen extends ConsumerWidget {
                       JobStatusChart(jobCardKpis: jobKpis),
                       const SizedBox(height: 20),
 
-                      // 5. Detailed Sub-Reports Section
+                      // 6. Detailed Analytical Drill-down Reports
                       const Text(
                         'Detailed Analytical Reports',
                         style: TextStyle(
@@ -307,13 +370,6 @@ class ReportsScreen extends ConsumerWidget {
                               icon: Icons.build_circle_outlined,
                               onTap: () => context.go('/reports/job-cards'),
                             ),
-                          if (canViewShowrooms)
-                            _buildReportTile(
-                              title: 'Showrooms',
-                              subtitle: 'Daily bills & assignments',
-                              icon: Icons.storefront_outlined,
-                              onTap: () => context.go('/reports/showrooms'),
-                            ),
                           if (canViewProductivity)
                             _buildReportTile(
                               title: 'Productivity',
@@ -322,19 +378,11 @@ class ReportsScreen extends ConsumerWidget {
                               onTap: () =>
                                   context.go('/reports/staff-productivity'),
                             ),
-                          if (canViewAdvances)
-                            _buildReportTile(
-                              title: 'Staff Advances',
-                              subtitle: 'Recovery & settlements',
-                              icon: Icons.account_balance_wallet_outlined,
-                              onTap: () =>
-                                  context.go('/reports/staff-advances'),
-                            ),
                         ],
                       ),
                       const SizedBox(height: 20),
 
-                      // 6. Recent Operational Activity Feed
+                      // 7. Recent Operational Activity Feed
                       RecentActivityCard(activities: dashboard.recentActivity),
                     ],
                   );
@@ -438,6 +486,76 @@ class ReportsScreen extends ConsumerWidget {
               Icons.chevron_right,
               size: 16,
               color: AppColors.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrimaryModuleCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMD),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusSM),
+                  ),
+                  child: Icon(icon, size: 18, color: color),
+                ),
+                Icon(
+                  Icons.arrow_forward,
+                  size: 14,
+                  color: color.withValues(alpha: 0.8),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

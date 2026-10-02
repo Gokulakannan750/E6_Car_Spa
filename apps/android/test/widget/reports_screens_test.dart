@@ -200,6 +200,11 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
 
         expect(find.text('Reports & Analytics'), findsOneWidget);
+        expect(find.text('Report Modules'), findsOneWidget);
+        expect(find.text('Billing Reports'), findsOneWidget);
+        expect(find.text('Staff Reports'), findsOneWidget);
+        expect(find.text('Showroom Reports'), findsOneWidget);
+        expect(find.text('Outside Jobs'), findsOneWidget);
         expect(find.text('BILLED REVENUE'), findsOneWidget);
         expect(find.text('COLLECTIONS'), findsOneWidget);
         expect(find.text('OUTSTANDING'), findsOneWidget);
@@ -207,7 +212,6 @@ void main() {
         expect(find.text('Detailed Analytical Reports'), findsOneWidget);
         expect(find.text('Sales Report'), findsOneWidget);
         expect(find.text('GST Summary'), findsOneWidget);
-        expect(find.text('Staff Advances'), findsWidgets);
       },
     );
   });

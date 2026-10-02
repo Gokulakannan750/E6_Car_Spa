@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import {
 	Users,
 	Wallet,
 	CheckCircle2,
 	Calendar,
 	History,
+	Download,
 } from 'lucide-react';
+import { Button } from '../../components/ui/Button';
 import type { DashboardSummaryDto } from '../../lib/api';
+import { generateAndDownloadStaffAdvancesReport } from './excelStaffAdvancesGenerator';
 
 interface StaffReportsViewProps {
 	data: DashboardSummaryDto | undefined;
@@ -14,14 +18,61 @@ interface StaffReportsViewProps {
 	formatINR: (val?: number | null) => string;
 }
 
-export function StaffReportsView({ data, isLoading, bounds: _bounds, formatINR }: StaffReportsViewProps) {
+export function StaffReportsView({ data, isLoading, bounds, formatINR }: StaffReportsViewProps) {
+	const [isExporting, setIsExporting] = useState(false);
 	const staffAdvances = data?.staffAdvances;
 	const recentAdvances = data?.recentAdvances || [];
 	const staffAssignmentsCount = data?.showroom?.staffAssignmentsCount ?? 0;
 	const vehiclesAttended = data?.showroom?.vehiclesAttended ?? 0;
 
+	const handleExportExcel = async () => {
+		if (!data) return;
+		setIsExporting(true);
+		try {
+			await generateAndDownloadStaffAdvancesReport({
+				periodLabel: bounds.label,
+				startDate: bounds.startStr,
+				endDate: bounds.endStr,
+				generatedAt: new Date().toISOString(),
+				advances: recentAdvances,
+				summary: staffAdvances,
+			});
+		} catch (err) {
+			console.error('Failed to export Staff Advances Excel report:', err);
+		} finally {
+			setIsExporting(false);
+		}
+	};
+
 	return (
 		<div className="space-y-6 animate-fade-in" data-testid="staff-reports-view">
+			{/* ── Action & Export Header Bar ───────────────────────────────── */}
+			<div className="app-card p-4.5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-secondary">
+				<div className="flex items-center gap-3">
+					<div className="flex items-center gap-2 text-on-surface font-semibold text-sm">
+						<Calendar className="w-4 h-4 text-secondary" />
+						<span>Staff Reporting Period:</span>
+					</div>
+					<span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-secondary/10 text-secondary border border-secondary/20">
+						{bounds?.label || 'Selected Period'} ({bounds?.startStr} to {bounds?.endStr})
+					</span>
+				</div>
+
+				<div className="flex items-center gap-2.5">
+					<Button
+						variant="primary"
+						size="sm"
+						icon={<Download className="w-4 h-4" />}
+						onClick={handleExportExcel}
+						disabled={isLoading || isExporting || !data}
+						loading={isExporting}
+						className="shadow-xs whitespace-nowrap"
+						title="Export multi-sheet Excel report organized by staff member"
+					>
+						Export Staff Advances Excel
+					</Button>
+				</div>
+			</div>
 			{/* ── Staff & Advances Metrics ──────────────────────────────────── */}
 			<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
 				{/* 1. Outstanding Advances Balance */}

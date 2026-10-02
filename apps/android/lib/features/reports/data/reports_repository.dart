@@ -11,6 +11,8 @@ import '../models/job_card_report_model.dart';
 import '../models/showroom_report_model.dart';
 import '../models/staff_productivity_report_model.dart';
 import '../models/staff_advances_report_model.dart';
+import '../models/monthly_billing_report_model.dart';
+import '../models/outside_job_report_model.dart';
 import 'reports_api.dart';
 
 final reportsApiProvider = Provider<ReportsApi>((ref) {
@@ -214,6 +216,44 @@ class ReportsRepository {
         year: year,
         month: month,
         showroomId: showroomId,
+        fromDate: fromDate,
+        toDate: toDate,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<OutsideJobReportResponseModel> getOutsideJobsReport({
+    DateTime? fromDate,
+    DateTime? toDate,
+    String? vendorId,
+    String? vehicleId,
+    int? status,
+  }) async {
+    try {
+      return await _api.getOutsideJobsReport(
+        fromDate: fromDate,
+        toDate: toDate,
+        vendorId: vendorId,
+        vehicleId: vehicleId,
+        status: status,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<MonthlyBillingReportResponseModel> getMonthlyBillingReport({
+    int? year,
+    int? month,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    try {
+      return await _api.getMonthlyBillingReport(
+        year: year,
+        month: month,
         fromDate: fromDate,
         toDate: toDate,
       );

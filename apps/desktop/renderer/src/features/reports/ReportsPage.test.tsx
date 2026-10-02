@@ -4,7 +4,6 @@ import { Routes, Route } from 'react-router-dom';
 import { ReportsPage } from './ReportsPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
-import * as XLSX from 'xlsx';
 
 vi.mock('../../lib/api', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('../../lib/api')>();
@@ -17,15 +16,6 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getMonthlyBillingReport: vi.fn(),
 	};
 });
-
-vi.mock('xlsx', () => ({
-	utils: {
-		aoa_to_sheet: vi.fn(() => ({})),
-		book_new: vi.fn(() => ({ SheetNames: [], Sheets: {} })),
-		book_append_sheet: vi.fn(),
-	},
-	writeFile: vi.fn(),
-}));
 
 vi.mock('recharts', () => ({
 	ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -313,7 +303,7 @@ describe('ReportsPage Component', () => {
 		expect(api.getDashboardSummary).toHaveBeenCalled();
 	});
 
-	it('triggers Excel export via SheetJS when Export Excel button is clicked', async () => {
+	it('does not render top-level generic Export Excel button on header bar', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/reports/*" element={<ReportsPage />} />
@@ -325,13 +315,7 @@ describe('ReportsPage Component', () => {
 			expect(screen.getAllByText('₹8,000.00').length).toBeGreaterThan(0);
 		});
 
-		const exportBtn = screen.getByRole('button', { name: /export excel/i });
-		expect(exportBtn).not.toBeDisabled();
-		fireEvent.click(exportBtn);
-
-		await waitFor(() => {
-			expect(XLSX.writeFile).toHaveBeenCalled();
-		});
+		expect(screen.queryByRole('button', { name: /^Export Excel$/i })).not.toBeInTheDocument();
 	});
 
 	it('renders error banner with retry button on query rejection', async () => {

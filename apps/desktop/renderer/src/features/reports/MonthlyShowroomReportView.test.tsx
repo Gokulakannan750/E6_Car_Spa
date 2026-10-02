@@ -3,7 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react';
 import { MonthlyShowroomReportView } from './MonthlyShowroomReportView';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
-import * as XLSX from 'xlsx';
+import * as showroomExcelGenerator from './excelMonthlyShowroomGenerator';
 
 vi.mock('../../lib/api', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('../../lib/api')>();
@@ -14,13 +14,8 @@ vi.mock('../../lib/api', async (importOriginal) => {
 	};
 });
 
-vi.mock('xlsx', () => ({
-	utils: {
-		aoa_to_sheet: vi.fn(() => ({})),
-		book_new: vi.fn(() => ({ SheetNames: [], Sheets: {} })),
-		book_append_sheet: vi.fn(),
-	},
-	writeFile: vi.fn(),
+vi.mock('./excelMonthlyShowroomGenerator', () => ({
+	generateAndDownloadMonthlyShowroomReport: vi.fn(),
 }));
 
 describe('MonthlyShowroomReportView Component', () => {
@@ -254,15 +249,11 @@ describe('MonthlyShowroomReportView Component', () => {
 		const exportAllBtn = screen.getByRole('button', { name: /export all showrooms/i });
 		fireEvent.click(exportAllBtn);
 
-		expect(XLSX.utils.book_new).toHaveBeenCalled();
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalled();
-		expect(XLSX.writeFile).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Report_September_2026\.xlsx/)
-		);
-		expect(XLSX.writeFile).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Skoda_Dealership_Report_September_2026\.xlsx/)
+		expect(showroomExcelGenerator.generateAndDownloadMonthlyShowroomReport).toHaveBeenCalledWith(
+			expect.objectContaining({
+				monthName: 'September 2026',
+			}),
+			'all'
 		);
 	});
 
@@ -280,17 +271,12 @@ describe('MonthlyShowroomReportView Component', () => {
 		const exportThisBtn = screen.getByRole('button', { name: /export this showroom/i });
 		fireEvent.click(exportThisBtn);
 
-		expect(XLSX.utils.book_new).toHaveBeenCalled();
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Summary');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Vehicle Service Details');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Staff Productivity');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Attendance');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Staff Swaps');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Vehicle Type Summary');
-		expect(XLSX.utils.book_append_sheet).toHaveBeenCalledWith(expect.anything(), expect.anything(), 'Service Summary');
-		expect(XLSX.writeFile).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.stringMatching(/E6_Car_Spa_Honda_Dealership_Report_September_2026\.xlsx/)
+		expect(showroomExcelGenerator.generateAndDownloadMonthlyShowroomReport).toHaveBeenCalledWith(
+			expect.objectContaining({
+				monthName: 'September 2026',
+			}),
+			'selected',
+			'sr-1'
 		);
 	});
 

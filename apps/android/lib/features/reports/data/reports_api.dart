@@ -9,6 +9,9 @@ import '../models/showroom_report_model.dart';
 import '../models/staff_productivity_report_model.dart';
 import '../models/staff_advances_report_model.dart';
 
+import '../models/monthly_billing_report_model.dart';
+import '../models/outside_job_report_model.dart';
+
 class ReportsApi {
   final Dio _dio;
 
@@ -48,8 +51,9 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (customerId != null && customerId.isNotEmpty)
+    if (customerId != null && customerId.isNotEmpty) {
       queryParameters['customerId'] = customerId;
+    }
 
     final response = await _dio.get(
       '/reports/sales',
@@ -78,8 +82,9 @@ class ReportsApi {
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
     if (paymentMethod != null) queryParameters['paymentMethod'] = paymentMethod;
-    if (invoiceId != null && invoiceId.isNotEmpty)
+    if (invoiceId != null && invoiceId.isNotEmpty) {
       queryParameters['invoiceId'] = invoiceId;
+    }
 
     final response = await _dio.get(
       '/reports/payments',
@@ -104,8 +109,9 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (customerId != null && customerId.isNotEmpty)
+    if (customerId != null && customerId.isNotEmpty) {
       queryParameters['customerId'] = customerId;
+    }
 
     final response = await _dio.get(
       '/reports/invoices/outstanding',
@@ -148,8 +154,9 @@ class ReportsApi {
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
     if (status != null) queryParameters['status'] = status;
-    if (customerId != null && customerId.isNotEmpty)
+    if (customerId != null && customerId.isNotEmpty) {
       queryParameters['customerId'] = customerId;
+    }
 
     final response = await _dio.get(
       '/reports/job-cards',
@@ -174,8 +181,9 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (showroomId != null && showroomId.isNotEmpty)
+    if (showroomId != null && showroomId.isNotEmpty) {
       queryParameters['showroomId'] = showroomId;
+    }
 
     final response = await _dio.get(
       '/reports/showrooms',
@@ -199,16 +207,21 @@ class ReportsApi {
     final queryParameters = <String, dynamic>{};
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (staffId != null && staffId.isNotEmpty)
+    if (staffId != null && staffId.isNotEmpty) {
       queryParameters['staffId'] = staffId;
-    if (showroomId != null && showroomId.isNotEmpty)
+    }
+    if (showroomId != null && showroomId.isNotEmpty) {
       queryParameters['showroomId'] = showroomId;
-    if (vehicleTypeId != null && vehicleTypeId.isNotEmpty)
+    }
+    if (vehicleTypeId != null && vehicleTypeId.isNotEmpty) {
       queryParameters['vehicleTypeId'] = vehicleTypeId;
-    if (workTypeId != null && workTypeId.isNotEmpty)
+    }
+    if (workTypeId != null && workTypeId.isNotEmpty) {
       queryParameters['workTypeId'] = workTypeId;
-    if (assignmentType != null && assignmentType.isNotEmpty)
+    }
+    if (assignmentType != null && assignmentType.isNotEmpty) {
       queryParameters['assignmentType'] = assignmentType;
+    }
 
     final response = await _dio.get(
       '/reports/staff-productivity',
@@ -234,8 +247,9 @@ class ReportsApi {
     };
     if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
     if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
-    if (staffId != null && staffId.isNotEmpty)
+    if (staffId != null && staffId.isNotEmpty) {
       queryParameters['staffId'] = staffId;
+    }
     if (status != null) queryParameters['status'] = status;
 
     final response = await _dio.get(
@@ -269,6 +283,56 @@ class ReportsApi {
       queryParameters: queryParameters,
     );
     return MonthlyShowroomReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  /// 11. Outside Jobs & External Movement Report
+  Future<OutsideJobReportResponseModel> getOutsideJobsReport({
+    DateTime? fromDate,
+    DateTime? toDate,
+    String? vendorId,
+    String? vehicleId,
+    int? status,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
+    if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
+    if (vendorId != null && vendorId.isNotEmpty && vendorId != 'all') {
+      queryParameters['vendorId'] = vendorId;
+    }
+    if (vehicleId != null && vehicleId.isNotEmpty) {
+      queryParameters['vehicleId'] = vehicleId;
+    }
+    if (status != null) queryParameters['status'] = status;
+
+    final response = await _dio.get(
+      '/reports/outside-jobs',
+      queryParameters: queryParameters,
+    );
+    return OutsideJobReportResponseModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  /// 12. Monthly Billing Report with Daily Breakdown
+  Future<MonthlyBillingReportResponseModel> getMonthlyBillingReport({
+    int? year,
+    int? month,
+    DateTime? fromDate,
+    DateTime? toDate,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (year != null) queryParameters['year'] = year;
+    if (month != null) queryParameters['month'] = month;
+    if (fromDate != null) queryParameters['fromDate'] = _formatDate(fromDate);
+    if (toDate != null) queryParameters['toDate'] = _formatDate(toDate);
+
+    final response = await _dio.get(
+      '/reports/billing/monthly',
+      queryParameters: queryParameters,
+    );
+    return MonthlyBillingReportResponseModel.fromJson(
       response.data as Map<String, dynamic>,
     );
   }
