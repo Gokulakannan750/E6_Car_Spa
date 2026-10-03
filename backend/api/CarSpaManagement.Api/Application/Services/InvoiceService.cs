@@ -644,11 +644,13 @@ public class InvoiceService : IInvoiceService
 	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;
+		var profilePrefix = (await _db.BusinessProfiles.AsNoTracking().Select(b => b.InvoicePrefix).FirstOrDefaultAsync(cancellationToken))?.Trim();
+		var prefix = !string.IsNullOrWhiteSpace(profilePrefix) ? profilePrefix : "INV";
 
 		if (!_db.Database.IsRelational())
 		{
 			var count = await _db.Invoices.CountAsync(cancellationToken) + 1;
-			return $"INV-{currentYear}-{count:D6}";
+			return $"{prefix}-{currentYear}-{count:D6}";
 		}
 
 		var conn = _db.Database.GetDbConnection();
@@ -679,7 +681,7 @@ public class InvoiceService : IInvoiceService
 					nextNumber = Convert.ToInt64(result);
 				}
 
-				var candidate = string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 				var exists = await _db.Invoices.AnyAsync(i => i.InvoiceNumber == candidate, cancellationToken);
 				if (!exists)
 				{

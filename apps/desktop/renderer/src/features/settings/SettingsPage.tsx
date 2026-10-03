@@ -57,14 +57,14 @@ export default function SettingsPage() {
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
 	// Form State
-	const [businessName, setBusinessName] = useState('E6 Car Spa');
-	const [addressLine1, setAddressLine1] = useState('36, Geetha Nagar Main Road');
-	const [addressLine2, setAddressLine2] = useState('Behind Sakthi Mahal, Perundurai Road');
-	const [city, setCity] = useState('Erode');
-	const [state, setState] = useState('Tamil Nadu');
-	const [postalCode, setPostalCode] = useState('638011');
-	const [phone, setPhone] = useState('9578749449');
-	const [email, setEmail] = useState('e6carspaerd@gmail.com');
+	const [businessName, setBusinessName] = useState('');
+	const [addressLine1, setAddressLine1] = useState('');
+	const [addressLine2, setAddressLine2] = useState('');
+	const [city, setCity] = useState('');
+	const [state, setState] = useState('');
+	const [postalCode, setPostalCode] = useState('');
+	const [phone, setPhone] = useState('');
+	const [email, setEmail] = useState('');
 	const [gstin, setGstin] = useState('');
 	const [invoicePrefix, setInvoicePrefix] = useState('INV');
 
@@ -81,14 +81,14 @@ export default function SettingsPage() {
 			const data = await getBusinessProfile();
 			setProfile(data);
 			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, data);
-			setBusinessName(data.businessName || 'E6 Car Spa');
-			setAddressLine1(data.addressLine1 || '36, Geetha Nagar Main Road');
-			setAddressLine2(data.addressLine2 || 'Behind Sakthi Mahal, Perundurai Road');
-			setCity(data.city || 'Erode');
-			setState(data.state || 'Tamil Nadu');
-			setPostalCode(data.postalCode || '638011');
-			setPhone(data.phone || '9578749449');
-			setEmail(data.email || 'e6carspaerd@gmail.com');
+			setBusinessName(data.businessName || '');
+			setAddressLine1(data.addressLine1 || '');
+			setAddressLine2(data.addressLine2 || '');
+			setCity(data.city || '');
+			setState(data.state || '');
+			setPostalCode(data.postalCode || '');
+			setPhone(data.phone || '');
+			setEmail(data.email || '');
 			setGstin(data.gstin || '');
 			setInvoicePrefix(data.invoicePrefix || 'INV');
 		} catch (err: unknown) {

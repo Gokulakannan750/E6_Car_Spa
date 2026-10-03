@@ -442,28 +442,31 @@ using (var scope = app.Services.CreateScope())
 			}
 		}
 
+		var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
 		if (!await db.BusinessProfiles.AnyAsync())
 		{
+			var defaultProfileSection = config.GetSection("DefaultBusinessProfile");
 			var profile = new BusinessProfile
 			{
 				Id = Guid.NewGuid(),
 				SingletonKey = 1,
-				BusinessName = "E6 Car Spa",
-				AddressLine1 = "36, Geetha Nagar Main Road",
-				AddressLine2 = "Behind Sakthi Mahal, Perundurai Road",
-				City = "Erode",
-				State = "Tamil Nadu",
-				PostalCode = "638011",
-				Phone = "9578749449",
-				Email = "e6carspaerd@gmail.com",
-				Gstin = null,
-				LogoPath = "/uploads/logos/e6-logo.png",
-				InvoicePrefix = "INV",
+				BusinessName = defaultProfileSection["BusinessName"] ?? "E6 Car Spa",
+				AddressLine1 = defaultProfileSection["AddressLine1"] ?? "36, Geetha Nagar Main Road",
+				AddressLine2 = defaultProfileSection["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
+				City = defaultProfileSection["City"] ?? "Erode",
+				State = defaultProfileSection["State"] ?? "Tamil Nadu",
+				PostalCode = defaultProfileSection["PostalCode"] ?? "638011",
+				Phone = defaultProfileSection["Phone"] ?? "9578749449",
+				Email = defaultProfileSection["Email"] ?? "e6carspaerd@gmail.com",
+				Gstin = defaultProfileSection["Gstin"],
+				LogoPath = defaultProfileSection["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+				InvoicePrefix = defaultProfileSection["InvoicePrefix"] ?? "INV",
 				CreatedAt = DateTime.UtcNow
 			};
 			db.BusinessProfiles.Add(profile);
 			await db.SaveChangesAsync();
-			Log.Information("Seeded verified default E6 Car Spa business profile");
+			Log.Information("Seeded default business profile from configuration ({BusinessName})", profile.BusinessName);
 		}
 
 		if (!await db.SystemPreferences.AnyAsync())

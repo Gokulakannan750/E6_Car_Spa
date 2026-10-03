@@ -34,7 +34,7 @@ When the same template (`e6_carspa_invoice_generated`) was used for `PaymentComp
 ### Database Evidence from Live `WhatsAppMessages` Table
 * **Message ID:** `d52d2dc7-a82c-4d61-aa59-8df33a1bfafc` (Invoice `INV-2026-000008`)
   * **Type:** `InvoiceFinalized` (0)
-  * **Recipient:** `917502387733`
+  * **Recipient:** `919876543210`
   * **Status:** `Failed` (3) / lease status 2
   * **ErrorMessage:** `Template 'e6_carspa_invoice_generated' requires a DOCUMENT header component for invoice PDF attachments.`
   * **MetaMessageId:** `None` (Request was rejected before calling Meta)
@@ -127,8 +127,8 @@ Starting from invoice finalization:
      ```json
      {
        "messaging_product": "whatsapp",
-       "contacts": [{ "input": "917502387733", "wa_id": "917502387733" }],
-       "messages": [{ "id": "wamid.HBgMOTE3NTAyMzg3NzMzFQIAERgSRjQ1NjEwNzE1OUVBNTA3..." }]
+       "contacts": [{ "input": "919876543210", "wa_id": "919876543210" }],
+       "messages": [{ "id": "wamid.HBgLMTIzNDU2Nzg5MDEyFQIAERgSRjQ1NjEwNzE1OUVBNTA3..." }]
      }
      ```
    * **Database:** `WhatsAppMessages` record updated to `Status = Sent`, `MetaMessageId` saved, `SentAtUtc` populated.
@@ -145,7 +145,7 @@ Starting from invoice finalization:
 | **Configured Template** | `e6_carspa_invoice_generated` | `e6_carspa_invoice_generated` |
 | **Template Language** | `en` | `en` |
 | **Template Category** | `UTILITY` | `UTILITY` |
-| **Recipient Phone** | `917502387733` | `917502387733` |
+| **Recipient Phone** | `919876543210` | `919876543210` |
 | **Expected Parameters** | 4 variables: Customer, Inv #, Vehicle, Total | 4 variables: Customer, Inv #, Vehicle, Total |
 | **Validation Branch** | **Lines 887–971 (`WhatsAppService.cs`)** | **Lines 974–1231 (`WhatsAppService.cs`)** |
 | **Header Check** | **Requires `HEADER: DOCUMENT` (Fails)** | Allows `HEADER: null` (Passes) |

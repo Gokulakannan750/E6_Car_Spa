@@ -7,6 +7,7 @@ using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Configuration;
 using JCard = CarSpaManagement.Api.Domain.Entities.JobCard;
 using JCardSvc = CarSpaManagement.Api.Domain.Entities.JobCardService;
 
@@ -16,11 +17,13 @@ public class JobCardService : IJobCardService
 {
 	private readonly AppDbContext _db;
 	private readonly IAuditLogService _auditLogService;
+	private readonly IConfiguration? _configuration;
 
-	public JobCardService(AppDbContext db, IAuditLogService auditLogService)
+	public JobCardService(AppDbContext db, IAuditLogService auditLogService, IConfiguration? configuration = null)
 	{
 		_db = db;
 		_auditLogService = auditLogService;
+		_configuration = configuration;
 	}
 
 	public async Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -536,11 +539,13 @@ public class JobCardService : IJobCardService
 	private async Task<string> GenerateJobCardNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;
+		var configuredPrefix = _configuration?["JobCard:Prefix"]?.Trim();
+		var prefix = !string.IsNullOrWhiteSpace(configuredPrefix) ? configuredPrefix : "JC";
 
 		if (!_db.Database.IsRelational())
 		{
 			var count = await _db.JobCards.CountAsync(cancellationToken) + 1;
-			return $"JC-{currentYear}-{count:D6}";
+			return $"{prefix}-{currentYear}-{count:D6}";
 		}
 
 		var conn = _db.Database.GetDbConnection();
@@ -573,7 +578,7 @@ public class JobCardService : IJobCardService
 					nextNumber = Convert.ToInt64(result);
 				}
 
-				var candidate = string.Concat("JC-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 				var exists = await _db.JobCards.AnyAsync(j => j.JobCardNumber == candidate, cancellationToken);
 				if (!exists)
 				{

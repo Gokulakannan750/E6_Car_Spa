@@ -11,17 +11,17 @@
 This read-only audit traces the end-to-end WhatsApp notification lifecycle for invoice finalization in E6 Car Spa. 
 
 ### Key Findings:
-1. **Connectivity & Live Meta API Health:** Meta Cloud Graph API (`v25.0`), WABA ID (`1046927407924057`), Phone Number ID (`1263387163523264`), and Access Token authentication are **100% verified, healthy, and operational**.
+1. **Connectivity & Live Meta API Health:** Meta Cloud Graph API (`v25.0`), WABA ID (`YOUR_WABA_ID`), Phone Number ID (`YOUR_PHONE_NUMBER_ID`), and Access Token authentication are **100% verified, healthy, and operational**.
 2. **Intended Template:** The official Meta-approved invoice template for E6 Car Spa is **`e6_carspa_invoice_pdf`** (Language: `en`, Category: `UTILITY`, Header: `DOCUMENT`, Body: 4 variables).
 3. **The Root Cause:** A **configuration mismatch** in `WhatsAppConfigurations`. The database was previously set to look for `e6_carspa_invoice_generated` (which either did not exist in the live WABA or lacked a `DOCUMENT` header), causing `WhatsAppService.ProcessMessageAsync()` to fail locally with validation errors before making any Meta API request.
-4. **Verified Live Execution:** When configured with the correct approved template (`e6_carspa_invoice_pdf`), the entire invoice dispatch pipeline executes flawlessly: QuestPDF generates the PDF in memory, Meta Media API uploads the document (`media_id: 1093648800074009`), Meta Graph API accepts the template message (`HTTP 200 OK`), and the message status transitions to `Sent` with provider ID `wamid.HBgMOTE3NTAyMzg3NzMz...`.
+4. **Verified Live Execution:** When configured with the correct approved template (`e6_carspa_invoice_pdf`), the entire invoice dispatch pipeline executes flawlessly: QuestPDF generates the PDF in memory, Meta Media API uploads the document (`media_id: MEDIA_ID`), Meta Graph API accepts the template message (`HTTP 200 OK`), and the message status transitions to `Sent` with provider ID `wamid.HBgLMTIzNDU2Nzg5MDEy...`.
 
 ---
 
 ## 2. Verified Facts
 
 * **Meta API Connectivity:** Fully functional. Both media upload and template message dispatch endpoints return `HTTP 200 OK`.
-* **Approved Live Templates on Meta WABA (`1046927407924057`):**
+* **Approved Live Templates on Meta WABA (`YOUR_WABA_ID`):**
   * `e6_carspa_invoice_pdf` — Status: `APPROVED`, Language: `en`, Header: `DOCUMENT`, Body: 4 variables.
   * `e6_car_spa_app` — Status: `APPROVED`, Language: `en`, Header: `None`, Body: 3 variables.
 * **Template Non-Existence:** `e6_carspa_invoice_generated` does **not** exist in the live Meta Business Account.
@@ -89,8 +89,8 @@ Direct query from `WhatsAppConfigurations` (`SingletonKey = 1`):
 | Column | Value | Status |
 | :--- | :--- | :--- |
 | **`IsEnabled`** | `True` | Correct |
-| **`PhoneNumberId`** | `1263387163523264` | Live & Verified |
-| **`BusinessAccountId`** | `1046927407924057` | Live & Verified |
+| **`PhoneNumberId`** | `YOUR_PHONE_NUMBER_ID` | Live & Verified |
+| **`BusinessAccountId`** | `YOUR_WABA_ID` | Live & Verified |
 | **`GraphApiVersion`** | `v25.0` | Valid |
 | **`AccessTokenEncrypted`** | `[AES-256 Encrypted, 424 bytes]` | Valid & Decryptable |
 | **`InvoiceNotificationsEnabled`** | `True` | Correct |
@@ -188,7 +188,7 @@ The `DOCUMENT` header requirement is **100% correct** for `e6_carspa_invoice_pdf
 
 ## 9. Meta Template Registry Verification
 
-Live query of Meta Business Account (`1046927407924057`) via Graph API:
+Live query of Meta Business Account (`YOUR_WABA_ID`) via Graph API:
 
 ### Template 1: `e6_carspa_invoice_pdf` (Target Invoice Template)
 ```json
