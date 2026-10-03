@@ -295,6 +295,20 @@ public class ApiSecurityHttpTests : IClassFixture<ApiTestHost>
         }
     }
 
+    // ── P0-8: seed data ─────────────────────────────────────────────────────
+
+    [PostgresFact]
+    public async Task NonDevelopmentStartup_SeedsBootstrapData_ButNoDemoVendors()
+    {
+        using var scope = _api.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        Assert.Empty(await db.Vendors.IgnoreQueryFilters().ToListAsync());
+        Assert.True(await db.Permissions.AnyAsync(p => p.Code == "staff.view_sensitive"));
+        Assert.True(await db.ShowroomVehicleTypes.AnyAsync());
+        Assert.True(await db.SystemPreferences.AnyAsync());
+    }
+
     [PostgresFact]
     public async Task AadhaarNumberReveal_WithOnlyStaffView_Returns403()
     {

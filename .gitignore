@@ -46,6 +46,8 @@ __pycache__/
 backups/
 *.zip
 *.sql
+# Versioned database administration scripts (not dumps)
+!scripts/db/*.sql
 *.dump
 *.backup
 *.dump.*
