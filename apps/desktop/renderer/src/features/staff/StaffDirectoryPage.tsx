@@ -73,7 +73,7 @@ export function StaffDirectoryPage() {
 	const { hasPermission } = useAuth();
 
 	const canManageStaff = hasPermission('staff.create') || hasPermission('staff.edit');
-	const canViewSensitive = hasPermission('staff.view_sensitive') || hasPermission('staff.view');
+	const canViewSensitive = hasPermission('staff.view_sensitive');
 
 	// ── Staff Directory State ────────────────────────────────────────────────
 	const [staffSearch, setStaffSearch] = useState('');
@@ -779,15 +779,17 @@ export function StaffDirectoryPage() {
 										</span>
 									</div>
 									<div className="flex items-center gap-1 shrink-0">
-										<button
-											type="button"
-											onClick={() => handleDownloadDocument(viewingDetailsStaff.id)}
-											disabled={isDownloadingDoc}
-											className="px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer flex items-center gap-1"
-										>
-											<Download className="w-3.5 h-3.5" />
-											Download
-										</button>
+										{canViewSensitive && (
+											<button
+												type="button"
+												onClick={() => handleDownloadDocument(viewingDetailsStaff.id)}
+												disabled={isDownloadingDoc}
+												className="px-2 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer flex items-center gap-1"
+											>
+												<Download className="w-3.5 h-3.5" />
+												Download
+											</button>
+										)}
 										{canManageStaff && (
 											<button
 												type="button"
