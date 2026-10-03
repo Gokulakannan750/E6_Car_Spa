@@ -2,13 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
 	createOutsideJobsWorkbook,
 	ROW_HEIGHTS,
-	ARGB,
-	NUM_FORMATS,
 } from './excelOutsideJobsGenerator';
 import type { OutsideJobsReportDto } from '../../lib/api';
 import ExcelJS from 'exceljs';
-import * as fs from 'fs';
-import * as path from 'path';
 
 describe('Sample Outside Jobs Excel Verification (ExcelJS)', () => {
 	it('generates a real 4-sheet Excel file and verifies professional formatting integrity', async () => {
