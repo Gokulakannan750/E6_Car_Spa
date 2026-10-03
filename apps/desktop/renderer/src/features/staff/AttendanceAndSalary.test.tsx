@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, onTestFinished, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { AttendancePage } from './AttendancePage';
@@ -1486,6 +1486,14 @@ describe('Staff Attendance & Salary', () => {
 		});
 
 		it('16. [TEST 1 & 2] Changing period from 30 Sep to 22 Sep maintains entered salary ₹20,000 and recalculates advance and net payout', async () => {
+			// These scenarios were written for September 2026 and depend on the page's default period
+			// (current month). Pin only Date so React Query / waitFor timers keep running normally.
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 8, 30, 10, 0, 0));
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+
 			const sept30Response: api.StaffSalaryRosterResponse = {
 				...sampleRosterResponse,
 				periodFrom: '2026-09-01',
@@ -1566,6 +1574,14 @@ describe('Staff Attendance & Salary', () => {
 		});
 
 		it('17. [TEST 3] In Enter Salary modal: Changing modal dates preserves typed salary ₹20,000 and updates live calculation', async () => {
+			// These scenarios were written for September 2026 and depend on the page's default period
+			// (current month). Pin only Date so React Query / waitFor timers keep running normally.
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 8, 30, 10, 0, 0));
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+
 			vi.mocked(api.getStaffSalaryRoster).mockResolvedValue(sampleRosterResponse);
 			vi.mocked(api.getStaffSalaryPreview).mockResolvedValue({
 				staffId: 'staff-2',
