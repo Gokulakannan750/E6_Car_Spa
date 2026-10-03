@@ -58,6 +58,15 @@ class InvoiceApi {
     return Invoice.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Owner only: replace the number of a fully paid GST invoice.
+  Future<Invoice> updateInvoiceNumber(String id, String invoiceNumber) async {
+    final response = await _dio.put(
+      '/invoices/$id/invoice-number',
+      data: {'invoiceNumber': invoiceNumber},
+    );
+    return Invoice.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<Invoice> generateInvoice(String id) async {
     final response = await _dio.post('/invoices/$id/generate');
     return Invoice.fromJson(response.data as Map<String, dynamic>);

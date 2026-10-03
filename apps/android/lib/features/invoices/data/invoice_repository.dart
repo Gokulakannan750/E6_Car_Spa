@@ -75,6 +75,14 @@ class InvoiceRepository {
     }
   }
 
+  Future<Invoice> updateInvoiceNumber(String id, String invoiceNumber) async {
+    try {
+      return await _api.updateInvoiceNumber(id, invoiceNumber);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<Invoice> generateInvoice(String id) async {
     try {
       return await _api.generateInvoice(id);

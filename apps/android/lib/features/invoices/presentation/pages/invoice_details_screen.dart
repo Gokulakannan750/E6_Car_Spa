@@ -9,7 +9,10 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../models/invoice_model.dart';
 import '../../providers/invoice_providers.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/providers/auth_state.dart';
 import '../widgets/edit_draft_bottom_sheet.dart';
+import '../widgets/edit_invoice_number_dialog.dart';
 import '../widgets/invoice_print_preview_dialog.dart';
 import '../widgets/record_payment_bottom_sheet.dart';
 
@@ -50,6 +53,18 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     final notifier = ref.read(
       invoiceDetailsProvider(widget.invoiceId).notifier,
     );
+
+    // Owner may replace the number of a fully paid GST invoice (enforced again by the API).
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState is Authenticated ? authState.user : null;
+    final isOwner =
+        user != null && (user.isOwner || user.role.toLowerCase() == 'owner');
+    final invoiceForEdit = state.invoice;
+    final canEditInvoiceNumber = isOwner &&
+        invoiceForEdit != null &&
+        invoiceForEdit.isGstEnabled &&
+        invoiceForEdit.status == InvoiceStatus.paid &&
+        (invoiceForEdit.invoiceNumber?.trim().isNotEmpty ?? false);
 
     // Listen for feedback messages
     ref.listen<InvoiceDetailsState>(invoiceDetailsProvider(widget.invoiceId), (
@@ -96,6 +111,20 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         ),
         actions: [
           if (state.invoice != null) ...[
+            if (canEditInvoiceNumber)
+              IconButton(
+                key: const Key('edit_invoice_number_button'),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                tooltip: 'Edit invoice number',
+                onPressed: () => EditInvoiceNumberDialog.show(
+                  context,
+                  currentNumber: state.invoice!.invoiceNumber!,
+                  onSave: notifier.updateInvoiceNumber,
+                ),
+              ),
             IconButton(
               key: const Key('print_invoice_appbar_button'),
               icon: const Icon(

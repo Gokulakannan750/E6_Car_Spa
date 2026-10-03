@@ -397,6 +397,30 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     }
   }
 
+  /// Owner only: replace the number of a fully paid GST invoice.
+  /// Returns null on success, otherwise the error message to show in the dialog.
+  Future<String?> updateInvoiceNumber(String invoiceNumber) async {
+    if (!mounted) return 'Screen is no longer active.';
+    try {
+      final updated = await _repository.updateInvoiceNumber(
+        _invoiceId,
+        invoiceNumber.trim(),
+      );
+      if (!mounted) return null;
+      state = state.copyWith(
+        invoice: updated,
+        actionSuccessMessage: 'Invoice number changed to ${updated.invoiceNumber}.',
+        clearError: true,
+      );
+      _ref.read(invoiceListProvider.notifier).loadInvoices();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Failed to change the invoice number.';
+    }
+  }
+
   Future<Invoice?> generateInvoice() async {
     if (!mounted) return null;
     state = state.copyWith(
