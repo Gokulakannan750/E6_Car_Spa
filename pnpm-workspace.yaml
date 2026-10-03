@@ -1,5 +1,7 @@
 packages:
   - 'apps/*'
+  # Renderer is a separate package (own scripts/deps) nested inside the desktop app.
+  - 'apps/desktop/renderer'
 allowBuilds:
   electron: true
   esbuild: true
