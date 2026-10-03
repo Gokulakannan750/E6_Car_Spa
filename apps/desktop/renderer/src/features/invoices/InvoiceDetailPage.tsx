@@ -23,6 +23,7 @@ import {
 	Building2,
 	Download,
 	X,
+	Pencil,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -42,6 +43,7 @@ import {
 } from '../../lib/api';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
+import { EditInvoiceNumberDialog } from './EditInvoiceNumberDialog';
 import { useAuth } from '../auth/auth-context';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
@@ -112,7 +114,7 @@ export function InvoiceDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const { hasPermission } = useAuth();
+	const { hasPermission, isOwner } = useAuth();
 
 	const canDiscount = hasPermission('invoices.discount');
 	const canRecordPayment = hasPermission('payments.record');
@@ -123,6 +125,7 @@ export function InvoiceDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
+	const [showEditNumber, setShowEditNumber] = useState(false);
 	const [showShareModal, setShowShareModal] = useState(false);
 	const [whatsAppStatuses, setWhatsAppStatuses] = useState<InvoiceWhatsAppStatusDto[]>([]);
 
@@ -278,6 +281,8 @@ export function InvoiceDetailPage() {
 
 	const isCancelled = normalizedStatus === 'Cancelled';
 	const isFinalized = !isDraft && !isCancelled;
+	// Owner may replace the number of a fully paid GST invoice (enforced again by the API).
+	const canEditInvoiceNumber = Boolean(isOwner && invoice?.isGstEnabled && invoice?.invoiceNumber && normalizedStatus === 'Paid');
 	const isPaid = normalizedStatus === 'Paid' || (invoice?.paidAmount != null && invoice?.totalAmount != null && invoice.paidAmount >= invoice.totalAmount && invoice.totalAmount > 0);
 
 	const latestWhatsAppStatuses = useMemo(() => {
@@ -663,6 +668,17 @@ export function InvoiceDetailPage() {
 									<h1 className="text-2xl font-bold font-mono text-on-surface tracking-tight">
 										#{invoice.invoiceNumber}
 									</h1>
+								)}
+								{canEditInvoiceNumber && (
+									<button
+										type="button"
+										onClick={() => setShowEditNumber(true)}
+										className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+										aria-label="Edit invoice number"
+										title="Edit invoice number"
+									>
+										<Pencil className="w-4 h-4" />
+									</button>
 								)}
 								<StatusBadge status={isDraft ? 'draft' : getInvoiceStatusSlug(invoice.status, calculations)} />
 							</div>
@@ -1451,6 +1467,20 @@ export function InvoiceDetailPage() {
 					</p>
 				</div>
 			</Dialog>
+
+			{canEditInvoiceNumber && invoice.invoiceNumber && (
+				<EditInvoiceNumberDialog
+					open={showEditNumber}
+					invoiceId={invoice.id}
+					currentNumber={invoice.invoiceNumber}
+					onOpenChange={setShowEditNumber}
+					onUpdated={(updated) => {
+						setInvoice(updated);
+						queryClient.invalidateQueries({ queryKey: ['invoices'] });
+						queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+					}}
+				/>
+			)}
 
 			{/* ── Cancel Bill Confirmation Dialog ─────────────────────────────── */}
 			<Dialog

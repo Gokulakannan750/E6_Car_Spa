@@ -1190,6 +1190,14 @@ export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
   }, 'edit invoices');
 }
 
+/** Owner only: replace the number of a fully paid GST invoice with a number of the Owner's choosing. */
+export async function updateInvoiceNumber(id: string, invoiceNumber: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/invoice-number`, {
+    method: 'PUT',
+    body: JSON.stringify({ invoiceNumber }),
+  }, 'change invoice numbers');
+}
+
 export async function generateInvoice(id: string) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
     method: 'POST',
