@@ -16,8 +16,8 @@ vi.mock('../../lib/api', async (importOriginal) => {
 	};
 });
 
-const owner = { id: 'usr-owner', fullName: 'Owner', username: 'owner', role: 'Owner', isOwner: true, permissions: [] };
-const manager = {
+const owner: api.AuthUserResponse = { id: 'usr-owner', fullName: 'Owner', username: 'owner', role: 'Owner', isOwner: true, permissions: [] };
+const manager: api.AuthUserResponse = {
 	id: 'usr-mgr',
 	fullName: 'Manager',
 	username: 'manager',
@@ -59,7 +59,7 @@ const paidGstInvoice: api.InvoiceDto = {
 	payments: [],
 } as unknown as api.InvoiceDto;
 
-function renderPage(invoice: api.InvoiceDto, authUser: typeof owner | typeof manager) {
+function renderPage(invoice: api.InvoiceDto, authUser: api.AuthUserResponse) {
 	vi.mocked(api.getInvoiceById).mockResolvedValue(invoice);
 	return renderWithProviders(
 		<Routes>
