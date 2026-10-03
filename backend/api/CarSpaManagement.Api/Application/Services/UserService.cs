@@ -50,6 +50,7 @@ public class UserService(
         }
 
         // 2. Hierarchy validation: Only Owner may assign permissions or create Manager accounts
+        isOwner = isOwner && await IsActiveOwnerAsync(currentUserId, cancellationToken);
         if (!isOwner)
         {
             if (role == UserRole.Manager)
@@ -141,10 +142,22 @@ public class UserService(
             throw new NotFoundException($"User with ID '{id}' was not found.");
         }
 
+        // Owner rights come from the caller's current database record, never from token claims alone.
+        isOwner = isOwner && await IsActiveOwnerAsync(currentUserId, cancellationToken);
+
         // P0-2: Protect Owner Account from Non-Owners
         if (user.Role == UserRole.Owner && !isOwner)
         {
+            await RecordDeniedAsync(user, currentUserId, "modify an Owner account", cancellationToken);
             throw new ForbiddenException("Only an Owner can modify an Owner account.");
+        }
+
+        // Account takeover protection: non-owners may only manage Staff accounts (matching the rule that only
+        // an Owner can create Manager accounts) or their own profile. This covers password resets.
+        if (!isOwner && user.Id != currentUserId && user.Role != UserRole.Staff)
+        {
+            await RecordDeniedAsync(user, currentUserId, "modify another Manager account", cancellationToken);
+            throw new ForbiddenException("Only an Owner can modify another Manager's account.");
         }
 
         // P0-1: Non-Owner cannot change any user's role or permissions (including self)
@@ -203,6 +216,7 @@ public class UserService(
         }
 
         // Password update
+        var passwordChanged = false;
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             var (isValid, errorMessage) = PasswordPolicyValidator.Validate(request.Password, request.ConfirmPassword, user.Username);
@@ -212,6 +226,7 @@ public class UserService(
             }
 
             user.PasswordHash = passwordHasher.HashPassword(user, request.Password);
+            passwordChanged = true;
             Log.Information("Password updated for user '{Username}'", user.Username);
         }
 
@@ -272,6 +287,21 @@ public class UserService(
                 cancellationToken: cancellationToken);
         }
 
+        if (passwordChanged)
+        {
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.PasswordReset,
+                module: Domain.Constants.AuditModules.Users,
+                description: user.Id == currentUserId
+                    ? $"User '{user.Username}' changed their own password."
+                    : $"Password reset for user '{user.Username}' by another user.",
+                entityType: "User",
+                entityId: user.Id,
+                entityReference: user.Username,
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
+
         Log.Information("User '{Username}' updated successfully", user.Username);
 
         return await GetUserByIdAsync(user.Id, cancellationToken);
@@ -291,6 +321,12 @@ public class UserService(
         if (user.Role == UserRole.Owner)
         {
             throw new ValidationException("Owner account cannot be deactivated.");
+        }
+
+        if (user.Role != UserRole.Staff && !await IsActiveOwnerAsync(currentUserId, cancellationToken))
+        {
+            await RecordDeniedAsync(user, currentUserId, "activate or deactivate a Manager account", cancellationToken);
+            throw new ForbiddenException("Only an Owner can activate or deactivate Manager accounts.");
         }
 
         if (user.Id == currentUserId)
@@ -344,6 +380,21 @@ public class UserService(
 
         return groups;
     }
+
+    private async Task<bool> IsActiveOwnerAsync(Guid userId, CancellationToken cancellationToken) =>
+        await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive && u.Role == UserRole.Owner, cancellationToken);
+
+    private Task RecordDeniedAsync(User target, Guid currentUserId, string attemptedAction, CancellationToken cancellationToken) =>
+        auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.UserManagementDenied,
+            module: Domain.Constants.AuditModules.Users,
+            description: $"Denied attempt to {attemptedAction} ('{target.Username}', role {target.Role}).",
+            userId: currentUserId == Guid.Empty ? null : currentUserId,
+            entityType: "User",
+            entityId: target.Id,
+            entityReference: target.Username,
+            outcome: "Denied",
+            cancellationToken: cancellationToken);
 
     private static UserDto MapToUserDto(User user)
     {
