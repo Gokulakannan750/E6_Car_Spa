@@ -584,6 +584,80 @@ public class InvoiceService : IInvoiceService
 	}
 
 
+	/// <summary>
+	/// Lets the Owner replace the automatically generated number of a fully paid GST invoice with a number
+	/// of their choosing. The number sequence is not touched: the generator already skips numbers in use.
+	/// </summary>
+	public async Task<InvoiceDto> UpdateInvoiceNumberAsync(Guid id, UpdateInvoiceNumberRequest request, CancellationToken cancellationToken = default)
+	{
+		var currentUserId = GetCurrentUserId();
+		var isOwner = currentUserId.HasValue && await _db.Users.AsNoTracking()
+			.AnyAsync(u => u.Id == currentUserId.Value && u.IsActive && u.Role == UserRole.Owner, cancellationToken);
+		if (!isOwner)
+			throw new ForbiddenException("Only the Owner can change an invoice number.");
+
+		var newNumber = InvoiceNumberRules.Normalize(request.InvoiceNumber);
+
+		var invoice = await _db.Invoices
+			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
+			.Include(i => i.JobCard)
+			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
+			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
+			?? throw new KeyNotFoundException("Invoice not found.");
+
+		if (!invoice.IsGstEnabled)
+			throw new InvalidOperationException("Only GST invoices can have their invoice number changed.");
+
+		if (invoice.Status != InvoiceStatus.Paid || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+			throw new InvalidOperationException("The invoice number can only be changed after the invoice is fully paid.");
+
+		var oldNumber = invoice.InvoiceNumber;
+		if (string.Equals(oldNumber, newNumber, StringComparison.Ordinal))
+			return ToDto(invoice);
+
+		// A queued WhatsApp message would otherwise be sent with the old number in its text and the new one on its PDF.
+		var hasPendingWhatsApp = await _db.WhatsAppMessages.AnyAsync(
+			m => m.InvoiceId == invoice.Id && (m.Status == WhatsAppMessageStatus.Pending || m.Status == WhatsAppMessageStatus.Processing),
+			cancellationToken);
+		if (hasPendingWhatsApp)
+			throw new InvalidOperationException("A WhatsApp message for this invoice is still being sent. Try again in a moment.");
+
+		var upperNumber = newNumber.ToUpperInvariant();
+		var inUse = await _db.Invoices.IgnoreQueryFilters().AnyAsync(
+			i => i.Id != invoice.Id && i.InvoiceNumber != null && i.InvoiceNumber.ToUpper() == upperNumber,
+			cancellationToken);
+		if (inUse)
+			throw new ConflictException($"Invoice number '{newNumber}' is already used by another invoice.");
+
+		invoice.InvoiceNumber = newNumber;
+		invoice.UpdatedAt = DateTime.UtcNow;
+
+		try
+		{
+			await _db.SaveChangesAsync(cancellationToken);
+		}
+		catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+		{
+			throw new ConflictException($"Invoice number '{newNumber}' is already used by another invoice.");
+		}
+
+		await _auditLogService.RecordAsync(
+			action: Domain.Constants.AuditActions.InvoiceNumberChanged,
+			module: Domain.Constants.AuditModules.Invoices,
+			description: $"Invoice number changed from '{oldNumber}' to '{newNumber}'.",
+			entityType: "Invoice",
+			entityId: invoice.Id,
+			entityReference: newNumber,
+			oldValues: JsonSerializer.Serialize(new { invoiceNumber = oldNumber }),
+			newValues: JsonSerializer.Serialize(new { invoiceNumber = newNumber }),
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return ToDto(invoice);
+	}
+
 	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;

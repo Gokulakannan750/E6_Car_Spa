@@ -13,3 +13,6 @@ public record UpdateInvoiceRequest(
 
 public record CancelInvoiceRequest(
  string? Reason = null);
+
+public record UpdateInvoiceNumberRequest(
+ string InvoiceNumber);

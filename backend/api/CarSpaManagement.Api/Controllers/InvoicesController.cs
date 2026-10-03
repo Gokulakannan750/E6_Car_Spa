@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
@@ -164,6 +165,38 @@ public class InvoicesController : ControllerBase
 		catch (DbUpdateException ex)
 		{
 			return StatusCode(500, new { error = "Database error", detail = _environment.IsDevelopment() ? ex.InnerException?.Message ?? ex.Message : null });
+		}
+	}
+
+	/// <summary>Owner only: replace the number of a fully paid GST invoice with a number of their choosing.</summary>
+	[HttpPut("{id:guid}/invoice-number")]
+	[Authorize]
+	public async Task<IActionResult> UpdateInvoiceNumber(Guid id, [FromBody] UpdateInvoiceNumberRequest request, CancellationToken ct)
+	{
+		try
+		{
+			var dto = await _service.UpdateInvoiceNumberAsync(id, request, ct);
+			return Ok(dto);
+		}
+		catch (ForbiddenException ex)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (ConflictException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+		catch (ArgumentException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return BadRequest(new { error = ex.Message });
 		}
 	}
 

@@ -46,6 +46,7 @@ public class FinalHardeningSecurityTests
         public Task<InvoiceDto?> UpdateAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default) => Task.FromResult<InvoiceDto?>(null);
         public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<InvoiceDto> CancelInvoiceAsync(Guid id, string? reason = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<InvoiceDto> UpdateInvoiceNumberAsync(Guid id, UpdateInvoiceNumberRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<IReadOnlyList<PaymentDto>> GetPaymentsByInvoiceIdAsync(Guid invoiceId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PaymentDto>>(Array.Empty<PaymentDto>());
         public Task<InvoicePublicLinkResponse> CreatePublicLinkAsync(Guid invoiceId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
