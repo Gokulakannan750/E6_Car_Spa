@@ -646,22 +646,6 @@ public class InvoiceService : IInvoiceService
 		if (request.Amount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(request.Amount), "Payment amount must be greater than ₹0.");
 
-		var invoice = await _db.Invoices
-			.Include(i => i.Payments)
-			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
-
-		if (invoice is null)
-			throw new KeyNotFoundException("Invoice not found.");
-
-		if (invoice.Status == InvoiceStatus.Cancelled)
-			throw new InvalidOperationException("This invoice has been cancelled and cannot receive payments.");
-
-		if (invoice.Status == InvoiceStatus.Draft || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
-			throw new InvalidOperationException("Cannot record payment on a Draft invoice. Finalize the invoice first.");
-
-		if (request.Amount > invoice.BalanceAmount)
-			throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{invoice.BalanceAmount:N2}.");
-
 		var cleanMethod = (request.PaymentMethod ?? "").Trim().Replace(" ", "").Replace("_", "");
 		if (!Enum.TryParse<PaymentMethod>(cleanMethod, true, out var paymentMethod))
 		{
@@ -675,36 +659,58 @@ public class InvoiceService : IInvoiceService
 			}
 		}
 
-		var payment = new Payment
-		{
-			Id = Guid.NewGuid(),
-			InvoiceId = invoice.Id,
-			Amount = Math.Round(request.Amount, 2),
-			PaymentMethod = paymentMethod,
-			Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
-			PaymentDate = request.PaymentDate.HasValue
-				? (request.PaymentDate.Value.Kind == DateTimeKind.Unspecified
-					? DateTime.SpecifyKind(request.PaymentDate.Value, DateTimeKind.Utc)
-					: request.PaymentDate.Value.ToUniversalTime())
-				: DateTime.UtcNow,
-			CreatedAt = DateTime.UtcNow,
-			IsDeleted = false
-		};
-
-		var previousStatus = invoice.Status;
+		var amount = Math.Round(request.Amount, 2);
+		Payment payment;
+		Invoice invoice;
+		InvoiceStatus previousStatus;
 
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 		try
 		{
-			_db.Payments.Add(payment);
-			await _db.SaveChangesAsync(cancellationToken);
+			// Serialize concurrent payments for the same invoice: the row lock is held until commit,
+			// so a second request waits here and then sees the first payment before validating.
+			await LockInvoiceRowAsync(invoiceId, cancellationToken);
 
-			// Recalculate totals from all valid payments
-			var totalPaid = await _db.Payments
+			invoice = await _db.Invoices
+				.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken)
+				?? throw new KeyNotFoundException("Invoice not found.");
+
+			if (invoice.Status == InvoiceStatus.Cancelled)
+				throw new InvalidOperationException("This invoice has been cancelled and cannot receive payments.");
+
+			if (invoice.Status == InvoiceStatus.Draft || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+				throw new InvalidOperationException("Cannot record payment on a Draft invoice. Finalize the invoice first.");
+
+			// Recalculate the balance from committed payments while holding the lock (never trust a stale header value).
+			var paidSoFar = await _db.Payments
 				.Where(p => p.InvoiceId == invoice.Id && !p.IsDeleted)
 				.SumAsync(p => p.Amount, cancellationToken);
+			var currentBalance = Math.Max(0m, invoice.TotalAmount - Math.Round(paidSoFar, 2));
 
-			invoice.PaidAmount = Math.Round(totalPaid, 2);
+			if (amount > currentBalance)
+				throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{currentBalance:N2}.");
+
+			payment = new Payment
+			{
+				Id = Guid.NewGuid(),
+				InvoiceId = invoice.Id,
+				Amount = amount,
+				PaymentMethod = paymentMethod,
+				Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
+				PaymentDate = request.PaymentDate.HasValue
+					? (request.PaymentDate.Value.Kind == DateTimeKind.Unspecified
+						? DateTime.SpecifyKind(request.PaymentDate.Value, DateTimeKind.Utc)
+						: request.PaymentDate.Value.ToUniversalTime())
+					: DateTime.UtcNow,
+				CreatedAt = DateTime.UtcNow,
+				IsDeleted = false
+			};
+
+			previousStatus = invoice.Status;
+
+			_db.Payments.Add(payment);
+
+			invoice.PaidAmount = Math.Round(paidSoFar + amount, 2);
 			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
 
 			// Automatic Status calculation
@@ -784,6 +790,17 @@ public class InvoiceService : IInvoiceService
 			payment.Reference,
 			payment.PaymentDate,
 			payment.CreatedAt);
+	}
+
+	/// <summary>
+	/// Takes a PostgreSQL row lock (SELECT ... FOR UPDATE) on the invoice for the current transaction.
+	/// Non-relational providers (unit tests on EF InMemory) have no row locks, so this is a no-op there.
+	/// </summary>
+	private async Task LockInvoiceRowAsync(Guid invoiceId, CancellationToken cancellationToken)
+	{
+		if (!_db.Database.IsRelational()) return;
+		await _db.Database.ExecuteSqlInterpolatedAsync(
+			$"SELECT 1 FROM \"Invoices\" WHERE \"Id\" = {invoiceId} FOR UPDATE", cancellationToken);
 	}
 
 	public async Task<IReadOnlyList<PaymentDto>> GetPaymentsByInvoiceIdAsync(Guid invoiceId, CancellationToken cancellationToken = default)
