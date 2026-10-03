@@ -312,17 +312,25 @@ public class JobCardService : IJobCardService
 
 		var lineEntities = new List<JCardSvc>();
 
-		foreach (var item in combined)
-		{
-			var svc = serviceMap[item.ServiceId];
-			var baseAmount = svc.Price * item.Quantity;
-			var effectiveTaxRate = request.IsGstEnabled ? svc.TaxPercentage : 0;
-			var lineTax = Math.Round(baseAmount * effectiveTaxRate / 100, 2);
-			var lineTotal = baseAmount + lineTax - item.DiscountAmount;
+		var calculation = InvoiceCalculator.Calculate(
+			combined.Select(item => new InvoiceCalculator.LineInput(
+				item.Quantity,
+				serviceMap[item.ServiceId].Price,
+				item.DiscountAmount,
+				request.IsGstEnabled ? serviceMap[item.ServiceId].TaxPercentage : 0m)).ToList(),
+			invoiceDiscount: 0m,
+			isGstEnabled: true);
 
-			subtotal += baseAmount;
-			taxAmount += lineTax;
-			discountAmount += item.DiscountAmount;
+		for (var index = 0; index < combined.Count; index++)
+		{
+			var item = combined[index];
+			var line = calculation.Lines[index];
+			var svc = serviceMap[item.ServiceId];
+			var effectiveTaxRate = request.IsGstEnabled ? svc.TaxPercentage : 0;
+
+			subtotal += line.Gross;
+			taxAmount += line.Tax;
+			discountAmount += line.LineDiscount;
 
 			lineEntities.Add(new JCardSvc
 			{
@@ -333,14 +341,14 @@ public class JobCardService : IJobCardService
 				Quantity = item.Quantity,
 				TaxPercentage = effectiveTaxRate,
 				DiscountAmount = item.DiscountAmount,
-				LineTotal = lineTotal,
+				LineTotal = line.Total,
 				CreatedAt = now,
 				UpdatedAt = now,
 				IsDeleted = false
 			});
 		}
 
-		var totalAmount = subtotal + taxAmount - discountAmount;
+		var totalAmount = calculation.Total;
 
 		var jobCard = new JCard
 		{
@@ -431,16 +439,25 @@ public class JobCardService : IJobCardService
 		var now = DateTime.UtcNow;
 		decimal subtotal = 0, taxAmount = 0, discountAmount = 0;
 
-		foreach (var item in combined)
-		{
-			var svc = serviceMap[item.ServiceId];
-			var baseAmount = svc.Price * item.Quantity;
-			var lineTax = Math.Round(baseAmount * svc.TaxPercentage / 100, 2);
-			var lineTotal = baseAmount + lineTax - item.DiscountAmount;
+		var calculation = InvoiceCalculator.Calculate(
+			combined.Select(item => new InvoiceCalculator.LineInput(
+				item.Quantity,
+				serviceMap[item.ServiceId].Price,
+				item.DiscountAmount,
+				serviceMap[item.ServiceId].TaxPercentage)).ToList(),
+			invoiceDiscount: 0m,
+			isGstEnabled: true);
 
-			subtotal += baseAmount;
-			taxAmount += lineTax;
-			discountAmount += item.DiscountAmount;
+		for (var index = 0; index < combined.Count; index++)
+		{
+			var item = combined[index];
+			var line = calculation.Lines[index];
+			var svc = serviceMap[item.ServiceId];
+			var lineTotal = line.Total;
+
+			subtotal += line.Gross;
+			taxAmount += line.Tax;
+			discountAmount += line.LineDiscount;
 
 			var newLine = new JCardSvc
 			{
@@ -463,7 +480,7 @@ public class JobCardService : IJobCardService
 		jobCard.Subtotal = subtotal;
 		jobCard.TaxAmount = taxAmount;
 		jobCard.DiscountAmount = discountAmount;
-		jobCard.TotalAmount = subtotal + taxAmount - discountAmount;
+		jobCard.TotalAmount = calculation.Total;
 		jobCard.Notes = request.Notes;
 		jobCard.UpdatedAt = now;
 
