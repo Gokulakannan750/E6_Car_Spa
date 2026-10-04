@@ -3,13 +3,11 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 
 class InvoiceConfigCard extends StatelessWidget {
-  final TextEditingController prefixController;
   final TextEditingController termsController;
   final bool isEnabled;
 
   const InvoiceConfigCard({
     super.key,
-    required this.prefixController,
     required this.termsController,
     required this.isEnabled,
   });
@@ -52,23 +50,7 @@ class InvoiceConfigCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          AppTextField(
-            controller: prefixController,
-            label: 'Invoice Prefix',
-            hintText: 'e.g. INV',
-            isRequired: false,
-            isEnabled: isEnabled,
-            textCapitalization: TextCapitalization.characters,
-            prefixIcon: const Icon(Icons.tag_outlined, size: 20),
-            helperText: 'Default: INV (Generated numbers: INV-2026-000001)',
-            validator: (val) {
-              if (val != null && val.trim().length > 10) {
-                return 'Prefix cannot exceed 10 characters';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
+          // Invoice number prefixes moved to InvoiceSeriesCard (separate GST / non-GST series, Owner only).
           AppTextField(
             controller: termsController,
             label: 'Standard Terms & Conditions',

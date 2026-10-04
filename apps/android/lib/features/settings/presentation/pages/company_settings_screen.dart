@@ -20,6 +20,7 @@ import '../widgets/address_info_card.dart';
 import '../widgets/business_info_card.dart';
 import '../widgets/business_logo_card.dart';
 import '../widgets/invoice_config_card.dart';
+import '../widgets/invoice_series_card.dart';
 
 class CompanySettingsScreen extends ConsumerStatefulWidget {
   const CompanySettingsScreen({super.key});
@@ -41,7 +42,6 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
   late final TextEditingController _cityController;
   late final TextEditingController _stateController;
   late final TextEditingController _postalCodeController;
-  late final TextEditingController _prefixController;
   late final TextEditingController _termsController;
   late final ScrollController _scrollController;
 
@@ -59,7 +59,6 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
     _cityController = TextEditingController();
     _stateController = TextEditingController();
     _postalCodeController = TextEditingController();
-    _prefixController = TextEditingController();
     _termsController = TextEditingController();
     _scrollController = ScrollController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,7 +77,6 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
     _cityController.dispose();
     _stateController.dispose();
     _postalCodeController.dispose();
-    _prefixController.dispose();
     _termsController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -98,7 +96,6 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
     _cityController.text = profile.city;
     _stateController.text = profile.state;
     _postalCodeController.text = profile.postalCode;
-    _prefixController.text = profile.invoicePrefix;
     _termsController.text = profile.termsAndConditions ?? '';
   }
 
@@ -119,7 +116,6 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
       phone: _phoneController.text,
       email: _emailController.text,
       gstin: _gstinController.text,
-      invoicePrefix: _prefixController.text,
       termsAndConditions: _termsController.text,
     );
 
@@ -253,6 +249,7 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
                     successMsg: successMsg,
                     errorMsg: errorMsg,
                     canManage: canManage,
+                    isOwner: authUser.isOwner,
                   ),
               },
       ),
@@ -267,6 +264,7 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
     String? successMsg,
     String? errorMsg,
     required bool canManage,
+    required bool isOwner,
   }) {
     _populateControllers(profile);
 
@@ -453,9 +451,12 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 4. Invoice & Billing Config Card
+              // 4. Invoice numbering series (GST / non-GST). Prefixes: Owner only.
+              InvoiceSeriesCard(isOwner: isOwner),
+              const SizedBox(height: 16),
+
+              // 5. Invoice & Billing Config Card
               InvoiceConfigCard(
-                prefixController: _prefixController,
                 termsController: _termsController,
                 isEnabled: canManage && !isSaving,
               ),
