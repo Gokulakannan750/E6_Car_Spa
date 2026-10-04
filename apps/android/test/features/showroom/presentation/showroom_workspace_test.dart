@@ -289,7 +289,7 @@ void main() {
 
         // Operations workspace verification
         expect(find.text('Vehicles Handled'), findsOneWidget);
-        expect(find.text('Services Done'), findsOneWidget);
+        expect(find.text('Work Types Done'), findsOneWidget);
         expect(find.text('Daily Vehicle Work'), findsOneWidget);
 
         // Attendance FAB is replaced by Log Vehicle Work FAB

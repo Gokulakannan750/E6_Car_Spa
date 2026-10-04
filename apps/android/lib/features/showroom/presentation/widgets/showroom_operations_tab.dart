@@ -184,7 +184,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                   _buildMetricCard(
-                    title: 'Services Done',
+                    title: 'Work Types Done',
                     value: '${opsState.totalServicesPerformed}',
                     icon: Icons.build_circle_outlined,
                     color: AppColors.info,
@@ -283,7 +283,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            'Service Breakdown',
+                            'Work Type Breakdown',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary,
@@ -461,7 +461,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                       : 'No vehicle work recorded for $dateHeading',
                   message: hasActiveFilter
                       ? 'No vehicle work matches your selected filters. Try clearing filters.'
-                      : 'Tap "+ Log Vehicle Work" below to record services performed by staff on duty.',
+                      : 'Tap "+ Log Vehicle Work" below to record work performed by staff on duty.',
                   icon: hasActiveFilter
                       ? Icons.filter_alt_off_outlined
                       : Icons.directions_car_outlined,

@@ -349,6 +349,10 @@ void main() {
         expect(find.text('Assigned Staff *'), findsOneWidget);
         expect(find.text('Ramesh Kumar (#STF001) • Showroom Attendant'), findsOneWidget);
 
+        // Showroom work is labelled "Work Types", not catalogue "Services"
+        expect(find.text('Work Types *'), findsOneWidget);
+        expect(find.textContaining('Services'), findsNothing);
+
         // Select 'Other' work type
         await tester.tap(find.byKey(const Key('work_type_chip_0_wt-other')));
         await tester.pumpAndSettle();

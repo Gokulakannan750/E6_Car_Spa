@@ -280,6 +280,13 @@ void main() {
       expect(find.text('Body Wash'), findsOneWidget);
       expect(find.text('Other'), findsOneWidget);
       expect(find.byKey(const Key('add_showroom_config_fab')), findsOneWidget);
+      expect(find.text('Add Work Type'), findsOneWidget);
+      expect(find.text('Add Vehicle Type'), findsNothing);
+
+      // Switching back restores the vehicle-type label.
+      await tester.tap(find.text('Vehicle Types'));
+      await tester.pumpAndSettle();
+      expect(find.text('Add Vehicle Type'), findsOneWidget);
     });
   });
 }

@@ -462,7 +462,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Vehicles Handled'), findsOneWidget);
-        expect(find.text('Services Done'), findsOneWidget);
+        expect(find.text('Work Types Done'), findsOneWidget);
         expect(find.text('Active Sessions'), findsOneWidget);
         expect(find.text('Staff on Duty (1)'), findsOneWidget);
         // The provider initializes with DateTime.now() as selectedDate, so dateHeading uses today
@@ -518,7 +518,7 @@ void main() {
 
         expect(find.text('Vehicle Type Breakdown'), findsOneWidget);
         expect(find.text('Sedan: 3'), findsOneWidget);
-        expect(find.text('Service Breakdown'), findsOneWidget);
+        expect(find.text('Work Type Breakdown'), findsOneWidget);
         expect(find.text('Full Wash: 1'), findsOneWidget);
         expect(find.text('Daily Vehicle Work'), findsOneWidget);
         expect(find.text('Ramesh Kumar'), findsWidgets);
@@ -615,14 +615,14 @@ void main() {
       await tester.tap(find.text('Sedan').last);
       await tester.pumpAndSettle();
 
-      // Submit without selecting any service/work type
+      // Submit without selecting any work type
       await tester.tap(find.byKey(const Key('modal_save_vehicle_work_button')));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('modal_error_banner')), findsOneWidget);
       expect(
         find.text(
-          'Please select at least one service/work type for Vehicle #1.',
+          'Please select at least one work type for Vehicle #1.',
         ),
         findsOneWidget,
       );

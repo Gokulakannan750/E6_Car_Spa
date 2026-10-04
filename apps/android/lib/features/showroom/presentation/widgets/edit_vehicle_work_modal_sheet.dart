@@ -119,7 +119,7 @@ class _EditVehicleWorkModalSheetState
 
     if (_selectedWorkTypeIds.isEmpty) {
       setState(() {
-        _errorMessage = 'Please select at least one service/work type.';
+        _errorMessage = 'Please select at least one work type.';
       });
       return;
     }
@@ -407,7 +407,7 @@ class _EditVehicleWorkModalSheetState
 
                   // 3. Work / Service Types
                   Text(
-                    'Services / Work Types *',
+                    'Work Types *',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,

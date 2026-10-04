@@ -27,6 +27,10 @@ class _ShowroomConfigurationScreenState
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Rebuild so the Add button label follows the selected tab.
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override

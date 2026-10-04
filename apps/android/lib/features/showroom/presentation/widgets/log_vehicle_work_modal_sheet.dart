@@ -232,7 +232,7 @@ class _LogVehicleWorkModalSheetState
         setState(() {
           config.isExpanded = true;
           _errorMessage =
-              'Please select at least one service/work type for Vehicle #$itemIndex.';
+              'Please select at least one work type for Vehicle #$itemIndex.';
         });
         return;
       }
@@ -809,7 +809,7 @@ class _LogVehicleWorkModalSheetState
 
                   // 3. Work / Service Types Multi-Select Chips
                   Text(
-                    'Services / Work Types *',
+                    'Work Types *',
                     style: AppTextStyles.bodySmall.copyWith(
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,

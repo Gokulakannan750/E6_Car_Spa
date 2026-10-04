@@ -284,7 +284,7 @@ describe('ShowroomOperationsPage', () => {
 
 		expect(await screen.findByText('Daily Operations Summary')).toBeInTheDocument();
 		expect(screen.getByText('Vehicles Handled')).toBeInTheDocument();
-		expect(screen.getByText('Services Completed')).toBeInTheDocument();
+		expect(screen.getByText('Work Types Done')).toBeInTheDocument();
 		expect(screen.getByText('Active Staff Sessions')).toBeInTheDocument();
 	});
 
@@ -325,6 +325,11 @@ describe('ShowroomOperationsPage', () => {
 		expect(screen.getByText('Vehicle 1')).toBeInTheDocument();
 		expect(screen.getByLabelText('Vehicle 1 Type')).toBeInTheDocument();
 		expect(screen.getByLabelText('Vehicle 1 - Body Wash')).toBeInTheDocument();
+
+		// Showroom work is labelled "Work Types", not catalogue "Services"
+		const dialog = screen.getByRole('dialog');
+		expect(within(dialog).getByText('Work Types')).toBeInTheDocument();
+		expect(within(dialog).queryByText(/Services/i)).not.toBeInTheDocument();
 	});
 
 	// ── 8. Collapsible Vehicles: Default states and Expand/Collapse toggle ──────
@@ -462,7 +467,7 @@ describe('ShowroomOperationsPage', () => {
 		// Select type for Vehicle 2, but leave services empty
 		fireEvent.change(screen.getByLabelText('Vehicle 2 Type'), { target: { value: 'vt-2' } });
 		fireEvent.submit(form);
-		expect(await screen.findByText(/Vehicle 2: Select at least one service/i)).toBeInTheDocument();
+		expect(await screen.findByText(/Vehicle 2: Select at least one work type/i)).toBeInTheDocument();
 	});
 
 	// ── 12. Batch Vehicle Work Submission ─────────────────────────────────────

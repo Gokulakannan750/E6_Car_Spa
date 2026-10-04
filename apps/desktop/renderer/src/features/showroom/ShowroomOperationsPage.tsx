@@ -549,7 +549,7 @@ export function ShowroomOperationsPage() {
 				}
 				if (!v.selectedWorkTypeIds || v.selectedWorkTypeIds.length === 0) {
 					setExpandedVehicles((prev) => ({ ...prev, [i]: true }));
-					throw new Error(`Vehicle ${vehicleNum}: Select at least one service / work type.`);
+					throw new Error(`Vehicle ${vehicleNum}: Select at least one work type.`);
 				}
 
 				// Validate "Other" work type requires description
@@ -792,7 +792,7 @@ export function ShowroomOperationsPage() {
 							<div>
 								<h1 className="text-2xl font-bold tracking-tight text-on-surface">Showroom Operations</h1>
 								<p className="text-sm text-on-surface-variant">
-									Log vehicle services, track staff work sessions, and review daily showroom operations
+									Log vehicle work, track staff work sessions, and review daily showroom operations
 								</p>
 							</div>
 						</div>
@@ -1088,7 +1088,7 @@ export function ShowroomOperationsPage() {
 							<Wrench className="w-5 h-5" />
 						</div>
 						<div>
-							<p className="text-xs text-on-surface-variant font-medium">Services Completed</p>
+							<p className="text-xs text-on-surface-variant font-medium">Work Types Done</p>
 							<p className="text-xl font-bold text-on-surface">{opsSummary?.totalServicesPerformed ?? 0}</p>
 						</div>
 					</div>
@@ -1129,11 +1129,11 @@ export function ShowroomOperationsPage() {
 						</div>
 					</div>
 
-					{/* Work / Service Breakdown */}
+					{/* Work Type Breakdown */}
 					<div className="p-2.5 rounded-lg bg-surface-container-low/40 border border-outline-variant/40 space-y-1.5">
 						<p className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5">
 							<Wrench className="w-3.5 h-3.5 text-secondary" />
-							Work / Service Breakdown
+							Work Type Breakdown
 						</p>
 						<div className="flex flex-wrap gap-1.5">
 							{opsSummary?.workTypeBreakdown && opsSummary.workTypeBreakdown.length > 0 ? (
@@ -1147,7 +1147,7 @@ export function ShowroomOperationsPage() {
 									</span>
 								))
 							) : (
-								<span className="text-xs text-on-surface-variant italic">No services recorded for this date</span>
+								<span className="text-xs text-on-surface-variant italic">No work types recorded for this date</span>
 							)}
 						</div>
 					</div>
@@ -1272,7 +1272,7 @@ export function ShowroomOperationsPage() {
 										<th>Staff Member</th>
 										<th>Vehicle Type</th>
 										<th>Vehicles</th>
-										<th>Work / Services Performed</th>
+										<th>Work Types</th>
 										<th>Notes</th>
 										{canManage && <th className="text-right">Actions</th>}
 									</tr>
@@ -1677,14 +1677,14 @@ export function ShowroomOperationsPage() {
 						{/* Service Filter */}
 						<div>
 							<label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">
-								Service
+								Work Type
 							</label>
 							<select
 								value={prodWorkTypeFilter}
 								onChange={(e) => setProdWorkTypeFilter(e.target.value)}
 								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
 							>
-								<option value="all">All Services</option>
+								<option value="all">All Work Types</option>
 								{allWorkTypes.map((wt) => (
 									<option key={wt.id} value={wt.id}>
 										{wt.name}{!wt.isActive ? ' (Inactive)' : ''}
@@ -1722,7 +1722,7 @@ export function ShowroomOperationsPage() {
 								<div className="text-lg font-bold text-primary mt-1">{staffProductivityReport.totalVehiclesAttended}</div>
 							</div>
 							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
-								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Services Done</span>
+								<span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Work Types Done</span>
 								<div className="text-lg font-bold text-secondary mt-1">{staffProductivityReport.totalServicesPerformed}</div>
 							</div>
 							<div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant">
@@ -1796,7 +1796,7 @@ export function ShowroomOperationsPage() {
 														{st.totalVehiclesAttended} Vehicles
 													</span>
 													<span className="px-2 py-0.5 bg-secondary/10 text-secondary rounded-md">
-														{st.totalServicesPerformed} Services
+														{st.totalServicesPerformed} Work Types
 													</span>
 													<span className="px-2 py-0.5 bg-purple-500/10 text-purple-600 rounded-md">
 														{st.totalWorkingHours}h Work
@@ -1807,12 +1807,12 @@ export function ShowroomOperationsPage() {
 												</div>
 											</div>
 
-											{/* Expandable Hierarchical Breakdown: Vehicle Types -> Services */}
+											{/* Expandable Hierarchical Breakdown: Vehicle Types -> Work Types */}
 											{isStaffExpanded && (
 												<div className="mt-3 ml-6 pl-3 border-l-2 border-outline-variant space-y-2.5">
 													{st.vehicleTypes.length === 0 ? (
 														<p className="text-2xs text-on-surface-variant italic py-1">
-															No vehicle service work logged for this staff member in this period.
+															No vehicle work logged for this staff member in this period.
 														</p>
 													) : (
 														st.vehicleTypes.map((vt) => (
@@ -1829,7 +1829,7 @@ export function ShowroomOperationsPage() {
 																	<div className="flex items-center gap-2 text-2xs text-on-surface-variant font-medium">
 																		<span>{vt.vehicleCount} vehicles</span>
 																		<span>•</span>
-																		<span>{vt.serviceQuantity} services</span>
+																		<span>{vt.serviceQuantity} work types</span>
 																		<span>•</span>
 																		<span>{vt.hours}h</span>
 																	</div>
@@ -1887,7 +1887,7 @@ export function ShowroomOperationsPage() {
 																			<tr>
 																				<th>Date</th>
 																				<th>Vehicle Type</th>
-																				<th>Service</th>
+																				<th>Work Type</th>
 																				<th>Qty</th>
 																				<th>Hours</th>
 																				<th>Type</th>
@@ -1948,7 +1948,7 @@ export function ShowroomOperationsPage() {
 											<th>Master ID</th>
 											<th>Sessions</th>
 											<th>Vehicles Handled</th>
-											<th>Services Completed</th>
+											<th>Work Types Done</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -2079,7 +2079,7 @@ export function ShowroomOperationsPage() {
 									Individual Vehicle Work Details ({vwVehicles.length}) <span className="text-error">*</span>
 								</label>
 								<span className="text-2xs text-on-surface-variant">
-									Select type & services for each vehicle
+									Select type & work types for each vehicle
 								</span>
 							</div>
 
@@ -2175,10 +2175,10 @@ export function ShowroomOperationsPage() {
 													{/* Services Checklist */}
 													<div className="space-y-1.5">
 														<label className="block text-2xs font-semibold text-on-surface-variant">
-															Services / Work Performed <span className="text-error">*</span>
+															Work Types <span className="text-error">*</span>
 														</label>
 														<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 rounded-lg bg-surface-container-lowest border border-outline-variant">
-															{workTypesLoading && <p className="text-2xs text-on-surface-variant">Loading services...</p>}
+															{workTypesLoading && <p className="text-2xs text-on-surface-variant">Loading work types...</p>}
 															{!workTypesLoading &&
 																availableWorkTypes.map((wt) => {
 																	const isSelected = vehicle.selectedWorkTypeIds.includes(wt.id);
