@@ -21,6 +21,7 @@ public static class AuditActions
     public const string Generate = "GENERATE";
     public const string Cancel = "CANCEL";
     public const string InvoiceNumberChanged = "INVOICE_NUMBER_CHANGED";
+    public const string InvoiceSeriesPrefixChanged = "INVOICE_SERIES_PREFIX_CHANGED";
 
     public const string PaymentRecorded = "PAYMENT_RECORDED";
     public const string PaymentVoided = "PAYMENT_VOIDED";
