@@ -45,6 +45,8 @@ public class FinalHardeningSecurityTests
         public Task<int> GetTotalCountAsync(string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task<InvoiceDto?> UpdateAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default) => Task.FromResult<InvoiceDto?>(null);
         public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<InvoiceDto> PreviewAsync(Guid id, PreviewInvoiceRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<InvoiceDto> CancelInvoiceAsync(Guid id, string? reason = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<InvoiceDto> UpdateInvoiceNumberAsync(Guid id, UpdateInvoiceNumberRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
@@ -63,6 +65,8 @@ public class FinalHardeningSecurityTests
             var inner = new Exception("violates foreign key constraint fk_job_cards_vehicles ON TABLE job_cards");
             throw new DbUpdateException("An error occurred while saving the entity changes.", inner);
         }
+
+        public Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
         public Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<JobCardDto?>(null);
         public Task<JobCardPrintDto?> GetForPrintAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<JobCardPrintDto?>(null);

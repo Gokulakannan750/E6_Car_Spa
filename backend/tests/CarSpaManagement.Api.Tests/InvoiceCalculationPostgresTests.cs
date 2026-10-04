@@ -8,6 +8,8 @@ using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Tests.TestSupport;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -171,5 +173,88 @@ public class InvoiceCalculationPostgresTests : IClassFixture<PostgresTestDatabas
         Assert.Equal(180m, stored.GstAmount);
         Assert.Equal(1000m, stored.TaxableAmount);
         Assert.Equal(0m, stored.Discount);
+    }
+
+    // ── Phase 1: mixed rates, 0%, stored per-line rate ──────────────────────
+
+    [PostgresFact]
+    public async Task Phase1_Mixed18_5_0_WithDiscounts_PersistedLinesReconcileWithHeader()
+    {
+        var a = (10000m, 18m, 1, 0m);
+        var b = (5000m, 5m, 2, 500m);
+        var c = (5000m, 0m, 1, 0m);
+        var persisted = await CreateAndGenerateAsync(a, b, c);
+        // 10,000 @ 18% = 1,800; (2 × 5,000 − 500) = 9,500 @ 5% = 475; 5,000 @ 0% = 0.
+        AssertMatchesCalculator(persisted, 24500m, 2275m, 26775m, a, b, c);
+
+        var lines = persisted.InvoiceItems.Where(i => !i.IsDeleted).ToList();
+        Assert.Equal(new decimal?[] { 0m, 5m, 18m }, lines.Select(l => l.TaxRatePercent).OrderBy(r => r));
+        Assert.Equal(0m, persisted.InvoiceItems.Single(i => i.TaxRatePercent == 0m).TaxAmount);
+
+        var groups = InvoiceCalculator.SummarizeStoredInvoice(persisted);
+        Assert.Equal(persisted.GstAmount, groups.Sum(g => g.Tax));
+        Assert.Equal(persisted.TaxableAmount, groups.Sum(g => g.Taxable));
+        Assert.Equal(groups.Sum(g => g.Cgst), groups.Sum(g => g.Sgst));
+    }
+
+    [PostgresFact]
+    public async Task Phase1_ZeroPercentServiceOnGstInvoice_PersistsNoTax()
+    {
+        var a = (1000m, 18m, 1, 0m);
+        var b = (200m, 0m, 1, 0m);
+        var persisted = await CreateAndGenerateAsync(a, b);
+        AssertMatchesCalculator(persisted, 1200m, 180m, 1380m, a, b);
+        Assert.Equal(0m, persisted.InvoiceItems.Single(i => i.UnitPrice == 200m).TaxAmount);
+    }
+
+    [PostgresFact]
+    public async Task Phase1_Migration_BackfillsOnlyRatesThatReproduceTheStoredTax()
+    {
+        var (customerId, vehicleId) = await SeedCustomerAsync();
+        var s18 = await SeedServiceAsync(1000m, 18m);
+        var s5 = await SeedServiceAsync(1000m, 5m);
+        var s0 = await SeedServiceAsync(200m, 0m);
+        Guid consistent18, consistent5, legacyZeroAs18, inconsistent, nonGst;
+        await using (var db = _pg.CreateContext())
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            var jobCard = new JobCard { JobCardNumber = $"JC-B-{suffix}", CustomerId = customerId, VehicleId = vehicleId };
+            jobCard.JobCardServices.Add(new Domain.Entities.JobCardService { ServiceId = s18, ServiceName = "A", UnitPrice = 1000m, Quantity = 1, TaxPercentage = 18m });
+            jobCard.JobCardServices.Add(new Domain.Entities.JobCardService { ServiceId = s5, ServiceName = "B", UnitPrice = 1000m, Quantity = 1, TaxPercentage = 5m });
+            jobCard.JobCardServices.Add(new Domain.Entities.JobCardService { ServiceId = s0, ServiceName = "C", UnitPrice = 200m, Quantity = 1, TaxPercentage = 0m });
+            var gst = new Invoice { JobCardId = jobCard.Id, CustomerId = customerId, VehicleId = vehicleId, IsGstEnabled = true, InvoiceNumber = $"B-{suffix}", Status = InvoiceStatus.Generated };
+            var i18 = new InvoiceItem { ServiceId = s18, Description = "A", Quantity = 1, UnitPrice = 1000m, TaxableAmount = 1000m, TaxAmount = 180m, TotalAmount = 1180m };
+            var i5 = new InvoiceItem { ServiceId = s5, Description = "B", Quantity = 1, UnitPrice = 1000m, TaxableAmount = 1000m, TaxAmount = 50m, TotalAmount = 1050m };
+            var i0 = new InvoiceItem { ServiceId = s0, Description = "C", Quantity = 1, UnitPrice = 200m, TaxableAmount = 200m, TaxAmount = 36m, TotalAmount = 236m };   // charged 18% by the old fallback
+            var iBad = new InvoiceItem { Description = "Pre-Phase-0 line", Quantity = 1, UnitPrice = 500m, TaxableAmount = 500m, TaxAmount = 77m, TotalAmount = 577m };
+            gst.InvoiceItems.AddRange([i18, i5, i0, iBad]);
+
+            var jobCard2 = new JobCard { JobCardNumber = $"JC-N-{suffix}", CustomerId = customerId, VehicleId = vehicleId };
+            var plain = new Invoice { JobCardId = jobCard2.Id, CustomerId = customerId, VehicleId = vehicleId, IsGstEnabled = false, InvoiceNumber = $"N-{suffix}", Status = InvoiceStatus.Generated };
+            var iNon = new InvoiceItem { ServiceId = s18, Description = "A", Quantity = 1, UnitPrice = 1000m, TaxableAmount = 1000m, TaxAmount = 0m, TotalAmount = 1000m };
+            plain.InvoiceItems.Add(iNon);
+
+            db.AddRange(jobCard, gst, jobCard2, plain);
+            await db.SaveChangesAsync();
+            (consistent18, consistent5, legacyZeroAs18, inconsistent, nonGst) = (i18.Id, i5.Id, i0.Id, iBad.Id, iNon.Id);
+        }
+
+        // Re-run the migration over these rows: down one step (drops the column), then up (adds + backfills).
+        await using (var db = _pg.CreateContext())
+        {
+            var migrator = db.GetService<IMigrator>();
+            await migrator.MigrateAsync("20261004051221_AddInvoiceNumberSeriesAndAllocations");
+            await migrator.MigrateAsync();
+        }
+
+        await using var read = _pg.CreateContext();
+        var rates = await read.InvoiceItems.AsNoTracking()
+            .Where(i => new[] { consistent18, consistent5, legacyZeroAs18, inconsistent, nonGst }.Contains(i.Id))
+            .ToDictionaryAsync(i => i.Id, i => i.TaxRatePercent);
+        Assert.Equal(18m, rates[consistent18]);
+        Assert.Equal(5m, rates[consistent5]);
+        Assert.Equal(18m, rates[legacyZeroAs18]);   // records what was actually charged, not what should have been
+        Assert.Null(rates[inconsistent]);           // ₹77 on ₹500 matches no rate → unknown, never guessed
+        Assert.Equal(0m, rates[nonGst]);
     }
 }
