@@ -302,9 +302,15 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'users.view',
 		},
 		{
+			label: 'Showroom Configuration',
+			path: '/settings/showroom',
+			icon: 'Sliders',
+			requiresPermission: 'settings.view',
+		},
+		{
 			label: 'System Preferences',
 			path: '/settings/system',
-			icon: 'Sliders',
+			icon: 'SlidersHorizontal',
 			requiresPermission: 'settings.view',
 		},
 	],
@@ -362,6 +368,10 @@ export function isItemActive(
 
 	if (item.path === '/settings/system') {
 		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
+	}
+
+	if (item.path === '/settings/showroom') {
+		return normPath === '/settings/showroom' || (normPath === '/settings' && search.includes('tab=showroom'));
 	}
 
 	if (item.path === '/settings/users') {

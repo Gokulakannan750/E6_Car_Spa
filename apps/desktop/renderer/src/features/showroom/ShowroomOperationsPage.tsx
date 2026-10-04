@@ -105,6 +105,13 @@ function formatDisplayTime(timeStr?: string | null): string {
 	return `${h}:${String(mins).padStart(2, '0')} ${ampm}`;
 }
 
+function isOtherWorkType(wt?: { name?: string; code?: string } | null): boolean {
+	if (!wt) return false;
+	const name = wt.name?.trim().toLowerCase() || '';
+	const code = wt.code?.trim().toUpperCase() || '';
+	return name === 'other' || code === 'OTHER';
+}
+
 export function ShowroomOperationsPage() {
 	const qc = useQueryClient();
 	const navigate = useNavigate();
@@ -145,9 +152,13 @@ export function ShowroomOperationsPage() {
 	const [vwStaffId, setVwStaffId] = useState('');
 	const [vwSessionId, setVwSessionId] = useState('');
 	const [vwVehicleCountInput, setVwVehicleCountInput] = useState<string>('1');
-	const [vwVehicles, setVwVehicles] = useState<Array<{ vehicleTypeId: string; selectedWorkTypeIds: string[] }>>([
-		{ vehicleTypeId: '', selectedWorkTypeIds: [] },
-	]);
+	const [vwVehicles, setVwVehicles] = useState<
+		Array<{
+			vehicleTypeId: string;
+			selectedWorkTypeIds: string[];
+			workTypeNotes?: Record<string, string>;
+		}>
+	>([{ vehicleTypeId: '', selectedWorkTypeIds: [], workTypeNotes: {} }]);
 	const [expandedVehicles, setExpandedVehicles] = useState<Record<number, boolean>>({ 0: true });
 	const [vwNotes, setVwNotes] = useState('');
 	const [vwFormError, setVwFormError] = useState('');
@@ -180,7 +191,7 @@ export function ShowroomOperationsPage() {
 			}
 			const newEntries = [...prev];
 			while (newEntries.length < count) {
-				newEntries.push({ vehicleTypeId: '', selectedWorkTypeIds: [] });
+				newEntries.push({ vehicleTypeId: '', selectedWorkTypeIds: [], workTypeNotes: {} });
 			}
 			return newEntries;
 		});
@@ -223,6 +234,16 @@ export function ShowroomOperationsPage() {
 				? currentIds.filter((id) => id !== workTypeId)
 				: [...currentIds, workTypeId];
 			next[vehicleIndex] = { ...next[vehicleIndex], selectedWorkTypeIds: updatedIds };
+			return next;
+		});
+	};
+
+	const handleVehicleWorkTypeNoteChange = (vehicleIndex: number, workTypeId: string, note: string) => {
+		setVwVehicles((prev) => {
+			const next = [...prev];
+			const currentNotes = { ...(next[vehicleIndex]?.workTypeNotes || {}) };
+			currentNotes[workTypeId] = note;
+			next[vehicleIndex] = { ...next[vehicleIndex], workTypeNotes: currentNotes };
 			return next;
 		});
 	};
@@ -310,15 +331,55 @@ export function ShowroomOperationsPage() {
 		return showrooms.find((s) => s.id === activeShowroomId) || null;
 	}, [showrooms, activeShowroomId]);
 
+	// Active vehicle types for creating new work
 	const { data: vehicleTypes = [] } = useQuery({
-		queryKey: ['showroom-vehicle-types'],
+		queryKey: ['showroom-vehicle-types', 'active'],
 		queryFn: () => getShowroomVehicleTypes(false),
 	});
 
+	// All vehicle types (including inactive) for filtering and displaying historical records
+	const { data: allVehicleTypes = [] } = useQuery({
+		queryKey: ['showroom-vehicle-types', 'all'],
+		queryFn: () => getShowroomVehicleTypes(true),
+	});
+
+	// Active work types for creating new work
 	const { data: workTypes = [], isLoading: workTypesLoading } = useQuery({
-		queryKey: ['showroom-work-types'],
+		queryKey: ['showroom-work-types', 'active'],
 		queryFn: () => getShowroomWorkTypes(false),
 	});
+
+	// All work types (including inactive) for filtering and displaying historical records
+	const { data: allWorkTypes = [] } = useQuery({
+		queryKey: ['showroom-work-types', 'all'],
+		queryFn: () => getShowroomWorkTypes(true),
+	});
+
+	// Available vehicle types for Log / Edit dialog
+	const availableVehicleTypes = useMemo(() => {
+		if (!editingVehicleWork) return vehicleTypes;
+		const currentVt = allVehicleTypes.find((vt) => vt.id === editingVehicleWork.vehicleTypeId);
+		if (currentVt && !vehicleTypes.some((vt) => vt.id === currentVt.id)) {
+			return [{ ...currentVt, name: `${currentVt.name} (Inactive)` }, ...vehicleTypes];
+		}
+		return vehicleTypes;
+	}, [editingVehicleWork, vehicleTypes, allVehicleTypes]);
+
+	// Available work types for Log / Edit dialog
+	const availableWorkTypes = useMemo(() => {
+		if (!editingVehicleWork) return workTypes;
+		const existingWorkTypeIds = new Set(editingVehicleWork.serviceItems.map((si) => si.workTypeId));
+		const extraWorkTypes: typeof allWorkTypes = [];
+		for (const wtId of existingWorkTypeIds) {
+			if (!workTypes.some((wt) => wt.id === wtId)) {
+				const inactiveWt = allWorkTypes.find((wt) => wt.id === wtId);
+				if (inactiveWt) {
+					extraWorkTypes.push({ ...inactiveWt, name: `${inactiveWt.name} (Inactive)` });
+				}
+			}
+		}
+		return [...workTypes, ...extraWorkTypes];
+	}, [editingVehicleWork, workTypes, allWorkTypes]);
 
 	const { data: staffList = [] } = useQuery({
 		queryKey: ['staff-list'],
@@ -490,6 +551,18 @@ export function ShowroomOperationsPage() {
 					setExpandedVehicles((prev) => ({ ...prev, [i]: true }));
 					throw new Error(`Vehicle ${vehicleNum}: Select at least one service / work type.`);
 				}
+
+				// Validate "Other" work type requires description
+				for (const wtId of v.selectedWorkTypeIds) {
+					const wt = availableWorkTypes.find((t) => t.id === wtId) || allWorkTypes.find((t) => t.id === wtId);
+					if (isOtherWorkType(wt)) {
+						const note = v.workTypeNotes?.[wtId]?.trim();
+						if (!note) {
+							setExpandedVehicles((prev) => ({ ...prev, [i]: true }));
+							throw new Error(`Vehicle ${vehicleNum}: Please specify work performed for "Other".`);
+						}
+					}
+				}
 			}
 
 			if (editingVehicleWork) {
@@ -505,6 +578,7 @@ export function ShowroomOperationsPage() {
 					serviceItems: singleVehicle.selectedWorkTypeIds.map((workTypeId) => ({
 						workTypeId,
 						quantity: 1,
+						notes: singleVehicle.workTypeNotes?.[workTypeId]?.trim() || null,
 					})),
 				});
 			} else {
@@ -514,10 +588,19 @@ export function ShowroomOperationsPage() {
 					date: selectedDate,
 					timeRecorded: null,
 					notes: vwNotes || null,
-					vehicles: vwVehicles.map((v) => ({
-						vehicleTypeId: v.vehicleTypeId,
-						workTypeIds: v.selectedWorkTypeIds,
-					})),
+					vehicles: vwVehicles.map((v) => {
+						const hasNotes = v.workTypeNotes && Object.values(v.workTypeNotes).some((n) => n.trim().length > 0);
+						return {
+							vehicleTypeId: v.vehicleTypeId,
+							workTypeIds: v.selectedWorkTypeIds,
+							...(hasNotes
+								? {
+										workTypeNotes: v.workTypeNotes,
+										otherDescription: Object.values(v.workTypeNotes || {}).find((n) => n.trim().length > 0),
+								  }
+								: {}),
+						};
+					}),
 				});
 			}
 		},
@@ -589,7 +672,7 @@ export function ShowroomOperationsPage() {
 		setVwStaffId('');
 		setVwSessionId('');
 		setVwVehicleCountInput('1');
-		setVwVehicles([{ vehicleTypeId: '', selectedWorkTypeIds: [] }]);
+		setVwVehicles([{ vehicleTypeId: '', selectedWorkTypeIds: [], workTypeNotes: {} }]);
 		setExpandedVehicles({ 0: true });
 		setVwNotes('');
 		setVwFormError('');
@@ -605,10 +688,19 @@ export function ShowroomOperationsPage() {
 		setVwStaffId(work.staffId);
 		setVwSessionId(work.showroomStaffWorkSessionId || '');
 		setVwVehicleCountInput('1');
+
+		const notesMap: Record<string, string> = {};
+		for (const si of work.serviceItems) {
+			if (si.notes) {
+				notesMap[si.workTypeId] = si.notes;
+			}
+		}
+
 		setVwVehicles([
 			{
 				vehicleTypeId: work.vehicleTypeId,
 				selectedWorkTypeIds: work.serviceItems.map((si) => si.workTypeId),
+				workTypeNotes: notesMap,
 			},
 		]);
 		setExpandedVehicles({ 0: true });
@@ -1137,9 +1229,9 @@ export function ShowroomOperationsPage() {
 								className="px-3 py-1.5 text-xs rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
 							>
 								<option value="all">All Vehicle Types</option>
-								{vehicleTypes.map((vt) => (
+								{allVehicleTypes.map((vt) => (
 									<option key={vt.id} value={vt.id}>
-										{vt.name}
+										{vt.name}{!vt.isActive ? ' (Inactive)' : ''}
 									</option>
 								))}
 							</select>
@@ -1273,7 +1365,9 @@ export function ShowroomOperationsPage() {
 																className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-secondary/10 text-secondary text-2xs font-semibold border border-secondary/20"
 															>
 																<Wrench className="w-2.5 h-2.5" />
-																{item.workTypeName} ({item.quantity})
+																{item.notes
+																	? `${item.workTypeName}: ${item.notes} (${item.quantity})`
+																	: `${item.workTypeName} (${item.quantity})`}
 															</span>
 														))}
 													</div>
@@ -1572,9 +1666,9 @@ export function ShowroomOperationsPage() {
 								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
 							>
 								<option value="all">All Vehicle Types</option>
-								{vehicleTypes.map((vt) => (
+								{allVehicleTypes.map((vt) => (
 									<option key={vt.id} value={vt.id}>
-										{vt.name} ({vt.code})
+										{vt.name}{!vt.isActive ? ' (Inactive)' : ''}
 									</option>
 								))}
 							</select>
@@ -1591,9 +1685,9 @@ export function ShowroomOperationsPage() {
 								className="w-full h-8 px-2.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary cursor-pointer"
 							>
 								<option value="all">All Services</option>
-								{workTypes.map((wt) => (
+								{allWorkTypes.map((wt) => (
 									<option key={wt.id} value={wt.id}>
-										{wt.name} ({wt.code})
+										{wt.name}{!wt.isActive ? ' (Inactive)' : ''}
 									</option>
 								))}
 							</select>
@@ -1993,7 +2087,9 @@ export function ShowroomOperationsPage() {
 								{vwVehicles.map((vehicle, idx) => {
 									const isExpanded = expandedVehicles[idx] ?? (idx === 0);
 									const isComplete = Boolean(vehicle.vehicleTypeId && vehicle.selectedWorkTypeIds.length > 0);
-									const selectedType = vehicleTypes.find((vt) => vt.id === vehicle.vehicleTypeId);
+									const selectedType =
+										availableVehicleTypes.find((vt) => vt.id === vehicle.vehicleTypeId) ||
+										allVehicleTypes.find((vt) => vt.id === vehicle.vehicleTypeId);
 
 									return (
 										<div
@@ -2068,7 +2164,7 @@ export function ShowroomOperationsPage() {
 															required
 														>
 															<option value="">Select Vehicle Type</option>
-															{vehicleTypes.map((vt) => (
+															{availableVehicleTypes.map((vt) => (
 																<option key={vt.id} value={vt.id}>
 																	{vt.name}
 																</option>
@@ -2084,27 +2180,52 @@ export function ShowroomOperationsPage() {
 														<div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2 rounded-lg bg-surface-container-lowest border border-outline-variant">
 															{workTypesLoading && <p className="text-2xs text-on-surface-variant">Loading services...</p>}
 															{!workTypesLoading &&
-																workTypes.map((wt) => {
+																availableWorkTypes.map((wt) => {
 																	const isSelected = vehicle.selectedWorkTypeIds.includes(wt.id);
 																	return (
-																		<label
+																		<div
 																			key={wt.id}
-																			className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-colors text-xs font-medium ${
-																				isSelected
-																					? 'bg-primary/10 text-primary border border-primary/20'
-																					: 'hover:bg-surface-container text-on-surface'
-																			}`}
+																			className={`space-y-1.5 ${isSelected && isOtherWorkType(wt) ? 'sm:col-span-2' : ''}`}
 																		>
-																			<input
-																				type="checkbox"
-																				id={`vw-service-${idx}-${wt.id}`}
-																				aria-label={`Vehicle ${idx + 1} - ${wt.name}`}
-																				checked={isSelected}
-																				onChange={() => handleToggleVehicleService(idx, wt.id)}
-																				className="rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
-																			/>
-																			<span className="truncate">{wt.name}</span>
-																		</label>
+																			<label
+																				className={`flex items-center gap-2 p-1.5 rounded-md cursor-pointer transition-colors text-xs font-medium ${
+																					isSelected
+																						? 'bg-primary/10 text-primary border border-primary/20'
+																						: 'hover:bg-surface-container text-on-surface'
+																				}`}
+																			>
+																				<input
+																					type="checkbox"
+																					id={`vw-service-${idx}-${wt.id}`}
+																					aria-label={`Vehicle ${idx + 1} - ${wt.name}`}
+																					checked={isSelected}
+																					onChange={() => handleToggleVehicleService(idx, wt.id)}
+																					className="rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
+																				/>
+																				<span className="truncate">{wt.name}</span>
+																			</label>
+
+																			{isSelected && isOtherWorkType(wt) && (
+																				<div className="pl-6 pr-1 pb-1">
+																					<label
+																						htmlFor={`vw-other-note-${idx}-${wt.id}`}
+																						className="block text-[11px] font-semibold text-on-surface mb-1"
+																					>
+																						Specify work performed: <span className="text-error">*</span>
+																					</label>
+																					<input
+																						type="text"
+																						id={`vw-other-note-${idx}-${wt.id}`}
+																						aria-label={`Vehicle ${idx + 1} Specify work performed`}
+																						value={vehicle.workTypeNotes?.[wt.id] || ''}
+																						onChange={(e) => handleVehicleWorkTypeNoteChange(idx, wt.id, e.target.value)}
+																						placeholder="e.g. Engine bay detailing, decal removal..."
+																						className="w-full px-2.5 py-1.5 text-xs rounded-md border border-outline-variant bg-surface-container text-on-surface focus:outline-hidden focus:border-primary"
+																						required
+																					/>
+																				</div>
+																			)}
+																		</div>
 																	);
 																})}
 														</div>
