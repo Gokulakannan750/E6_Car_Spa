@@ -15,6 +15,8 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		removeBusinessLogo: vi.fn(),
 		getWhatsAppConfig: vi.fn(),
 		getWhatsAppTemplates: vi.fn(),
+		getInvoiceSeries: vi.fn(),
+		updateInvoiceSeries: vi.fn(),
 	};
 });
 
@@ -39,6 +41,10 @@ describe('SettingsPage Component & Business Profile Boundary', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(api.getBusinessProfile).mockResolvedValue(mockProfile);
+		vi.mocked(api.getInvoiceSeries).mockResolvedValue({
+			gst: { seriesKind: 'Gst', prefix: 'GST/', minDigits: 4, nextNumber: 8, nextNumberDisplay: '0008', nextInvoiceNumber: 'GST/0008' },
+			nonGst: { seriesKind: 'NonGst', prefix: 'BILL/', minDigits: 4, nextNumber: 9, nextNumberDisplay: '0009', nextInvoiceNumber: 'BILL/0009' },
+		});
 		vi.mocked(api.updateBusinessProfile).mockImplementation(async (payload) => ({
 			...mockProfile,
 			...payload,
@@ -98,7 +104,9 @@ describe('SettingsPage Component & Business Profile Boundary', () => {
 			expect(screen.getByDisplayValue('9578749449')).toBeInTheDocument();
 			expect(screen.getByDisplayValue('e6carspaerd@gmail.com')).toBeInTheDocument();
 			expect(screen.getByDisplayValue('33AAAAA0000A1Z5')).toBeInTheDocument();
-			expect(screen.getByDisplayValue('INV')).toBeInTheDocument();
+			// Invoice Configuration now shows the two numbering series (old single INV prefix retired).
+			expect(screen.getByDisplayValue('GST/')).toBeInTheDocument();
+			expect(screen.getByDisplayValue('BILL/')).toBeInTheDocument();
 		});
 	});
 

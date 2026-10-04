@@ -2990,6 +2990,35 @@ export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileD
 	return res;
 }
 
+// ─── Invoice numbering series (GST / non-GST) ────────────────────────────────
+
+export interface InvoiceSeriesDto {
+	seriesKind: 'Gst' | 'NonGst';
+	prefix: string;
+	minDigits: number;
+	/** Server-controlled counter; read-only in the UI. */
+	nextNumber: number;
+	nextNumberDisplay: string;
+	nextInvoiceNumber: string;
+}
+
+export interface InvoiceSeriesSettingsDto {
+	gst: InvoiceSeriesDto;
+	nonGst: InvoiceSeriesDto;
+}
+
+export async function getInvoiceSeries() {
+	return request<InvoiceSeriesSettingsDto>('/api/settings/invoice-series', {}, 'view invoice numbering');
+}
+
+/** Owner only. Only prefixes can be changed; the counters are controlled by the server. */
+export async function updateInvoiceSeries(data: { gstPrefix: string; nonGstPrefix: string }) {
+	return request<InvoiceSeriesSettingsDto>('/api/settings/invoice-series', {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'change invoice number prefixes');
+}
+
 export async function getBusinessProfile() {
 	const res = await request<BusinessProfileDto>('/api/settings/business', {}, 'view business profile');
 	setCachedBusinessProfile(res);

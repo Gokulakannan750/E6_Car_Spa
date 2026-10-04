@@ -25,6 +25,7 @@ import {
 	setCachedBusinessProfile,
 	BusinessProfileDto,
 } from '../../lib/api';
+import { InvoiceSeriesSection } from './InvoiceSeriesSection';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { BUSINESS_PROFILE_QUERY_KEY } from './hooks/useBusinessProfile';
 import { capitalizeSentence } from '../../utils/text';
@@ -66,7 +67,6 @@ export default function SettingsPage() {
 	const [phone, setPhone] = useState('');
 	const [email, setEmail] = useState('');
 	const [gstin, setGstin] = useState('');
-	const [invoicePrefix, setInvoicePrefix] = useState('INV');
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +90,6 @@ export default function SettingsPage() {
 			setPhone(data.phone || '');
 			setEmail(data.email || '');
 			setGstin(data.gstin || '');
-			setInvoicePrefix(data.invoicePrefix || 'INV');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to load business profile';
 			setErrorMsg(msg);
@@ -151,7 +150,6 @@ export default function SettingsPage() {
 				phone: cleanPhone,
 				email: email.trim(),
 				gstin: trimmedGstin || null,
-				invoicePrefix: invoicePrefix.trim().toUpperCase() || 'INV',
 				logoPath: profile?.logoPath ?? null,
 			});
 
@@ -529,39 +527,8 @@ export default function SettingsPage() {
 								</div>
 							</div>
 
-							{/* Invoice Configuration Section */}
-							<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
-								<div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
-									<FileText className="w-5 h-5 text-blue-600" />
-									<h2 className="text-base font-bold text-slate-800">Invoice Configuration</h2>
-								</div>
-
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div>
-										<label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
-											Invoice Prefix
-										</label>
-										<input
-											type="text"
-											value={invoicePrefix}
-											disabled={!canManageBusiness}
-											onChange={(e) => setInvoicePrefix(e.target.value.toUpperCase())}
-											placeholder="e.g. INV"
-											maxLength={10}
-											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-mono uppercase disabled:bg-slate-100 disabled:text-slate-500"
-										/>
-										<p className="text-[11px] text-slate-400 mt-1">
-											Default: <span className="font-mono font-semibold">INV</span> (e.g. INV-2026-000001)
-										</p>
-									</div>
-									<div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 text-xs text-slate-600 flex flex-col justify-center">
-										<p className="font-semibold text-slate-800 mb-0.5">GST Printing Rule</p>
-										<p className="text-[11px] text-slate-500">
-											GST breakdown on printouts is governed individually per invoice via the invoice GST toggle.
-										</p>
-									</div>
-								</div>
-							</div>
+							{/* Invoice Configuration Section: separate GST / non-GST numbering (prefixes: Owner only) */}
+							<InvoiceSeriesSection isOwner={Boolean(user?.isOwner || user?.role === 'Owner')} />
 
 							{/* Bottom Save Action */}
 							{canManageBusiness && (
