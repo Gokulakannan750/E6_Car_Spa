@@ -17,9 +17,9 @@ namespace CarSpaManagement.Api.Application.Common;
 public static class InvoiceCalculator
 {
     /// <summary>
-    /// Rate applied to a GST-enabled line that has no stored rate (job-card lines store 0% when GST was off
-    /// at job-card time, and outside/vendor jobs carry no catalogue rate). Matches the existing application
-    /// behaviour and the CGST 9% + SGST 9% presentation used on printed invoices.
+    /// Rate for lines that have no catalogue service of their own: outside/vendor-job lines, and the single
+    /// synthetic line of a legacy draft invoice that was stored without line records. It is NOT a fallback for
+    /// catalogue services: a service configured at 0% is taxed at 0% (see <see cref="ResolveServiceRate"/>).
     /// </summary>
     public const decimal StandardGstRatePercent = 18m;
 
@@ -31,8 +31,20 @@ public static class InvoiceCalculator
 
     public static decimal Round(decimal value) => Math.Round(value, 2, Rounding);
 
-    public static decimal ResolveGstRate(decimal storedRatePercent) =>
-        storedRatePercent > 0 ? storedRatePercent : StandardGstRatePercent;
+    /// <summary>
+    /// GST rate for a catalogue-service line. A job-card line keeps the rate it was created with, but stores 0%
+    /// both for a 0% service and for a job card created with GST switched off; in the second case the service's
+    /// configured catalogue rate is the rate that applies once the invoice is a GST invoice. 0% stays 0%.
+    /// </summary>
+    public static decimal ResolveServiceRate(decimal jobCardLineRatePercent, decimal catalogueRatePercent) =>
+        jobCardLineRatePercent > 0 ? jobCardLineRatePercent : catalogueRatePercent;
+
+    /// <summary>CGST/SGST halves of a stored line tax amount. Exact for lines produced by <see cref="Calculate"/>.</summary>
+    public static (decimal Cgst, decimal Sgst) SplitTax(decimal taxAmount)
+    {
+        var cgst = Round(taxAmount / 2m);
+        return (cgst, taxAmount - cgst);
+    }
 
     public sealed record LineInput(int Quantity, decimal UnitPrice, decimal Discount, decimal TaxRatePercent);
 
@@ -117,6 +129,50 @@ public static class InvoiceCalculator
             results.Sum(r => r.Sgst));
     }
 
+    /// <summary>Taxable value and tax of all lines charged at one GST rate. A null rate means the rate is unknown (legacy line).</summary>
+    public sealed record TaxGroup(decimal? RatePercent, decimal Taxable, decimal Cgst, decimal Sgst)
+    {
+        public decimal Tax => Cgst + Sgst;
+    }
+
+    /// <summary>
+    /// Groups line values by GST rate for display (highest rate first, unknown last). Uses the given (stored)
+    /// line amounts only — it never recalculates tax — so its totals always equal the sums of the lines.
+    /// </summary>
+    public static IReadOnlyList<TaxGroup> SummarizeByRate(IEnumerable<(decimal? RatePercent, decimal Taxable, decimal Tax)> lines) =>
+        lines
+            .GroupBy(l => l.RatePercent)
+            .Select(g =>
+            {
+                var halves = g.Select(l => SplitTax(l.Tax)).ToList();
+                return new TaxGroup(g.Key, g.Sum(l => l.Taxable), halves.Sum(h => h.Cgst), halves.Sum(h => h.Sgst));
+            })
+            .OrderBy(g => g.RatePercent is null)
+            .ThenByDescending(g => g.RatePercent)
+            .ToList();
+
+    /// <summary>
+    /// Rate-wise tax summary of a stored invoice, for display (DTOs, PDF, print, public page). Uses only the stored
+    /// line and header values — a finalized invoice is never recalculated. When the stored lines do not account for
+    /// the stored header GST (legacy invoices without line tax), the header GST is shown as one group of unknown rate.
+    /// </summary>
+    public static IReadOnlyList<TaxGroup> SummarizeStoredInvoice(Invoice invoice)
+    {
+        if (!invoice.IsGstEnabled) return [];
+
+        var lines = invoice.InvoiceItems.Where(it => !it.IsDeleted).ToList();
+        if (lines.Count > 0 && lines.Sum(l => l.TaxAmount) == invoice.GstAmount)
+            return SummarizeByRate(lines.Select(l => (l.TaxRatePercent, l.TaxableAmount, l.TaxAmount)));
+
+        if (invoice.GstAmount == 0m) return [];
+        var (cgst, sgst) = SplitTax(invoice.GstAmount);
+        return [new TaxGroup(null, invoice.TaxableAmount, cgst, sgst)];
+    }
+
+    /// <summary>Display form of a rate: 18 → "18%", 2.5 → "2.5%".</summary>
+    public static string FormatRate(decimal ratePercent) =>
+        ratePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
     /// <summary>
     /// Splits a fixed invoice-level discount across lines in proportion to their net amounts.
     /// Rounding remainder goes to the largest line so the shares always sum exactly to the discount.
@@ -140,12 +196,14 @@ public static class InvoiceCalculator
     }
 
     /// <summary>
-    /// Recalculates a draft invoice's line and header amounts from its active lines.
-    /// Service lines take the job-card line's GST rate (falling back to the standard rate when the stored
-    /// rate is 0); outside/vendor-job lines use the standard rate. Legacy invoices that never had line
-    /// records keep their stored header totals; invoices whose lines were all removed total zero.
+    /// Recalculates a draft invoice's line and header amounts from its active lines, and records on each line
+    /// the GST rate that was applied (0 on a non-GST invoice). Service lines use <paramref name="serviceRates"/>
+    /// (see <see cref="ResolveServiceRate"/>); outside/vendor-job lines use the standard rate. Legacy invoices
+    /// that never had line records keep their stored header totals; invoices whose lines were all removed total zero.
+    /// Must only be used on drafts: finalized invoices keep their stored amounts and rates.
     /// </summary>
-    public static void ApplyToInvoice(Invoice invoice, IEnumerable<JobCardService>? jobCardLines)
+    /// <exception cref="InvalidOperationException">A GST service line has no rate in <paramref name="serviceRates"/>.</exception>
+    public static void ApplyToInvoice(Invoice invoice, IReadOnlyDictionary<Guid, decimal> serviceRates)
     {
         if (invoice.InvoiceItems.Count == 0) return;
 
@@ -157,25 +215,23 @@ public static class InvoiceCalculator
             return;
         }
 
-        var ratesByService = (jobCardLines ?? Enumerable.Empty<JobCardService>())
-            .Where(l => !l.IsDeleted)
-            .GroupBy(l => l.ServiceId)
-            .ToDictionary(g => g.Key, g => g.First().TaxPercentage);
-
         decimal RateFor(InvoiceItem item)
         {
-            if (!invoice.IsGstEnabled || item.OutsideJobId.HasValue || item.ServiceId is null)
-                return StandardGstRatePercent;
-            return ResolveGstRate(ratesByService.GetValueOrDefault(item.ServiceId.Value));
+            if (!invoice.IsGstEnabled) return 0m;
+            if (item.OutsideJobId.HasValue || item.ServiceId is null) return StandardGstRatePercent;
+            if (serviceRates.TryGetValue(item.ServiceId.Value, out var rate)) return rate;
+            throw new InvalidOperationException($"The GST rate for '{item.Description}' could not be determined. Check the service in the catalogue.");
         }
 
+        var rates = items.Select(RateFor).ToList();
         var result = Calculate(
-            items.Select(i => new LineInput(i.Quantity, i.UnitPrice, i.Discount, RateFor(i))).ToList(),
+            items.Select((i, index) => new LineInput(i.Quantity, i.UnitPrice, i.Discount, rates[index])).ToList(),
             invoice.Discount,
             invoice.IsGstEnabled);
 
         for (var i = 0; i < items.Count; i++)
         {
+            items[i].TaxRatePercent = rates[i];
             items[i].TaxableAmount = result.Lines[i].Taxable;
             items[i].TaxAmount = result.Lines[i].Tax;
             items[i].TotalAmount = result.Lines[i].Total;

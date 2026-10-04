@@ -27,6 +27,13 @@ public class InvoiceItem : BaseEntity
 	[Column(TypeName = "decimal(18,2)")]
 	public decimal Discount { get; set; }
 
+	/// <summary>
+	/// GST rate applied to this line when the amounts were calculated (0 on a non-GST invoice). Frozen with the
+	/// invoice on finalization. Null only for legacy lines whose rate could not be proven from their stored amounts.
+	/// </summary>
+	[Column(TypeName = "decimal(5,2)")]
+	public decimal? TaxRatePercent { get; set; }
+
 	[Column(TypeName = "decimal(18,2)")]
 	public decimal TaxableAmount { get; set; }
 

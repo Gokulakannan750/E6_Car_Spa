@@ -118,18 +118,49 @@ public class InvoicesController : ControllerBase
 		}
 	}
 
-	[HttpPost("{id:guid}/generate")]
-	[RequirePermission("invoices.generate")]
-	public async Task<IActionResult> Generate(Guid id, CancellationToken ct)
+	/// <summary>
+	/// Calculates a draft invoice with unsaved discount / GST values without persisting anything. Clients display
+	/// these server-calculated values (preview and confirmation) instead of calculating GST themselves.
+	/// </summary>
+	[HttpPost("{id:guid}/preview")]
+	[RequirePermission("invoices.edit_draft")]
+	public async Task<IActionResult> Preview(Guid id, [FromBody] PreviewInvoiceRequest? request, CancellationToken ct)
 	{
 		try
 		{
-			var dto = await _service.GenerateInvoiceAsync(id, ct);
+			var dto = await _service.PreviewAsync(id, request ?? new PreviewInvoiceRequest(), ct);
 			return Ok(dto);
 		}
 		catch (KeyNotFoundException ex)
 		{
 			return NotFound(new { error = ex.Message });
+		}
+		catch (ArgumentOutOfRangeException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+	}
+
+	[HttpPost("{id:guid}/generate")]
+	[RequirePermission("invoices.generate")]
+	public async Task<IActionResult> Generate(Guid id, [FromBody] GenerateInvoiceRequest? request, CancellationToken ct)
+	{
+		try
+		{
+			var dto = await _service.GenerateInvoiceAsync(id, request?.ExpectedTotalAmount, ct);
+			return Ok(dto);
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (ConflictException ex)
+		{
+			return Conflict(new { error = ex.Message });
 		}
 		catch (InvalidOperationException ex)
 		{

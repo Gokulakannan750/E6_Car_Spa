@@ -12,7 +12,18 @@ public record InvoiceItemDto(
  decimal Discount,
  decimal TaxableAmount,
  decimal TaxAmount,
- decimal TotalAmount);
+ decimal TotalAmount,
+ decimal? TaxRatePercent = null,
+ decimal CgstAmount = 0m,
+ decimal SgstAmount = 0m);
+
+/// <summary>Taxable value and tax of all invoice lines at one GST rate (null rate = legacy line with unknown rate).</summary>
+public record TaxBreakdownDto(
+ decimal? RatePercent,
+ decimal TaxableAmount,
+ decimal CgstAmount,
+ decimal SgstAmount,
+ decimal TaxAmount);
 
 public record InvoiceDto(
  Guid Id,
@@ -42,7 +53,10 @@ public record InvoiceDto(
  IReadOnlyList<InvoiceItemDto> Items,
  IReadOnlyList<PaymentDto> Payments,
  DateTime CreatedAt,
- DateTime? UpdatedAt);
+ DateTime? UpdatedAt,
+ decimal CgstAmount = 0m,
+ decimal SgstAmount = 0m,
+ IReadOnlyList<TaxBreakdownDto>? TaxBreakdown = null);
 
 public record InvoiceListDto(
  Guid Id,

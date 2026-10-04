@@ -40,3 +40,12 @@ public record UpdateJobCardServicesRequest
  [MaxLength]
  public string? Notes { get; init; }
 }
+
+/// <summary>Services to estimate (same rules as job-card creation); nothing is saved.</summary>
+public record PreviewJobCardRequest
+{
+ [Required, MinLength(1)]
+ public List<JobCardServiceItemRequest> Services { get; init; } = new();
+
+ public bool IsGstEnabled { get; init; } = true;
+}

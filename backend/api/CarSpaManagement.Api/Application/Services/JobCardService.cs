@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Application.Common;
+using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.DTOs.JobCards;
 using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
 using CarSpaManagement.Api.Application.Interfaces;
@@ -268,42 +269,7 @@ public class JobCardService : IJobCardService
 		if (vehicle.CustomerId != request.CustomerId)
 			throw new InvalidOperationException("The selected vehicle does not belong to the selected customer.");
 
-		if (request.Services == null || !request.Services.Any())
-			throw new ArgumentException("At least one service is required.", nameof(request.Services));
-
-		var serviceIds = request.Services.Select(s => s.ServiceId).Distinct().ToList();
-		var services = await _db.Services
-		.Where(s => serviceIds.Contains(s.Id) && !s.IsDeleted)
-		.ToListAsync(cancellationToken);
-
-		if (services.Count != serviceIds.Count)
-			throw new KeyNotFoundException("One or more services not found.");
-
-		foreach (var svc in services)
-		{
-			if (!svc.IsActive)
-				throw new InvalidOperationException($"Service '{svc.Name}' is inactive and cannot be used.");
-		}
-
-		var serviceMap = services.ToDictionary(s => s.Id);
-		var combined = request.Services
-		.GroupBy(s => s.ServiceId)
-		.Select(g => new
-		{
-			ServiceId = g.Key,
-			Quantity = g.Sum(x => x.Quantity),
-			DiscountAmount = g.Sum(x => x.DiscountAmount)
-		})
-		.ToList();
-
-		foreach (var item in combined)
-		{
-			if (item.Quantity <= 0)
-				throw new ArgumentOutOfRangeException(nameof(item.Quantity), "Service quantity must be greater than zero.");
-
-			if (item.DiscountAmount < 0)
-				throw new ArgumentOutOfRangeException(nameof(item.DiscountAmount), "Discount amount cannot be negative.");
-		}
+		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, cancellationToken);
 
 		var jobCardNumber = await GenerateJobCardNumberAsync(cancellationToken);
 
@@ -385,6 +351,84 @@ public class JobCardService : IJobCardService
 			cancellationToken: cancellationToken);
 
 		return ToDetailDto(jobCard);
+	}
+
+	/// <summary>
+	/// Calculates a job-card estimate through the authoritative calculator without saving anything, using exactly the
+	/// rules of <see cref="CreateAsync"/>. The New Job Card and edit-services screens display these values.
+	/// </summary>
+	public async Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default)
+	{
+		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, cancellationToken);
+
+		var rates = combined.Select(item => request.IsGstEnabled ? serviceMap[item.ServiceId].TaxPercentage : 0m).ToList();
+		var calculation = InvoiceCalculator.Calculate(
+			combined.Select((item, index) => new InvoiceCalculator.LineInput(
+				item.Quantity, serviceMap[item.ServiceId].Price, item.DiscountAmount, rates[index])).ToList(),
+			invoiceDiscount: 0m,
+			isGstEnabled: true);
+
+		var lines = combined.Select((item, index) =>
+		{
+			var line = calculation.Lines[index];
+			var svc = serviceMap[item.ServiceId];
+			return new JobCardEstimateLineDto(svc.Id, svc.Name, item.Quantity, svc.Price, line.LineDiscount, rates[index], line.Taxable, line.Tax, line.Total);
+		}).ToList();
+
+		var breakdown = request.IsGstEnabled
+			? InvoiceCalculator.SummarizeByRate(lines.Select(l => ((decimal?)l.TaxRatePercent, l.TaxableAmount, l.TaxAmount)))
+				.Select(g => new TaxBreakdownDto(g.RatePercent, g.Taxable, g.Cgst, g.Sgst, g.Tax))
+				.ToList()
+			: [];
+
+		return new JobCardEstimateDto(
+			lines,
+			calculation.Lines.Sum(l => l.Gross),
+			calculation.Lines.Sum(l => l.LineDiscount),
+			calculation.Taxable,
+			calculation.Cgst,
+			calculation.Sgst,
+			calculation.GstAmount,
+			calculation.Total,
+			breakdown);
+	}
+
+	/// <summary>Validates requested job-card services and merges repeated services into one line each.</summary>
+	private async Task<(List<(Guid ServiceId, int Quantity, decimal DiscountAmount)> Lines, Dictionary<Guid, Domain.Entities.Service> ServiceMap)>
+		LoadServiceLinesAsync(IReadOnlyCollection<JobCardServiceItemRequest>? requested, CancellationToken cancellationToken)
+	{
+		if (requested == null || requested.Count == 0)
+			throw new ArgumentException("At least one service is required.", nameof(requested));
+
+		var serviceIds = requested.Select(s => s.ServiceId).Distinct().ToList();
+		var services = await _db.Services
+		.Where(s => serviceIds.Contains(s.Id) && !s.IsDeleted)
+		.ToListAsync(cancellationToken);
+
+		if (services.Count != serviceIds.Count)
+			throw new KeyNotFoundException("One or more services not found.");
+
+		foreach (var svc in services)
+		{
+			if (!svc.IsActive)
+				throw new InvalidOperationException($"Service '{svc.Name}' is inactive and cannot be used.");
+		}
+
+		var combined = requested
+		.GroupBy(s => s.ServiceId)
+		.Select(g => (ServiceId: g.Key, Quantity: g.Sum(x => x.Quantity), DiscountAmount: g.Sum(x => x.DiscountAmount)))
+		.ToList();
+
+		foreach (var item in combined)
+		{
+			if (item.Quantity <= 0)
+				throw new ArgumentOutOfRangeException(nameof(item.Quantity), "Service quantity must be greater than zero.");
+
+			if (item.DiscountAmount < 0)
+				throw new ArgumentOutOfRangeException(nameof(item.DiscountAmount), "Discount amount cannot be negative.");
+		}
+
+		return (combined, services.ToDictionary(s => s.Id));
 	}
 
 	public async Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default)

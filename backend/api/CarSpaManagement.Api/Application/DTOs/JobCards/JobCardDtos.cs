@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
 using CarSpaManagement.Api.Domain.Enums;
 
@@ -54,3 +55,27 @@ public record JobCardListDto(
     VehicleLocationDto? VehicleLocation = null);
 
 public record JobCardListResponse(IReadOnlyList<JobCardListDto> Items, int TotalCount, int Page, int PageSize);
+
+/// <summary>One line of a server-calculated job-card estimate.</summary>
+public record JobCardEstimateLineDto(
+    Guid ServiceId,
+    string ServiceName,
+    int Quantity,
+    decimal UnitPrice,
+    decimal DiscountAmount,
+    decimal TaxRatePercent,
+    decimal TaxableAmount,
+    decimal TaxAmount,
+    decimal LineTotal);
+
+/// <summary>Server-calculated job-card estimate (authoritative InvoiceCalculator, nothing saved).</summary>
+public record JobCardEstimateDto(
+    IReadOnlyList<JobCardEstimateLineDto> Lines,
+    decimal Subtotal,
+    decimal DiscountAmount,
+    decimal TaxableAmount,
+    decimal CgstAmount,
+    decimal SgstAmount,
+    decimal TaxAmount,
+    decimal TotalAmount,
+    IReadOnlyList<TaxBreakdownDto> TaxBreakdown);

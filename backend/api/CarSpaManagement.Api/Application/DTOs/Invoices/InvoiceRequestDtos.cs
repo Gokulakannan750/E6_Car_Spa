@@ -16,3 +16,15 @@ public record CancelInvoiceRequest(
 
 public record UpdateInvoiceNumberRequest(
  string InvoiceNumber);
+
+/// <summary>Draft values to calculate without saving (null = keep the stored value).</summary>
+public record PreviewInvoiceRequest(
+ decimal? Discount = null,
+ bool? IsGstEnabled = null);
+
+/// <summary>
+/// Optional body for generation. When ExpectedTotalAmount is given, generation is refused (409) if the authoritative
+/// total differs, so the amount the user confirmed is exactly the amount issued.
+/// </summary>
+public record GenerateInvoiceRequest(
+ decimal? ExpectedTotalAmount = null);

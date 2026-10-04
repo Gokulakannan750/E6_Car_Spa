@@ -88,6 +88,31 @@ public class JobCardsController : ControllerBase
 		return Ok(new JobCardListResponse(items, total, page, pageSize));
 	}
 
+	/// <summary>Server-calculated estimate for a set of services (nothing is saved).</summary>
+	[HttpPost("preview")]
+	[RequirePermission("jobcards.view")]
+	public async Task<IActionResult> Preview([FromBody] PreviewJobCardRequest request, CancellationToken ct)
+	{
+		if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+		try
+		{
+			return Ok(await _service.PreviewAsync(request, ct));
+		}
+		catch (KeyNotFoundException ex)
+		{
+			return NotFound(new { error = ex.Message });
+		}
+		catch (InvalidOperationException ex)
+		{
+			return Conflict(new { error = ex.Message });
+		}
+		catch (ArgumentException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+	}
+
 	[HttpPost]
 	[RequirePermission("jobcards.create")]
 	public async Task<IActionResult> Create([FromBody] CreateJobCardRequest request, CancellationToken ct)

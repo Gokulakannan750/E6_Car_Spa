@@ -213,7 +213,8 @@ public class InvoiceService : IInvoiceService
 			IsDeleted = false
 		};
 
-		InvoiceCalculator.ApplyToInvoice(invoice, jobCard.JobCardServices);
+		InvoiceCalculator.ApplyToInvoice(invoice,
+			await InvoiceTaxRates.ForDraftAsync(_db, invoice, jobCard.JobCardServices, cancellationToken));
 
 		_db.Invoices.Add(invoice);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -248,37 +249,8 @@ public class InvoiceService : IInvoiceService
 		var oldDiscount = invoice.Discount;
 		var oldGst = invoice.IsGstEnabled;
 
-		if (request.IsGstEnabled.HasValue)
-		{
-			invoice.IsGstEnabled = request.IsGstEnabled.Value;
-		}
-
 		if (request.Discount.HasValue || request.IsGstEnabled.HasValue)
-		{
-			var newDiscount = request.Discount.HasValue ? InvoiceCalculator.Round(request.Discount.Value) : invoice.Discount;
-			if (newDiscount < 0)
-				throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot be negative.");
-
-			invoice.Discount = newDiscount;
-			if (invoice.InvoiceItems.Any(i => !i.IsDeleted))
-			{
-				InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
-			}
-			else
-			{
-				// Legacy invoice without line items: header-only recalculation at the standard rate.
-				if (newDiscount > invoice.Subtotal)
-					throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot exceed subtotal.");
-				var header = InvoiceCalculator.Calculate(
-					[new InvoiceCalculator.LineInput(1, invoice.Subtotal, 0m, InvoiceCalculator.StandardGstRatePercent)],
-					newDiscount,
-					invoice.IsGstEnabled);
-				invoice.TaxableAmount = header.Taxable;
-				invoice.GstAmount = header.GstAmount;
-				invoice.TotalAmount = header.Total;
-				invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
-			}
-		}
+			await ApplyDraftFinancialsAsync(invoice, request.Discount, request.IsGstEnabled, cancellationToken);
 
 		if (request.Notes is not null)
 			invoice.Notes = request.Notes;
@@ -306,7 +278,69 @@ public class InvoiceService : IInvoiceService
 		return ToDto(invoice);
 	}
 
-	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default)
+	/// <summary>
+	/// Calculates a draft with the given (unsaved) discount / GST choice through the authoritative calculator and
+	/// returns it without persisting anything. Clients show these values instead of calculating GST themselves.
+	/// </summary>
+	public async Task<InvoiceDto> PreviewAsync(Guid id, PreviewInvoiceRequest request, CancellationToken cancellationToken = default)
+	{
+		var invoice = await _db.Invoices
+			.AsNoTracking()
+			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
+			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
+			.Include(i => i.JobCard)
+				.ThenInclude(j => j.JobCardServices)
+			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+		if (invoice is null || invoice.IsDeleted)
+			throw new KeyNotFoundException("Invoice not found.");
+
+		// Finalized invoices are never recalculated: their stored amounts are returned unchanged.
+		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
+			return ToDto(invoice);
+
+		await ApplyDraftFinancialsAsync(invoice, request.Discount, request.IsGstEnabled, cancellationToken);
+		return ToDto(invoice);
+	}
+
+	/// <summary>Applies a discount / GST choice to a draft and recalculates it. Callers decide whether to save.</summary>
+	private async Task ApplyDraftFinancialsAsync(Invoice invoice, decimal? discount, bool? isGstEnabled, CancellationToken cancellationToken)
+	{
+		if (isGstEnabled.HasValue)
+			invoice.IsGstEnabled = isGstEnabled.Value;
+
+		var newDiscount = discount.HasValue ? InvoiceCalculator.Round(discount.Value) : invoice.Discount;
+		if (newDiscount < 0)
+			throw new ArgumentOutOfRangeException(nameof(discount), "Discount cannot be negative.");
+
+		invoice.Discount = newDiscount;
+		if (invoice.InvoiceItems.Any(i => !i.IsDeleted))
+		{
+			InvoiceCalculator.ApplyToInvoice(invoice,
+				await InvoiceTaxRates.ForDraftAsync(_db, invoice, invoice.JobCard?.JobCardServices, cancellationToken));
+		}
+		else
+		{
+			// Legacy invoice without line items: header-only recalculation at the standard rate.
+			if (newDiscount > invoice.Subtotal)
+				throw new ArgumentOutOfRangeException(nameof(discount), "Discount cannot exceed subtotal.");
+			var header = InvoiceCalculator.Calculate(
+				[new InvoiceCalculator.LineInput(1, invoice.Subtotal, 0m, InvoiceCalculator.StandardGstRatePercent)],
+				newDiscount,
+				invoice.IsGstEnabled);
+			invoice.TaxableAmount = header.Taxable;
+			invoice.GstAmount = header.GstAmount;
+			invoice.TotalAmount = header.Total;
+			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+		}
+	}
+
+	public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) =>
+		GenerateInvoiceAsync(id, expectedTotalAmount: null, cancellationToken);
+
+	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default)
 	{
 		var invoice = await _db.Invoices
 			.Include(i => i.InvoiceItems)
@@ -394,7 +428,13 @@ public class InvoiceService : IInvoiceService
 		if (invoice.Discount < 0)
 			throw new ArgumentOutOfRangeException(nameof(invoice.Discount), "Discount cannot be negative.");
 
-		InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
+		InvoiceCalculator.ApplyToInvoice(invoice,
+			await InvoiceTaxRates.ForDraftAsync(_db, invoice, invoice.JobCard?.JobCardServices, cancellationToken));
+
+		// The user confirmed an amount: never issue a different one.
+		if (expectedTotalAmount.HasValue && InvoiceCalculator.Round(expectedTotalAmount.Value) != invoice.TotalAmount)
+			throw new ConflictException(
+				$"The invoice total is now ₹{invoice.TotalAmount:N2}, not the ₹{expectedTotalAmount.Value:N2} that was confirmed. Review the invoice and generate it again.");
 
 		// Transactional numbering, status finalization and audit logging
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
@@ -858,7 +898,10 @@ public class InvoiceService : IInvoiceService
 			.ToListAsync(cancellationToken);
 	}
 
-	private static InvoiceDto ToDto(Invoice i) => new(
+	private static InvoiceDto ToDto(Invoice i)
+	{
+		var breakdown = BuildTaxBreakdown(i);
+		return new(
 		i.Id,
 		i.InvoiceNumber,
 		i.JobCardId,
@@ -883,17 +926,7 @@ public class InvoiceService : IInvoiceService
 		i.Status,
 		i.Notes,
 		i.IsGstEnabled,
-		i.InvoiceItems.Select(it => new InvoiceItemDto(
-			it.Id,
-			it.ServiceId,
-			it.OutsideJobId,
-			it.Description,
-			it.Quantity,
-			it.UnitPrice,
-			it.Discount,
-			it.TaxableAmount,
-			it.TaxAmount,
-			it.TotalAmount)).ToList(),
+		i.InvoiceItems.Where(it => !it.IsDeleted).OrderBy(it => it.CreatedAt).Select(ToItemDto).ToList(),
 		i.Payments.Where(p => !p.IsDeleted)
 			.OrderByDescending(p => p.PaymentDate)
 			.ThenByDescending(p => p.CreatedAt)
@@ -906,7 +939,36 @@ public class InvoiceService : IInvoiceService
 				p.PaymentDate,
 				p.CreatedAt)).ToList(),
 		i.CreatedAt,
-		i.UpdatedAt);
+		i.UpdatedAt,
+		breakdown.Sum(b => b.CgstAmount),
+		breakdown.Sum(b => b.SgstAmount),
+		breakdown);
+	}
+
+	private static InvoiceItemDto ToItemDto(InvoiceItem it)
+	{
+		var (cgst, sgst) = InvoiceCalculator.SplitTax(it.TaxAmount);
+		return new InvoiceItemDto(
+			it.Id,
+			it.ServiceId,
+			it.OutsideJobId,
+			it.Description,
+			it.Quantity,
+			it.UnitPrice,
+			it.Discount,
+			it.TaxableAmount,
+			it.TaxAmount,
+			it.TotalAmount,
+			it.TaxRatePercent,
+			cgst,
+			sgst);
+	}
+
+	/// <summary>Rate-wise tax summary built from the stored values only (never recalculated).</summary>
+	public static IReadOnlyList<TaxBreakdownDto> BuildTaxBreakdown(Invoice invoice) =>
+		InvoiceCalculator.SummarizeStoredInvoice(invoice)
+			.Select(g => new TaxBreakdownDto(g.RatePercent, g.Taxable, g.Cgst, g.Sgst, g.Tax))
+			.ToList();
 
 	private static InvoiceListDto ToListDto(Invoice i) => new(
 		i.Id,
@@ -1194,13 +1256,16 @@ public class InvoiceService : IInvoiceService
 				Description: ii.Description,
 				Quantity: ii.Quantity,
 				Rate: ii.UnitPrice,
-				Amount: Math.Round(ii.UnitPrice * ii.Quantity, 2),
-				HsnSac: isGst ? "998729" : null
+				Amount: InvoiceCalculator.Round(ii.UnitPrice * ii.Quantity),
+				HsnSac: isGst ? "998729" : null,
+				TaxRatePercent: isGst ? ii.TaxRatePercent : null
 			))
 			.ToList();
 
-		var cgst = isGst ? Math.Round(invoice.GstAmount / 2m, 2) : (decimal?)null;
-		var sgst = isGst ? Math.Round(invoice.GstAmount / 2m, 2) : (decimal?)null;
+		// Stored values only: a finalized invoice is never recalculated.
+		var breakdown = BuildTaxBreakdown(invoice);
+		var cgst = isGst ? breakdown.Sum(b => b.CgstAmount) : (decimal?)null;
+		var sgst = isGst ? breakdown.Sum(b => b.SgstAmount) : (decimal?)null;
 		var taxableValue = isGst ? invoice.TaxableAmount : (decimal?)null;
 
 		var financials = new PublicFinancialsDto(
@@ -1211,7 +1276,8 @@ public class InvoiceService : IInvoiceService
 			Sgst: sgst,
 			TotalAmount: invoice.TotalAmount,
 			PaidAmount: invoice.PaidAmount,
-			BalanceAmount: invoice.BalanceAmount
+			BalanceAmount: invoice.BalanceAmount,
+			TaxBreakdown: breakdown
 		);
 
 		return new PublicInvoiceDto(
