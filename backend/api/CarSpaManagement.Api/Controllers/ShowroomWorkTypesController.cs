@@ -19,11 +19,22 @@ public class ShowroomWorkTypesController : ControllerBase
         _service = service;
     }
 
+    private bool IsCallerOwner()
+    {
+        return User.IsInRole("Owner") || string.Equals(User.FindFirst("isOwner")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
     [HttpGet]
     [RequirePermission("showroom.view")]
-    public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null, CancellationToken ct = default)
+    public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null, [FromQuery] bool? includeInactive = null, CancellationToken ct = default)
     {
-        var types = await _service.GetWorkTypesAsync(isActive, ct);
+        bool? filterIsActive = isActive;
+        if (!filterIsActive.HasValue && includeInactive.HasValue)
+        {
+            filterIsActive = includeInactive.Value ? null : true;
+        }
+
+        var types = await _service.GetWorkTypesAsync(filterIsActive, ct);
         return Ok(types);
     }
 
@@ -37,9 +48,15 @@ public class ShowroomWorkTypesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Owner")]
     [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Create([FromBody] CreateShowroomWorkTypeRequest request, CancellationToken ct = default)
     {
+        if (!IsCallerOwner())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the Owner can manage showroom work types." });
+        }
+
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         try
@@ -58,9 +75,15 @@ public class ShowroomWorkTypesController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Owner")]
     [RequirePermission("showroom.manage")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShowroomWorkTypeRequest request, CancellationToken ct = default)
     {
+        if (!IsCallerOwner())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the Owner can manage showroom work types." });
+        }
+
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         try
@@ -80,9 +103,15 @@ public class ShowroomWorkTypesController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/toggle-active")]
+    [Authorize(Roles = "Owner")]
     [RequirePermission("showroom.manage")]
     public async Task<IActionResult> ToggleActive(Guid id, CancellationToken ct = default)
     {
+        if (!IsCallerOwner())
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the Owner can manage showroom work types." });
+        }
+
         var toggled = await _service.ToggleWorkTypeActiveAsync(id, ct);
         if (!toggled) return NotFound(new { message = $"Work type with ID '{id}' was not found." });
         return NoContent();

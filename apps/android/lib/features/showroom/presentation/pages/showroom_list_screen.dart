@@ -216,6 +216,15 @@ class _ShowroomListScreenState extends ConsumerState<ShowroomListScreen>
               tooltip: 'Showroom Receivables',
             ),
             IconButton(
+              key: const Key('showroom_configuration_button'),
+              onPressed: () => context.push(AppRoutes.showroomConfiguration),
+              icon: const Icon(
+                Icons.tune_rounded,
+                color: AppColors.textPrimary,
+              ),
+              tooltip: 'Showroom Configuration',
+            ),
+            IconButton(
               onPressed: () =>
                   ref.read(showroomsProvider.notifier).loadShowrooms(),
               icon: const Icon(

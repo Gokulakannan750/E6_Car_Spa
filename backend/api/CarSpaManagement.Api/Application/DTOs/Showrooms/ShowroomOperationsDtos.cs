@@ -15,8 +15,8 @@ public record ShowroomVehicleTypeDto(
 
 public record CreateShowroomVehicleTypeRequest
 {
-    [Required, MaxLength(50)]
-    public string Code { get; init; } = string.Empty;
+    [MaxLength(50)]
+    public string? Code { get; init; }
 
     [Required, MaxLength(100)]
     public string Name { get; init; } = string.Empty;
@@ -52,8 +52,8 @@ public record ShowroomWorkTypeDto(
 
 public record CreateShowroomWorkTypeRequest
 {
-    [Required, MaxLength(50)]
-    public string Code { get; init; } = string.Empty;
+    [MaxLength(50)]
+    public string? Code { get; init; }
 
     [Required, MaxLength(100)]
     public string Name { get; init; } = string.Empty;
@@ -266,6 +266,11 @@ public record IndividualVehicleWorkEntry
 
     [MaxLength(500)]
     public string? Notes { get; init; }
+
+    public Dictionary<Guid, string>? WorkTypeNotes { get; init; }
+
+    [MaxLength(500)]
+    public string? OtherDescription { get; init; }
 }
 
 public record CreateBatchShowroomVehicleWorkRequest

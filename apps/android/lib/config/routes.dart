@@ -70,5 +70,6 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String companySettings = '/settings/company';
   static const String users = '/settings/users';
+  static const String showroomConfiguration = '/showroom/configuration';
   static const String systemPreferences = '/settings/preferences';
 }

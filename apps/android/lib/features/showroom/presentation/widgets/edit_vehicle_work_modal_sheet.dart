@@ -32,6 +32,7 @@ class _EditVehicleWorkModalSheetState
   late String _selectedVehicleTypeId;
   late final Set<String> _selectedWorkTypeIds;
   late final TextEditingController _notesController;
+  late final Map<String, TextEditingController> _workTypeNoteControllers;
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -45,6 +46,11 @@ class _EditVehicleWorkModalSheetState
         .map((e) => e.workTypeId)
         .toSet();
     _notesController = TextEditingController(text: widget.work.notes ?? '');
+    _workTypeNoteControllers = {};
+    for (final item in widget.work.serviceItems) {
+      _workTypeNoteControllers[item.workTypeId] =
+          TextEditingController(text: item.notes ?? '');
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final dailyNotifier = ref.read(
@@ -66,7 +72,30 @@ class _EditVehicleWorkModalSheetState
   @override
   void dispose() {
     _notesController.dispose();
+    for (final c in _workTypeNoteControllers.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  List<ShowroomWorkType> _getDisplayedWorkTypes(
+    List<ShowroomWorkType> activeWorkTypes,
+  ) {
+    final list = List<ShowroomWorkType>.from(activeWorkTypes);
+    for (final item in widget.work.serviceItems) {
+      if (!list.any((wt) => wt.id == item.workTypeId)) {
+        list.add(
+          ShowroomWorkType(
+            id: item.workTypeId,
+            name: '${item.workTypeName} (Inactive)',
+            code: item.workTypeCode,
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+      }
+    }
+    return list;
   }
 
   Future<void> _handleSubmit() async {
@@ -95,6 +124,33 @@ class _EditVehicleWorkModalSheetState
       return;
     }
 
+    // Validate "Other" work type description
+    final opsState = ref.read(showroomOperationsProvider(widget.showroomId));
+    final displayedWorkTypes = _getDisplayedWorkTypes(opsState.workTypes);
+    for (final id in _selectedWorkTypeIds) {
+      final wt = displayedWorkTypes.firstWhere(
+        (w) => w.id == id,
+        orElse: () => ShowroomWorkType(
+          id: id,
+          code: '',
+          name: '',
+          createdAt: DateTime.now(),
+        ),
+      );
+      final isOther =
+          wt.name.trim().toLowerCase().contains('other') ||
+          wt.code.trim().toUpperCase() == 'OTHER';
+      if (isOther) {
+        final note = _workTypeNoteControllers[id]?.text.trim() ?? '';
+        if (note.isEmpty) {
+          setState(() {
+            _errorMessage = 'Please specify work performed for "Other".';
+          });
+          return;
+        }
+      }
+    }
+
     setState(() {
       _isSubmitting = true;
     });
@@ -103,9 +159,13 @@ class _EditVehicleWorkModalSheetState
       final request = UpdateShowroomVehicleWorkRequest(
         staffId: _selectedStaffId,
         vehicleTypeId: _selectedVehicleTypeId,
-        serviceItems: _selectedWorkTypeIds
-            .map((id) => CreateShowroomVehicleWorkItemRequest(workTypeId: id))
-            .toList(),
+        serviceItems: _selectedWorkTypeIds.map((id) {
+          final note = _workTypeNoteControllers[id]?.text.trim();
+          return CreateShowroomVehicleWorkItemRequest(
+            workTypeId: id,
+            notes: (note != null && note.isNotEmpty) ? note : null,
+          );
+        }).toList(),
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
@@ -180,7 +240,40 @@ class _EditVehicleWorkModalSheetState
     }
 
     final vehicleTypes = opsState.vehicleTypes;
-    final workTypes = opsState.workTypes;
+    final vehicleTypeItems = vehicleTypes.map((vType) {
+      return DropdownMenuItem<String>(
+        value: vType.id,
+        child: Text(
+          vType.name,
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.textPrimary,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      );
+    }).toList();
+
+    if (_selectedVehicleTypeId.isNotEmpty &&
+        !vehicleTypes.any((vt) => vt.id == _selectedVehicleTypeId)) {
+      vehicleTypeItems.insert(
+        0,
+        DropdownMenuItem<String>(
+          value: _selectedVehicleTypeId,
+          child: Text(
+            '${widget.work.vehicleTypeName.isNotEmpty ? widget.work.vehicleTypeName : 'Selected Type'} (Inactive)',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      );
+    }
+
+    final displayedWorkTypes = _getDisplayedWorkTypes(opsState.workTypes);
 
     return Container(
       decoration: const BoxDecoration(
@@ -298,19 +391,7 @@ class _EditVehicleWorkModalSheetState
                         isExpanded: true,
                         value: _selectedVehicleTypeId,
                         hint: const Text('Select vehicle type'),
-                        items: vehicleTypes.map((vType) {
-                          return DropdownMenuItem<String>(
-                            value: vType.id,
-                            child: Text(
-                              vType.name,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textPrimary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          );
-                        }).toList(),
+                        items: vehicleTypeItems,
                         onChanged: (val) {
                           if (val != null) {
                             setState(() {
@@ -333,7 +414,7 @@ class _EditVehicleWorkModalSheetState
                     ),
                   ),
                   const SizedBox(height: 6),
-                  if (workTypes.isEmpty)
+                  if (displayedWorkTypes.isEmpty)
                     const Text(
                       'No work types available.',
                       style: TextStyle(
@@ -345,7 +426,7 @@ class _EditVehicleWorkModalSheetState
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
-                      children: workTypes.map((wType) {
+                      children: displayedWorkTypes.map((wType) {
                         final isSelected = _selectedWorkTypeIds.contains(
                           wType.id,
                         );
@@ -357,6 +438,10 @@ class _EditVehicleWorkModalSheetState
                             setState(() {
                               if (selected) {
                                 _selectedWorkTypeIds.add(wType.id);
+                                _workTypeNoteControllers.putIfAbsent(
+                                  wType.id,
+                                  () => TextEditingController(),
+                                );
                               } else {
                                 _selectedWorkTypeIds.remove(wType.id);
                               }
@@ -386,6 +471,23 @@ class _EditVehicleWorkModalSheetState
                         );
                       }).toList(),
                     ),
+
+                  // "Other" work type description fields
+                  for (final wType in displayedWorkTypes)
+                    if (_selectedWorkTypeIds.contains(wType.id) &&
+                        (wType.name.trim().toLowerCase().contains('other') ||
+                            wType.code.trim().toUpperCase() == 'OTHER')) ...[
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        key: Key('edit_other_work_type_${wType.id}'),
+                        label: 'Specify work performed: *',
+                        hint: 'e.g. Engine bay cleaning, ceramic touch-up',
+                        controller: _workTypeNoteControllers.putIfAbsent(
+                          wType.id,
+                          () => TextEditingController(),
+                        ),
+                      ),
+                    ],
                   const SizedBox(height: 12),
 
                   // 4. Notes

@@ -201,6 +201,46 @@ class ShowroomApi {
         .toList();
   }
 
+  Future<ShowroomVehicleType> createShowroomVehicleType({
+    required String name,
+    int displayOrder = 0,
+    String? code,
+  }) async {
+    final response = await _dio.post(
+      '/showroom-vehicle-types',
+      data: {
+        'name': name,
+        'displayOrder': displayOrder,
+        if (code != null && code.isNotEmpty) 'code': code,
+      },
+    );
+    return ShowroomVehicleType.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ShowroomVehicleType> updateShowroomVehicleType(
+    String id, {
+    required String name,
+    int displayOrder = 0,
+    bool isActive = true,
+    String? code,
+  }) async {
+    final response = await _dio.put(
+      '/showroom-vehicle-types/$id',
+      data: {
+        'name': name,
+        'displayOrder': displayOrder,
+        'isActive': isActive,
+        if (code != null && code.isNotEmpty) 'code': code,
+      },
+    );
+    return ShowroomVehicleType.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ShowroomVehicleType> toggleVehicleTypeActive(String id) async {
+    final response = await _dio.patch('/showroom-vehicle-types/$id/toggle-active');
+    return ShowroomVehicleType.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async {
     final queryParameters = <String, dynamic>{};
     if (isActive != null) queryParameters['isActive'] = isActive;
@@ -213,6 +253,51 @@ class ShowroomApi {
     return rawList
         .map((e) => ShowroomWorkType.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<ShowroomWorkType> createShowroomWorkType({
+    required String name,
+    String? description,
+    int displayOrder = 0,
+    String? code,
+  }) async {
+    final response = await _dio.post(
+      '/showroom-work-types',
+      data: {
+        'name': name,
+        if (description != null && description.isNotEmpty)
+          'description': description,
+        'displayOrder': displayOrder,
+        if (code != null && code.isNotEmpty) 'code': code,
+      },
+    );
+    return ShowroomWorkType.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ShowroomWorkType> updateShowroomWorkType(
+    String id, {
+    required String name,
+    String? description,
+    int displayOrder = 0,
+    bool isActive = true,
+    String? code,
+  }) async {
+    final response = await _dio.put(
+      '/showroom-work-types/$id',
+      data: {
+        'name': name,
+        'description': description,
+        'displayOrder': displayOrder,
+        'isActive': isActive,
+        if (code != null && code.isNotEmpty) 'code': code,
+      },
+    );
+    return ShowroomWorkType.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<ShowroomWorkType> toggleWorkTypeActive(String id) async {
+    final response = await _dio.patch('/showroom-work-types/$id/toggle-active');
+    return ShowroomWorkType.fromJson(response.data as Map<String, dynamic>);
   }
 
   // ── Showroom Vehicle Work ────────────────────────────────────────────────

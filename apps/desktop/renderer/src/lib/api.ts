@@ -2399,7 +2399,7 @@ export interface ShowroomVehicleTypeDto {
 }
 
 export interface CreateShowroomVehicleTypeRequest {
-	code: string;
+	code?: string;
 	name: string;
 	displayOrder?: number;
 	isActive?: boolean;
@@ -2413,7 +2413,7 @@ export interface UpdateShowroomVehicleTypeRequest {
 }
 
 export async function getShowroomVehicleTypes(includeInactive = false) {
-	const qs = includeInactive ? '?includeInactive=true' : '';
+	const qs = includeInactive ? '?includeInactive=true' : '?isActive=true';
 	return request<ShowroomVehicleTypeDto[]>('/api/showroom-vehicle-types' + qs, {}, 'view showroom vehicle types');
 }
 
@@ -2436,7 +2436,7 @@ export async function updateShowroomVehicleType(id: string, data: UpdateShowroom
 }
 
 export async function toggleShowroomVehicleTypeActive(id: string) {
-	return request<void>(`/api/showroom-vehicle-types/${encodeURIComponent(id)}/toggle-status`, {
+	return request<void>(`/api/showroom-vehicle-types/${encodeURIComponent(id)}/toggle-active`, {
 		method: 'PATCH',
 	}, 'manage showroom vehicle types');
 }
@@ -2452,7 +2452,7 @@ export interface ShowroomWorkTypeDto {
 }
 
 export interface CreateShowroomWorkTypeRequest {
-	code: string;
+	code?: string;
 	name: string;
 	description?: string | null;
 	displayOrder?: number;
@@ -2468,7 +2468,7 @@ export interface UpdateShowroomWorkTypeRequest {
 }
 
 export async function getShowroomWorkTypes(includeInactive = false) {
-	const qs = includeInactive ? '?includeInactive=true' : '';
+	const qs = includeInactive ? '?includeInactive=true' : '?isActive=true';
 	return request<ShowroomWorkTypeDto[]>('/api/showroom-work-types' + qs, {}, 'view showroom work types');
 }
 
@@ -2491,7 +2491,7 @@ export async function updateShowroomWorkType(id: string, data: UpdateShowroomWor
 }
 
 export async function toggleShowroomWorkTypeActive(id: string) {
-	return request<void>(`/api/showroom-work-types/${encodeURIComponent(id)}/toggle-status`, {
+	return request<void>(`/api/showroom-work-types/${encodeURIComponent(id)}/toggle-active`, {
 		method: 'PATCH',
 	}, 'manage showroom work types');
 }
@@ -2660,6 +2660,8 @@ export interface IndividualVehicleWorkEntry {
 	vehicleTypeId: string;
 	workTypeIds: string[];
 	notes?: string | null;
+	workTypeNotes?: Record<string, string>;
+	otherDescription?: string;
 }
 
 export interface CreateBatchShowroomVehicleWorkRequest {

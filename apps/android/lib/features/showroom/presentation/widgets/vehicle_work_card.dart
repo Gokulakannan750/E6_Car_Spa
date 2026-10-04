@@ -194,6 +194,11 @@ class VehicleWorkCard extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 children: work.serviceItems.map((item) {
+                  final hasNotes =
+                      item.notes != null && item.notes!.trim().isNotEmpty;
+                  final label = hasNotes
+                      ? '${item.workTypeName}: ${item.notes!.trim()}'
+                      : item.workTypeName;
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 7,
@@ -207,7 +212,7 @@ class VehicleWorkCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      item.workTypeName,
+                      label,
                       style: const TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.w500,

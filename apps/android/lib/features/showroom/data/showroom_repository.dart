@@ -202,9 +202,101 @@ class ShowroomRepository {
     }
   }
 
+  Future<ShowroomVehicleType> createShowroomVehicleType({
+    required String name,
+    int displayOrder = 0,
+    String? code,
+  }) async {
+    try {
+      return await _api.createShowroomVehicleType(
+        name: name,
+        displayOrder: displayOrder,
+        code: code,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomVehicleType> updateShowroomVehicleType(
+    String id, {
+    required String name,
+    int displayOrder = 0,
+    bool isActive = true,
+    String? code,
+  }) async {
+    try {
+      return await _api.updateShowroomVehicleType(
+        id,
+        name: name,
+        displayOrder: displayOrder,
+        isActive: isActive,
+        code: code,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomVehicleType> toggleVehicleTypeActive(String id) async {
+    try {
+      return await _api.toggleVehicleTypeActive(id);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<List<ShowroomWorkType>> getShowroomWorkTypes({bool? isActive}) async {
     try {
       return await _api.getShowroomWorkTypes(isActive: isActive);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomWorkType> createShowroomWorkType({
+    required String name,
+    String? description,
+    int displayOrder = 0,
+    String? code,
+  }) async {
+    try {
+      return await _api.createShowroomWorkType(
+        name: name,
+        description: description,
+        displayOrder: displayOrder,
+        code: code,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomWorkType> updateShowroomWorkType(
+    String id, {
+    required String name,
+    String? description,
+    int displayOrder = 0,
+    bool isActive = true,
+    String? code,
+  }) async {
+    try {
+      return await _api.updateShowroomWorkType(
+        id,
+        name: name,
+        description: description,
+        displayOrder: displayOrder,
+        isActive: isActive,
+        code: code,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ShowroomWorkType> toggleWorkTypeActive(String id) async {
+    try {
+      return await _api.toggleWorkTypeActive(id);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
