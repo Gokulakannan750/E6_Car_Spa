@@ -41,6 +41,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WhatsAppConfiguration> WhatsAppConfigurations => Set<WhatsAppConfiguration>();
     public DbSet<WhatsAppMessage> WhatsAppMessages => Set<WhatsAppMessage>();
     public DbSet<SystemPreference> SystemPreferences => Set<SystemPreference>();
+    public DbSet<InvoiceNumberSeries> InvoiceNumberSeries => Set<InvoiceNumberSeries>();
+    public DbSet<InvoiceNumberAllocation> InvoiceNumberAllocations => Set<InvoiceNumberAllocation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -427,7 +427,8 @@ public class OutsideJobService : IOutsideJobService
                 item.UnitPrice = InvoiceCalculator.Round(request.VendorCost);
                 item.UpdatedAt = DateTime.UtcNow;
 
-                InvoiceCalculator.ApplyToInvoice(draftInvoice, draftInvoice.JobCard?.JobCardServices);
+                InvoiceCalculator.ApplyToInvoice(draftInvoice,
+                    await InvoiceTaxRates.ForDraftAsync(_db, draftInvoice, draftInvoice.JobCard?.JobCardServices, cancellationToken));
                 draftInvoice.UpdatedAt = DateTime.UtcNow;
             }
         }
@@ -493,7 +494,8 @@ public class OutsideJobService : IOutsideJobService
                 item.IsDeleted = true;
                 item.UpdatedAt = DateTime.UtcNow;
 
-                InvoiceCalculator.ApplyToInvoice(draftInvoice, draftInvoice.JobCard?.JobCardServices);
+                InvoiceCalculator.ApplyToInvoice(draftInvoice,
+                    await InvoiceTaxRates.ForDraftAsync(_db, draftInvoice, draftInvoice.JobCard?.JobCardServices, cancellationToken));
                 draftInvoice.UpdatedAt = DateTime.UtcNow;
             }
         }

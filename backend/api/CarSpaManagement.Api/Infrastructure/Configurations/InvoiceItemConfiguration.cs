@@ -30,6 +30,9 @@ public class InvoiceItemConfiguration : IEntityTypeConfiguration<InvoiceItem>
 			.HasPrecision(18, 2)
 			.IsRequired();
 
+		builder.Property(ii => ii.TaxRatePercent)
+			.HasPrecision(5, 2);
+
 		builder.Property(ii => ii.TaxableAmount)
 			.HasPrecision(18, 2)
 			.IsRequired();

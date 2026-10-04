@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'outside_job_model.dart';
+import '../../invoices/models/invoice_model.dart' show TaxBreakdown;
 
 enum JobCardStatus {
   draft(0, 'Draft'),
@@ -499,4 +500,36 @@ class UpdateJobCardServicesRequest {
     'services': services.map((s) => s.toJson()).toList(),
     if (notes != null) 'notes': notes!.trim(),
   };
+}
+
+/// Job-card estimate calculated by the server (POST /job-cards/preview) with the same calculator and rules as
+/// job-card creation. The app shows these values; it never calculates GST itself.
+class JobCardEstimate {
+  final double subtotal;
+  final double discountAmount;
+  final double taxableAmount;
+  final double taxAmount;
+  final double totalAmount;
+  final List<TaxBreakdown> taxBreakdown;
+
+  const JobCardEstimate({
+    required this.subtotal,
+    required this.discountAmount,
+    required this.taxableAmount,
+    required this.taxAmount,
+    required this.totalAmount,
+    this.taxBreakdown = const [],
+  });
+
+  factory JobCardEstimate.fromJson(Map<String, dynamic> json) {
+    double n(String a, String b) => ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
+    return JobCardEstimate(
+      subtotal: n('subtotal', 'Subtotal'),
+      discountAmount: n('discountAmount', 'DiscountAmount'),
+      taxableAmount: n('taxableAmount', 'TaxableAmount'),
+      taxAmount: n('taxAmount', 'TaxAmount'),
+      totalAmount: n('totalAmount', 'TotalAmount'),
+      taxBreakdown: TaxBreakdown.listFromJson(json['taxBreakdown'] ?? json['TaxBreakdown']),
+    );
+  }
 }

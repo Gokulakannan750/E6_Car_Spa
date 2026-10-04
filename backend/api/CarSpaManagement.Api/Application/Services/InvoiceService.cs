@@ -18,6 +18,7 @@ namespace CarSpaManagement.Api.Application.Services;
 public class InvoiceService : IInvoiceService
 {
 	private readonly AppDbContext _db;
+	private readonly InvoiceNumberAllocator _numberAllocator;
 	private readonly IAuditLogService _auditLogService;
 	private readonly IConfiguration _configuration;
 	private readonly IHttpContextAccessor _httpContextAccessor;
@@ -33,6 +34,7 @@ public class InvoiceService : IInvoiceService
 		IServiceScopeFactory scopeFactory)
 	{
 		_db = db;
+		_numberAllocator = new InvoiceNumberAllocator(db);
 		_auditLogService = auditLogService;
 		_configuration = configuration;
 		_httpContextAccessor = httpContextAccessor;
@@ -211,7 +213,8 @@ public class InvoiceService : IInvoiceService
 			IsDeleted = false
 		};
 
-		InvoiceCalculator.ApplyToInvoice(invoice, jobCard.JobCardServices);
+		InvoiceCalculator.ApplyToInvoice(invoice,
+			await InvoiceTaxRates.ForDraftAsync(_db, invoice, jobCard.JobCardServices, cancellationToken));
 
 		_db.Invoices.Add(invoice);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -246,37 +249,8 @@ public class InvoiceService : IInvoiceService
 		var oldDiscount = invoice.Discount;
 		var oldGst = invoice.IsGstEnabled;
 
-		if (request.IsGstEnabled.HasValue)
-		{
-			invoice.IsGstEnabled = request.IsGstEnabled.Value;
-		}
-
 		if (request.Discount.HasValue || request.IsGstEnabled.HasValue)
-		{
-			var newDiscount = request.Discount.HasValue ? InvoiceCalculator.Round(request.Discount.Value) : invoice.Discount;
-			if (newDiscount < 0)
-				throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot be negative.");
-
-			invoice.Discount = newDiscount;
-			if (invoice.InvoiceItems.Any(i => !i.IsDeleted))
-			{
-				InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
-			}
-			else
-			{
-				// Legacy invoice without line items: header-only recalculation at the standard rate.
-				if (newDiscount > invoice.Subtotal)
-					throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot exceed subtotal.");
-				var header = InvoiceCalculator.Calculate(
-					[new InvoiceCalculator.LineInput(1, invoice.Subtotal, 0m, InvoiceCalculator.StandardGstRatePercent)],
-					newDiscount,
-					invoice.IsGstEnabled);
-				invoice.TaxableAmount = header.Taxable;
-				invoice.GstAmount = header.GstAmount;
-				invoice.TotalAmount = header.Total;
-				invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
-			}
-		}
+			await ApplyDraftFinancialsAsync(invoice, request.Discount, request.IsGstEnabled, cancellationToken);
 
 		if (request.Notes is not null)
 			invoice.Notes = request.Notes;
@@ -304,7 +278,69 @@ public class InvoiceService : IInvoiceService
 		return ToDto(invoice);
 	}
 
-	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default)
+	/// <summary>
+	/// Calculates a draft with the given (unsaved) discount / GST choice through the authoritative calculator and
+	/// returns it without persisting anything. Clients show these values instead of calculating GST themselves.
+	/// </summary>
+	public async Task<InvoiceDto> PreviewAsync(Guid id, PreviewInvoiceRequest request, CancellationToken cancellationToken = default)
+	{
+		var invoice = await _db.Invoices
+			.AsNoTracking()
+			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
+			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
+			.Include(i => i.JobCard)
+				.ThenInclude(j => j.JobCardServices)
+			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+		if (invoice is null || invoice.IsDeleted)
+			throw new KeyNotFoundException("Invoice not found.");
+
+		// Finalized invoices are never recalculated: their stored amounts are returned unchanged.
+		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
+			return ToDto(invoice);
+
+		await ApplyDraftFinancialsAsync(invoice, request.Discount, request.IsGstEnabled, cancellationToken);
+		return ToDto(invoice);
+	}
+
+	/// <summary>Applies a discount / GST choice to a draft and recalculates it. Callers decide whether to save.</summary>
+	private async Task ApplyDraftFinancialsAsync(Invoice invoice, decimal? discount, bool? isGstEnabled, CancellationToken cancellationToken)
+	{
+		if (isGstEnabled.HasValue)
+			invoice.IsGstEnabled = isGstEnabled.Value;
+
+		var newDiscount = discount.HasValue ? InvoiceCalculator.Round(discount.Value) : invoice.Discount;
+		if (newDiscount < 0)
+			throw new ArgumentOutOfRangeException(nameof(discount), "Discount cannot be negative.");
+
+		invoice.Discount = newDiscount;
+		if (invoice.InvoiceItems.Any(i => !i.IsDeleted))
+		{
+			InvoiceCalculator.ApplyToInvoice(invoice,
+				await InvoiceTaxRates.ForDraftAsync(_db, invoice, invoice.JobCard?.JobCardServices, cancellationToken));
+		}
+		else
+		{
+			// Legacy invoice without line items: header-only recalculation at the standard rate.
+			if (newDiscount > invoice.Subtotal)
+				throw new ArgumentOutOfRangeException(nameof(discount), "Discount cannot exceed subtotal.");
+			var header = InvoiceCalculator.Calculate(
+				[new InvoiceCalculator.LineInput(1, invoice.Subtotal, 0m, InvoiceCalculator.StandardGstRatePercent)],
+				newDiscount,
+				invoice.IsGstEnabled);
+			invoice.TaxableAmount = header.Taxable;
+			invoice.GstAmount = header.GstAmount;
+			invoice.TotalAmount = header.Total;
+			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+		}
+	}
+
+	public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) =>
+		GenerateInvoiceAsync(id, expectedTotalAmount: null, cancellationToken);
+
+	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default)
 	{
 		var invoice = await _db.Invoices
 			.Include(i => i.InvoiceItems)
@@ -392,16 +428,36 @@ public class InvoiceService : IInvoiceService
 		if (invoice.Discount < 0)
 			throw new ArgumentOutOfRangeException(nameof(invoice.Discount), "Discount cannot be negative.");
 
-		InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
+		InvoiceCalculator.ApplyToInvoice(invoice,
+			await InvoiceTaxRates.ForDraftAsync(_db, invoice, invoice.JobCard?.JobCardServices, cancellationToken));
 
-		// 1. Generate unique sequential invoice number before opening transaction
-		var invoiceNumber = await GenerateInvoiceNumberAsync(cancellationToken);
-		invoice.InvoiceNumber = invoiceNumber;
+		// The user confirmed an amount: never issue a different one.
+		if (expectedTotalAmount.HasValue && InvoiceCalculator.Round(expectedTotalAmount.Value) != invoice.TotalAmount)
+			throw new ConflictException(
+				$"The invoice total is now ₹{invoice.TotalAmount:N2}, not the ₹{expectedTotalAmount.Value:N2} that was confirmed. Review the invoice and generate it again.");
 
-		// 2. Transactional status finalization and audit logging
+		// Transactional numbering, status finalization and audit logging
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 		try
 		{
+			// Lock the draft and re-check it is still unnumbered, so two simultaneous finalizations of the
+			// same draft (e.g. desktop + Android) cannot both consume a number.
+			if (_db.Database.IsRelational())
+			{
+				await _db.Database.ExecuteSqlInterpolatedAsync(
+					$"SELECT 1 FROM \"Invoices\" WHERE \"Id\" = {invoice.Id} FOR UPDATE", cancellationToken);
+				var current = await _db.Invoices.AsNoTracking()
+					.Where(i => i.Id == invoice.Id)
+					.Select(i => new { i.Status, i.InvoiceNumber })
+					.SingleAsync(cancellationToken);
+				if (current.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(current.InvoiceNumber))
+					throw new InvalidOperationException("Invoice has already been generated.");
+			}
+
+			// Series (GST / non-GST) is chosen from the invoice's final IsGstEnabled value; the number, the
+			// series counter and the permanent ledger entry all commit or roll back with this transaction.
+			await _numberAllocator.AllocateAutomaticAsync(invoice, cancellationToken);
+
 			if (invoice.BalanceAmount <= 0 && invoice.PaidAmount >= invoice.TotalAmount && invoice.TotalAmount > 0)
 			{
 				invoice.Status = InvoiceStatus.Paid;
@@ -584,62 +640,80 @@ public class InvoiceService : IInvoiceService
 	}
 
 
-	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
+	/// <summary>
+	/// Lets the Owner replace the automatically generated number of a fully paid GST invoice with a number
+	/// of their choosing. The number sequence is not touched: the generator already skips numbers in use.
+	/// </summary>
+	public async Task<InvoiceDto> UpdateInvoiceNumberAsync(Guid id, UpdateInvoiceNumberRequest request, CancellationToken cancellationToken = default)
 	{
-		var currentYear = DateTime.UtcNow.Year;
-		var profilePrefix = (await _db.BusinessProfiles.AsNoTracking().Select(b => b.InvoicePrefix).FirstOrDefaultAsync(cancellationToken))?.Trim();
-		var prefix = !string.IsNullOrWhiteSpace(profilePrefix) ? profilePrefix : "INV";
+		var currentUserId = GetCurrentUserId();
+		var isOwner = currentUserId.HasValue && await _db.Users.AsNoTracking()
+			.AnyAsync(u => u.Id == currentUserId.Value && u.IsActive && u.Role == UserRole.Owner, cancellationToken);
+		if (!isOwner)
+			throw new ForbiddenException("Only the Owner can change an invoice number.");
 
-		if (!_db.Database.IsRelational())
-		{
-			var count = await _db.Invoices.CountAsync(cancellationToken) + 1;
-			return $"{prefix}-{currentYear}-{count:D6}";
-		}
+		var newNumber = InvoiceNumberRules.Normalize(request.InvoiceNumber);
 
-		var conn = _db.Database.GetDbConnection();
-		var openedLocally = false;
-		if (conn.State != System.Data.ConnectionState.Open)
-		{
-			await conn.OpenAsync(cancellationToken);
-			openedLocally = true;
-		}
+		var invoice = await _db.Invoices
+			.Include(i => i.Customer)
+			.Include(i => i.Vehicle)
+			.Include(i => i.JobCard)
+			.Include(i => i.InvoiceItems)
+			.Include(i => i.Payments)
+			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
+			?? throw new KeyNotFoundException("Invoice not found.");
+
+		if (!invoice.IsGstEnabled)
+			throw new InvalidOperationException("Only GST invoices can have their invoice number changed.");
+
+		if (invoice.Status != InvoiceStatus.Paid || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+			throw new InvalidOperationException("The invoice number can only be changed after the invoice is fully paid.");
+
+		var oldNumber = invoice.InvoiceNumber;
+		if (string.Equals(oldNumber, newNumber, StringComparison.Ordinal))
+			return ToDto(invoice);
+
+		// A queued WhatsApp message would otherwise be sent with the old number in its text and the new one on its PDF.
+		var hasPendingWhatsApp = await _db.WhatsAppMessages.AnyAsync(
+			m => m.InvoiceId == invoice.Id && (m.Status == WhatsAppMessageStatus.Pending || m.Status == WhatsAppMessageStatus.Processing),
+			cancellationToken);
+		if (hasPendingWhatsApp)
+			throw new InvalidOperationException("A WhatsApp message for this invoice is still being sent. Try again in a moment.");
+
+		// A number that was ever issued to another invoice (automatic, manual or legacy, under any prefix)
+		// is permanently consumed. Returning to one of this invoice's own earlier numbers is allowed.
+		if (await _numberAllocator.IsConsumedAsync(newNumber, invoice.Id, cancellationToken))
+			throw new ConflictException($"Invoice number '{newNumber}' has already been issued and cannot be reused.");
+
+		// Old number stays reserved forever; the new one is reserved now. The series counter is not touched.
+		await _numberAllocator.ReserveManualAsync(invoice, newNumber, currentUserId, cancellationToken);
+		invoice.InvoiceNumber = newNumber;
+		invoice.UpdatedAt = DateTime.UtcNow;
 
 		try
 		{
-			using var cmd = conn.CreateCommand();
-
-			while (true)
-			{
-				cmd.CommandText = "SELECT nextval('invoice_number_seq')";
-				long nextNumber;
-				try
-				{
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
-				catch
-				{
-					cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('invoice_number_seq');";
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
-
-				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
-				var exists = await _db.Invoices.AnyAsync(i => i.InvoiceNumber == candidate, cancellationToken);
-				if (!exists)
-				{
-					return candidate;
-				}
-			}
+			await _db.SaveChangesAsync(cancellationToken);
 		}
-		finally
+		catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
 		{
-			if (openedLocally && conn.State == System.Data.ConnectionState.Open)
-			{
-				await conn.CloseAsync();
-			}
+			throw new ConflictException($"Invoice number '{newNumber}' has already been issued and cannot be reused.");
 		}
+
+		await _auditLogService.RecordAsync(
+			action: Domain.Constants.AuditActions.InvoiceNumberChanged,
+			module: Domain.Constants.AuditModules.Invoices,
+			description: $"Invoice number changed from '{oldNumber}' to '{newNumber}'.",
+			entityType: "Invoice",
+			entityId: invoice.Id,
+			entityReference: newNumber,
+			oldValues: JsonSerializer.Serialize(new { invoiceNumber = oldNumber }),
+			newValues: JsonSerializer.Serialize(new { invoiceNumber = newNumber }),
+			outcome: "Success",
+			cancellationToken: cancellationToken);
+
+		return ToDto(invoice);
 	}
+
 
 	public async Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default)
 	{
@@ -824,7 +898,10 @@ public class InvoiceService : IInvoiceService
 			.ToListAsync(cancellationToken);
 	}
 
-	private static InvoiceDto ToDto(Invoice i) => new(
+	private static InvoiceDto ToDto(Invoice i)
+	{
+		var breakdown = BuildTaxBreakdown(i);
+		return new(
 		i.Id,
 		i.InvoiceNumber,
 		i.JobCardId,
@@ -849,17 +926,7 @@ public class InvoiceService : IInvoiceService
 		i.Status,
 		i.Notes,
 		i.IsGstEnabled,
-		i.InvoiceItems.Select(it => new InvoiceItemDto(
-			it.Id,
-			it.ServiceId,
-			it.OutsideJobId,
-			it.Description,
-			it.Quantity,
-			it.UnitPrice,
-			it.Discount,
-			it.TaxableAmount,
-			it.TaxAmount,
-			it.TotalAmount)).ToList(),
+		i.InvoiceItems.Where(it => !it.IsDeleted).OrderBy(it => it.CreatedAt).Select(ToItemDto).ToList(),
 		i.Payments.Where(p => !p.IsDeleted)
 			.OrderByDescending(p => p.PaymentDate)
 			.ThenByDescending(p => p.CreatedAt)
@@ -872,7 +939,36 @@ public class InvoiceService : IInvoiceService
 				p.PaymentDate,
 				p.CreatedAt)).ToList(),
 		i.CreatedAt,
-		i.UpdatedAt);
+		i.UpdatedAt,
+		breakdown.Sum(b => b.CgstAmount),
+		breakdown.Sum(b => b.SgstAmount),
+		breakdown);
+	}
+
+	private static InvoiceItemDto ToItemDto(InvoiceItem it)
+	{
+		var (cgst, sgst) = InvoiceCalculator.SplitTax(it.TaxAmount);
+		return new InvoiceItemDto(
+			it.Id,
+			it.ServiceId,
+			it.OutsideJobId,
+			it.Description,
+			it.Quantity,
+			it.UnitPrice,
+			it.Discount,
+			it.TaxableAmount,
+			it.TaxAmount,
+			it.TotalAmount,
+			it.TaxRatePercent,
+			cgst,
+			sgst);
+	}
+
+	/// <summary>Rate-wise tax summary built from the stored values only (never recalculated).</summary>
+	public static IReadOnlyList<TaxBreakdownDto> BuildTaxBreakdown(Invoice invoice) =>
+		InvoiceCalculator.SummarizeStoredInvoice(invoice)
+			.Select(g => new TaxBreakdownDto(g.RatePercent, g.Taxable, g.Cgst, g.Sgst, g.Tax))
+			.ToList();
 
 	private static InvoiceListDto ToListDto(Invoice i) => new(
 		i.Id,
@@ -1160,13 +1256,16 @@ public class InvoiceService : IInvoiceService
 				Description: ii.Description,
 				Quantity: ii.Quantity,
 				Rate: ii.UnitPrice,
-				Amount: Math.Round(ii.UnitPrice * ii.Quantity, 2),
-				HsnSac: isGst ? "998729" : null
+				Amount: InvoiceCalculator.Round(ii.UnitPrice * ii.Quantity) - ii.Discount, // sums to Subtotal, as on every invoice view
+				HsnSac: isGst ? "998729" : null,
+				TaxRatePercent: isGst ? ii.TaxRatePercent : null
 			))
 			.ToList();
 
-		var cgst = isGst ? Math.Round(invoice.GstAmount / 2m, 2) : (decimal?)null;
-		var sgst = isGst ? Math.Round(invoice.GstAmount / 2m, 2) : (decimal?)null;
+		// Stored values only: a finalized invoice is never recalculated.
+		var breakdown = BuildTaxBreakdown(invoice);
+		var cgst = isGst ? breakdown.Sum(b => b.CgstAmount) : (decimal?)null;
+		var sgst = isGst ? breakdown.Sum(b => b.SgstAmount) : (decimal?)null;
 		var taxableValue = isGst ? invoice.TaxableAmount : (decimal?)null;
 
 		var financials = new PublicFinancialsDto(
@@ -1177,7 +1276,8 @@ public class InvoiceService : IInvoiceService
 			Sgst: sgst,
 			TotalAmount: invoice.TotalAmount,
 			PaidAmount: invoice.PaidAmount,
-			BalanceAmount: invoice.BalanceAmount
+			BalanceAmount: invoice.BalanceAmount,
+			TaxBreakdown: breakdown
 		);
 
 		return new PublicInvoiceDto(

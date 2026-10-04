@@ -375,6 +375,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid?>("OutsideJobId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
@@ -384,6 +387,10 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<decimal>("TaxAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TaxRatePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<decimal>("TaxableAmount")
                         .HasPrecision(18, 2)
@@ -405,6 +412,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasIndex("InvoiceId")
                         .HasDatabaseName("IX_InvoiceItems_InvoiceId");
 
+                    b.HasIndex("OutsideJobId")
+                        .HasDatabaseName("IX_InvoiceItems_OutsideJobId");
+
                     b.HasIndex("ServiceId")
                         .HasDatabaseName("IX_InvoiceItems_ServiceId");
 
@@ -412,6 +422,115 @@ namespace CarSpaManagement.Api.Migrations
                         .HasDatabaseName("IX_InvoiceItems_InvoiceId_ServiceId");
 
                     b.ToTable("InvoiceItems", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceNumberAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AllocatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AllocatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AllocationType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<long?>("CounterValue")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("NormalizedNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SeriesKind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_InvoiceNumberAllocations_InvoiceId");
+
+                    b.HasIndex("NormalizedNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InvoiceNumberAllocations_NormalizedNumber");
+
+                    b.ToTable("InvoiceNumberAllocations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InvoiceNumberAllocations_AllocationType", "\"AllocationType\" IN ('Legacy', 'Automatic', 'Manual')");
+
+                            t.HasCheckConstraint("CK_InvoiceNumberAllocations_Normalized", "\"NormalizedNumber\" = upper(btrim(\"InvoiceNumber\"))");
+
+                            t.HasCheckConstraint("CK_InvoiceNumberAllocations_SeriesKind", "\"SeriesKind\" IN ('Gst', 'NonGst')");
+                        });
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceNumberSeries", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MinDigits")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4);
+
+                    b.Property<long>("NextNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1L);
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("SeriesKind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeriesKind")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InvoiceNumberSeries_SeriesKind")
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.ToTable("InvoiceNumberSeries", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InvoiceNumberSeries_MinDigits", "\"MinDigits\" BETWEEN 1 AND 9");
+
+                            t.HasCheckConstraint("CK_InvoiceNumberSeries_NextNumber", "\"NextNumber\" >= 1");
+
+                            t.HasCheckConstraint("CK_InvoiceNumberSeries_SeriesKind", "\"SeriesKind\" IN ('Gst', 'NonGst')");
+                        });
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoicePublicLink", b =>
@@ -2299,6 +2418,11 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.OutsideJob", "OutsideJob")
+                        .WithMany()
+                        .HasForeignKey("OutsideJobId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Service", "Service")
                         .WithMany()
                         .HasForeignKey("ServiceId")
@@ -2306,7 +2430,20 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.Navigation("Invoice");
 
+                    b.Navigation("OutsideJob");
+
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceNumberAllocation", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoicePublicLink", b =>

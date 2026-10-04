@@ -107,6 +107,7 @@ builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IOutsideJobService, OutsideJobService>();
 builder.Services.AddScoped<ISystemPreferenceService, SystemPreferenceService>();
+builder.Services.AddScoped<IInvoiceSeriesService, InvoiceSeriesService>();
 
 // WhatsApp Options & Startup Validation
 var whatsAppOptions = new WhatsAppOptions();

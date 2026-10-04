@@ -87,10 +87,10 @@ public partial class BusinessProfileService : IBusinessProfileService
             profile.LogoPath = string.IsNullOrWhiteSpace(request.LogoPath) ? null : request.LogoPath.Trim();
         }
 
-        if (!string.IsNullOrWhiteSpace(request.InvoicePrefix))
-        {
-            profile.InvoicePrefix = request.InvoicePrefix.Trim().ToUpperInvariant();
-        }
+        // DEPRECATED: request.InvoicePrefix is still accepted for compatibility with older desktop/Android builds, but
+        // it is no longer stored or used. Invoice numbers are configured per series (GST / non-GST) through
+        // /api/settings/invoice-series; InvoiceNumberSeries is the single source of truth. The column can be dropped
+        // once all installed clients are updated.
 
         if (request.TermsAndConditions != null)
         {

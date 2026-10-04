@@ -1,4 +1,5 @@
 import { type InvoiceDto, type BusinessProfileDto, resolveLogoUrl } from '../../lib/api';
+import { formatRate, lineAmount, taxRows } from '../../lib/gstDisplay';
 
 interface InvoicePrintDocumentProps {
 	invoice: InvoiceDto;
@@ -42,9 +43,8 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 	// Header Title
 	const documentTitle = isDraft ? 'DRAFT INVOICE' : isGst ? 'TAX INVOICE' : 'INVOICE';
 
-	// Tax calculations (half CGST, half SGST)
-	const cgstAmount = isGst ? invoice.gstAmount / 2 : 0;
-	const sgstAmount = isGst ? invoice.gstAmount / 2 : 0;
+	// Tax rows per rate actually charged, from the server's stored values (no calculation here)
+	const rows = isGst ? taxRows(invoice.taxBreakdown) : [];
 
 	return (
 		<div className="bg-white text-slate-900 font-sans p-8 sm:p-10 w-[210mm] min-h-[297mm] mx-auto box-border flex flex-col justify-between text-xs leading-normal">
@@ -165,7 +165,10 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 								<th className="py-2.5 px-3 border-r border-slate-300 w-10 text-center">#</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-left">Description</th>
 								{isGst && (
-									<th className="py-2.5 px-3 border-r border-slate-300 text-center w-24">HSN/SAC</th>
+									<>
+										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-24">HSN/SAC</th>
+										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">GST</th>
+									</>
 								)}
 								<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">Qty</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-right w-24">Rate</th>
@@ -176,7 +179,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 							{(!invoice.items || invoice.items.length === 0) && (
 								<tr>
 									<td
-										colSpan={isGst ? 6 : 5}
+										colSpan={isGst ? 7 : 5}
 										className="py-6 text-center text-slate-500 italic"
 									>
 										No service items recorded on this invoice.
@@ -184,7 +187,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 								</tr>
 							)}
 							{invoice.items?.map((item, idx) => {
-								const lineTotal = (item.unitPrice || 0) * (item.quantity || 1);
+								const amount = lineAmount(item);
 								const itemHsnSac = (item as unknown as { hsnSac?: string }).hsnSac || '—';
 
 								return (
@@ -196,9 +199,14 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 											{item.description}
 										</td>
 										{isGst && (
-											<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
-												{itemHsnSac}
-											</td>
+											<>
+												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
+													{itemHsnSac}
+												</td>
+												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
+													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
+												</td>
+											</>
 										)}
 										<td className="py-2.5 px-3 border-r border-slate-300 text-center font-medium text-slate-900">
 											{item.quantity}
@@ -207,7 +215,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 											{formatCurrency(item.unitPrice)}
 										</td>
 										<td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-950">
-											{formatCurrency(lineTotal)}
+											{formatCurrency(amount)}
 										</td>
 									</tr>
 								);
@@ -273,22 +281,19 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 												{formatCurrency(invoice.taxableAmount)}
 											</td>
 										</tr>
-										<tr className="border-b border-slate-200">
-											<td className="p-2 font-medium text-slate-600 border-r border-slate-300">
-												CGST (9%)
-											</td>
-											<td className="p-2 text-right font-mono font-semibold text-slate-900">
-												{formatCurrency(cgstAmount)}
-											</td>
-										</tr>
-										<tr className="border-b border-slate-200">
-											<td className="p-2 font-medium text-slate-600 border-r border-slate-300">
-												SGST (9%)
-											</td>
-											<td className="p-2 text-right font-mono font-semibold text-slate-900">
-												{formatCurrency(sgstAmount)}
-											</td>
-										</tr>
+										{rows.map((row) => (
+											<tr key={row.key} className="border-b border-slate-200">
+												<td className="p-2 font-medium text-slate-600 border-r border-slate-300">
+													{row.label}
+													{row.taxableAmount !== null && (
+														<span className="text-[10px] font-normal"> on {formatCurrency(row.taxableAmount)}</span>
+													)}
+												</td>
+												<td className="p-2 text-right font-mono font-semibold text-slate-900">
+													{formatCurrency(row.amount)}
+												</td>
+											</tr>
+										))}
 									</>
 								)}
 

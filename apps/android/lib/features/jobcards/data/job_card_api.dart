@@ -77,6 +77,21 @@ class JobCardApi {
     return JobCardListResponse.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Server-calculated estimate for a set of services (nothing is saved).
+  Future<JobCardEstimate> previewJobCard(
+    List<JobCardServiceItemRequest> services, {
+    bool isGstEnabled = true,
+  }) async {
+    final response = await _dio.post(
+      '/job-cards/preview',
+      data: {
+        'services': services.map((s) => s.toJson()).toList(),
+        'isGstEnabled': isGstEnabled,
+      },
+    );
+    return JobCardEstimate.fromJson(response.data as Map<String, dynamic>);
+  }
+
   Future<JobCard> createJobCard(CreateJobCardRequest request) async {
     final response = await _dio.post('/job-cards', data: request.toJson());
     return JobCard.fromJson(response.data as Map<String, dynamic>);

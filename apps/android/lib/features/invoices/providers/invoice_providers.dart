@@ -397,8 +397,45 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     }
   }
 
+  /// Owner only: replace the number of a fully paid GST invoice.
+  /// Returns null on success, otherwise the error message to show in the dialog.
+  Future<String?> updateInvoiceNumber(String invoiceNumber) async {
+    if (!mounted) return 'Screen is no longer active.';
+    try {
+      final updated = await _repository.updateInvoiceNumber(
+        _invoiceId,
+        invoiceNumber.trim(),
+      );
+      if (!mounted) return null;
+      state = state.copyWith(
+        invoice: updated,
+        actionSuccessMessage: 'Invoice number changed to ${updated.invoiceNumber}.',
+        clearError: true,
+      );
+      _ref.read(invoiceListProvider.notifier).loadInvoices();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Failed to change the invoice number.';
+    }
+  }
+
+  /// Server-calculated draft for unsaved discount / GST values (nothing is saved).
+  Future<Invoice> previewDraft({
+    required double discount,
+    required bool isGstEnabled,
+  }) => _repository.previewInvoice(
+    _invoiceId,
+    discount: discount,
+    isGstEnabled: isGstEnabled,
+  );
+
+  /// Generates the draft. The stored (server-calculated) total shown in the confirmation is sent,
+  /// so the server cannot issue a different amount.
   Future<Invoice?> generateInvoice() async {
     if (!mounted) return null;
+    final confirmedTotal = state.invoice?.totalAmount;
     state = state.copyWith(
       isGenerating: true,
       clearError: true,
@@ -406,7 +443,10 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     );
 
     try {
-      final generated = await _repository.generateInvoice(_invoiceId);
+      final generated = await _repository.generateInvoice(
+        _invoiceId,
+        expectedTotalAmount: confirmedTotal,
+      );
       if (!mounted) return null;
       state = state.copyWith(
         isGenerating: false,
@@ -425,6 +465,9 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     } on ApiException catch (e) {
       if (!mounted) return null;
       state = state.copyWith(isGenerating: false, errorMessage: e.message);
+      // e.g. the total changed since it was confirmed: show the current server values.
+      await loadDetails();
+      if (mounted) state = state.copyWith(errorMessage: e.message);
       return null;
     } catch (e) {
       if (!mounted) return null;

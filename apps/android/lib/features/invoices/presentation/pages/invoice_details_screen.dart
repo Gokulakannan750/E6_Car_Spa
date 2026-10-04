@@ -3,13 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/gst_display.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_error_state.dart';
 import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../models/invoice_model.dart';
 import '../../providers/invoice_providers.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/providers/auth_state.dart';
 import '../widgets/edit_draft_bottom_sheet.dart';
+import '../widgets/edit_invoice_number_dialog.dart';
 import '../widgets/invoice_print_preview_dialog.dart';
 import '../widgets/record_payment_bottom_sheet.dart';
 
@@ -50,6 +54,18 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     final notifier = ref.read(
       invoiceDetailsProvider(widget.invoiceId).notifier,
     );
+
+    // Owner may replace the number of a fully paid GST invoice (enforced again by the API).
+    final authState = ref.watch(authNotifierProvider);
+    final user = authState is Authenticated ? authState.user : null;
+    final isOwner =
+        user != null && (user.isOwner || user.role.toLowerCase() == 'owner');
+    final invoiceForEdit = state.invoice;
+    final canEditInvoiceNumber = isOwner &&
+        invoiceForEdit != null &&
+        invoiceForEdit.isGstEnabled &&
+        invoiceForEdit.status == InvoiceStatus.paid &&
+        (invoiceForEdit.invoiceNumber?.trim().isNotEmpty ?? false);
 
     // Listen for feedback messages
     ref.listen<InvoiceDetailsState>(invoiceDetailsProvider(widget.invoiceId), (
@@ -96,6 +112,20 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         ),
         actions: [
           if (state.invoice != null) ...[
+            if (canEditInvoiceNumber)
+              IconButton(
+                key: const Key('edit_invoice_number_button'),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  color: AppColors.textPrimary,
+                ),
+                tooltip: 'Edit invoice number',
+                onPressed: () => EditInvoiceNumberDialog.show(
+                  context,
+                  currentNumber: state.invoice!.invoiceNumber!,
+                  onSave: notifier.updateInvoiceNumber,
+                ),
+              ),
             IconButton(
               key: const Key('print_invoice_appbar_button'),
               icon: const Icon(
@@ -249,7 +279,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     const Divider(height: 16, color: AppColors.border),
                 itemBuilder: (context, index) {
                   final item = invoice.items[index];
-                  final lineTotal = item.unitPrice * item.quantity;
+                  final lineTotal = invoiceLineAmount(item);
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -265,7 +295,9 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity}',
+                              invoice.isGstEnabled && item.taxRatePercent != null
+                                  ? '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} · GST ${formatGstRate(item.taxRatePercent!)}'
+                                  : '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity}',
                               style: AppTextStyles.bodySmall.copyWith(
                                 fontFamily: 'monospace',
                                 color: AppColors.textSecondary,
@@ -317,17 +349,17 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                     ],
                     const SizedBox(height: 8),
                     if (invoice.isGstEnabled) ...[
-                      _buildSummaryRow(
-                        context,
-                        'CGST (9%)',
-                        '₹${((invoice.gstAmount / 2 * 100).round() / 100).toStringAsFixed(2)}',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildSummaryRow(
-                        context,
-                        'SGST (9%)',
-                        '₹${((invoice.gstAmount / 2 * 100).round() / 100).toStringAsFixed(2)}',
-                      ),
+                      // One row per rate actually charged, from the server's stored values.
+                      for (final row in gstRows(invoice.taxBreakdown)) ...[
+                        _buildSummaryRow(
+                          context,
+                          row.taxableAmount == null
+                              ? row.label
+                              : '${row.label} on ₹${row.taxableAmount!.toStringAsFixed(2)}',
+                          '₹${row.amount.toStringAsFixed(2)}',
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ] else
                       _buildSummaryRow(context, 'GST (Disabled)', '₹0.00'),
                     const Divider(height: 20, color: AppColors.border),
@@ -854,6 +886,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                         }
                         return null;
                       },
+                      onPreview: notifier.previewDraft,
                     );
                   },
                 ),
@@ -991,6 +1024,14 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
               style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
+            Text(
+              invoice.isGstEnabled
+                  ? gstRatesSummary(invoice.taxBreakdown)
+                  : 'No GST (non-GST bill)',
+              key: const Key('confirm_gst_mode'),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(

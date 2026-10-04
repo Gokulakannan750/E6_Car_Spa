@@ -44,7 +44,7 @@ class _StubInvoiceRepo extends InvoiceRepository {
   Future<Invoice> getInvoiceById(String id) async => invoiceToReturn;
 
   @override
-  Future<Invoice> generateInvoice(String id) async {
+  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
     generateCallCount++;
     if (generateCompleter != null) return generateCompleter!.future;
     if (shouldThrowConflictOnGenerate) {

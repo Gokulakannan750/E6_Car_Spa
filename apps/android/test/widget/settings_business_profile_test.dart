@@ -3,6 +3,7 @@ import 'package:e6_car_spa/core/errors/api_exception.dart';
 import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_state.dart';
+import 'package:e6_car_spa/features/settings/presentation/widgets/invoice_series_card.dart';
 import 'package:e6_car_spa/features/settings/data/settings_api.dart';
 import 'package:e6_car_spa/features/settings/data/settings_repository.dart';
 import 'package:e6_car_spa/features/settings/models/business_profile_model.dart';
@@ -200,7 +201,7 @@ void main() {
       );
     });
 
-    testWidgets('Validates invoice prefix max 10 characters', (tester) async {
+    testWidgets('Legacy invoice prefix field is replaced by the invoice numbering card', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -222,18 +223,10 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Find prefix field with 'INV'
-      final prefixFinder = find.widgetWithText(TextFormField, 'INV');
-      expect(prefixFinder, findsOneWidget);
-
-      // Enter prefix > 10 chars
-      await tester.enterText(prefixFinder, 'TOOLONGPREFIX123');
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.widgetWithText(AppButton, 'Save Settings'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Prefix cannot exceed 10 characters'), findsOneWidget);
+      // The deprecated BusinessProfile.InvoicePrefix ('INV') no longer controls numbering and is not editable here;
+      // GST / non-GST prefixes are validated in InvoiceSeriesCard (see invoice_series_card_test.dart).
+      expect(find.widgetWithText(TextFormField, 'INV'), findsNothing);
+      expect(find.byType(InvoiceSeriesCard), findsOneWidget);
     });
   });
 

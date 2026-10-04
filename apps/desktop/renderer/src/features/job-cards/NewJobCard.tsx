@@ -17,7 +17,10 @@ import {
 	type VehicleDto,
 	type ServiceDto,
 	type JobCardDto,
+	previewJobCard,
+	type JobCardEstimateDto,
 } from '../../lib/api';
+import { taxRows } from '../../lib/gstDisplay';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { capitalizeSentence } from '../../utils/text';
@@ -159,6 +162,9 @@ export default function NewJobCard() {
 
 	// ── Services ──────────────────────────────────────────────────────────────
 	const [services, setServices] = useState<ServiceItem[]>([]);
+	// Server-calculated estimate for the review step (same calculator and rules as job-card creation).
+	const [estimate, setEstimate] = useState<JobCardEstimateDto | null>(null);
+	const [estimateError, setEstimateError] = useState<string | null>(null);
 	const [serviceSearch, setServiceSearch] = useState('');
 	const [searchResults, setSearchResults] = useState<ServiceDto[]>([]);
 	const [showNewService, setShowNewService] = useState(false);
@@ -217,11 +223,31 @@ export default function NewJobCard() {
 		}
 	}, [success?.id, createdJobCard]);
 
+	useEffect(() => {
+		if (step !== 2 || services.length === 0) return;
+		setEstimate(null);
+		setEstimateError(null);
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			try {
+				const result = await previewJobCard(
+					services.map((s) => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount })),
+					true,
+				);
+				if (!cancelled) setEstimate(result);
+			} catch (err) {
+				if (!cancelled) setEstimateError(err instanceof Error ? err.message : 'Unable to calculate the estimate.');
+			}
+		}, 150);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [step, services]);
+
 	// ── Derived ───────────────────────────────────────────────────────────────
+	// Running subtotal (price × qty) while picking services; GST and the total come only from the server estimate.
 	const calcSubtotal = services.reduce((s, svc) => s + svc.unitPrice * svc.quantity, 0);
-	const calcDiscount = services.reduce((s, svc) => s + svc.discountAmount, 0);
-	const calcTax = services.reduce((s, svc) => s + (svc.unitPrice * svc.quantity * svc.taxPercentage) / 100, 0);
-	const calcTotal = calcSubtotal - calcDiscount + calcTax;
 	const canProceedToServices = customer !== null && selectedVehicle !== null;
 	const canCreate = canProceedToServices && services.length > 0 && !isCreatingJobCard;
 
@@ -1616,23 +1642,30 @@ export default function NewJobCard() {
 								<div className="space-y-1.5 text-sm">
 									<div className="flex justify-between text-on-surface-variant">
 										<span>Items Subtotal ({services.length} items)</span>
-										<span>{formatCurrency(calcSubtotal)}</span>
+										<span>{formatCurrency(estimate?.subtotal ?? calcSubtotal)}</span>
 									</div>
-									{calcDiscount > 0 && (
+									{estimate && estimate.discountAmount > 0 && (
 										<div className="flex justify-between text-success">
 											<span>Discount</span>
-											<span>-{formatCurrency(calcDiscount)}</span>
+											<span>-{formatCurrency(estimate.discountAmount)}</span>
 										</div>
 									)}
-									{calcTax > 0 && (
-										<div className="flex justify-between text-on-surface-variant">
-											<span>Estimated GST (18%)</span>
-											<span>{formatCurrency(calcTax)}</span>
-										</div>
+									{estimate &&
+										taxRows(estimate.taxBreakdown).map((row) => (
+											<div key={row.key} className="flex justify-between text-on-surface-variant" data-testid="estimate-tax-row">
+												<span>
+													Estimated {row.label}
+													{row.taxableAmount !== null && <span className="text-xs"> on {formatCurrency(row.taxableAmount)}</span>}
+												</span>
+												<span>{formatCurrency(row.amount)}</span>
+											</div>
+										))}
+									{estimateError && (
+										<p className="text-xs text-error" role="alert">{estimateError}</p>
 									)}
 									<div className="flex justify-between text-base font-bold text-secondary pt-2.5 mt-1.5 border-t border-outline-variant">
 										<span>Final Total Estimate</span>
-										<span>{formatCurrency(calcTotal)}</span>
+										<span data-testid="estimate-total">{estimate ? formatCurrency(estimate.totalAmount) : 'Calculating…'}</span>
 									</div>
 								</div>
 							</div>

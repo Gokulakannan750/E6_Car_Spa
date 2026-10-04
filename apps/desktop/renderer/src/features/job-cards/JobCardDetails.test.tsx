@@ -11,6 +11,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		...actual,
 		getJobCardById: vi.fn(),
 		updateJobCardServices: vi.fn(),
+		previewJobCard: vi.fn(),
 		getServices: vi.fn(),
 		createService: vi.fn(),
 		getOutsideJobsByJobCardId: vi.fn(),
@@ -688,7 +689,24 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		});
 	});
 
-	it('7. recalculates subtotal, tax, and total accurately and persists complete list on save', async () => {
+	it('7. shows the server estimate (not a client calculation) while editing and persists complete list on save', async () => {
+		// Stand-in for POST /api/job-cards/preview: 1000/service-1 and 5000/service-2, both 18% in this fixture.
+		vi.mocked(api.previewJobCard).mockImplementation(async (services) => {
+			const prices: Record<string, number> = { 'svc-1': 1000, 'svc-2': 5000 };
+			const taxable = services.reduce((sum, s) => sum + prices[s.serviceId] * s.quantity, 0);
+			const half = taxable * 0.09;
+			return {
+				lines: [],
+				subtotal: taxable,
+				discountAmount: 0,
+				taxableAmount: taxable,
+				cgstAmount: half,
+				sgstAmount: half,
+				taxAmount: 2 * half,
+				totalAmount: taxable + 2 * half,
+				taxBreakdown: [{ ratePercent: 18, taxableAmount: taxable, cgstAmount: half, sgstAmount: half, taxAmount: 2 * half }],
+			};
+		});
 		renderWithProviders(
 			<Routes>
 				<Route path="/job-cards/:id" element={<JobCardDetails />} />
@@ -701,10 +719,11 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		});
 		fireEvent.click(screen.getByRole('button', { name: /edit/i }));
 
-		// Initial: 1x 1000 = 1000 subtotal, 180 tax, 1180 total
-		expect(screen.getAllByText('₹1,000.00').length).toBeGreaterThan(0);
-		expect(screen.getByText('₹180.00')).toBeInTheDocument();
-		expect(screen.getByText('₹1,180.00')).toBeInTheDocument();
+		// Initial estimate from the server: 1000 subtotal, CGST 90 + SGST 90, 1180 total
+		await waitFor(() => {
+			expect(screen.getByText('₹1,180.00')).toBeInTheDocument();
+			expect(screen.getAllByText('₹90.00')).toHaveLength(2);
+		});
 
 		// Add new service
 		fireEvent.click(screen.getByTestId('btn-add-service-bottom'));
@@ -717,14 +736,20 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		const qtyInputs = screen.getAllByRole('spinbutton');
 		fireEvent.change(qtyInputs[0], { target: { value: '2' } });
 
-		// Expected new Subtotal: (1000 * 2) + (5000 * 1) = 7000
-		// Expected Tax (18%): 7000 * 0.18 = 1260
-		// Expected Total: 7000 + 1260 = 8260
+		// The edited lines are sent to the server and its result is what is shown.
 		await waitFor(() => {
+			expect(api.previewJobCard).toHaveBeenLastCalledWith(
+				[
+					expect.objectContaining({ serviceId: 'svc-1', quantity: 2 }),
+					expect.objectContaining({ serviceId: 'svc-2', quantity: 1 }),
+				],
+				true,
+			);
 			expect(screen.getByText('₹7,000.00')).toBeInTheDocument();
-			expect(screen.getByText('₹1,260.00')).toBeInTheDocument();
+			expect(screen.getAllByText('₹630.00')).toHaveLength(2);
 			expect(screen.getByText('₹8,260.00')).toBeInTheDocument();
 		});
+		expect(screen.queryByText(/Tax \(18%\)/)).not.toBeInTheDocument();
 
 		// Save changes
 		fireEvent.click(screen.getByRole('button', { name: /save changes/i }));

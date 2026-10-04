@@ -23,6 +23,7 @@ import {
 	Building2,
 	Download,
 	X,
+	Pencil,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -30,6 +31,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import {
 	getInvoiceById,
 	updateInvoice,
+	previewInvoice,
 	generateInvoice,
 	cancelInvoice,
 	recordPayment,
@@ -42,7 +44,9 @@ import {
 } from '../../lib/api';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
 import { ShareInvoiceModal } from './ShareInvoiceModal';
+import { EditInvoiceNumberDialog } from './EditInvoiceNumberDialog';
 import { useAuth } from '../auth/auth-context';
+import { formatRate, lineAmount, ratesSummary, taxRows } from '../../lib/gstDisplay';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
@@ -112,7 +116,7 @@ export function InvoiceDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const { hasPermission } = useAuth();
+	const { hasPermission, isOwner } = useAuth();
 
 	const canDiscount = hasPermission('invoices.discount');
 	const canRecordPayment = hasPermission('payments.record');
@@ -123,6 +127,7 @@ export function InvoiceDetailPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
+	const [showEditNumber, setShowEditNumber] = useState(false);
 	const [showShareModal, setShowShareModal] = useState(false);
 	const [whatsAppStatuses, setWhatsAppStatuses] = useState<InvoiceWhatsAppStatusDto[]>([]);
 
@@ -157,6 +162,10 @@ export function InvoiceDetailPage() {
 
 	// Initial loaded values for modification check
 	const [initialGstEnabled, setInitialGstEnabled] = useState<boolean>(true);
+
+	// Server-calculated draft for the unsaved discount / GST choice. The client never calculates GST itself.
+	const [preview, setPreview] = useState<{ key: string; invoice: InvoiceDto } | null>(null);
+	const [previewError, setPreviewError] = useState<string | null>(null);
 
 	// ─── WhatsApp Polling & Status Refresh ────────────────────────────────────
 	const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -278,6 +287,8 @@ export function InvoiceDetailPage() {
 
 	const isCancelled = normalizedStatus === 'Cancelled';
 	const isFinalized = !isDraft && !isCancelled;
+	// Owner may replace the number of a fully paid GST invoice (enforced again by the API).
+	const canEditInvoiceNumber = Boolean(isOwner && invoice?.isGstEnabled && invoice?.invoiceNumber && normalizedStatus === 'Paid');
 	const isPaid = normalizedStatus === 'Paid' || (invoice?.paidAmount != null && invoice?.totalAmount != null && invoice.paidAmount >= invoice.totalAmount && invoice.totalAmount > 0);
 
 	const latestWhatsAppStatuses = useMemo(() => {
@@ -298,63 +309,72 @@ export function InvoiceDetailPage() {
 		return isNaN(val) ? 0 : val;
 	}, [discount]);
 
+	const isValidDiscount = !invoice || !isDraft || (parsedDiscount >= 0 && parsedDiscount <= invoice.subtotal);
+	const draftKey = `${parsedDiscount}|${isGstEnabled}`;
+	// Inputs equal the stored draft: its stored (server-calculated) values apply as they are.
+	const matchesStoredDraft = Boolean(invoice && parsedDiscount === (invoice.discount ?? 0) && isGstEnabled === invoice.isGstEnabled);
+
+	// Ask the server for the draft totals whenever the unsaved discount / GST choice changes.
+	useEffect(() => {
+		if (!invoice || !isDraft || !id || !isValidDiscount || matchesStoredDraft) {
+			setPreviewError(null);
+			return;
+		}
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			try {
+				const result = await previewInvoice(id, { discount: parsedDiscount, isGstEnabled });
+				if (!cancelled) {
+					setPreview({ key: draftKey, invoice: result });
+					setPreviewError(null);
+				}
+			} catch (err) {
+				if (!cancelled) setPreviewError(err instanceof Error ? err.message : 'Unable to calculate the invoice total.');
+			}
+		}, 250);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [invoice, isDraft, id, isValidDiscount, matchesStoredDraft, draftKey, parsedDiscount, isGstEnabled]);
+
+	// Finalized or unchanged draft: the stored invoice. Edited draft: the server preview for the current inputs
+	// (the previous preview, dimmed and marked "Calculating…", until the new one arrives).
+	const isCalculating = Boolean(invoice && isDraft && isValidDiscount && !matchesStoredDraft && preview?.key !== draftKey);
+	const displayed: InvoiceDto | null = !invoice
+		? null
+		: !isDraft || matchesStoredDraft
+			? invoice
+			: (preview?.invoice ?? invoice);
+
 	const calculations = useMemo(() => {
-		if (!invoice) {
+		if (!displayed) {
 			return {
 				subtotal: 0,
 				discount: 0,
-				cgst: 0,
-				sgst: 0,
 				gstAmount: 0,
 				totalAmount: 0,
 				paidAmount: 0,
 				balanceAmount: 0,
 				isValidDiscount: true,
+				isGst: false,
+				breakdown: [],
+				items: [],
 			};
 		}
-
-		// For finalized invoice, use source of truth from backend
-		if (!isDraft) {
-			const cgst = invoice.isGstEnabled ? Math.round((invoice.gstAmount / 2) * 100) / 100 : 0;
-			const sgst = invoice.isGstEnabled ? Math.round((invoice.gstAmount / 2) * 100) / 100 : 0;
-			return {
-				subtotal: invoice.subtotal,
-				discount: invoice.discount,
-				cgst,
-				sgst,
-				gstAmount: invoice.isGstEnabled ? invoice.gstAmount : 0,
-				totalAmount: invoice.totalAmount,
-				paidAmount: invoice.paidAmount ?? 0,
-				balanceAmount: invoice.balanceAmount ?? Math.max(0, invoice.totalAmount - (invoice.paidAmount ?? 0)),
-				isValidDiscount: true,
-			};
-		}
-
-		// For Draft invoice, calculate dynamically based on inputs
-		const subtotal = invoice.subtotal;
-		const isValidDiscount = parsedDiscount >= 0 && parsedDiscount <= subtotal;
-		const effectiveDiscount = isValidDiscount ? parsedDiscount : (parsedDiscount > subtotal ? subtotal : 0);
-		const gstBase = Math.max(0, subtotal - effectiveDiscount);
-
-		const cgst = isGstEnabled ? Math.round(gstBase * 0.09 * 100) / 100 : 0;
-		const sgst = isGstEnabled ? Math.round(gstBase * 0.09 * 100) / 100 : 0;
-		const gstAmount = isGstEnabled ? (cgst + sgst) : 0;
-		const totalAmount = isGstEnabled ? (gstBase + gstAmount) : (subtotal - effectiveDiscount);
-		const paidAmount = invoice.paidAmount ?? 0;
-		const balanceAmount = Math.max(0, totalAmount - paidAmount);
-
 		return {
-			subtotal,
-			discount: effectiveDiscount,
-			cgst,
-			sgst,
-			gstAmount,
-			totalAmount,
-			paidAmount,
-			balanceAmount,
+			subtotal: displayed.subtotal,
+			discount: displayed.discount,
+			gstAmount: displayed.isGstEnabled ? displayed.gstAmount : 0,
+			totalAmount: displayed.totalAmount,
+			paidAmount: displayed.paidAmount ?? 0,
+			balanceAmount: displayed.balanceAmount ?? Math.max(0, displayed.totalAmount - (displayed.paidAmount ?? 0)),
 			isValidDiscount,
+			isGst: displayed.isGstEnabled,
+			breakdown: displayed.taxBreakdown ?? [],
+			items: displayed.items ?? [],
 		};
-	}, [invoice, isDraft, parsedDiscount, isGstEnabled]);
+	}, [displayed, isValidDiscount]);
 
 	// ─── Check if Draft is Modified ──────────────────────────────────────────
 	const isModified = useMemo(() => {
@@ -370,15 +390,15 @@ export function InvoiceDetailPage() {
 	}, [invoice, isDraft, parsedDiscount, isGstEnabled, initialGstEnabled, notes]);
 
 	// ─── Save Draft Changes ──────────────────────────────────────────────────
-	const handleSave = async () => {
-		if (!id || !invoice || isSaving || !isDraft) return;
+	const handleSave = async (): Promise<boolean> => {
+		if (!id || !invoice || isSaving || !isDraft) return false;
 		if (parsedDiscount < 0) {
 			setSaveError('Discount cannot be negative.');
-			return;
+			return false;
 		}
 		if (parsedDiscount > invoice.subtotal) {
 			setSaveError(`Discount cannot exceed subtotal (${formatCurrency(invoice.subtotal)})`);
-			return;
+			return false;
 		}
 
 		setIsSaving(true);
@@ -406,12 +426,22 @@ export function InvoiceDetailPage() {
 			setTimeout(() => {
 				setSaveSuccess(false);
 			}, 3000);
+			return true;
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to save changes';
 			setSaveError(msg);
+			return false;
 		} finally {
 			setIsSaving(false);
 		}
+	};
+
+	// Unsaved changes are saved first, so the confirmation shows exactly the stored draft that will be generated.
+	const handleOpenGenerateConfirm = async () => {
+		if (!invoice || isGenerating || isCalculating) return;
+		setGenerateError(null);
+		if (isModified && !(await handleSave())) return;
+		setShowGenerateConfirm(true);
 	};
 
 	// ─── Generate Invoice ────────────────────────────────────────────────────
@@ -422,16 +452,8 @@ export function InvoiceDetailPage() {
 		setGenerateError(null);
 
 		try {
-			// Save unsaved draft changes first if any
-			if (isModified) {
-				await updateInvoice(id, {
-					discount: parsedDiscount,
-					notes: notes.trim() || null,
-					isGstEnabled,
-				});
-			}
-
-			const finalized = await generateInvoice(id);
+			// The confirmed (stored, server-calculated) total: the server refuses to issue any other amount.
+			const finalized = await generateInvoice(id, invoice?.totalAmount);
 			setInvoice(finalized);
 			setDiscount(String(finalized.discount ?? 0));
 			setNotes(finalized.notes ?? '');
@@ -465,6 +487,8 @@ export function InvoiceDetailPage() {
 					startPolling('InvoiceFinalized');
 					return;
 				}
+				// Still a draft (e.g. the total changed since it was confirmed): show the current server values.
+				if (reloaded) setInvoice(reloaded);
 			} catch {
 				// Ignore reload error and report main error
 			}
@@ -664,6 +688,17 @@ export function InvoiceDetailPage() {
 										#{invoice.invoiceNumber}
 									</h1>
 								)}
+								{canEditInvoiceNumber && (
+									<button
+										type="button"
+										onClick={() => setShowEditNumber(true)}
+										className="p-1 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors cursor-pointer"
+										aria-label="Edit invoice number"
+										title="Edit invoice number"
+									>
+										<Pencil className="w-4 h-4" />
+									</button>
+								)}
 								<StatusBadge status={isDraft ? 'draft' : getInvoiceStatusSlug(invoice.status, calculations)} />
 							</div>
 							<div className="flex items-center gap-3 text-xs text-on-surface-variant mt-0.5 flex-wrap">
@@ -722,11 +757,8 @@ export function InvoiceDetailPage() {
 								Save Changes
 							</Button>
 							<Button
-								onClick={() => {
-									setGenerateError(null);
-									setShowGenerateConfirm(true);
-								}}
-								disabled={isGenerating || !calculations.isValidDiscount}
+								onClick={handleOpenGenerateConfirm}
+								disabled={isGenerating || isSaving || isCalculating || !calculations.isValidDiscount}
 								icon={<Sparkles className="w-4 h-4" />}
 							>
 								Generate Invoice
@@ -938,19 +970,20 @@ export function InvoiceDetailPage() {
 									<th className="py-3 px-4">Service / Item Description</th>
 									<th className="py-3 px-3 text-center w-20">Qty</th>
 									<th className="py-3 px-4 text-right w-28">Rate</th>
+									{calculations.isGst && <th className="py-3 px-3 text-center w-20">GST</th>}
 									<th className="py-3 px-4 text-right w-32">Amount</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-outline-variant/50">
-								{(!invoice.items || invoice.items.length === 0) && (
+								{calculations.items.length === 0 && (
 									<tr>
-										<td colSpan={5} className="py-8 text-center text-on-surface-variant text-xs">
+										<td colSpan={calculations.isGst ? 6 : 5} className="py-8 text-center text-on-surface-variant text-xs">
 											No service items recorded on this invoice.
 										</td>
 									</tr>
 								)}
-								{invoice.items?.map((item, idx) => {
-									const lineItemTotal = item.unitPrice * item.quantity;
+								{calculations.items.map((item, idx) => {
+									const amount = lineAmount(item);
 									return (
 										<tr key={item.id || idx} className="hover:bg-surface-container-low/30">
 											<td className="py-3 px-3 text-center text-xs text-on-surface-variant font-mono">
@@ -965,8 +998,13 @@ export function InvoiceDetailPage() {
 											<td className="py-3 px-4 text-right text-xs text-on-surface-variant font-mono">
 												{formatCurrency(item.unitPrice)}
 											</td>
+											{calculations.isGst && (
+												<td className="py-3 px-3 text-center text-xs text-on-surface-variant font-mono" data-testid="line-gst-rate">
+													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
+												</td>
+											)}
 											<td className="py-3 px-4 text-right font-medium text-on-surface text-sm font-mono">
-												{formatCurrency(lineItemTotal)}
+												{formatCurrency(amount)}
 											</td>
 										</tr>
 									);
@@ -1060,7 +1098,7 @@ export function InvoiceDetailPage() {
 						{/* GST Toggle for Draft */}
 						{isDraft && (
 							<div className="flex justify-between items-center py-1 border-t border-outline-variant/50">
-								<span className="text-xs text-on-surface-variant">GST Enable (18%)</span>
+								<span className="text-xs text-on-surface-variant">Apply GST (rate per service)</span>
 								<button
 									type="button"
 									onClick={() => setIsGstEnabled((prev) => !prev)}
@@ -1079,22 +1117,22 @@ export function InvoiceDetailPage() {
 							</div>
 						)}
 
-						{/* GST Breakdown (No Taxable Base Display) */}
-						{isGstEnabled ? (
-							<>
-								<div className="flex justify-between text-on-surface-variant text-xs">
-									<span>CGST (9%)</span>
-									<span className="font-mono font-medium text-on-surface">
-										{formatCurrency(calculations.cgst)}
-									</span>
-								</div>
-								<div className="flex justify-between text-on-surface-variant text-xs">
-									<span>SGST (9%)</span>
-									<span className="font-mono font-medium text-on-surface">
-										{formatCurrency(calculations.sgst)}
-									</span>
-								</div>
-							</>
+						{/* GST rows per rate actually charged (server-calculated) */}
+						{previewError && isDraft && (
+							<p className="text-[11px] text-error" role="alert">{previewError}</p>
+						)}
+						{calculations.isGst ? (
+							<div className={isCalculating ? 'opacity-50' : undefined} aria-busy={isCalculating}>
+								{taxRows(calculations.breakdown).map((row) => (
+									<div key={row.key} className="flex justify-between text-on-surface-variant text-xs" data-testid="tax-row">
+										<span>
+											{row.label}
+											{row.taxableAmount !== null && <span className="text-[10px]"> on {formatCurrency(row.taxableAmount)}</span>}
+										</span>
+										<span className="font-mono font-medium text-on-surface">{formatCurrency(row.amount)}</span>
+									</div>
+								))}
+							</div>
 						) : (
 							<div className="flex justify-between text-on-surface-variant text-xs">
 								<span>GST</span>
@@ -1105,8 +1143,8 @@ export function InvoiceDetailPage() {
 						{/* Grand Total */}
 						<div className="flex justify-between text-base font-bold text-on-surface pt-3 border-t border-outline-variant">
 							<span>Grand Total</span>
-							<span className="font-mono text-secondary text-lg font-bold">
-								{formatCurrency(calculations.totalAmount)}
+							<span className="font-mono text-secondary text-lg font-bold" data-testid="grand-total">
+								{isCalculating ? 'Calculating…' : formatCurrency(calculations.totalAmount)}
 							</span>
 						</div>
 
@@ -1432,17 +1470,31 @@ export function InvoiceDetailPage() {
 						</div>
 						<div className="flex justify-between items-center text-xs">
 							<span className="text-on-surface-variant">GST Mode:</span>
-							<span className="font-medium text-on-surface">{isGstEnabled ? '18% GST (ON)' : 'Tax Exempt (OFF)'}</span>
+							<span className="font-medium text-on-surface">{invoice.isGstEnabled ? ratesSummary(invoice.taxBreakdown) : 'No GST (non-GST bill)'}</span>
 						</div>
-						{calculations.discount > 0 && (
+						{invoice.discount > 0 && (
 							<div className="flex justify-between items-center text-xs">
 								<span className="text-on-surface-variant">Discount:</span>
-								<span className="font-medium text-on-surface">{formatCurrency(calculations.discount)}</span>
+								<span className="font-medium text-on-surface">{formatCurrency(invoice.discount)}</span>
 							</div>
+						)}
+						{invoice.isGstEnabled && (
+							<>
+								<div className="flex justify-between items-center text-xs">
+									<span className="text-on-surface-variant">Taxable Value:</span>
+									<span className="font-medium text-on-surface">{formatCurrency(invoice.taxableAmount)}</span>
+								</div>
+								{taxRows(invoice.taxBreakdown).map((row) => (
+									<div key={row.key} className="flex justify-between items-center text-xs">
+										<span className="text-on-surface-variant">{row.label}:</span>
+										<span className="font-medium text-on-surface">{formatCurrency(row.amount)}</span>
+									</div>
+								))}
+							</>
 						)}
 						<div className="flex justify-between items-center pt-2 border-t border-outline-variant text-sm font-semibold">
 							<span className="text-on-surface">Grand Total:</span>
-							<span className="text-secondary font-bold">{formatCurrency(calculations.totalAmount)}</span>
+							<span className="text-secondary font-bold" data-testid="confirm-grand-total">{formatCurrency(invoice.totalAmount)}</span>
 						</div>
 					</div>
 
@@ -1451,6 +1503,20 @@ export function InvoiceDetailPage() {
 					</p>
 				</div>
 			</Dialog>
+
+			{canEditInvoiceNumber && invoice.invoiceNumber && (
+				<EditInvoiceNumberDialog
+					open={showEditNumber}
+					invoiceId={invoice.id}
+					currentNumber={invoice.invoiceNumber}
+					onOpenChange={setShowEditNumber}
+					onUpdated={(updated) => {
+						setInvoice(updated);
+						queryClient.invalidateQueries({ queryKey: ['invoices'] });
+						queryClient.invalidateQueries({ queryKey: ['customer-history'] });
+					}}
+				/>
+			)}
 
 			{/* ── Cancel Bill Confirmation Dialog ─────────────────────────────── */}
 			<Dialog
@@ -1563,7 +1629,7 @@ export function InvoiceDetailPage() {
 					{/* Centered A4 Document Canvas */}
 					<div className="flex-1 overflow-y-auto p-6 sm:p-10 flex justify-center items-start bg-slate-950/60">
 						<div className="shadow-2xl ring-1 ring-black/20 rounded-xs">
-							<InvoicePrintDocument invoice={invoice} businessProfile={businessProfile} />
+							<InvoicePrintDocument invoice={displayed ?? invoice} businessProfile={businessProfile} />
 						</div>
 					</div>
 				</div>
@@ -1583,7 +1649,7 @@ export function InvoiceDetailPage() {
 			{/* ── DEDICATED PRINT DOM (Rendered ONLY during physical print) ──── */}
 			{/* ═════════════════════════════════════════════════════════════════ */}
 			<div id="print-document" className="print-only">
-				<InvoicePrintDocument invoice={invoice} businessProfile={businessProfile} />
+				<InvoicePrintDocument invoice={displayed ?? invoice} businessProfile={businessProfile} />
 			</div>
 		</>
 	);

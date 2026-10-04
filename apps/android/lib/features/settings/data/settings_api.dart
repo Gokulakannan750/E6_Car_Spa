@@ -4,6 +4,7 @@ import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
 import '../models/logo_upload_response.dart';
 import '../models/system_preferences_model.dart';
+import '../models/invoice_series_model.dart';
 
 class SettingsApi {
   final Dio _dio;
@@ -33,6 +34,24 @@ class SettingsApi {
       data: request.toJson(),
     );
     return BusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// GST and non-GST invoice numbering series (prefixes + read-only next numbers).
+  Future<InvoiceSeriesSettingsModel> getInvoiceSeries() async {
+    final response = await _dio.get('/settings/invoice-series');
+    return InvoiceSeriesSettingsModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Owner only: changes the two prefixes. Counters cannot be changed.
+  Future<InvoiceSeriesSettingsModel> updateInvoiceSeries({
+    required String gstPrefix,
+    required String nonGstPrefix,
+  }) async {
+    final response = await _dio.put(
+      '/settings/invoice-series',
+      data: {'gstPrefix': gstPrefix, 'nonGstPrefix': nonGstPrefix},
+    );
+    return InvoiceSeriesSettingsModel.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Uploads a new business logo file

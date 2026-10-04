@@ -9,14 +9,38 @@ import 'package:e6_car_spa/features/customers/data/customer_repository.dart';
 import 'package:e6_car_spa/features/customers/models/customer_model.dart';
 import 'package:e6_car_spa/features/jobcards/data/job_card_api.dart';
 import 'package:e6_car_spa/features/jobcards/data/job_card_repository.dart';
+import 'package:e6_car_spa/features/jobcards/models/job_card_model.dart';
+import 'package:e6_car_spa/features/invoices/models/invoice_model.dart' show TaxBreakdown;
 import 'package:e6_car_spa/features/jobcards/providers/job_card_providers.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_api.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_repository.dart';
 import 'package:e6_car_spa/features/vehicles/models/vehicle_model.dart';
 
+/// Stands in for POST /job-cards/preview and records what the notifier asked for.
 class _FakeJobCardRepo extends JobCardRepository {
   _FakeJobCardRepo() : super(JobCardApi(Dio()));
+
+  final List<({List<JobCardServiceItemRequest> services, bool isGstEnabled})> calls = [];
+  JobCardEstimate Function(List<JobCardServiceItemRequest>, bool) respond =
+      (services, gst) => JobCardEstimate(
+        subtotal: 0,
+        discountAmount: 0,
+        taxableAmount: 0,
+        taxAmount: 0,
+        totalAmount: 0,
+      );
+
+  @override
+  Future<JobCardEstimate> previewJobCard(
+    List<JobCardServiceItemRequest> services, {
+    bool isGstEnabled = true,
+  }) async {
+    calls.add((services: services, isGstEnabled: isGstEnabled));
+    return respond(services, isGstEnabled);
+  }
 }
+
+final _fakeJobCardRepo = _FakeJobCardRepo();
 
 class _FakeCustomerRepo extends CustomerRepository {
   _FakeCustomerRepo() : super(CustomerApi(Dio()));
@@ -33,7 +57,7 @@ class _FakeServiceRepo extends ServiceRepository {
 ProviderContainer createTestContainer() {
   return ProviderContainer(
     overrides: [
-      jobCardRepositoryProvider.overrideWithValue(_FakeJobCardRepo()),
+      jobCardRepositoryProvider.overrideWithValue(_fakeJobCardRepo),
       customerRepositoryProvider.overrideWithValue(_FakeCustomerRepo()),
       vehicleRepositoryProvider.overrideWithValue(_FakeVehicleRepo()),
       serviceRepositoryProvider.overrideWithValue(_FakeServiceRepo()),
@@ -56,8 +80,7 @@ void main() {
       expect(state.canProceedToServices, false);
       expect(state.canProceedToReview, false);
       expect(state.previewSubtotal, 0.0);
-      expect(state.previewTax, 0.0);
-      expect(state.previewTotal, 0.0);
+      expect(state.estimate, null);
     });
 
     test('Selecting customer and vehicle enables proceeding to services', () {
@@ -88,7 +111,7 @@ void main() {
 
     test(
       'Adding and modifying services computes accurate display previews',
-      () {
+      () async {
         final container = createTestContainer();
         addTearDown(container.dispose);
 
@@ -110,36 +133,66 @@ void main() {
 
         final notifier = container.read(newJobCardProvider.notifier);
 
+        // The server's numbers are shown as returned (here: a 5% response that a flat 18% would get wrong).
+        _fakeJobCardRepo.calls.clear();
+        _fakeJobCardRepo.respond = (services, gst) {
+          final taxable = services.fold<double>(
+            0,
+            (sum, s) => sum + (s.serviceId == 's1' ? 500.0 : 1000.0) * s.quantity,
+          );
+          final tax = gst ? taxable * 0.05 : 0.0;
+          return JobCardEstimate(
+            subtotal: taxable,
+            discountAmount: 0,
+            taxableAmount: taxable,
+            taxAmount: tax,
+            totalAmount: taxable + tax,
+            taxBreakdown: gst
+                ? [
+                    TaxBreakdown(
+                      ratePercent: 5,
+                      taxableAmount: taxable,
+                      cgstAmount: tax / 2,
+                      sgstAmount: tax / 2,
+                      taxAmount: tax,
+                    ),
+                  ]
+                : const [],
+          );
+        };
+
         // Add svc1
         notifier.addService(svc1);
+        await Future<void>.delayed(Duration.zero);
         var state = container.read(newJobCardProvider);
         expect(state.selectedServices.length, 1);
         expect(state.previewSubtotal, 500.0);
-        expect(state.previewTax, 90.0); // 18% of 500
-        expect(state.previewTotal, 590.0);
+        expect(state.estimate?.totalAmount, 525.0);
         expect(state.canProceedToReview, true);
 
         // Increase quantity of svc1 to 2
         notifier.updateQuantity('s1', 2);
+        await Future<void>.delayed(Duration.zero);
         state = container.read(newJobCardProvider);
-        expect(state.previewSubtotal, 1000.0);
-        expect(state.previewTax, 180.0);
-        expect(state.previewTotal, 1180.0);
+        expect(_fakeJobCardRepo.calls.last.services.single.quantity, 2);
+        expect(state.estimate?.totalAmount, 1050.0);
 
         // Add svc2
         notifier.addService(svc2);
+        await Future<void>.delayed(Duration.zero);
         state = container.read(newJobCardProvider);
         expect(state.previewSubtotal, 2000.0); // 1000 + 1000
-        expect(state.previewTax, 360.0); // 180 + 180
-        expect(state.previewTotal, 2360.0);
+        expect(state.estimate?.taxAmount, 100.0);
+        expect(state.estimate?.totalAmount, 2100.0);
 
-        // Disable GST
+        // Disable GST: the server is asked again without GST
         notifier.setGstEnabled(false);
+        await Future<void>.delayed(Duration.zero);
         state = container.read(newJobCardProvider);
         expect(state.isGstEnabled, false);
-        expect(state.previewSubtotal, 2000.0);
-        expect(state.previewTax, 0.0);
-        expect(state.previewTotal, 2000.0);
+        expect(_fakeJobCardRepo.calls.last.isGstEnabled, false);
+        expect(state.estimate?.taxAmount, 0.0);
+        expect(state.estimate?.totalAmount, 2000.0);
 
         // Remove svc1
         notifier.removeService('s1');

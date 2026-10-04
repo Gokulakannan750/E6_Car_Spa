@@ -306,7 +306,7 @@ public class InvoiceCalculationTests
     }
 
     [Fact]
-    public async Task DraftInvoice_EnablingGstOnNonGstJobCard_UsesStandardRateFallback()
+    public async Task DraftInvoice_EnablingGstOnNonGstJobCard_UsesTheServiceCatalogueRate()
     {
         var ctx = Create();
         var (customerId, vehicleId) = await SeedCustomerAsync(ctx.Db);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -11,6 +13,8 @@ import '../../../catalogue/models/service_model.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 import 'add_custom_service_dialog.dart';
+import '../../../../core/utils/gst_display.dart';
+import '../../data/job_card_repository.dart';
 
 class EditJobCardSheet extends ConsumerStatefulWidget {
   final JobCard jobCard;
@@ -53,11 +57,8 @@ class _EditableServiceRow {
     this.discountAmount = 0.0,
   });
 
-  double get lineTotal {
-    final base = unitPrice * quantity;
-    final tax = base * (taxPercentage / 100);
-    return base + tax - discountAmount;
-  }
+  /// Qty × price − discount, before tax (tax comes from the server estimate).
+  double get lineTotal => unitPrice * quantity - discountAmount;
 }
 
 class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
@@ -86,13 +87,58 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
     }).toList();
 
     _loadAvailableServices();
+    _scheduleEstimate();
   }
 
   @override
   void dispose() {
+    _estimateTimer?.cancel();
     _notesController.dispose();
     super.dispose();
   }
+
+  // Server estimate for the edited services (same calculator as saving); null while calculating.
+  JobCardEstimate? _estimate;
+  String? _estimateError;
+  Timer? _estimateTimer;
+  int _estimateRequest = 0;
+
+  void _scheduleEstimate() {
+    _estimateTimer?.cancel();
+    final request = ++_estimateRequest;
+    _estimate = null;
+    _estimateError = null;
+    if (_services.isEmpty) return;
+    final services = _services
+        .map(
+          (s) => JobCardServiceItemRequest(
+            serviceId: s.serviceId,
+            quantity: s.quantity,
+            discountAmount: s.discountAmount,
+          ),
+        )
+        .toList();
+    _estimateTimer = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        final estimate = await ref.read(jobCardRepositoryProvider).previewJobCard(services);
+        if (!mounted || request != _estimateRequest) return;
+        setState(() => _estimate = estimate);
+      } catch (_) {
+        if (!mounted || request != _estimateRequest) return;
+        setState(() => _estimateError = 'Unable to calculate the estimate.');
+      }
+    });
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    final before = _servicesSignature;
+    super.setState(fn);
+    if (_servicesSignature != before) _scheduleEstimate();
+  }
+
+  String get _servicesSignature =>
+      _services.map((s) => '${s.serviceId}:${s.quantity}:${s.discountAmount}').join('|');
 
   Future<void> _loadAvailableServices() async {
     setState(() => _isLoadingCatalogue = true);
@@ -113,15 +159,6 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
     }
   }
 
-  double get _subtotal =>
-      _services.fold(0.0, (sum, s) => sum + (s.unitPrice * s.quantity));
-  double get _taxAmount => _services.fold(
-    0.0,
-    (sum, s) => sum + (s.unitPrice * s.quantity * (s.taxPercentage / 100)),
-  );
-  double get _discountAmount =>
-      _services.fold(0.0, (sum, s) => sum + s.discountAmount);
-  double get _totalAmount => _subtotal + _taxAmount - _discountAmount;
 
   void _addService(Service svc) {
     final existingIndex = _services.indexWhere((s) => s.serviceId == svc.id);
@@ -562,7 +599,7 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                 ),
                               ),
                               Text(
-                                '₹${_subtotal.toStringAsFixed(2)}',
+                                _estimate == null ? '—' : '₹${_estimate!.subtotal.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -574,15 +611,15 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'Tax (GST)',
-                                style: TextStyle(
+                              Text(
+                                _estimate == null ? 'GST' : gstRatesSummary(_estimate!.taxBreakdown),
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
                               Text(
-                                '₹${_taxAmount.toStringAsFixed(2)}',
+                                _estimate == null ? '—' : '₹${_estimate!.taxAmount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -602,7 +639,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                 ),
                               ),
                               Text(
-                                '₹${_totalAmount.toStringAsFixed(2)}',
+                                _estimate == null
+                                    ? (_estimateError ?? 'Calculating…')
+                                    : '₹${_estimate!.totalAmount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,

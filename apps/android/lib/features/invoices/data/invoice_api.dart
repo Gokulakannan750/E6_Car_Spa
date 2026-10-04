@@ -58,8 +58,37 @@ class InvoiceApi {
     return Invoice.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Invoice> generateInvoice(String id) async {
-    final response = await _dio.post('/invoices/$id/generate');
+  /// Owner only: replace the number of a fully paid GST invoice.
+  Future<Invoice> updateInvoiceNumber(String id, String invoiceNumber) async {
+    final response = await _dio.put(
+      '/invoices/$id/invoice-number',
+      data: {'invoiceNumber': invoiceNumber},
+    );
+    return Invoice.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Draft totals for unsaved discount / GST values, calculated by the server (nothing is saved).
+  Future<Invoice> previewInvoice(
+    String id, {
+    required double discount,
+    required bool isGstEnabled,
+  }) async {
+    final response = await _dio.post(
+      '/invoices/$id/preview',
+      data: {'discount': discount, 'isGstEnabled': isGstEnabled},
+    );
+    return Invoice.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Finalizes a draft. [expectedTotalAmount] is the total the user confirmed: the server refuses
+  /// (409) to issue any other amount.
+  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
+    final response = await _dio.post(
+      '/invoices/$id/generate',
+      data: expectedTotalAmount == null
+          ? <String, dynamic>{}
+          : {'expectedTotalAmount': expectedTotalAmount},
+    );
     return Invoice.fromJson(response.data as Map<String, dynamic>);
   }
 

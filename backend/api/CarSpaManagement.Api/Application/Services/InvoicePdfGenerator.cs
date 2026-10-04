@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
@@ -10,6 +11,34 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class InvoicePdfGenerator : IInvoicePdfGenerator
 {
+	/// <summary>
+	/// Summary rows for the tax groups of one invoice: "CGST @ 9% on Rs. X" / "SGST @ 9% on Rs. X" per rate,
+	/// "GST @ 0% on Rs. X" for 0% lines, and plain "CGST" / "SGST" when the rate of a legacy line is unknown.
+	/// </summary>
+	public static IEnumerable<(string Label, decimal Amount)> TaxRows(IReadOnlyList<InvoiceCalculator.TaxGroup> groups)
+	{
+		var single = groups.Count == 1;
+		foreach (var g in groups)
+		{
+			var on = single ? "" : $" on Rs. {g.Taxable:N2}";
+			if (g.RatePercent is null)
+			{
+				yield return ("CGST" + on, g.Cgst);
+				yield return ("SGST" + on, g.Sgst);
+			}
+			else if (g.RatePercent == 0m)
+			{
+				yield return ("GST @ 0%" + on, 0m);
+			}
+			else
+			{
+				var half = InvoiceCalculator.FormatRate(g.RatePercent.Value / 2m);
+				yield return ($"CGST @ {half}" + on, g.Cgst);
+				yield return ($"SGST @ {half}" + on, g.Sgst);
+			}
+		}
+	}
+
 	private readonly IWebHostEnvironment? _environment;
 
 	static InvoicePdfGenerator()
@@ -44,9 +73,8 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 		// Document Title
 		var documentTitle = isDraft ? "DRAFT INVOICE" : isGst ? "TAX INVOICE" : "INVOICE";
 
-		// Authoritative calculations from the Invoice entity (presentation only, no recalculation)
-		var cgstAmount = isGst ? invoice.GstAmount / 2 : 0m;
-		var sgstAmount = isGst ? invoice.GstAmount / 2 : 0m;
+		// Rate-wise tax rows from the stored invoice values (presentation only, no recalculation)
+		var taxGroups = InvoiceCalculator.SummarizeStoredInvoice(invoice);
 
 		// Resolve logo bytes safely if file exists on disk
 		byte[]? logoBytes = ResolveLogoBytes(businessProfile?.LogoPath);
@@ -189,6 +217,7 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 							columns.ConstantColumn(24);
 							columns.RelativeColumn(6);
 							if (isGst) columns.ConstantColumn(65);
+							if (isGst) columns.ConstantColumn(40);
 							columns.ConstantColumn(35);
 							columns.ConstantColumn(75);
 							columns.ConstantColumn(85);
@@ -204,6 +233,8 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 							{
 								header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
 									.AlignCenter().Text("HSN/SAC").FontSize(8).Bold().FontColor(darkColor);
+								header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
+									.AlignCenter().Text("GST").FontSize(8).Bold().FontColor(darkColor);
 							}
 							header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
 								.AlignCenter().Text("Qty").FontSize(8).Bold().FontColor(darkColor);
@@ -213,10 +244,10 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 								.AlignRight().Text("Amount").FontSize(8).Bold().FontColor(darkColor);
 						});
 
-						var items = invoice.InvoiceItems?.ToList() ?? new List<InvoiceItem>();
+						var items = invoice.InvoiceItems?.Where(it => !it.IsDeleted).OrderBy(it => it.CreatedAt).ToList() ?? new List<InvoiceItem>();
 						if (items.Count == 0)
 						{
-							var colSpan = isGst ? 6 : 5;
+							var colSpan = isGst ? 7 : 5;
 							table.Cell().ColumnSpan((uint)colSpan).Border(1).BorderColor(borderColor).Padding(12)
 								.AlignCenter().Text("No service items recorded on this invoice.").Italic().FontColor(mutedColor);
 						}
@@ -225,7 +256,8 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 							for (int i = 0; i < items.Count; i++)
 							{
 								var itm = items[i];
-								var lineTotal = itm.TotalAmount > 0 ? itm.TotalAmount : itm.UnitPrice * itm.Quantity;
+								// Amount = Qty × Rate − line discount (before invoice discount and tax); the column sums to Subtotal.
+								var lineAmount = InvoiceCalculator.Round(itm.UnitPrice * itm.Quantity) - itm.Discount;
 
 								table.Cell().Border(1).BorderColor(borderColor).Padding(5)
 									.AlignCenter().Text((i + 1).ToString()).FontSize(8).FontColor(mutedColor);
@@ -235,13 +267,15 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 								{
 									table.Cell().Border(1).BorderColor(borderColor).Padding(5)
 										.AlignCenter().Text("998714").FontSize(8).FontColor(mutedColor);
+									table.Cell().Border(1).BorderColor(borderColor).Padding(5)
+										.AlignCenter().Text(itm.TaxRatePercent.HasValue ? InvoiceCalculator.FormatRate(itm.TaxRatePercent.Value) : "—").FontSize(8).FontColor(mutedColor);
 								}
 								table.Cell().Border(1).BorderColor(borderColor).Padding(5)
 									.AlignCenter().Text(itm.Quantity.ToString()).FontSize(8.5f).FontColor(darkColor);
 								table.Cell().Border(1).BorderColor(borderColor).Padding(5)
 									.AlignRight().Text($"Rs. {itm.UnitPrice:N2}").FontSize(8.5f).FontColor(darkColor);
 								table.Cell().Border(1).BorderColor(borderColor).Padding(5)
-									.AlignRight().Text($"Rs. {lineTotal:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
+									.AlignRight().Text($"Rs. {lineAmount:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
 							}
 						}
 					});
@@ -300,7 +334,7 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 									.AlignRight().Text($"- Rs. {invoice.Discount:N2}").FontSize(8.5f).Bold().FontColor("#065F46");
 							}
 
-							// GST Rows (Taxable, CGST 9%, SGST 9%)
+							// GST rows: taxable value, then CGST/SGST per rate actually charged on this invoice
 							if (isGst)
 							{
 								totalsTable.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(4)
@@ -308,15 +342,13 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 								totalsTable.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(4)
 									.AlignRight().Text($"Rs. {invoice.TaxableAmount:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
 
-								totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
-									.Text("CGST (9%)").FontSize(8).FontColor(mutedColor);
-								totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
-									.AlignRight().Text($"Rs. {cgstAmount:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
-
-								totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
-									.Text("SGST (9%)").FontSize(8).FontColor(mutedColor);
-								totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
-									.AlignRight().Text($"Rs. {sgstAmount:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
+								foreach (var (label, amount) in TaxRows(taxGroups))
+								{
+									totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
+										.Text(label).FontSize(8).FontColor(mutedColor);
+									totalsTable.Cell().Border(1).BorderColor(borderColor).Padding(4)
+										.AlignRight().Text($"Rs. {amount:N2}").FontSize(8.5f).Bold().FontColor(darkColor);
+								}
 							}
 
 							// Grand Total

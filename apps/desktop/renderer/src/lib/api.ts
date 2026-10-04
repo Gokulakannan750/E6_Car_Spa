@@ -687,6 +687,19 @@ export interface InvoiceItemDto {
   taxableAmount: number;
   taxAmount: number;
   totalAmount: number;
+  /** GST rate applied to this line (0 on a non-GST invoice); null for a legacy line whose rate is unknown. */
+  taxRatePercent?: number | null;
+  cgstAmount?: number;
+  sgstAmount?: number;
+}
+
+/** Server-calculated tax of all lines at one GST rate (null rate = legacy line with unknown rate). */
+export interface TaxBreakdownDto {
+  ratePercent: number | null;
+  taxableAmount: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  taxAmount: number;
 }
 
 export interface PaymentDto {
@@ -735,6 +748,9 @@ export interface InvoiceDto {
   payments?: PaymentDto[];
   createdAt: string;
   updatedAt: string | null;
+  cgstAmount?: number;
+  sgstAmount?: number;
+  taxBreakdown?: TaxBreakdownDto[];
 }
 
 export interface InvoiceListDto {
@@ -805,6 +821,7 @@ export interface PublicInvoiceItemDto {
   rate: number;
   amount: number;
   hsnSac?: string | null;
+  taxRatePercent?: number | null;
 }
 
 export interface PublicFinancialsDto {
@@ -816,6 +833,7 @@ export interface PublicFinancialsDto {
   totalAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  taxBreakdown?: TaxBreakdownDto[];
 }
 
 export interface PublicInvoiceDto {
@@ -972,6 +990,39 @@ export async function createJobCard(data: CreateJobCardInput) {
  method: 'POST',
  body: JSON.stringify(data),
  }, 'create job cards');
+}
+
+/** One line of a server-calculated job-card estimate. */
+export interface JobCardEstimateLineDto {
+ serviceId: string;
+ serviceName: string;
+ quantity: number;
+ unitPrice: number;
+ discountAmount: number;
+ taxRatePercent: number;
+ taxableAmount: number;
+ taxAmount: number;
+ lineTotal: number;
+}
+
+/** Job-card estimate calculated by the server (same rules as job-card creation); nothing is saved. */
+export interface JobCardEstimateDto {
+ lines: JobCardEstimateLineDto[];
+ subtotal: number;
+ discountAmount: number;
+ taxableAmount: number;
+ cgstAmount: number;
+ sgstAmount: number;
+ taxAmount: number;
+ totalAmount: number;
+ taxBreakdown: TaxBreakdownDto[];
+}
+
+export async function previewJobCard(services: { serviceId: string; quantity: number; discountAmount: number }[], isGstEnabled = true) {
+ return request<JobCardEstimateDto>('/api/job-cards/preview', {
+ method: 'POST',
+ body: JSON.stringify({ services, isGstEnabled }),
+ }, 'view job cards');
 }
 
 export async function updateJobCardServices(id: string, services: { serviceId: string; quantity: number; discountAmount: number }[]) {
@@ -1190,9 +1241,29 @@ export async function updateInvoice(id: string, data: UpdateInvoiceInput) {
   }, 'edit invoices');
 }
 
-export async function generateInvoice(id: string) {
+/** Owner only: replace the number of a fully paid GST invoice with a number of the Owner's choosing. */
+export async function updateInvoiceNumber(id: string, invoiceNumber: string) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/invoice-number`, {
+    method: 'PUT',
+    body: JSON.stringify({ invoiceNumber }),
+  }, 'change invoice numbers');
+}
+
+/** Draft totals for unsaved discount / GST values, calculated by the server; nothing is saved. */
+export async function previewInvoice(id: string, data: { discount?: number | null; isGstEnabled?: boolean | null }) {
+  return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/preview`, {
+    method: 'POST',
+    body: JSON.stringify(cleanPayload(data)),
+  }, 'edit invoices');
+}
+
+/**
+ * Finalizes a draft. Pass the total the user confirmed: the server refuses (409) to issue a different amount.
+ */
+export async function generateInvoice(id: string, expectedTotalAmount?: number) {
   return request<InvoiceDto>(`/api/invoices/${encodeURIComponent(id)}/generate`, {
     method: 'POST',
+    body: JSON.stringify(expectedTotalAmount === undefined ? {} : { expectedTotalAmount }),
   }, 'generate invoices');
 }
 
@@ -2980,6 +3051,35 @@ export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileD
 		});
 	}
 	return res;
+}
+
+// ─── Invoice numbering series (GST / non-GST) ────────────────────────────────
+
+export interface InvoiceSeriesDto {
+	seriesKind: 'Gst' | 'NonGst';
+	prefix: string;
+	minDigits: number;
+	/** Server-controlled counter; read-only in the UI. */
+	nextNumber: number;
+	nextNumberDisplay: string;
+	nextInvoiceNumber: string;
+}
+
+export interface InvoiceSeriesSettingsDto {
+	gst: InvoiceSeriesDto;
+	nonGst: InvoiceSeriesDto;
+}
+
+export async function getInvoiceSeries() {
+	return request<InvoiceSeriesSettingsDto>('/api/settings/invoice-series', {}, 'view invoice numbering');
+}
+
+/** Owner only. Only prefixes can be changed; the counters are controlled by the server. */
+export async function updateInvoiceSeries(data: { gstPrefix: string; nonGstPrefix: string }) {
+	return request<InvoiceSeriesSettingsDto>('/api/settings/invoice-series', {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'change invoice number prefixes');
 }
 
 export async function getBusinessProfile() {

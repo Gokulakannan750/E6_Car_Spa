@@ -37,7 +37,8 @@ public record PublicInvoiceItemDto(
     int Quantity,
     decimal Rate,
     decimal Amount,
-    string? HsnSac
+    string? HsnSac,
+    decimal? TaxRatePercent = null
 );
 
 public record PublicFinancialsDto(
@@ -48,7 +49,8 @@ public record PublicFinancialsDto(
     decimal? Sgst,
     decimal TotalAmount,
     decimal PaidAmount,
-    decimal BalanceAmount
+    decimal BalanceAmount,
+    IReadOnlyList<TaxBreakdownDto>? TaxBreakdown = null
 );
 
 public record PublicInvoiceDto(

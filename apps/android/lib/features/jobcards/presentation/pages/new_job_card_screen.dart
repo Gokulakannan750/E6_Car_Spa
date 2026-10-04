@@ -12,6 +12,7 @@ import '../../../vehicles/presentation/widgets/vehicle_card.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/add_custom_service_dialog.dart';
 import '../../../../core/utils/uppercase_formatter.dart';
+import '../../../../core/utils/gst_display.dart';
 
 class NewJobCardScreen extends ConsumerStatefulWidget {
   const NewJobCardScreen({super.key});
@@ -1052,7 +1053,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
-                  'Apply GST / Tax (18%)',
+                  'Apply GST (rate per service)',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 subtitle: const Text(
@@ -1089,19 +1090,40 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
+              // Server-calculated estimate (same rules as creating the job card).
               _buildSummaryRow(
                 'Estimated Subtotal',
-                '₹${state.previewSubtotal.toStringAsFixed(2)}',
+                '₹${(state.estimate?.subtotal ?? state.previewSubtotal).toStringAsFixed(2)}',
               ),
-              const SizedBox(height: 6),
-              _buildSummaryRow(
-                'Estimated GST (18%)',
-                '₹${state.previewTax.toStringAsFixed(2)}',
-              ),
+              if (state.estimate != null && state.estimate!.discountAmount > 0) ...[
+                const SizedBox(height: 6),
+                _buildSummaryRow(
+                  'Discount',
+                  '-₹${state.estimate!.discountAmount.toStringAsFixed(2)}',
+                ),
+              ],
+              for (final row in gstRows(state.estimate?.taxBreakdown ?? const [])) ...[
+                const SizedBox(height: 6),
+                _buildSummaryRow(
+                  row.taxableAmount == null
+                      ? 'Estimated ${row.label}'
+                      : 'Estimated ${row.label} on ₹${row.taxableAmount!.toStringAsFixed(2)}',
+                  '₹${row.amount.toStringAsFixed(2)}',
+                ),
+              ],
+              if (state.estimateError != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  state.estimateError!,
+                  style: const TextStyle(fontSize: 12, color: AppColors.error),
+                ),
+              ],
               const Divider(height: 18, color: AppColors.border),
               _buildSummaryRow(
                 'Estimated Total',
-                '₹${state.previewTotal.toStringAsFixed(2)}',
+                state.estimate == null
+                    ? 'Calculating…'
+                    : '₹${state.estimate!.totalAmount.toStringAsFixed(2)}',
                 isBold: true,
               ),
             ],
