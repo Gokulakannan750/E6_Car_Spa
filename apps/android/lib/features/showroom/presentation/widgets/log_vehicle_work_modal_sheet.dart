@@ -16,6 +16,7 @@ class VehicleConfigItem {
   String? vehicleTypeId;
   final Set<String> selectedWorkTypeIds;
   final TextEditingController notesController;
+  final Map<String, TextEditingController> workTypeNoteControllers;
   bool isExpanded;
 
   VehicleConfigItem({
@@ -23,12 +24,17 @@ class VehicleConfigItem {
     this.vehicleTypeId,
     Set<String>? selectedWorkTypeIds,
     String? initialNotes,
+    Map<String, TextEditingController>? workTypeNoteControllers,
     this.isExpanded = true,
   }) : selectedWorkTypeIds = selectedWorkTypeIds ?? <String>{},
-       notesController = TextEditingController(text: initialNotes ?? '');
+       notesController = TextEditingController(text: initialNotes ?? ''),
+       workTypeNoteControllers = workTypeNoteControllers ?? {};
 
   void dispose() {
     notesController.dispose();
+    for (final c in workTypeNoteControllers.values) {
+      c.dispose();
+    }
   }
 }
 
@@ -127,11 +133,19 @@ class _LogVehicleWorkModalSheetState
             : <String>{};
 
         while (_configs.length < _quantity) {
+          final newNoteControllers = <String, TextEditingController>{};
+          if (_configs.isNotEmpty) {
+            for (final entry in _configs.last.workTypeNoteControllers.entries) {
+              newNoteControllers[entry.key] =
+                  TextEditingController(text: entry.value.text);
+            }
+          }
           _configs.add(
             VehicleConfigItem(
               staffId: lastStaffId,
               vehicleTypeId: lastVehicleTypeId,
               selectedWorkTypeIds: Set<String>.from(lastWorkTypes),
+              workTypeNoteControllers: newNoteControllers,
               isExpanded:
                   _configs.length < 5, // collapse beyond 5 for readability
             ),
@@ -222,6 +236,33 @@ class _LogVehicleWorkModalSheetState
         });
         return;
       }
+
+      final opsState = ref.read(showroomOperationsProvider(widget.showroomId));
+      for (final id in config.selectedWorkTypeIds) {
+        final wt = opsState.workTypes.firstWhere(
+          (w) => w.id == id,
+          orElse: () => ShowroomWorkType(
+            id: id,
+            code: '',
+            name: '',
+            createdAt: DateTime.now(),
+          ),
+        );
+        final isOther =
+            wt.name.trim().toLowerCase().contains('other') ||
+            wt.code.trim().toUpperCase() == 'OTHER';
+        if (isOther) {
+          final note = config.workTypeNoteControllers[id]?.text.trim() ?? '';
+          if (note.isEmpty) {
+            setState(() {
+              config.isExpanded = true;
+              _errorMessage =
+                  'Please specify work performed for "Other" on Vehicle #$itemIndex.';
+            });
+            return;
+          }
+        }
+      }
     }
 
     setState(() {
@@ -232,6 +273,7 @@ class _LogVehicleWorkModalSheetState
       final notifier = ref.read(
         showroomOperationsProvider(widget.showroomId).notifier,
       );
+      final opsState = ref.read(showroomOperationsProvider(widget.showroomId));
 
       final staffGroups = <String, List<VehicleConfigItem>>{};
       for (final c in _configs) {
@@ -249,9 +291,13 @@ class _LogVehicleWorkModalSheetState
             vehicleTypeId: single.vehicleTypeId!,
             date: widget.selectedDate,
             serviceItems: single.selectedWorkTypeIds
-                .map(
-                  (id) => CreateShowroomVehicleWorkItemRequest(workTypeId: id),
-                )
+                .map((id) {
+                  final note = single.workTypeNoteControllers[id]?.text.trim();
+                  return CreateShowroomVehicleWorkItemRequest(
+                    workTypeId: id,
+                    notes: (note != null && note.isNotEmpty) ? note : null,
+                  );
+                })
                 .toList(),
             notes: single.notesController.text.trim().isEmpty
                 ? null
@@ -260,12 +306,35 @@ class _LogVehicleWorkModalSheetState
           await notifier.createVehicleWork(request);
         } else {
           final entries = groupConfigs.map((c) {
+            final Map<String, String> workTypeNotes = {};
+            String? otherDesc;
+            for (final id in c.selectedWorkTypeIds) {
+              final note = c.workTypeNoteControllers[id]?.text.trim();
+              if (note != null && note.isNotEmpty) {
+                workTypeNotes[id] = note;
+                final wt = opsState.workTypes.firstWhere(
+                  (w) => w.id == id,
+                  orElse: () => ShowroomWorkType(
+                    id: id,
+                    code: '',
+                    name: '',
+                    createdAt: DateTime.now(),
+                  ),
+                );
+                if (wt.name.trim().toLowerCase().contains('other') ||
+                    wt.code.trim().toUpperCase() == 'OTHER') {
+                  otherDesc = note;
+                }
+              }
+            }
             return IndividualVehicleWorkEntry(
               vehicleTypeId: c.vehicleTypeId!,
               workTypeIds: c.selectedWorkTypeIds.toList(),
               notes: c.notesController.text.trim().isEmpty
                   ? null
                   : c.notesController.text.trim(),
+              workTypeNotes: workTypeNotes.isNotEmpty ? workTypeNotes : null,
+              otherDescription: otherDesc,
             );
           }).toList();
 
@@ -316,6 +385,13 @@ class _LogVehicleWorkModalSheetState
 
     final vehicleTypes = opsState.vehicleTypes;
     final workTypes = opsState.workTypes;
+
+    // Auto-select first vehicle type for config if not selected
+    if (vehicleTypes.isNotEmpty &&
+        _configs.isNotEmpty &&
+        _configs[0].vehicleTypeId == null) {
+      _configs[0].vehicleTypeId = vehicleTypes.first.id;
+    }
 
     final hasNoStaff = !dailyState.isLoading && eligibleStaff.isEmpty;
 
@@ -764,6 +840,10 @@ class _LogVehicleWorkModalSheetState
                             setState(() {
                               if (selected) {
                                 config.selectedWorkTypeIds.add(wType.id);
+                                config.workTypeNoteControllers.putIfAbsent(
+                                  wType.id,
+                                  () => TextEditingController(),
+                                );
                               } else {
                                 config.selectedWorkTypeIds.remove(wType.id);
                               }
@@ -793,6 +873,23 @@ class _LogVehicleWorkModalSheetState
                         );
                       }).toList(),
                     ),
+
+                  // "Other" work type description fields
+                  for (final wType in workTypes)
+                    if (config.selectedWorkTypeIds.contains(wType.id) &&
+                        (wType.name.trim().toLowerCase().contains('other') ||
+                            wType.code.trim().toUpperCase() == 'OTHER')) ...[
+                      const SizedBox(height: 8),
+                      AppTextField(
+                        key: Key('other_desc_field_${index}_${wType.id}'),
+                        label: 'Specify work performed: *',
+                        hint: 'e.g. Engine bay cleaning, ceramic touch-up',
+                        controller: config.workTypeNoteControllers.putIfAbsent(
+                          wType.id,
+                          () => TextEditingController(),
+                        ),
+                      ),
+                    ],
                   const SizedBox(height: 12),
 
                   // 4. Notes

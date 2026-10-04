@@ -408,17 +408,25 @@ class IndividualVehicleWorkEntry {
   final String vehicleTypeId;
   final List<String> workTypeIds;
   final String? notes;
+  final Map<String, String>? workTypeNotes;
+  final String? otherDescription;
 
   const IndividualVehicleWorkEntry({
     required this.vehicleTypeId,
     required this.workTypeIds,
     this.notes,
+    this.workTypeNotes,
+    this.otherDescription,
   });
 
   Map<String, dynamic> toJson() => {
     'vehicleTypeId': vehicleTypeId,
     'workTypeIds': workTypeIds,
     if (notes != null && notes!.trim().isNotEmpty) 'notes': notes!.trim(),
+    if (workTypeNotes != null && workTypeNotes!.isNotEmpty)
+      'workTypeNotes': workTypeNotes,
+    if (otherDescription != null && otherDescription!.trim().isNotEmpty)
+      'otherDescription': otherDescription!.trim(),
   };
 }
 

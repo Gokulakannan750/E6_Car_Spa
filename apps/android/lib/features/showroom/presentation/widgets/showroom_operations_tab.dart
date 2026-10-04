@@ -574,11 +574,27 @@ class ShowroomOperationsTab extends ConsumerWidget {
   }) {
     final staffList = dailyState.staffAssignments;
     final vehicleTypes = opsState.vehicleTypes;
+    final Set<String> knownIds = vehicleTypes.map((v) => v.id).toSet();
+    final List<ShowroomVehicleType> filterVehicleTypes = List.from(vehicleTypes);
+    for (final w in opsState.vehicleWorks) {
+      if (!knownIds.contains(w.vehicleTypeId) && w.vehicleTypeId.isNotEmpty) {
+        filterVehicleTypes.add(
+          ShowroomVehicleType(
+            id: w.vehicleTypeId,
+            code: w.vehicleTypeCode,
+            name:
+                '${w.vehicleTypeName.isNotEmpty ? w.vehicleTypeName : 'Type'} (Inactive)',
+            createdAt: DateTime.now(),
+          ),
+        );
+        knownIds.add(w.vehicleTypeId);
+      }
+    }
 
     final selectedStaff = staffList
         .where((s) => s.staffId == opsState.selectedStaffId)
         .firstOrNull;
-    final selectedVehicleType = vehicleTypes
+    final selectedVehicleType = filterVehicleTypes
         .where((v) => v.id == opsState.selectedVehicleTypeId)
         .firstOrNull;
 
@@ -675,7 +691,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                 value: null,
                 child: Text('All Vehicle Types'),
               ),
-              ...vehicleTypes.map(
+              ...filterVehicleTypes.map(
                 (v) => PopupMenuItem<String?>(value: v.id, child: Text(v.name)),
               ),
             ],
