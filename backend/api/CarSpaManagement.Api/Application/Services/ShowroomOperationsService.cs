@@ -46,8 +46,23 @@ public class ShowroomOperationsService : IShowroomOperationsService
 
     public async Task<ShowroomVehicleTypeDto> CreateVehicleTypeAsync(CreateShowroomVehicleTypeRequest request, CancellationToken ct = default)
     {
-        var code = request.Code.Trim().ToUpperInvariant();
         var name = request.Name.Trim();
+        string code;
+        if (!string.IsNullOrWhiteSpace(request.Code))
+        {
+            code = request.Code.Trim().ToUpperInvariant();
+        }
+        else
+        {
+            var baseCode = System.Text.RegularExpressions.Regex.Replace(name.ToUpperInvariant(), @"[^A-Z0-9]+", "_").Trim('_');
+            if (string.IsNullOrWhiteSpace(baseCode)) baseCode = "VEHICLE_TYPE";
+            code = baseCode;
+            var counter = 1;
+            while (await _db.ShowroomVehicleTypes.AnyAsync(v => v.Code.ToLower() == code.ToLower(), ct))
+            {
+                code = $"{baseCode}_{counter++}";
+            }
+        }
 
         var existing = await _db.ShowroomVehicleTypes.AnyAsync(v => v.Code.ToLower() == code.ToLower(), ct);
         if (existing)
@@ -176,8 +191,23 @@ public class ShowroomOperationsService : IShowroomOperationsService
 
     public async Task<ShowroomWorkTypeDto> CreateWorkTypeAsync(CreateShowroomWorkTypeRequest request, CancellationToken ct = default)
     {
-        var code = request.Code.Trim().ToUpperInvariant();
         var name = request.Name.Trim();
+        string code;
+        if (!string.IsNullOrWhiteSpace(request.Code))
+        {
+            code = request.Code.Trim().ToUpperInvariant();
+        }
+        else
+        {
+            var baseCode = System.Text.RegularExpressions.Regex.Replace(name.ToUpperInvariant(), @"[^A-Z0-9]+", "_").Trim('_');
+            if (string.IsNullOrWhiteSpace(baseCode)) baseCode = "WORK_TYPE";
+            code = baseCode;
+            var counter = 1;
+            while (await _db.ShowroomWorkTypes.AnyAsync(w => w.Code.ToLower() == code.ToLower(), ct))
+            {
+                code = $"{baseCode}_{counter++}";
+            }
+        }
 
         var existing = await _db.ShowroomWorkTypes.AnyAsync(w => w.Code.ToLower() == code.ToLower(), ct);
         if (existing)
@@ -687,6 +717,12 @@ public class ShowroomOperationsService : IShowroomOperationsService
                     throw new ValidationException($"Work type '{workType.Name}' is inactive and cannot be used for new work.");
                 }
 
+                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
+                if (isOther && string.IsNullOrWhiteSpace(itemReq.Notes))
+                {
+                    throw new ValidationException("Description of work performed is required when 'Other' work type is selected.");
+                }
+
                 var item = new ShowroomVehicleWorkItem
                 {
                     Id = Guid.NewGuid(),
@@ -840,13 +876,29 @@ public class ShowroomOperationsService : IShowroomOperationsService
                     throw new ValidationException($"Vehicle {vehicleNum}: Work type '{workType.Name}' is inactive and cannot be used for new work.");
                 }
 
+                string? itemNotes = null;
+                if (vEntry.WorkTypeNotes != null && vEntry.WorkTypeNotes.TryGetValue(wtId, out var customNote) && !string.IsNullOrWhiteSpace(customNote))
+                {
+                    itemNotes = customNote.Trim();
+                }
+                else if (!string.IsNullOrWhiteSpace(vEntry.OtherDescription))
+                {
+                    itemNotes = vEntry.OtherDescription.Trim();
+                }
+
+                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
+                if (isOther && string.IsNullOrWhiteSpace(itemNotes))
+                {
+                    throw new ValidationException($"Vehicle {vehicleNum}: Description of work performed is required when 'Other' work type is selected.");
+                }
+
                 vehicleWork.ServiceItems.Add(new ShowroomVehicleWorkItem
                 {
                     Id = Guid.NewGuid(),
                     ShowroomVehicleWorkId = vehicleWork.Id,
                     WorkTypeId = wtId,
                     Quantity = 1,
-                    Notes = null,
+                    Notes = itemNotes,
                     CreatedAt = DateTime.UtcNow
                 });
             }
@@ -980,6 +1032,8 @@ public class ShowroomOperationsService : IShowroomOperationsService
                 .Where(w => workTypeIds.Contains(w.Id))
                 .ToDictionaryAsync(w => w.Id, ct);
 
+            var existingWorkTypeIds = vehicleWork.ServiceItems.Select(i => i.WorkTypeId).ToHashSet();
+
             foreach (var itemReq in request.ServiceItems)
             {
                 if (!validWorkTypes.TryGetValue(itemReq.WorkTypeId, out var workType))
@@ -987,9 +1041,15 @@ public class ShowroomOperationsService : IShowroomOperationsService
                     throw new KeyNotFoundException($"Work type with ID '{itemReq.WorkTypeId}' was not found.");
                 }
 
-                if (!workType.IsActive)
+                if (!existingWorkTypeIds.Contains(itemReq.WorkTypeId) && !workType.IsActive)
                 {
-                    throw new ValidationException($"Work type '{workType.Name}' is inactive and cannot be used for new work.");
+                    throw new ValidationException($"Work type '{workType.Name}' is inactive and cannot be newly added to work.");
+                }
+
+                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
+                if (isOther && string.IsNullOrWhiteSpace(itemReq.Notes))
+                {
+                    throw new ValidationException("Description of work performed is required when 'Other' work type is selected.");
                 }
             }
 
