@@ -20,8 +20,8 @@ Direct query of the active PostgreSQL database (`E6CarSpaNew`, table `WhatsAppCo
 | **`Id`** | `7a856657-eb4b-468b-9cf0-900fbb06819a` | Primary Key |
 | **`SingletonKey`** | `1` | Singleton row |
 | **`IsEnabled`** | `True` | Active |
-| **`PhoneNumberId`** | `1263387163523264` | Meta Phone ID |
-| **`BusinessAccountId`** | `1046927407924057` | Meta WABA ID |
+| **`PhoneNumberId`** | `YOUR_PHONE_NUMBER_ID` | Meta Phone ID |
+| **`BusinessAccountId`** | `YOUR_WABA_ID` | Meta WABA ID |
 | **`GraphApiVersion`** | `v25.0` | Meta API Version |
 | **`InvoiceNotificationsEnabled`** | `True` | Active |
 | **`PaymentCompletedNotificationsEnabled`** | `True` | Active |

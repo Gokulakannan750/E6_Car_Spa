@@ -7,6 +7,7 @@ using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace CarSpaManagement.Api.Application.Services;
 
@@ -15,6 +16,7 @@ public partial class BusinessProfileService : IBusinessProfileService
     private readonly AppDbContext _db;
     private readonly IWebHostEnvironment _environment;
     private readonly IAuditLogService _auditLogService;
+    private readonly IConfiguration? _configuration;
 
     [GeneratedRegex(@"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
     private static partial Regex GstinRegex();
@@ -31,11 +33,12 @@ public partial class BusinessProfileService : IBusinessProfileService
 
     private const long MaxFileSizeBytes = 5 * 1024 * 1024; // 5 MB
 
-    public BusinessProfileService(AppDbContext db, IWebHostEnvironment environment, IAuditLogService auditLogService)
+    public BusinessProfileService(AppDbContext db, IWebHostEnvironment environment, IAuditLogService auditLogService, IConfiguration? configuration = null)
     {
         _db = db;
         _environment = environment;
         _auditLogService = auditLogService;
+        _configuration = configuration;
     }
 
     public async Task<BusinessProfileDto> GetProfileAsync(CancellationToken ct = default)
@@ -286,22 +289,24 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         if (profile != null) return profile;
 
-        // Initialize verified default E6 Car Spa business profile
+        var defaultProfileSection = _configuration?.GetSection("DefaultBusinessProfile");
+
+        // Initialize default business profile from configuration with graceful defaults
         profile = new BusinessProfile
         {
             Id = Guid.NewGuid(),
             SingletonKey = 1,
-            BusinessName = "E6 Car Spa",
-            AddressLine1 = "36, Geetha Nagar Main Road",
-            AddressLine2 = "Behind Sakthi Mahal, Perundurai Road",
-            City = "Erode",
-            State = "Tamil Nadu",
-            PostalCode = "638011",
-            Phone = "9578749449",
-            Email = "e6carspaerd@gmail.com",
-            Gstin = null,
-            LogoPath = "/uploads/logos/e6-logo.png",
-            InvoicePrefix = "INV",
+            BusinessName = defaultProfileSection?["BusinessName"] ?? "E6 Car Spa",
+            AddressLine1 = defaultProfileSection?["AddressLine1"] ?? "36, Geetha Nagar Main Road",
+            AddressLine2 = defaultProfileSection?["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
+            City = defaultProfileSection?["City"] ?? "Erode",
+            State = defaultProfileSection?["State"] ?? "Tamil Nadu",
+            PostalCode = defaultProfileSection?["PostalCode"] ?? "638011",
+            Phone = defaultProfileSection?["Phone"] ?? "9578749449",
+            Email = defaultProfileSection?["Email"] ?? "e6carspaerd@gmail.com",
+            Gstin = defaultProfileSection?["Gstin"],
+            LogoPath = defaultProfileSection?["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+            InvoicePrefix = defaultProfileSection?["InvoicePrefix"] ?? "INV",
             CreatedAt = DateTime.UtcNow
         };
 

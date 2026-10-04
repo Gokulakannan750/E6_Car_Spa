@@ -1098,39 +1098,60 @@ public class ShowroomService : IShowroomService
 
         var targetDate = ToUtcDate(date);
 
-        var bill = await _db.ShowroomDailyBills
-            .Include(b => b.Payments)
-            .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate && !b.IsDeleted, ct);
+        var isInMemory = _db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        using var tx = isInMemory ? null : await _db.Database.BeginTransactionAsync(ct);
 
-        if (bill == null || bill.Amount <= 0m)
+        ShowroomPayment payment;
+        try
         {
-            throw new InvalidOperationException("Please set the showroom bill amount before recording a payment.");
+            // Serialize concurrent payments against the same daily bill (row lock held until commit),
+            // then re-read the committed payments before validating the balance.
+            if (!isInMemory)
+            {
+                await _db.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT 1 FROM \"ShowroomDailyBills\" WHERE \"ShowroomId\" = {showroomId} AND \"Date\" = {targetDate} AND NOT \"IsDeleted\" FOR UPDATE", ct);
+            }
+
+            var bill = await _db.ShowroomDailyBills
+                .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate && !b.IsDeleted, ct);
+
+            if (bill == null || bill.Amount <= 0m)
+            {
+                throw new InvalidOperationException("Please set the showroom bill amount before recording a payment.");
+            }
+
+            var currentReceived = await _db.ShowroomPayments
+                .Where(p => p.ShowroomDailyBillId == bill.Id && !p.IsDeleted)
+                .SumAsync(p => p.Amount, ct);
+            var remainingBalance = Math.Max(0m, bill.Amount - currentReceived);
+
+            if (request.Amount > remainingBalance)
+            {
+                throw new InvalidOperationException($"Payment amount ₹{request.Amount:N2} exceeds the remaining balance of ₹{remainingBalance:N2}.");
+            }
+
+            payment = new ShowroomPayment
+            {
+                ShowroomDailyBillId = bill.Id,
+                ShowroomDailyBill = bill,
+                Amount = request.Amount,
+                PaymentMethod = ParsePaymentMethod(request.PaymentMethod),
+                Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
+                PaymentDate = request.PaymentDate ?? DateTime.UtcNow,
+                Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
+            };
+
+            _db.ShowroomPayments.Add(payment);
+            bill.UpdatedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync(ct);
+            if (tx != null) await tx.CommitAsync(ct);
         }
-
-        var currentReceived = bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
-        var remainingBalance = Math.Max(0m, bill.Amount - currentReceived);
-
-        if (request.Amount > remainingBalance)
+        catch
         {
-            throw new InvalidOperationException($"Payment amount ₹{request.Amount:N2} exceeds the remaining balance of ₹{remainingBalance:N2}.");
+            if (tx != null) await tx.RollbackAsync(ct);
+            throw;
         }
-
-        var payment = new ShowroomPayment
-        {
-            ShowroomDailyBillId = bill.Id,
-            ShowroomDailyBill = bill,
-            Amount = request.Amount,
-            PaymentMethod = ParsePaymentMethod(request.PaymentMethod),
-            Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
-            PaymentDate = request.PaymentDate ?? DateTime.UtcNow,
-            Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim()
-        };
-
-        bill.Payments.Add(payment);
-        _db.ShowroomPayments.Add(payment);
-        bill.UpdatedAt = DateTime.UtcNow;
-
-        await _db.SaveChangesAsync(ct);
 
         await _auditLogService.RecordAsync(
             action: "showroom.record_payment",

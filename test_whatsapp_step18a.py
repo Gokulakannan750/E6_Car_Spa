@@ -159,11 +159,13 @@ def _run_tests_internal(config_backup):
     # -------------------------------------------------------------
     print("--- 1. Testing WhatsApp Configuration & Token Security ---")
     raw_dev_token = "EAABtest_token_secret_value_1234567890abcdef"
+    test_phone_id = os.environ.get("WHATSAPP_PHONE_NUMBER_ID", "YOUR_PHONE_NUMBER_ID")
+    test_waba_id = os.environ.get("WHATSAPP_BUSINESS_ACCOUNT_ID", "YOUR_WABA_ID")
     
     update_res = session.put(f"{BASE_URL}/api/settings/whatsapp", json={
         "isEnabled": True,
-        "phoneNumberId": "1263387163523264",
-        "businessAccountId": "1046927407924057",
+        "phoneNumberId": test_phone_id,
+        "businessAccountId": test_waba_id,
         "graphApiVersion": "v25.0",
         "accessToken": raw_dev_token,
         "invoiceNotificationsEnabled": True,
@@ -193,7 +195,7 @@ def _run_tests_internal(config_backup):
     log_test("DB Verification: WhatsAppConfigurations row exists", row is not None)
     db_encrypted_token, db_phone_id, db_waba_id = row
     log_test("TEST B.3: DB AccessTokenEncrypted is NOT plaintext", db_encrypted_token != raw_dev_token and len(db_encrypted_token) > 20)
-    log_test("DB Verification: Phone and WABA IDs match", db_phone_id == "1263387163523264" and db_waba_id == "1046927407924057")
+    log_test("DB Verification: Phone and WABA IDs match", db_phone_id == test_phone_id and db_waba_id == test_waba_id)
     cur.close()
     conn.close()
 

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -154,28 +155,17 @@ public class InvoiceService : IInvoiceService
 		var invoiceItems = jobCard.JobCardServices
 			.Where(s => !s.IsDeleted)
 			.OrderBy(s => s.CreatedAt)
-			.Select(s =>
+			.Select(s => new InvoiceItem
 			{
-				var itemTaxRate = isGstEnabled ? (s.TaxPercentage > 0 ? s.TaxPercentage : 18m) : 0m;
-				var itemBase = Math.Round(s.UnitPrice * s.Quantity, 2);
-				var itemTax = isGstEnabled ? Math.Round(itemBase * itemTaxRate / 100m, 2) : 0m;
-				var itemTotal = itemBase + itemTax - s.DiscountAmount;
-
-				return new InvoiceItem
-				{
-					Id = Guid.NewGuid(),
-					ServiceId = s.ServiceId,
-					Description = s.ServiceName,
-					Quantity = s.Quantity,
-					UnitPrice = s.UnitPrice,
-					Discount = s.DiscountAmount,
-					TaxableAmount = itemBase,
-					TaxAmount = itemTax,
-					TotalAmount = itemTotal,
-					CreatedAt = now,
-					UpdatedAt = now,
-					IsDeleted = false
-				};
+				Id = Guid.NewGuid(),
+				ServiceId = s.ServiceId,
+				Description = s.ServiceName,
+				Quantity = s.Quantity,
+				UnitPrice = s.UnitPrice,
+				Discount = s.DiscountAmount,
+				CreatedAt = now,
+				UpdatedAt = now,
+				IsDeleted = false
 			})
 			.ToList();
 
@@ -188,39 +178,19 @@ public class InvoiceService : IInvoiceService
 
 		foreach (var oj in eligibleOutsideJobs)
 		{
-			var ojBase = Math.Round(oj.VendorCost!.Value, 2);
-			var ojTaxRate = isGstEnabled ? 18m : 0m;
-			var ojTax = isGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
-			var ojTotal = ojBase + ojTax;
-
 			invoiceItems.Add(new InvoiceItem
 			{
 				Id = Guid.NewGuid(),
 				OutsideJobId = oj.Id,
 				Description = oj.ServiceName,
 				Quantity = 1,
-				UnitPrice = ojBase,
+				UnitPrice = InvoiceCalculator.Round(oj.VendorCost!.Value),
 				Discount = 0m,
-				TaxableAmount = ojBase,
-				TaxAmount = ojTax,
-				TotalAmount = ojTotal,
 				CreatedAt = now,
 				UpdatedAt = now,
 				IsDeleted = false
 			});
 		}
-
-		var subtotal = Math.Round(invoiceItems.Sum(i => i.UnitPrice * i.Quantity), 2);
-		var invoiceDiscount = 0m;
-		var gstBase = Math.Max(0m, subtotal - invoiceDiscount);
-		var taxableAmount = gstBase;
-
-		var cgst = isGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-		var sgst = isGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-		var gstAmount = cgst + sgst;
-		var totalAmount = gstBase + gstAmount;
-		var paidAmount = 0m;
-		var balanceAmount = totalAmount;
 
 		var invoice = new Invoice
 		{
@@ -230,13 +200,8 @@ public class InvoiceService : IInvoiceService
 			CustomerId = jobCard.CustomerId,
 			VehicleId = jobCard.VehicleId,
 			InvoiceDate = now.Date,
-			Subtotal = subtotal,
-			Discount = invoiceDiscount,
-			TaxableAmount = taxableAmount,
-			GstAmount = gstAmount,
-			TotalAmount = totalAmount,
-			PaidAmount = paidAmount,
-			BalanceAmount = balanceAmount,
+			Discount = 0m,
+			PaidAmount = 0m,
 			Status = InvoiceStatus.Draft,
 			IsGstEnabled = isGstEnabled,
 			Notes = jobCard.Notes,
@@ -245,6 +210,8 @@ public class InvoiceService : IInvoiceService
 			UpdatedAt = now,
 			IsDeleted = false
 		};
+
+		InvoiceCalculator.ApplyToInvoice(invoice, jobCard.JobCardServices);
 
 		_db.Invoices.Add(invoice);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -286,24 +253,29 @@ public class InvoiceService : IInvoiceService
 
 		if (request.Discount.HasValue || request.IsGstEnabled.HasValue)
 		{
-			var newDiscount = request.Discount.HasValue ? Math.Round(request.Discount.Value, 2) : invoice.Discount;
+			var newDiscount = request.Discount.HasValue ? InvoiceCalculator.Round(request.Discount.Value) : invoice.Discount;
 			if (newDiscount < 0)
 				throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot be negative.");
 
-			if (newDiscount > invoice.Subtotal)
-				throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot exceed subtotal.");
-
-			var isGstEnabled = invoice.IsGstEnabled;
-
 			invoice.Discount = newDiscount;
-			var gstBase = Math.Max(0m, invoice.Subtotal - newDiscount);
-			invoice.TaxableAmount = gstBase;
-
-			var cgst = isGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-			var sgst = isGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-			invoice.GstAmount = cgst + sgst;
-			invoice.TotalAmount = gstBase + invoice.GstAmount;
-			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+			if (invoice.InvoiceItems.Any(i => !i.IsDeleted))
+			{
+				InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
+			}
+			else
+			{
+				// Legacy invoice without line items: header-only recalculation at the standard rate.
+				if (newDiscount > invoice.Subtotal)
+					throw new ArgumentOutOfRangeException(nameof(request.Discount), "Discount cannot exceed subtotal.");
+				var header = InvoiceCalculator.Calculate(
+					[new InvoiceCalculator.LineInput(1, invoice.Subtotal, 0m, InvoiceCalculator.StandardGstRatePercent)],
+					newDiscount,
+					invoice.IsGstEnabled);
+				invoice.TaxableAmount = header.Taxable;
+				invoice.GstAmount = header.GstAmount;
+				invoice.TotalAmount = header.Total;
+				invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+			}
 		}
 
 		if (request.Notes is not null)
@@ -377,14 +349,8 @@ public class InvoiceService : IInvoiceService
 				}
 				else if (oj.VendorCost.HasValue && oj.VendorCost.Value > 0 && item.UnitPrice != oj.VendorCost.Value)
 				{
-					// Update item if vendor cost was modified
-					var ojBase = Math.Round(oj.VendorCost.Value, 2);
-					var ojTaxRate = invoice.IsGstEnabled ? 18m : 0m;
-					var ojTax = invoice.IsGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
-					item.UnitPrice = ojBase;
-					item.TaxableAmount = ojBase;
-					item.TaxAmount = ojTax;
-					item.TotalAmount = ojBase + ojTax;
+					// Update item if vendor cost was modified (amounts are recalculated below)
+					item.UnitPrice = InvoiceCalculator.Round(oj.VendorCost.Value);
 					item.UpdatedAt = DateTime.UtcNow;
 				}
 			}
@@ -405,11 +371,6 @@ public class InvoiceService : IInvoiceService
 			var syncNow = DateTime.UtcNow;
 			foreach (var oj in newEligibleOjs)
 			{
-				var ojBase = Math.Round(oj.VendorCost!.Value, 2);
-				var ojTaxRate = invoice.IsGstEnabled ? 18m : 0m;
-				var ojTax = invoice.IsGstEnabled ? Math.Round(ojBase * ojTaxRate / 100m, 2) : 0m;
-				var ojTotal = ojBase + ojTax;
-
 				var ojItem = new InvoiceItem
 				{
 					Id = Guid.NewGuid(),
@@ -417,11 +378,8 @@ public class InvoiceService : IInvoiceService
 					OutsideJobId = oj.Id,
 					Description = oj.ServiceName,
 					Quantity = 1,
-					UnitPrice = ojBase,
+					UnitPrice = InvoiceCalculator.Round(oj.VendorCost!.Value),
 					Discount = 0m,
-					TaxableAmount = ojBase,
-					TaxAmount = ojTax,
-					TotalAmount = ojTotal,
 					CreatedAt = syncNow,
 					UpdatedAt = syncNow,
 					IsDeleted = false
@@ -430,26 +388,11 @@ public class InvoiceService : IInvoiceService
 			}
 		}
 
-		// Recalculate & validate final financial amounts
-		var subtotal = Math.Round(invoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
-		if (subtotal == 0m && invoice.Subtotal > 0m)
-			subtotal = invoice.Subtotal;
-
+		// Recalculate & validate final financial amounts from the invoice lines
 		if (invoice.Discount < 0)
 			throw new ArgumentOutOfRangeException(nameof(invoice.Discount), "Discount cannot be negative.");
 
-		if (invoice.Discount > subtotal)
-			throw new ArgumentOutOfRangeException(nameof(invoice.Discount), "Discount cannot exceed subtotal.");
-
-		invoice.Subtotal = subtotal;
-		var gstBase = Math.Max(0m, subtotal - invoice.Discount);
-		invoice.TaxableAmount = gstBase;
-
-		var cgst = invoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-		var sgst = invoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-		invoice.GstAmount = cgst + sgst;
-		invoice.TotalAmount = gstBase + invoice.GstAmount;
-		invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
+		InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
 
 		// 1. Generate unique sequential invoice number before opening transaction
 		var invoiceNumber = await GenerateInvoiceNumberAsync(cancellationToken);
@@ -644,11 +587,13 @@ public class InvoiceService : IInvoiceService
 	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
 	{
 		var currentYear = DateTime.UtcNow.Year;
+		var profilePrefix = (await _db.BusinessProfiles.AsNoTracking().Select(b => b.InvoicePrefix).FirstOrDefaultAsync(cancellationToken))?.Trim();
+		var prefix = !string.IsNullOrWhiteSpace(profilePrefix) ? profilePrefix : "INV";
 
 		if (!_db.Database.IsRelational())
 		{
 			var count = await _db.Invoices.CountAsync(cancellationToken) + 1;
-			return $"INV-{currentYear}-{count:D6}";
+			return $"{prefix}-{currentYear}-{count:D6}";
 		}
 
 		var conn = _db.Database.GetDbConnection();
@@ -679,7 +624,7 @@ public class InvoiceService : IInvoiceService
 					nextNumber = Convert.ToInt64(result);
 				}
 
-				var candidate = string.Concat("INV-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 				var exists = await _db.Invoices.AnyAsync(i => i.InvoiceNumber == candidate, cancellationToken);
 				if (!exists)
 				{
@@ -701,22 +646,6 @@ public class InvoiceService : IInvoiceService
 		if (request.Amount <= 0)
 			throw new ArgumentOutOfRangeException(nameof(request.Amount), "Payment amount must be greater than ₹0.");
 
-		var invoice = await _db.Invoices
-			.Include(i => i.Payments)
-			.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
-
-		if (invoice is null)
-			throw new KeyNotFoundException("Invoice not found.");
-
-		if (invoice.Status == InvoiceStatus.Cancelled)
-			throw new InvalidOperationException("This invoice has been cancelled and cannot receive payments.");
-
-		if (invoice.Status == InvoiceStatus.Draft || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
-			throw new InvalidOperationException("Cannot record payment on a Draft invoice. Finalize the invoice first.");
-
-		if (request.Amount > invoice.BalanceAmount)
-			throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{invoice.BalanceAmount:N2}.");
-
 		var cleanMethod = (request.PaymentMethod ?? "").Trim().Replace(" ", "").Replace("_", "");
 		if (!Enum.TryParse<PaymentMethod>(cleanMethod, true, out var paymentMethod))
 		{
@@ -730,36 +659,58 @@ public class InvoiceService : IInvoiceService
 			}
 		}
 
-		var payment = new Payment
-		{
-			Id = Guid.NewGuid(),
-			InvoiceId = invoice.Id,
-			Amount = Math.Round(request.Amount, 2),
-			PaymentMethod = paymentMethod,
-			Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
-			PaymentDate = request.PaymentDate.HasValue
-				? (request.PaymentDate.Value.Kind == DateTimeKind.Unspecified
-					? DateTime.SpecifyKind(request.PaymentDate.Value, DateTimeKind.Utc)
-					: request.PaymentDate.Value.ToUniversalTime())
-				: DateTime.UtcNow,
-			CreatedAt = DateTime.UtcNow,
-			IsDeleted = false
-		};
-
-		var previousStatus = invoice.Status;
+		var amount = Math.Round(request.Amount, 2);
+		Payment payment;
+		Invoice invoice;
+		InvoiceStatus previousStatus;
 
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 		try
 		{
-			_db.Payments.Add(payment);
-			await _db.SaveChangesAsync(cancellationToken);
+			// Serialize concurrent payments for the same invoice: the row lock is held until commit,
+			// so a second request waits here and then sees the first payment before validating.
+			await LockInvoiceRowAsync(invoiceId, cancellationToken);
 
-			// Recalculate totals from all valid payments
-			var totalPaid = await _db.Payments
+			invoice = await _db.Invoices
+				.FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken)
+				?? throw new KeyNotFoundException("Invoice not found.");
+
+			if (invoice.Status == InvoiceStatus.Cancelled)
+				throw new InvalidOperationException("This invoice has been cancelled and cannot receive payments.");
+
+			if (invoice.Status == InvoiceStatus.Draft || string.IsNullOrWhiteSpace(invoice.InvoiceNumber))
+				throw new InvalidOperationException("Cannot record payment on a Draft invoice. Finalize the invoice first.");
+
+			// Recalculate the balance from committed payments while holding the lock (never trust a stale header value).
+			var paidSoFar = await _db.Payments
 				.Where(p => p.InvoiceId == invoice.Id && !p.IsDeleted)
 				.SumAsync(p => p.Amount, cancellationToken);
+			var currentBalance = Math.Max(0m, invoice.TotalAmount - Math.Round(paidSoFar, 2));
 
-			invoice.PaidAmount = Math.Round(totalPaid, 2);
+			if (amount > currentBalance)
+				throw new InvalidOperationException($"Payment amount cannot exceed current balance of ₹{currentBalance:N2}.");
+
+			payment = new Payment
+			{
+				Id = Guid.NewGuid(),
+				InvoiceId = invoice.Id,
+				Amount = amount,
+				PaymentMethod = paymentMethod,
+				Reference = string.IsNullOrWhiteSpace(request.Reference) ? null : request.Reference.Trim(),
+				PaymentDate = request.PaymentDate.HasValue
+					? (request.PaymentDate.Value.Kind == DateTimeKind.Unspecified
+						? DateTime.SpecifyKind(request.PaymentDate.Value, DateTimeKind.Utc)
+						: request.PaymentDate.Value.ToUniversalTime())
+					: DateTime.UtcNow,
+				CreatedAt = DateTime.UtcNow,
+				IsDeleted = false
+			};
+
+			previousStatus = invoice.Status;
+
+			_db.Payments.Add(payment);
+
+			invoice.PaidAmount = Math.Round(paidSoFar + amount, 2);
 			invoice.BalanceAmount = Math.Max(0m, invoice.TotalAmount - invoice.PaidAmount);
 
 			// Automatic Status calculation
@@ -839,6 +790,17 @@ public class InvoiceService : IInvoiceService
 			payment.Reference,
 			payment.PaymentDate,
 			payment.CreatedAt);
+	}
+
+	/// <summary>
+	/// Takes a PostgreSQL row lock (SELECT ... FOR UPDATE) on the invoice for the current transaction.
+	/// Non-relational providers (unit tests on EF InMemory) have no row locks, so this is a no-op there.
+	/// </summary>
+	private async Task LockInvoiceRowAsync(Guid invoiceId, CancellationToken cancellationToken)
+	{
+		if (!_db.Database.IsRelational()) return;
+		await _db.Database.ExecuteSqlInterpolatedAsync(
+			$"SELECT 1 FROM \"Invoices\" WHERE \"Id\" = {invoiceId} FOR UPDATE", cancellationToken);
 	}
 
 	public async Task<IReadOnlyList<PaymentDto>> GetPaymentsByInvoiceIdAsync(Guid invoiceId, CancellationToken cancellationToken = default)

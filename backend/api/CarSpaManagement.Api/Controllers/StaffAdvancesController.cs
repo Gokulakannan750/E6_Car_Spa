@@ -172,7 +172,7 @@ public class StaffAdvancesController : ControllerBase
     }
 
     [HttpGet("staff/{staffId:guid}/aadhaar-document")]
-    [RequirePermission("staff.view")]
+    [RequirePermission("staff.view_sensitive")]
     public async Task<IActionResult> GetStaffAadhaarDocument(Guid staffId, CancellationToken ct)
     {
         var userId = GetUserId();

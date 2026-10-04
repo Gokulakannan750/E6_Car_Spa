@@ -10,6 +10,10 @@ class AppEnvironment {
     const fromEnv = String.fromEnvironment('E6_API_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
 
+    // Release builds must never fall back to a development LAN address.
+    // Build with --dart-define=E6_API_URL=https://<server>/api to target a specific server.
+    if (isProduction) return AppConstants.defaultProdApiUrl;
+
     if (kIsWeb) {
       return AppConstants.defaultLocalhostApiUrl;
     }

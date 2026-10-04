@@ -8,6 +8,8 @@ scratch/
 *.log
 .DS_Store
 .env
+.env.*
+.env.production
 .env.local
 .env.*.local
 .vscode
@@ -35,12 +37,17 @@ obj/
 appsettings.Local.json
 appsettings.*.local.json
 appsettings.local.json
+appsettings.Production.json
+appsettings.*.Production.json
+appsettings.Staging.json
 secrets.json
 __pycache__/
 *.pyc
 backups/
 *.zip
 *.sql
+# Versioned database administration scripts (not dumps)
+!scripts/db/*.sql
 *.dump
 *.backup
 *.dump.*
@@ -54,5 +61,8 @@ logs/backup/
 *.pfx
 *.p12
 *.crt
+key.properties
+*.keystore
+*.jks
 
 .commandcode/

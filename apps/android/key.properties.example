@@ -1,0 +1,8 @@
+# Android Release Signing Configuration Example
+# Copy this file to apps/android/android/key.properties and set your production keystore values.
+# IMPORTANT: Never commit key.properties or any *.keystore / *.jks files to source control.
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=YOUR_KEY_ALIAS
+storeFile=../keystore/release.keystore

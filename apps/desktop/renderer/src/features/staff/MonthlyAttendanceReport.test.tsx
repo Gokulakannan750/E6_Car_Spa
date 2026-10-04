@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, onTestFinished } from 'vitest';
 import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { AttendancePage } from './AttendancePage';
@@ -236,6 +236,14 @@ describe('Staff Monthly Attendance Report', () => {
 	});
 
 	it('4. Month navigation buttons change month and query corresponding report', async () => {
+		// These scenarios were written for September 2026 and depend on the page's default period
+		// (current month). Pin only Date so React Query / waitFor timers keep running normally.
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 8, 30, 10, 0, 0));
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+
 		renderWithProviders(
 			<Routes>
 				<Route path="/staff-attendance" element={<AttendancePage />} />

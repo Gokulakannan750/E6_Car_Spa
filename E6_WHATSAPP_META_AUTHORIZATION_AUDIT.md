@@ -16,8 +16,8 @@ This root-cause audit was conducted in response to WhatsApp dispatch failures in
 1. **E6 Application Code is 100% Correct and Fully Functional**:
    - The invoice PDF generation, file sanitization, document media upload (`POST /v25.0/{phoneId}/media`), dynamic template discovery, parameter resolution, component construction, and payload serialization are operating with complete correctness.
 2. **The Root Cause is Credential-Type & Authorization Boundary Mismatch**:
-   - The active Meta access token in E6 is a **temporary User Access Token** (`type: USER`, User ID: `122112184005422984`) issued to the developer user rather than a permanent **System User Access Token** (`type: SYSTEM_USER`) created in Meta Business Manager.
-   - The User Token has short-lived expiration (`expires_at: 1789927200` / `2026-09-20 18:00:00 UTC` / `23:30 IST`) and lacks permanent, granular asset delegation to WABA `1046927407924057` and Phone Number ID `1263387163523264`.
+   - The active Meta access token in E6 is a **temporary User Access Token** (`type: USER`, User ID: `YOUR_USER_ID`) issued to the developer user rather than a permanent **System User Access Token** (`type: SYSTEM_USER`) created in Meta Business Manager.
+   - The User Token has short-lived expiration (`expires_at: 1789927200` / `2026-09-20 18:00:00 UTC` / `23:30 IST`) and lacks permanent, granular asset delegation to WABA `YOUR_WABA_ID` and Phone Number ID `YOUR_PHONE_NUMBER_ID`.
    - Meta enforces strict context-dependent authorization on Cloud API message dispatch containing attached media/document headers, intermittently denying requests (`#131005 Access denied`) when User tokens experience session shifts or lack full-control System User asset assignments.
 3. **No Code Changes are Required in E6 Backend or Desktop**:
    - The issue is purely external to the E6 codebase and requires creating a permanent System User in Meta Business Suite with full control of the WhatsApp Business Account and generating a permanent System User Token.
@@ -30,9 +30,9 @@ This root-cause audit was conducted in response to WhatsApp dispatch failures in
 | :--- | :--- | :--- |
 | **Active Record ID** | `7a856657-eb4b-468b-9cf0-900fbb06819a` | PostgreSQL `WhatsAppConfigurations` (`SingletonKey = 1`) |
 | **Integration Enabled** | `True` | PostgreSQL `WhatsAppConfigurations.IsEnabled` |
-| **WhatsApp Business Account (WABA) ID** | `1046927407924057` | PostgreSQL `WhatsAppConfigurations.BusinessAccountId` |
-| **Phone Number ID** | `1263387163523264` | PostgreSQL `WhatsAppConfigurations.PhoneNumberId` |
-| **Display Phone Number** | `+1 555-204-6673` (Verified Name: "Test Number") | Meta Cloud API `GET /1263387163523264` |
+| **WhatsApp Business Account (WABA) ID** | `YOUR_WABA_ID` | PostgreSQL `WhatsAppConfigurations.BusinessAccountId` |
+| **Phone Number ID** | `YOUR_PHONE_NUMBER_ID` | PostgreSQL `WhatsAppConfigurations.PhoneNumberId` |
+| **Display Phone Number** | `+1 555-010-0000` (Verified Name: "Test Number") | Meta Cloud API `GET /YOUR_PHONE_NUMBER_ID` |
 | **Graph API Version** | `v25.0` | PostgreSQL `WhatsAppConfigurations.GraphApiVersion` |
 | **Invoice Template Name & Language** | `e6_carspa_invoice_pdf` (`en`) | PostgreSQL `WhatsAppConfigurations.InvoiceTemplateName` |
 | **Payment Template Name & Language** | `e6_car_spa_app` (`en`) | PostgreSQL `WhatsAppConfigurations.PaymentCompletedTemplateName` |
@@ -50,7 +50,7 @@ A real-time token debug query was executed against Meta Graph API (`GET /debug_t
 ```json
 {
   "data": {
-    "app_id": "1665898151184690",
+    "app_id": "YOUR_META_APP_ID",
     "type": "USER",
     "application": "Trovo Tech Solutions",
     "data_access_expires_at": 1797699097,
@@ -65,7 +65,7 @@ A real-time token debug query was executed against Meta Graph API (`GET /debug_t
       { "scope": "whatsapp_business_management" },
       { "scope": "whatsapp_business_messaging" }
     ],
-    "user_id": "122112184005422984"
+    "user_id": "YOUR_USER_ID"
   }
 }
 ```
@@ -73,7 +73,7 @@ A real-time token debug query was executed against Meta Graph API (`GET /debug_t
 ### Analysis of Token Attributes:
 1. **Validity**: Currently `is_valid: true`.
 2. **Token Type**: `USER` (**NOT** `SYSTEM_USER`).
-3. **Issuer App**: App ID `1665898151184690` ("Trovo Tech Solutions").
+3. **Issuer App**: App ID `YOUR_META_APP_ID` ("Trovo Tech Solutions").
 4. **Token Expiration**: `expires_at: 1789927200` (Equivalent to **2026-09-20 18:00:00 UTC / 23:30:00 IST**).
    - This proves the token is a temporary developer user token that requires manual developer refresh every few hours.
 5. **Data Access Expiration**: `1797699097` (2026-12-19 16:51:37 UTC).
@@ -100,17 +100,17 @@ Meta's debug token endpoint returned:
 ]
 ```
 - **Finding**: There are **no specific `target_ids`** attached to the granular scopes.
-- **Impact**: The token possesses broad user-level permissions across developer assets, but lacks explicit, permanent asset binding to WABA `1046927407924057`. In Meta Cloud API, operations that invoke multi-step media asset attachment can fail authorization under User Tokens when asset bindings are not explicitly anchored via System User asset assignments.
+- **Impact**: The token possesses broad user-level permissions across developer assets, but lacks explicit, permanent asset binding to WABA `YOUR_WABA_ID`. In Meta Cloud API, operations that invoke multi-step media asset attachment can fail authorization under User Tokens when asset bindings are not explicitly anchored via System User asset assignments.
 
 ---
 
 ## 6. WABA Access Verification
 
 Direct Meta Graph API queries verified the WABA status:
-- **Endpoint**: `GET /v25.0/1046927407924057`
+- **Endpoint**: `GET /v25.0/YOUR_WABA_ID`
 - **HTTP Status**: `200 OK`
 - **Response Data**:
-  - `id`: `1046927407924057`
+  - `id`: `YOUR_WABA_ID`
   - `name`: `Test WhatsApp Business Account`
   - `timezone_id`: `1`
   - `message_template_namespace`: `616e1c07_90ce_48c3_8437_b63d76c5186b`
@@ -122,12 +122,12 @@ Direct Meta Graph API queries verified the WABA status:
 ## 7. Phone Number Access Verification
 
 Direct Meta Graph API queries verified the phone number status:
-- **Endpoint**: `GET /v25.0/1046927407924057/phone_numbers` & `GET /v25.0/1263387163523264`
+- **Endpoint**: `GET /v25.0/YOUR_WABA_ID/phone_numbers` & `GET /v25.0/YOUR_PHONE_NUMBER_ID`
 - **HTTP Status**: `200 OK`
 - **Response Data**:
-  - `id`: `1263387163523264`
+  - `id`: `YOUR_PHONE_NUMBER_ID`
   - `verified_name`: `Test Number` (Status: `APPROVED`)
-  - `display_phone_number`: `+1 555-204-6673`
+  - `display_phone_number`: `+1 555-010-0000`
   - `quality_rating`: `GREEN`
   - `platform_type`: `CLOUD_API`
   - `code_verification_status`: `NOT_VERIFIED` (Test number)
@@ -138,7 +138,7 @@ Direct Meta Graph API queries verified the phone number status:
 
 ## 8. App/WABA Subscription Verification
 
-- **Endpoint**: `GET /v25.0/1046927407924057/subscribed_apps`
+- **Endpoint**: `GET /v25.0/YOUR_WABA_ID/subscribed_apps`
 - **HTTP Status**: `200 OK`
 - **Response Data**:
   ```json
@@ -147,21 +147,21 @@ Direct Meta Graph API queries verified the phone number status:
       {
         "whatsapp_business_api_data": {
           "category": "Business",
-          "link": "https://www.facebook.com/games/?app_id=2202427980234937",
+          "link": "https://www.facebook.com/games/?app_id=YOUR_WEBHOOK_APP_ID",
           "name": "WA DevX Webhook Events 1P App",
-          "id": "2202427980234937"
+          "id": "YOUR_WEBHOOK_APP_ID"
         }
       }
     ]
   }
   ```
-- **Finding**: WABA `1046927407924057` is currently subscribed to Meta's first-party webhook event app (`2202427980234937`), rather than custom App `1665898151184690` directly.
+- **Finding**: WABA `YOUR_WABA_ID` is currently subscribed to Meta's first-party webhook event app (`YOUR_WEBHOOK_APP_ID`), rather than custom App `YOUR_META_APP_ID` directly.
 
 ---
 
 ## 9. Template Status Verification
 
-Meta template discovery query (`GET /v25.0/1046927407924057/message_templates`):
+Meta template discovery query (`GET /v25.0/YOUR_WABA_ID/message_templates`):
 
 | Template Name | Language | Category | Status | Components |
 | :--- | :--- | :--- | :--- | :--- |
@@ -184,16 +184,16 @@ Meta template discovery query (`GET /v25.0/1046927407924057/message_templates`):
 
 ## 11. Text Template Send Test (`e6_car_spa_app`)
 
-Controlled test sending `e6_car_spa_app` to authorized recipient `917502387733`:
+Controlled test sending `e6_car_spa_app` to authorized recipient `919876543210`:
 - **HTTP Status**: `200 OK`
 - **Response**:
   ```json
   {
     "messaging_product": "whatsapp",
-    "contacts": [{ "input": "917502387733", "wa_id": "917502387733" }],
+    "contacts": [{ "input": "919876543210", "wa_id": "919876543210" }],
     "messages": [
       {
-        "id": "wamid.HBgMOTE3NTAyMzg3NzMzFQIAERgSRkQxMDgwNTAyOEYwMzk0RkE3AA==",
+        "id": "wamid.HBgLMTIzNDU2Nzg5MDEyFQIAERgSRkQxMDgwNTAyOEYwMzk0RkE3AA==",
         "message_status": "accepted"
       }
     ]
@@ -205,10 +205,10 @@ Controlled test sending `e6_car_spa_app` to authorized recipient `917502387733`:
 
 ## 12. Document Template Send Test (`e6_carspa_invoice_pdf`)
 
-Controlled test sending `e6_carspa_invoice_pdf` to authorized recipient `917502387733`:
-1. **Media Upload**: `POST /v25.0/1263387163523264/media` -> `200 OK` (`id: 28839708775666821`).
-2. **Message Dispatch**: `POST /v25.0/1263387163523264/messages`:
-   - With active User token session: `200 OK` (`wamid.HBgMOTE3NTAyMzg3NzMzFQIAERgSRkQxMDgwNTAyOEYwMzk0RkE3AA==`).
+Controlled test sending `e6_carspa_invoice_pdf` to authorized recipient `919876543210`:
+1. **Media Upload**: `POST /v25.0/YOUR_PHONE_NUMBER_ID/media` -> `200 OK` (`id: MEDIA_ID`).
+2. **Message Dispatch**: `POST /v25.0/YOUR_PHONE_NUMBER_ID/messages`:
+   - With active User token session: `200 OK` (`wamid.HBgLMTIzNDU2Nzg5MDEyFQIAERgSRkQxMDgwNTAyOEYwMzk0RkE3AA==`).
    - During session invalidation / asset check: `403 Forbidden` (`(#131005) Access denied`).
 
 ---
@@ -251,8 +251,8 @@ Git log inspection of recent commits (`git log --grep="[Ww]hats[Aa]pp"`):
 
 ## 16. Last Known Working Configuration
 
-- **Invoice `INV-2026-000010`** (2026-09-20 21:12:48 IST): **SENT** (`wamid.HBgMOTE3NTAyMzg3NzMzFQIAERgSMkU2MTRCMzg1RDFEQjk0MTgzAA==`, mediaId: `1093648800074009`)
-- **Invoice `INV-2026-000011`** (2026-09-20 21:19:36 IST): **SENT** (`wamid.HBgMOTE3NTAyMzg3NzMzFQIAERgSNjYyODk1MEM5QkU4QzJFMzhCAA==`, mediaId: `1477071297632278`)
+- **Invoice `INV-2026-000010`** (2026-09-20 21:12:48 IST): **SENT** (`wamid.HBgLMTIzNDU2Nzg5MDEyFQIAERgSMkU2MTRCMzg1RDFEQjk0MTgzAA==`, mediaId: `1093648800074009`)
+- **Invoice `INV-2026-000011`** (2026-09-20 21:19:36 IST): **SENT** (`wamid.HBgLMTIzNDU2Nzg5MDEyFQIAERgSNjYyODk1MEM5QkU4QzJFMzhCAA==`, mediaId: `1477071297632278`)
 - Both messages used the exact same C# dispatch pipeline, PDF generator, and template structure.
 
 ---
@@ -269,7 +269,7 @@ Between 21:20 IST and 22:19 IST:
 ## 18. Root Cause
 
 > [!IMPORTANT]
-> **Root Cause**: The WhatsApp integration is configured with a **short-lived developer User Access Token** (`type: USER`) instead of a **permanent System User Access Token** (`type: SYSTEM_USER`) with assigned full-control permissions on WABA `1046927407924057`.
+> **Root Cause**: The WhatsApp integration is configured with a **short-lived developer User Access Token** (`type: USER`) instead of a **permanent System User Access Token** (`type: SYSTEM_USER`) with assigned full-control permissions on WABA `YOUR_WABA_ID`.
 
 ---
 
@@ -301,11 +301,11 @@ To generate and install the permanent System User Token:
 4. Click **Add** -> Name the system user (e.g., `E6-CarSpa-WhatsApp-Service`) and assign the Role: **Admin**.
 5. Click **Assign Assets**:
    - Select **WhatsApp Accounts**.
-   - Select your WABA: **`Test WhatsApp Business Account` (ID: `1046927407924057`)**.
+   - Select your WABA: **`WhatsApp Business Account` (ID: `YOUR_WABA_ID`)**.
    - Under permissions, toggle **Full Control (Manage WhatsApp Business Account)** to **ON**.
    - Click **Save Changes**.
 6. Select the newly created System User and click **Generate New Token**:
-   - Select the Meta App: **`Trovo Tech Solutions` (App ID: `1665898151184690`)**.
+   - Select the Meta App: **`E6 App` (App ID: `YOUR_META_APP_ID`)**.
    - Set Token Expiration: **Never**.
    - Under Scopes, select:
      - `whatsapp_business_messaging`
@@ -331,5 +331,5 @@ META CHANGE REQUIRED:
 YES
 
 NEXT ACTION:
-Generate a permanent System User Token with full control over WABA 1046927407924057 in Meta Business Settings and save it in E6 WhatsApp Settings.
+Generate a permanent System User Token with full control over WABA YOUR_WABA_ID in Meta Business Settings and save it in E6 WhatsApp Settings.
 ```

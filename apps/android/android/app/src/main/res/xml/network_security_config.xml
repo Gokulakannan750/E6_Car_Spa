@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- RELEASE / PROFILE BUILDS: HTTPS only. No development hosts or cleartext HTTP.
+     Development cleartext hosts live in src/debug/res/xml/network_security_config.xml.
+     If a release build must reach an HTTP-only LAN server, add that host here deliberately
+     (and plan TLS — see docs/PRODUCTION_CONFIGURATION.md). -->
 <network-security-config>
-    <!-- Permits cleartext HTTP traffic for local LAN development and testing -->
-    <base-config cleartextTrafficPermitted="true">
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

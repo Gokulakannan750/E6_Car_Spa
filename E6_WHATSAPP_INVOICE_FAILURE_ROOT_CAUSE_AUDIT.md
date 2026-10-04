@@ -32,7 +32,7 @@ Inspected the most recent `InvoiceFinalized` records from `WhatsAppMessages` tab
 * **Message ID:** `4549351d-f3e7-4296-8812-e146a8f48231`
 * **Invoice ID:** `4549351d-f3e7-4296-8812-e146a8f48231`
 * **MessageType:** `0` (`InvoiceFinalized`)
-* **RecipientPhone:** `917502387733`
+* **RecipientPhone:** `919876543210`
 * **Status:** `2` (`Failed`)
 * **ErrorMessage:** `WhatsApp authentication failed: (#131005) Access denied`
 * **ExternalMessageId:** `None`
@@ -70,11 +70,11 @@ Inspected the most recent `InvoiceFinalized` records from `WhatsAppMessages` tab
 ### B. Backend Logs (`carspa-20260920_009.log`)
 ```
 2026-09-20 22:22:01.797 +05:30 [INF] HTTP POST /api/invoices/4549351d-f3e7-4296-8812-e146a8f48231/generate responded 200 in 22.4779 ms
-2026-09-20 22:22:01.821 +05:30 [INF] Sending HTTP request GET https://graph.facebook.com/v25.0/1046927407924057/message_templates?*
+2026-09-20 22:22:01.821 +05:30 [INF] Sending HTTP request GET https://graph.facebook.com/v25.0/YOUR_WABA_ID/message_templates?*
 2026-09-20 22:22:02.648 +05:30 [INF] Received HTTP response headers after 759.6905ms - 200
-2026-09-20 22:22:02.704 +05:30 [INF] Sending HTTP request POST https://graph.facebook.com/v25.0/1263387163523264/media
+2026-09-20 22:22:02.704 +05:30 [INF] Sending HTTP request POST https://graph.facebook.com/v25.0/YOUR_PHONE_NUMBER_ID/media
 2026-09-20 22:22:04.048 +05:30 [INF] Received HTTP response headers after 1338.5108ms - 200
-2026-09-20 22:22:04.073 +05:30 [INF] Sending HTTP request POST https://graph.facebook.com/v25.0/1263387163523264/messages
+2026-09-20 22:22:04.073 +05:30 [INF] Sending HTTP request POST https://graph.facebook.com/v25.0/YOUR_PHONE_NUMBER_ID/messages
 2026-09-20 22:22:05.465 +05:30 [INF] Received HTTP response headers after 1385.0187ms - 403
 2026-09-20 22:22:05.535 +05:30 [WRN] WhatsApp authentication failed for configured integration: (#131005) Access denied
 ```
@@ -85,19 +85,19 @@ Inspected the most recent `InvoiceFinalized` records from `WhatsAppMessages` tab
 When tested directly against Meta's Graph API `v25.0`:
 
 #### 1. PDF Media Upload Request:
-* **Endpoint:** `POST https://graph.facebook.com/v25.0/1263387163523264/media`
+* **Endpoint:** `POST https://graph.facebook.com/v25.0/YOUR_PHONE_NUMBER_ID/media`
 * **Headers:** `Authorization: Bearer [REDACTED]`
 * **Body Form-Data:** `file` (application/pdf), `type: application/pdf`, `messaging_product: whatsapp`
-* **Meta Response:** **`HTTP 200 OK`** `{"id": "960850380392350"}`
+* **Meta Response:** **`HTTP 200 OK`** `{"id": "MEDIA_ID"}`
 
 #### 2. Template Message Dispatch Request:
-* **Endpoint:** `POST https://graph.facebook.com/v25.0/1263387163523264/messages`
+* **Endpoint:** `POST https://graph.facebook.com/v25.0/YOUR_PHONE_NUMBER_ID/messages`
 * **Headers:** `Authorization: Bearer [REDACTED]`, `Content-Type: application/json`
 * **Payload:**
   ```json
   {
     "messaging_product": "whatsapp",
-    "to": "917502387733",
+    "to": "919876543210",
     "type": "template",
     "template": {
       "name": "e6_carspa_invoice_pdf",
@@ -208,7 +208,7 @@ The backend application code and dispatch pipeline are **100% functionally and s
 2. Meta Media API accepts the document upload and issues a valid media ID (`HTTP 200 OK`).
 3. The template JSON format perfectly follows Meta Cloud API specifications.
 
-However, the Meta Access Token (User Token for App `1665898151184690`, associated with Test Phone Number `+1 555-204-6673` on WABA `1046927407924057`) is denied by Meta (`#131005`) when dispatching template messages that attach media/document headers, while permitting text-only template messages (`e6_car_spa_app`).
+However, the Meta Access Token (User Token for App `YOUR_META_APP_ID`, associated with Test Phone Number `+1 555-204-6673` on WABA `YOUR_WABA_ID`) is denied by Meta (`#131005`) when dispatching template messages that attach media/document headers, while permitting text-only template messages (`e6_car_spa_app`).
 
 ---
 
@@ -218,7 +218,7 @@ However, the Meta Access Token (User Token for App `1665898151184690`, associate
 1. **Assign Full Control Asset Permissions in Meta Business Manager:**
    - In Meta Business Settings -> **System Users** (or Users).
    - Select the System User / Developer account generating the token.
-   - Click **Assigned Assets** -> Add Assets -> Select **WhatsApp Business Accounts** (`1046927407924057`).
+   - Click **Assigned Assets** -> Add Assets -> Select **WhatsApp Business Accounts** (`YOUR_WABA_ID`).
    - Enable **Full Control** (Manage WhatsApp Business Account + Send Messages + Access Media).
 2. **Generate a System User Permanent Access Token with Scopes:**
    - `whatsapp_business_messaging`

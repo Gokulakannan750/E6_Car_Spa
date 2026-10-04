@@ -51,6 +51,20 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// ── Production configuration guard ─────────────────────────────────────────
+// Refuse to start Production with placeholder credentials; warn about risky settings.
+var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+StartupConfigurationGuard.ValidateConnectionString(configuredConnectionString, builder.Environment.IsProduction());
+foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
+	configuredConnectionString,
+	builder.Environment.IsProduction(),
+	builder.Environment.IsDevelopment(),
+	builder.Configuration["urls"],
+	builder.Configuration["PublicInvoiceBaseUrl"]))
+{
+	Log.Warning("CONFIGURATION WARNING: {Warning}", configurationWarning);
+}
+
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>
 {
@@ -398,14 +412,29 @@ app.MapControllers();
 
 Log.Information("Starting Car Spa Management API");
 
-// Seed demo data if database is empty
+// Apply migrations and production bootstrap data (permissions, reference lists, business profile, preferences).
+// Demo data (sample vendors) is seeded only in Development.
 using (var scope = app.Services.CreateScope())
 {
  try
  {
  		var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 		var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
-		await db.Database.MigrateAsync();
+		// Least-privilege deployments set Database:ApplyMigrationsOnStartup=false: migrations are then applied
+		// by the database owner during deployment, and the DML-only application role never needs DDL rights.
+		if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
+		{
+			await db.Database.MigrateAsync();
+		}
+		else
+		{
+			var pendingMigrations = (await db.Database.GetPendingMigrationsAsync()).ToList();
+			if (pendingMigrations.Count > 0)
+			{
+				Log.Error("Database has {Count} pending migrations ({Migrations}) and automatic migration is disabled. Apply them with the database owner role before using the application.",
+					pendingMigrations.Count, string.Join(", ", pendingMigrations));
+			}
+		}
 		await db.Database.ExecuteSqlRawAsync(@"
 			UPDATE ""StaffAdvances"" 
 			SET ""Status"" = 'Outstanding' 
@@ -442,28 +471,31 @@ using (var scope = app.Services.CreateScope())
 			}
 		}
 
+		var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
 		if (!await db.BusinessProfiles.AnyAsync())
 		{
+			var defaultProfileSection = config.GetSection("DefaultBusinessProfile");
 			var profile = new BusinessProfile
 			{
 				Id = Guid.NewGuid(),
 				SingletonKey = 1,
-				BusinessName = "E6 Car Spa",
-				AddressLine1 = "36, Geetha Nagar Main Road",
-				AddressLine2 = "Behind Sakthi Mahal, Perundurai Road",
-				City = "Erode",
-				State = "Tamil Nadu",
-				PostalCode = "638011",
-				Phone = "9578749449",
-				Email = "e6carspaerd@gmail.com",
-				Gstin = null,
-				LogoPath = "/uploads/logos/e6-logo.png",
-				InvoicePrefix = "INV",
+				BusinessName = defaultProfileSection["BusinessName"] ?? "E6 Car Spa",
+				AddressLine1 = defaultProfileSection["AddressLine1"] ?? "36, Geetha Nagar Main Road",
+				AddressLine2 = defaultProfileSection["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
+				City = defaultProfileSection["City"] ?? "Erode",
+				State = defaultProfileSection["State"] ?? "Tamil Nadu",
+				PostalCode = defaultProfileSection["PostalCode"] ?? "638011",
+				Phone = defaultProfileSection["Phone"] ?? "9578749449",
+				Email = defaultProfileSection["Email"] ?? "e6carspaerd@gmail.com",
+				Gstin = defaultProfileSection["Gstin"],
+				LogoPath = defaultProfileSection["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+				InvoicePrefix = defaultProfileSection["InvoicePrefix"] ?? "INV",
 				CreatedAt = DateTime.UtcNow
 			};
 			db.BusinessProfiles.Add(profile);
 			await db.SaveChangesAsync();
-			Log.Information("Seeded verified default E6 Car Spa business profile");
+			Log.Information("Seeded default business profile from configuration ({BusinessName})", profile.BusinessName);
 		}
 
 		if (!await db.SystemPreferences.AnyAsync())
@@ -486,7 +518,8 @@ using (var scope = app.Services.CreateScope())
 			Log.Information("Seeded canonical default System Preferences");
 		}
 
-		if (!await db.Vendors.AnyAsync())
+		// Development-only demo data: these vendors are fictitious and must never be created in production.
+		if (env.IsDevelopment() && !await db.Vendors.AnyAsync())
 		{
 			var defaultVendors = new List<Vendor>
 			{
@@ -529,7 +562,7 @@ using (var scope = app.Services.CreateScope())
 			};
 			db.Vendors.AddRange(defaultVendors);
 			await db.SaveChangesAsync();
-			Log.Information("Seeded default external service providers/vendors");
+			Log.Information("Seeded DEVELOPMENT demo vendors (not created outside Development)");
 		}
 	}
  catch (Exception ex)

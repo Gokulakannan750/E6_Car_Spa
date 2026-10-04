@@ -26,16 +26,16 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 	const isDraft = invoice.status === 'Draft' || invoice.status === 0;
 	const isGst = Boolean(invoice.isGstEnabled);
 
-	// Business Profile details (fallback to default verified details if not loaded yet)
-	const businessName = businessProfile?.businessName || 'E6 Car Spa';
-	const addressLine1 = businessProfile?.addressLine1 || '36, Geetha Nagar Main Road';
-	const addressLine2 = businessProfile?.addressLine2 || 'Behind Sakthi Mahal, Perundurai Road';
+	// Business Profile details
+	const businessName = businessProfile?.businessName || '';
+	const addressLine1 = businessProfile?.addressLine1 || '';
+	const addressLine2 = businessProfile?.addressLine2 || '';
 	const cityStatePin = [
-		businessProfile?.city || 'Erode',
-		businessProfile?.state || 'Tamil Nadu',
-	].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : ' - 638011');
-	const phone = businessProfile?.phone || '9578749449';
-	const email = businessProfile?.email || 'e6carspaerd@gmail.com';
+		businessProfile?.city,
+		businessProfile?.state,
+	].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : '');
+	const phone = businessProfile?.phone || '';
+	const email = businessProfile?.email || '';
 	const gstin = businessProfile?.gstin?.trim() || null;
 	const logoUrl = resolveLogoUrl(businessProfile?.logoPath, businessProfile?.updatedAt);
 

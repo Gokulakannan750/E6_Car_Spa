@@ -416,6 +416,7 @@ public class OutsideJobService : IOutsideJobService
         // If there is an existing draft invoice for this job card, update the corresponding invoice item
         var draftInvoice = await _db.Invoices
             .Include(i => i.InvoiceItems)
+            .Include(i => i.JobCard).ThenInclude(j => j.JobCardServices)
             .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
 
         if (draftInvoice != null)
@@ -423,22 +424,10 @@ public class OutsideJobService : IOutsideJobService
             var item = draftInvoice.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
             if (item != null)
             {
-                item.UnitPrice = request.VendorCost;
-                item.TaxableAmount = Math.Round(request.VendorCost * item.Quantity, 2);
-                var taxRate = draftInvoice.IsGstEnabled ? 18m : 0m;
-                item.TaxAmount = draftInvoice.IsGstEnabled ? Math.Round(item.TaxableAmount * taxRate / 100m, 2) : 0m;
-                item.TotalAmount = item.TaxableAmount + item.TaxAmount - item.Discount;
+                item.UnitPrice = InvoiceCalculator.Round(request.VendorCost);
                 item.UpdatedAt = DateTime.UtcNow;
 
-                var subtotal = Math.Round(draftInvoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
-                draftInvoice.Subtotal = subtotal;
-                var gstBase = Math.Max(0m, subtotal - draftInvoice.Discount);
-                draftInvoice.TaxableAmount = gstBase;
-                var cgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-                var sgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-                draftInvoice.GstAmount = cgst + sgst;
-                draftInvoice.TotalAmount = gstBase + draftInvoice.GstAmount;
-                draftInvoice.BalanceAmount = Math.Max(0m, draftInvoice.TotalAmount - draftInvoice.PaidAmount);
+                InvoiceCalculator.ApplyToInvoice(draftInvoice, draftInvoice.JobCard?.JobCardServices);
                 draftInvoice.UpdatedAt = DateTime.UtcNow;
             }
         }
@@ -493,6 +482,7 @@ public class OutsideJobService : IOutsideJobService
 
         var draftInvoice = await _db.Invoices
             .Include(i => i.InvoiceItems)
+            .Include(i => i.JobCard).ThenInclude(j => j.JobCardServices)
             .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
 
         if (draftInvoice != null)
@@ -503,15 +493,7 @@ public class OutsideJobService : IOutsideJobService
                 item.IsDeleted = true;
                 item.UpdatedAt = DateTime.UtcNow;
 
-                var subtotal = Math.Round(draftInvoice.InvoiceItems.Where(it => !it.IsDeleted).Sum(it => it.UnitPrice * it.Quantity), 2);
-                draftInvoice.Subtotal = subtotal;
-                var gstBase = Math.Max(0m, subtotal - draftInvoice.Discount);
-                draftInvoice.TaxableAmount = gstBase;
-                var cgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-                var sgst = draftInvoice.IsGstEnabled ? Math.Round(gstBase * 0.09m, 2) : 0m;
-                draftInvoice.GstAmount = cgst + sgst;
-                draftInvoice.TotalAmount = gstBase + draftInvoice.GstAmount;
-                draftInvoice.BalanceAmount = Math.Max(0m, draftInvoice.TotalAmount - draftInvoice.PaidAmount);
+                InvoiceCalculator.ApplyToInvoice(draftInvoice, draftInvoice.JobCard?.JobCardServices);
                 draftInvoice.UpdatedAt = DateTime.UtcNow;
             }
         }

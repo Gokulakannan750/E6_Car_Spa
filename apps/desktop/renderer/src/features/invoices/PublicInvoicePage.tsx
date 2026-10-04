@@ -80,12 +80,12 @@ export function PublicInvoicePage() {
 					<div className="space-y-2">
 						<h1 className="text-xl font-bold text-white tracking-tight">Invoice Link Unavailable</h1>
 						<p className="text-sm text-slate-400 leading-relaxed">
-							This invoice link is invalid, expired, or has been revoked. If you believe this is an error, please contact E6 Car Spa.
+							This invoice link is invalid, expired, or has been revoked. If you believe this is an error, please contact the issuing business.
 						</p>
 					</div>
 					<div className="pt-4 border-t border-slate-800 text-xs text-slate-500 space-y-1">
-						<p className="font-semibold text-slate-400">E6 Car Spa &bull; Support</p>
-						<p>Phone: 9578749449 | Email: e6carspaerd@gmail.com</p>
+						<p className="font-semibold text-slate-400">Customer Support</p>
+						<p>Please reach out directly to the service provider that issued your invoice link.</p>
 					</div>
 				</div>
 			</div>
