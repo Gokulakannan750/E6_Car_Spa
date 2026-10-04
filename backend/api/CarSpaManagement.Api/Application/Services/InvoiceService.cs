@@ -18,6 +18,7 @@ namespace CarSpaManagement.Api.Application.Services;
 public class InvoiceService : IInvoiceService
 {
 	private readonly AppDbContext _db;
+	private readonly InvoiceNumberAllocator _numberAllocator;
 	private readonly IAuditLogService _auditLogService;
 	private readonly IConfiguration _configuration;
 	private readonly IHttpContextAccessor _httpContextAccessor;
@@ -33,6 +34,7 @@ public class InvoiceService : IInvoiceService
 		IServiceScopeFactory scopeFactory)
 	{
 		_db = db;
+		_numberAllocator = new InvoiceNumberAllocator(db);
 		_auditLogService = auditLogService;
 		_configuration = configuration;
 		_httpContextAccessor = httpContextAccessor;
@@ -394,14 +396,28 @@ public class InvoiceService : IInvoiceService
 
 		InvoiceCalculator.ApplyToInvoice(invoice, invoice.JobCard?.JobCardServices);
 
-		// 1. Generate unique sequential invoice number before opening transaction
-		var invoiceNumber = await GenerateInvoiceNumberAsync(cancellationToken);
-		invoice.InvoiceNumber = invoiceNumber;
-
-		// 2. Transactional status finalization and audit logging
+		// Transactional numbering, status finalization and audit logging
 		using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
 		try
 		{
+			// Lock the draft and re-check it is still unnumbered, so two simultaneous finalizations of the
+			// same draft (e.g. desktop + Android) cannot both consume a number.
+			if (_db.Database.IsRelational())
+			{
+				await _db.Database.ExecuteSqlInterpolatedAsync(
+					$"SELECT 1 FROM \"Invoices\" WHERE \"Id\" = {invoice.Id} FOR UPDATE", cancellationToken);
+				var current = await _db.Invoices.AsNoTracking()
+					.Where(i => i.Id == invoice.Id)
+					.Select(i => new { i.Status, i.InvoiceNumber })
+					.SingleAsync(cancellationToken);
+				if (current.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(current.InvoiceNumber))
+					throw new InvalidOperationException("Invoice has already been generated.");
+			}
+
+			// Series (GST / non-GST) is chosen from the invoice's final IsGstEnabled value; the number, the
+			// series counter and the permanent ledger entry all commit or roll back with this transaction.
+			await _numberAllocator.AllocateAutomaticAsync(invoice, cancellationToken);
+
 			if (invoice.BalanceAmount <= 0 && invoice.PaidAmount >= invoice.TotalAmount && invoice.TotalAmount > 0)
 			{
 				invoice.Status = InvoiceStatus.Paid;
@@ -624,13 +640,13 @@ public class InvoiceService : IInvoiceService
 		if (hasPendingWhatsApp)
 			throw new InvalidOperationException("A WhatsApp message for this invoice is still being sent. Try again in a moment.");
 
-		var upperNumber = newNumber.ToUpperInvariant();
-		var inUse = await _db.Invoices.IgnoreQueryFilters().AnyAsync(
-			i => i.Id != invoice.Id && i.InvoiceNumber != null && i.InvoiceNumber.ToUpper() == upperNumber,
-			cancellationToken);
-		if (inUse)
-			throw new ConflictException($"Invoice number '{newNumber}' is already used by another invoice.");
+		// A number that was ever issued to another invoice (automatic, manual or legacy, under any prefix)
+		// is permanently consumed. Returning to one of this invoice's own earlier numbers is allowed.
+		if (await _numberAllocator.IsConsumedAsync(newNumber, invoice.Id, cancellationToken))
+			throw new ConflictException($"Invoice number '{newNumber}' has already been issued and cannot be reused.");
 
+		// Old number stays reserved forever; the new one is reserved now. The series counter is not touched.
+		await _numberAllocator.ReserveManualAsync(invoice, newNumber, currentUserId, cancellationToken);
 		invoice.InvoiceNumber = newNumber;
 		invoice.UpdatedAt = DateTime.UtcNow;
 
@@ -640,7 +656,7 @@ public class InvoiceService : IInvoiceService
 		}
 		catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
 		{
-			throw new ConflictException($"Invoice number '{newNumber}' is already used by another invoice.");
+			throw new ConflictException($"Invoice number '{newNumber}' has already been issued and cannot be reused.");
 		}
 
 		await _auditLogService.RecordAsync(
@@ -658,62 +674,6 @@ public class InvoiceService : IInvoiceService
 		return ToDto(invoice);
 	}
 
-	private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
-	{
-		var currentYear = DateTime.UtcNow.Year;
-		var profilePrefix = (await _db.BusinessProfiles.AsNoTracking().Select(b => b.InvoicePrefix).FirstOrDefaultAsync(cancellationToken))?.Trim();
-		var prefix = !string.IsNullOrWhiteSpace(profilePrefix) ? profilePrefix : "INV";
-
-		if (!_db.Database.IsRelational())
-		{
-			var count = await _db.Invoices.CountAsync(cancellationToken) + 1;
-			return $"{prefix}-{currentYear}-{count:D6}";
-		}
-
-		var conn = _db.Database.GetDbConnection();
-		var openedLocally = false;
-		if (conn.State != System.Data.ConnectionState.Open)
-		{
-			await conn.OpenAsync(cancellationToken);
-			openedLocally = true;
-		}
-
-		try
-		{
-			using var cmd = conn.CreateCommand();
-
-			while (true)
-			{
-				cmd.CommandText = "SELECT nextval('invoice_number_seq')";
-				long nextNumber;
-				try
-				{
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
-				catch
-				{
-					cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('invoice_number_seq');";
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
-
-				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
-				var exists = await _db.Invoices.AnyAsync(i => i.InvoiceNumber == candidate, cancellationToken);
-				if (!exists)
-				{
-					return candidate;
-				}
-			}
-		}
-		finally
-		{
-			if (openedLocally && conn.State == System.Data.ConnectionState.Open)
-			{
-				await conn.CloseAsync();
-			}
-		}
-	}
 
 	public async Task<PaymentDto> RecordPaymentAsync(Guid invoiceId, RecordPaymentRequest request, CancellationToken cancellationToken = default)
 	{

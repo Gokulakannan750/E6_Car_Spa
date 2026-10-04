@@ -83,10 +83,10 @@ public class InvoiceNumberEditPostgresTests : IClassFixture<PostgresTestDatabase
         return (invoiceId, number);
     }
 
-    private static (string prefix, long counter) Parse(string generatedNumber)
+    private static (string prefix, long counter, int digits) Parse(string generatedNumber)
     {
-        var lastDash = generatedNumber.LastIndexOf('-');
-        return (generatedNumber[..(lastDash + 1)], long.Parse(generatedNumber[(lastDash + 1)..]));
+        var m = System.Text.RegularExpressions.Regex.Match(generatedNumber, "^(.*?)([0-9]+)$");
+        return (m.Groups[1].Value, long.Parse(m.Groups[2].Value), m.Groups[2].Value.Length);
     }
 
     [PostgresFact]
@@ -94,20 +94,20 @@ public class InvoiceNumberEditPostgresTests : IClassFixture<PostgresTestDatabase
     {
         var ownerId = await EnsureOwnerAsync();
         var (invoiceA, numberA) = await CreatePaidGstInvoiceAsync();
-        var (prefix, n) = Parse(numberA);
+        var (prefix, n, digits) = Parse(numberA);
 
         // Owner takes the number the generator would hand out next.
-        var claimed = $"{prefix}{n + 1:D6}";
+        var claimed = $"{prefix}{(n + 1).ToString().PadLeft(digits, '0')}";
         await using (var db = _pg.CreateContext())
             Assert.Equal(claimed, (await Invoices(db, ownerId).UpdateInvoiceNumberAsync(invoiceA, new UpdateInvoiceNumberRequest(claimed))).InvoiceNumber);
 
         // The next generated invoice skips the claimed number instead of failing or duplicating it.
         var (_, numberB) = await CreatePaidGstInvoiceAsync();
-        Assert.Equal($"{prefix}{n + 2:D6}", numberB);
+        Assert.Equal($"{prefix}{(n + 2).ToString().PadLeft(digits, '0')}", numberB);
 
         // And a further one simply continues the sequence (it was neither reset nor moved by the edit).
         var (_, numberC) = await CreatePaidGstInvoiceAsync();
-        Assert.Equal($"{prefix}{n + 3:D6}", numberC);
+        Assert.Equal($"{prefix}{(n + 3).ToString().PadLeft(digits, '0')}", numberC);
 
         // The original number n is not re-issued.
         await using var read = _pg.CreateContext();
