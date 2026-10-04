@@ -230,7 +230,7 @@ export function ServicePickerDialog({
 										<div className="flex items-center gap-2 text-xs text-on-surface-variant">
 											<span className="font-medium text-secondary">{svc.category || 'General Services'}</span>
 											<span>·</span>
-											<span>18% GST</span>
+											<span>{svc.taxPercentage}% GST</span>
 										</div>
 									</div>
 									<div className="text-right flex items-center gap-3">

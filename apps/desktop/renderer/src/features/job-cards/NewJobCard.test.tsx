@@ -17,6 +17,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getServices: vi.fn(),
 		createService: vi.fn(),
 		createJobCard: vi.fn(),
+		previewJobCard: vi.fn(),
 		getJobCardById: vi.fn(),
 		transferVehicleOwnership: vi.fn(),
 	};
@@ -263,6 +264,38 @@ describe('NewJobCard Component Workflow', () => {
 			expect(screen.getByText('Job Card Created!')).toBeInTheDocument();
 			expect(screen.getByText('JC-2026-0100')).toBeInTheDocument();
 		});
+	});
+
+	it('review step shows the server estimate per GST rate, not a flat 18%', async () => {
+		// Server result for an ₹800 service at 5% (a flat 18% screen would show ₹944).
+		vi.mocked(api.previewJobCard).mockResolvedValue({
+			lines: [],
+			subtotal: 800,
+			discountAmount: 0,
+			taxableAmount: 800,
+			cgstAmount: 20,
+			sgstAmount: 20,
+			taxAmount: 40,
+			totalAmount: 840,
+			taxBreakdown: [{ ratePercent: 5, taxableAmount: 800, cgstAmount: 20, sgstAmount: 20, taxAmount: 40 }],
+		});
+		renderWithProviders(<NewJobCard />);
+
+		fireEvent.change(screen.getByPlaceholderText(/e\.g\. 9876543210/i), { target: { value: '9876543210' } });
+		fireEvent.click(screen.getAllByRole('button', { name: /search/i })[0]);
+		await waitFor(() => expect(screen.getByText('Gokul Sharma')).toBeInTheDocument());
+		fireEvent.click(screen.getByRole('button', { name: /next/i }));
+		await waitFor(() => expect(screen.getByPlaceholderText(/search services/i)).toBeInTheDocument());
+		fireEvent.change(screen.getByPlaceholderText(/search services/i), { target: { value: 'Foam' } });
+		await waitFor(() => expect(screen.getByText('Full Body Foam Wash')).toBeInTheDocument());
+		fireEvent.click(screen.getByText('Full Body Foam Wash'));
+		fireEvent.click(screen.getByRole('button', { name: /next/i }));
+
+		await waitFor(() => expect(screen.getByTestId('estimate-total')).toHaveTextContent('840.00'));
+		expect(api.previewJobCard).toHaveBeenCalledWith([{ serviceId: 'svc-1', quantity: 1, discountAmount: 0 }], true);
+		const rows = screen.getAllByTestId('estimate-tax-row').map((r) => r.textContent ?? '');
+		expect(rows.some((t) => t.includes('CGST @ 2.5%') && t.includes('20.00'))).toBe(true);
+		expect(screen.queryByText(/18%/)).not.toBeInTheDocument();
 	});
 
 	it('displays submit error message when backend job card creation fails', async () => {

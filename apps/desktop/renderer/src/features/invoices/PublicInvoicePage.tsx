@@ -8,6 +8,7 @@ import {
 	Clock,
 } from 'lucide-react';
 import { getPublicInvoice, type PublicInvoiceDto } from '../../lib/api';
+import { formatRate, taxRows } from '../../lib/gstDisplay';
 
 function formatCurrency(val: number): string {
 	return '₹' + (val || 0).toLocaleString('en-IN', {
@@ -230,6 +231,7 @@ export function PublicInvoicePage() {
 										<th className="py-3 px-4">#</th>
 										<th className="py-3 px-4">Service Description</th>
 										{isGst && <th className="py-3 px-4 text-center">HSN/SAC</th>}
+										{isGst && <th className="py-3 px-4 text-center">GST</th>}
 										<th className="py-3 px-4 text-center">Qty</th>
 										<th className="py-3 px-4 text-right">Rate</th>
 										<th className="py-3 px-4 text-right">Amount</th>
@@ -243,6 +245,11 @@ export function PublicInvoicePage() {
 											{isGst && (
 												<td className="py-3 px-4 text-center font-mono text-slate-600">
 													{item.hsnSac || '—'}
+												</td>
+											)}
+											{isGst && (
+												<td className="py-3 px-4 text-center font-mono text-slate-600">
+													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
 												</td>
 											)}
 											<td className="py-3 px-4 text-center font-medium text-slate-800">{item.quantity}</td>
@@ -304,18 +311,15 @@ export function PublicInvoicePage() {
 											{formatCurrency(invoice.financials.taxableValue ?? 0)}
 										</span>
 									</div>
-									<div className="flex justify-between text-slate-600">
-										<span>CGST (9%)</span>
-										<span className="font-mono font-semibold text-slate-900">
-											{formatCurrency(invoice.financials.cgst ?? 0)}
-										</span>
-									</div>
-									<div className="flex justify-between text-slate-600">
-										<span>SGST (9%)</span>
-										<span className="font-mono font-semibold text-slate-900">
-											{formatCurrency(invoice.financials.sgst ?? 0)}
-										</span>
-									</div>
+									{taxRows(invoice.financials.taxBreakdown).map((row) => (
+										<div key={row.key} className="flex justify-between text-slate-600">
+											<span>
+												{row.label}
+												{row.taxableAmount !== null && <span className="text-[10px]"> on {formatCurrency(row.taxableAmount)}</span>}
+											</span>
+											<span className="font-mono font-semibold text-slate-900">{formatCurrency(row.amount)}</span>
+										</div>
+									))}
 								</>
 							)}
 

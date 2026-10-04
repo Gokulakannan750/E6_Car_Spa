@@ -8,9 +8,12 @@ import {
 	updateJobCardServices,
 	getServices,
 	isJobCardLocked,
+	previewJobCard,
 	type JobCardDto,
+	type JobCardEstimateDto,
 	type ServiceDto,
 } from '../../lib/api';
+import { formatRate, taxRows } from '../../lib/gstDisplay';
 import { OutsideJobsSection, type OutsideJobsSectionHandle } from './OutsideJobsSection';
 import { ServicePickerDialog } from './ServicePickerDialog';
 
@@ -329,22 +332,46 @@ export default function JobCardDetails() {
 		}
 	}, [jobCard, isEditing]);
 
-	const subtotal = useMemo(
-		() => editingServices.reduce((sum, s) => sum + s.unitPrice * s.quantity, 0),
-		[editingServices],
-	);
+	// While editing, totals come from the server estimate (same calculator as saving); otherwise the stored job card.
+	const [estimate, setEstimate] = useState<JobCardEstimateDto | null>(null);
+	const [estimateError, setEstimateError] = useState<string | null>(null);
 
-	const discountTotal = useMemo(
-		() => editingServices.reduce((sum, s) => sum + (s.discountAmount || 0), 0),
-		[editingServices],
-	);
+	useEffect(() => {
+		if (!isEditing || editingServices.length === 0) {
+			setEstimate(null);
+			return;
+		}
+		setEstimateError(null);
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			try {
+				const result = await previewJobCard(
+					editingServices.map((s) => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount || 0 })),
+					true,
+				);
+				if (!cancelled) setEstimate(result);
+			} catch (err) {
+				if (!cancelled) setEstimateError(err instanceof Error ? err.message : 'Unable to calculate the estimate.');
+			}
+		}, 250);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [isEditing, editingServices]);
 
-	const taxTotal = useMemo(
-		() => editingServices.reduce((sum, s) => sum + (s.unitPrice * s.quantity * (s.taxPercentage / 100)), 0),
-		[editingServices],
+	const summary = isEditing
+		? estimate
+			? { subtotal: estimate.subtotal, discount: estimate.discountAmount, tax: estimate.taxAmount, total: estimate.totalAmount }
+			: null
+		: jobCard
+			? { subtotal: jobCard.subtotal, discount: jobCard.discountAmount, tax: jobCard.taxAmount, total: jobCard.totalAmount }
+			: null;
+	// Rates on a stored job card (labels only — the amounts above are the stored ones).
+	const storedRates = useMemo(
+		() => Array.from(new Set((jobCard?.services ?? []).map((s) => s.taxPercentage))).sort((a, b) => b - a),
+		[jobCard],
 	);
-
-	const total = subtotal - discountTotal + taxTotal;
 
 	const isLocked = useMemo(() => (jobCard ? isJobCardLocked(jobCard) : false), [jobCard]);
 
@@ -843,21 +870,35 @@ export default function JobCardDetails() {
 							<div className="space-y-3">
 								<div className="flex justify-between text-sm">
 									<span className="text-on-surface-variant">Subtotal</span>
-									<span className="text-on-surface">{formatCurrency(subtotal)}</span>
+									<span className="text-on-surface">{summary ? formatCurrency(summary.subtotal) : '—'}</span>
 								</div>
-								{discountTotal > 0 && (
+								{summary && summary.discount > 0 && (
 									<div className="flex justify-between text-sm">
 										<span className="text-on-surface-variant">Discount</span>
-										<span className="text-emerald-700 font-medium">-{formatCurrency(discountTotal)}</span>
+										<span className="text-emerald-700 font-medium">-{formatCurrency(summary.discount)}</span>
 									</div>
 								)}
-								<div className="flex justify-between text-sm">
-									<span className="text-on-surface-variant">Tax (18%)</span>
-									<span className="text-on-surface">{formatCurrency(taxTotal)}</span>
-								</div>
+								{isEditing && estimate ? (
+									taxRows(estimate.taxBreakdown).map((row) => (
+										<div key={row.key} className="flex justify-between text-sm">
+											<span className="text-on-surface-variant">{row.label}</span>
+											<span className="text-on-surface">{formatCurrency(row.amount)}</span>
+										</div>
+									))
+								) : (
+									<div className="flex justify-between text-sm">
+										<span className="text-on-surface-variant">
+											GST{!isEditing && storedRates.length > 0 ? ` (${storedRates.map(formatRate).join(' + ')})` : ''}
+										</span>
+										<span className="text-on-surface">{summary ? formatCurrency(summary.tax) : '—'}</span>
+									</div>
+								)}
+								{estimateError && isEditing && (
+									<p className="text-xs text-error" role="alert">{estimateError}</p>
+								)}
 								<div className="border-t border-outline-variant pt-3 flex justify-between">
 									<span className="font-semibold text-on-surface">Total</span>
-									<span className="font-bold text-on-surface">{formatCurrency(total)}</span>
+									<span className="font-bold text-on-surface">{summary ? formatCurrency(summary.total) : 'Calculating…'}</span>
 								</div>
 							</div>
 						</div>

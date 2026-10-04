@@ -12,6 +12,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getInvoiceById: vi.fn(),
 		updateInvoice: vi.fn(),
 		generateInvoice: vi.fn(),
+		previewInvoice: vi.fn(),
 		recordPayment: vi.fn(),
 		getBusinessProfile: vi.fn(),
 		getInvoiceWhatsAppStatus: vi.fn(),
@@ -143,7 +144,8 @@ describe('InvoiceDetailPage Component & Invoice Boundary', () => {
 		fireEvent.click(dialogConfirmBtn);
 
 		await waitFor(() => {
-			expect(api.generateInvoice).toHaveBeenCalledWith('inv-1');
+			// The confirmed (stored, server-calculated) total is sent so the server cannot issue a different amount.
+			expect(api.generateInvoice).toHaveBeenCalledWith('inv-1', 944);
 			expect(screen.getAllByText('#INV-2026-0001').length).toBeGreaterThan(0);
 		});
 	});
@@ -394,5 +396,105 @@ describe('InvoiceDetailPage Component & Invoice Boundary', () => {
 			expect(screen.getByText(/whatsapp payment: skipped/i)).toBeInTheDocument();
 		});
 	});
-});
 
+	describe('Phase 1: GST shown is always the server calculation', () => {
+		// ₹10,000 @ 18% + ₹10,000 @ 5% + ₹5,000 @ 0% (server values; a flat 18% would give ₹29,500).
+		const mixedDraft: api.InvoiceDto = {
+			...mockDraftInvoice,
+			items: [
+				{ id: 'a', serviceId: 's18', description: 'Ceramic Coating', quantity: 1, unitPrice: 10000, discount: 0, taxableAmount: 10000, taxAmount: 1800, totalAmount: 11800, taxRatePercent: 18, cgstAmount: 900, sgstAmount: 900 },
+				{ id: 'b', serviceId: 's5', description: 'Wax Polish', quantity: 1, unitPrice: 10000, discount: 0, taxableAmount: 10000, taxAmount: 500, totalAmount: 10500, taxRatePercent: 5, cgstAmount: 250, sgstAmount: 250 },
+				{ id: 'c', serviceId: 's0', description: 'Exempt Service', quantity: 1, unitPrice: 5000, discount: 0, taxableAmount: 5000, taxAmount: 0, totalAmount: 5000, taxRatePercent: 0, cgstAmount: 0, sgstAmount: 0 },
+			],
+			subtotal: 25000,
+			discount: 0,
+			taxableAmount: 25000,
+			gstAmount: 2300,
+			cgstAmount: 1150,
+			sgstAmount: 1150,
+			totalAmount: 27300,
+			balanceAmount: 27300,
+			taxBreakdown: [
+				{ ratePercent: 18, taxableAmount: 10000, cgstAmount: 900, sgstAmount: 900, taxAmount: 1800 },
+				{ ratePercent: 5, taxableAmount: 10000, cgstAmount: 250, sgstAmount: 250, taxAmount: 500 },
+				{ ratePercent: 0, taxableAmount: 5000, cgstAmount: 0, sgstAmount: 0, taxAmount: 0 },
+			],
+		};
+		// Server preview for a ₹1,000 discount.
+		const mixedWithDiscount: api.InvoiceDto = {
+			...mixedDraft,
+			discount: 1000,
+			taxableAmount: 24000,
+			gstAmount: 2208,
+			cgstAmount: 1104,
+			sgstAmount: 1104,
+			totalAmount: 26208,
+			balanceAmount: 26208,
+			taxBreakdown: [
+				{ ratePercent: 18, taxableAmount: 9600, cgstAmount: 864, sgstAmount: 864, taxAmount: 1728 },
+				{ ratePercent: 5, taxableAmount: 9600, cgstAmount: 240, sgstAmount: 240, taxAmount: 480 },
+				{ ratePercent: 0, taxableAmount: 4800, cgstAmount: 0, sgstAmount: 0, taxAmount: 0 },
+			],
+		};
+
+		const renderPage = () =>
+			renderWithProviders(
+				<Routes>
+					<Route path="/invoices/:id" element={<InvoiceDetailPage />} />
+				</Routes>,
+				{ initialEntries: ['/invoices/inv-1'] },
+			);
+
+		it('mixed 18% / 5% / 0% draft shows each rate from the server, never a flat 9% + 9%', async () => {
+			vi.mocked(api.getInvoiceById).mockResolvedValue(mixedDraft);
+			renderPage();
+
+			await waitFor(() => expect(screen.getByTestId('grand-total')).toHaveTextContent('27,300.00'));
+			const rows = screen.getAllByTestId('tax-row').map((r) => r.textContent ?? '');
+			expect(rows.some((t) => t.startsWith('CGST @ 9%') && t.includes('900.00'))).toBe(true);
+			expect(rows.some((t) => t.startsWith('SGST @ 2.5%') && t.includes('250.00'))).toBe(true);
+			expect(rows.some((t) => t.startsWith('GST @ 0%'))).toBe(true);
+			expect(screen.queryByText(/\(9%\)/)).not.toBeInTheDocument();
+			expect(screen.getAllByTestId('line-gst-rate').map((c) => c.textContent)).toEqual(['18%', '5%', '0%']);
+			expect(api.previewInvoice).not.toHaveBeenCalled();
+		});
+
+		it('an unsaved discount is priced by the server preview, not by the client', async () => {
+			vi.mocked(api.getInvoiceById).mockResolvedValue(mixedDraft);
+			vi.mocked(api.previewInvoice).mockResolvedValue(mixedWithDiscount);
+			renderPage();
+			await waitFor(() => expect(screen.getByTestId('grand-total')).toHaveTextContent('27,300.00'));
+
+			fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '1000' } });
+
+			await waitFor(() => expect(api.previewInvoice).toHaveBeenCalledWith('inv-1', { discount: 1000, isGstEnabled: true }));
+			// Flat 18% on ₹24,000 would show ₹28,320; the server's per-line result is ₹26,208.
+			await waitFor(() => expect(screen.getByTestId('grand-total')).toHaveTextContent('26,208.00'));
+			expect(screen.queryByText(/28,320/)).not.toBeInTheDocument();
+		});
+
+		it('confirmation shows the saved server total and generation sends exactly that amount', async () => {
+			vi.mocked(api.getInvoiceById).mockResolvedValue(mixedDraft);
+			vi.mocked(api.previewInvoice).mockResolvedValue(mixedWithDiscount);
+			vi.mocked(api.updateInvoice).mockResolvedValue(mixedWithDiscount);
+			vi.mocked(api.generateInvoice).mockResolvedValue({ ...mixedWithDiscount, invoiceNumber: 'GST/0001', status: 'Generated' });
+			renderPage();
+			await waitFor(() => expect(screen.getByTestId('grand-total')).toHaveTextContent('27,300.00'));
+
+			fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '1000' } });
+			await waitFor(() => expect(screen.getByTestId('grand-total')).toHaveTextContent('26,208.00'));
+
+			fireEvent.click(screen.getByRole('button', { name: /generate invoice/i }));
+
+			// Unsaved changes are saved first; the dialog shows the stored server result.
+			await waitFor(() => expect(screen.getByText('Generate Invoice?')).toBeInTheDocument());
+			expect(api.updateInvoice).toHaveBeenCalledWith('inv-1', expect.objectContaining({ discount: 1000, isGstEnabled: true }));
+			expect(screen.getByTestId('confirm-grand-total')).toHaveTextContent('26,208.00');
+			expect(screen.getByText('GST 18% + 5% + 0%')).toBeInTheDocument();
+
+			const buttons = screen.getAllByRole('button', { name: /generate invoice/i });
+			fireEvent.click(buttons[buttons.length - 1]);
+			await waitFor(() => expect(api.generateInvoice).toHaveBeenCalledWith('inv-1', 26208));
+		});
+	});
+});
