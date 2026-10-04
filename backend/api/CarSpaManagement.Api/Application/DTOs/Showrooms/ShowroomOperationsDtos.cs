@@ -48,7 +48,8 @@ public record ShowroomWorkTypeDto(
     string? Description,
     int DisplayOrder,
     bool IsActive,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    bool IsOther = false);
 
 public record CreateShowroomWorkTypeRequest
 {

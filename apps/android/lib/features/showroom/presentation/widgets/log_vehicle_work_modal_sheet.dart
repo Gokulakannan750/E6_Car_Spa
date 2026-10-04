@@ -248,10 +248,7 @@ class _LogVehicleWorkModalSheetState
             createdAt: DateTime.now(),
           ),
         );
-        final isOther =
-            wt.name.trim().toLowerCase().contains('other') ||
-            wt.code.trim().toUpperCase() == 'OTHER';
-        if (isOther) {
+        if (wt.isOtherType) {
           final note = config.workTypeNoteControllers[id]?.text.trim() ?? '';
           if (note.isEmpty) {
             setState(() {
@@ -321,8 +318,7 @@ class _LogVehicleWorkModalSheetState
                     createdAt: DateTime.now(),
                   ),
                 );
-                if (wt.name.trim().toLowerCase().contains('other') ||
-                    wt.code.trim().toUpperCase() == 'OTHER') {
+                if (wt.isOtherType) {
                   otherDesc = note;
                 }
               }
@@ -877,8 +873,7 @@ class _LogVehicleWorkModalSheetState
                   // "Other" work type description fields
                   for (final wType in workTypes)
                     if (config.selectedWorkTypeIds.contains(wType.id) &&
-                        (wType.name.trim().toLowerCase().contains('other') ||
-                            wType.code.trim().toUpperCase() == 'OTHER')) ...[
+                        wType.isOtherType) ...[
                       const SizedBox(height: 8),
                       AppTextField(
                         key: Key('other_desc_field_${index}_${wType.id}'),

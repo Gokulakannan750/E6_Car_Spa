@@ -70,6 +70,7 @@ public static class ShowroomOperationsSeeder
                 Description = wt.Description,
                 DisplayOrder = wt.DisplayOrder,
                 IsActive = true,
+                IsOther = wt.Code == "OTHER",
                 CreatedAt = DateTime.UtcNow
             })
             .ToList();

@@ -57,6 +57,9 @@ class ShowroomWorkType {
   final bool isActive;
   final DateTime createdAt;
 
+  /// Server flag for the free-text "Other" work type; null when an older API does not send it.
+  final bool? isOther;
+
   const ShowroomWorkType({
     required this.id,
     required this.code,
@@ -65,7 +68,12 @@ class ShowroomWorkType {
     this.displayOrder = 0,
     this.isActive = true,
     required this.createdAt,
+    this.isOther,
   });
+
+  /// Whether this is the "Other" work type that needs a description. Uses the server flag, so
+  /// renaming "Other" does not change it; the code check only covers an older API.
+  bool get isOtherType => isOther ?? code.trim().toUpperCase() == 'OTHER';
 
   factory ShowroomWorkType.fromJson(Map<String, dynamic> json) {
     return ShowroomWorkType(
@@ -85,6 +93,7 @@ class ShowroomWorkType {
                 ? DateTime.tryParse(json['CreatedAt'].toString()) ??
                       DateTime.now()
                 : DateTime.now()),
+      isOther: json['isOther'] as bool? ?? json['IsOther'] as bool?,
     );
   }
 
@@ -96,6 +105,7 @@ class ShowroomWorkType {
     'displayOrder': displayOrder,
     'isActive': isActive,
     'createdAt': createdAt.toIso8601String(),
+    if (isOther != null) 'isOther': isOther,
   };
 }
 

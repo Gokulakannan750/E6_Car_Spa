@@ -105,11 +105,12 @@ function formatDisplayTime(timeStr?: string | null): string {
 	return `${h}:${String(mins).padStart(2, '0')} ${ampm}`;
 }
 
-function isOtherWorkType(wt?: { name?: string; code?: string } | null): boolean {
+// The server flags the "Other" work type; renaming it does not change that. The code check only
+// covers an older API that does not send the flag.
+function isOtherWorkType(wt?: { code?: string; isOther?: boolean } | null): boolean {
 	if (!wt) return false;
-	const name = wt.name?.trim().toLowerCase() || '';
-	const code = wt.code?.trim().toUpperCase() || '';
-	return name === 'other' || code === 'OTHER';
+	if (typeof wt.isOther === 'boolean') return wt.isOther;
+	return wt.code?.trim().toUpperCase() === 'OTHER';
 }
 
 export function ShowroomOperationsPage() {
@@ -589,16 +590,21 @@ export function ShowroomOperationsPage() {
 					timeRecorded: null,
 					notes: vwNotes || null,
 					vehicles: vwVehicles.map((v) => {
-						const hasNotes = v.workTypeNotes && Object.values(v.workTypeNotes).some((n) => n.trim().length > 0);
+						// Only notes for work types still selected; the Other description comes from the Other item alone.
+						const notes = Object.fromEntries(
+							v.selectedWorkTypeIds
+								.map((id) => [id, v.workTypeNotes?.[id]?.trim() ?? ''] as const)
+								.filter(([, note]) => note.length > 0),
+						);
+						const otherId = v.selectedWorkTypeIds.find((id) =>
+							isOtherWorkType(availableWorkTypes.find((t) => t.id === id) || allWorkTypes.find((t) => t.id === id)),
+						);
+						const otherDescription = otherId ? notes[otherId] : undefined;
 						return {
 							vehicleTypeId: v.vehicleTypeId,
 							workTypeIds: v.selectedWorkTypeIds,
-							...(hasNotes
-								? {
-										workTypeNotes: v.workTypeNotes,
-										otherDescription: Object.values(v.workTypeNotes || {}).find((n) => n.trim().length > 0),
-								  }
-								: {}),
+							...(Object.keys(notes).length > 0 ? { workTypeNotes: notes } : {}),
+							...(otherDescription ? { otherDescription } : {}),
 						};
 					}),
 				});

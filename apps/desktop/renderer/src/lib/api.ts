@@ -2449,6 +2449,8 @@ export interface ShowroomWorkTypeDto {
 	displayOrder: number;
 	isActive: boolean;
 	createdAt: string;
+	/** The free-text "Other" work type, which requires a description. */
+	isOther?: boolean;
 }
 
 export interface CreateShowroomWorkTypeRequest {

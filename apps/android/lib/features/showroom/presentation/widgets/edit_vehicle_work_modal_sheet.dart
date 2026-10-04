@@ -137,10 +137,9 @@ class _EditVehicleWorkModalSheetState
           createdAt: DateTime.now(),
         ),
       );
-      final isOther =
-          wt.name.trim().toLowerCase().contains('other') ||
-          wt.code.trim().toUpperCase() == 'OTHER';
-      if (isOther) {
+      // Only a newly added "Other" needs a description; older records may have none.
+      final wasOnRecord = widget.work.serviceItems.any((i) => i.workTypeId == id);
+      if (wt.isOtherType && !wasOnRecord) {
         final note = _workTypeNoteControllers[id]?.text.trim() ?? '';
         if (note.isEmpty) {
           setState(() {
@@ -475,8 +474,7 @@ class _EditVehicleWorkModalSheetState
                   // "Other" work type description fields
                   for (final wType in displayedWorkTypes)
                     if (_selectedWorkTypeIds.contains(wType.id) &&
-                        (wType.name.trim().toLowerCase().contains('other') ||
-                            wType.code.trim().toUpperCase() == 'OTHER')) ...[
+                        wType.isOtherType) ...[
                       const SizedBox(height: 8),
                       AppTextField(
                         key: Key('edit_other_work_type_${wType.id}'),

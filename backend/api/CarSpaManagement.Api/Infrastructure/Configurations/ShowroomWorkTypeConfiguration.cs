@@ -31,6 +31,13 @@ public class ShowroomWorkTypeConfiguration : IEntityTypeConfiguration<ShowroomWo
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(w => w.IsOther)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        // Names are unique case-insensitively among non-deleted rows via the expression index
+        // UX_ShowroomWorkTypes_Name, created in SQL by migration AddShowroomTypeNameUniqueAndIsOther.
+
         builder.HasIndex(w => w.Code)
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");

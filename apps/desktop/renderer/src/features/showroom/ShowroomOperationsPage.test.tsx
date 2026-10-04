@@ -524,6 +524,50 @@ describe('ShowroomOperationsPage', () => {
 		});
 	});
 
+	it('12b. sends the Other description only for the flagged Other work type, even when renamed', async () => {
+		vi.mocked(api.getShowroomWorkTypes).mockResolvedValue([
+			...mockWorkTypes,
+			{ id: 'wt-misc', code: 'MISC', name: 'Miscellaneous', displayOrder: 7, isActive: true, isOther: true, createdAt: '2026-01-01T00:00:00Z' },
+			{ id: 'wt-lookalike', code: 'OTHER_POLISH', name: 'Other', displayOrder: 8, isActive: true, isOther: false, createdAt: '2026-01-01T00:00:00Z' },
+		]);
+		vi.mocked(api.createBatchShowroomVehicleWork).mockResolvedValue([{ ...mockVehicleWorks[0], id: 'vw-batch-1' }]);
+
+		renderOperations('/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-25');
+		await screen.findByText('Popular Hyundai');
+		fireEvent.click(screen.getAllByRole('button', { name: /Log Vehicle Work/i })[0]);
+
+		const staffSelect = await screen.findByLabelText(/Staff Member/i);
+		fireEvent.change(staffSelect, { target: { value: '33333333-3333-3333-3333-333333333333' } });
+		fireEvent.change(screen.getByLabelText('Vehicle 1 Type'), { target: { value: 'vt-1' } });
+
+		// A work type merely named "Other" is ordinary: no description field.
+		fireEvent.click(await screen.findByLabelText('Vehicle 1 - Other'));
+		expect(screen.queryByLabelText('Vehicle 1 Specify work performed')).not.toBeInTheDocument();
+		fireEvent.click(screen.getByLabelText('Vehicle 1 - Other'));
+
+		fireEvent.click(screen.getByLabelText('Vehicle 1 - Body Wash'));
+		fireEvent.click(screen.getByLabelText('Vehicle 1 - Miscellaneous'));
+		fireEvent.change(screen.getByLabelText('Vehicle 1 Specify work performed'), { target: { value: 'Headlight polish' } });
+
+		fireEvent.submit(staffSelect.closest('form')!);
+
+		await waitFor(() => {
+			expect(api.createBatchShowroomVehicleWork).toHaveBeenCalledWith(
+				'11111111-1111-1111-1111-111111111111',
+				expect.objectContaining({
+					vehicles: [
+						{
+							vehicleTypeId: 'vt-1',
+							workTypeIds: ['wt-1', 'wt-misc'],
+							workTypeNotes: { 'wt-misc': 'Headlight polish' },
+							otherDescription: 'Headlight polish',
+						},
+					],
+				})
+			);
+		});
+	});
+
 	// ── 13. Edit Vehicle Work ─────────────────────────────────────────────────
 	it('13. opens Edit Vehicle Work modal with existing values populated and updates record', async () => {
 		vi.mocked(api.updateShowroomVehicleWork).mockResolvedValue({

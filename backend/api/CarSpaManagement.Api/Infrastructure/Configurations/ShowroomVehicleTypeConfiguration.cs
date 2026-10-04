@@ -28,6 +28,9 @@ public class ShowroomVehicleTypeConfiguration : IEntityTypeConfiguration<Showroo
             .IsRequired()
             .HasDefaultValue(true);
 
+        // Names are unique case-insensitively among non-deleted rows via the expression index
+        // UX_ShowroomVehicleTypes_Name, created in SQL by migration AddShowroomTypeNameUniqueAndIsOther.
+
         builder.HasIndex(t => t.Code)
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");

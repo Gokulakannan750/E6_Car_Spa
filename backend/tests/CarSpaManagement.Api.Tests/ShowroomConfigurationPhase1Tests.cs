@@ -458,7 +458,7 @@ public class ShowroomConfigurationPhase1Tests
         var showroom = new Showroom { Id = Guid.NewGuid(), MasterId = "SR1", Name = "Main", Address = "A", Phone = "9876543210", IsActive = true, CreatedAt = DateTime.UtcNow };
         var staff = new Staff { Id = Guid.NewGuid(), StaffMasterId = "ST1", Name = "Ravi", PhoneNumber = "9876543211", IsActive = true, CreatedAt = DateTime.UtcNow };
         var vt = new ShowroomVehicleType { Id = Guid.NewGuid(), Code = "SEDAN", Name = "Sedan", IsActive = true, CreatedAt = DateTime.UtcNow };
-        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, CreatedAt = DateTime.UtcNow };
+        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, IsOther = true, CreatedAt = DateTime.UtcNow };
         var date = DateTime.UtcNow.Date;
 
         await db.Showrooms.AddAsync(showroom);
@@ -499,7 +499,7 @@ public class ShowroomConfigurationPhase1Tests
         var showroom = new Showroom { Id = Guid.NewGuid(), MasterId = "SR1", Name = "Main", Address = "A", Phone = "9876543210", IsActive = true, CreatedAt = DateTime.UtcNow };
         var staff = new Staff { Id = Guid.NewGuid(), StaffMasterId = "ST1", Name = "Ravi", PhoneNumber = "9876543211", IsActive = true, CreatedAt = DateTime.UtcNow };
         var vt = new ShowroomVehicleType { Id = Guid.NewGuid(), Code = "SEDAN", Name = "Sedan", IsActive = true, CreatedAt = DateTime.UtcNow };
-        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, CreatedAt = DateTime.UtcNow };
+        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, IsOther = true, CreatedAt = DateTime.UtcNow };
         var date = DateTime.UtcNow.Date;
 
         await db.Showrooms.AddAsync(showroom);
@@ -542,7 +542,7 @@ public class ShowroomConfigurationPhase1Tests
         var showroom = new Showroom { Id = Guid.NewGuid(), MasterId = "SR1", Name = "Main", Address = "A", Phone = "9876543210", IsActive = true, CreatedAt = DateTime.UtcNow };
         var staff = new Staff { Id = Guid.NewGuid(), StaffMasterId = "ST1", Name = "Ravi", PhoneNumber = "9876543211", IsActive = true, CreatedAt = DateTime.UtcNow };
         var vt = new ShowroomVehicleType { Id = Guid.NewGuid(), Code = "SEDAN", Name = "Sedan", IsActive = true, CreatedAt = DateTime.UtcNow };
-        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, CreatedAt = DateTime.UtcNow };
+        var wtOther = new ShowroomWorkType { Id = Guid.NewGuid(), Code = "OTHER", Name = "Other", IsActive = true, IsOther = true, CreatedAt = DateTime.UtcNow };
         var date = DateTime.UtcNow.Date;
 
         await db.Showrooms.AddAsync(showroom);

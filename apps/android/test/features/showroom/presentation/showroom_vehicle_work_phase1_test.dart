@@ -427,5 +427,80 @@ void main() {
         expect(find.text('Other: Hand polish mirrors'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'LogVehicleWorkModalSheet asks for a description for the flagged Other type only, even when renamed',
+      (tester) async {
+        fakeRepo.activeWorkTypes
+          ..clear()
+          ..addAll([
+            ShowroomWorkType(id: 'wt-wash', code: 'WASH', name: 'Body Wash', createdAt: DateTime(2026, 1, 1), isOther: false),
+            ShowroomWorkType(id: 'wt-misc', code: 'MISC', name: 'Miscellaneous', createdAt: DateTime(2026, 1, 1), isOther: true),
+            ShowroomWorkType(id: 'wt-look', code: 'OTHER_POLISH', name: 'Other Polish', createdAt: DateTime(2026, 1, 1), isOther: false),
+          ]);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: LogVehicleWorkModalSheet(
+              showroomId: 'sr-1',
+              showroomName: 'Test Showroom',
+              selectedDate: DateTime(2026, 10, 1),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // "Other Polish" is an ordinary work type: no description field.
+        await tester.tap(find.byKey(const Key('work_type_chip_0_wt-look')));
+        await tester.pumpAndSettle();
+        expect(find.text('Specify work performed: *'), findsNothing);
+
+        // The renamed Other type still asks for a description.
+        await tester.tap(find.byKey(const Key('work_type_chip_0_wt-misc')));
+        await tester.pumpAndSettle();
+        expect(find.text('Specify work performed: *'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'EditVehicleWorkModalSheet saves an older Other item that has no description',
+      (tester) async {
+        final work = ShowroomVehicleWork(
+          id: 'work-old-other',
+          showroomId: 'sr-1',
+          showroomName: 'Test Showroom',
+          staffId: 'staff-1',
+          staffName: 'Ramesh Kumar',
+          vehicleTypeId: 'vt-sedan',
+          vehicleTypeName: 'Sedan',
+          date: DateTime(2026, 10, 1),
+          serviceItems: [
+            ShowroomVehicleWorkItem(
+              id: 'item-old',
+              showroomVehicleWorkId: 'work-old-other',
+              workTypeId: 'wt-other',
+              workTypeCode: 'OTHER',
+              workTypeName: 'Other',
+              quantity: 1,
+              createdAt: DateTime(2026, 10, 1),
+            ),
+          ],
+          createdAt: DateTime(2026, 10, 1),
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            child: EditVehicleWorkModalSheet(work: work, showroomId: 'sr-1', showroomName: 'Test Showroom'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Please specify work performed for "Other".'), findsNothing);
+        expect(fakeRepo.lastUpdateRequest, isNotNull);
+      },
+    );
   });
 }

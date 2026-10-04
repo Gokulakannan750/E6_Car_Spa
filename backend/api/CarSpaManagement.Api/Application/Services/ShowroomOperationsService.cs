@@ -70,6 +70,8 @@ public class ShowroomOperationsService : IShowroomOperationsService
             throw new ConflictException($"Vehicle type with code '{code}' already exists.");
         }
 
+        await EnsureVehicleTypeNameAvailableAsync(name, null, ct);
+
         var entity = new ShowroomVehicleType
         {
             Id = Guid.NewGuid(),
@@ -81,7 +83,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
         };
 
         await _db.ShowroomVehicleTypes.AddAsync(entity, ct);
-        await _db.SaveChangesAsync(ct);
+        await SaveTypeChangesAsync("vehicle type", entity.Name, ct);
 
         await _auditLogService.RecordAsync(
             action: "showroom_vehicle_type.create",
@@ -114,7 +116,9 @@ public class ShowroomOperationsService : IShowroomOperationsService
 
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
-            entity.Name = request.Name.Trim();
+            var name = request.Name.Trim();
+            await EnsureVehicleTypeNameAvailableAsync(name, id, ct);
+            entity.Name = name;
         }
 
         if (request.DisplayOrder.HasValue)
@@ -128,7 +132,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
         }
 
         entity.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await SaveTypeChangesAsync("vehicle type", entity.Name, ct);
 
         await _auditLogService.RecordAsync(
             action: "showroom_vehicle_type.update",
@@ -215,6 +219,8 @@ public class ShowroomOperationsService : IShowroomOperationsService
             throw new ConflictException($"Work type with code '{code}' already exists.");
         }
 
+        await EnsureWorkTypeNameAvailableAsync(name, null, ct);
+
         var entity = new ShowroomWorkType
         {
             Id = Guid.NewGuid(),
@@ -227,7 +233,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
         };
 
         await _db.ShowroomWorkTypes.AddAsync(entity, ct);
-        await _db.SaveChangesAsync(ct);
+        await SaveTypeChangesAsync("work type", entity.Name, ct);
 
         await _auditLogService.RecordAsync(
             action: "showroom_work_type.create",
@@ -260,7 +266,9 @@ public class ShowroomOperationsService : IShowroomOperationsService
 
         if (!string.IsNullOrWhiteSpace(request.Name))
         {
-            entity.Name = request.Name.Trim();
+            var name = request.Name.Trim();
+            await EnsureWorkTypeNameAvailableAsync(name, id, ct);
+            entity.Name = name;
         }
 
         if (request.Description != null)
@@ -279,7 +287,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
         }
 
         entity.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync(ct);
+        await SaveTypeChangesAsync("work type", entity.Name, ct);
 
         await _auditLogService.RecordAsync(
             action: "showroom_work_type.update",
@@ -717,8 +725,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
                     throw new ValidationException($"Work type '{workType.Name}' is inactive and cannot be used for new work.");
                 }
 
-                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
-                if (isOther && string.IsNullOrWhiteSpace(itemReq.Notes))
+                if (workType.IsOther && string.IsNullOrWhiteSpace(itemReq.Notes))
                 {
                     throw new ValidationException("Description of work performed is required when 'Other' work type is selected.");
                 }
@@ -881,13 +888,13 @@ public class ShowroomOperationsService : IShowroomOperationsService
                 {
                     itemNotes = customNote.Trim();
                 }
-                else if (!string.IsNullOrWhiteSpace(vEntry.OtherDescription))
+                else if (workType.IsOther && !string.IsNullOrWhiteSpace(vEntry.OtherDescription))
                 {
+                    // OtherDescription describes the "Other" work only; never copy it onto other work types.
                     itemNotes = vEntry.OtherDescription.Trim();
                 }
 
-                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
-                if (isOther && string.IsNullOrWhiteSpace(itemNotes))
+                if (workType.IsOther && string.IsNullOrWhiteSpace(itemNotes))
                 {
                     throw new ValidationException($"Vehicle {vehicleNum}: Description of work performed is required when 'Other' work type is selected.");
                 }
@@ -1046,8 +1053,7 @@ public class ShowroomOperationsService : IShowroomOperationsService
                     throw new ValidationException($"Work type '{workType.Name}' is inactive and cannot be newly added to work.");
                 }
 
-                var isOther = workType.Code == "OTHER" || workType.Name.Equals("Other", StringComparison.OrdinalIgnoreCase);
-                if (isOther && string.IsNullOrWhiteSpace(itemReq.Notes))
+                if (workType.IsOther && !existingWorkTypeIds.Contains(itemReq.WorkTypeId) && string.IsNullOrWhiteSpace(itemReq.Notes))
                 {
                     throw new ValidationException("Description of work performed is required when 'Other' work type is selected.");
                 }
@@ -1250,6 +1256,39 @@ public class ShowroomOperationsService : IShowroomOperationsService
 
     // ── Mapping Helpers ─────────────────────────────────────────────────────
 
+    // Names are unique case-insensitively among non-deleted rows, inactive ones included:
+    // reactivate a deactivated type instead of creating a second one with the same name.
+    private async Task EnsureVehicleTypeNameAvailableAsync(string name, Guid? exceptId, CancellationToken ct)
+    {
+        var normalized = name.ToLower();
+        if (await _db.ShowroomVehicleTypes.AnyAsync(v => v.Id != exceptId && v.Name.ToLower() == normalized, ct))
+        {
+            throw new ConflictException($"A vehicle type named '{name}' already exists.");
+        }
+    }
+
+    private async Task EnsureWorkTypeNameAvailableAsync(string name, Guid? exceptId, CancellationToken ct)
+    {
+        var normalized = name.ToLower();
+        if (await _db.ShowroomWorkTypes.AnyAsync(w => w.Id != exceptId && w.Name.ToLower() == normalized, ct))
+        {
+            throw new ConflictException($"A work type named '{name}' already exists.");
+        }
+    }
+
+    // The database unique indexes are the final guard against concurrent duplicates.
+    private async Task SaveTypeChangesAsync(string kind, string name, CancellationToken ct)
+    {
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+        {
+            throw new ConflictException($"A {kind} named '{name}' or with the same code already exists.");
+        }
+    }
+
     private static ShowroomVehicleTypeDto ToVehicleTypeDto(ShowroomVehicleType entity)
     {
         return new ShowroomVehicleTypeDto(
@@ -1270,7 +1309,8 @@ public class ShowroomOperationsService : IShowroomOperationsService
             entity.Description,
             entity.DisplayOrder,
             entity.IsActive,
-            entity.CreatedAt);
+            entity.CreatedAt,
+            entity.IsOther);
     }
 
     private static ShowroomStaffWorkSessionDto ToStaffWorkSessionDto(ShowroomStaffWorkSession entity)
