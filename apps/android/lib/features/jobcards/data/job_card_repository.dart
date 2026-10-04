@@ -94,6 +94,17 @@ class JobCardRepository {
     }
   }
 
+  Future<JobCardEstimate> previewJobCard(
+    List<JobCardServiceItemRequest> services, {
+    bool isGstEnabled = true,
+  }) async {
+    try {
+      return await _api.previewJobCard(services, isGstEnabled: isGstEnabled);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<JobCard> createJobCard(CreateJobCardRequest request) async {
     try {
       return await _api.createJobCard(request);

@@ -73,6 +73,41 @@ enum PaymentMethod {
   }
 }
 
+/// Server-calculated tax of all invoice lines at one GST rate.
+/// [ratePercent] is null for a legacy line whose rate is unknown.
+@immutable
+class TaxBreakdown {
+  final double? ratePercent;
+  final double taxableAmount;
+  final double cgstAmount;
+  final double sgstAmount;
+  final double taxAmount;
+
+  const TaxBreakdown({
+    this.ratePercent,
+    required this.taxableAmount,
+    required this.cgstAmount,
+    required this.sgstAmount,
+    required this.taxAmount,
+  });
+
+  factory TaxBreakdown.fromJson(Map<String, dynamic> json) {
+    double num0(String a, String b) => ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
+    final rate = json['ratePercent'] ?? json['RatePercent'];
+    return TaxBreakdown(
+      ratePercent: rate == null ? null : (rate as num).toDouble(),
+      taxableAmount: num0('taxableAmount', 'TaxableAmount'),
+      cgstAmount: num0('cgstAmount', 'CgstAmount'),
+      sgstAmount: num0('sgstAmount', 'SgstAmount'),
+      taxAmount: num0('taxAmount', 'TaxAmount'),
+    );
+  }
+
+  static List<TaxBreakdown> listFromJson(dynamic raw) => (raw as List<dynamic>? ?? const [])
+      .map((e) => TaxBreakdown.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
+
 @immutable
 class InvoiceItem {
   final String id;
@@ -85,6 +120,9 @@ class InvoiceItem {
   final double taxAmount;
   final double totalAmount;
 
+  /// GST rate applied to this line by the server (0 on a non-GST invoice); null if unknown (legacy).
+  final double? taxRatePercent;
+
   const InvoiceItem({
     required this.id,
     this.serviceId,
@@ -95,6 +133,7 @@ class InvoiceItem {
     required this.taxableAmount,
     required this.taxAmount,
     required this.totalAmount,
+    this.taxRatePercent,
   });
 
   factory InvoiceItem.fromJson(Map<String, dynamic> json) {
@@ -117,6 +156,9 @@ class InvoiceItem {
           .toDouble(),
       totalAmount: ((json['totalAmount'] ?? json['TotalAmount'] ?? 0.0) as num)
           .toDouble(),
+      taxRatePercent: (json['taxRatePercent'] ?? json['TaxRatePercent']) == null
+          ? null
+          : ((json['taxRatePercent'] ?? json['TaxRatePercent']) as num).toDouble(),
     );
   }
 
@@ -130,6 +172,7 @@ class InvoiceItem {
     'taxableAmount': taxableAmount,
     'taxAmount': taxAmount,
     'totalAmount': totalAmount,
+    if (taxRatePercent != null) 'taxRatePercent': taxRatePercent,
   };
 }
 
@@ -223,6 +266,9 @@ class Invoice {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  /// Rate-wise tax summary calculated by the server from the stored lines (never recalculated here).
+  final List<TaxBreakdown> taxBreakdown;
+
   const Invoice({
     required this.id,
     this.invoiceNumber,
@@ -252,6 +298,7 @@ class Invoice {
     this.payments = const [],
     required this.createdAt,
     this.updatedAt,
+    this.taxBreakdown = const [],
   });
 
   bool get isDraft =>
@@ -392,6 +439,7 @@ class Invoice {
           : (json['UpdatedAt'] != null
                 ? DateTime.tryParse(json['UpdatedAt'].toString())
                 : null),
+      taxBreakdown: TaxBreakdown.listFromJson(json['taxBreakdown'] ?? json['TaxBreakdown']),
     );
   }
 }

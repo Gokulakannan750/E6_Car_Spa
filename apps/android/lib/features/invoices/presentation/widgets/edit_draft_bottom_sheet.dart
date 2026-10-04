@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/utils/gst_display.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../models/invoice_model.dart';
@@ -13,10 +16,15 @@ class EditDraftBottomSheet extends StatefulWidget {
   })
   onSave;
 
+  /// Server calculation of the draft for unsaved values. GST is never calculated on the device.
+  final Future<Invoice> Function({required double discount, required bool isGstEnabled})
+  onPreview;
+
   const EditDraftBottomSheet({
     super.key,
     required this.invoice,
     required this.onSave,
+    required this.onPreview,
   });
 
   static Future<bool?> show(
@@ -28,12 +36,18 @@ class EditDraftBottomSheet extends StatefulWidget {
       bool? isGstEnabled,
     })
     onSave,
+    required Future<Invoice> Function({required double discount, required bool isGstEnabled})
+    onPreview,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => EditDraftBottomSheet(invoice: invoice, onSave: onSave),
+      builder: (ctx) => EditDraftBottomSheet(
+        invoice: invoice,
+        onSave: onSave,
+        onPreview: onPreview,
+      ),
     );
   }
 
@@ -48,6 +62,12 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Server-calculated values for the current inputs ([_previewKey] identifies which inputs).
+  late Invoice _preview;
+  late String _previewKey;
+  String? _previewError;
+  Timer? _previewTimer;
+
   @override
   void initState() {
     super.initState();
@@ -58,16 +78,19 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
     );
     _notesController = TextEditingController(text: widget.invoice.notes ?? '');
     _isGstEnabled = widget.invoice.isGstEnabled;
+    _preview = widget.invoice;
+    _previewKey = _inputKey;
   }
 
   @override
   void dispose() {
+    _previewTimer?.cancel();
     _discountController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  // ── Client preview calculations ───────────────────────────────────────────
+  // ── Server preview (the device never calculates GST) ──────────────────────
   double get _subtotal => widget.invoice.subtotal;
 
   double get _parsedDiscount {
@@ -76,13 +99,45 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
     return double.tryParse(text) ?? 0.0;
   }
 
-  double get _taxableAmount =>
-      (_subtotal - _parsedDiscount).clamp(0.0, double.infinity);
+  String get _inputKey => '${_parsedDiscount.toStringAsFixed(2)}|$_isGstEnabled';
 
-  double get _gstAmount =>
-      _isGstEnabled ? ((_taxableAmount * 0.18 * 100).round() / 100) : 0.0;
+  bool get _discountValid => _parsedDiscount >= 0 && _parsedDiscount <= _subtotal;
 
-  double get _totalAmount => _taxableAmount + _gstAmount;
+  bool get _isCalculating => _discountValid && _previewKey != _inputKey;
+
+  void _onInputsChanged() {
+    setState(() {});
+    _previewTimer?.cancel();
+    if (!_discountValid) return;
+    final key = _inputKey;
+    final unchanged = (_parsedDiscount - widget.invoice.discount).abs() < 0.005 &&
+        _isGstEnabled == widget.invoice.isGstEnabled;
+    if (unchanged) {
+      setState(() {
+        _preview = widget.invoice;
+        _previewKey = key;
+        _previewError = null;
+      });
+      return;
+    }
+    _previewTimer = Timer(const Duration(milliseconds: 250), () async {
+      try {
+        final result = await widget.onPreview(
+          discount: _parsedDiscount,
+          isGstEnabled: _isGstEnabled,
+        );
+        if (!mounted || key != _inputKey) return;
+        setState(() {
+          _preview = result;
+          _previewKey = key;
+          _previewError = null;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _previewError = 'Unable to calculate the invoice total.');
+      }
+    });
+  }
 
   Future<void> _submit() async {
     if (_isLoading) return;
@@ -209,7 +264,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) => _onInputsChanged(),
                     decoration: InputDecoration(
                       prefixIcon: const Padding(
                         padding: EdgeInsets.symmetric(
@@ -272,7 +327,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'GST Enabled (18%)',
+                              'Apply GST',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -281,8 +336,8 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                             ),
                             Text(
                               _isGstEnabled
-                                  ? 'CGST (9%) + SGST (9%)'
-                                  : 'Tax exempt / GST disabled',
+                                  ? 'Each service at its own GST rate'
+                                  : 'No GST (non-GST bill)',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -293,8 +348,10 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                         Switch.adaptive(
                           value: _isGstEnabled,
                           activeTrackColor: AppColors.primary,
-                          onChanged: (val) =>
-                              setState(() => _isGstEnabled = val),
+                          onChanged: (val) {
+                            _isGstEnabled = val;
+                            _onInputsChanged();
+                          },
                         ),
                       ],
                     ),
@@ -376,7 +433,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                             ),
                           ],
                         ),
-                        if (_parsedDiscount > 0) ...[
+                        if (_preview.discount > 0) ...[
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,7 +446,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                                 ),
                               ),
                               Text(
-                                '-₹${_parsedDiscount.toStringAsFixed(2)}',
+                                '-₹${_preview.discount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontFamily: 'monospace',
@@ -400,27 +457,40 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                             ],
                           ),
                         ],
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _isGstEnabled ? 'GST (18%)' : 'GST',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
+                        for (final row in _preview.isGstEnabled
+                            ? gstRows(_preview.taxBreakdown)
+                            : const [GstRow('GST', null, 0)]) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                row.taxableAmount == null
+                                    ? row.label
+                                    : '${row.label} on ₹${row.taxableAmount!.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '₹${_gstAmount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                                fontWeight: FontWeight.w600,
+                              Text(
+                                '₹${row.amount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
+                        if (_previewError != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _previewError!,
+                            style: const TextStyle(fontSize: 11, color: AppColors.error),
+                          ),
+                        ],
                         const Divider(height: 12, color: AppColors.borderLight),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -434,7 +504,10 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                               ),
                             ),
                             Text(
-                              '₹${_totalAmount.toStringAsFixed(2)}',
+                              _isCalculating
+                                  ? 'Calculating…'
+                                  : '₹${_preview.totalAmount.toStringAsFixed(2)}',
+                              key: const Key('draft_preview_total'),
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontFamily: 'monospace',
@@ -484,7 +557,7 @@ class _EditDraftBottomSheetState extends State<EditDraftBottomSheet> {
                           label: 'Save Changes',
                           icon: Icons.save_outlined,
                           isLoading: _isLoading,
-                          onPressed: _submit,
+                          onPressed: _isCalculating ? null : _submit,
                         ),
                       ),
                     ],

@@ -40,7 +40,7 @@ class _StubInvoiceRepoForConsistency extends InvoiceRepository {
   Future<Invoice> getInvoiceById(String id) async => invoiceToReturn;
 
   @override
-  Future<Invoice> generateInvoice(String id) async {
+  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
     if (shouldThrowOnGenerate) {
       throw const ServerException(
         message: 'Invoice generation failed due to template error.',

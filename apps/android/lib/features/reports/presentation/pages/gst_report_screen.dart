@@ -93,11 +93,11 @@ class GstReportScreen extends ConsumerWidget {
                                   _formatCurrency(report.taxableBase),
                                 ),
                                 _buildSummaryItem(
-                                  'CGST (9%)',
+                                  'CGST (all rates)',
                                   _formatCurrency(report.cgstAmount),
                                 ),
                                 _buildSummaryItem(
-                                  'SGST (9%)',
+                                  'SGST (all rates)',
                                   _formatCurrency(report.sgstAmount),
                                 ),
                               ],

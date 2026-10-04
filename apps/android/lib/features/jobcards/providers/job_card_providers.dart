@@ -259,10 +259,6 @@ class SelectedServiceDraft {
   });
 
   double get subtotal => service.price * quantity;
-  double get effectiveTaxRate => service.taxPercentage;
-  double get taxAmount =>
-      (subtotal - discountAmount) * (effectiveTaxRate / 100);
-  double get lineTotal => subtotal - discountAmount + taxAmount;
 
   SelectedServiceDraft copyWith({int? quantity, double? discountAmount}) {
     return SelectedServiceDraft(
@@ -289,6 +285,10 @@ class NewJobCardState {
   final bool isSubmitting;
   final String? submitError;
 
+  /// Server estimate for the current selection; null while it is being calculated.
+  final JobCardEstimate? estimate;
+  final String? estimateError;
+
   const NewJobCardState({
     this.step = 0,
     this.customer,
@@ -303,6 +303,8 @@ class NewJobCardState {
     this.availableServices = const [],
     this.isSubmitting = false,
     this.submitError,
+    this.estimate,
+    this.estimateError,
   });
 
   bool get canProceedToServices => customer != null && selectedVehicle != null;
@@ -315,24 +317,6 @@ class NewJobCardState {
     );
   }
 
-  double get previewTax {
-    if (!isGstEnabled) return 0.0;
-    return selectedServices.values.fold(
-      0.0,
-      (acc, item) => acc + item.taxAmount,
-    );
-  }
-
-  double get previewDiscount {
-    return selectedServices.values.fold(
-      0.0,
-      (acc, item) => acc + item.discountAmount,
-    );
-  }
-
-  double get previewTotal {
-    return previewSubtotal - previewDiscount + previewTax;
-  }
 
   NewJobCardState copyWith({
     int? step,
@@ -352,6 +336,10 @@ class NewJobCardState {
     bool? isSubmitting,
     String? submitError,
     bool clearSubmitError = false,
+    JobCardEstimate? estimate,
+    bool clearEstimate = false,
+    String? estimateError,
+    bool clearEstimateError = false,
   }) {
     return NewJobCardState(
       step: step ?? this.step,
@@ -369,6 +357,10 @@ class NewJobCardState {
       availableServices: availableServices ?? this.availableServices,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       submitError: clearSubmitError ? null : (submitError ?? this.submitError),
+      estimate: clearEstimate ? null : (estimate ?? this.estimate),
+      estimateError: clearEstimateError
+          ? null
+          : (estimateError ?? this.estimateError),
     );
   }
 }
@@ -571,6 +563,7 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       current[service.id] = SelectedServiceDraft(service: service);
     }
     state = state.copyWith(selectedServices: current);
+    _refreshEstimate();
   }
 
   void updateQuantity(String serviceId, int quantity) {
@@ -585,6 +578,7 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
     if (current.containsKey(serviceId)) {
       current[serviceId] = current[serviceId]!.copyWith(quantity: quantity);
       state = state.copyWith(selectedServices: current);
+      _refreshEstimate();
     }
   }
 
@@ -595,6 +589,7 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
     );
     current.remove(serviceId);
     state = state.copyWith(selectedServices: current);
+    _refreshEstimate();
   }
 
   void setNotes(String notes) {
@@ -605,6 +600,37 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
   void setGstEnabled(bool enabled) {
     if (!mounted) return;
     state = state.copyWith(isGstEnabled: enabled);
+    _refreshEstimate();
+  }
+
+  int _estimateRequest = 0;
+
+  /// Asks the server for the estimate of the current selection (latest request wins).
+  Future<void> _refreshEstimate() async {
+    if (!mounted) return;
+    final request = ++_estimateRequest;
+    state = state.copyWith(clearEstimate: true, clearEstimateError: true);
+    if (state.selectedServices.isEmpty) return;
+    final services = state.selectedServices.values
+        .map(
+          (item) => JobCardServiceItemRequest(
+            serviceId: item.service.id,
+            quantity: item.quantity,
+            discountAmount: item.discountAmount,
+          ),
+        )
+        .toList();
+    try {
+      final estimate = await _jobCardRepo.previewJobCard(
+        services,
+        isGstEnabled: state.isGstEnabled,
+      );
+      if (!mounted || request != _estimateRequest) return;
+      state = state.copyWith(estimate: estimate);
+    } catch (_) {
+      if (!mounted || request != _estimateRequest) return;
+      state = state.copyWith(estimateError: 'Unable to calculate the estimate.');
+    }
   }
 
   void reset() {

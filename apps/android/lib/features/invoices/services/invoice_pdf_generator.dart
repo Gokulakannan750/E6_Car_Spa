@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../../settings/models/business_profile_model.dart';
 import '../models/invoice_model.dart';
+import '../../../core/utils/gst_display.dart';
 
 class InvoicePdfGenerator {
   static String _formatCurrency(double val) {
@@ -47,8 +48,8 @@ class InvoicePdfGenerator {
         ? 'TAX INVOICE'
         : 'INVOICE';
 
-    final cgstAmount = isGst ? invoice.gstAmount / 2 : 0.0;
-    final sgstAmount = isGst ? invoice.gstAmount / 2 : 0.0;
+    // Tax rows per rate actually charged, from the server's stored values (no calculation here).
+    final taxRows = isGst ? gstRows(invoice.taxBreakdown) : const <GstRow>[];
 
     final primaryColor = PdfColor.fromHex('#A11A1A');
     final darkTextColor = PdfColor.fromHex('#0F172A');
@@ -369,11 +370,14 @@ class InvoicePdfGenerator {
                 ...invoice.items.asMap().entries.map((entry) {
                   final idx = entry.key + 1;
                   final item = entry.value;
-                  final lineTotal = item.unitPrice * item.quantity;
+                  final lineTotal = invoiceLineAmount(item);
+                  final description = isGst && item.taxRatePercent != null
+                      ? '${item.description} (GST ${formatGstRate(item.taxRatePercent!)})'
+                      : item.description;
                   return pw.TableRow(
                     children: [
                       _tableCell('$idx', align: pw.TextAlign.center),
-                      _tableCell(item.description, align: pw.TextAlign.left),
+                      _tableCell(description, align: pw.TextAlign.left),
                       _tableCell(
                         '${item.quantity}',
                         align: pw.TextAlign.center,
@@ -481,8 +485,13 @@ class InvoicePdfGenerator {
                         'Taxable Value',
                         _formatCurrency(invoice.taxableAmount),
                       ),
-                      _summaryRow('CGST (9%)', _formatCurrency(cgstAmount)),
-                      _summaryRow('SGST (9%)', _formatCurrency(sgstAmount)),
+                      for (final row in taxRows)
+                        _summaryRow(
+                          row.taxableAmount == null
+                              ? row.label
+                              : '${row.label} on ${_formatCurrency(row.taxableAmount!)}',
+                          _formatCurrency(row.amount),
+                        ),
                     ],
                     _summaryRow(
                       'Grand Total',

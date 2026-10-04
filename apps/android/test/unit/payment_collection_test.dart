@@ -48,7 +48,7 @@ class _StubInvoiceRepoForPayment extends InvoiceRepository {
   }
 
   @override
-  Future<Invoice> generateInvoice(String id) async => currentInvoice;
+  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async => currentInvoice;
 
   @override
   Future<Invoice> updateInvoice(String id, UpdateInvoiceRequest request) async {

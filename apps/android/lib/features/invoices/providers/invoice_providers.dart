@@ -421,8 +421,21 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     }
   }
 
+  /// Server-calculated draft for unsaved discount / GST values (nothing is saved).
+  Future<Invoice> previewDraft({
+    required double discount,
+    required bool isGstEnabled,
+  }) => _repository.previewInvoice(
+    _invoiceId,
+    discount: discount,
+    isGstEnabled: isGstEnabled,
+  );
+
+  /// Generates the draft. The stored (server-calculated) total shown in the confirmation is sent,
+  /// so the server cannot issue a different amount.
   Future<Invoice?> generateInvoice() async {
     if (!mounted) return null;
+    final confirmedTotal = state.invoice?.totalAmount;
     state = state.copyWith(
       isGenerating: true,
       clearError: true,
@@ -430,7 +443,10 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     );
 
     try {
-      final generated = await _repository.generateInvoice(_invoiceId);
+      final generated = await _repository.generateInvoice(
+        _invoiceId,
+        expectedTotalAmount: confirmedTotal,
+      );
       if (!mounted) return null;
       state = state.copyWith(
         isGenerating: false,
@@ -449,6 +465,9 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     } on ApiException catch (e) {
       if (!mounted) return null;
       state = state.copyWith(isGenerating: false, errorMessage: e.message);
+      // e.g. the total changed since it was confirmed: show the current server values.
+      await loadDetails();
+      if (mounted) state = state.copyWith(errorMessage: e.message);
       return null;
     } catch (e) {
       if (!mounted) return null;
