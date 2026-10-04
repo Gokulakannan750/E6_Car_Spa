@@ -25,7 +25,7 @@ const loadShowroomOperations = () => import('../features/showroom/ShowroomOperat
 const loadSettings = () => import('../features/settings/SettingsPage');
 const loadWhatsAppSettings = () => import('../features/settings/WhatsAppSettingsPage');
 const loadSystemPreferences = () => import('../features/settings/SystemPreferencesPage');
-const loadShowroomSettings = () => import('../features/settings/ShowroomSettingsPage');
+const loadShowroomConfiguration = () => import('../features/showroom/ShowroomConfigurationPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
 const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
@@ -380,6 +380,20 @@ export const router = createBrowserRouter([
 				},
 			},
 			{
+				path: '/showroom/configuration',
+				lazy: async () => {
+					const m = await loadShowroomConfiguration();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="showroom.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
 				path: '/audit',
 				lazy: async () => {
 					const m = await loadAudit();
@@ -436,17 +450,7 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/settings/showroom',
-				lazy: async () => {
-					const m = await loadShowroomSettings();
-					const Comp = m.default;
-					return {
-						Component: () => (
-							<RouteGuard requiredPermission="settings.view">
-								<Comp />
-							</RouteGuard>
-						),
-					};
-				},
+				element: <Navigate to="/showroom/configuration" replace />,
 			},
 			{
 				path: '/settings/system',

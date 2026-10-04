@@ -29,7 +29,7 @@ import '../../features/staff/presentation/pages/staff_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
 import '../../features/settings/presentation/pages/company_settings_screen.dart';
 import '../../features/settings/presentation/pages/system_preferences_screen.dart';
-import '../../features/settings/presentation/pages/showroom_configuration_screen.dart';
+import '../../features/showroom/presentation/pages/showroom_configuration_screen.dart';
 import '../../features/users/presentation/pages/users_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
@@ -312,6 +312,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.showroom,
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ShowroomListScreen()),
+            routes: [
+              GoRoute(
+                path: 'configuration',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: ShowroomConfigurationScreen()),
+              ),
+            ],
           ),
           GoRoute(
             path: AppRoutes.settings,
@@ -335,8 +342,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'showroom',
-                pageBuilder: (context, state) =>
-                    const NoTransitionPage(child: ShowroomConfigurationScreen()),
+                redirect: (context, state) => AppRoutes.showroomConfiguration,
               ),
             ],
           ),

@@ -6,8 +6,6 @@ import {
 	Plus,
 	Edit2,
 	AlertCircle,
-	Check,
-	X,
 	Sliders,
 	ShieldAlert,
 	Loader2,
@@ -30,7 +28,7 @@ import {
 } from '../../lib/api';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 
-export default function ShowroomSettingsPage() {
+export default function ShowroomConfigurationPage() {
 	const queryClient = useQueryClient();
 	const { isOwner } = useAuth();
 
@@ -315,7 +313,7 @@ export default function ShowroomSettingsPage() {
 															Edit
 														</Button>
 														<Button
-															variant={vt.isActive ? 'ghost' : 'outline'}
+															variant={vt.isActive ? 'ghost' : 'secondary'}
 															size="sm"
 															onClick={() => toggleVehicleTypeMutation.mutate(vt.id)}
 															disabled={toggleVehicleTypeMutation.isPending}
@@ -428,7 +426,7 @@ export default function ShowroomSettingsPage() {
 															Edit
 														</Button>
 														<Button
-															variant={wt.isActive ? 'ghost' : 'outline'}
+															variant={wt.isActive ? 'ghost' : 'secondary'}
 															size="sm"
 															onClick={() => toggleWorkTypeMutation.mutate(wt.id)}
 															disabled={toggleWorkTypeMutation.isPending}

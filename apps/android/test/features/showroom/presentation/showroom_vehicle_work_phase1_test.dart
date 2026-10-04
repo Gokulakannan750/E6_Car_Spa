@@ -7,7 +7,6 @@ import 'package:e6_car_spa/features/showroom/models/showroom_staff_assignment_mo
 import 'package:e6_car_spa/features/showroom/presentation/widgets/edit_vehicle_work_modal_sheet.dart';
 import 'package:e6_car_spa/features/showroom/presentation/widgets/log_vehicle_work_modal_sheet.dart';
 import 'package:e6_car_spa/features/showroom/presentation/widgets/vehicle_work_card.dart';
-import 'package:e6_car_spa/features/showroom/providers/showroom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

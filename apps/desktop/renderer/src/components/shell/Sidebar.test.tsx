@@ -180,11 +180,32 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			expect(screen.getByText('Showroom Attendance')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Operations')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Bill')).toBeInTheDocument();
+			expect(screen.getByText('Showroom Configuration')).toBeInTheDocument();
 			expect(screen.getByText('Audit Trail')).toBeInTheDocument();
 
 			expect(screen.queryByText('Customers')).not.toBeInTheDocument();
 			expect(screen.queryByText('Staff Directory')).not.toBeInTheDocument();
 			expect(screen.queryByText('Business Reports')).not.toBeInTheDocument();
+		});
+
+		it('6b. Showroom Configuration lives in the Showroom suite, not Settings', () => {
+			renderWithProviders(<Sidebar />, {
+				initialEntries: ['/showroom/configuration'],
+				authUser: mockOwnerUser,
+			});
+
+			const link = screen.getByText('Showroom Configuration').closest('a');
+			expect(link).toHaveAttribute('href', '/showroom/configuration');
+			expect(screen.getByText('Showrooms')).toBeInTheDocument();
+		});
+
+		it('6c. Settings navigation no longer lists Showroom Configuration', () => {
+			renderWithProviders(<Sidebar />, {
+				initialEntries: ['/settings'],
+				authUser: mockOwnerUser,
+			});
+
+			expect(screen.queryByText('Showroom Configuration')).not.toBeInTheDocument();
 		});
 
 		it('7. /reports shows Reports navigation only', () => {

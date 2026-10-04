@@ -1,10 +1,9 @@
 import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_state.dart';
-import 'package:e6_car_spa/features/settings/presentation/pages/showroom_configuration_screen.dart';
+import 'package:e6_car_spa/features/showroom/presentation/pages/showroom_configuration_screen.dart';
 import 'package:e6_car_spa/features/showroom/data/showroom_repository.dart';
 import 'package:e6_car_spa/features/showroom/models/showroom_operations_model.dart';
-import 'package:e6_car_spa/features/showroom/providers/showroom_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../data/showroom_repository.dart';
 import '../models/showroom_operations_model.dart';
-import 'showroom_provider.dart';
 
 @immutable
 class ShowroomConfigurationState {

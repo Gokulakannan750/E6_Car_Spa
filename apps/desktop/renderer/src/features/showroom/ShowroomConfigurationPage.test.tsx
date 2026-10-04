@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
-import ShowroomSettingsPage from './ShowroomSettingsPage';
+import ShowroomConfigurationPage from './ShowroomConfigurationPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
 
@@ -19,7 +19,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 	};
 });
 
-describe('ShowroomSettingsPage Component', () => {
+describe('ShowroomConfigurationPage Component', () => {
 	const mockVehicleTypes: api.ShowroomVehicleTypeDto[] = [
 		{
 			id: 'vt-1',
@@ -66,15 +66,15 @@ describe('ShowroomSettingsPage Component', () => {
 		vi.mocked(api.getShowroomWorkTypes).mockResolvedValue(mockWorkTypes);
 		vi.mocked(api.createShowroomVehicleType).mockResolvedValue(mockVehicleTypes[0]);
 		vi.mocked(api.updateShowroomVehicleType).mockResolvedValue(mockVehicleTypes[0]);
-		vi.mocked(api.toggleShowroomVehicleTypeActive).mockResolvedValue(mockVehicleTypes[0]);
+		vi.mocked(api.toggleShowroomVehicleTypeActive).mockResolvedValue(undefined);
 		vi.mocked(api.createShowroomWorkType).mockResolvedValue(mockWorkTypes[0]);
 		vi.mocked(api.updateShowroomWorkType).mockResolvedValue(mockWorkTypes[0]);
-		vi.mocked(api.toggleShowroomWorkTypeActive).mockResolvedValue(mockWorkTypes[0]);
+		vi.mocked(api.toggleShowroomWorkTypeActive).mockResolvedValue(undefined);
 	});
 
 	it('renders Showroom Configuration page with Vehicle Types and Work Types', async () => {
-		renderWithProviders(<ShowroomSettingsPage />, {
-			initialEntries: ['/settings/showroom'],
+		renderWithProviders(<ShowroomConfigurationPage />, {
+			initialEntries: ['/showroom/configuration'],
 			authUser: {
 				id: 'usr-1',
 				fullName: 'Owner User',
@@ -97,8 +97,8 @@ describe('ShowroomSettingsPage Component', () => {
 	});
 
 	it('renders read-only mode for non-owners without management controls', async () => {
-		renderWithProviders(<ShowroomSettingsPage />, {
-			initialEntries: ['/settings/showroom'],
+		renderWithProviders(<ShowroomConfigurationPage />, {
+			initialEntries: ['/showroom/configuration'],
 			authUser: {
 				id: 'usr-2',
 				fullName: 'Manager User',
@@ -122,8 +122,8 @@ describe('ShowroomSettingsPage Component', () => {
 	});
 
 	it('allows Owner to add a new Vehicle Type', async () => {
-		renderWithProviders(<ShowroomSettingsPage />, {
-			initialEntries: ['/settings/showroom'],
+		renderWithProviders(<ShowroomConfigurationPage />, {
+			initialEntries: ['/showroom/configuration'],
 			authUser: {
 				id: 'usr-1',
 				fullName: 'Owner User',
@@ -153,8 +153,8 @@ describe('ShowroomSettingsPage Component', () => {
 	});
 
 	it('allows Owner to toggle vehicle type active status', async () => {
-		renderWithProviders(<ShowroomSettingsPage />, {
-			initialEntries: ['/settings/showroom'],
+		renderWithProviders(<ShowroomConfigurationPage />, {
+			initialEntries: ['/showroom/configuration'],
 			authUser: {
 				id: 'usr-1',
 				fullName: 'Owner User',
@@ -175,8 +175,8 @@ describe('ShowroomSettingsPage Component', () => {
 	});
 
 	it('allows Owner to add a new Work Type', async () => {
-		renderWithProviders(<ShowroomSettingsPage />, {
-			initialEntries: ['/settings/showroom'],
+		renderWithProviders(<ShowroomConfigurationPage />, {
+			initialEntries: ['/showroom/configuration'],
 			authUser: {
 				id: 'usr-1',
 				fullName: 'Owner User',

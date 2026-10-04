@@ -239,6 +239,12 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			icon: 'Receipt',
 			requiresPermission: 'showroom.view',
 		},
+		{
+			label: 'Showroom Configuration',
+			path: '/showroom/configuration',
+			icon: 'Sliders',
+			requiresPermission: 'showroom.view',
+		},
 	],
 	reports: [
 		{
@@ -302,12 +308,6 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'users.view',
 		},
 		{
-			label: 'Showroom Configuration',
-			path: '/settings/showroom',
-			icon: 'Sliders',
-			requiresPermission: 'settings.view',
-		},
-		{
 			label: 'System Preferences',
 			path: '/settings/system',
 			icon: 'SlidersHorizontal',
@@ -368,10 +368,6 @@ export function isItemActive(
 
 	if (item.path === '/settings/system') {
 		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
-	}
-
-	if (item.path === '/settings/showroom') {
-		return normPath === '/settings/showroom' || (normPath === '/settings' && search.includes('tab=showroom'));
 	}
 
 	if (item.path === '/settings/users') {
@@ -473,6 +469,10 @@ export function isItemActive(
 		);
 	}
 
+	if (item.path === '/showroom/configuration') {
+		return normPath === '/showroom/configuration';
+	}
+
 	if (item.path === '/showroom/operations') {
 		return normPath === '/showroom/operations' || normPath.startsWith('/showroom/operations/');
 	}
@@ -493,6 +493,7 @@ export function isItemActive(
 		item.path !== '/showroom/attendance' &&
 		item.path !== '/showroom/bill' &&
 		item.path !== '/showroom/operations' &&
+		item.path !== '/showroom/configuration' &&
 		normPath.startsWith(`${item.path}/`)
 	) {
 		return true;

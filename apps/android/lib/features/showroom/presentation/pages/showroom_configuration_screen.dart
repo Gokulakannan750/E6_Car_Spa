@@ -7,8 +7,8 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_modal_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../auth/providers/auth_provider.dart';
-import '../../../showroom/models/showroom_operations_model.dart';
-import '../../../showroom/providers/showroom_configuration_provider.dart';
+import '../../models/showroom_operations_model.dart';
+import '../../providers/showroom_configuration_provider.dart';
 
 class ShowroomConfigurationScreen extends ConsumerStatefulWidget {
   const ShowroomConfigurationScreen({super.key});

@@ -45,15 +45,6 @@ class SettingsScreen extends ConsumerWidget {
         isVisible: canViewUsers,
       ),
       _SettingsWorkspaceItem(
-        title: 'Showroom Configuration',
-        description: 'Vehicle types & showroom work types',
-        icon: Icons.storefront_rounded,
-        iconColor: const Color(0xFFD97706),
-        bgColor: const Color(0xFFFFFBEB),
-        route: AppRoutes.showroomConfiguration,
-        isVisible: canViewSettings,
-      ),
-      _SettingsWorkspaceItem(
         title: 'System Preferences',
         description: 'Display & application settings',
         icon: Icons.tune_rounded,
