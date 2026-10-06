@@ -36,6 +36,7 @@ import {
 	WhatsAppConfigDto,
 	MetaWhatsAppTemplateDto,
 } from '../../lib/api';
+import { ManagedTemplatesPanel } from './ManagedTemplatesPanel';
 
 interface Props {
 	canManage: boolean;
@@ -77,6 +78,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 	const [phoneNumberId, setPhoneNumberId] = useState('');
 	const [businessAccountId, setBusinessAccountId] = useState('');
 	const [graphApiVersion, setGraphApiVersion] = useState('v25.0');
+	const [metaAppId, setMetaAppId] = useState('');
 	const [accessToken, setAccessToken] = useState('');
 	const [invoiceNotificationsEnabled, setInvoiceNotificationsEnabled] = useState(true);
 	const [paymentCompletedNotificationsEnabled, setPaymentCompletedNotificationsEnabled] = useState(true);
@@ -99,6 +101,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 			setPhoneNumberId(data.phoneNumberId || '');
 			setBusinessAccountId(data.businessAccountId || '');
 			setGraphApiVersion(data.graphApiVersion || 'v25.0');
+			setMetaAppId(data.metaAppId || '');
 			setInvoiceNotificationsEnabled(data.invoiceNotificationsEnabled);
 			setPaymentCompletedNotificationsEnabled(data.paymentCompletedNotificationsEnabled);
 			setInvoiceTemplateName(data.invoiceTemplateName || 'e6_carspa_invoice_generated');
@@ -133,6 +136,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 				phoneNumberId: phoneNumberId.trim(),
 				businessAccountId: businessAccountId.trim(),
 				graphApiVersion: graphApiVersion.trim(),
+				metaAppId: metaAppId.trim(),
 				invoiceNotificationsEnabled,
 				paymentCompletedNotificationsEnabled,
 				invoiceTemplateName: invoiceTemplateName.trim(),
@@ -607,6 +611,20 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 						</div>
 
 						<div className="space-y-1.5">
+							<label htmlFor="wa-meta-app-id" className="text-xs font-semibold text-slate-700">Meta App ID</label>
+							<input
+								id="wa-meta-app-id"
+								type="text"
+								value={metaAppId}
+								disabled={!canManage}
+								onChange={(e) => setMetaAppId(e.target.value)}
+								placeholder="Enter Meta App ID (App Dashboard → App settings → Basic)"
+								className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-slate-800"
+							/>
+							<p className="text-[10px] text-slate-500">Needed to create the standard invoice template (Meta reviews it with a sample PDF).</p>
+						</div>
+
+						<div className="space-y-1.5">
 							<div className="flex items-center justify-between">
 								<label className="text-xs font-semibold text-slate-700">Meta Access Token</label>
 								{config?.hasAccessToken && (
@@ -649,6 +667,8 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 						</div>
 					</div>
 				</div>
+
+				<ManagedTemplatesPanel canManage={canManage} onActivated={loadConfig} />
 
 				{/* ============================================================== */}
 				{/* 2. AVAILABLE META TEMPLATES (STEP 1 DISCOVERY)                  */}
