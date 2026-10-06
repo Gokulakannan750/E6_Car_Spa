@@ -78,6 +78,8 @@ public class ReportServiceTests
             new DateTime(2026, 9, 30, 23, 59, 59, DateTimeKind.Utc));
 
         // ASSERT 1: In September, revenue is ₹10,000, but collections received is ₹0.
+        Assert.NotNull(sepReport.InvoiceKpis);
+        Assert.NotNull(sepReport.PaymentCollection);
         Assert.Equal(10000m, sepReport.InvoiceKpis.TotalInvoicedAmount);
         Assert.Equal(0m, sepReport.PaymentCollection.TotalReceived);
 
@@ -87,6 +89,8 @@ public class ReportServiceTests
             new DateTime(2026, 10, 31, 23, 59, 59, DateTimeKind.Utc));
 
         // ASSERT 2: In October, invoiced revenue is ₹0, but collections received is ₹10,000.
+        Assert.NotNull(octReport.InvoiceKpis);
+        Assert.NotNull(octReport.PaymentCollection);
         Assert.Equal(0m, octReport.InvoiceKpis.TotalInvoicedAmount);
         Assert.Equal(10000m, octReport.PaymentCollection.TotalReceived);
         Assert.Equal(1, octReport.PaymentCollection.TransactionCount);
@@ -150,6 +154,7 @@ public class ReportServiceTests
         var report = await service.GetDashboardSummaryAsync(DateTime.UtcNow.Date, DateTime.UtcNow.Date);
 
         // ASSERT: Total received must be strictly ₹3,000.
+        Assert.NotNull(report.PaymentCollection);
         Assert.Equal(3000m, report.PaymentCollection.TotalReceived);
         Assert.Equal(1, report.PaymentCollection.TransactionCount);
     }
@@ -275,6 +280,7 @@ public class ReportServiceTests
         var report = await service.GetDashboardSummaryAsync(DateTime.UtcNow.Date, DateTime.UtcNow.Date);
 
         // ASSERT
+        Assert.NotNull(report.StaffAdvances);
         Assert.Equal(2500m, report.StaffAdvances.OutstandingAmount);
         Assert.Equal(1, report.StaffAdvances.OutstandingCount);
         Assert.Equal(1500m, report.StaffAdvances.SettledAmount);

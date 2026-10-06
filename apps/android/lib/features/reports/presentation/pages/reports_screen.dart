@@ -49,6 +49,7 @@ class ReportsScreen extends ConsumerWidget {
       'reports.staff_productivity',
     );
     final canViewAdvances = _hasPermission(ref, 'reports.staff_advances');
+    final canViewOutsideJobs = _hasPermission(ref, 'outsidejobs.view');
 
     if (!canViewReports) {
       return const AppScreenScaffold(
@@ -111,17 +112,18 @@ class ReportsScreen extends ConsumerWidget {
                   final showroom = dashboard.showroom;
                   final advances = dashboard.staffAdvances;
 
-                  final billedRevenue = sales.netSales;
-                  final collections = paymentCollection.totalReceived;
-                  final outstanding = sales.outstanding;
-                  final totalInvoices =
-                      invoiceKpis.generatedCount +
-                      invoiceKpis.partiallyPaidCount +
-                      invoiceKpis.paidCount;
-                  final avgTicket = totalInvoices > 0
+                  final billedRevenue = canViewSales ? sales?.netSales : null;
+                  final collections = canViewPayments ? paymentCollection?.totalReceived : null;
+                  final outstanding = canViewInvoices ? sales?.outstanding : null;
+                  final totalInvoices = (canViewSales || canViewInvoices) && invoiceKpis != null
+                      ? invoiceKpis.generatedCount +
+                          invoiceKpis.partiallyPaidCount +
+                          invoiceKpis.paidCount
+                      : 0;
+                  final avgTicket = (billedRevenue != null && totalInvoices > 0)
                       ? billedRevenue / totalInvoices
                       : 0.0;
-                  final collectionRate = billedRevenue > 0
+                  final collectionRate = (billedRevenue != null && collections != null && billedRevenue > 0)
                       ? (collections / billedRevenue) * 100
                       : 0.0;
 
@@ -170,13 +172,14 @@ class ReportsScreen extends ConsumerWidget {
                               color: const Color(0xFF0284C7), // Sky blue
                               onTap: () => context.go('/reports/showrooms'),
                             ),
-                          _buildPrimaryModuleCard(
-                            title: 'Outside Jobs',
-                            subtitle: 'External movement & vendors',
-                            icon: Icons.local_shipping,
-                            color: const Color(0xFFF59E0B), // Amber
-                            onTap: () => context.go('/reports/outside-jobs'),
-                          ),
+                          if (canViewOutsideJobs)
+                            _buildPrimaryModuleCard(
+                              title: 'Outside Jobs',
+                              subtitle: 'External movement & vendors',
+                              icon: Icons.local_shipping,
+                              color: const Color(0xFFF59E0B), // Amber
+                              onTap: () => context.go('/reports/outside-jobs'),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -204,7 +207,10 @@ class ReportsScreen extends ConsumerWidget {
                           ReportKpiCard(
                             title: 'Billed Revenue',
                             amountValue: billedRevenue,
-                            subtitle: '$totalInvoices finalized invoices',
+                            stringValue: billedRevenue != null ? null : '—',
+                            subtitle: billedRevenue != null
+                                ? '$totalInvoices finalized invoices'
+                                : 'Restricted',
                             icon: Icons.receipt_long,
                             accentColor: AppColors.primary,
                             onTap: canViewSales
@@ -215,8 +221,10 @@ class ReportsScreen extends ConsumerWidget {
                           ReportKpiCard(
                             title: 'Collections',
                             amountValue: collections,
-                            subtitle:
-                                '${collectionRate.toStringAsFixed(1)}% collection rate',
+                            stringValue: collections != null ? null : '—',
+                            subtitle: collections != null
+                                ? '${collectionRate.toStringAsFixed(1)}% collection rate'
+                                : 'Restricted',
                             icon: Icons.trending_up,
                             accentColor: AppColors.success,
                             onTap: canViewPayments
@@ -227,7 +235,10 @@ class ReportsScreen extends ConsumerWidget {
                           ReportKpiCard(
                             title: 'Outstanding',
                             amountValue: outstanding,
-                            subtitle: 'Pending receivables',
+                            stringValue: outstanding != null ? null : '—',
+                            subtitle: outstanding != null
+                                ? 'Pending receivables'
+                                : 'Restricted',
                             icon: Icons.trending_down,
                             accentColor: AppColors.warning,
                             onTap: canViewInvoices
@@ -239,8 +250,9 @@ class ReportsScreen extends ConsumerWidget {
                             title: 'Job Cards',
                             stringValue:
                                 '${jobKpis.completedJobCards} / ${jobKpis.totalJobCards}',
-                            subtitle:
-                                'Avg Ticket: ${_formatCurrency(avgTicket)}',
+                            subtitle: avgTicket > 0
+                                ? 'Avg Ticket: ${_formatCurrency(avgTicket)}'
+                                : 'Operational activity',
                             icon: Icons.directions_car,
                             accentColor: const Color(0xFF0284C7),
                             onTap: canViewJobCards
@@ -269,9 +281,11 @@ class ReportsScreen extends ConsumerWidget {
                           children: [
                             _buildMiniMetric(
                               label: 'Staff Advances',
-                              value: _formatCurrency(
-                                advances.outstandingAmount,
-                              ),
+                              value: (canViewAdvances && advances != null)
+                                  ? _formatCurrency(
+                                      advances.outstandingAmount,
+                                    )
+                                  : '—',
                               color: AppColors.warning,
                               onTap: canViewAdvances
                                   ? () => context.go('/reports/staff-advances')
@@ -284,7 +298,9 @@ class ReportsScreen extends ConsumerWidget {
                             ),
                             _buildMiniMetric(
                               label: 'Showroom Billed',
-                              value: _formatCurrency(showroom.totalBilled),
+                              value: (canViewShowrooms && showroom != null)
+                                  ? _formatCurrency(showroom.totalBilled)
+                                  : '—',
                               color: AppColors.primary,
                               onTap: canViewShowrooms
                                   ? () => context.go('/reports/showrooms')
@@ -307,10 +323,13 @@ class ReportsScreen extends ConsumerWidget {
                       const SizedBox(height: 20),
 
                       // 5. Charts Row
-                      RevenueChart(
-                        sales: sales,
-                        paymentCollection: paymentCollection,
-                      ),
+                      if (canViewSales && canViewPayments && sales != null && paymentCollection != null) ...[
+                        RevenueChart(
+                          sales: sales,
+                          paymentCollection: paymentCollection,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       const SizedBox(height: 16),
 
                       JobStatusChart(jobCardKpis: jobKpis),

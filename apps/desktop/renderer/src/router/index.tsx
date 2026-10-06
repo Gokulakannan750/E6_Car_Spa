@@ -244,15 +244,42 @@ export const router = createBrowserRouter([
 			},
 			{
 				path: '/reports',
-				element: <Navigate to="/reports/billing" replace />,
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission={['reports.view', 'outsidejobs.view']}>
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
 			},
 			{
 				path: '/reports/dashboard',
-				element: <Navigate to="/reports/billing" replace />,
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission={['reports.view', 'outsidejobs.view']}>
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
 			},
 			{
 				path: '/reports/business',
-				element: <Navigate to="/reports/billing" replace />,
+				lazy: async () => {
+					const m = await loadReports();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission={['reports.view', 'outsidejobs.view']}>
+								<m.ReportsPage />
+							</RouteGuard>
+						),
+					};
+				},
 			},
 			{
 				path: '/reports/billing',
@@ -260,7 +287,7 @@ export const router = createBrowserRouter([
 					const m = await loadReports();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
+							<RouteGuard requiredPermission="reports.invoices">
 								<m.ReportsPage />
 							</RouteGuard>
 						),
@@ -273,7 +300,7 @@ export const router = createBrowserRouter([
 					const m = await loadReports();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
+							<RouteGuard requiredPermission={['reports.staff_advances', 'reports.staff_productivity']}>
 								<m.ReportsPage />
 							</RouteGuard>
 						),
@@ -286,7 +313,7 @@ export const router = createBrowserRouter([
 					const m = await loadReports();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
+							<RouteGuard requiredPermission="reports.showrooms">
 								<m.ReportsPage />
 							</RouteGuard>
 						),
@@ -299,7 +326,7 @@ export const router = createBrowserRouter([
 					const m = await loadReports();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="reports.view">
+							<RouteGuard requiredPermission="outsidejobs.view">
 								<m.ReportsPage />
 							</RouteGuard>
 						),

@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -11,10 +12,12 @@ namespace CarSpaManagement.Api.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
+    private readonly IAuthorizationService? _authorizationService;
 
-    public ReportsController(IReportService reportService)
+    public ReportsController(IReportService reportService, IAuthorizationService? authorizationService = null)
     {
         _reportService = reportService;
+        _authorizationService = authorizationService;
     }
 
     /// <summary>
@@ -27,7 +30,21 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        var result = await _reportService.GetDashboardSummaryAsync(fromDate, toDate, ct);
+        var canViewSales = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.sales")).Succeeded;
+        var canViewPayments = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.payments")).Succeeded;
+        var canViewInvoices = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.invoices")).Succeeded;
+        var canViewShowrooms = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.showrooms")).Succeeded;
+        var canViewStaffAdvances = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.staff_advances")).Succeeded;
+
+        var result = await _reportService.GetDashboardSummaryAsync(
+            fromDate,
+            toDate,
+            canViewSales,
+            canViewPayments,
+            canViewInvoices,
+            canViewShowrooms,
+            canViewStaffAdvances,
+            ct);
         return Ok(result);
     }
 
@@ -209,7 +226,7 @@ public class ReportsController : ControllerBase
     /// Outside Jobs and External Vehicle Movement operational and vendor summary report.
     /// </summary>
     [HttpGet("outside-jobs")]
-    [RequirePermission("reports.view")]
+    [RequirePermission("outsidejobs.view")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetOutsideJobsReport(
         [FromQuery] DateTime? fromDate = null,
@@ -227,7 +244,7 @@ public class ReportsController : ControllerBase
     /// Comprehensive monthly billing report with Daily Sheets and Monthly Summary.
     /// </summary>
     [HttpGet("billing/monthly")]
-    [RequirePermission("reports.view")]
+    [RequirePermission("reports.invoices")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetMonthlyBillingReport(
         [FromQuery] int? year = null,

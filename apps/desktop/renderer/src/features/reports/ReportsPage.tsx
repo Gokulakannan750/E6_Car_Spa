@@ -14,6 +14,7 @@ import {
 	History,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { useAuth } from '../auth/auth-context';
 import { getDashboardSummary } from '../../lib/api';
 import { BillingReportsView } from './BillingReportsView';
 import { StaffReportsView } from './StaffReportsView';
@@ -85,19 +86,39 @@ export function ReportsPage() {
 	const [searchParams] = useSearchParams();
 	const location = useLocation();
 	const navigate = useNavigate();
+	const { user, hasPermission } = useAuth();
 
-	// Determine active report type from query param or pathname (defaults strictly to billing)
+	const checkPerm = (perm: string) => (!user ? true : hasPermission(perm));
+
+	const canBilling = checkPerm('reports.invoices');
+	const canStaff = checkPerm('reports.staff_advances') || checkPerm('reports.staff_productivity');
+	const canShowroom = checkPerm('reports.showrooms');
+	const canOutsideJobs = checkPerm('outsidejobs.view');
+	const canCustom = checkPerm('reports.view');
+	const canAudit = checkPerm('audit.view');
+
+	// Determine active report type from query param or pathname (defaults to first accessible report)
 	const activeType: ReportType = useMemo(() => {
 		const param = searchParams.get('type');
-		if (param === 'staff' || param === 'showroom' || param === 'outside-jobs' || param === 'custom') {
-			return param;
-		}
-		if (location.pathname.endsWith('/staff')) return 'staff';
-		if (location.pathname.endsWith('/showroom')) return 'showroom';
-		if (location.pathname.endsWith('/outside-jobs')) return 'outside-jobs';
-		if (location.pathname.endsWith('/custom')) return 'custom';
+		if (param === 'staff' && canStaff) return 'staff';
+		if (param === 'showroom' && canShowroom) return 'showroom';
+		if (param === 'outside-jobs' && canOutsideJobs) return 'outside-jobs';
+		if (param === 'custom' && canCustom) return 'custom';
+		if (param === 'billing' && canBilling) return 'billing';
+
+		if (location.pathname.endsWith('/staff') && canStaff) return 'staff';
+		if (location.pathname.endsWith('/showroom') && canShowroom) return 'showroom';
+		if (location.pathname.endsWith('/outside-jobs') && canOutsideJobs) return 'outside-jobs';
+		if (location.pathname.endsWith('/custom') && canCustom) return 'custom';
+		if (location.pathname.endsWith('/billing') && canBilling) return 'billing';
+
+		if (canBilling) return 'billing';
+		if (canStaff) return 'staff';
+		if (canShowroom) return 'showroom';
+		if (canOutsideJobs) return 'outside-jobs';
+		if (canCustom) return 'custom';
 		return 'billing';
-	}, [searchParams, location.pathname]);
+	}, [searchParams, location.pathname, canBilling, canStaff, canShowroom, canOutsideJobs, canCustom]);
 
 	// ── Date Filter State ─────────────────────────────────────────────────────
 	const [preset, setPreset] = useState<DatePreset>('30d');
@@ -198,79 +219,91 @@ export function ReportsPage() {
 
 			{/* ── Sub-navigation Tab Bar ───────────────────────────────────────── */}
 			<div className="flex items-center gap-2 overflow-x-auto border-b border-outline-variant pb-px">
-				<button
-					type="button"
-					onClick={() => handleTabSelect('billing')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'billing'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<FileSpreadsheet className="w-4 h-4" />
-					<span>Billing Reports</span>
-				</button>
+				{canBilling && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('billing')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'billing'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<FileSpreadsheet className="w-4 h-4" />
+						<span>Billing Reports</span>
+					</button>
+				)}
 
-				<button
-					type="button"
-					onClick={() => handleTabSelect('staff')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'staff'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<Users className="w-4 h-4" />
-					<span>Staff Reports</span>
-				</button>
+				{canStaff && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('staff')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'staff'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<Users className="w-4 h-4" />
+						<span>Staff Reports</span>
+					</button>
+				)}
 
-				<button
-					type="button"
-					onClick={() => handleTabSelect('showroom')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'showroom'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<Store className="w-4 h-4" />
-					<span>Showroom Reports</span>
-				</button>
+				{canShowroom && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('showroom')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'showroom'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<Store className="w-4 h-4" />
+						<span>Showroom Reports</span>
+					</button>
+				)}
 
-				<button
-					type="button"
-					onClick={() => handleTabSelect('outside-jobs')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'outside-jobs'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<Truck className="w-4 h-4" />
-					<span>Outside Jobs</span>
-				</button>
+				{canOutsideJobs && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('outside-jobs')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'outside-jobs'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<Truck className="w-4 h-4" />
+						<span>Outside Jobs</span>
+					</button>
+				)}
 
-				<button
-					type="button"
-					onClick={() => handleTabSelect('custom')}
-					className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-						activeType === 'custom'
-							? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
-							: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
-					}`}
-				>
-					<SlidersHorizontal className="w-4 h-4" />
-					<span>Custom Reports</span>
-				</button>
+				{canCustom && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('custom')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'custom'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<SlidersHorizontal className="w-4 h-4" />
+						<span>Custom Reports</span>
+					</button>
+				)}
 
-				<button
-					type="button"
-					onClick={() => handleTabSelect('audit')}
-					className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant"
-				>
-					<History className="w-4 h-4" />
-					<span>Audit Trail</span>
-				</button>
+				{canAudit && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('audit')}
+						className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant"
+					>
+						<History className="w-4 h-4" />
+						<span>Audit Trail</span>
+					</button>
+				)}
 			</div>
 
 			{/* ── Error Banner State ────────────────────────────────────────────── */}

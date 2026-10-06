@@ -57,8 +57,13 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	};
 
 	const renderNavItem = (item: NavigationItem) => {
-		if (item.requiresPermission && !hasPermission(item.requiresPermission)) {
-			return null;
+		if (item.requiresPermission) {
+			const hasPerm = Array.isArray(item.requiresPermission)
+				? item.requiresPermission.some((p) => hasPermission(p))
+				: hasPermission(item.requiresPermission);
+			if (!hasPerm) {
+				return null;
+			}
 		}
 
 		const Icon = ICON_MAP[item.icon];

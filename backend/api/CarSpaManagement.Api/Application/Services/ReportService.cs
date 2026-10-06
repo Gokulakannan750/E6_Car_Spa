@@ -20,7 +20,15 @@ public class ReportService : IReportService
     private static DateTime ToUtcDate(DateTime dt) => ShowroomDateHelper.ToUtcDate(dt);
 
     // ── 1. Dashboard Summary ────────────────────────────────────────────────
-    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default)
+    public async Task<DashboardSummaryDto> GetDashboardSummaryAsync(
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        bool canViewSales = true,
+        bool canViewPayments = true,
+        bool canViewInvoices = true,
+        bool canViewShowrooms = true,
+        bool canViewStaffAdvances = true,
+        CancellationToken ct = default)
     {
         var startUtc = ToUtcDate(fromDate ?? DateTime.UtcNow);
         var endUtc = ToUtcDate(toDate ?? DateTime.UtcNow);
@@ -34,7 +42,7 @@ public class ReportService : IReportService
         var showroomStart = startUtc;
         var showroomEnd = endUtc;
 
-        // 1. Job Card KPIs
+        // 1. Job Card KPIs (Purely operational counts — preserved)
         var jobCardsQuery = _db.JobCards.AsNoTracking().Where(j => !j.IsDeleted && j.CreatedAt >= startUtc && j.CreatedAt < endOfDayExclusive);
         var jobCards = await jobCardsQuery.Select(j => new { j.Id, j.Status, j.VehicleId, j.TotalAmount }).ToListAsync(ct);
 
@@ -45,7 +53,7 @@ public class ReportService : IReportService
         var cancelledJobCards = jobCards.Count(j => j.Status == JobCardStatus.Cancelled);
         var invoicedJobCards = jobCards.Count(j => j.Status == JobCardStatus.Invoiced || j.Status == JobCardStatus.Paid);
 
-        // 2. Vehicle Activity
+        // 2. Vehicle Activity (Purely operational counts — preserved)
         var completedJobCardIds = jobCards
             .Where(j => j.Status == JobCardStatus.Ready || j.Status == JobCardStatus.Invoiced || j.Status == JobCardStatus.Paid || j.Status == JobCardStatus.Delivered)
             .Select(j => j.Id)
@@ -66,256 +74,367 @@ public class ReportService : IReportService
             .Distinct()
             .Count();
 
-        // 3. Invoice KPIs (Invoices finalized or created in period)
-        var invoicesInPeriod = await _db.Invoices
-            .AsNoTracking()
-            .Where(i => !i.IsDeleted && i.InvoiceDate >= startUtc && i.InvoiceDate <= endUtc)
-            .Select(i => new
-            {
-                i.Id,
-                i.Status,
-                i.Subtotal,
-                i.Discount,
-                i.TaxableAmount,
-                i.GstAmount,
-                i.TotalAmount,
-                i.PaidAmount,
-                i.BalanceAmount,
-                i.IsGstEnabled
-            })
-            .ToListAsync(ct);
+        // 3. Invoice KPIs (Sensitive financial aggregates — gated by invoices.view or reports.sales)
+        InvoiceKpisDto? invoiceKpis = null;
+        decimal totalInvoiceOutstanding = 0m;
+        decimal grossSubtotal = 0m;
+        decimal totalDiscount = 0m;
+        decimal gstAmount = 0m;
+        decimal netSales = 0m;
 
-        var draftCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Draft);
-        var generatedCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Generated);
-        var partiallyPaidCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.PartiallyPaid);
-        var paidCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Paid);
-        var cancelledCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Cancelled);
-
-        var finalizedInvoices = invoicesInPeriod.Where(i => i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled).ToList();
-        var totalInvoicedAmount = finalizedInvoices.Sum(i => i.TotalAmount);
-        var totalPaidAmount = finalizedInvoices.Sum(i => i.PaidAmount);
-        var totalInvoiceOutstanding = finalizedInvoices.Where(i => i.BalanceAmount > 0).Sum(i => i.BalanceAmount);
-
-        // 4. Sales Summary
-        var grossSubtotal = finalizedInvoices.Sum(i => i.Subtotal);
-        var totalDiscount = finalizedInvoices.Sum(i => i.Discount);
-        var gstAmount = finalizedInvoices.Sum(i => i.GstAmount);
-        var netSales = finalizedInvoices.Sum(i => i.TotalAmount);
-
-        // 5. Payment Collection in period
-        var paymentsInPeriod = await _db.Payments
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.PaymentDate >= startUtc && p.PaymentDate < endOfDayExclusive)
-            .Select(p => new { p.Id, p.Amount, p.PaymentMethod })
-            .ToListAsync(ct);
-
-        var totalPaymentsReceived = paymentsInPeriod.Sum(p => p.Amount);
-        var paymentTransactionCount = paymentsInPeriod.Count;
-
-        var allPaymentMethods = Enum.GetValues<PaymentMethod>();
-        var paymentBreakdown = allPaymentMethods.Select(m =>
+        if (canViewInvoices || canViewSales)
         {
-            var matching = paymentsInPeriod.Where(p => p.PaymentMethod == m).ToList();
-            return new PaymentMethodBreakdownDto(
-                Method: m.ToString(),
-                TransactionCount: matching.Count,
-                Amount: Math.Round(matching.Sum(p => p.Amount), 2)
+            var invoicesInPeriod = await _db.Invoices
+                .AsNoTracking()
+                .Where(i => !i.IsDeleted && i.InvoiceDate >= startUtc && i.InvoiceDate <= endUtc)
+                .Select(i => new
+                {
+                    i.Id,
+                    i.Status,
+                    i.Subtotal,
+                    i.Discount,
+                    i.TaxableAmount,
+                    i.GstAmount,
+                    i.TotalAmount,
+                    i.PaidAmount,
+                    i.BalanceAmount,
+                    i.IsGstEnabled
+                })
+                .ToListAsync(ct);
+
+            var draftCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Draft);
+            var generatedCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Generated);
+            var partiallyPaidCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.PartiallyPaid);
+            var paidCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Paid);
+            var cancelledCount = invoicesInPeriod.Count(i => i.Status == InvoiceStatus.Cancelled);
+
+            var finalizedInvoices = invoicesInPeriod.Where(i => i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled).ToList();
+            var totalInvoicedAmount = finalizedInvoices.Sum(i => i.TotalAmount);
+            var totalPaidAmount = finalizedInvoices.Sum(i => i.PaidAmount);
+            totalInvoiceOutstanding = finalizedInvoices.Where(i => i.BalanceAmount > 0).Sum(i => i.BalanceAmount);
+
+            invoiceKpis = new InvoiceKpisDto(
+                draftCount,
+                generatedCount,
+                partiallyPaidCount,
+                paidCount,
+                cancelledCount,
+                Math.Round(totalInvoicedAmount, 2),
+                Math.Round(totalPaidAmount, 2),
+                Math.Round(totalInvoiceOutstanding, 2)
             );
-        }).ToList();
 
-        // 6. Showroom Summary
-        var activeShowroomsCount = await _db.Showrooms.AsNoTracking().CountAsync(s => s.IsActive && !s.IsDeleted, ct);
-
-        var showroomAssignments = await _db.ShowroomStaffAssignments
-            .AsNoTracking()
-            .Where(a => !a.IsDeleted && a.Date >= showroomStart && a.Date <= showroomEnd)
-            .Select(a => new { a.Date, a.VehiclesAttended, a.StaffId })
-            .ToListAsync(ct);
-
-        var staffAssignmentsCount = showroomAssignments.Count;
-        var vehiclesAttended = showroomAssignments.Sum(a => a.VehiclesAttended);
-
-        var showroomBills = await _db.ShowroomDailyBills
-            .AsNoTracking()
-            .Include(b => b.Payments)
-            .Where(b => !b.IsDeleted && b.Date >= showroomStart && b.Date <= showroomEnd)
-            .ToListAsync(ct);
-
-        var totalShowroomBilled = showroomBills.Sum(b => b.Amount);
-        var totalShowroomReceived = showroomBills
-            .SelectMany(b => b.Payments.Where(p => !p.IsDeleted))
-            .Sum(p => p.Amount);
-        var totalShowroomOutstanding = Math.Max(0m, totalShowroomBilled - totalShowroomReceived);
-
-        var paidDaysCount = showroomBills.Count(b =>
-        {
-            var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
-            return b.Amount > 0 && rec >= b.Amount;
-        });
-
-        var partiallyPaidDaysCount = showroomBills.Count(b =>
-        {
-            var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
-            return rec > 0 && rec < b.Amount;
-        });
-
-        var unpaidDaysCount = showroomBills.Count(b =>
-        {
-            var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
-            return b.Amount > 0 && rec == 0;
-        });
-
-        // 7. Staff Advances (Current Active Outstanding Scope + Period advances)
-        var allAdvances = await _db.StaffAdvances
-            .AsNoTracking()
-            .Where(a => !a.IsDeleted)
-            .Select(a => new { a.Id, a.Amount, a.Status, a.AdvanceDate })
-            .ToListAsync(ct);
-
-        var outstandingAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Outstanding).ToList();
-        var settledAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Settled).ToList();
-        var obsoleteAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Obsolete).ToList();
-
-        var staffAdvanceOutstandingAmount = Math.Round(outstandingAdvances.Sum(a => a.Amount), 2);
-        var staffAdvanceSettledAmount = Math.Round(settledAdvances.Sum(a => a.Amount), 2);
-
-        // 8. Outstanding Summary (Separate Financial Concepts)
-        var totalOutstandingCombined = Math.Round(totalInvoiceOutstanding + totalShowroomOutstanding + staffAdvanceOutstandingAmount, 2);
-
-        // 9. Top Revenue Services
-        var rawServices = await _db.JobCardServices
-            .AsNoTracking()
-            .Where(s => !s.IsDeleted && !s.JobCard.IsDeleted && s.JobCard.Status != JobCardStatus.Cancelled && s.JobCard.CreatedAt >= startUtc && s.JobCard.CreatedAt < endOfDayExclusive)
-            .Select(s => new
-            {
-                ServiceName = s.ServiceName ?? (s.Service != null ? s.Service.Name : "Service"),
-                Category = (s.Service != null && s.Service.Category != null) ? s.Service.Category : "General Services",
-                s.Quantity,
-                Revenue = (s.UnitPrice * s.Quantity) - s.DiscountAmount
-            })
-            .ToListAsync(ct);
-
-        var topServices = rawServices
-            .GroupBy(s => new { s.ServiceName, s.Category })
-            .Select(g => new TopServiceItemDto(
-                g.Key.ServiceName,
-                g.Key.Category,
-                g.Sum(s => s.Quantity),
-                Math.Round(g.Sum(s => s.Revenue), 2)
-            ))
-            .OrderByDescending(s => s.Revenue)
-            .Take(5)
-            .ToList();
-
-        // 10. Revenue vs Collections Timeline
-        var invoiceDateAggregates = await _db.Invoices
-            .AsNoTracking()
-            .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= startUtc && i.InvoiceDate <= endUtc)
-            .GroupBy(i => i.InvoiceDate.Date)
-            .Select(g => new { Date = g.Key, Revenue = g.Sum(i => i.TotalAmount), Outstanding = g.Sum(i => i.BalanceAmount) })
-            .ToListAsync(ct);
-
-        var paymentDateAggregates = await _db.Payments
-            .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.PaymentDate >= startUtc && p.PaymentDate < endOfDayExclusive)
-            .GroupBy(p => p.PaymentDate.Date)
-            .Select(g => new { Date = g.Key, Collected = g.Sum(p => p.Amount) })
-            .ToListAsync(ct);
-
-        var allTimelineDates = invoiceDateAggregates.Select(i => i.Date)
-            .Union(paymentDateAggregates.Select(p => p.Date))
-            .Distinct()
-            .OrderBy(d => d)
-            .ToList();
-
-        var invMap = invoiceDateAggregates.ToDictionary(i => i.Date, i => i);
-        var payMap = paymentDateAggregates.ToDictionary(p => p.Date, p => p);
-
-        var diffDays = (endUtc - startUtc).TotalDays;
-        var isMonthly = diffDays > 35;
-
-        var timelinePoints = new List<DailyTrendPointDto>();
-        foreach (var d in allTimelineDates)
-        {
-            var inv = invMap.GetValueOrDefault(d);
-            var pay = payMap.GetValueOrDefault(d);
-
-            var key = isMonthly ? $"{d.Year}-{d.Month:D2}" : $"{d.Year}-{d.Month:D2}-{d.Day:D2}";
-            var label = isMonthly ? d.ToString("MMM yyyy") : d.ToString("d MMM");
-
-            timelinePoints.Add(new DailyTrendPointDto(
-                key,
-                label,
-                d,
-                Math.Round(inv?.Revenue ?? 0m, 2),
-                Math.Round(pay?.Collected ?? 0m, 2),
-                Math.Round(inv?.Outstanding ?? 0m, 2)
-            ));
+            grossSubtotal = finalizedInvoices.Sum(i => i.Subtotal);
+            totalDiscount = finalizedInvoices.Sum(i => i.Discount);
+            gstAmount = finalizedInvoices.Sum(i => i.GstAmount);
+            netSales = finalizedInvoices.Sum(i => i.TotalAmount);
         }
 
-        // 11. Recent Advances in Period
-        var recentAdvances = await _db.StaffAdvances
-            .AsNoTracking()
-            .Include(a => a.Staff)
-            .Where(a => !a.IsDeleted && a.AdvanceDate >= startUtc && a.AdvanceDate <= endUtc)
-            .OrderByDescending(a => a.AdvanceDate)
-            .ThenByDescending(a => a.CreatedAt)
-            .Take(10)
-            .Select(a => new DashboardStaffAdvanceItemDto(
-                a.Id,
-                a.StaffId,
-                a.Staff.Name ?? a.StaffName ?? "Staff Member",
-                a.Staff.Role ?? a.StaffRole,
-                a.AdvanceDate,
-                Math.Round(a.Amount, 2),
-                !string.IsNullOrWhiteSpace(a.Reason) ? a.Reason : "Staff Advance",
-                a.Status.ToString()
-            ))
-            .ToListAsync(ct);
+        // 4. Payment Collection in period (Gated by reports.payments)
+        decimal totalPaymentsReceived = 0m;
+        DashboardPaymentCollectionDto? paymentCollection = null;
 
-        // 12. Recent Activity (Latest 10 activities)
+        if (canViewPayments)
+        {
+            var paymentsInPeriod = await _db.Payments
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && p.PaymentDate >= startUtc && p.PaymentDate < endOfDayExclusive)
+                .Select(p => new { p.Id, p.Amount, p.PaymentMethod })
+                .ToListAsync(ct);
+
+            totalPaymentsReceived = paymentsInPeriod.Sum(p => p.Amount);
+            var paymentTransactionCount = paymentsInPeriod.Count;
+
+            var allPaymentMethods = Enum.GetValues<PaymentMethod>();
+            var paymentBreakdown = allPaymentMethods.Select(m =>
+            {
+                var matching = paymentsInPeriod.Where(p => p.PaymentMethod == m).ToList();
+                return new PaymentMethodBreakdownDto(
+                    Method: m.ToString(),
+                    TransactionCount: matching.Count,
+                    Amount: Math.Round(matching.Sum(p => p.Amount), 2)
+                );
+            }).ToList();
+
+            paymentCollection = new DashboardPaymentCollectionDto(
+                Math.Round(totalPaymentsReceived, 2),
+                paymentTransactionCount,
+                paymentBreakdown
+            );
+        }
+
+        // 5. Sales Summary (Gated by reports.sales — unauthorized serialized as null)
+        DashboardSalesDto? sales = null;
+        if (canViewSales)
+        {
+            sales = new DashboardSalesDto(
+                Math.Round(grossSubtotal, 2),
+                Math.Round(totalDiscount, 2),
+                Math.Round(gstAmount, 2),
+                Math.Round(netSales, 2),
+                Math.Round(totalPaymentsReceived, 2),
+                Math.Round(totalInvoiceOutstanding, 2)
+            );
+        }
+
+        // 6. Showroom Summary (Gated by reports.showrooms — unauthorized serialized as null)
+        DashboardShowroomDto? showroom = null;
+        decimal totalShowroomOutstanding = 0m;
+
+        if (canViewShowrooms)
+        {
+            var activeShowroomsCount = await _db.Showrooms.AsNoTracking().CountAsync(s => s.IsActive && !s.IsDeleted, ct);
+
+            var showroomAssignments = await _db.ShowroomStaffAssignments
+                .AsNoTracking()
+                .Where(a => !a.IsDeleted && a.Date >= showroomStart && a.Date <= showroomEnd)
+                .Select(a => new { a.Date, a.VehiclesAttended, a.StaffId })
+                .ToListAsync(ct);
+
+            var staffAssignmentsCount = showroomAssignments.Count;
+            var vehiclesAttended = showroomAssignments.Sum(a => a.VehiclesAttended);
+
+            var showroomBills = await _db.ShowroomDailyBills
+                .AsNoTracking()
+                .Include(b => b.Payments)
+                .Where(b => !b.IsDeleted && b.Date >= showroomStart && b.Date <= showroomEnd)
+                .ToListAsync(ct);
+
+            var totalShowroomBilled = showroomBills.Sum(b => b.Amount);
+            var totalShowroomReceived = showroomBills
+                .SelectMany(b => b.Payments.Where(p => !p.IsDeleted))
+                .Sum(p => p.Amount);
+            totalShowroomOutstanding = Math.Max(0m, totalShowroomBilled - totalShowroomReceived);
+
+            var paidDaysCount = showroomBills.Count(b =>
+            {
+                var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+                return b.Amount > 0 && rec >= b.Amount;
+            });
+
+            var partiallyPaidDaysCount = showroomBills.Count(b =>
+            {
+                var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+                return rec > 0 && rec < b.Amount;
+            });
+
+            var unpaidDaysCount = showroomBills.Count(b =>
+            {
+                var rec = b.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
+                return b.Amount > 0 && rec == 0;
+            });
+
+            showroom = new DashboardShowroomDto(
+                activeShowroomsCount,
+                staffAssignmentsCount,
+                vehiclesAttended,
+                Math.Round(totalShowroomBilled, 2),
+                Math.Round(totalShowroomReceived, 2),
+                Math.Round(totalShowroomOutstanding, 2),
+                paidDaysCount,
+                partiallyPaidDaysCount,
+                unpaidDaysCount
+            );
+        }
+
+        // 7. Staff Advances (Gated by reports.staff_advances — unauthorized serialized as null)
+        DashboardStaffAdvanceDto? staffAdvances = null;
+        decimal staffAdvanceOutstandingAmount = 0m;
+        List<DashboardStaffAdvanceItemDto> recentAdvances = new();
+
+        if (canViewStaffAdvances)
+        {
+            var allAdvances = await _db.StaffAdvances
+                .AsNoTracking()
+                .Where(a => !a.IsDeleted)
+                .Select(a => new { a.Id, a.Amount, a.Status, a.AdvanceDate })
+                .ToListAsync(ct);
+
+            var outstandingAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Outstanding).ToList();
+            var settledAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Settled).ToList();
+            var obsoleteAdvances = allAdvances.Where(a => a.Status == StaffAdvanceStatus.Obsolete).ToList();
+
+            staffAdvanceOutstandingAmount = Math.Round(outstandingAdvances.Sum(a => a.Amount), 2);
+            var staffAdvanceSettledAmount = Math.Round(settledAdvances.Sum(a => a.Amount), 2);
+
+            staffAdvances = new DashboardStaffAdvanceDto(
+                outstandingAdvances.Count,
+                staffAdvanceOutstandingAmount,
+                settledAdvances.Count,
+                staffAdvanceSettledAmount,
+                obsoleteAdvances.Count
+            );
+
+            // Recent Advances in Period
+            recentAdvances = await _db.StaffAdvances
+                .AsNoTracking()
+                .Include(a => a.Staff)
+                .Where(a => !a.IsDeleted && a.AdvanceDate >= startUtc && a.AdvanceDate <= endUtc)
+                .OrderByDescending(a => a.AdvanceDate)
+                .ThenByDescending(a => a.CreatedAt)
+                .Take(10)
+                .Select(a => new DashboardStaffAdvanceItemDto(
+                    a.Id,
+                    a.StaffId,
+                    a.Staff.Name ?? a.StaffName ?? "Staff Member",
+                    a.Staff.Role ?? a.StaffRole,
+                    a.AdvanceDate,
+                    Math.Round(a.Amount, 2),
+                    !string.IsNullOrWhiteSpace(a.Reason) ? a.Reason : "Staff Advance",
+                    a.Status.ToString()
+                ))
+                .ToListAsync(ct);
+        }
+
+        // 8. Outstanding Summary (Separate Financial Concepts — redacted if no financial permissions)
+        DashboardOutstandingDto? outstanding = null;
+        if (canViewSales || canViewInvoices || canViewShowrooms || canViewStaffAdvances)
+        {
+            decimal? invOutstanding = (canViewInvoices || canViewSales) ? Math.Round(totalInvoiceOutstanding, 2) : null;
+            decimal? showOutstanding = canViewShowrooms ? Math.Round(totalShowroomOutstanding, 2) : null;
+            decimal? advOutstanding = canViewStaffAdvances ? staffAdvanceOutstandingAmount : null;
+            decimal totalCombined = (invOutstanding ?? 0m) + (showOutstanding ?? 0m) + (advOutstanding ?? 0m);
+
+            outstanding = new DashboardOutstandingDto(
+                invOutstanding,
+                showOutstanding,
+                advOutstanding,
+                Math.Round(totalCombined, 2)
+            );
+        }
+
+        // 9. Top Revenue Services (Gated by reports.sales)
+        List<TopServiceItemDto>? topServices = null;
+        if (canViewSales)
+        {
+            var rawServices = await _db.JobCardServices
+                .AsNoTracking()
+                .Where(s => !s.IsDeleted && !s.JobCard.IsDeleted && s.JobCard.Status != JobCardStatus.Cancelled && s.JobCard.CreatedAt >= startUtc && s.JobCard.CreatedAt < endOfDayExclusive)
+                .Select(s => new
+                {
+                    ServiceName = s.ServiceName ?? (s.Service != null ? s.Service.Name : "Service"),
+                    Category = (s.Service != null && s.Service.Category != null) ? s.Service.Category : "General Services",
+                    s.Quantity,
+                    Revenue = (s.UnitPrice * s.Quantity) - s.DiscountAmount
+                })
+                .ToListAsync(ct);
+
+            topServices = rawServices
+                .GroupBy(s => new { s.ServiceName, s.Category })
+                .Select(g => new TopServiceItemDto(
+                    g.Key.ServiceName,
+                    g.Key.Category,
+                    g.Sum(s => s.Quantity),
+                    Math.Round(g.Sum(s => s.Revenue), 2)
+                ))
+                .OrderByDescending(s => s.Revenue)
+                .Take(5)
+                .ToList();
+        }
+
+        // 10. Revenue vs Collections Timeline (Gated by reports.sales or reports.payments)
+        List<DailyTrendPointDto>? timelinePoints = null;
+        if (canViewSales || canViewPayments)
+        {
+            var invoiceDateAggregates = canViewSales
+                ? await _db.Invoices
+                    .AsNoTracking()
+                    .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Draft && i.Status != InvoiceStatus.Cancelled && i.InvoiceDate >= startUtc && i.InvoiceDate <= endUtc)
+                    .GroupBy(i => i.InvoiceDate.Date)
+                    .Select(g => new { Date = g.Key, Revenue = g.Sum(i => i.TotalAmount), Outstanding = g.Sum(i => i.BalanceAmount) })
+                    .ToListAsync(ct)
+                : new();
+
+            var paymentDateAggregates = canViewPayments
+                ? await _db.Payments
+                    .AsNoTracking()
+                    .Where(p => !p.IsDeleted && p.PaymentDate >= startUtc && p.PaymentDate < endOfDayExclusive)
+                    .GroupBy(p => p.PaymentDate.Date)
+                    .Select(g => new { Date = g.Key, Collected = g.Sum(p => p.Amount) })
+                    .ToListAsync(ct)
+                : new();
+
+            var allTimelineDates = invoiceDateAggregates.Select(i => i.Date)
+                .Union(paymentDateAggregates.Select(p => p.Date))
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+
+            var invMap = invoiceDateAggregates.ToDictionary(i => i.Date, i => i);
+            var payMap = paymentDateAggregates.ToDictionary(p => p.Date, p => p);
+
+            var diffDays = (endUtc - startUtc).TotalDays;
+            var isMonthly = diffDays > 35;
+
+            timelinePoints = new List<DailyTrendPointDto>();
+            foreach (var d in allTimelineDates)
+            {
+                var inv = invMap.GetValueOrDefault(d);
+                var pay = payMap.GetValueOrDefault(d);
+
+                var key = isMonthly ? $"{d.Year}-{d.Month:D2}" : $"{d.Year}-{d.Month:D2}-{d.Day:D2}";
+                var label = isMonthly ? d.ToString("MMM yyyy") : d.ToString("d MMM");
+
+                timelinePoints.Add(new DailyTrendPointDto(
+                    key,
+                    label,
+                    d,
+                    Math.Round(inv?.Revenue ?? 0m, 2),
+                    Math.Round(pay?.Collected ?? 0m, 2),
+                    Math.Round(inv?.Outstanding ?? 0m, 2)
+                ));
+            }
+        }
+
+        // 11. Recent Activity (Gated by relevant permissions to avoid leaking invoices/payments/amounts)
         var recentActivities = new List<RecentActivityItemDto>();
 
-        // Recent finalized invoices
-        var recentInvoices = await _db.Invoices
-            .AsNoTracking()
-            .Include(i => i.Customer)
-            .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Draft)
-            .OrderByDescending(i => i.CreatedAt)
-            .Take(4)
-            .Select(i => new RecentActivityItemDto(
-                "Invoice",
-                i.InvoiceNumber ?? "Invoice Generated",
-                $"Invoice for {i.Customer.Name}",
-                i.TotalAmount,
-                i.CreatedAt,
-                i.Id,
-                i.Status.ToString()
-            ))
-            .ToListAsync(ct);
-        recentActivities.AddRange(recentInvoices);
+        // Recent finalized invoices (gated by sales or invoices)
+        if (canViewSales || canViewInvoices)
+        {
+            var recentInvoices = await _db.Invoices
+                .AsNoTracking()
+                .Include(i => i.Customer)
+                .Where(i => !i.IsDeleted && i.Status != InvoiceStatus.Draft)
+                .OrderByDescending(i => i.CreatedAt)
+                .Take(4)
+                .Select(i => new RecentActivityItemDto(
+                    "Invoice",
+                    i.InvoiceNumber ?? "Invoice Generated",
+                    $"Invoice for {i.Customer.Name}",
+                    i.TotalAmount,
+                    i.CreatedAt,
+                    i.Id,
+                    i.Status.ToString()
+                ))
+                .ToListAsync(ct);
+            recentActivities.AddRange(recentInvoices);
+        }
 
-        // Recent payments
-        var recentPayments = await _db.Payments
-            .AsNoTracking()
-            .Include(p => p.Invoice)
-                .ThenInclude(inv => inv.Customer)
-            .Where(p => !p.IsDeleted)
-            .OrderByDescending(p => p.PaymentDate)
-            .Take(4)
-            .Select(p => new RecentActivityItemDto(
-                "Payment",
-                $"Payment received ({p.PaymentMethod})",
-                $"Received from {p.Invoice.Customer.Name} for {p.Invoice.InvoiceNumber}",
-                p.Amount,
-                p.PaymentDate,
-                p.Id,
-                p.PaymentMethod.ToString()
-            ))
-            .ToListAsync(ct);
-        recentActivities.AddRange(recentPayments);
+        // Recent payments (gated by payments)
+        if (canViewPayments)
+        {
+            var recentPayments = await _db.Payments
+                .AsNoTracking()
+                .Include(p => p.Invoice)
+                    .ThenInclude(inv => inv.Customer)
+                .Where(p => !p.IsDeleted)
+                .OrderByDescending(p => p.PaymentDate)
+                .Take(4)
+                .Select(p => new RecentActivityItemDto(
+                    "Payment",
+                    $"Payment received ({p.PaymentMethod})",
+                    $"Received from {p.Invoice.Customer.Name} for {p.Invoice.InvoiceNumber}",
+                    p.Amount,
+                    p.PaymentDate,
+                    p.Id,
+                    p.PaymentMethod.ToString()
+                ))
+                .ToListAsync(ct);
+            recentActivities.AddRange(recentPayments);
+        }
 
-        // Recent job cards
+        // Recent job cards (Operational activity — always included, but amount redacted if unauthorized for sales)
         var recentJobCards = await _db.JobCards
             .AsNoTracking()
             .Include(j => j.Customer)
@@ -326,7 +445,7 @@ public class ReportService : IReportService
                 "JobCard",
                 j.JobCardNumber,
                 $"Job card for {j.Customer.Name}",
-                j.TotalAmount,
+                canViewSales ? j.TotalAmount : null,
                 j.CreatedAt,
                 j.Id,
                 j.Status.ToString()
@@ -343,12 +462,12 @@ public class ReportService : IReportService
             DateRange: new DateRangeDto(startUtc, endUtc),
             JobCardKpis: new JobCardKpisDto(totalJobCards, newJobCards, inProgressJobCards, completedJobCards, cancelledJobCards, invoicedJobCards),
             VehicleActivity: new VehicleActivityDto(completedJobCards, totalServicesCompleted, uniqueVehicles),
-            InvoiceKpis: new InvoiceKpisDto(draftCount, generatedCount, partiallyPaidCount, paidCount, cancelledCount, Math.Round(totalInvoicedAmount, 2), Math.Round(totalPaidAmount, 2), Math.Round(totalInvoiceOutstanding, 2)),
-            Sales: new DashboardSalesDto(Math.Round(grossSubtotal, 2), Math.Round(totalDiscount, 2), Math.Round(gstAmount, 2), Math.Round(netSales, 2), Math.Round(totalPaymentsReceived, 2), Math.Round(totalInvoiceOutstanding, 2)),
-            PaymentCollection: new DashboardPaymentCollectionDto(Math.Round(totalPaymentsReceived, 2), paymentTransactionCount, paymentBreakdown),
-            Showroom: new DashboardShowroomDto(activeShowroomsCount, staffAssignmentsCount, vehiclesAttended, Math.Round(totalShowroomBilled, 2), Math.Round(totalShowroomReceived, 2), Math.Round(totalShowroomOutstanding, 2), paidDaysCount, partiallyPaidDaysCount, unpaidDaysCount),
-            StaffAdvances: new DashboardStaffAdvanceDto(outstandingAdvances.Count, staffAdvanceOutstandingAmount, settledAdvances.Count, staffAdvanceSettledAmount, obsoleteAdvances.Count),
-            Outstanding: new DashboardOutstandingDto(Math.Round(totalInvoiceOutstanding, 2), Math.Round(totalShowroomOutstanding, 2), staffAdvanceOutstandingAmount, totalOutstandingCombined),
+            InvoiceKpis: invoiceKpis,
+            Sales: sales,
+            PaymentCollection: paymentCollection,
+            Showroom: showroom,
+            StaffAdvances: staffAdvances,
+            Outstanding: outstanding,
             TopServices: topServices,
             RevenueTimeline: timelinePoints,
             RecentAdvances: recentAdvances,

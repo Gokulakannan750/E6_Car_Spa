@@ -3350,7 +3350,7 @@ export interface DashboardSummaryDto {
 		totalServicesCompleted: number;
 		uniqueVehiclesServiced: number;
 	};
-	invoiceKpis: {
+	invoiceKpis?: {
 		draftCount: number;
 		generatedCount: number;
 		partiallyPaidCount: number;
@@ -3359,16 +3359,16 @@ export interface DashboardSummaryDto {
 		totalInvoicedAmount: number;
 		totalPaidAmount: number;
 		totalOutstandingAmount: number;
-	};
-	sales: {
+	} | null;
+	sales?: {
 		grossSubtotal: number;
 		totalDiscount: number;
 		gstAmount: number;
 		netSales: number;
 		paymentCollection: number;
 		outstanding: number;
-	};
-	paymentCollection: {
+	} | null;
+	paymentCollection?: {
 		totalReceived: number;
 		transactionCount: number;
 		breakdownByMethod: {
@@ -3376,8 +3376,8 @@ export interface DashboardSummaryDto {
 			transactionCount: number;
 			amount: number;
 		}[];
-	};
-	showroom: {
+	} | null;
+	showroom?: {
 		activeShowroomsCount: number;
 		staffAssignmentsCount: number;
 		vehiclesAttended: number;
@@ -3387,35 +3387,35 @@ export interface DashboardSummaryDto {
 		paidDaysCount: number;
 		partiallyPaidDaysCount: number;
 		unpaidDaysCount: number;
-	};
-	staffAdvances: {
+	} | null;
+	staffAdvances?: {
 		outstandingCount: number;
 		outstandingAmount: number;
 		settledCount: number;
 		settledAmount: number;
 		obsoleteCount: number;
-	};
-	outstanding: {
-		invoiceOutstanding: number;
-		showroomOutstanding: number;
-		staffAdvanceOutstanding: number;
-		totalOutstandingCombined: number;
-	};
-	topServices: {
+	} | null;
+	outstanding?: {
+		invoiceOutstanding?: number | null;
+		showroomOutstanding?: number | null;
+		staffAdvanceOutstanding?: number | null;
+		totalOutstandingCombined?: number | null;
+	} | null;
+	topServices?: {
 		name: string;
 		category: string;
 		count: number;
 		revenue: number;
-	}[];
-	revenueTimeline: {
+	}[] | null;
+	revenueTimeline?: {
 		key: string;
 		label: string;
 		dateObj: string;
 		revenue: number;
 		collected: number;
 		outstanding: number;
-	}[];
-	recentAdvances: {
+	}[] | null;
+	recentAdvances?: {
 		id: string;
 		staffId: string;
 		staffName: string;
@@ -3424,7 +3424,7 @@ export interface DashboardSummaryDto {
 		amount: number;
 		reason: string;
 		status: string;
-	}[];
+	}[] | null;
 	recentActivity: {
 		activityType: string;
 		title: string;

@@ -84,10 +84,10 @@ public record DashboardStaffAdvanceItemDto(
 );
 
 public record DashboardOutstandingDto(
-    decimal InvoiceOutstanding,
-    decimal ShowroomOutstanding,
-    decimal StaffAdvanceOutstanding,
-    decimal TotalOutstandingCombined
+    decimal? InvoiceOutstanding,
+    decimal? ShowroomOutstanding,
+    decimal? StaffAdvanceOutstanding,
+    decimal? TotalOutstandingCombined
 );
 
 public record TopServiceItemDto(
@@ -120,14 +120,14 @@ public record DashboardSummaryDto(
     DateRangeDto DateRange,
     JobCardKpisDto JobCardKpis,
     VehicleActivityDto VehicleActivity,
-    InvoiceKpisDto InvoiceKpis,
-    DashboardSalesDto Sales,
-    DashboardPaymentCollectionDto PaymentCollection,
-    DashboardShowroomDto Showroom,
-    DashboardStaffAdvanceDto StaffAdvances,
-    DashboardOutstandingDto Outstanding,
-    List<TopServiceItemDto> TopServices,
-    List<DailyTrendPointDto> RevenueTimeline,
-    List<DashboardStaffAdvanceItemDto> RecentAdvances,
-    List<RecentActivityItemDto> RecentActivity
+    InvoiceKpisDto? InvoiceKpis,
+    DashboardSalesDto? Sales,
+    DashboardPaymentCollectionDto? PaymentCollection,
+    DashboardShowroomDto? Showroom,
+    DashboardStaffAdvanceDto? StaffAdvances,
+    DashboardOutstandingDto? Outstanding,
+    List<TopServiceItemDto>? TopServices,
+    List<DailyTrendPointDto>? RevenueTimeline,
+    List<DashboardStaffAdvanceItemDto>? RecentAdvances,
+    List<RecentActivityItemDto>? RecentActivity
 );

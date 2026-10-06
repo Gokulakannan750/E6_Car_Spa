@@ -5,7 +5,15 @@ namespace CarSpaManagement.Api.Application.Interfaces;
 
 public interface IReportService
 {
-    Task<DashboardSummaryDto> GetDashboardSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null, CancellationToken ct = default);
+    Task<DashboardSummaryDto> GetDashboardSummaryAsync(
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        bool canViewSales = true,
+        bool canViewPayments = true,
+        bool canViewInvoices = true,
+        bool canViewShowrooms = true,
+        bool canViewStaffAdvances = true,
+        CancellationToken ct = default);
     Task<SalesReportResponse> GetSalesReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? customerId = null, int page = 1, int pageSize = 20, CancellationToken ct = default);
     Task<PaymentReportResponse> GetPaymentCollectionReportAsync(DateTime? fromDate = null, DateTime? toDate = null, PaymentMethod? paymentMethod = null, Guid? invoiceId = null, bool includeVoided = false, int page = 1, int pageSize = 20, CancellationToken ct = default);
     Task<OutstandingInvoiceReportResponse> GetOutstandingInvoicesReportAsync(DateTime? fromDate = null, DateTime? toDate = null, Guid? customerId = null, int page = 1, int pageSize = 20, CancellationToken ct = default);

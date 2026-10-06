@@ -5,7 +5,7 @@ import { AccessDenied } from './AccessDenied';
 
 interface RouteGuardProps {
 	children: ReactNode;
-	requiredPermission?: string;
+	requiredPermission?: string | string[];
 }
 
 export function RouteGuard({ children, requiredPermission }: RouteGuardProps) {
@@ -31,8 +31,16 @@ export function RouteGuard({ children, requiredPermission }: RouteGuardProps) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
 	}
 
-	if (requiredPermission && !hasPermission(requiredPermission)) {
-		return <AccessDenied requiredPermission={requiredPermission} />;
+	if (requiredPermission) {
+		const hasAccess = Array.isArray(requiredPermission)
+			? requiredPermission.some((p) => hasPermission(p))
+			: hasPermission(requiredPermission);
+		if (!hasAccess) {
+			const displayPerm = Array.isArray(requiredPermission)
+				? requiredPermission.join(' or ')
+				: requiredPermission;
+			return <AccessDenied requiredPermission={displayPerm} />;
+		}
 	}
 
 	return <>{children}</>;

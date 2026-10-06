@@ -89,7 +89,7 @@ export interface NavigationItem {
 	icon: string;
 	children?: NavigationItem[];
 	badge?: string | number;
-	requiresPermission?: string;
+	requiresPermission?: string | string[];
 	anchor?: boolean;
 }
 

@@ -100,14 +100,75 @@ void main() {
 
       expect(model.jobCardKpis.totalJobCards, 25);
       expect(model.jobCardKpis.completedJobCards, 18);
-      expect(model.sales.netSales, 73750.0);
-      expect(model.paymentCollection.totalReceived, 60000.0);
-      expect(model.paymentCollection.breakdownByMethod.length, 3);
-      expect(model.showroom.vehiclesAttended, 52);
-      expect(model.staffAdvances.outstandingAmount, 12000.0);
-      expect(model.outstanding.totalOutstandingCombined, 30750.0);
+      expect(model.sales?.netSales, 73750.0);
+      expect(model.paymentCollection?.totalReceived, 60000.0);
+      expect(model.paymentCollection?.breakdownByMethod.length, 3);
+      expect(model.showroom?.vehiclesAttended, 52);
+      expect(model.staffAdvances?.outstandingAmount, 12000.0);
+      expect(model.outstanding?.totalOutstandingCombined, 30750.0);
       expect(model.recentActivity.length, 1);
       expect(model.recentActivity.first.title, 'Payment received (UPI)');
+    });
+
+    test('DashboardSummaryModel deserializes redacted null sections gracefully (Phase 2C)', () {
+      final json = {
+        'dateRange': {
+          'fromDate': '2026-08-01T00:00:00Z',
+          'toDate': '2026-08-26T23:59:59Z',
+        },
+        'jobCardKpis': {
+          'totalJobCards': 10,
+          'newJobCards': 1,
+          'inProgressJobCards': 2,
+          'completedJobCards': 7,
+          'cancelledJobCards': 0,
+          'invoicedJobCards': 5,
+        },
+        'vehicleActivity': {
+          'vehiclesServiced': 7,
+          'totalServicesCompleted': 14,
+          'uniqueVehiclesServiced': 6,
+        },
+        'invoiceKpis': {
+          'draftCount': 0,
+          'generatedCount': 0,
+          'partiallyPaidCount': 0,
+          'paidCount': 0,
+          'cancelledCount': 0,
+          'totalInvoicedAmount': 0.0,
+          'totalPaidAmount': 0.0,
+          'totalOutstandingAmount': 0.0,
+        },
+        'sales': null,
+        'paymentCollection': null,
+        'showroom': null,
+        'staffAdvances': null,
+        'outstanding': {
+          'invoiceOutstanding': 0.0,
+          'showroomOutstanding': 0.0,
+          'totalOutstandingCombined': 0.0,
+          'unpaidInvoiceCount': 0,
+          'overdueCount': 0,
+          'topDebtors': [],
+          'totalOutstanding': null,
+          'aging': null,
+        },
+        'revenueTimeline': [],
+        'topServices': [],
+        'recentAdvances': [],
+        'recentActivity': [],
+      };
+
+      final model = DashboardSummaryModel.fromJson(json);
+
+      expect(model.jobCardKpis.totalJobCards, 10);
+      expect(model.vehicleActivity.vehiclesServiced, 7);
+      expect(model.sales, isNull);
+      expect(model.paymentCollection, isNull);
+      expect(model.showroom, isNull);
+      expect(model.staffAdvances, isNull);
+      expect(model.outstanding, isNotNull);
+      expect(model.recentActivity, isEmpty);
     });
 
     test(

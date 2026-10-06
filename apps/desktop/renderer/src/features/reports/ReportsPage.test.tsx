@@ -464,4 +464,57 @@ describe('ReportsPage Component', () => {
 		expect(screen.queryByRole('button', { name: /dashboard overview/i })).not.toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: /business reports/i })).not.toBeInTheDocument();
 	});
+
+	it('gates report tabs based on granular permissions (Phase 2C)', async () => {
+		// User with only outsidejobs.view
+		const { unmount } = renderWithProviders(
+			<Routes>
+				<Route path="/reports/*" element={<ReportsPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/reports'],
+				authUser: {
+					id: 'u-oj',
+					username: 'ojuser',
+					fullName: 'Outside Jobs User',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['outsidejobs.view'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /^outside jobs$/i })).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /^billing reports$/i })).not.toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /^staff reports$/i })).not.toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /^showroom reports$/i })).not.toBeInTheDocument();
+		});
+
+		unmount();
+
+		// User with only reports.invoices
+		renderWithProviders(
+			<Routes>
+				<Route path="/reports/*" element={<ReportsPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/reports'],
+				authUser: {
+					id: 'u-bill',
+					username: 'billuser',
+					fullName: 'Billing User',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['reports.invoices'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /^billing reports$/i })).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /^outside jobs$/i })).not.toBeInTheDocument();
+		});
+	});
 });
+
