@@ -299,7 +299,7 @@ public class InvoiceCalculationTests
         Assert.Equal(270m, edited.GstAmount);
         Assert.Equal(1770m, edited.TotalAmount);
 
-        var generated = await ctx.Invoices.GenerateInvoiceAsync(draft.Id);
+        var generated = await ctx.Invoices.GenerateInvoiceAsync(draft.Id, expectedTotalAmount: edited.TotalAmount);
         Assert.Equal(1770m, generated.TotalAmount);
         Assert.Equal(1770m, generated.BalanceAmount);
         Assert.False(string.IsNullOrEmpty(generated.InvoiceNumber));

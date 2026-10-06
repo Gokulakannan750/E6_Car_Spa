@@ -59,14 +59,17 @@ public class InvoiceCalculationPostgresTests : IClassFixture<PostgresTestDatabas
             items.Add(new JobCardServiceItemRequest { ServiceId = await SeedServiceAsync(price, tax), Quantity = qty, DiscountAmount = discount });
 
         Guid invoiceId;
+        decimal draftTotal;
         await using (var db = _pg.CreateContext())
         {
             var jobCard = await new JobCardServiceApp(db, new RecordingAuditLogService())
                 .CreateAsync(new CreateJobCardRequest { CustomerId = customerId, VehicleId = vehicleId, Services = items });
-            invoiceId = (await Invoices(db).CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id))).Id;
+            var draft = await Invoices(db).CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id));
+            invoiceId = draft.Id;
+            draftTotal = draft.TotalAmount;
         }
         await using (var db = _pg.CreateContext())
-            await Invoices(db).GenerateInvoiceAsync(invoiceId);
+            await Invoices(db).GenerateInvoiceAsync(invoiceId, expectedTotalAmount: draftTotal);
 
         await using var read = _pg.CreateContext();
         return await read.Invoices.AsNoTracking().Include(i => i.InvoiceItems).SingleAsync(i => i.Id == invoiceId);
@@ -163,7 +166,7 @@ public class InvoiceCalculationPostgresTests : IClassFixture<PostgresTestDatabas
         await using (var db = _pg.CreateContext())
         {
             await Assert.ThrowsAsync<InvalidOperationException>(() => Invoices(db).UpdateAsync(invoiceId, new UpdateInvoiceRequest(50m, null, null)));
-            await Assert.ThrowsAsync<InvalidOperationException>(() => Invoices(db).GenerateInvoiceAsync(invoiceId));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => Invoices(db).GenerateInvoiceAsync(invoiceId, expectedTotalAmount: 1180m));
             _ = await Invoices(db).GetByIdAsync(invoiceId);
         }
 

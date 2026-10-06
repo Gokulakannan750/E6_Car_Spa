@@ -379,7 +379,7 @@ public class GstCorrectnessTests
         var ctx = Create();
         var (jobCard, _, _, _) = await MixedJobCardAsync(ctx);
         var draft = await ctx.Invoices.CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id));
-        var generated = await ctx.Invoices.GenerateInvoiceAsync(draft.Id);
+        var generated = await ctx.Invoices.GenerateInvoiceAsync(draft.Id, expectedTotalAmount: draft.TotalAmount);
 
         // Change every catalogue rate and price after finalization.
         foreach (var svc in await ctx.Db.Services.ToListAsync()) { svc.TaxPercentage = 28m; svc.Price += 999m; }

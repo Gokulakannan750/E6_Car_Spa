@@ -2547,7 +2547,7 @@ public class WhatsAppProductionNotificationTests
             new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>());
 
         // Act
-        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id);
+        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id, expectedTotalAmount: invoice.TotalAmount);
 
         // Assert
         Assert.NotNull(invoiceDto);
@@ -2647,7 +2647,7 @@ public class WhatsAppProductionNotificationTests
             scopeFactory);
 
         // Act
-        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id);
+        var invoiceDto = await invoiceService.GenerateInvoiceAsync(invoice.Id, expectedTotalAmount: invoice.TotalAmount);
 
         // Assert
         Assert.NotNull(invoiceDto);

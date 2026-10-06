@@ -29,7 +29,8 @@ public class JobCardsController : ControllerBase
 	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> Get(Guid id, CancellationToken ct)
 	{
-		var dto = await _service.GetByIdAsync(id, ct);
+		var canViewOutsideJobs = (await _authorizationService.AuthorizeAsync(User, "Permission:outsidejobs.view")).Succeeded;
+		var dto = await _service.GetByIdAsync(id, ct, canViewOutsideJobs);
 		if (dto is null) return NotFound();
 		return Ok(dto);
 	}
@@ -47,7 +48,8 @@ public class JobCardsController : ControllerBase
 	[RequirePermission("jobcards.view")]
 	public async Task<IActionResult> GetByNumber(string jobCardNumber, CancellationToken ct)
 	{
-		var dto = await _service.GetByNumberAsync(jobCardNumber, ct);
+		var canViewOutsideJobs = (await _authorizationService.AuthorizeAsync(User, "Permission:outsidejobs.view")).Succeeded;
+		var dto = await _service.GetByNumberAsync(jobCardNumber, ct, canViewOutsideJobs);
 		if (dto is null) return NotFound();
 		return Ok(dto);
 	}

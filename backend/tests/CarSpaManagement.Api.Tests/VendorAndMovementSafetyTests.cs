@@ -493,7 +493,7 @@ public class VendorAndMovementSafetyTests
 
         // Create draft invoice and then finalize/generate it
         var draftInvoice = await invoiceService.CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id));
-        await invoiceService.GenerateInvoiceAsync(draftInvoice.Id);
+        await invoiceService.GenerateInvoiceAsync(draftInvoice.Id, expectedTotalAmount: draftInvoice.TotalAmount);
 
         // Attempt to edit vendor cost after finalization must fail
         var ex = await Assert.ThrowsAsync<ConflictException>(() =>
@@ -524,7 +524,7 @@ public class VendorAndMovementSafetyTests
             ReturnNotes: "Done"));
 
         var draftInvoice = await invoiceService.CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id));
-        await invoiceService.GenerateInvoiceAsync(draftInvoice.Id);
+        await invoiceService.GenerateInvoiceAsync(draftInvoice.Id, expectedTotalAmount: draftInvoice.TotalAmount);
 
         // Attempt to delete movement after finalization must fail
         var ex = await Assert.ThrowsAsync<ConflictException>(() =>

@@ -470,7 +470,7 @@ public class OutsideJobsTests
         var (_, _, vendor, jobCard) = await SeedDataAsync(db);
 
         // Initially no outside jobs -> At Showroom
-        var initialDetail = await jobCardService.GetByIdAsync(jobCard.Id);
+        var initialDetail = await jobCardService.GetByIdAsync(jobCard.Id, canViewOutsideJobs: true);
         Assert.NotNull(initialDetail);
         Assert.NotNull(initialDetail.VehicleLocation);
         Assert.False(initialDetail.VehicleLocation.IsOutside);
@@ -488,7 +488,7 @@ public class OutsideJobsTests
             Notes: "Cracked windshield"));
 
         // Detail DTO check
-        var detailAfterSend = await jobCardService.GetByIdAsync(jobCard.Id);
+        var detailAfterSend = await jobCardService.GetByIdAsync(jobCard.Id, canViewOutsideJobs: true);
         Assert.NotNull(detailAfterSend);
         Assert.NotNull(detailAfterSend.VehicleLocation);
         Assert.True(detailAfterSend.VehicleLocation.IsOutside);
@@ -703,7 +703,8 @@ public class OutsideJobsTests
             ReturnNotes: "Returned from vendor"));
 
         // Generate the finalized invoice -> late return synchronization runs
-        var generatedInvoice = await invoiceService.GenerateInvoiceAsync(draftInvoice.Id);
+        var preview = await invoiceService.PreviewAsync(draftInvoice.Id, new PreviewInvoiceRequest());
+        var generatedInvoice = await invoiceService.GenerateInvoiceAsync(draftInvoice.Id, expectedTotalAmount: preview.TotalAmount, canEditDraft: true);
 
         var item = Assert.Single(generatedInvoice.Items, i => i.OutsideJobId == outsideJob.Id);
 

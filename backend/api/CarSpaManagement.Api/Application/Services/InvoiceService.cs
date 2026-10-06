@@ -292,6 +292,8 @@ public class InvoiceService : IInvoiceService
 			.Include(i => i.Payments)
 			.Include(i => i.JobCard)
 				.ThenInclude(j => j.JobCardServices)
+			.Include(i => i.JobCard)
+				.ThenInclude(j => j.OutsideJobs)
 			.FirstOrDefaultAsync(i => i.Id == id, cancellationToken);
 
 		if (invoice is null || invoice.IsDeleted)
@@ -300,6 +302,57 @@ public class InvoiceService : IInvoiceService
 		// Finalized invoices are never recalculated: their stored amounts are returned unchanged.
 		if (invoice.Status != InvoiceStatus.Draft || !string.IsNullOrEmpty(invoice.InvoiceNumber))
 			return ToDto(invoice);
+
+		// Synchronize outside jobs in-memory for preview calculation
+		if (invoice.JobCard?.OutsideJobs != null)
+		{
+			var activeOutsideJobs = invoice.JobCard.OutsideJobs
+				.Where(oj => !oj.IsDeleted && oj.Status != OutsideJobStatus.Cancelled)
+				.ToList();
+
+			// Clean up any draft invoice items for outside jobs that have since been deleted or cancelled
+			foreach (var item in invoice.InvoiceItems.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue))
+			{
+				var oj = invoice.JobCard.OutsideJobs.FirstOrDefault(o => o.Id == item.OutsideJobId!.Value);
+				if (oj == null || oj.IsDeleted || oj.Status == OutsideJobStatus.Cancelled)
+				{
+					item.IsDeleted = true;
+				}
+				else if (oj.VendorCost.HasValue && oj.VendorCost.Value > 0 && item.UnitPrice != InvoiceCalculator.Round(oj.VendorCost.Value))
+				{
+					item.UnitPrice = InvoiceCalculator.Round(oj.VendorCost.Value);
+				}
+			}
+
+			var existingOjIds = invoice.InvoiceItems
+				.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue)
+				.Select(it => it.OutsideJobId!.Value)
+				.ToHashSet();
+
+			var newEligibleOjs = activeOutsideJobs
+				.Where(oj => oj.Status == OutsideJobStatus.Returned
+					&& oj.VendorCost.HasValue
+					&& oj.VendorCost.Value > 0
+					&& !existingOjIds.Contains(oj.Id))
+				.ToList();
+
+			foreach (var oj in newEligibleOjs)
+			{
+				invoice.InvoiceItems.Add(new InvoiceItem
+				{
+					Id = Guid.NewGuid(),
+					InvoiceId = invoice.Id,
+					OutsideJobId = oj.Id,
+					Description = oj.ServiceName,
+					Quantity = 1,
+					UnitPrice = InvoiceCalculator.Round(oj.VendorCost!.Value),
+					Discount = 0m,
+					CreatedAt = DateTime.UtcNow,
+					UpdatedAt = DateTime.UtcNow,
+					IsDeleted = false
+				});
+			}
+		}
 
 		await ApplyDraftFinancialsAsync(invoice, request.Discount, request.IsGstEnabled, cancellationToken);
 		return ToDto(invoice);
@@ -337,11 +390,14 @@ public class InvoiceService : IInvoiceService
 		}
 	}
 
-	public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) =>
-		GenerateInvoiceAsync(id, expectedTotalAmount: null, cancellationToken);
-
-	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default)
+	public async Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default, bool canEditDraft = false)
 	{
+		if (!expectedTotalAmount.HasValue)
+			throw new ArgumentException("Expected total amount is required for invoice generation.", nameof(expectedTotalAmount));
+
+		if (expectedTotalAmount.Value < 0)
+			throw new ArgumentOutOfRangeException(nameof(expectedTotalAmount), "Expected total amount cannot be negative.");
+
 		var invoice = await _db.Invoices
 			.Include(i => i.InvoiceItems)
 			.Include(i => i.JobCard)
@@ -375,27 +431,20 @@ public class InvoiceService : IInvoiceService
 			}
 
 			// Clean up any draft invoice items for outside jobs that have since been deleted or cancelled
-			foreach (var item in invoice.InvoiceItems.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue))
-			{
-				var oj = invoice.JobCard!.OutsideJobs.FirstOrDefault(o => o.Id == item.OutsideJobId!.Value);
-				if (oj == null || oj.IsDeleted || oj.Status == OutsideJobStatus.Cancelled)
-				{
-					item.IsDeleted = true;
-					item.UpdatedAt = DateTime.UtcNow;
-				}
-				else if (oj.VendorCost.HasValue && oj.VendorCost.Value > 0 && item.UnitPrice != oj.VendorCost.Value)
-				{
-					// Update item if vendor cost was modified (amounts are recalculated below)
-					item.UnitPrice = InvoiceCalculator.Round(oj.VendorCost.Value);
-					item.UpdatedAt = DateTime.UtcNow;
-				}
-			}
+			var existingOjItems = invoice.InvoiceItems.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue).ToList();
+			var existingOjIds = existingOjItems.Select(it => it.OutsideJobId!.Value).ToHashSet();
 
-			// Sync any newly-returned outside jobs that aren't already on the invoice
-			var existingOjIds = invoice.InvoiceItems
-				.Where(it => !it.IsDeleted && it.OutsideJobId.HasValue)
-				.Select(it => it.OutsideJobId!.Value)
-				.ToHashSet();
+			var itemsToRemove = existingOjItems.Where(it => {
+				var oj = invoice.JobCard!.OutsideJobs.FirstOrDefault(o => o.Id == it.OutsideJobId!.Value);
+				return oj == null || oj.IsDeleted || oj.Status == OutsideJobStatus.Cancelled;
+			}).ToList();
+
+			var itemsWithCostChange = existingOjItems.Where(it => {
+				var oj = invoice.JobCard!.OutsideJobs.FirstOrDefault(o => o.Id == it.OutsideJobId!.Value);
+				return oj != null && !oj.IsDeleted && oj.Status != OutsideJobStatus.Cancelled
+					&& oj.VendorCost.HasValue && oj.VendorCost.Value > 0
+					&& it.UnitPrice != InvoiceCalculator.Round(oj.VendorCost.Value);
+			}).ToList();
 
 			var newEligibleOjs = activeOutsideJobs
 				.Where(oj => oj.Status == OutsideJobStatus.Returned
@@ -404,7 +453,27 @@ public class InvoiceService : IInvoiceService
 					&& !existingOjIds.Contains(oj.Id))
 				.ToList();
 
+			var requiresDraftModification = itemsToRemove.Count > 0 || itemsWithCostChange.Count > 0 || newEligibleOjs.Count > 0;
+			if (requiresDraftModification && !canEditDraft)
+			{
+				throw new ForbiddenException("Outside-job changes require modifying draft invoice lines. Permission to edit draft invoices (invoices.edit_draft) is required.");
+			}
+
 			var syncNow = DateTime.UtcNow;
+
+			foreach (var item in itemsToRemove)
+			{
+				item.IsDeleted = true;
+				item.UpdatedAt = syncNow;
+			}
+
+			foreach (var item in itemsWithCostChange)
+			{
+				var oj = invoice.JobCard!.OutsideJobs.First(o => o.Id == item.OutsideJobId!.Value);
+				item.UnitPrice = InvoiceCalculator.Round(oj.VendorCost!.Value);
+				item.UpdatedAt = syncNow;
+			}
+
 			foreach (var oj in newEligibleOjs)
 			{
 				var ojItem = new InvoiceItem
@@ -432,7 +501,7 @@ public class InvoiceService : IInvoiceService
 			await InvoiceTaxRates.ForDraftAsync(_db, invoice, invoice.JobCard?.JobCardServices, cancellationToken));
 
 		// The user confirmed an amount: never issue a different one.
-		if (expectedTotalAmount.HasValue && InvoiceCalculator.Round(expectedTotalAmount.Value) != invoice.TotalAmount)
+		if (InvoiceCalculator.Round(expectedTotalAmount.Value) != invoice.TotalAmount)
 			throw new ConflictException(
 				$"The invoice total is now ₹{invoice.TotalAmount:N2}, not the ₹{expectedTotalAmount.Value:N2} that was confirmed. Review the invoice and generate it again.");
 
