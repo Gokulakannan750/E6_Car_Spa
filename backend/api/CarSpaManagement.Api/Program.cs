@@ -129,6 +129,7 @@ builder.Services.Configure<WhatsAppOptions>(options =>
 // WhatsApp Integration
 builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
+builder.Services.AddHttpClient<IWhatsAppTemplateProvisioningService, WhatsAppTemplateProvisioningService>();
 builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
 
 // Security & Authentication Services
