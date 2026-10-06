@@ -44,8 +44,7 @@ public class FinalHardeningSecurityTests
         public Task<IReadOnlyList<InvoiceListDto>> GetAllAsync(int page, int pageSize, string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<InvoiceListDto>>(Array.Empty<InvoiceListDto>());
         public Task<int> GetTotalCountAsync(string? search = null, InvoiceStatus? status = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task<InvoiceDto?> UpdateAsync(Guid id, UpdateInvoiceRequest request, CancellationToken cancellationToken = default) => Task.FromResult<InvoiceDto?>(null);
-        public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<InvoiceDto> GenerateInvoiceAsync(Guid id, decimal? expectedTotalAmount, CancellationToken cancellationToken = default, bool canEditDraft = false) => throw new NotImplementedException();
         public Task<InvoiceDto> PreviewAsync(Guid id, PreviewInvoiceRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<InvoiceDto> CancelInvoiceAsync(Guid id, string? reason = null, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<InvoiceDto> UpdateInvoiceNumberAsync(Guid id, UpdateInvoiceNumberRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
@@ -68,9 +67,9 @@ public class FinalHardeningSecurityTests
 
         public Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
 
-        public Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<JobCardDto?>(null);
+        public Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default, bool canViewOutsideJobs = false) => Task.FromResult<JobCardDto?>(null);
         public Task<JobCardPrintDto?> GetForPrintAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<JobCardPrintDto?>(null);
-        public Task<JobCardDto?> GetByNumberAsync(string jobCardNumber, CancellationToken cancellationToken = default) => Task.FromResult<JobCardDto?>(null);
+        public Task<JobCardDto?> GetByNumberAsync(string jobCardNumber, CancellationToken cancellationToken = default, bool canViewOutsideJobs = false) => Task.FromResult<JobCardDto?>(null);
         public Task<IReadOnlyList<JobCardListDto>> GetAllAsync(int page, int pageSize, JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<JobCardListDto>>(Array.Empty<JobCardListDto>());
         public Task<int> GetTotalCountAsync(JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task<IReadOnlyList<JobCardListDto>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<JobCardListDto>>(Array.Empty<JobCardListDto>());

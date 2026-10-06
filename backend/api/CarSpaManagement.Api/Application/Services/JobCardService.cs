@@ -27,15 +27,22 @@ public class JobCardService : IJobCardService
 		_configuration = configuration;
 	}
 
-	public async Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+	public async Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default, bool canViewOutsideJobs = false)
 	{
-		var jobCard = await _db.JobCards
+		var query = _db.JobCards
 			.Include(j => j.Customer)
 			.Include(j => j.Vehicle)
 			.Include(j => j.JobCardServices)
-			.Include(j => j.OutsideJobs)
-				.ThenInclude(o => o.Vendor)
-			.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+			.AsQueryable();
+
+		if (canViewOutsideJobs)
+		{
+			query = query
+				.Include(j => j.OutsideJobs)
+					.ThenInclude(o => o.Vendor);
+		}
+
+		var jobCard = await query.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
 
 		if (jobCard is null) return null;
 
@@ -44,18 +51,25 @@ public class JobCardService : IJobCardService
 			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
 			.FirstOrDefaultAsync(cancellationToken);
 
-		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString());
+		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString(), canViewOutsideJobs);
 	}
 
-	public async Task<JobCardDto?> GetByNumberAsync(string jobCardNumber, CancellationToken cancellationToken = default)
+	public async Task<JobCardDto?> GetByNumberAsync(string jobCardNumber, CancellationToken cancellationToken = default, bool canViewOutsideJobs = false)
 	{
-		var jobCard = await _db.JobCards
+		var query = _db.JobCards
 			.Include(j => j.Customer)
 			.Include(j => j.Vehicle)
 			.Include(j => j.JobCardServices)
-			.Include(j => j.OutsideJobs)
-				.ThenInclude(o => o.Vendor)
-			.FirstOrDefaultAsync(j => j.JobCardNumber == jobCardNumber, cancellationToken);
+			.AsQueryable();
+
+		if (canViewOutsideJobs)
+		{
+			query = query
+				.Include(j => j.OutsideJobs)
+					.ThenInclude(o => o.Vendor);
+		}
+
+		var jobCard = await query.FirstOrDefaultAsync(j => j.JobCardNumber == jobCardNumber, cancellationToken);
 
 		if (jobCard is null) return null;
 
@@ -64,7 +78,7 @@ public class JobCardService : IJobCardService
 			.Select(i => new { i.Id, i.InvoiceNumber, i.Status })
 			.FirstOrDefaultAsync(cancellationToken);
 
-		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString());
+		return ToDetailDto(jobCard, invoice?.Id, invoice?.InvoiceNumber, invoice?.Status.ToString(), canViewOutsideJobs);
 	}
 
 	public async Task<JobCardPrintDto?> GetForPrintAsync(Guid id, CancellationToken cancellationToken = default)
@@ -685,47 +699,51 @@ public class JobCardService : IJobCardService
 			IsOverdue: isOverdue);
 	}
 
-	private static JobCardDto ToDetailDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null)
+	private static JobCardDto ToDetailDto(JCard j, Guid? invoiceId = null, string? invoiceNumber = null, string? invoiceStatus = null, bool canViewOutsideJobs = false)
 	{
-		var activeJob = j.OutsideJobs?.FirstOrDefault(o => o.Status == OutsideJobStatus.Outside && !o.IsDeleted);
+		var activeJob = canViewOutsideJobs
+			? j.OutsideJobs?.FirstOrDefault(o => o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+			: null;
 		var vehicleLocation = BuildVehicleLocationDto(activeJob);
 
-		var outsideJobDtos = j.OutsideJobs?
-			.Where(o => !o.IsDeleted)
-			.OrderByDescending(o => o.SentAt)
-			.Select(o => new OutsideJobDto(
-				Id: o.Id,
-				JobCardId: o.JobCardId,
-				JobCardNumber: j.JobCardNumber,
-				VehicleId: j.Vehicle.Id,
-				VehicleRegistrationNumber: j.Vehicle.RegistrationNumber,
-				VehicleMake: j.Vehicle.Make,
-				VehicleModel: j.Vehicle.Model,
-				CustomerId: j.Customer.Id,
-				CustomerName: j.Customer.Name,
-				CustomerPhone: j.Customer.PhoneNumber,
-				VendorId: o.VendorId,
-				VendorName: o.Vendor?.Name ?? string.Empty,
-				VendorPhone: o.Vendor?.Phone,
-				ServiceId: o.ServiceId,
-				ServiceName: o.ServiceName,
-				Status: o.Status,
-				StatusName: o.Status.ToString(),
-				SentAt: o.SentAt,
-				ExpectedReturnAt: o.ExpectedReturnAt,
-				ReturnedAt: o.ReturnedAt,
-				IsOverdue: o.Status == OutsideJobStatus.Outside && DateTime.UtcNow > o.ExpectedReturnAt,
-				SentByUserId: o.SentByUserId,
-				SentByUserName: o.SentByUserName,
-				ReturnedByUserId: o.ReturnedByUserId,
-				ReturnedByUserName: o.ReturnedByUserName,
-				VendorCost: o.VendorCost,
-				Notes: o.Notes,
-				ReturnNotes: o.ReturnNotes,
-				CancellationReason: o.CancellationReason,
-				CreatedAt: o.CreatedAt,
-				UpdatedAt: o.UpdatedAt))
-			.ToList();
+		var outsideJobDtos = canViewOutsideJobs && j.OutsideJobs != null
+			? j.OutsideJobs
+				.Where(o => !o.IsDeleted)
+				.OrderByDescending(o => o.SentAt)
+				.Select(o => new OutsideJobDto(
+					Id: o.Id,
+					JobCardId: o.JobCardId,
+					JobCardNumber: j.JobCardNumber,
+					VehicleId: j.Vehicle.Id,
+					VehicleRegistrationNumber: j.Vehicle.RegistrationNumber,
+					VehicleMake: j.Vehicle.Make,
+					VehicleModel: j.Vehicle.Model,
+					CustomerId: j.Customer.Id,
+					CustomerName: j.Customer.Name,
+					CustomerPhone: j.Customer.PhoneNumber,
+					VendorId: o.VendorId,
+					VendorName: o.Vendor?.Name ?? string.Empty,
+					VendorPhone: o.Vendor?.Phone,
+					ServiceId: o.ServiceId,
+					ServiceName: o.ServiceName,
+					Status: o.Status,
+					StatusName: o.Status.ToString(),
+					SentAt: o.SentAt,
+					ExpectedReturnAt: o.ExpectedReturnAt,
+					ReturnedAt: o.ReturnedAt,
+					IsOverdue: o.Status == OutsideJobStatus.Outside && DateTime.UtcNow > o.ExpectedReturnAt,
+					SentByUserId: o.SentByUserId,
+					SentByUserName: o.SentByUserName,
+					ReturnedByUserId: o.ReturnedByUserId,
+					ReturnedByUserName: o.ReturnedByUserName,
+					VendorCost: o.VendorCost,
+					Notes: o.Notes,
+					ReturnNotes: o.ReturnNotes,
+					CancellationReason: o.CancellationReason,
+					CreatedAt: o.CreatedAt,
+					UpdatedAt: o.UpdatedAt))
+				.ToList()
+			: null;
 
 		return new(
 			j.Id,

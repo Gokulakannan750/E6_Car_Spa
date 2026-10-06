@@ -68,13 +68,15 @@ public class InvoiceNumberEditPostgresTests : IClassFixture<PostgresTestDatabase
                 CustomerId = customerId, VehicleId = vehicleId,
                 Services = [new JobCardServiceItemRequest { ServiceId = serviceId }],
             });
-            invoiceId = (await Invoices(db, null).CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id))).Id;
+            var draft = await Invoices(db, null).CreateFromJobCardAsync(new CreateInvoiceFromJobCardRequest(jobCard.Id));
+            invoiceId = draft.Id;
         }
 
         string number;
         await using (var db = _pg.CreateContext())
         {
-            var generated = await Invoices(db, null).GenerateInvoiceAsync(invoiceId);
+            var invoice = await db.Invoices.AsNoTracking().SingleAsync(i => i.Id == invoiceId);
+            var generated = await Invoices(db, null).GenerateInvoiceAsync(invoiceId, expectedTotalAmount: invoice.TotalAmount);
             number = generated.InvoiceNumber!;
         }
         await using (var db = _pg.CreateContext())

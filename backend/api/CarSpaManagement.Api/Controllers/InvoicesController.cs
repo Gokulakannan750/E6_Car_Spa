@@ -149,10 +149,22 @@ public class InvoicesController : ControllerBase
 	[RequirePermission("invoices.generate")]
 	public async Task<IActionResult> Generate(Guid id, [FromBody] GenerateInvoiceRequest? request, CancellationToken ct)
 	{
+		if (request is null || !request.ExpectedTotalAmount.HasValue)
+		{
+			return BadRequest(new { error = "Expected total amount is required for invoice generation." });
+		}
+
+		if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
 		try
 		{
-			var dto = await _service.GenerateInvoiceAsync(id, request?.ExpectedTotalAmount, ct);
+			var canEditDraft = (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.edit_draft")).Succeeded;
+			var dto = await _service.GenerateInvoiceAsync(id, request.ExpectedTotalAmount.Value, ct, canEditDraft);
 			return Ok(dto);
+		}
+		catch (ForbiddenException ex)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
 		}
 		catch (KeyNotFoundException ex)
 		{
@@ -167,6 +179,10 @@ public class InvoicesController : ControllerBase
 			return Conflict(new { error = ex.Message });
 		}
 		catch (ArgumentOutOfRangeException ex)
+		{
+			return BadRequest(new { error = ex.Message });
+		}
+		catch (ArgumentException ex)
 		{
 			return BadRequest(new { error = ex.Message });
 		}

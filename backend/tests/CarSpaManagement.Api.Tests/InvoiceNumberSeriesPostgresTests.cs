@@ -60,7 +60,8 @@ internal static class SeriesTestHelpers
     public static async Task<string> FinalizeAsync(PostgresTestDatabase pg, Guid invoiceId)
     {
         await using var db = pg.CreateContext();
-        return (await Invoices(db).GenerateInvoiceAsync(invoiceId)).InvoiceNumber!;
+        var invoice = await db.Invoices.AsNoTracking().SingleAsync(i => i.Id == invoiceId);
+        return (await Invoices(db).GenerateInvoiceAsync(invoiceId, expectedTotalAmount: invoice.TotalAmount)).InvoiceNumber!;
     }
 
     public static async Task<long> NextNumberAsync(PostgresTestDatabase pg, InvoiceSeriesKind kind)
@@ -101,7 +102,8 @@ internal static class SeriesTestHelpers
         var tasks = invoiceIds.Select((id, i) => Task.Run(async () =>
         {
             await gate.Task;
-            return (await Invoices(contexts[i]).GenerateInvoiceAsync(id)).InvoiceNumber!;
+            var invoice = await contexts[i].Invoices.AsNoTracking().SingleAsync(x => x.Id == id);
+            return (await Invoices(contexts[i]).GenerateInvoiceAsync(id, expectedTotalAmount: invoice.TotalAmount)).InvoiceNumber!;
         })).ToList();
         gate.SetResult();
 
