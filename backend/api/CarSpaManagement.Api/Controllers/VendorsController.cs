@@ -17,7 +17,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpGet]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("vendors.view")]
     public async Task<IActionResult> GetAll([FromQuery] bool activeOnly = true, CancellationToken ct = default)
     {
         var list = await _vendorService.GetAllAsync(activeOnly, ct);
@@ -25,7 +25,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("vendors.view")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
     {
         var vendor = await _vendorService.GetByIdAsync(id, ct);
@@ -34,7 +34,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpPost]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("vendors.manage")]
     public async Task<IActionResult> Create([FromBody] CreateVendorRequest request, CancellationToken ct = default)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -50,7 +50,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("vendors.manage")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVendorRequest request, CancellationToken ct = default)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -67,7 +67,7 @@ public class VendorsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("vendors.manage")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct = default)
     {
         var deleted = await _vendorService.DeleteAsync(id, ct);

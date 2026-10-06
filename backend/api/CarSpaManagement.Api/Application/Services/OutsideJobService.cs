@@ -388,12 +388,17 @@ public class OutsideJobService : IOutsideJobService
         return ToDto(job, job.JobCard.JobCardNumber, job.Vehicle, job.Customer, vendor);
     }
 
+    /// <param name="canModifyDraftInvoice">
+    /// Whether the caller holds <c>invoices.edit_draft</c>. When the job is billed on a draft invoice, changing its cost
+    /// rewrites that invoice line, so it is refused (<see cref="ForbiddenException"/>) unless this is true.
+    /// </param>
     public async Task<OutsideJobDto> UpdateCostAsync(
         Guid id,
         UpdateOutsideJobCostRequest request,
         Guid? userId = null,
         string? userName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool canModifyDraftInvoice = false)
     {
         if (request.VendorCost < 0)
             throw new ArgumentOutOfRangeException(nameof(request.VendorCost), "Vendor cost cannot be negative.");
@@ -410,18 +415,23 @@ public class OutsideJobService : IOutsideJobService
 
         await EnsureJobCardNotLockedAsync(job.JobCardId, "Vendor cost cannot be modified after invoice generation.", cancellationToken);
 
-        job.VendorCost = request.VendorCost;
-        job.UpdatedAt = DateTime.UtcNow;
-
         // If there is an existing draft invoice for this job card, update the corresponding invoice item
         var draftInvoice = await _db.Invoices
             .Include(i => i.InvoiceItems)
             .Include(i => i.JobCard).ThenInclude(j => j.JobCardServices)
             .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
+        var draftItem = draftInvoice?.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+
+        // RBAC P1-2: a vendor cost billed on a draft invoice is that invoice's line price.
+        if (draftItem != null && draftItem.UnitPrice != InvoiceCalculator.Round(request.VendorCost))
+            await EnsureCanModifyDraftInvoiceAsync(canModifyDraftInvoice, job, "change the vendor cost", userId, userName, cancellationToken);
+
+        job.VendorCost = request.VendorCost;
+        job.UpdatedAt = DateTime.UtcNow;
 
         if (draftInvoice != null)
         {
-            var item = draftInvoice.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+            var item = draftItem;
             if (item != null)
             {
                 item.UnitPrice = InvoiceCalculator.Round(request.VendorCost);
@@ -450,11 +460,16 @@ public class OutsideJobService : IOutsideJobService
         return ToDto(job, job.JobCard.JobCardNumber, job.Vehicle, job.Customer, job.Vendor);
     }
 
+    /// <param name="canModifyDraftInvoice">
+    /// Whether the caller holds <c>invoices.edit_draft</c>. Deleting a job billed on a draft invoice removes that invoice
+    /// line, so it is refused (<see cref="ForbiddenException"/>) unless this is true.
+    /// </param>
     public async Task<bool> DeleteAsync(
         Guid id,
         Guid? userId = null,
         string? userName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool canModifyDraftInvoice = false)
     {
         var job = await _db.OutsideJobs
             .Include(o => o.JobCard)
@@ -478,17 +493,22 @@ public class OutsideJobService : IOutsideJobService
             throw new ConflictException("This movement cannot be deleted because it is part of a generated invoice.");
         }
 
-        job.IsDeleted = true;
-        job.UpdatedAt = DateTime.UtcNow;
-
         var draftInvoice = await _db.Invoices
             .Include(i => i.InvoiceItems)
             .Include(i => i.JobCard).ThenInclude(j => j.JobCardServices)
             .FirstOrDefaultAsync(i => i.JobCardId == job.JobCardId && !i.IsDeleted && i.Status == InvoiceStatus.Draft && string.IsNullOrEmpty(i.InvoiceNumber), cancellationToken);
+        var draftItem = draftInvoice?.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+
+        // RBAC P1-2: removing a job billed on a draft invoice removes that invoice line.
+        if (draftItem != null)
+            await EnsureCanModifyDraftInvoiceAsync(canModifyDraftInvoice, job, "delete the outside job", userId, userName, cancellationToken);
+
+        job.IsDeleted = true;
+        job.UpdatedAt = DateTime.UtcNow;
 
         if (draftInvoice != null)
         {
-            var item = draftInvoice.InvoiceItems.FirstOrDefault(it => it.OutsideJobId == job.Id && !it.IsDeleted);
+            var item = draftItem;
             if (item != null)
             {
                 item.IsDeleted = true;
@@ -540,6 +560,28 @@ public class OutsideJobService : IOutsideJobService
         {
             throw new ConflictException($"This job card is locked because an invoice has already been generated. {actionDescription}");
         }
+    }
+
+    /// <summary>
+    /// Refuses (and audits) an outside-job change that would alter a draft invoice when the caller may not edit drafts.
+    /// </summary>
+    private async Task EnsureCanModifyDraftInvoiceAsync(bool canModifyDraftInvoice, OutsideJob job, string attemptedAction, Guid? userId, string? userName, CancellationToken cancellationToken)
+    {
+        if (canModifyDraftInvoice) return;
+
+        await _auditLogService.RecordAsync(
+            action: "outsidejobs.draft_invoice_change_denied",
+            module: "OutsideJobs",
+            description: $"Denied: attempted to {attemptedAction} for '{job.ServiceName}' on a job card with a draft invoice, without permission to edit draft invoices.",
+            userId: userId,
+            userName: userName,
+            entityType: "OutsideJob",
+            entityId: job.Id,
+            entityReference: job.JobCard?.JobCardNumber,
+            outcome: "Denied",
+            cancellationToken: cancellationToken);
+
+        throw new ForbiddenException("This outside job is billed on a draft invoice. Changing it requires permission to edit draft invoices (invoices.edit_draft).");
     }
 
     public async Task<VehicleLocationDto> GetVehicleLocationByJobCardIdAsync(Guid jobCardId, CancellationToken cancellationToken = default)

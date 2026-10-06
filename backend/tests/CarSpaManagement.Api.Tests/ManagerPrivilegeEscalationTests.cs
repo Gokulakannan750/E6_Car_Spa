@@ -133,16 +133,91 @@ public class ManagerPrivilegeEscalationTests
     }
 
     [Fact]
-    public async Task Manager_CanStillManageStaff_AndOwnProfile()
+    public async Task Manager_CanStillManageStaffProfile_AndOwnProfile()
+    {
+        // Updated for RBAC P1-1: a Manager may still edit a Staff user's profile and their own profile and password,
+        // but may no longer set a Staff user's password (see Manager_CannotResetStaffPassword).
+        var env = await CreateAsync();
+        var managerBefore = await HashOf(env.Db, env.ManagerA.Id);
+
+        await env.Users.UpdateUserAsync(env.Staff.Id, new UpdateUserRequest { FullName = "Staff One Renamed" }, env.ManagerA.Id, isOwner: false);
+        await env.Users.UpdateUserAsync(env.ManagerA.Id, new UpdateUserRequest { FullName = "Manager A Renamed", Password = NewPassword, ConfirmPassword = NewPassword }, env.ManagerA.Id, isOwner: false);
+
+        Assert.Equal("Staff One Renamed", (await env.Db.Users.AsNoTracking().SingleAsync(u => u.Id == env.Staff.Id)).FullName);
+        Assert.Equal("Manager A Renamed", (await env.Db.Users.AsNoTracking().SingleAsync(u => u.Id == env.ManagerA.Id)).FullName);
+        Assert.NotEqual(managerBefore, await HashOf(env.Db, env.ManagerA.Id));
+    }
+
+    // ── RBAC P1-1: only the Owner may reset another user's password ─────────
+
+    [Fact]
+    public async Task Manager_CannotResetStaffPassword()
     {
         var env = await CreateAsync();
-        var staffBefore = await HashOf(env.Db, env.Staff.Id);
+        var before = await HashOf(env.Db, env.Staff.Id);
 
-        await env.Users.UpdateUserAsync(env.Staff.Id, PasswordReset(env.Staff), env.ManagerA.Id, isOwner: false);
-        await env.Users.UpdateUserAsync(env.ManagerA.Id, new UpdateUserRequest { FullName = "Manager A Renamed" }, env.ManagerA.Id, isOwner: false);
+        var ex = await Assert.ThrowsAsync<ForbiddenException>(() =>
+            env.Users.UpdateUserAsync(env.Staff.Id, PasswordReset(env.Staff), env.ManagerA.Id, isOwner: false));
 
-        Assert.NotEqual(staffBefore, await HashOf(env.Db, env.Staff.Id));
-        Assert.Equal("Manager A Renamed", (await env.Db.Users.AsNoTracking().SingleAsync(u => u.Id == env.ManagerA.Id)).FullName);
+        Assert.Contains("Only the Owner can reset another user's password", ex.Message);
+        Assert.Equal(before, await HashOf(env.Db, env.Staff.Id));
+        Assert.Contains(env.Audit.Entries, e => e.Action == AuditActions.UserManagementDenied && e.EntityId == env.Staff.Id && e.Outcome == "Denied");
+        Assert.DoesNotContain(env.Audit.Entries, e => e.Action == AuditActions.PasswordReset && e.EntityId == env.Staff.Id);
+    }
+
+    [Fact]
+    public async Task Manager_CannotResetStaffPassword_EvenWithAProfileChangeInTheSameRequest()
+    {
+        var env = await CreateAsync();
+        var before = await HashOf(env.Db, env.Staff.Id);
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => env.Users.UpdateUserAsync(env.Staff.Id,
+            new UpdateUserRequest { FullName = "Renamed", Password = NewPassword, ConfirmPassword = NewPassword }, env.ManagerA.Id, isOwner: false));
+
+        var staff = await env.Db.Users.AsNoTracking().SingleAsync(u => u.Id == env.Staff.Id);
+        Assert.Equal(before, staff.PasswordHash);
+        Assert.Equal("staff.one", staff.FullName); // nothing in the request is applied
+    }
+
+    [Fact]
+    public async Task Staff_CannotResetAnotherStaffPassword_ButCanChangeOwn()
+    {
+        var env = await CreateAsync();
+        var otherStaff = new User { Id = Guid.NewGuid(), FullName = "staff.two", Username = "staff.two", Role = UserRole.Staff, IsActive = true };
+        otherStaff.PasswordHash = new PasswordHasherService().HashPassword(otherStaff, "Original-Pass123!");
+        env.Db.Users.Add(otherStaff);
+        await env.Db.SaveChangesAsync();
+        var otherBefore = await HashOf(env.Db, otherStaff.Id);
+        var ownBefore = await HashOf(env.Db, env.Staff.Id);
+
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            env.Users.UpdateUserAsync(otherStaff.Id, PasswordReset(otherStaff), env.Staff.Id, isOwner: false));
+        await env.Users.UpdateUserAsync(env.Staff.Id, PasswordReset(env.Staff), env.Staff.Id, isOwner: false);
+
+        Assert.Equal(otherBefore, await HashOf(env.Db, otherStaff.Id));
+        Assert.NotEqual(ownBefore, await HashOf(env.Db, env.Staff.Id));
+    }
+
+    [Fact]
+    public async Task Owner_CanResetStaffPassword_AndItIsAudited()
+    {
+        var env = await CreateAsync();
+        var before = await HashOf(env.Db, env.Staff.Id);
+
+        await env.Users.UpdateUserAsync(env.Staff.Id, PasswordReset(env.Staff), env.Owner.Id, isOwner: true);
+
+        Assert.NotEqual(before, await HashOf(env.Db, env.Staff.Id));
+        Assert.Contains(env.Audit.Entries, e => e.Action == AuditActions.PasswordReset && e.EntityId == env.Staff.Id && e.Outcome == "Success");
+    }
+
+    [Fact]
+    public async Task ForgedOwnerFlag_CannotResetStaffPassword()
+    {
+        var env = await CreateAsync();
+        var before = await HashOf(env.Db, env.Staff.Id);
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            env.Users.UpdateUserAsync(env.Staff.Id, PasswordReset(env.Staff), env.ManagerA.Id, isOwner: true));
+        Assert.Equal(before, await HashOf(env.Db, env.Staff.Id));
     }
 
     [Fact]

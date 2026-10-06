@@ -537,20 +537,20 @@ public class VendorAndMovementSafetyTests
     [Fact]
     public void Test18_UnauthorizedUser_CannotModifyOrDeleteMovement()
     {
-        // Verify controller endpoints have Authorize and RequirePermission("jobcards.edit") attributes
+        // RBAC P1-3: outside-job mutations require outsidejobs.manage (no longer jobcards.edit).
         var updateCostMethod = typeof(OutsideJobsController).GetMethod(nameof(OutsideJobsController.UpdateCost));
         Assert.NotNull(updateCostMethod);
 
         var updateCostPerm = updateCostMethod.GetCustomAttribute<RequirePermissionAttribute>();
         Assert.NotNull(updateCostPerm);
-        Assert.Equal("Permission:jobcards.edit", updateCostPerm.Policy);
+        Assert.Equal("Permission:outsidejobs.manage", updateCostPerm.Policy);
 
         var deleteMethod = typeof(OutsideJobsController).GetMethod(nameof(OutsideJobsController.Delete));
         Assert.NotNull(deleteMethod);
 
         var deletePerm = deleteMethod.GetCustomAttribute<RequirePermissionAttribute>();
         Assert.NotNull(deletePerm);
-        Assert.Equal("Permission:jobcards.edit", deletePerm.Policy);
+        Assert.Equal("Permission:outsidejobs.manage", deletePerm.Policy);
     }
 
     // 19. Android/Desktop use the same backend business rule.

@@ -7,6 +7,7 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace CarSpaManagement.Api.Application.Services;
@@ -239,6 +240,17 @@ public class ShowroomService : IShowroomService
             {
                 await _db.SaveChangesAsync(ct);
 
+                await _auditLogService.RecordAsync(
+                    action: "showroom.create",
+                    module: Domain.Constants.AuditModules.Showrooms,
+                    description: $"Showroom '{showroom.Name}' ({showroom.MasterId}) created.",
+                    entityType: "Showroom",
+                    entityId: showroom.Id,
+                    entityReference: showroom.Name,
+                    newValues: JsonSerializer.Serialize(ShowroomAuditState(showroom)),
+                    outcome: "Success",
+                    cancellationToken: ct);
+
                 return new ShowroomDto(
                     showroom.Id,
                     showroom.Name,
@@ -282,6 +294,8 @@ public class ShowroomService : IShowroomService
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (showroom == null) return null;
 
+        var oldState = ShowroomAuditState(showroom);
+
         if (request.Name != null) showroom.Name = request.Name.Trim();
         if (request.Address != null) showroom.Address = request.Address.Trim();
         if (request.Phone != null) showroom.Phone = string.IsNullOrWhiteSpace(request.Phone) ? null : request.Phone.Trim();
@@ -289,6 +303,18 @@ public class ShowroomService : IShowroomService
         if (request.IsActive.HasValue) showroom.IsActive = request.IsActive.Value;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: "showroom.update",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Showroom '{showroom.Name}' ({showroom.MasterId}) updated.",
+            entityType: "Showroom",
+            entityId: showroom.Id,
+            entityReference: showroom.Name,
+            oldValues: JsonSerializer.Serialize(oldState),
+            newValues: JsonSerializer.Serialize(ShowroomAuditState(showroom)),
+            outcome: "Success",
+            cancellationToken: ct);
 
         return await GetByIdAsync(id, ct);
     }
@@ -298,11 +324,29 @@ public class ShowroomService : IShowroomService
         var showroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == id, ct);
         if (showroom == null) return false;
 
+        var wasActive = showroom.IsActive;
         showroom.IsActive = !showroom.IsActive;
         showroom.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: showroom.IsActive ? "showroom.activate" : "showroom.deactivate",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Showroom '{showroom.Name}' ({showroom.MasterId}) {(showroom.IsActive ? "activated" : "deactivated")}.",
+            entityType: "Showroom",
+            entityId: showroom.Id,
+            entityReference: showroom.Name,
+            oldValues: JsonSerializer.Serialize(new { isActive = wasActive }),
+            newValues: JsonSerializer.Serialize(new { isActive = showroom.IsActive }),
+            outcome: "Success",
+            cancellationToken: ct);
+
         return true;
     }
+
+    /// <summary>Showroom fields captured in audit entries (old/new values).</summary>
+    private static object ShowroomAuditState(Showroom s) =>
+        new { s.MasterId, s.Name, s.Address, s.Phone, s.Gstin, s.IsActive };
 
     // ── Daily Staff Assignment & Attendance Confirmation ────────────────────
 
@@ -736,6 +780,30 @@ public class ShowroomService : IShowroomService
 
         await _db.SaveChangesAsync(ct);
 
+        await _auditLogService.RecordAsync(
+            action: "showroom.assign_staff",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Staff '{staff.Name}' ({staff.StaffMasterId}) assigned to showroom '{showroom.Name}' for {targetDate:dd-MMM-yyyy}.",
+            entityType: "ShowroomStaffWorkSession",
+            entityId: session.Id,
+            entityReference: showroom.Name,
+            newValues: JsonSerializer.Serialize(new
+            {
+                showroomId,
+                showroom = showroom.Name,
+                date = targetDate.ToString("yyyy-MM-dd"),
+                staffId = staff.Id,
+                staff = staff.Name,
+                homeShowroomId,
+                assignmentType = isTransfer ? "TemporaryTransfer" : "Regular",
+                status = attendanceStatus.ToString(),
+                startTime,
+                endTime,
+                vehiclesAttended = Math.Max(0, request.VehiclesAttended),
+            }),
+            outcome: "Success",
+            cancellationToken: ct);
+
         var homeShowroom = await _db.Showrooms.FirstOrDefaultAsync(s => s.Id == homeShowroomId, ct);
         var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(startTime, endTime);
 
@@ -781,6 +849,11 @@ public class ShowroomService : IShowroomService
         if (session != null)
         {
             await EnsureAttendanceNotLockedAsync(session.WorkingShowroomId, session.Date, isOwner, ct);
+
+            var vehiclesBefore = (await _db.ShowroomStaffAssignments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.ShowroomId == session.WorkingShowroomId && a.StaffId == session.StaffId && a.Date == session.Date && !a.IsDeleted, ct))
+                ?.VehiclesAttended;
+            var oldSessionState = SessionAuditState(session, vehiclesBefore);
 
             var startTime = string.IsNullOrWhiteSpace(request.StartTime) ? (session.StartTime ?? "09:00") : request.StartTime.Trim();
             var endTime = string.IsNullOrWhiteSpace(request.EndTime) ? (session.EndTime ?? "18:00") : request.EndTime.Trim();
@@ -834,6 +907,18 @@ public class ShowroomService : IShowroomService
 
             await _db.SaveChangesAsync(ct);
 
+            await _auditLogService.RecordAsync(
+                action: "showroom.update_assignment",
+                module: Domain.Constants.AuditModules.Showrooms,
+                description: $"Showroom assignment of '{session.Staff?.Name}' at '{session.WorkingShowroom?.Name}' for {session.Date:dd-MMM-yyyy} updated.",
+                entityType: "ShowroomStaffWorkSession",
+                entityId: session.Id,
+                entityReference: session.WorkingShowroom?.Name,
+                oldValues: JsonSerializer.Serialize(oldSessionState),
+                newValues: JsonSerializer.Serialize(SessionAuditState(session, assignment?.VehiclesAttended)),
+                outcome: "Success",
+                cancellationToken: ct);
+
             var (hours, formatted) = AttendanceTimeHelper.CalculateWorkingHours(session.StartTime, session.EndTime);
             var isTransfer = session.HomeShowroomId != session.WorkingShowroomId || session.AttendanceStatus == StaffAttendanceStatus.TemporaryTransfer;
 
@@ -872,6 +957,7 @@ public class ShowroomService : IShowroomService
 
         await EnsureAttendanceNotLockedAsync(legacyAssignment.ShowroomId, legacyAssignment.Date, isOwner, ct);
 
+        var legacyVehiclesBefore = legacyAssignment.VehiclesAttended;
         if (request.VehiclesAttended.HasValue)
         {
             legacyAssignment.VehiclesAttended = Math.Max(0, request.VehiclesAttended.Value);
@@ -879,6 +965,18 @@ public class ShowroomService : IShowroomService
         legacyAssignment.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: "showroom.update_assignment",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: $"Showroom assignment of '{legacyAssignment.Staff?.Name}' at '{legacyAssignment.Showroom?.Name}' for {legacyAssignment.Date:dd-MMM-yyyy} updated.",
+            entityType: "ShowroomStaffAssignment",
+            entityId: legacyAssignment.Id,
+            entityReference: legacyAssignment.Showroom?.Name,
+            oldValues: JsonSerializer.Serialize(new { showroomId = legacyAssignment.ShowroomId, date = legacyAssignment.Date.ToString("yyyy-MM-dd"), staffId = legacyAssignment.StaffId, vehiclesAttended = legacyVehiclesBefore }),
+            newValues: JsonSerializer.Serialize(new { showroomId = legacyAssignment.ShowroomId, date = legacyAssignment.Date.ToString("yyyy-MM-dd"), staffId = legacyAssignment.StaffId, vehiclesAttended = legacyAssignment.VehiclesAttended }),
+            outcome: "Success",
+            cancellationToken: ct);
 
         return new DailyStaffAssignmentDto(
             legacyAssignment.Id,
@@ -902,6 +1000,12 @@ public class ShowroomService : IShowroomService
         {
             await EnsureAttendanceNotLockedAsync(session.WorkingShowroomId, session.Date, isOwner, ct);
 
+            var removedVehicles = (await _db.ShowroomStaffAssignments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.ShowroomId == session.WorkingShowroomId && a.StaffId == session.StaffId && a.Date == session.Date && !a.IsDeleted, ct))
+                ?.VehiclesAttended;
+            var (removedStaffName, removedShowroomName) = await AuditNamesAsync(session.StaffId, session.WorkingShowroomId, ct);
+            var removedState = SessionAuditState(session, removedVehicles, removedStaffName, removedShowroomName);
+
             session.IsDeleted = true;
             session.UpdatedAt = DateTime.UtcNow;
 
@@ -921,6 +1025,19 @@ public class ShowroomService : IShowroomService
             }
 
             await _db.SaveChangesAsync(ct);
+
+            await _auditLogService.RecordAsync(
+                action: "showroom.remove_assignment",
+                module: Domain.Constants.AuditModules.Showrooms,
+                description: $"Staff '{removedStaffName}' removed from showroom '{removedShowroomName}' for {session.Date:dd-MMM-yyyy}.",
+                entityType: "ShowroomStaffWorkSession",
+                entityId: session.Id,
+                entityReference: removedShowroomName,
+                oldValues: JsonSerializer.Serialize(removedState),
+                newValues: JsonSerializer.Serialize(new { removed = true }),
+                outcome: "Success",
+                cancellationToken: ct);
+
             return true;
         }
 
@@ -928,6 +1045,7 @@ public class ShowroomService : IShowroomService
         if (legAssignment != null)
         {
             await EnsureAttendanceNotLockedAsync(legAssignment.ShowroomId, legAssignment.Date, isOwner, ct);
+            var (legStaffName, legShowroomName) = await AuditNamesAsync(legAssignment.StaffId, legAssignment.ShowroomId, ct);
 
             legAssignment.IsDeleted = true;
             legAssignment.UpdatedAt = DateTime.UtcNow;
@@ -942,11 +1060,49 @@ public class ShowroomService : IShowroomService
             }
 
             await _db.SaveChangesAsync(ct);
+
+            await _auditLogService.RecordAsync(
+                action: "showroom.remove_assignment",
+                module: Domain.Constants.AuditModules.Showrooms,
+                description: $"Staff '{legStaffName}' removed from showroom '{legShowroomName}' for {legAssignment.Date:dd-MMM-yyyy}.",
+                entityType: "ShowroomStaffAssignment",
+                entityId: legAssignment.Id,
+                entityReference: legShowroomName,
+                oldValues: JsonSerializer.Serialize(new { showroomId = legAssignment.ShowroomId, showroom = legShowroomName, date = legAssignment.Date.ToString("yyyy-MM-dd"), staffId = legAssignment.StaffId, staff = legStaffName, vehiclesAttended = legAssignment.VehiclesAttended }),
+                newValues: JsonSerializer.Serialize(new { removed = true }),
+                outcome: "Success",
+                cancellationToken: ct);
+
             return true;
         }
 
         return false;
     }
+
+    /// <summary>Staff and showroom names for audit descriptions (soft-deleted records still resolve).</summary>
+    private async Task<(string? StaffName, string? ShowroomName)> AuditNamesAsync(Guid staffId, Guid showroomId, CancellationToken ct)
+    {
+        var staffName = await _db.Staff.IgnoreQueryFilters().AsNoTracking().Where(s => s.Id == staffId).Select(s => s.Name).FirstOrDefaultAsync(ct);
+        var showroomName = await _db.Showrooms.IgnoreQueryFilters().AsNoTracking().Where(s => s.Id == showroomId).Select(s => s.Name).FirstOrDefaultAsync(ct);
+        return (staffName, showroomName);
+    }
+
+    /// <summary>Daily staff assignment (work session) fields captured in audit entries.</summary>
+    private static object SessionAuditState(ShowroomStaffWorkSession s, int? vehiclesAttended, string? staffName = null, string? showroomName = null) => new
+    {
+        showroomId = s.WorkingShowroomId,
+        showroom = showroomName ?? s.WorkingShowroom?.Name,
+        date = s.Date.ToString("yyyy-MM-dd"),
+        staffId = s.StaffId,
+        staff = staffName ?? s.Staff?.Name,
+        homeShowroomId = s.HomeShowroomId,
+        status = s.AttendanceStatus.ToString(),
+        startTime = s.StartTime,
+        endTime = s.EndTime,
+        transferReason = s.TransferReason,
+        notes = s.Notes,
+        vehiclesAttended,
+    };
 
     // ── Daily Showroom Billing & Payments ───────────────────────────────────
 
@@ -1059,6 +1215,10 @@ public class ShowroomService : IShowroomService
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate, ct);
 
+        // Previous amount for the audit trail (no active bill = no previous amount).
+        decimal? previousAmount = bill != null && !bill.IsDeleted ? bill.Amount : null;
+        var previousNotes = bill != null && !bill.IsDeleted ? bill.Notes : null;
+
         if (bill != null)
         {
             var received = bill.Payments.Where(p => !p.IsDeleted).Sum(p => p.Amount);
@@ -1085,6 +1245,21 @@ public class ShowroomService : IShowroomService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: "showroom.set_daily_bill",
+            module: Domain.Constants.AuditModules.Showrooms,
+            description: previousAmount.HasValue
+                ? $"Daily bill for {showroom.Name} ({targetDate:dd-MMM-yyyy}) changed from ₹{previousAmount.Value:F2} to ₹{bill.Amount:F2}."
+                : $"Daily bill for {showroom.Name} ({targetDate:dd-MMM-yyyy}) set to ₹{bill.Amount:F2}.",
+            entityType: "ShowroomDailyBill",
+            entityId: bill.Id,
+            entityReference: showroom.Name,
+            oldValues: JsonSerializer.Serialize(new { showroomId, showroom = showroom.Name, date = targetDate.ToString("yyyy-MM-dd"), amount = previousAmount, notes = previousNotes }),
+            newValues: JsonSerializer.Serialize(new { showroomId, showroom = showroom.Name, date = targetDate.ToString("yyyy-MM-dd"), amount = bill.Amount, notes = bill.Notes }),
+            outcome: "Success",
+            cancellationToken: ct);
+
         return (await GetDailyBillAsync(showroomId, targetDate, ct))!;
     }
 

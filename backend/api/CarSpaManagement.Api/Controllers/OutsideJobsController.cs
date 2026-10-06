@@ -4,6 +4,7 @@ using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -12,17 +13,23 @@ namespace CarSpaManagement.Api.Controllers;
 public class OutsideJobsController : ControllerBase
 {
     private readonly IOutsideJobService _service;
+    private readonly IAuthorizationService _authorizationService;
 
-    public OutsideJobsController(IOutsideJobService service)
+    public OutsideJobsController(IOutsideJobService service, IAuthorizationService authorizationService)
     {
         _service = service;
+        _authorizationService = authorizationService;
     }
+
+    /// <summary>Whether the caller may edit draft invoices (an outside job billed on a draft is an invoice line).</summary>
+    private async Task<bool> CanEditDraftInvoicesAsync() =>
+        (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.edit_draft")).Succeeded;
 
     /// <summary>
     /// Gets all outside jobs for a specific job card.
     /// </summary>
     [HttpGet("api/job-cards/{jobCardId:guid}/outside-jobs")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("outsidejobs.view")]
     public async Task<IActionResult> GetByJobCard(Guid jobCardId, CancellationToken ct)
     {
         var list = await _service.GetByJobCardIdAsync(jobCardId, ct);
@@ -33,7 +40,7 @@ public class OutsideJobsController : ControllerBase
     /// Creates and sends a vehicle outside for a specific job card.
     /// </summary>
     [HttpPost("api/job-cards/{jobCardId:guid}/outside-jobs")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> Create(Guid jobCardId, [FromBody] CreateOutsideJobRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -63,7 +70,7 @@ public class OutsideJobsController : ControllerBase
     /// Gets a single outside job by ID.
     /// </summary>
     [HttpGet("api/outside-jobs/{id:guid}")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("outsidejobs.view")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {
         var dto = await _service.GetByIdAsync(id, ct);
@@ -75,7 +82,7 @@ public class OutsideJobsController : ControllerBase
     /// Lists all outside jobs across the system with filtering.
     /// </summary>
     [HttpGet("api/outside-jobs")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("outsidejobs.view")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -99,7 +106,7 @@ public class OutsideJobsController : ControllerBase
     /// Updates details of an active outside job.
     /// </summary>
     [HttpPut("api/outside-jobs/{id:guid}")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOutsideJobRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -124,7 +131,7 @@ public class OutsideJobsController : ControllerBase
     /// Marks an active outside job as returned.
     /// </summary>
     [HttpPost("api/outside-jobs/{id:guid}/return")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> MarkReturned(Guid id, [FromBody] MarkOutsideJobReturnedRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -150,7 +157,7 @@ public class OutsideJobsController : ControllerBase
     /// Cancels an outside job.
     /// </summary>
     [HttpPost("api/outside-jobs/{id:guid}/cancel")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelOutsideJobRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -176,7 +183,7 @@ public class OutsideJobsController : ControllerBase
     /// Updates the vendor cost for an outside job.
     /// </summary>
     [HttpPut("api/outside-jobs/{id:guid}/cost")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> UpdateCost(Guid id, [FromBody] UpdateOutsideJobCostRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
@@ -185,8 +192,12 @@ public class OutsideJobsController : ControllerBase
 
         try
         {
-            var dto = await _service.UpdateCostAsync(id, request, userId, userName, ct);
+            var dto = await _service.UpdateCostAsync(id, request, userId, userName, ct, await CanEditDraftInvoicesAsync());
             return Ok(dto);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -210,16 +221,20 @@ public class OutsideJobsController : ControllerBase
     /// Deletes / marks obsolete an outside job movement.
     /// </summary>
     [HttpDelete("api/outside-jobs/{id:guid}")]
-    [RequirePermission("jobcards.edit")]
+    [RequirePermission("outsidejobs.manage")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var (userId, userName) = GetCurrentUser();
 
         try
         {
-            var deleted = await _service.DeleteAsync(id, userId, userName, ct);
+            var deleted = await _service.DeleteAsync(id, userId, userName, ct, await CanEditDraftInvoicesAsync());
             if (!deleted) return NotFound();
             return NoContent();
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
@@ -239,7 +254,7 @@ public class OutsideJobsController : ControllerBase
     /// Gets current location of the vehicle associated with a job card.
     /// </summary>
     [HttpGet("api/job-cards/{jobCardId:guid}/location")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("outsidejobs.view")]
     public async Task<IActionResult> GetJobCardLocation(Guid jobCardId, CancellationToken ct)
     {
         var location = await _service.GetVehicleLocationByJobCardIdAsync(jobCardId, ct);
@@ -250,7 +265,7 @@ public class OutsideJobsController : ControllerBase
     /// Gets current location of a vehicle by vehicle ID.
     /// </summary>
     [HttpGet("api/vehicles/{vehicleId:guid}/location")]
-    [RequirePermission("jobcards.view")]
+    [RequirePermission("outsidejobs.view")]
     public async Task<IActionResult> GetVehicleLocation(Guid vehicleId, CancellationToken ct)
     {
         var location = await _service.GetVehicleLocationByVehicleIdAsync(vehicleId, ct);

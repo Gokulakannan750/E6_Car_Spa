@@ -153,11 +153,20 @@ public class UserService(
         }
 
         // Account takeover protection: non-owners may only manage Staff accounts (matching the rule that only
-        // an Owner can create Manager accounts) or their own profile. This covers password resets.
+        // an Owner can create Manager accounts) or their own profile.
         if (!isOwner && user.Id != currentUserId && user.Role != UserRole.Staff)
         {
             await RecordDeniedAsync(user, currentUserId, "modify another Manager account", cancellationToken);
             throw new ForbiddenException("Only an Owner can modify another Manager's account.");
+        }
+
+        // RBAC P1-1: only the Owner may set another user's password. A non-owner who could reset a Staff password
+        // could sign in as that Staff user and use permissions the Owner granted to Staff but not to them.
+        // Users may still change their own password.
+        if (!isOwner && user.Id != currentUserId && !string.IsNullOrWhiteSpace(request.Password))
+        {
+            await RecordDeniedAsync(user, currentUserId, "reset another user's password", cancellationToken);
+            throw new ForbiddenException("Only the Owner can reset another user's password.");
         }
 
         // P0-1: Non-Owner cannot change any user's role or permissions (including self)
@@ -234,7 +243,9 @@ public class UserService(
         // Permission updates (Only allowed for Owner editing Manager/Staff; Owner permissions are not managed in DB)
         if (isOwner && user.Role != UserRole.Owner && request.PermissionCodes != null)
         {
-            isPermissionChange = true;
+            // Clients send the full permission list on every save; only an actual difference is a permission change.
+            isPermissionChange = !oldPermissions.OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase)
+                .SetEquals(request.PermissionCodes.ToHashSet(StringComparer.OrdinalIgnoreCase));
             // Remove existing permissions
             db.UserPermissions.RemoveRange(user.UserPermissions);
 
@@ -260,15 +271,19 @@ public class UserService(
 
         if (isPermissionChange)
         {
+            // RBAC P1-5: one entry covers both changes, so a role change saved together with permissions is never lost.
+            var roleChanged = !string.Equals(oldRole, user.Role.ToString(), StringComparison.Ordinal);
             await auditLogService.RecordAsync(
                 action: Domain.Constants.AuditActions.PermissionChanged,
                 module: Domain.Constants.AuditModules.Users,
-                description: $"Permissions updated for user '{user.Username}'.",
+                description: roleChanged
+                    ? $"Role changed from '{oldRole}' to '{user.Role}' and permissions updated for user '{user.Username}'."
+                    : $"Permissions updated for user '{user.Username}'.",
                 entityType: "User",
                 entityId: user.Id,
                 entityReference: user.Username,
-                oldValues: System.Text.Json.JsonSerializer.Serialize(new { permissions = oldPermissions }),
-                newValues: System.Text.Json.JsonSerializer.Serialize(new { permissions = request.PermissionCodes }),
+                oldValues: System.Text.Json.JsonSerializer.Serialize(new { role = oldRole, fullName = oldFullName, permissions = oldPermissions }),
+                newValues: System.Text.Json.JsonSerializer.Serialize(new { role = user.Role.ToString(), fullName = user.FullName, permissions = request.PermissionCodes }),
                 outcome: "Success",
                 cancellationToken: cancellationToken);
         }
