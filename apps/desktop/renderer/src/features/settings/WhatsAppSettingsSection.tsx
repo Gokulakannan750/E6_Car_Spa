@@ -37,6 +37,8 @@ import {
 	MetaWhatsAppTemplateDto,
 } from '../../lib/api';
 import { ManagedTemplatesPanel } from './ManagedTemplatesPanel';
+import { CustomerConsentCard } from './CustomerConsentCard';
+import { WhatsAppUsagePanel } from './WhatsAppUsagePanel';
 
 interface Props {
 	canManage: boolean;
@@ -82,6 +84,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 	const [accessToken, setAccessToken] = useState('');
 	const [invoiceNotificationsEnabled, setInvoiceNotificationsEnabled] = useState(true);
 	const [paymentCompletedNotificationsEnabled, setPaymentCompletedNotificationsEnabled] = useState(true);
+	const [requireCustomerConsent, setRequireCustomerConsent] = useState(false);
 	const [invoiceTemplateName, setInvoiceTemplateName] = useState('e6_carspa_invoice_generated');
 	const [invoiceTemplateLanguage, setInvoiceTemplateLanguage] = useState('en_US');
 	const [paymentCompletedTemplateName, setPaymentCompletedTemplateName] = useState('e6_carspa_payment_completed');
@@ -104,6 +107,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 			setMetaAppId(data.metaAppId || '');
 			setInvoiceNotificationsEnabled(data.invoiceNotificationsEnabled);
 			setPaymentCompletedNotificationsEnabled(data.paymentCompletedNotificationsEnabled);
+			setRequireCustomerConsent(data.requireCustomerConsent ?? false);
 			setInvoiceTemplateName(data.invoiceTemplateName || 'e6_carspa_invoice_generated');
 			setInvoiceTemplateLanguage(data.invoiceTemplateLanguage || 'en_US');
 			setPaymentCompletedTemplateName(data.paymentCompletedTemplateName || 'e6_carspa_payment_completed');
@@ -139,6 +143,7 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 				metaAppId: metaAppId.trim(),
 				invoiceNotificationsEnabled,
 				paymentCompletedNotificationsEnabled,
+				requireCustomerConsent,
 				invoiceTemplateName: invoiceTemplateName.trim(),
 				invoiceTemplateLanguage: invoiceTemplateLanguage.trim(),
 				paymentCompletedTemplateName: paymentCompletedTemplateName.trim(),
@@ -669,6 +674,10 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 				</div>
 
 				<ManagedTemplatesPanel canManage={canManage} onActivated={loadConfig} />
+
+				<CustomerConsentCard checked={requireCustomerConsent} onChange={setRequireCustomerConsent} canManage={canManage} />
+
+				<WhatsAppUsagePanel />
 
 				{/* ============================================================== */}
 				{/* 2. AVAILABLE META TEMPLATES (STEP 1 DISCOVERY)                  */}

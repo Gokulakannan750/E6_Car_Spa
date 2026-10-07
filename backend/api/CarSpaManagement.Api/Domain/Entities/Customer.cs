@@ -17,6 +17,15 @@ public class Customer : BaseEntity
  [MaxLength(500)]
  public string? Address { get; set; }
 
+ /// <summary>The customer agreed to receive automatic WhatsApp updates (invoice and payment messages).</summary>
+ public bool WhatsAppConsent { get; set; }
+
+ /// <summary>When the consent flag was last changed (either way).</summary>
+ public DateTime? WhatsAppConsentUpdatedAtUtc { get; set; }
+
+ /// <summary>The user who last changed the consent flag.</summary>
+ public Guid? WhatsAppConsentUpdatedByUserId { get; set; }
+
  public List<Vehicle> Vehicles { get; set; } = new();
  public List<JobCard> JobCards { get; set; } = new();
 }

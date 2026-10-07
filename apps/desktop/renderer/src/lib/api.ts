@@ -283,6 +283,9 @@ export interface CustomerDto {
 	totalPaidAmount?: number;
 	totalOutstandingAmount?: number;
 	paymentStatus?: string;
+	/** The customer agreed to automatic WhatsApp updates. */
+	whatsAppConsent?: boolean;
+	whatsAppConsentUpdatedAtUtc?: string | null;
 }
 
 export interface CustomerListResponse {
@@ -332,6 +335,8 @@ export interface CreateCustomerInput {
  phoneNumber: string;
  email?: string | null;
  address?: string | null;
+ /** Omit to leave the recorded consent unchanged. */
+ whatsAppConsent?: boolean;
 }
 
 export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
@@ -3199,6 +3204,23 @@ export interface WhatsAppConfigDto {
 	lastFailureAtUtc?: string | null;
 	lastErrorMessage?: string | null;
 	metaAppId?: string | null;
+	requireCustomerConsent?: boolean;
+}
+
+export interface WhatsAppUsageMonthDto {
+	year: number;
+	month: number;
+	total: number;
+	sent: number;
+	failed: number;
+	skipped: number;
+	pending: number;
+	invoiceMessagesSent: number;
+	paymentMessagesSent: number;
+}
+
+export interface WhatsAppUsageResponse {
+	months: WhatsAppUsageMonthDto[];
 }
 
 export interface WhatsAppHealthDto {
@@ -3223,6 +3245,8 @@ export interface UpdateWhatsAppConfigRequest {
 	paymentCompletedTemplateName?: string;
 	paymentCompletedTemplateLanguage?: string;
 	metaAppId?: string;
+	/** Omit to leave the saved value unchanged. */
+	requireCustomerConsent?: boolean;
 }
 
 export interface TestWhatsAppConnectionRequest {
@@ -3284,6 +3308,10 @@ export interface MetaWhatsAppTemplatesResponse {
 
 export async function getWhatsAppConfig() {
 	return request<WhatsAppConfigDto>('/api/settings/whatsapp', {}, 'view WhatsApp settings');
+}
+
+export async function getWhatsAppUsage(months = 6) {
+	return request<WhatsAppUsageResponse>(`/api/settings/whatsapp/usage?months=${encodeURIComponent(String(months))}`, {}, 'view WhatsApp usage');
 }
 
 export async function getWhatsAppHealth(probe = false) {

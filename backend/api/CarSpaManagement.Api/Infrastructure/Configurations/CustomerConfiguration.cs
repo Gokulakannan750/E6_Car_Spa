@@ -30,6 +30,10 @@ public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
  builder.Property(c => c.Address)
  .HasMaxLength(500);
 
+ builder.Property(c => c.WhatsAppConsent)
+ .IsRequired()
+ .HasDefaultValue(false);
+
  builder.Property(c => c.IsDeleted)
  .HasDefaultValue(false);
 

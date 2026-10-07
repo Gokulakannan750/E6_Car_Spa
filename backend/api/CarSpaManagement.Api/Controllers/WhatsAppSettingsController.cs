@@ -57,6 +57,14 @@ public class WhatsAppSettingsController : ControllerBase
 		return Ok(result);
 	}
 
+	[HttpGet("usage")]
+	[RequirePermission("settings.view")]
+	public async Task<IActionResult> GetUsage([FromQuery] int months = 6, CancellationToken ct = default)
+	{
+		var usage = await _whatsAppService.GetUsageAsync(months, ct);
+		return Ok(usage);
+	}
+
 	[HttpGet("templates")]
 	[RequirePermission("settings.view")]
 	public async Task<IActionResult> GetTemplates(CancellationToken ct)

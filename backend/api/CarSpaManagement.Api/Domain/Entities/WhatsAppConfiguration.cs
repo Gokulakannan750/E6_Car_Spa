@@ -29,6 +29,12 @@ public class WhatsAppConfiguration : BaseEntity
 
 	public bool PaymentCompletedNotificationsEnabled { get; set; } = true;
 
+	/// <summary>
+	/// When true, automatic messages go only to customers whose WhatsApp consent is recorded. Off by default so
+	/// existing behaviour is unchanged until consent has been collected.
+	/// </summary>
+	public bool RequireCustomerConsent { get; set; } = false;
+
 	[MaxLength(100)]
 	public string InvoiceTemplateName { get; set; } = "e6_carspa_invoice_generated";
 

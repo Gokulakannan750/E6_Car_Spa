@@ -93,6 +93,27 @@ describe('CustomersPage Component', () => {
 		vi.mocked(api.getVehiclesByCustomer).mockResolvedValue([]);
 	});
 
+	it('marks only customers who agreed to WhatsApp updates', async () => {
+		vi.mocked(api.getCustomers).mockResolvedValue({
+			items: [
+				{ ...mockCustomers[0], whatsAppConsent: true },
+				{ ...mockCustomers[1], whatsAppConsent: false },
+			],
+			totalCount: 2,
+			page: 1,
+			pageSize: 100,
+		});
+
+		renderWithProviders(<CustomersPage />);
+
+		expect(await screen.findByText('Gokul Sharma')).toBeInTheDocument();
+		expect(screen.getAllByLabelText('Agreed to WhatsApp updates')).toHaveLength(1);
+		const agreedRow = screen.getByText('9876543210').closest('tr') as HTMLElement;
+		expect(agreedRow.querySelector('[aria-label="Agreed to WhatsApp updates"]')).not.toBeNull();
+		const otherRow = screen.getByText('9123456780').closest('tr') as HTMLElement;
+		expect(otherRow.querySelector('[aria-label="Agreed to WhatsApp updates"]')).toBeNull();
+	});
+
 	it('renders customer list page and displays customer items with invoices, outstanding, and payment status', async () => {
 		renderWithProviders(<CustomersPage />);
 

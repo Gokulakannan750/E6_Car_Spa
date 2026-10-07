@@ -65,5 +65,6 @@ public static class AuditActions
     public const string WhatsAppConfigUpdated = "WHATSAPP_CONFIG_UPDATED";
     public const string WhatsAppTemplatesProvisioned = "WHATSAPP_TEMPLATES_PROVISIONED";
     public const string WhatsAppTemplatesActivated = "WHATSAPP_TEMPLATES_ACTIVATED";
+    public const string CustomerWhatsAppConsentChanged = "CUSTOMER_WHATSAPP_CONSENT_CHANGED";
     public const string SystemPreferencesUpdated = "SYSTEM_PREFERENCES_UPDATED";
 }

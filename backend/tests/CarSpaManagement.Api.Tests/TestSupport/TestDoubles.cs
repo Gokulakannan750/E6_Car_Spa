@@ -49,6 +49,9 @@ internal sealed class NoopWhatsAppService : IWhatsAppService
     public Task<SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     public Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default) => Task.FromResult(true);
     public Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public Task<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse> GetUsageAsync(int months = 6, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse(Array.Empty<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageMonthDto>()));
+
     public Task<WhatsAppHealthDto> GetHealthStatusAsync(bool forceProbe = false, CancellationToken cancellationToken = default) =>
         Task.FromResult(new WhatsAppHealthDto(WhatsAppHealthStatus.NotConfigured.ToString(), null, null, null, null, false));
     public Task ProbeHealthAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

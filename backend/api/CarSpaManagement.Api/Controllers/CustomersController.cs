@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.DTOs.Customers;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -14,6 +15,13 @@ public class CustomersController : ControllerBase
  public CustomersController(ICustomerService service)
  {
  _service = service;
+ }
+
+ private Guid? GetCurrentUserId()
+ {
+ var principal = HttpContext?.User;
+ var value = principal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal?.FindFirstValue("sub");
+ return Guid.TryParse(value, out var id) ? id : null;
  }
 
  [HttpGet("{id:guid}")]
@@ -63,7 +71,7 @@ public class CustomersController : ControllerBase
  if (await _service.PhoneExistsAsync(request.PhoneNumber))
  return Conflict(new { error = "A customer with this phone number already exists." });
 
- var dto = await _service.CreateAsync(request, ct);
+ var dto = await _service.CreateAsync(request, ct, GetCurrentUserId());
  return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
  }
 
@@ -76,7 +84,7 @@ public class CustomersController : ControllerBase
  if (await _service.PhoneExistsAsync(request.PhoneNumber, excludeId: id))
  return Conflict(new { error = "A customer with this phone number already exists." });
 
- var dto = await _service.UpdateAsync(id, request, ct);
+ var dto = await _service.UpdateAsync(id, request, ct, GetCurrentUserId());
  return dto is null ? NotFound() : Ok(dto);
  }
 

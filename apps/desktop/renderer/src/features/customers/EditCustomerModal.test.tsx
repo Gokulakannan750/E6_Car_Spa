@@ -964,8 +964,51 @@ describe('EditCustomerModal Component & Vehicle Uniqueness', () => {
 					phoneNumber: '9123456789',
 					email: 'newjohn@example.com',
 					address: '99 Anna Nagar, Chennai',
+					whatsAppConsent: false,
 				});
 				expect(mockOnSuccess).toHaveBeenCalledWith(updatedCustomer);
+			});
+		});
+
+		it('shows the recorded WhatsApp consent and sends it unchanged when saving other edits', async () => {
+			const consentedCustomer: api.CustomerDto = {
+				...mockCustomer,
+				whatsAppConsent: true,
+				whatsAppConsentUpdatedAtUtc: '2026-03-05T09:30:00Z',
+			};
+			vi.mocked(api.updateCustomer).mockResolvedValueOnce(consentedCustomer);
+
+			renderWithProviders(
+				<EditCustomerModal open={true} customer={consentedCustomer} onClose={mockOnClose} onSuccess={mockOnSuccess} />
+			);
+
+			expect(screen.getByRole('checkbox', { name: /agrees to receive whatsapp updates/i })).toBeChecked();
+			expect(screen.getByText(/last changed on/i)).toBeInTheDocument();
+
+			fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+			await waitFor(() => {
+				expect(api.updateCustomer).toHaveBeenCalledWith(
+					expect.objectContaining({ id: 'cust-1', whatsAppConsent: true })
+				);
+			});
+		});
+
+		it('sends the withdrawal when the consent box is unticked', async () => {
+			const consentedCustomer: api.CustomerDto = { ...mockCustomer, whatsAppConsent: true };
+			vi.mocked(api.updateCustomer).mockResolvedValueOnce({ ...consentedCustomer, whatsAppConsent: false });
+
+			renderWithProviders(
+				<EditCustomerModal open={true} customer={consentedCustomer} onClose={mockOnClose} onSuccess={mockOnSuccess} />
+			);
+
+			fireEvent.click(screen.getByRole('checkbox', { name: /agrees to receive whatsapp updates/i }));
+			fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+			await waitFor(() => {
+				expect(api.updateCustomer).toHaveBeenCalledWith(
+					expect.objectContaining({ id: 'cust-1', whatsAppConsent: false })
+				);
 			});
 		});
 

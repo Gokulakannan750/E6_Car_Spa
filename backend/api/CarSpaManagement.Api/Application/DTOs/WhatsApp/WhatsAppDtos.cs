@@ -18,7 +18,8 @@ public record WhatsAppConfigResponse(
 	DateTime? LastSuccessAtUtc = null,
 	DateTime? LastFailureAtUtc = null,
 	string? LastErrorMessage = null,
-	string? MetaAppId = null
+	string? MetaAppId = null,
+	bool RequireCustomerConsent = false
 );
 
 public record WhatsAppHealthDto(
@@ -45,7 +46,27 @@ public record UpdateWhatsAppConfigRequest
 	public string? PaymentCompletedTemplateLanguage { get; init; }
 	/// <summary>Null leaves the saved value unchanged; an empty string clears it.</summary>
 	public string? MetaAppId { get; init; }
+	/// <summary>
+	/// When true, automatic messages go only to customers with recorded WhatsApp consent.
+	/// Null leaves the saved value unchanged.
+	/// </summary>
+	public bool? RequireCustomerConsent { get; init; }
 }
+
+/// <summary>Message counts for one calendar month (UTC), derived from the message records.</summary>
+public record WhatsAppUsageMonthDto(
+	int Year,
+	int Month,
+	int Total,
+	int Sent,
+	int Failed,
+	int Skipped,
+	int Pending,
+	int InvoiceMessagesSent,
+	int PaymentMessagesSent
+);
+
+public record WhatsAppUsageResponse(IReadOnlyList<WhatsAppUsageMonthDto> Months);
 
 public record TestWhatsAppConnectionRequest(
 	string? PhoneNumberId = null,

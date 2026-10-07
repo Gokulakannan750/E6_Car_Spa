@@ -11,6 +11,7 @@ import {
 	type CustomerDto,
 	ApiError,
 } from '../../lib/api';
+import { WhatsAppConsentCheckbox } from './WhatsAppConsentCheckbox';
 
 interface CreateCustomerModalProps {
 	open: boolean;
@@ -24,6 +25,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 	const [phoneNumber, setPhoneNumber] = useState('');
 	const [email, setEmail] = useState('');
 	const [address, setAddress] = useState('');
+	const [whatsAppConsent, setWhatsAppConsent] = useState(false);
 
 	// Optional vehicle fields
 	const [showVehicleSection, setShowVehicleSection] = useState(false);
@@ -55,6 +57,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 		setPhoneNumber('');
 		setEmail('');
 		setAddress('');
+		setWhatsAppConsent(false);
 		setShowVehicleSection(false);
 		setRegNumber('');
 		setMake('');
@@ -134,6 +137,7 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 				phoneNumber: trimmedPhone,
 				email: trimmedEmail || null,
 				address: trimmedAddress || null,
+				whatsAppConsent,
 			});
 
 			// 2. If vehicle details entered, create vehicle
@@ -384,6 +388,10 @@ export function CreateCustomerModal({ open, onClose, onSuccess }: CreateCustomer
 								/>
 								<MapPin className="w-4 h-4 text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2" />
 							</div>
+						</div>
+
+						<div className="sm:col-span-2">
+							<WhatsAppConsentCheckbox checked={whatsAppConsent} onChange={setWhatsAppConsent} />
 						</div>
 					</div>
 				</div>

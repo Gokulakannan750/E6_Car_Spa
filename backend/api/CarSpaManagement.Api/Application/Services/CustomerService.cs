@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.DTOs.Customers;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Constants;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
@@ -127,7 +128,9 @@ public class CustomerService : ICustomerService
 			x.TotalInvoicedAmount,
 			x.TotalPaidAmount,
 			x.TotalOutstandingAmount,
-			CalculatePaymentStatus(x.InvoiceCount, x.TotalOutstandingAmount, x.HasUnpaidInvoice)
+			CalculatePaymentStatus(x.InvoiceCount, x.TotalOutstandingAmount, x.HasUnpaidInvoice),
+			x.Customer.WhatsAppConsent,
+			x.Customer.WhatsAppConsentUpdatedAtUtc
 		)).ToList();
 	}
 
@@ -220,11 +223,13 @@ public class CustomerService : ICustomerService
 			c.TotalInvoicedAmount,
 			c.TotalPaidAmount,
 			c.TotalOutstandingAmount,
-			CalculatePaymentStatus(c.InvoiceCount, c.TotalOutstandingAmount, c.HasUnpaidInvoice)
+			CalculatePaymentStatus(c.InvoiceCount, c.TotalOutstandingAmount, c.HasUnpaidInvoice),
+			c.Customer.WhatsAppConsent,
+			c.Customer.WhatsAppConsentUpdatedAtUtc
 		));
 	}
 
-	public async Task<CustomerDto> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default)
+	public async Task<CustomerDto> CreateAsync(CreateCustomerRequest request, CancellationToken cancellationToken = default, Guid? actingUserId = null)
 	{
 		var customer = new Customer
 		{
@@ -233,6 +238,14 @@ public class CustomerService : ICustomerService
 			Email = request.Email?.Trim(),
 			Address = request.Address?.Trim()
 		};
+
+		var consentGiven = request.WhatsAppConsent == true;
+		if (consentGiven)
+		{
+			customer.WhatsAppConsent = true;
+			customer.WhatsAppConsentUpdatedAtUtc = DateTime.UtcNow;
+			customer.WhatsAppConsentUpdatedByUserId = actingUserId;
+		}
 
 		await _db.Customers.AddAsync(customer, cancellationToken);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -247,19 +260,35 @@ public class CustomerService : ICustomerService
 			outcome: "Success",
 			cancellationToken: cancellationToken);
 
-		return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0);
+		if (consentGiven)
+		{
+			await RecordConsentChangeAsync(customer, previousConsent: false, actingUserId, cancellationToken);
+		}
+
+		return new CustomerDto(customer.Id, customer.Name, customer.PhoneNumber, customer.Email, customer.Address, customer.CreatedAt, 0, 0, 0,
+			WhatsAppConsent: customer.WhatsAppConsent, WhatsAppConsentUpdatedAtUtc: customer.WhatsAppConsentUpdatedAtUtc);
 	}
 
-	public async Task<CustomerDto?> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default)
+	public async Task<CustomerDto?> UpdateAsync(Guid id, UpdateCustomerRequest request, CancellationToken cancellationToken = default, Guid? actingUserId = null)
 	{
 		var customer = await _db.Customers.FindAsync([id], cancellationToken);
 		if (customer is null) return null;
+
+		var previousConsent = customer.WhatsAppConsent;
+		var consentChanged = request.WhatsAppConsent.HasValue && request.WhatsAppConsent.Value != previousConsent;
 
 		customer.Name = request.Name.Trim();
 		customer.PhoneNumber = request.PhoneNumber.Trim();
 		customer.Email = request.Email?.Trim();
 		customer.Address = request.Address?.Trim();
 		customer.UpdatedAt = DateTime.UtcNow;
+
+		if (consentChanged)
+		{
+			customer.WhatsAppConsent = request.WhatsAppConsent!.Value;
+			customer.WhatsAppConsentUpdatedAtUtc = DateTime.UtcNow;
+			customer.WhatsAppConsentUpdatedByUserId = actingUserId;
+		}
 
 		await _db.SaveChangesAsync(cancellationToken);
 
@@ -273,7 +302,31 @@ public class CustomerService : ICustomerService
 			outcome: "Success",
 			cancellationToken: cancellationToken);
 
+		if (consentChanged)
+		{
+			await RecordConsentChangeAsync(customer, previousConsent, actingUserId, cancellationToken);
+		}
+
 		return await GetByIdAsync(id, cancellationToken);
+	}
+
+	/// <summary>Writes a dedicated audit entry for every WhatsApp consent change: who, when, old and new value.</summary>
+	private Task RecordConsentChangeAsync(Customer customer, bool previousConsent, Guid? actingUserId, CancellationToken cancellationToken)
+	{
+		return _auditLogService.RecordAsync(
+			action: AuditActions.CustomerWhatsAppConsentChanged,
+			module: AuditModules.Customers,
+			description: customer.WhatsAppConsent
+				? $"WhatsApp consent recorded for customer '{customer.Name}'."
+				: $"WhatsApp consent withdrawn for customer '{customer.Name}'.",
+			entityType: "Customer",
+			entityId: customer.Id,
+			entityReference: customer.Name,
+			userId: actingUserId,
+			oldValues: System.Text.Json.JsonSerializer.Serialize(new { whatsAppConsent = previousConsent }),
+			newValues: System.Text.Json.JsonSerializer.Serialize(new { whatsAppConsent = customer.WhatsAppConsent, changedAtUtc = customer.WhatsAppConsentUpdatedAtUtc }),
+			outcome: "Success",
+			cancellationToken: cancellationToken);
 	}
 
 	public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)

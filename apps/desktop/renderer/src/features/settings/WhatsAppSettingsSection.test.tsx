@@ -12,6 +12,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		updateWhatsAppConfig: vi.fn(),
 		testWhatsAppConnection: vi.fn(),
 		getWhatsAppTemplates: vi.fn(),
+		getWhatsAppUsage: vi.fn(),
 		sendTestWhatsAppMessage: vi.fn(),
 	};
 });
@@ -70,6 +71,7 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(api.getWhatsAppConfig).mockResolvedValue(mockConfig);
+		vi.mocked(api.getWhatsAppUsage).mockResolvedValue({ months: [] });
 		vi.mocked(api.getWhatsAppTemplates).mockResolvedValue({
 			isSuccess: true,
 			templates: mockTemplates,
@@ -148,6 +150,36 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 			);
 			expect(screen.getByText('WhatsApp settings saved successfully.')).toBeInTheDocument();
 		});
+	});
+
+	it('keeps customer consent off by default and saves it when the switch is turned on', async () => {
+		renderWithProviders(<WhatsAppSettingsSection canManage={true} />);
+
+		await waitFor(() => {
+			expect(screen.getByDisplayValue('109876543210987')).toBeInTheDocument();
+		});
+
+		const consentSwitch = screen.getByRole('checkbox', { name: /require customer consent/i });
+		expect(consentSwitch).not.toBeChecked();
+
+		fireEvent.click(consentSwitch);
+		fireEvent.click(screen.getByRole('button', { name: /save whatsapp settings/i }));
+
+		await waitFor(() => {
+			expect(api.updateWhatsAppConfig).toHaveBeenCalledWith(
+				expect.objectContaining({ requireCustomerConsent: true })
+			);
+		});
+	});
+
+	it('shows the saved consent requirement and disables the switch without manage permission', async () => {
+		vi.mocked(api.getWhatsAppConfig).mockResolvedValue({ ...mockConfig, requireCustomerConsent: true });
+
+		renderWithProviders(<WhatsAppSettingsSection canManage={false} />);
+
+		const consentSwitch = await screen.findByRole('checkbox', { name: /require customer consent/i });
+		expect(consentSwitch).toBeChecked();
+		expect(consentSwitch).toBeDisabled();
 	});
 
 	it('loads and saves the Meta App ID used for the standard templates', async () => {

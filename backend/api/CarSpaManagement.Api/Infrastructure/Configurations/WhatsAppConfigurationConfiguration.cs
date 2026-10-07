@@ -52,6 +52,10 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 			.HasDefaultValue(true)
 			.IsRequired();
 
+		builder.Property(c => c.RequireCustomerConsent)
+			.HasDefaultValue(false)
+			.IsRequired();
+
 		builder.Property(c => c.InvoiceTemplateName)
 			.HasMaxLength(100)
 			.HasDefaultValue("e6_carspa_invoice_generated")

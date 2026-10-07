@@ -17,7 +17,9 @@ public record CustomerDto(
 	decimal TotalInvoicedAmount = 0m,
 	decimal TotalPaidAmount = 0m,
 	decimal TotalOutstandingAmount = 0m,
-	string PaymentStatus = "No Invoices"
+	string PaymentStatus = "No Invoices",
+	bool WhatsAppConsent = false,
+	DateTime? WhatsAppConsentUpdatedAtUtc = null
 );
 
 public record CreateCustomerRequest
@@ -26,6 +28,8 @@ public record CreateCustomerRequest
  [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string PhoneNumber { get; init; } = string.Empty;
  [EmailAddress, MaxLength(100)] public string? Email { get; init; }
  [MaxLength(500)] public string? Address { get; init; }
+ /// <summary>The customer agreed to automatic WhatsApp updates. Null is treated as not recorded.</summary>
+ public bool? WhatsAppConsent { get; init; }
 }
 
 public record UpdateCustomerRequest
@@ -34,6 +38,8 @@ public record UpdateCustomerRequest
  [Required, RegularExpression(@"^\d{10}$", ErrorMessage = "Phone number must be exactly 10 digits without country code."), MaxLength(10)] public string PhoneNumber { get; init; } = string.Empty;
  [EmailAddress, MaxLength(100)] public string? Email { get; init; }
  [MaxLength(500)] public string? Address { get; init; }
+ /// <summary>Null leaves the recorded consent unchanged; true or false records a change.</summary>
+ public bool? WhatsAppConsent { get; init; }
 }
 
 public record CustomerListResponse(IReadOnlyList<CustomerDto> Items, int TotalCount, int Page, int PageSize);
