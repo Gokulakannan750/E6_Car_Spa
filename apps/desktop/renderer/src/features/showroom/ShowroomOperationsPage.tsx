@@ -120,10 +120,10 @@ export function ShowroomOperationsPage() {
 	const { isOwner, hasPermission } = useAuth();
 
 	// Granular Permissions
-	const canManage = Boolean(
-		isOwner ||
-		hasPermission('showroom.manage')
-	);
+	// Each action is gated by the permission the API enforces for it.
+	const canRecordWork = Boolean(isOwner || hasPermission('showroom.record_work'));
+	const canEditWork = Boolean(isOwner || hasPermission('showroom.edit_work'));
+	const canManageSessions = Boolean(isOwner || hasPermission('showroom.manage_transfers'));
 	// Read selected showroom, date, and active tab from URL query parameters
 	const activeShowroomId = searchParams.get('showroomId') || '';
 	const urlDate = searchParams.get('date');
@@ -1003,7 +1003,7 @@ export function ShowroomOperationsPage() {
 						Daily Bill
 					</Button>
 
-					{canManage && (
+					{canRecordWork && (
 						<Button
 							variant="primary"
 							size="sm"
@@ -1252,7 +1252,7 @@ export function ShowroomOperationsPage() {
 							)}
 						</div>
 
-						{canManage && (
+						{canRecordWork && (
 							<Button
 								variant="primary"
 								size="sm"
@@ -1276,13 +1276,13 @@ export function ShowroomOperationsPage() {
 										<th>Vehicles</th>
 										<th>Work Types</th>
 										<th>Notes</th>
-										{canManage && <th className="text-right">Actions</th>}
+										{canEditWork && <th className="text-right">Actions</th>}
 									</tr>
 								</thead>
 								<tbody>
 									{vehicleWorksLoading && (
 										<tr>
-											<td colSpan={canManage ? 7 : 6} className="py-12 text-center text-xs text-on-surface-variant">
+											<td colSpan={canEditWork ? 7 : 6} className="py-12 text-center text-xs text-on-surface-variant">
 												Loading vehicle work records...
 											</td>
 										</tr>
@@ -1290,7 +1290,7 @@ export function ShowroomOperationsPage() {
 
 									{!vehicleWorksLoading && filteredVehicleWorks.length === 0 && (
 										<tr>
-											<td colSpan={canManage ? 7 : 6} className="py-16 text-center">
+											<td colSpan={canEditWork ? 7 : 6} className="py-16 text-center">
 												<div className="max-w-xs mx-auto text-center space-y-3">
 													<Car className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
 													<div>
@@ -1301,7 +1301,7 @@ export function ShowroomOperationsPage() {
 																: 'No vehicle work has been recorded for this showroom on this date.'}
 														</p>
 													</div>
-													{canManage && (
+													{canRecordWork && (
 														<Button
 															variant="secondary"
 															size="sm"
@@ -1381,7 +1381,7 @@ export function ShowroomOperationsPage() {
 												</td>
 
 												{/* ACTIONS */}
-												{canManage && (
+												{canEditWork && (
 													<td className="text-right">
 														<Button
 															variant="ghost"
@@ -1427,13 +1427,13 @@ export function ShowroomOperationsPage() {
 										<th>Time Range</th>
 										<th>Vehicle Works</th>
 										<th>Transfer / Notes</th>
-										{canManage && <th className="text-right">Actions</th>}
+										{canManageSessions && <th className="text-right">Actions</th>}
 									</tr>
 								</thead>
 								<tbody>
 									{workSessionsLoading && (
 										<tr>
-											<td colSpan={canManage ? 8 : 7} className="py-12 text-center text-xs text-on-surface-variant">
+											<td colSpan={canManageSessions ? 8 : 7} className="py-12 text-center text-xs text-on-surface-variant">
 												Loading staff work sessions...
 											</td>
 										</tr>
@@ -1441,7 +1441,7 @@ export function ShowroomOperationsPage() {
 
 									{!workSessionsLoading && workSessions.length === 0 && (
 										<tr>
-											<td colSpan={canManage ? 8 : 7} className="py-16 text-center">
+											<td colSpan={canManageSessions ? 8 : 7} className="py-16 text-center">
 												<div className="max-w-xs mx-auto text-center space-y-3">
 													<Users className="w-8 h-8 text-on-surface-variant/40 mx-auto" />
 													<div>
@@ -1532,7 +1532,7 @@ export function ShowroomOperationsPage() {
 													</td>
 
 													{/* ACTIONS */}
-													{canManage && (
+													{canManageSessions && (
 														<td className="text-right">
 															<div className="flex items-center justify-end gap-1">
 																{!isClosed && (

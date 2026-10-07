@@ -1275,4 +1275,66 @@ describe('ShowroomOperationsPage', () => {
 		expect(within(staffSelect).queryByRole('option', { name: /On Leave Staff/i })).not.toBeInTheDocument();
 		expect(within(staffSelect).queryByRole('option', { name: /Absent Staff/i })).not.toBeInTheDocument();
 	});
+
+	// ── 30–33. Each action is gated by the permission the API enforces for it ─────────
+	function renderOperationsAs(permissions: string[], initialRoute: string) {
+		return renderWithProviders(
+			<Routes>
+				<Route path="/showroom/operations" element={<ShowroomOperationsPage />} />
+			</Routes>,
+			{
+				initialEntries: [initialRoute],
+				authUser: {
+					id: 'usr-staff-1',
+					fullName: 'Scoped User',
+					username: 'scoped',
+					role: 'Manager' as const,
+					isOwner: false,
+					permissions,
+				},
+			}
+		);
+	}
+
+	const OPERATIONS_ROUTE = '/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-25';
+
+	it('30. record_work alone shows Log Vehicle Work but not the row Edit action', async () => {
+		renderOperationsAs(['showroom.view', 'showroom.record_work'], OPERATIONS_ROUTE);
+
+		await screen.findByText('Gokul Kannan');
+		expect(screen.getAllByRole('button', { name: /Log Vehicle Work/i }).length).toBeGreaterThanOrEqual(1);
+		expect(screen.queryByTitle('Edit Vehicle Work')).not.toBeInTheDocument();
+	});
+
+	it('31. edit_work alone shows the row Edit action but not Log Vehicle Work', async () => {
+		renderOperationsAs(['showroom.view', 'showroom.edit_work'], OPERATIONS_ROUTE);
+
+		await screen.findByText('Gokul Kannan');
+		expect(screen.getByTitle('Edit Vehicle Work')).toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /Log Vehicle Work/i })).not.toBeInTheDocument();
+	});
+
+	it('32. showroom.manage without record_work or edit_work cannot log or edit vehicle work', async () => {
+		renderOperationsAs(['showroom.view', 'showroom.manage'], OPERATIONS_ROUTE);
+
+		await screen.findByText('Gokul Kannan');
+		expect(screen.queryByRole('button', { name: /Log Vehicle Work/i })).not.toBeInTheDocument();
+		expect(screen.queryByTitle('Edit Vehicle Work')).not.toBeInTheDocument();
+	});
+
+	it('33. session Close and Edit actions need manage_transfers', async () => {
+		const withoutTransfers = renderOperationsAs(['showroom.view', 'showroom.record_work'], OPERATIONS_ROUTE);
+		await screen.findByText('Popular Hyundai');
+		fireEvent.click(screen.getByRole('button', { name: /Staff Work Sessions/i }));
+		expect(await screen.findByText('Daily Staff Work Sessions')).toBeInTheDocument();
+		expect(screen.queryByTitle('Close Session')).not.toBeInTheDocument();
+		expect(screen.queryByTitle('Edit Session')).not.toBeInTheDocument();
+		withoutTransfers.unmount();
+
+		renderOperationsAs(['showroom.view', 'showroom.manage_transfers'], OPERATIONS_ROUTE);
+		await screen.findByText('Popular Hyundai');
+		fireEvent.click(screen.getByRole('button', { name: /Staff Work Sessions/i }));
+		expect(await screen.findByTitle('Close Session')).toBeInTheDocument();
+		expect(screen.getByTitle('Edit Session')).toBeInTheDocument();
+	});
 });

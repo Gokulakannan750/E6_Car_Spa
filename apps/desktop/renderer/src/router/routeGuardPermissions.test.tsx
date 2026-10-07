@@ -361,14 +361,14 @@ describe('RBAC Phase 2D: Permission Consistency & Route Guard Verification', () 
 
 	// ── 5. Showroom Operations: Canonical Permission showroom.manage ─────────
 	describe('5. Showroom Operations Permission (showroom.manage vs showrooms.manage)', () => {
-		it('enables management controls when user has canonical showroom.manage', async () => {
+		it('enables Log Vehicle Work when user has canonical showroom.record_work (the permission the API enforces)', async () => {
 			const user = {
 				id: 'u-sh-mgr',
 				fullName: 'Showroom Manager',
 				username: 'sh_mgr',
 				role: 'Staff' as const,
 				isOwner: false,
-				permissions: ['showroom.view', 'showroom.manage'],
+				permissions: ['showroom.view', 'showroom.record_work'],
 			};
 
 			renderWithProviders(
@@ -382,7 +382,7 @@ describe('RBAC Phase 2D: Permission Consistency & Route Guard Verification', () 
 				expect(screen.getByText('Popular Hyundai')).toBeInTheDocument();
 			});
 
-			// "Log Vehicle Work" button is present for managers
+			// "Log Vehicle Work" is shown to users who can record work (POST /vehicle-works needs showroom.record_work)
 			expect(screen.getAllByRole('button', { name: /log vehicle work/i }).length).toBeGreaterThan(0);
 		});
 

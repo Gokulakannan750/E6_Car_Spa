@@ -250,7 +250,7 @@ public class MonthlyShowroomReportTests
     {
         using var db = CreateInMemoryDb();
         var service = new ReportService(db);
-        var controller = new ReportsController(service);
+        var controller = new ReportsController(service, new CarSpaManagement.Api.Tests.TestSupport.AllowAllAuthorizationService());
 
         // Invalid month 13
         var badMonthResult = await controller.GetMonthlyShowroomReport(2026, 13);

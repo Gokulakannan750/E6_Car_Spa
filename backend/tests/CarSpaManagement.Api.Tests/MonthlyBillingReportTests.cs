@@ -566,7 +566,7 @@ public class MonthlyBillingReportTests
     {
         using var db = CreateInMemoryDb();
         var service = new ReportService(db);
-        var controller = new ReportsController(service);
+        var controller = new ReportsController(service, new CarSpaManagement.Api.Tests.TestSupport.AllowAllAuthorizationService());
 
         // Valid query
         var result = await controller.GetMonthlyBillingReport(2026, 10);

@@ -153,10 +153,12 @@ void main() {
           toDate: DateTime(2026, 9, 9),
         );
 
-        expect(result.sales.grossSubtotal, 50000.0);
+        expect(result.sales, isNotNull);
+        expect(result.sales!.grossSubtotal, 50000.0);
         expect(result.jobCardKpis.totalJobCards, 20);
         expect(result.vehicleActivity.uniqueVehiclesServiced, 15);
-        expect(result.outstanding.totalOutstandingCombined, 23820.0);
+        expect(result.outstanding, isNotNull);
+        expect(result.outstanding!.totalOutstandingCombined, 23820.0);
       },
     );
 
