@@ -174,7 +174,7 @@ public class ShowroomsController : ControllerBase
 
     [HttpPost("{id:guid}/daily-staff/{date}/unlock")]
     [HttpPost("{id:guid}/daily-staff/unlock")]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UnlockAttendance(Guid id, [FromRoute] string? date, [FromQuery(Name = "date")] string? queryDate, CancellationToken ct)
     {
         var (userId, isOwner) = await GetCallerInfoAsync(ct);

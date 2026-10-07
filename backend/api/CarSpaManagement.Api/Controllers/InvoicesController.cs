@@ -217,7 +217,7 @@ public class InvoicesController : ControllerBase
 
 	/// <summary>Owner only: replace the number of a fully paid GST invoice with a number of their choosing.</summary>
 	[HttpPut("{id:guid}/invoice-number")]
-	[Authorize]
+	[Authorize(Roles = "Owner")]
 	public async Task<IActionResult> UpdateInvoiceNumber(Guid id, [FromBody] UpdateInvoiceNumberRequest request, CancellationToken ct)
 	{
 		try

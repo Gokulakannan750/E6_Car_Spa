@@ -241,7 +241,7 @@ public class StaffAttendanceController : ControllerBase
     }
 
     [HttpPost("unlock")]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UnlockAttendance([FromQuery] string? date, CancellationToken ct)
     {
         var (userId, isOwner) = await GetCallerInfoAsync(ct);

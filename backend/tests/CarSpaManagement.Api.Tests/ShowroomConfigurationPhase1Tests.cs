@@ -75,8 +75,23 @@ public class ShowroomConfigurationPhase1Tests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
 
-    private static void SetCaller(ControllerBase controller, Guid userId, string role, bool isOwner)
+    private static void SetCaller(ControllerBase controller, Guid userId, string role, bool isOwner, AppDbContext? db = null)
     {
+        if (db != null)
+        {
+            var user = new User
+            {
+                Id = userId,
+                FullName = $"Test {role}",
+                Username = $"user_{userId:N}"[..12],
+                Role = isOwner ? UserRole.Owner : (role == "Manager" ? UserRole.Manager : UserRole.Staff),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Users.Add(user);
+            db.SaveChanges();
+        }
+
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -93,8 +108,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var request = new CreateShowroomVehicleTypeRequest
         {
@@ -117,8 +132,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var request = new CreateShowroomVehicleTypeRequest
         {
@@ -140,8 +155,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         var request = new CreateShowroomVehicleTypeRequest
         {
@@ -159,8 +174,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Staff", false);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Staff", false, db);
 
         var request = new CreateShowroomVehicleTypeRequest
         {
@@ -178,8 +193,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var vt = new ShowroomVehicleType
         {
@@ -211,8 +226,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         var vt = new ShowroomVehicleType
         {
@@ -236,8 +251,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var vt = new ShowroomVehicleType
         {
@@ -263,8 +278,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         var vt = new ShowroomVehicleType
         {
@@ -289,8 +304,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomWorkTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomWorkTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var request = new CreateShowroomWorkTypeRequest
         {
@@ -312,8 +327,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomWorkTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomWorkTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         var request = new CreateShowroomWorkTypeRequest
         {
@@ -331,8 +346,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomWorkTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomWorkTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var wt = new ShowroomWorkType
         {
@@ -357,8 +372,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomWorkTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomWorkTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         var wt = new ShowroomWorkType
         {
@@ -381,8 +396,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomWorkTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomWorkTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         var wt = new ShowroomWorkType
         {
@@ -409,8 +424,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Manager", false);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Manager", false, db);
 
         await db.ShowroomVehicleTypes.AddRangeAsync(
             new ShowroomVehicleType { Id = Guid.NewGuid(), Code = "SEDAN", Name = "Sedan", IsActive = true, CreatedAt = DateTime.UtcNow },
@@ -431,8 +446,8 @@ public class ShowroomConfigurationPhase1Tests
     {
         var db = CreateDb();
         var opsService = new ShowroomOperationsService(db, new DummyAuditLogService());
-        var controller = new ShowroomVehicleTypesController(opsService);
-        SetCaller(controller, Guid.NewGuid(), "Owner", true);
+        var controller = new ShowroomVehicleTypesController(opsService, db);
+        SetCaller(controller, Guid.NewGuid(), "Owner", true, db);
 
         await db.ShowroomVehicleTypes.AddRangeAsync(
             new ShowroomVehicleType { Id = Guid.NewGuid(), Code = "SEDAN", Name = "Sedan", IsActive = true, CreatedAt = DateTime.UtcNow },

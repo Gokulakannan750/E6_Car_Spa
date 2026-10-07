@@ -8,7 +8,7 @@ using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 using JCard = CarSpaManagement.Api.Domain.Entities.JobCard;
 using JCardSvc = CarSpaManagement.Api.Domain.Entities.JobCardService;
 
@@ -354,6 +354,60 @@ public class JobCardService : IJobCardService
 		await _db.Entry(jobCard).Reference(j => j.Customer).LoadAsync(cancellationToken);
 		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
 
+		var priceOverrides = combined
+			.Where(item => item.UnitPrice != serviceMap[item.ServiceId].Price)
+			.Select(item => new
+			{
+				serviceId = item.ServiceId,
+				serviceName = serviceMap[item.ServiceId].Name,
+				cataloguePrice = serviceMap[item.ServiceId].Price,
+				overriddenPrice = item.UnitPrice,
+				priceDifference = item.UnitPrice - serviceMap[item.ServiceId].Price,
+				quantity = item.Quantity
+			})
+			.ToList();
+
+		var lineDiscounts = combined
+			.Where(item => item.DiscountAmount > 0)
+			.Select(item => new
+			{
+				serviceId = item.ServiceId,
+				serviceName = serviceMap[item.ServiceId].Name,
+				discountAmount = item.DiscountAmount,
+				cataloguePrice = serviceMap[item.ServiceId].Price,
+				unitPrice = item.UnitPrice,
+				quantity = item.Quantity
+			})
+			.ToList();
+
+		var servicesPayload = combined.Select(item => new
+		{
+			serviceId = item.ServiceId,
+			serviceName = serviceMap[item.ServiceId].Name,
+			quantity = item.Quantity,
+			unitPrice = item.UnitPrice,
+			discountAmount = item.DiscountAmount,
+			cataloguePrice = serviceMap[item.ServiceId].Price,
+			isPriceOverridden = item.UnitPrice != serviceMap[item.ServiceId].Price
+		}).ToList();
+
+		var newValuesObj = new
+		{
+			jobCardId = jobCard.Id,
+			jobCardNumber = jobCard.JobCardNumber,
+			customerId = jobCard.CustomerId,
+			vehicleId = jobCard.VehicleId,
+			subtotal = jobCard.Subtotal,
+			taxAmount = jobCard.TaxAmount,
+			discountAmount = jobCard.DiscountAmount,
+			totalAmount = jobCard.TotalAmount,
+			hasPriceOverrides = priceOverrides.Count > 0,
+			priceOverrides,
+			hasLineDiscounts = lineDiscounts.Count > 0,
+			lineDiscounts,
+			services = servicesPayload
+		};
+
 		await _auditLogService.RecordAsync(
 			action: "jobcards.create",
 			module: "JobCards",
@@ -361,6 +415,7 @@ public class JobCardService : IJobCardService
 			entityType: "JobCard",
 			entityId: jobCard.Id,
 			entityReference: jobCard.JobCardNumber,
+			newValues: JsonSerializer.Serialize(newValuesObj),
 			outcome: "Success",
 			cancellationToken: cancellationToken);
 
@@ -476,6 +531,27 @@ public class JobCardService : IJobCardService
 
 		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, canOverridePrice, cancellationToken);
 
+		var existingLines = jobCard.JobCardServices.Select(s => new
+		{
+			serviceId = s.ServiceId,
+			serviceName = s.ServiceName,
+			quantity = s.Quantity,
+			unitPrice = s.UnitPrice,
+			discountAmount = s.DiscountAmount,
+			lineTotal = s.LineTotal
+		}).ToList();
+
+		var oldValuesObj = new
+		{
+			jobCardId = jobCard.Id,
+			jobCardNumber = jobCard.JobCardNumber,
+			subtotal = jobCard.Subtotal,
+			taxAmount = jobCard.TaxAmount,
+			discountAmount = jobCard.DiscountAmount,
+			totalAmount = jobCard.TotalAmount,
+			services = existingLines
+		};
+
 		_db.JobCardServices.RemoveRange(jobCard.JobCardServices);
 
 		var now = DateTime.UtcNow;
@@ -532,6 +608,64 @@ public class JobCardService : IJobCardService
 		await _db.Entry(jobCard).Reference(j => j.Vehicle).LoadAsync(cancellationToken);
 		await _db.Entry(jobCard).Collection(j => j.JobCardServices).LoadAsync(cancellationToken);
 
+		var priceOverrides = combined
+			.Where(item => item.UnitPrice != serviceMap[item.ServiceId].Price)
+			.Select(item => new
+			{
+				serviceId = item.ServiceId,
+				serviceName = serviceMap[item.ServiceId].Name,
+				cataloguePrice = serviceMap[item.ServiceId].Price,
+				overriddenPrice = item.UnitPrice,
+				priceDifference = item.UnitPrice - serviceMap[item.ServiceId].Price,
+				quantity = item.Quantity
+			})
+			.ToList();
+
+		var lineDiscounts = combined
+			.Where(item => item.DiscountAmount > 0)
+			.Select(item => new
+			{
+				serviceId = item.ServiceId,
+				serviceName = serviceMap[item.ServiceId].Name,
+				discountAmount = item.DiscountAmount,
+				cataloguePrice = serviceMap[item.ServiceId].Price,
+				unitPrice = item.UnitPrice,
+				quantity = item.Quantity
+			})
+			.ToList();
+
+		var newServicesPayload = combined.Select(item =>
+		{
+			var svc = serviceMap[item.ServiceId];
+			var oldLine = existingLines.FirstOrDefault(o => o.serviceId == item.ServiceId);
+			return new
+			{
+				serviceId = item.ServiceId,
+				serviceName = svc.Name,
+				quantity = item.Quantity,
+				unitPrice = item.UnitPrice,
+				discountAmount = item.DiscountAmount,
+				cataloguePrice = svc.Price,
+				oldPrice = oldLine?.unitPrice,
+				isPriceOverridden = item.UnitPrice != svc.Price
+			};
+		}).ToList();
+
+		var newValuesObj = new
+		{
+			jobCardId = jobCard.Id,
+			jobCardNumber = jobCard.JobCardNumber,
+			subtotal = jobCard.Subtotal,
+			taxAmount = jobCard.TaxAmount,
+			discountAmount = jobCard.DiscountAmount,
+			totalAmount = jobCard.TotalAmount,
+			hasPriceOverrides = priceOverrides.Count > 0,
+			priceOverrides,
+			hasLineDiscounts = lineDiscounts.Count > 0,
+			lineDiscounts,
+			services = newServicesPayload
+		};
+
 		await _auditLogService.RecordAsync(
 			action: "jobcards.edit",
 			module: "JobCards",
@@ -539,6 +673,8 @@ public class JobCardService : IJobCardService
 			entityType: "JobCard",
 			entityId: jobCard.Id,
 			entityReference: jobCard.JobCardNumber,
+			oldValues: JsonSerializer.Serialize(oldValuesObj),
+			newValues: JsonSerializer.Serialize(newValuesObj),
 			outcome: "Success",
 			cancellationToken: cancellationToken);
 

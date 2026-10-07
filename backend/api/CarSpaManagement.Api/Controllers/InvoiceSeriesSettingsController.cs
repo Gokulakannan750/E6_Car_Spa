@@ -18,7 +18,7 @@ public class InvoiceSeriesSettingsController(IInvoiceSeriesService service) : Co
 
     /// <summary>Owner only (enforced by the service against the database). Counters cannot be changed.</summary>
     [HttpPut]
-    [Authorize]
+    [Authorize(Roles = "Owner")]
     public async Task<IActionResult> UpdatePrefixes([FromBody] UpdateInvoiceSeriesRequest request, CancellationToken ct)
     {
         try
