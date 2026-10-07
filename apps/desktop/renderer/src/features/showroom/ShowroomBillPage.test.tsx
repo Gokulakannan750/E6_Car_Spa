@@ -695,4 +695,105 @@ describe('ShowroomBillPage Component (Phase 2B-B — Dedicated Showroom Bill)', 
 		expect(screen.getByText('₹1,500.00')).toBeInTheDocument(); // Amount received
 		expect(screen.getAllByText('₹500.00').length).toBeGreaterThanOrEqual(2); // Remaining balance and cash amount
 	});
+
+	it('12. showroom.manage alone does NOT grant billing management; showroom.manage_billing is required (Finding 2E-04)', async () => {
+		// Render with showroom.manage only (without showroom.manage_billing)
+		const { unmount } = renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-manage-only',
+					fullName: 'Manager User',
+					username: 'mgr',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['showroom.view', 'showroom.manage'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+		});
+
+		// Edit Bill button must NOT be present
+		expect(screen.queryByRole('button', { name: /Edit Bill/i })).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: /Set Daily Bill/i })).not.toBeInTheDocument();
+		unmount();
+
+		// Now render with showroom.manage_billing
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-billing-mgr',
+					fullName: 'Billing Manager',
+					username: 'bill_mgr',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['showroom.view', 'showroom.manage_billing'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /Edit Daily Bill/i })).toBeInTheDocument();
+		});
+	});
+
+	it('13. showroom.manage alone does NOT grant payment recording; showroom.record_payment is required (Finding 2E-04)', async () => {
+		// Render with showroom.manage only (without showroom.record_payment)
+		const { unmount } = renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-manage-only',
+					fullName: 'Manager User',
+					username: 'mgr',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['showroom.view', 'showroom.manage'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Popular Hyundai Showroom' })).toBeInTheDocument();
+		});
+
+		// Record Payment button must NOT be present
+		expect(screen.queryByRole('button', { name: /Record Payment/i })).not.toBeInTheDocument();
+		unmount();
+
+		// Now render with showroom.record_payment
+		renderWithProviders(
+			<Routes>
+				<Route path="/showroom/bill" element={<ShowroomBillPage />} />
+			</Routes>,
+			{
+				initialEntries: ['/showroom/bill?showroomId=sr-1&date=2026-09-24'],
+				authUser: {
+					id: 'usr-payment-recorder',
+					fullName: 'Payment Recorder',
+					username: 'pay_rec',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['showroom.view', 'showroom.record_payment'],
+				},
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('button', { name: /Record Payment/i })).toBeInTheDocument();
+		});
+	});
 });

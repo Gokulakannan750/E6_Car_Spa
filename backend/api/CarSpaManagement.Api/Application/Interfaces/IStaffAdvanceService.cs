@@ -12,17 +12,17 @@ public interface IStaffAdvanceService
     Task<StaffAdvanceHistoryDto> GetStaffAdvanceHistoryAsync(Guid staffId, CancellationToken cancellationToken = default);
 
     // Staff directory management
-    Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default);
-    Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default);
-    Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default);
-    Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<StaffDto>> GetStaffAsync(bool canViewAdvances = true, CancellationToken cancellationToken = default);
+    Task<StaffDto?> GetStaffByIdAsync(Guid staffId, bool canViewAdvances = true, CancellationToken cancellationToken = default);
+    Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, bool canViewAdvances = true, CancellationToken cancellationToken = default);
+    Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, bool canViewAdvances = true, CancellationToken cancellationToken = default);
     Task<bool> DeleteStaffMemberAsync(Guid staffId, CancellationToken cancellationToken = default);
 
     // Staff Aadhaar management
     Task<StaffAadhaarRevealDto?> RevealStaffAadhaarAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType, string FileName)?> GetStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
-    Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, Microsoft.AspNetCore.Http.IFormFile file, Guid requestingUserId, CancellationToken cancellationToken = default);
-    Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default);
+    Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, Microsoft.AspNetCore.Http.IFormFile file, Guid requestingUserId, bool canViewAdvances = true, CancellationToken cancellationToken = default);
+    Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, bool canViewAdvances = true, CancellationToken cancellationToken = default);
 
     // Staff Default Showroom management
     Task<CarSpaManagement.Api.Application.DTOs.Showrooms.StaffDefaultShowroomDto?> GetDefaultShowroomAsync(Guid staffId, CancellationToken cancellationToken = default);

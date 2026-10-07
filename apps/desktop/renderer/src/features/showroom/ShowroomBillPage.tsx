@@ -128,8 +128,8 @@ export function ShowroomBillPage() {
 	const { isOwner, hasPermission } = useAuth();
 
 	// Granular Permissions
-	const canManageBilling = Boolean(isOwner || hasPermission('showroom.manage_billing') || hasPermission('showroom.manage'));
-	const canRecordPayment = Boolean(isOwner || hasPermission('showroom.record_payment') || hasPermission('showroom.manage'));
+	const canManageBilling = Boolean(isOwner || hasPermission('showroom.manage_billing'));
+	const canRecordPayment = Boolean(isOwner || hasPermission('showroom.record_payment'));
 	const canDeletePayment = Boolean(isOwner || hasPermission('showroom.delete_payment'));
 	const canViewHistory = Boolean(isOwner || hasPermission('showroom.view_history') || hasPermission('showroom.view'));
 

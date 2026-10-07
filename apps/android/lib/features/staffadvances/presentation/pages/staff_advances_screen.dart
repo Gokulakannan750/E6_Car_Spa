@@ -38,11 +38,12 @@ class _StaffAdvancesScreenState extends ConsumerState<StaffAdvancesScreen>
 
   @override
   void onAutoRefresh() {
-    final canViewAdvances =
-        _hasPermission('staff_advances.view') || _hasPermission('staff.view');
-    if (!canViewAdvances) return;
-    ref.read(staffAdvancesProvider.notifier).loadAdvances(silent: true);
-    ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+    if (_hasPermission('staff_advances.view')) {
+      ref.read(staffAdvancesProvider.notifier).loadAdvances(silent: true);
+    }
+    if (_hasPermission('staff.view')) {
+      ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+    }
   }
 
   @override
@@ -123,10 +124,14 @@ class _StaffAdvancesScreenState extends ConsumerState<StaffAdvancesScreen>
             ),
             tooltip: 'Refresh',
             onPressed: () {
-              ref
-                  .read(staffAdvancesProvider.notifier)
-                  .loadAdvances(refresh: true);
-              ref.read(staffProvider.notifier).loadStaff(refresh: true);
+              if (_hasPermission('staff_advances.view')) {
+                ref
+                    .read(staffAdvancesProvider.notifier)
+                    .loadAdvances(refresh: true);
+              }
+              if (_hasPermission('staff.view')) {
+                ref.read(staffProvider.notifier).loadStaff(refresh: true);
+              }
             },
           ),
           const AppLogoutAction(),

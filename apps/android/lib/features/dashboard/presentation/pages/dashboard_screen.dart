@@ -290,7 +290,12 @@ class DashboardScreen extends ConsumerWidget {
         iconColor: Color(0xFF059669),
         bgColor: Color(0xFFECFDF5),
         route: AppRoutes.staff,
-        requiredPermissions: ['staff.view'],
+        requiredPermissions: [
+          'staff.view',
+          'staff_attendance.view',
+          'staff_advances.view',
+          'staff_salary.view',
+        ],
       ),
       _SuiteAppItem(
         title: 'E6 Showroom',
@@ -299,7 +304,7 @@ class DashboardScreen extends ConsumerWidget {
         iconColor: Color(0xFF4F46E5),
         bgColor: Color(0xFFEEF2FF),
         route: AppRoutes.showroom,
-        requiredPermissions: ['showrooms.view', 'showroom.view'],
+        requiredPermissions: ['showroom.view'],
       ),
       _SuiteAppItem(
         title: 'E6 Reports',

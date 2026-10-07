@@ -12,8 +12,8 @@ public interface IJobCardService
 	Task<int> GetTotalCountAsync(JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
 	Task<IReadOnlyList<JobCardListDto>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default);
 	Task<IReadOnlyList<JobCardListDto>> GetByVehicleIdAsync(Guid vehicleId, int page, int pageSize, CancellationToken cancellationToken = default);
-	Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default);
-	Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default);
-	Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default);
+	Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false);
+	Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false);
+	Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false);
 	Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }

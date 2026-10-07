@@ -369,13 +369,18 @@ public class StaffAdvanceService : IStaffAdvanceService
 
     // ── Staff Directory Management ──────────────────────────────────────────
 
-    public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<StaffDto>> GetStaffAsync(bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var staffList = await _db.Staff
             .Include(s => s.DefaultShowroom)
             .Where(s => !s.IsDeleted)
             .OrderBy(s => s.Name)
             .ToListAsync(cancellationToken);
+
+        if (!canViewAdvances)
+        {
+            return staffList.Select(s => ToStaffDto(s, null, null)).ToList();
+        }
 
         var staffIds = staffList.Select(s => s.Id).ToList();
 
@@ -395,12 +400,17 @@ public class StaffAdvanceService : IStaffAdvanceService
         }).ToList();
     }
 
-    public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, CancellationToken cancellationToken = default)
+    public async Task<StaffDto?> GetStaffByIdAsync(Guid staffId, bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var staff = await _db.Staff
             .Include(s => s.DefaultShowroom)
             .FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
         if (staff is null) return null;
+
+        if (!canViewAdvances)
+        {
+            return ToStaffDto(staff, null, null);
+        }
 
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
@@ -409,7 +419,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
 
-    public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
+    public async Task<StaffDto> CreateStaffMemberAsync(CreateStaffRequest request, bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var normalizedAadhaar = NormalizeAndValidateAadhaar(request.AadhaarNumber, isRequired: true);
         var encryptedAadhaar = _encryptionService.Encrypt(normalizedAadhaar);
@@ -476,10 +486,10 @@ public class StaffAdvanceService : IStaffAdvanceService
                 cancellationToken: cancellationToken);
         }
 
-        return ToStaffDto(staff, 0, 0m);
+        return ToStaffDto(staff, canViewAdvances ? 0 : null, canViewAdvances ? 0m : null);
     }
 
-    public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, CancellationToken cancellationToken = default)
+    public async Task<StaffDto?> UpdateStaffMemberAsync(Guid staffId, UpdateStaffRequest request, bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var staff = await _db.Staff
             .Include(s => s.DefaultShowroom)
@@ -571,6 +581,11 @@ public class StaffAdvanceService : IStaffAdvanceService
             outcome: "Success",
             cancellationToken: cancellationToken);
 
+        if (!canViewAdvances)
+        {
+            return ToStaffDto(staff, null, null);
+        }
+
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
@@ -654,7 +669,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         return (bytes, contentType, fileName);
     }
 
-    public async Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, IFormFile file, Guid requestingUserId, CancellationToken cancellationToken = default)
+    public async Task<StaffDto?> UploadStaffAadhaarDocumentAsync(Guid staffId, IFormFile file, Guid requestingUserId, bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
         if (staff is null) return null;
@@ -690,6 +705,11 @@ public class StaffAdvanceService : IStaffAdvanceService
             outcome: "Success",
             cancellationToken: cancellationToken);
 
+        if (!canViewAdvances)
+        {
+            return ToStaffDto(staff, null, null);
+        }
+
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
@@ -697,7 +717,7 @@ public class StaffAdvanceService : IStaffAdvanceService
         return ToStaffDto(staff, totalAdvances, Math.Round(totalAmount, 2));
     }
 
-    public async Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, CancellationToken cancellationToken = default)
+    public async Task<StaffDto?> DeleteStaffAadhaarDocumentAsync(Guid staffId, Guid requestingUserId, bool canViewAdvances = true, CancellationToken cancellationToken = default)
     {
         var staff = await _db.Staff.FirstOrDefaultAsync(s => s.Id == staffId && !s.IsDeleted, cancellationToken);
         if (staff is null) return null;
@@ -721,6 +741,11 @@ public class StaffAdvanceService : IStaffAdvanceService
             outcome: "Success",
             cancellationToken: cancellationToken);
 
+        if (!canViewAdvances)
+        {
+            return ToStaffDto(staff, null, null);
+        }
+
         var advancesQuery = _db.StaffAdvances.Where(a => a.StaffId == staffId && !a.IsDeleted && a.Status == StaffAdvanceStatus.Outstanding);
         var totalAdvances = await advancesQuery.CountAsync(cancellationToken);
         var totalAmount = await advancesQuery.SumAsync(a => (decimal?)(a.BalanceAmount ?? a.Amount), cancellationToken) ?? 0m;
@@ -730,7 +755,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
     // ── Helper ──────────────────────────────────────────────────────────────
 
-    private StaffDto ToStaffDto(Staff s, int totalAdvances, decimal totalAmount)
+    private StaffDto ToStaffDto(Staff s, int? totalAdvances, decimal? totalAmount)
     {
         string? masked = null;
         if (!string.IsNullOrWhiteSpace(s.AadhaarNumberEncrypted))

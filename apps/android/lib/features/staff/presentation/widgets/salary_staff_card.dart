@@ -44,14 +44,10 @@ class SalaryStaffCard extends ConsumerWidget {
     final user = authState is Authenticated ? authState.user : null;
     final canManageSalary =
         user?.isOwner == true ||
-        (user?.permissions.contains('staff_salary.manage') ?? false) ||
-        (user?.permissions.contains('staff.edit') ?? false) ||
-        (user?.permissions.contains('staff.manage') ?? false);
+        (user?.permissions.contains('staff_salary.manage') ?? false);
     final canSettleSalary =
         user?.isOwner == true ||
-        (user?.permissions.contains('staff_salary.settle') ?? false) ||
-        (user?.permissions.contains('staff.edit') ?? false) ||
-        (user?.permissions.contains('staff.manage') ?? false);
+        (user?.permissions.contains('staff_salary.settle') ?? false);
 
     final isSettled = item.isSettled;
     final isReady = item.isReady;

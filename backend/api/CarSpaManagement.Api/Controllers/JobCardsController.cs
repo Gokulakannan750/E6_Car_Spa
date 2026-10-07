@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.JobCards;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
@@ -99,7 +100,12 @@ public class JobCardsController : ControllerBase
 
 		try
 		{
-			return Ok(await _service.PreviewAsync(request, ct));
+			var canOverridePrice = (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.price_override")).Succeeded;
+			return Ok(await _service.PreviewAsync(request, ct, canOverridePrice));
+		}
+		catch (ForbiddenException ex)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
 		}
 		catch (KeyNotFoundException ex)
 		{
@@ -132,8 +138,13 @@ public class JobCardsController : ControllerBase
 
 		try
 		{
-			var dto = await _service.CreateAsync(request, ct);
+			var canOverridePrice = (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.price_override")).Succeeded;
+			var dto = await _service.CreateAsync(request, ct, canOverridePrice);
 			return CreatedAtAction(nameof(Get), new { id = dto.Id }, dto);
+		}
+		catch (ForbiddenException ex)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
 		}
 		catch (DbUpdateException ex)
 		{
@@ -158,9 +169,14 @@ public class JobCardsController : ControllerBase
 
 		try
 		{
-			var dto = await _service.UpdateServicesAsync(id, request, ct);
+			var canOverridePrice = (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.price_override")).Succeeded;
+			var dto = await _service.UpdateServicesAsync(id, request, ct, canOverridePrice);
 			if (dto is null) return NotFound();
 			return Ok(dto);
+		}
+		catch (ForbiddenException ex)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
 		}
 		catch (CarSpaManagement.Api.Application.Common.ConflictException ex)
 		{

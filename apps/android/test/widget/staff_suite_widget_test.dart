@@ -332,7 +332,7 @@ void main() {
     });
 
     testWidgets(
-      'user without staff_advances.view receives restricted access on Staff Advances tab',
+      '2E-05: user with staff.view only can access Directory tab; other tabs hidden',
       (tester) async {
         const staffOnlyUser = AuthUser(
           id: 'user-3',
@@ -344,18 +344,107 @@ void main() {
         );
 
         await tester.pumpWidget(
-          createTestWidget(initialTabIndex: 2, user: staffOnlyUser),
+          createTestWidget(initialTabIndex: 0, user: staffOnlyUser),
         );
         await tester.pumpAndSettle();
 
-        // Staff Advances tab shows access restricted for staff_advances.view
-        expect(find.text('Access Restricted'), findsOneWidget);
-        expect(find.textContaining('staff_advances.view'), findsOneWidget);
+        expect(find.text('Staff Suite'), findsOneWidget);
+        expect(find.text('Directory'), findsOneWidget);
+        expect(find.text('Ramesh Kumar'), findsOneWidget);
+
+        // Other tabs must be hidden/inaccessible
+        expect(find.text('Attendance'), findsNothing);
+        expect(find.text('Staff Advances'), findsNothing);
+        expect(find.text('Salary'), findsNothing);
       },
     );
 
     testWidgets(
-      'Owner user without explicit staff_advances.view can access Staff Advances tab',
+      '2E-05: user with staff_salary.view only can access Salary tab; other tabs hidden',
+      (tester) async {
+        const salaryOnlyUser = AuthUser(
+          id: 'user-salary',
+          username: 'salary_viewer',
+          fullName: 'Salary Viewer',
+          role: 'Viewer',
+          isOwner: false,
+          permissions: ['staff_salary.view'],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(initialTabIndex: 3, user: salaryOnlyUser),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Staff Suite'), findsOneWidget);
+        expect(find.text('Salary'), findsOneWidget);
+        expect(find.text('Salary Period (Arbitrary Range)'), findsOneWidget);
+
+        // Other tabs must be hidden
+        expect(find.text('Directory'), findsNothing);
+        expect(find.text('Attendance'), findsNothing);
+        expect(find.text('Staff Advances'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2E-05: user with staff_advances.view only can access Staff Advances tab; other tabs hidden',
+      (tester) async {
+        const advancesOnlyUser = AuthUser(
+          id: 'user-adv',
+          username: 'adv_viewer',
+          fullName: 'Advances Viewer',
+          role: 'Viewer',
+          isOwner: false,
+          permissions: ['staff_advances.view'],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(initialTabIndex: 2, user: advancesOnlyUser),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Staff Suite'), findsOneWidget);
+        expect(find.text('Staff Advances'), findsOneWidget);
+        expect(find.textContaining('Salary Advance'), findsOneWidget);
+
+        // Other tabs must be hidden
+        expect(find.text('Directory'), findsNothing);
+        expect(find.text('Attendance'), findsNothing);
+        expect(find.text('Salary'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2E-05: user with staff_attendance.view only can access Attendance tab; other tabs hidden',
+      (tester) async {
+        const attendanceOnlyUser = AuthUser(
+          id: 'user-att',
+          username: 'att_viewer',
+          fullName: 'Attendance Viewer',
+          role: 'Viewer',
+          isOwner: false,
+          permissions: ['staff_attendance.view'],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(initialTabIndex: 1, user: attendanceOnlyUser),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Staff Suite'), findsOneWidget);
+        expect(find.text('Attendance'), findsOneWidget);
+        expect(find.text('Attendance Confirmed & Locked'), findsOneWidget);
+
+        // Other tabs must be hidden
+        expect(find.text('Directory'), findsNothing);
+        expect(find.text('Staff Advances'), findsNothing);
+        expect(find.text('Salary'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2E-05: Owner user has full access to all 4 tabs in Staff Suite',
       (tester) async {
         const ownerWithoutExplicitPerms = AuthUser(
           id: 'user-owner',
@@ -367,12 +456,15 @@ void main() {
         );
 
         await tester.pumpWidget(
-          createTestWidget(initialTabIndex: 2, user: ownerWithoutExplicitPerms),
+          createTestWidget(initialTabIndex: 0, user: ownerWithoutExplicitPerms),
         );
         await tester.pumpAndSettle();
 
-        expect(find.text('Access Restricted'), findsNothing);
-        expect(find.textContaining('Salary Advance'), findsOneWidget);
+        expect(find.text('Staff Suite'), findsOneWidget);
+        expect(find.text('Directory'), findsOneWidget);
+        expect(find.text('Attendance'), findsOneWidget);
+        expect(find.text('Staff Advances'), findsOneWidget);
+        expect(find.text('Salary'), findsOneWidget);
       },
     );
 

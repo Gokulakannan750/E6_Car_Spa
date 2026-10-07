@@ -3,6 +3,7 @@ using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.StaffAdvances;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
@@ -12,10 +13,18 @@ namespace CarSpaManagement.Api.Controllers;
 public class StaffAdvancesController : ControllerBase
 {
     private readonly IStaffAdvanceService _service;
+    private readonly IAuthorizationService? _authorizationService;
 
-    public StaffAdvancesController(IStaffAdvanceService service)
+    public StaffAdvancesController(IStaffAdvanceService service, IAuthorizationService? authorizationService = null)
     {
         _service = service;
+        _authorizationService = authorizationService;
+    }
+
+    private async Task<bool> CanViewAdvancesAsync()
+    {
+        if (_authorizationService == null) return true;
+        return (await _authorizationService.AuthorizeAsync(User, "Permission:staff_advances.view")).Succeeded;
     }
 
     private Guid GetUserId()
@@ -148,7 +157,8 @@ public class StaffAdvancesController : ControllerBase
     [RequirePermission("staff.view")]
     public async Task<IActionResult> GetStaff(CancellationToken ct)
     {
-        var staff = await _service.GetStaffAsync(ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var staff = await _service.GetStaffAsync(canViewAdvances, ct);
         return Ok(staff);
     }
 
@@ -156,7 +166,8 @@ public class StaffAdvancesController : ControllerBase
     [RequirePermission("staff.view")]
     public async Task<IActionResult> GetStaffById(Guid staffId, CancellationToken ct)
     {
-        var staff = await _service.GetStaffByIdAsync(staffId, ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var staff = await _service.GetStaffByIdAsync(staffId, canViewAdvances, ct);
         if (staff is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return Ok(staff);
     }
@@ -193,7 +204,8 @@ public class StaffAdvancesController : ControllerBase
         }
 
         var userId = GetUserId();
-        var dto = await _service.UploadStaffAadhaarDocumentAsync(staffId, file, userId, ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var dto = await _service.UploadStaffAadhaarDocumentAsync(staffId, file, userId, canViewAdvances, ct);
         if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return Ok(dto);
     }
@@ -203,7 +215,8 @@ public class StaffAdvancesController : ControllerBase
     public async Task<IActionResult> DeleteStaffAadhaarDocument(Guid staffId, CancellationToken ct)
     {
         var userId = GetUserId();
-        var dto = await _service.DeleteStaffAadhaarDocumentAsync(staffId, userId, ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var dto = await _service.DeleteStaffAadhaarDocumentAsync(staffId, userId, canViewAdvances, ct);
         if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return Ok(dto);
     }
@@ -254,7 +267,8 @@ public class StaffAdvancesController : ControllerBase
             !string.IsNullOrWhiteSpace(request.AadhaarNumber),
             request.AadhaarFile != null);
 
-        var dto = await _service.CreateStaffMemberAsync(request, ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var dto = await _service.CreateStaffMemberAsync(request, canViewAdvances, ct);
         return CreatedAtAction(nameof(GetStaffById), new { staffId = dto.Id }, dto);
     }
 
@@ -299,7 +313,8 @@ public class StaffAdvancesController : ControllerBase
             request.AadhaarFile != null,
             request.RemoveAadhaarDocument);
 
-        var dto = await _service.UpdateStaffMemberAsync(staffId, request, ct);
+        var canViewAdvances = await CanViewAdvancesAsync();
+        var dto = await _service.UpdateStaffMemberAsync(staffId, request, canViewAdvances, ct);
         if (dto is null) return NotFound(new { message = $"Staff member with ID '{staffId}' was not found." });
         return Ok(dto);
     }

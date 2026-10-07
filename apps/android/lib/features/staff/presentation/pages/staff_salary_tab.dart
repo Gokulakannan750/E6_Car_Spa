@@ -146,9 +146,7 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
     final user = authState is Authenticated ? authState.user : null;
     final canSettle =
         user?.isOwner == true ||
-        (user?.permissions.contains('staff_salary.settle') ?? false) ||
-        (user?.permissions.contains('staff.edit') ?? false) ||
-        (user?.permissions.contains('staff.manage') ?? false);
+        (user?.permissions.contains('staff_salary.settle') ?? false);
 
     final fromDate = _parseDate(fromDateStr);
     final toDate = _parseDate(toDateStr);

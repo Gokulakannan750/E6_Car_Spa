@@ -1421,8 +1421,8 @@ export interface StaffDto {
 	address: string | null;
 	role: string | null;
 	isActive: boolean;
-	totalAdvances: number;
-	totalAdvanceAmount: number;
+	totalAdvances?: number | null;
+	totalAdvanceAmount?: number | null;
 	aadhaarMasked?: string | null;
 	hasAadhaarDocument?: boolean;
 	aadhaarDocumentFileName?: string | null;

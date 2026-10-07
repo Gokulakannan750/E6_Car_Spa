@@ -170,6 +170,7 @@ class FakeBillingShowroomRepository implements ShowroomRepository {
 class FakeBillingAuthNotifier extends StateNotifier<AuthState>
     implements AuthNotifier {
   final List<String> permissions;
+  final bool isOwner;
   FakeBillingAuthNotifier({
     this.permissions = const [
       'showroom.manage',
@@ -179,6 +180,7 @@ class FakeBillingAuthNotifier extends StateNotifier<AuthState>
       'showroom.view_history',
       'showroom.view',
     ],
+    this.isOwner = true,
   }) : super(
          Authenticated(
            AuthUser(
@@ -186,8 +188,8 @@ class FakeBillingAuthNotifier extends StateNotifier<AuthState>
              username: 'admin',
              fullName: 'Admin User',
              email: 'admin@e6carspa.com',
-             role: 'Owner',
-             isOwner: true,
+             role: isOwner ? 'Owner' : 'Staff',
+             isOwner: isOwner,
              permissions: permissions,
            ),
          ),
@@ -297,12 +299,23 @@ void main() {
       'showroom.view_history',
       'showroom.view',
     ],
+    bool isOwner = true,
   }) {
+    final user = AuthUser(
+      id: 'user-1',
+      username: 'admin',
+      fullName: 'Admin User',
+      email: 'admin@e6carspa.com',
+      role: isOwner ? 'Owner' : 'Staff',
+      isOwner: isOwner,
+      permissions: permissions,
+    );
     return ProviderScope(
       overrides: [
         showroomRepositoryProvider.overrideWithValue(fakeRepo),
+        currentUserProvider.overrideWithValue(user),
         authNotifierProvider.overrideWith(
-          (ref) => FakeBillingAuthNotifier(permissions: permissions),
+          (ref) => FakeBillingAuthNotifier(permissions: permissions, isOwner: isOwner),
         ),
       ],
       child: MaterialApp(home: Scaffold(body: child)),
@@ -506,6 +519,70 @@ void main() {
 
         expect(navigatedDate, isNotNull);
         expect(navigatedDate?.day, 27);
+      },
+    );
+
+    testWidgets(
+      '2E-04: showroom.manage alone does NOT render Edit Daily Bill',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+            permissions: ['showroom.view', 'showroom.manage'],
+            isOwner: false,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edit Bill'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2E-04: showroom.manage_billing renders Edit Daily Bill',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+            permissions: ['showroom.view', 'showroom.manage_billing'],
+            isOwner: false,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Edit Bill'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      '2E-04: showroom.manage alone does NOT render Record Payment',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+            permissions: ['showroom.view', 'showroom.manage'],
+            isOwner: false,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Record Payment'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      '2E-04: showroom.record_payment renders Record Payment',
+      (tester) async {
+        await tester.pumpWidget(
+          buildTestableWidget(
+            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+            permissions: ['showroom.view', 'showroom.record_payment'],
+            isOwner: false,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Record Payment'), findsOneWidget);
       },
     );
   });

@@ -17,6 +17,53 @@ import 'staff_attendance_tab.dart';
 import 'staff_directory_tab.dart';
 import 'staff_salary_tab.dart';
 
+class _StaffTabConfig {
+  final int canonicalIndex;
+  final String label;
+  final IconData icon;
+  final String permission;
+  final Widget content;
+
+  const _StaffTabConfig({
+    required this.canonicalIndex,
+    required this.label,
+    required this.icon,
+    required this.permission,
+    required this.content,
+  });
+}
+
+const List<_StaffTabConfig> _allStaffTabs = [
+  _StaffTabConfig(
+    canonicalIndex: 0,
+    label: 'Directory',
+    icon: Icons.people_outline,
+    permission: 'staff.view',
+    content: StaffDirectoryTab(),
+  ),
+  _StaffTabConfig(
+    canonicalIndex: 1,
+    label: 'Attendance',
+    icon: Icons.fact_check_outlined,
+    permission: 'staff_attendance.view',
+    content: StaffAttendanceTab(),
+  ),
+  _StaffTabConfig(
+    canonicalIndex: 2,
+    label: 'Staff Advances',
+    icon: Icons.account_balance_wallet_outlined,
+    permission: 'staff_advances.view',
+    content: StaffAdvancesTab(),
+  ),
+  _StaffTabConfig(
+    canonicalIndex: 3,
+    label: 'Salary',
+    icon: Icons.payments_outlined,
+    permission: 'staff_salary.view',
+    content: StaffSalaryTab(),
+  ),
+];
+
 class StaffScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
 
@@ -31,63 +78,86 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
         SingleTickerProviderStateMixin,
         WidgetsBindingObserver,
         AutoRefreshMixin<StaffScreen> {
-  late final TabController _tabController;
+  TabController? _tabController;
 
   @override
   void onAutoRefresh() {
     final authState = ref.read(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
+    final isOwner = user?.isOwner == true;
+
     final canViewStaff =
-        user?.isOwner == true ||
-        user?.permissions.contains('staff.view') == true;
+        isOwner || user?.permissions.contains('staff.view') == true;
     if (canViewStaff) {
       ref.read(staffProvider.notifier).loadStaff(refresh: true, silent: true);
+    }
+
+    final canViewAttendance =
+        isOwner || user?.permissions.contains('staff_attendance.view') == true;
+    if (canViewAttendance) {
       final date = ref.read(selectedAttendanceDateProvider);
       ref.invalidate(dailyAttendanceProvider(date));
       ref.invalidate(monthlyAttendanceReportProvider);
     }
 
     final canViewAdvances =
-        user?.isOwner == true ||
-        user?.permissions.contains('staff_advances.view') == true;
+        isOwner || user?.permissions.contains('staff_advances.view') == true;
     if (canViewAdvances) {
       ref.read(staffAdvancesProvider.notifier).loadAdvances(silent: true);
     }
   }
 
-  static const List<Tab> _tabs = [
-    Tab(icon: Icon(Icons.people_outline, size: 20), text: 'Directory'),
-    Tab(icon: Icon(Icons.fact_check_outlined, size: 20), text: 'Attendance'),
-    Tab(
-      icon: Icon(Icons.account_balance_wallet_outlined, size: 20),
-      text: 'Staff Advances',
-    ),
-    Tab(icon: Icon(Icons.payments_outlined, size: 20), text: 'Salary'),
-  ];
+  List<_StaffTabConfig> _getAuthorizedTabs() {
+    final authState = ref.read(authNotifierProvider);
+    final user = authState is Authenticated ? authState.user : null;
+    final isOwner = user?.isOwner == true;
+    return _allStaffTabs.where((t) {
+      if (isOwner) return true;
+      return user?.permissions.contains(t.permission) == true;
+    }).toList();
+  }
+
+  int _resolveInitialIndex(
+    List<_StaffTabConfig> authorizedTabs,
+    int targetCanonicalIndex,
+  ) {
+    if (authorizedTabs.isEmpty) return 0;
+    final idx = authorizedTabs.indexWhere(
+      (t) => t.canonicalIndex == targetCanonicalIndex,
+    );
+    return idx >= 0 ? idx : 0;
+  }
 
   @override
   void initState() {
     super.initState();
-    final safeIndex = widget.initialTabIndex.clamp(0, _tabs.length - 1);
-    _tabController = TabController(
-      length: _tabs.length,
-      initialIndex: safeIndex,
-      vsync: this,
-    );
+    final authorized = _getAuthorizedTabs();
+    if (authorized.isNotEmpty) {
+      final safeIndex = _resolveInitialIndex(authorized, widget.initialTabIndex);
+      _tabController = TabController(
+        length: authorized.length,
+        initialIndex: safeIndex,
+        vsync: this,
+      );
+    }
   }
 
   @override
   void didUpdateWidget(covariant StaffScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialTabIndex != widget.initialTabIndex) {
-      final safeIndex = widget.initialTabIndex.clamp(0, _tabs.length - 1);
-      _tabController.animateTo(safeIndex);
+    if (oldWidget.initialTabIndex != widget.initialTabIndex &&
+        _tabController != null) {
+      final authorized = _getAuthorizedTabs();
+      final safeIndex = _resolveInitialIndex(authorized, widget.initialTabIndex);
+      if (safeIndex >= 0 && safeIndex < _tabController!.length) {
+        _tabController!.animateTo(safeIndex);
+      }
     }
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -105,12 +175,14 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     syncRefreshTimerWithPreferences(preferences.refreshInterval);
     final authState = ref.watch(authNotifierProvider);
     final user = authState is Authenticated ? authState.user : null;
+    final isOwner = user?.isOwner == true;
 
-    final canViewStaff =
-        user?.isOwner == true ||
-        user?.permissions.contains('staff.view') == true;
+    final authorizedTabs = _allStaffTabs.where((t) {
+      if (isOwner) return true;
+      return user?.permissions.contains(t.permission) == true;
+    }).toList();
 
-    if (!canViewStaff) {
+    if (authorizedTabs.isEmpty) {
       return PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
@@ -148,7 +220,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'You do not have permission to access Staff Management (staff.view).',
+                    'You do not have permission to access Staff Management (staff.view, staff_attendance.view, staff_advances.view, staff_salary.view).',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -168,6 +240,20 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
       );
     }
 
+    if (_tabController == null ||
+        _tabController!.length != authorizedTabs.length) {
+      final safeIndex = _resolveInitialIndex(authorizedTabs, widget.initialTabIndex);
+      _tabController?.dispose();
+      _tabController = TabController(
+        length: authorizedTabs.length,
+        initialIndex: safeIndex,
+        vsync: this,
+      );
+    }
+
+    final canViewAttendance =
+        isOwner || user?.permissions.contains('staff_attendance.view') == true;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -184,12 +270,13 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
           ),
           title: const Text('Staff Suite'),
           actions: [
-            IconButton(
-              key: const Key('staff_monthly_report_button'),
-              icon: const Icon(Icons.assessment_outlined),
-              tooltip: 'Monthly Attendance Report',
-              onPressed: () => context.go(AppRoutes.staffMonthlyReport),
-            ),
+            if (canViewAttendance)
+              IconButton(
+                key: const Key('staff_monthly_report_button'),
+                icon: const Icon(Icons.assessment_outlined),
+                tooltip: 'Monthly Attendance Report',
+                onPressed: () => context.go(AppRoutes.staffMonthlyReport),
+              ),
             const AppLogoutAction(),
           ],
           bottom: TabBar(
@@ -201,17 +288,19 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
             unselectedLabelColor: Theme.of(
               context,
             ).colorScheme.onSurfaceVariant,
-            tabs: _tabs,
+            tabs: authorizedTabs
+                .map(
+                  (t) => Tab(
+                    icon: Icon(t.icon, size: 20),
+                    text: t.label,
+                  ),
+                )
+                .toList(),
           ),
         ),
         body: TabBarView(
           controller: _tabController,
-          children: const [
-            StaffDirectoryTab(),
-            StaffAttendanceTab(),
-            StaffAdvancesTab(),
-            StaffSalaryTab(),
-          ],
+          children: authorizedTabs.map((t) => t.content).toList(),
         ),
       ),
     );

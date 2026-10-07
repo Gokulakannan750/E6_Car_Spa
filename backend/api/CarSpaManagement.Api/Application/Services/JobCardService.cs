@@ -272,7 +272,7 @@ public class JobCardService : IJobCardService
 		}).ToList();
 	}
 
-	public async Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default)
+	public async Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false)
 	{
 		var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == request.CustomerId, cancellationToken);
 		if (customer is null) throw new KeyNotFoundException("Customer not found.");
@@ -283,7 +283,7 @@ public class JobCardService : IJobCardService
 		if (vehicle.CustomerId != request.CustomerId)
 			throw new InvalidOperationException("The selected vehicle does not belong to the selected customer.");
 
-		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, cancellationToken);
+		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, canOverridePrice, cancellationToken);
 
 		var jobCardNumber = await GenerateJobCardNumberAsync(cancellationToken);
 
@@ -295,7 +295,7 @@ public class JobCardService : IJobCardService
 		var calculation = InvoiceCalculator.Calculate(
 			combined.Select(item => new InvoiceCalculator.LineInput(
 				item.Quantity,
-				serviceMap[item.ServiceId].Price,
+				item.UnitPrice,
 				item.DiscountAmount,
 				request.IsGstEnabled ? serviceMap[item.ServiceId].TaxPercentage : 0m)).ToList(),
 			invoiceDiscount: 0m,
@@ -317,7 +317,7 @@ public class JobCardService : IJobCardService
 				Id = Guid.NewGuid(),
 				ServiceId = svc.Id,
 				ServiceName = svc.Name,
-				UnitPrice = svc.Price,
+				UnitPrice = item.UnitPrice,
 				Quantity = item.Quantity,
 				TaxPercentage = effectiveTaxRate,
 				DiscountAmount = item.DiscountAmount,
@@ -371,14 +371,14 @@ public class JobCardService : IJobCardService
 	/// Calculates a job-card estimate through the authoritative calculator without saving anything, using exactly the
 	/// rules of <see cref="CreateAsync"/>. The New Job Card and edit-services screens display these values.
 	/// </summary>
-	public async Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default)
+	public async Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false)
 	{
-		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, cancellationToken);
+		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, canOverridePrice, cancellationToken);
 
 		var rates = combined.Select(item => request.IsGstEnabled ? serviceMap[item.ServiceId].TaxPercentage : 0m).ToList();
 		var calculation = InvoiceCalculator.Calculate(
 			combined.Select((item, index) => new InvoiceCalculator.LineInput(
-				item.Quantity, serviceMap[item.ServiceId].Price, item.DiscountAmount, rates[index])).ToList(),
+				item.Quantity, item.UnitPrice, item.DiscountAmount, rates[index])).ToList(),
 			invoiceDiscount: 0m,
 			isGstEnabled: true);
 
@@ -386,7 +386,7 @@ public class JobCardService : IJobCardService
 		{
 			var line = calculation.Lines[index];
 			var svc = serviceMap[item.ServiceId];
-			return new JobCardEstimateLineDto(svc.Id, svc.Name, item.Quantity, svc.Price, line.LineDiscount, rates[index], line.Taxable, line.Tax, line.Total);
+			return new JobCardEstimateLineDto(svc.Id, svc.Name, item.Quantity, item.UnitPrice, line.LineDiscount, rates[index], line.Taxable, line.Tax, line.Total);
 		}).ToList();
 
 		var breakdown = request.IsGstEnabled
@@ -408,60 +408,16 @@ public class JobCardService : IJobCardService
 	}
 
 	/// <summary>Validates requested job-card services and merges repeated services into one line each.</summary>
-	private async Task<(List<(Guid ServiceId, int Quantity, decimal DiscountAmount)> Lines, Dictionary<Guid, Domain.Entities.Service> ServiceMap)>
-		LoadServiceLinesAsync(IReadOnlyCollection<JobCardServiceItemRequest>? requested, CancellationToken cancellationToken)
+	private async Task<(List<(Guid ServiceId, int Quantity, decimal DiscountAmount, decimal UnitPrice)> Lines, Dictionary<Guid, Domain.Entities.Service> ServiceMap)>
+		LoadServiceLinesAsync(IReadOnlyCollection<JobCardServiceItemRequest>? requested, bool canOverridePrice, CancellationToken cancellationToken)
 	{
 		if (requested == null || requested.Count == 0)
 			throw new ArgumentException("At least one service is required.", nameof(requested));
 
 		var serviceIds = requested.Select(s => s.ServiceId).Distinct().ToList();
 		var services = await _db.Services
-		.Where(s => serviceIds.Contains(s.Id) && !s.IsDeleted)
-		.ToListAsync(cancellationToken);
-
-		if (services.Count != serviceIds.Count)
-			throw new KeyNotFoundException("One or more services not found.");
-
-		foreach (var svc in services)
-		{
-			if (!svc.IsActive)
-				throw new InvalidOperationException($"Service '{svc.Name}' is inactive and cannot be used.");
-		}
-
-		var combined = requested
-		.GroupBy(s => s.ServiceId)
-		.Select(g => (ServiceId: g.Key, Quantity: g.Sum(x => x.Quantity), DiscountAmount: g.Sum(x => x.DiscountAmount)))
-		.ToList();
-
-		foreach (var item in combined)
-		{
-			if (item.Quantity <= 0)
-				throw new ArgumentOutOfRangeException(nameof(item.Quantity), "Service quantity must be greater than zero.");
-
-			if (item.DiscountAmount < 0)
-				throw new ArgumentOutOfRangeException(nameof(item.DiscountAmount), "Discount amount cannot be negative.");
-		}
-
-		return (combined, services.ToDictionary(s => s.Id));
-	}
-
-	public async Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default)
-	{
-		var jobCard = await _db.JobCards
-		.Include(j => j.JobCardServices)
-		.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
-
-		if (jobCard is null) return null;
-
-		await EnsureJobCardNotLockedAsync(id, jobCard, cancellationToken);
-
-		if (request.Services == null || !request.Services.Any())
-			throw new ArgumentException("At least one service is required.", nameof(request.Services));
-
-		var serviceIds = request.Services.Select(s => s.ServiceId).Distinct().ToList();
-		var services = await _db.Services
-		.Where(s => serviceIds.Contains(s.Id) && !s.IsDeleted)
-		.ToListAsync(cancellationToken);
+			.Where(s => serviceIds.Contains(s.Id) && !s.IsDeleted)
+			.ToListAsync(cancellationToken);
 
 		if (services.Count != serviceIds.Count)
 			throw new KeyNotFoundException("One or more services not found.");
@@ -473,15 +429,28 @@ public class JobCardService : IJobCardService
 		}
 
 		var serviceMap = services.ToDictionary(s => s.Id);
-		var combined = request.Services
-		.GroupBy(s => s.ServiceId)
-		.Select(g => new
+
+		foreach (var item in requested)
 		{
-			ServiceId = g.Key,
-			Quantity = g.Sum(x => x.Quantity),
-			DiscountAmount = g.Sum(x => x.DiscountAmount)
-		})
-		.ToList();
+			var svc = serviceMap[item.ServiceId];
+			if (item.UnitPrice.HasValue && item.UnitPrice.Value != svc.Price)
+			{
+				if (!canOverridePrice)
+				{
+					throw new ForbiddenException($"Overriding catalogue price for service '{svc.Name}' requires the 'invoices.price_override' permission.");
+				}
+			}
+		}
+
+		var combined = requested
+			.GroupBy(s => s.ServiceId)
+			.Select(g => (
+				ServiceId: g.Key,
+				Quantity: g.Sum(x => x.Quantity),
+				DiscountAmount: g.Sum(x => x.DiscountAmount),
+				UnitPrice: g.FirstOrDefault(x => x.UnitPrice.HasValue)?.UnitPrice ?? serviceMap[g.Key].Price
+			))
+			.ToList();
 
 		foreach (var item in combined)
 		{
@@ -492,6 +461,21 @@ public class JobCardService : IJobCardService
 				throw new ArgumentOutOfRangeException(nameof(item.DiscountAmount), "Discount amount cannot be negative.");
 		}
 
+		return (combined, serviceMap);
+	}
+
+	public async Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false)
+	{
+		var jobCard = await _db.JobCards
+			.Include(j => j.JobCardServices)
+			.FirstOrDefaultAsync(j => j.Id == id, cancellationToken);
+
+		if (jobCard is null) return null;
+
+		await EnsureJobCardNotLockedAsync(id, jobCard, cancellationToken);
+
+		var (combined, serviceMap) = await LoadServiceLinesAsync(request.Services, canOverridePrice, cancellationToken);
+
 		_db.JobCardServices.RemoveRange(jobCard.JobCardServices);
 
 		var now = DateTime.UtcNow;
@@ -500,7 +484,7 @@ public class JobCardService : IJobCardService
 		var calculation = InvoiceCalculator.Calculate(
 			combined.Select(item => new InvoiceCalculator.LineInput(
 				item.Quantity,
-				serviceMap[item.ServiceId].Price,
+				item.UnitPrice,
 				item.DiscountAmount,
 				serviceMap[item.ServiceId].TaxPercentage)).ToList(),
 			invoiceDiscount: 0m,
@@ -523,7 +507,7 @@ public class JobCardService : IJobCardService
 				JobCardId = jobCard.Id,
 				ServiceId = svc.Id,
 				ServiceName = svc.Name,
-				UnitPrice = svc.Price,
+				UnitPrice = item.UnitPrice,
 				Quantity = item.Quantity,
 				TaxPercentage = svc.TaxPercentage,
 				DiscountAmount = item.DiscountAmount,

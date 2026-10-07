@@ -59,13 +59,13 @@ public class FinalHardeningSecurityTests
 
     private class ThrowingDbUpdateJobCardService : IJobCardService
     {
-        public Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default)
+        public Task<JobCardDto> CreateAsync(CreateJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false)
         {
             var inner = new Exception("violates foreign key constraint fk_job_cards_vehicles ON TABLE job_cards");
             throw new DbUpdateException("An error occurred while saving the entity changes.", inner);
         }
 
-        public Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<JobCardEstimateDto> PreviewAsync(PreviewJobCardRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false) => throw new NotImplementedException();
 
         public Task<JobCardDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default, bool canViewOutsideJobs = false) => Task.FromResult<JobCardDto?>(null);
         public Task<JobCardPrintDto?> GetForPrintAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<JobCardPrintDto?>(null);
@@ -74,7 +74,7 @@ public class FinalHardeningSecurityTests
         public Task<int> GetTotalCountAsync(JobCardStatus? status = null, Guid? customerId = null, Guid? vehicleId = null, string? search = null, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default) => Task.FromResult(0);
         public Task<IReadOnlyList<JobCardListDto>> GetByCustomerIdAsync(Guid customerId, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<JobCardListDto>>(Array.Empty<JobCardListDto>());
         public Task<IReadOnlyList<JobCardListDto>> GetByVehicleIdAsync(Guid vehicleId, int page, int pageSize, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<JobCardListDto>>(Array.Empty<JobCardListDto>());
-        public Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default) => Task.FromResult<JobCardDto?>(null);
+        public Task<JobCardDto?> UpdateServicesAsync(Guid id, UpdateJobCardServicesRequest request, CancellationToken cancellationToken = default, bool canOverridePrice = false) => Task.FromResult<JobCardDto?>(null);
         public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 

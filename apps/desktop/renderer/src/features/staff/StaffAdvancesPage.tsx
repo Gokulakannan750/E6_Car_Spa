@@ -373,7 +373,7 @@ export function StaffAdvancesPage() {
 							</div>
 						</div>
 						<p className="text-2xl font-black text-slate-900 mt-2 font-mono">
-							{staffList.filter((s) => s.totalAdvances > 0).length}
+							{staffList.filter((s) => (s.totalAdvances ?? 0) > 0).length}
 						</p>
 						<p className="text-xs text-slate-600 mt-1 font-medium">
 							out of {staffList.length} total staff members

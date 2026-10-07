@@ -157,12 +157,8 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(showroomBillingProvider(widget.showroom.id));
-    final canManageBilling =
-        _hasPermission('showroom.manage_billing') ||
-        _hasPermission('showroom.manage');
-    final canRecordPayment =
-        _hasPermission('showroom.record_payment') ||
-        _hasPermission('showroom.manage');
+    final canManageBilling = _hasPermission('showroom.manage_billing');
+    final canRecordPayment = _hasPermission('showroom.record_payment');
     final canDeletePayment = _hasPermission('showroom.delete_payment');
     final canViewHistory =
         _hasPermission('showroom.view_history') ||

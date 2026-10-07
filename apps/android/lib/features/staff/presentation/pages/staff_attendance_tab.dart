@@ -145,12 +145,10 @@ class StaffAttendanceTab extends ConsumerWidget {
 
     final canManageAttendance =
         user?.isOwner == true ||
-        (user?.permissions.contains('staff_attendance.manage') ?? false) ||
-        (user?.permissions.contains('staff.manage') ?? false);
+        (user?.permissions.contains('staff_attendance.manage') ?? false);
     final canConfirmAttendance =
         user?.isOwner == true ||
-        (user?.permissions.contains('staff_attendance.confirm') ?? false) ||
-        (user?.permissions.contains('staff.manage') ?? false);
+        (user?.permissions.contains('staff_attendance.confirm') ?? false);
 
     final isToday =
         selectedDate == DateTime.now().toIso8601String().split('T')[0];
