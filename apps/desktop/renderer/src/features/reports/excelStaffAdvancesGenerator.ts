@@ -185,7 +185,7 @@ export interface StaffAdvancesReportData {
 		obsoleteAmount?: number;
 		totalStaffCount?: number;
 		totalAdvancesGiven?: number;
-	};
+	} | null;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

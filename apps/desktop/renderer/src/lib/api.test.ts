@@ -881,7 +881,7 @@ describe('Dashboard & Reports API Client', () => {
       expect.stringContaining('/api/reports/dashboard?fromDate=2026-03-01&toDate=2026-03-08'),
       expect.anything()
     );
-    expect(result.sales.netSales).toBe(50000);
+    expect(result.sales?.netSales).toBe(50000);
   });
 });
 

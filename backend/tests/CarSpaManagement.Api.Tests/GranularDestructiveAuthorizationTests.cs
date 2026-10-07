@@ -122,6 +122,42 @@ public class GranularDestructiveAuthorizationTests
     }
 
     [Fact]
+    public async Task Manager_WithShowroomManageBillingOnly_CannotDeleteShowroomPayment()
+    {
+        var (db, scopeFactory) = CreateTestDatabase();
+        await PermissionSeeder.SeedAsync(db);
+        var handler = new PermissionAuthorizationHandler(scopeFactory);
+
+        var manageBillingPerm = await db.Permissions.FirstAsync(p => p.Code == "showroom.manage_billing");
+
+        var manager = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Showroom Billing Manager",
+            Username = "billing_mgr1",
+            Role = UserRole.Manager,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        manager.UserPermissions.Add(new UserPermission
+        {
+            Id = Guid.NewGuid(),
+            UserId = manager.Id,
+            PermissionId = manageBillingPerm.Id
+        });
+        db.Users.Add(manager);
+        await db.SaveChangesAsync();
+
+        var principal = CreatePrincipal(manager.Id, "Manager", isOwner: false, "showroom.manage_billing");
+        var requirement = new PermissionRequirement("showroom.delete_payment");
+        var context = new AuthorizationHandlerContext(new[] { requirement }, principal, null);
+
+        await handler.HandleAsync(context);
+
+        Assert.False(context.HasSucceeded);
+    }
+
+    [Fact]
     public async Task User_WithShowroomDeletePayment_CanDeleteShowroomPayment()
     {
         var (db, scopeFactory) = CreateTestDatabase();

@@ -100,8 +100,8 @@ function getInitials(name?: string | null): string {
 export function SalaryPage() {
 	const qc = useQueryClient();
 	const { hasPermission, isOwner, user } = useAuth();
-	const canManage = !user || isOwner || hasPermission('staff_salary.manage') || hasPermission('staff.edit');
-	const canSettle = !user || isOwner || hasPermission('staff_salary.settle') || hasPermission('staff.edit');
+	const canManage = !user || isOwner || hasPermission('staff_salary.manage');
+	const canSettle = !user || isOwner || hasPermission('staff_salary.settle');
 
 	const currentYear = new Date().getFullYear();
 	const currentMonth = new Date().getMonth() + 1;

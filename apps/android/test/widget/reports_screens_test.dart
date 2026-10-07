@@ -148,8 +148,8 @@ void main() {
           home: Scaffold(
             body: SingleChildScrollView(
               child: RevenueChart(
-                sales: testDashboard.sales,
-                paymentCollection: testDashboard.paymentCollection,
+                sales: testDashboard.sales!,
+                paymentCollection: testDashboard.paymentCollection!,
               ),
             ),
           ),

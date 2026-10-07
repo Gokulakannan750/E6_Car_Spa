@@ -122,11 +122,7 @@ export function ShowroomOperationsPage() {
 	// Granular Permissions
 	const canManage = Boolean(
 		isOwner ||
-		hasPermission('showroom.manage') ||
-		hasPermission('showrooms.manage') ||
-		hasPermission('showroom.view') ||
-		hasPermission('showrooms.view') ||
-		hasPermission('*')
+		hasPermission('showroom.manage')
 	);
 	// Read selected showroom, date, and active tab from URL query parameters
 	const activeShowroomId = searchParams.get('showroomId') || '';

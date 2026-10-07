@@ -188,7 +188,7 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			label: 'Staff Directory',
 			path: '/staff',
 			icon: 'Users',
-			requiresPermission: 'staff_advances.view',
+			requiresPermission: 'staff.view',
 		},
 		{
 			label: 'Staff Advances',
@@ -200,13 +200,13 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			label: 'Attendance',
 			path: '/staff-attendance',
 			icon: 'Calendar',
-			requiresPermission: 'staff_advances.view',
+			requiresPermission: 'staff_attendance.view',
 		},
 		{
 			label: 'Salary',
 			path: '/staff-salary',
 			icon: 'Banknote',
-			requiresPermission: 'staff_advances.view',
+			requiresPermission: 'staff_salary.view',
 		},
 	],
 	showroom: [

@@ -188,7 +188,7 @@ export const router = createBrowserRouter([
 					const m = await loadStaffDirectory();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="staff_advances.view">
+							<RouteGuard requiredPermission="staff.view">
 								<m.StaffDirectoryPage />
 							</RouteGuard>
 						),
@@ -214,7 +214,7 @@ export const router = createBrowserRouter([
 					const m = await loadAttendance();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="staff_advances.view">
+							<RouteGuard requiredPermission="staff_attendance.view">
 								<m.AttendancePage />
 							</RouteGuard>
 						),
@@ -231,7 +231,7 @@ export const router = createBrowserRouter([
 					const m = await loadSalary();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="staff_advances.view">
+							<RouteGuard requiredPermission="staff_salary.view">
 								<m.SalaryPage />
 							</RouteGuard>
 						),

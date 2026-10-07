@@ -209,6 +209,64 @@ public class FinancialAndCatalogueAuthorizationTests
         Assert.True(context.HasSucceeded);
     }
 
+    [Fact]
+    public async Task Staff_WithoutInvoicesPriceOverride_CannotOverridePrice()
+    {
+        var (db, scopeFactory) = CreateTestDatabase();
+        await PermissionSeeder.SeedAsync(db);
+        var handler = new PermissionAuthorizationHandler(scopeFactory);
+
+        var editDraftPerm = await db.Permissions.FirstAsync(p => p.Code == "invoices.edit_draft");
+
+        var staff = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Billing Staff",
+            Username = "staff_nopriceoverride",
+            Role = UserRole.Staff,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        staff.UserPermissions.Add(new UserPermission { Id = Guid.NewGuid(), UserId = staff.Id, PermissionId = editDraftPerm.Id });
+        db.Users.Add(staff);
+        await db.SaveChangesAsync();
+
+        var principal = CreatePrincipal(staff.Id, "Staff", isOwner: false, "invoices.edit_draft");
+        var context = new AuthorizationHandlerContext(new[] { new PermissionRequirement("invoices.price_override") }, principal, null);
+
+        await handler.HandleAsync(context);
+        Assert.False(context.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task Manager_WithInvoicesPriceOverride_CanOverridePrice()
+    {
+        var (db, scopeFactory) = CreateTestDatabase();
+        await PermissionSeeder.SeedAsync(db);
+        var handler = new PermissionAuthorizationHandler(scopeFactory);
+
+        var priceOverridePerm = await db.Permissions.FirstAsync(p => p.Code == "invoices.price_override");
+
+        var manager = new User
+        {
+            Id = Guid.NewGuid(),
+            FullName = "Billing Manager",
+            Username = "mgr_priceoverride",
+            Role = UserRole.Manager,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        manager.UserPermissions.Add(new UserPermission { Id = Guid.NewGuid(), UserId = manager.Id, PermissionId = priceOverridePerm.Id });
+        db.Users.Add(manager);
+        await db.SaveChangesAsync();
+
+        var principal = CreatePrincipal(manager.Id, "Manager", isOwner: false, "invoices.price_override");
+        var context = new AuthorizationHandlerContext(new[] { new PermissionRequirement("invoices.price_override") }, principal, null);
+
+        await handler.HandleAsync(context);
+        Assert.True(context.HasSucceeded);
+    }
+
     // ── 3. Payment Permission Mapping ────────────────────────────────────────
 
     [Fact]
