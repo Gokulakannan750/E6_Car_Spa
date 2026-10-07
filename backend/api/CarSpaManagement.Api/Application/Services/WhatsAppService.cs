@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.WhatsApp;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Constants;
@@ -89,6 +90,9 @@ public class WhatsAppService : IWhatsAppService
 		if (!string.IsNullOrWhiteSpace(request.PaymentCompletedTemplateLanguage))
 			config.PaymentCompletedTemplateLanguage = request.PaymentCompletedTemplateLanguage.Trim();
 
+		if (request.MetaAppId != null)
+			config.MetaAppId = string.IsNullOrWhiteSpace(request.MetaAppId) ? null : request.MetaAppId.Trim();
+
 		if (!string.IsNullOrWhiteSpace(request.AccessToken))
 		{
 			config.AccessTokenEncrypted = _encryptionService.Encrypt(request.AccessToken.Trim());
@@ -125,6 +129,7 @@ public class WhatsAppService : IWhatsAppService
 				phoneNumberId = config.PhoneNumberId,
 				businessAccountId = config.BusinessAccountId,
 				graphApiVersion = config.GraphApiVersion,
+				metaAppId = config.MetaAppId,
 				hasAccessToken = !string.IsNullOrEmpty(config.AccessTokenEncrypted),
 				invoiceNotificationsEnabled = config.InvoiceNotificationsEnabled,
 				paymentCompletedNotificationsEnabled = config.PaymentCompletedNotificationsEnabled
@@ -135,7 +140,7 @@ public class WhatsAppService : IWhatsAppService
 		return ToDto(config);
 	}
 
-	private static readonly Regex GraphApiVersionRegex = new(@"^v\d+(\.\d+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+	internal static readonly Regex GraphApiVersionRegex = new(@"^v\d+(\.\d+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
 	public async Task<TestWhatsAppConnectionResponse> TestConnectionAsync(TestWhatsAppConnectionRequest? request = null, CancellationToken cancellationToken = default)
 	{
@@ -987,11 +992,16 @@ public class WhatsAppService : IWhatsAppService
 			using var parametersDoc = JsonDocument.Parse(message.TemplateParametersJson ?? "{}");
 			var root = parametersDoc.RootElement;
 
-			var resolvedParams = ResolveBodyParameters(
-				message.MessageType,
-				bodyComponent?.Text,
-				expectedVarCount,
-				root);
+			// Managed (catalog) templates have a known parameter order; custom templates keep the legacy resolver.
+			var resolvedParams = WhatsAppTemplateCatalog.TryGet(templateName, out var managedTemplate)
+				&& managedTemplate.MessageType == message.MessageType
+				&& managedTemplate.ParameterKeys.Count == expectedVarCount
+					? managedTemplate.ResolveParameters(root)
+					: ResolveBodyParameters(
+						message.MessageType,
+						bodyComponent?.Text,
+						expectedVarCount,
+						root);
 
 			if (resolvedParams.Count != expectedVarCount || (expectedVarCount > 0 && resolvedParams.Any(string.IsNullOrWhiteSpace)))
 			{
@@ -1865,7 +1875,8 @@ public class WhatsAppService : IWhatsAppService
 			c.LastCheckedAtUtc,
 			c.LastSuccessAtUtc,
 			c.LastFailureAtUtc,
-			c.LastErrorMessage
+			c.LastErrorMessage,
+			c.MetaAppId
 		);
 	}
 
@@ -2164,7 +2175,7 @@ public class WhatsAppService : IWhatsAppService
 		return ($"Meta API error (HTTP {statusCode}).", safeBody);
 	}
 
-	private static string SanitizeSecret(string input, string? token)
+	internal static string SanitizeSecret(string input, string? token)
 	{
 		if (string.IsNullOrEmpty(input)) return string.Empty;
 		if (!string.IsNullOrWhiteSpace(token))

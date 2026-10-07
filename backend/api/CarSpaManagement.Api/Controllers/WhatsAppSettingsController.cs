@@ -12,10 +12,12 @@ namespace CarSpaManagement.Api.Controllers;
 public class WhatsAppSettingsController : ControllerBase
 {
 	private readonly IWhatsAppService _whatsAppService;
+	private readonly IWhatsAppTemplateProvisioningService _templateProvisioning;
 
-	public WhatsAppSettingsController(IWhatsAppService whatsAppService)
+	public WhatsAppSettingsController(IWhatsAppService whatsAppService, IWhatsAppTemplateProvisioningService templateProvisioning)
 	{
 		_whatsAppService = whatsAppService;
+		_templateProvisioning = templateProvisioning;
 	}
 
 	[HttpGet]
@@ -61,6 +63,28 @@ public class WhatsAppSettingsController : ControllerBase
 	{
 		var result = await _whatsAppService.GetMetaTemplatesAsync(ct);
 		return Ok(result);
+	}
+
+	[HttpGet("managed-templates")]
+	[RequirePermission("settings.view")]
+	public async Task<IActionResult> GetManagedTemplates(CancellationToken ct)
+	{
+		return Ok(await _templateProvisioning.GetManagedTemplatesAsync(ct));
+	}
+
+	[HttpPost("managed-templates/provision")]
+	[RequirePermission("settings.business")]
+	[EnableRateLimiting("whatsapp-test")]
+	public async Task<IActionResult> ProvisionManagedTemplates(CancellationToken ct)
+	{
+		return Ok(await _templateProvisioning.ProvisionAsync(ct));
+	}
+
+	[HttpPost("managed-templates/activate")]
+	[RequirePermission("settings.business")]
+	public async Task<IActionResult> ActivateManagedTemplates(CancellationToken ct)
+	{
+		return Ok(await _templateProvisioning.ActivateAsync(ct));
 	}
 
 	[HttpPost("test-message")]

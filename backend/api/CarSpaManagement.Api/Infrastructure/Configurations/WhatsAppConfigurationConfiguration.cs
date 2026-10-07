@@ -33,6 +33,9 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 			.HasMaxLength(50)
 			.IsRequired();
 
+		builder.Property(c => c.MetaAppId)
+			.HasMaxLength(50);
+
 		builder.Property(c => c.GraphApiVersion)
 			.HasMaxLength(20)
 			.HasDefaultValue("v25.0")

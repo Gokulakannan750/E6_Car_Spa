@@ -17,7 +17,8 @@ public record WhatsAppConfigResponse(
 	DateTime? LastCheckedAtUtc = null,
 	DateTime? LastSuccessAtUtc = null,
 	DateTime? LastFailureAtUtc = null,
-	string? LastErrorMessage = null
+	string? LastErrorMessage = null,
+	string? MetaAppId = null
 );
 
 public record WhatsAppHealthDto(
@@ -42,6 +43,8 @@ public record UpdateWhatsAppConfigRequest
 	public string? InvoiceTemplateLanguage { get; init; }
 	public string? PaymentCompletedTemplateName { get; init; }
 	public string? PaymentCompletedTemplateLanguage { get; init; }
+	/// <summary>Null leaves the saved value unchanged; an empty string clears it.</summary>
+	public string? MetaAppId { get; init; }
 }
 
 public record TestWhatsAppConnectionRequest(
@@ -114,4 +117,45 @@ public record SendTestWhatsAppMessageResponse(
 	string Message,
 	string? MessageId = null,
 	string? Details = null
+);
+
+// ── Managed template pack ────────────────────────────────────────────────────
+
+/// <param name="Status">Meta status (APPROVED, PENDING, REJECTED, PAUSED, DISABLED) or NOT_CREATED.</param>
+public record ManagedWhatsAppTemplateDto(
+	string MessageType,
+	string Purpose,
+	string Name,
+	string Language,
+	string Category,
+	string Status,
+	string? RejectedReason,
+	bool IsActive
+);
+
+public record ManagedWhatsAppTemplatesResponse(
+	bool IsSuccess,
+	string Message,
+	IReadOnlyList<ManagedWhatsAppTemplateDto> Templates,
+	bool CanActivate,
+	string? Details = null
+);
+
+/// <param name="Outcome">Created, AlreadyExists or Failed.</param>
+public record ManagedTemplateProvisionResultDto(
+	string Name,
+	string Outcome,
+	string? Status = null,
+	string? Error = null
+);
+
+public record ProvisionManagedTemplatesResponse(
+	bool IsSuccess,
+	string Message,
+	IReadOnlyList<ManagedTemplateProvisionResultDto> Results
+);
+
+public record ActivateManagedTemplatesResponse(
+	bool IsSuccess,
+	string Message
 );

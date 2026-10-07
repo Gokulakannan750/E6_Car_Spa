@@ -3198,6 +3198,7 @@ export interface WhatsAppConfigDto {
 	lastSuccessAtUtc?: string | null;
 	lastFailureAtUtc?: string | null;
 	lastErrorMessage?: string | null;
+	metaAppId?: string | null;
 }
 
 export interface WhatsAppHealthDto {
@@ -3221,6 +3222,7 @@ export interface UpdateWhatsAppConfigRequest {
 	invoiceTemplateLanguage?: string;
 	paymentCompletedTemplateName?: string;
 	paymentCompletedTemplateLanguage?: string;
+	metaAppId?: string;
 }
 
 export interface TestWhatsAppConnectionRequest {
@@ -3304,6 +3306,62 @@ export async function testWhatsAppConnection(data?: TestWhatsAppConnectionReques
 
 export async function getWhatsAppTemplates() {
 	return request<MetaWhatsAppTemplatesResponse>('/api/settings/whatsapp/templates', {}, 'view WhatsApp templates');
+}
+
+// ── Managed template pack ────────────────────────────────────────────────────
+
+export interface ManagedWhatsAppTemplateDto {
+	messageType: string;
+	purpose: string;
+	name: string;
+	language: string;
+	category: string;
+	/** Meta status (APPROVED, PENDING, REJECTED, PAUSED, DISABLED) or NOT_CREATED. */
+	status: string;
+	rejectedReason?: string | null;
+	isActive: boolean;
+}
+
+export interface ManagedWhatsAppTemplatesResponse {
+	isSuccess: boolean;
+	message: string;
+	templates: ManagedWhatsAppTemplateDto[];
+	canActivate: boolean;
+	details?: string | null;
+}
+
+export interface ManagedTemplateProvisionResultDto {
+	name: string;
+	outcome: 'Created' | 'AlreadyExists' | 'Failed' | string;
+	status?: string | null;
+	error?: string | null;
+}
+
+export interface ProvisionManagedTemplatesResponse {
+	isSuccess: boolean;
+	message: string;
+	results: ManagedTemplateProvisionResultDto[];
+}
+
+export interface ActivateManagedTemplatesResponse {
+	isSuccess: boolean;
+	message: string;
+}
+
+export async function getManagedWhatsAppTemplates() {
+	return request<ManagedWhatsAppTemplatesResponse>('/api/settings/whatsapp/managed-templates', {}, 'view WhatsApp templates');
+}
+
+export async function provisionManagedWhatsAppTemplates() {
+	return request<ProvisionManagedTemplatesResponse>('/api/settings/whatsapp/managed-templates/provision', {
+		method: 'POST',
+	}, 'change business settings');
+}
+
+export async function activateManagedWhatsAppTemplates() {
+	return request<ActivateManagedTemplatesResponse>('/api/settings/whatsapp/managed-templates/activate', {
+		method: 'POST',
+	}, 'change business settings');
 }
 
 export interface SendTestWhatsAppMessageRequest {

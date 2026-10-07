@@ -150,6 +150,21 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 		});
 	});
 
+	it('loads and saves the Meta App ID used for the standard templates', async () => {
+		vi.mocked(api.getWhatsAppConfig).mockResolvedValue({ ...mockConfig, metaAppId: '1234567890' });
+		renderWithProviders(<WhatsAppSettingsSection canManage={true} />);
+
+		const appIdInput = await screen.findByLabelText('Meta App ID');
+		await waitFor(() => expect(appIdInput).toHaveValue('1234567890'));
+		fireEvent.change(appIdInput, { target: { value: ' 9876543210 ' } });
+		fireEvent.click(screen.getByRole('button', { name: /save whatsapp settings/i }));
+
+		await waitFor(() =>
+			expect(api.updateWhatsAppConfig).toHaveBeenCalledWith(expect.objectContaining({ metaAppId: '9876543210' }))
+		);
+		expect(screen.getByTestId('managed-templates-panel')).toBeInTheDocument();
+	});
+
 	it('triggers test connection and displays positive verification feedback', async () => {
 		renderWithProviders(<WhatsAppSettingsSection canManage={true} />);
 

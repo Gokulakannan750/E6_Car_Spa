@@ -19,6 +19,10 @@ public class WhatsAppConfiguration : BaseEntity
 	[MaxLength(20)]
 	public string GraphApiVersion { get; set; } = "v25.0";
 
+	/// <summary>Meta app ID, used to upload the sample document Meta requires when creating a document-header template.</summary>
+	[MaxLength(50)]
+	public string? MetaAppId { get; set; }
+
 	public string? AccessTokenEncrypted { get; set; }
 
 	public bool InvoiceNotificationsEnabled { get; set; } = true;
