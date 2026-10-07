@@ -13,9 +13,9 @@ namespace CarSpaManagement.Api.Controllers;
 public class StaffAdvancesController : ControllerBase
 {
     private readonly IStaffAdvanceService _service;
-    private readonly IAuthorizationService? _authorizationService;
+    private readonly IAuthorizationService _authorizationService;
 
-    public StaffAdvancesController(IStaffAdvanceService service, IAuthorizationService? authorizationService = null)
+    public StaffAdvancesController(IStaffAdvanceService service, IAuthorizationService authorizationService)
     {
         _service = service;
         _authorizationService = authorizationService;
@@ -23,7 +23,6 @@ public class StaffAdvancesController : ControllerBase
 
     private async Task<bool> CanViewAdvancesAsync()
     {
-        if (_authorizationService == null) return true;
         return (await _authorizationService.AuthorizeAsync(User, "Permission:staff_advances.view")).Succeeded;
     }
 

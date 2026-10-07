@@ -376,7 +376,7 @@ public class StaffAadhaarValidationAndSecurityTests
         var (db, service, _, _) = CreateTestContext();
         var created = await service.CreateStaffMemberAsync(new CreateStaffRequest { Name = "User5", PhoneNumber = "9876543223", AadhaarNumber = "987612345678" });
 
-        var controller = new StaffAdvancesController(service);
+        var controller = new StaffAdvancesController(service, new CarSpaManagement.Api.Tests.TestSupport.AllowAllAuthorizationService());
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),

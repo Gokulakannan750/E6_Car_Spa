@@ -12,9 +12,9 @@ namespace CarSpaManagement.Api.Controllers;
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;
-    private readonly IAuthorizationService? _authorizationService;
+    private readonly IAuthorizationService _authorizationService;
 
-    public ReportsController(IReportService reportService, IAuthorizationService? authorizationService = null)
+    public ReportsController(IReportService reportService, IAuthorizationService authorizationService)
     {
         _reportService = reportService;
         _authorizationService = authorizationService;
@@ -30,11 +30,11 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        var canViewSales = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.sales")).Succeeded;
-        var canViewPayments = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.payments")).Succeeded;
-        var canViewInvoices = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.invoices")).Succeeded;
-        var canViewShowrooms = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.showrooms")).Succeeded;
-        var canViewStaffAdvances = _authorizationService == null || (await _authorizationService.AuthorizeAsync(User, "Permission:reports.staff_advances")).Succeeded;
+        var canViewSales = (await _authorizationService.AuthorizeAsync(User, "Permission:reports.sales")).Succeeded;
+        var canViewPayments = (await _authorizationService.AuthorizeAsync(User, "Permission:reports.payments")).Succeeded;
+        var canViewInvoices = (await _authorizationService.AuthorizeAsync(User, "Permission:reports.invoices")).Succeeded;
+        var canViewShowrooms = (await _authorizationService.AuthorizeAsync(User, "Permission:reports.showrooms")).Succeeded;
+        var canViewStaffAdvances = (await _authorizationService.AuthorizeAsync(User, "Permission:reports.staff_advances")).Succeeded;
 
         var result = await _reportService.GetDashboardSummaryAsync(
             fromDate,
