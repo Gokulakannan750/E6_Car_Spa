@@ -235,7 +235,7 @@ describe('SystemPreferencesPage Component', () => {
 		expect(dateSelect.value).toBe('MM/DD/YYYY');
 	});
 
-	it('keeps the colour settings on their own Colours tab', async () => {
+	it('keeps the colour settings on their own App colours tab', async () => {
 		renderWithProviders(<SystemPreferencesPage />, {
 			initialEntries: ['/settings/system'],
 			authUser: {
@@ -253,9 +253,9 @@ describe('SystemPreferencesPage Component', () => {
 		expect(screen.queryByLabelText('App colour code')).toBeNull();
 		expect(screen.getByRole('button', { name: /save preferences/i })).toBeVisible();
 
-		fireEvent.click(screen.getByRole('tab', { name: 'Colours' }));
+		fireEvent.click(screen.getByRole('tab', { name: 'App colours' }));
 
-		expect(screen.getByRole('tab', { name: 'Colours' })).toHaveAttribute('aria-selected', 'true');
+		expect(screen.getByRole('tab', { name: 'App colours' })).toHaveAttribute('aria-selected', 'true');
 		expect(await screen.findByLabelText('App colour code')).toBeInTheDocument();
 		expect(screen.getByLabelText('Sidebar and login page code')).toBeInTheDocument();
 		expect(screen.getByLabelText('Invoices and job cards code')).toBeInTheDocument();

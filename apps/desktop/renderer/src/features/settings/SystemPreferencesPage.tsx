@@ -195,7 +195,7 @@ export function SystemPreferencesPage() {
 			<div role="tablist" aria-label="System preferences sections" className="flex gap-1 border-b border-slate-200">
 				{([
 					['general', 'General'],
-					['colours', 'Colours'],
+					['colours', 'App colours'],
 				] as const).map(([id, label]) => (
 					<button
 						key={id}
@@ -247,7 +247,7 @@ export function SystemPreferencesPage() {
 			)}
 
 			{tab === 'colours' && (
-				<div className="max-w-2xl animate-in fade-in duration-150">
+				<div className="animate-in fade-in duration-150">
 					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
 				</div>
 			)}

@@ -11,6 +11,7 @@ import {
 	isValidColor,
 } from '../../lib/theme';
 import { DEFAULT_DOCUMENT_ACCENT } from '../../lib/documentBranding';
+import { ColourPreview } from './ColourPreview';
 import { BUSINESS_PROFILE_QUERY_KEY, useBusinessProfile } from './hooks/useBusinessProfile';
 
 interface ColourRowProps {
@@ -162,13 +163,14 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 	}
 
 	return (
+		<div className="grid grid-cols-1 xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)] gap-6 items-start">
 		<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
 			<div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
 				<div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
 					<Palette className="w-4 h-4" />
 				</div>
 				<div>
-					<h3 className="text-sm font-bold text-slate-800">Colours</h3>
+					<h3 className="text-sm font-bold text-slate-800">App colours</h3>
 					<p className="text-[11px] text-slate-500">Make the app, login page and documents match your company.</p>
 				</div>
 			</div>
@@ -239,6 +241,16 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 			) : (
 				<p className="text-[11px] text-slate-400 mt-4">Only an owner or administrator can change the company colours.</p>
 			)}
+		</div>
+
+		<div className="xl:sticky xl:top-2 max-w-xl bg-slate-50/70 rounded-2xl border border-slate-200 p-5">
+			<ColourPreview
+				appColor={appColor}
+				sidebarColor={sidebarColor}
+				documentColor={documentColor}
+				businessName={profile?.businessName}
+			/>
+		</div>
 		</div>
 	);
 }
