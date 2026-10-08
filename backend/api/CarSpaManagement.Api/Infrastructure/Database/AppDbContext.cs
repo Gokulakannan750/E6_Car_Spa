@@ -71,6 +71,8 @@ public class AppDbContext : DbContext
     public DbSet<SystemPreference> SystemPreferences => Set<SystemPreference>();
     public DbSet<InvoiceNumberSeries> InvoiceNumberSeries => Set<InvoiceNumberSeries>();
     public DbSet<InvoiceNumberAllocation> InvoiceNumberAllocations => Set<InvoiceNumberAllocation>();
+    public DbSet<FranchiseLink> FranchiseLinks => Set<FranchiseLink>();
+    public DbSet<FranchiseLinkScope> FranchiseLinkScopes => Set<FranchiseLinkScope>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -108,6 +110,17 @@ public class AppDbContext : DbContext
                     .Invoke(this, [modelBuilder]);
             }
         }
+
+        ApplyFranchiseFilters(modelBuilder);
+    }
+
+    private void ApplyFranchiseFilters(ModelBuilder modelBuilder)
+    {
+        // A franchise link belongs to two companies: each of them sees it, nobody else does.
+        modelBuilder.Entity<FranchiseLink>().HasQueryFilter(TenantFilter,
+            l => l.FranchisorOrganizationId == CurrentOrganizationId || l.FranchiseeOrganizationId == CurrentOrganizationId);
+        modelBuilder.Entity<FranchiseLinkScope>().HasQueryFilter(TenantFilter,
+            s => s.FranchisorOrganizationId == CurrentOrganizationId || s.FranchiseeOrganizationId == CurrentOrganizationId);
     }
 
     private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : BaseEntity
@@ -149,6 +162,7 @@ public class AppDbContext : DbContext
     private void PrepareForSave()
     {
         EnforceOrganizationOwnership();
+        EnforceFranchiseParties();
 
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -163,6 +177,62 @@ public class AppDbContext : DbContext
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTime.UtcNow;
                     break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Franchise links belong to two companies. A link can be created only by the company inviting (the franchisor),
+    /// and changed only by one of its two companies; the two companies of a link never change.
+    /// </summary>
+    private void EnforceFranchiseParties()
+    {
+        var current = _tenant.OrganizationId;
+
+        foreach (var entry in ChangeTracker.Entries<FranchiseLink>())
+        {
+            CheckParties(entry, entry.Entity.FranchisorOrganizationId, entry.Entity.FranchiseeOrganizationId, current, creatorMustBeFranchisor: true);
+        }
+
+        foreach (var entry in ChangeTracker.Entries<FranchiseLinkScope>())
+        {
+            CheckParties(entry, entry.Entity.FranchisorOrganizationId, entry.Entity.FranchiseeOrganizationId, current, creatorMustBeFranchisor: false);
+        }
+    }
+
+    private static void CheckParties(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, Guid franchisor, Guid franchisee,
+        Guid? current, bool creatorMustBeFranchisor)
+    {
+        if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+        {
+            return;
+        }
+
+        var name = entry.Metadata.ClrType.Name;
+        if (current is not { } company || (company != franchisor && company != franchisee))
+        {
+            throw new TenantViolationException($"Cannot save {name}: the current company is not part of this franchise link.");
+        }
+
+        if (franchisor == franchisee)
+        {
+            throw new TenantViolationException($"{name} cannot link a company to itself.");
+        }
+
+        if (entry.State == EntityState.Added && creatorMustBeFranchisor && company != franchisor)
+        {
+            throw new TenantViolationException("Only the company that invites can create a franchise link.");
+        }
+
+        if (entry.State != EntityState.Added)
+        {
+            foreach (var property in new[] { nameof(FranchiseLink.FranchisorOrganizationId), nameof(FranchiseLink.FranchiseeOrganizationId) })
+            {
+                var p = entry.Property(property);
+                if (p.IsModified && !Equals(p.OriginalValue, p.CurrentValue))
+                {
+                    throw new TenantViolationException($"The companies of a {name} cannot be changed.");
+                }
             }
         }
     }

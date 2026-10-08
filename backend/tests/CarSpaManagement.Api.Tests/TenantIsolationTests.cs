@@ -51,7 +51,7 @@ public class TenantIsolationTests
     [Fact]
     public void EveryBusinessTable_IsOwnedByAnOrganization_SoNewTablesCannotBeForgotten()
     {
-        var platformTables = new HashSet<Type> { typeof(Organization), typeof(Permission) };
+        var platformTables = new HashSet<Type> { typeof(Organization), typeof(Permission), typeof(FranchiseLink), typeof(FranchiseLinkScope) };
         var entityTypes = typeof(AppDbContext).Assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false, Namespace: "CarSpaManagement.Api.Domain.Entities" })
             .Where(t => !t.IsNested && !t.Name.StartsWith('<'))

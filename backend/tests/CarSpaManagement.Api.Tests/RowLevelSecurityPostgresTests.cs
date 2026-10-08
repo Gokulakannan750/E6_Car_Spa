@@ -19,6 +19,7 @@ public class RowLevelSecurityPostgresTests : IClassFixture<PostgresTestDatabase>
 
     private static readonly Guid OrgA = Guid.Parse("aaaaaaaa-0000-0000-0000-00000000000a");
     private static readonly Guid OrgB = Guid.Parse("bbbbbbbb-0000-0000-0000-00000000000b");
+    private static readonly Guid OrgC = Guid.Parse("cccccccc-0000-0000-0000-00000000000c");
 
     private readonly PostgresTestDatabase _pg;
 
@@ -39,7 +40,11 @@ public class RowLevelSecurityPostgresTests : IClassFixture<PostgresTestDatabase>
 
         // Two companies, each with one customer. The superuser connection is not subject to row-level security.
         await Exec(conn, $@"INSERT INTO ""Organizations"" (""Id"",""Code"",""Name"",""IsActive"",""CreatedAt"",""IsDeleted"")
-            VALUES ('{OrgA}','00A','A',TRUE,NOW(),FALSE), ('{OrgB}','00B','B',TRUE,NOW(),FALSE) ON CONFLICT DO NOTHING");
+            VALUES ('{OrgA}','00A','A',TRUE,NOW(),FALSE), ('{OrgB}','00B','B',TRUE,NOW(),FALSE),
+                   ('{OrgC}','00C','C',TRUE,NOW(),FALSE) ON CONFLICT DO NOTHING");
+        // A franchise link from A to B (the superuser connection is not subject to row-level security).
+        await Exec(conn, $@"INSERT INTO ""FranchiseLinks"" (""Id"",""FranchisorOrganizationId"",""FranchiseeOrganizationId"",""Status"",""ExpiresAt"",""CreatedAt"",""IsDeleted"")
+            VALUES (gen_random_uuid(),'{OrgA}','{OrgB}','Pending',NOW() + interval '7 days',NOW(),FALSE) ON CONFLICT DO NOTHING");
         await Exec(conn, $@"INSERT INTO ""Customers"" (""Id"",""Name"",""PhoneNumber"",""CreatedAt"",""IsDeleted"",""OrganizationId"")
             VALUES (gen_random_uuid(),'Customer of A','9000000001',NOW(),FALSE,'{OrgA}'),
                    (gen_random_uuid(),'Customer of B','9000000002',NOW(),FALSE,'{OrgB}')");
@@ -137,12 +142,12 @@ public class RowLevelSecurityPostgresTests : IClassFixture<PostgresTestDatabase>
         await using var a = AsTester(new FixedTenantContext(OrgA));
         await using (var tx = await a.Database.BeginTransactionAsync())
         {
-            Assert.Single(await a.Customers.IgnoreQueryFilters().ToListAsync());
+            Assert.Equal([OrgA], await a.Customers.IgnoreQueryFilters().Select(c => c.OrganizationId).Distinct().ToListAsync());
             await tx.RollbackAsync();
         }
 
         // After the rollback the setting must be sent again, not assumed.
-        Assert.Single(await a.Customers.IgnoreQueryFilters().ToListAsync());
+        Assert.Equal([OrgA], await a.Customers.IgnoreQueryFilters().Select(c => c.OrganizationId).Distinct().ToListAsync());
     }
 
     [PostgresFact]
@@ -158,5 +163,33 @@ public class RowLevelSecurityPostgresTests : IClassFixture<PostgresTestDatabase>
 
         await using var other = AsTester(new FixedTenantContext(OrgB));
         Assert.DoesNotContain(await other.Customers.ToListAsync(), c => c.Id == customer.Id);
+    }
+
+    [PostgresFact]
+    public async Task AFranchiseLink_IsVisibleToItsTwoCompaniesOnly()
+    {
+        await using var a = AsTester(new FixedTenantContext(OrgA));
+        await using var b = AsTester(new FixedTenantContext(OrgB));
+        await using var c = AsTester(new FixedTenantContext(OrgC));
+        await using var nobody = AsTester(new NoTenantContext());
+
+        Assert.Equal(1, await a.FranchiseLinks.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(1, await b.FranchiseLinks.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(0, await c.FranchiseLinks.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(0, await nobody.FranchiseLinks.IgnoreQueryFilters().CountAsync());
+    }
+
+    [PostgresFact]
+    public async Task ACompanyOutsideALink_CannotChangeOrCreateLinks_OnTheDatabase()
+    {
+        await using var c = AsTester(new FixedTenantContext(OrgC));
+
+        Assert.Equal(0, await c.Database.ExecuteSqlRawAsync(@"UPDATE ""FranchiseLinks"" SET ""Status"" = 'Active'"));
+        Assert.Equal(0, await c.Database.ExecuteSqlRawAsync(@"DELETE FROM ""FranchiseLinks"""));
+
+        var ex = await Assert.ThrowsAsync<PostgresException>(() => c.Database.ExecuteSqlRawAsync(
+            @"INSERT INTO ""FranchiseLinks"" (""Id"",""FranchisorOrganizationId"",""FranchiseeOrganizationId"",""Status"",""ExpiresAt"",""CreatedAt"",""IsDeleted"")
+              VALUES (gen_random_uuid(),{0},{1},'Active',NOW(),NOW(),FALSE)", OrgA, OrgB));
+        Assert.Equal("42501", ex.SqlState);
     }
 }

@@ -11,6 +11,10 @@ public static class PermissionSeeder
         // Dashboard
         ("dashboard.view", "View Dashboard", "Dashboard", "Allows viewing dashboard overview and analytics"),
 
+        // Franchise network
+        ("franchise.view", "View Franchise Network", "Franchise", "Allows viewing franchise invitations and linked companies"),
+        ("franchise.manage", "Manage Franchise Network", "Franchise", "Allows sending, answering and ending franchise links and deciding what is shared"),
+
         // Customers
         ("customers.view", "View Customers", "Customers", "Allows viewing customer profiles and directory"),
         ("customers.create", "Create Customers", "Customers", "Allows adding new customers"),
