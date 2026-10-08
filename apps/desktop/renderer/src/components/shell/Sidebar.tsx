@@ -121,7 +121,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 
 	return (
 		<aside
-			className="h-screen flex flex-col bg-gradient-to-br from-side-700 via-side-800 to-side-950 border-r border-white/10 fixed left-0 top-0 z-40 sidebar-transition shadow-2xl"
+			className="h-screen flex flex-col bg-gradient-to-br from-side-900 via-black to-side-950 border-r border-white/10 fixed left-0 top-0 z-40 sidebar-transition shadow-2xl"
 			style={{
 				width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
 			}}
