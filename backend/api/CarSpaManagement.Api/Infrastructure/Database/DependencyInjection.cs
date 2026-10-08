@@ -22,7 +22,8 @@ public static class DependencyInjection
   {
   npgsqlOptions.MigrationsAssembly(typeof(DependencyInjection).Assembly.FullName);
   })
-  .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+  .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+  .AddInterceptors(new TenantSessionInterceptor());
 
   if (isDevelopment)
   {
