@@ -606,7 +606,7 @@ export default function SettingsPage() {
 							<div className="space-y-3 text-xs">
 								<div className="flex justify-between py-1.5 border-b border-slate-100">
 									<span className="text-slate-500">Software</span>
-									<span className="text-slate-800 font-semibold">E6 Car Spa Management</span>
+									<span className="text-slate-800 font-semibold">Car Spa Management</span>
 								</div>
 								<div className="flex justify-between py-1.5 border-b border-slate-100">
 									<span className="text-slate-500">Version</span>

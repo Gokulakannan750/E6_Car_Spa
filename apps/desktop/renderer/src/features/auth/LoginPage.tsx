@@ -10,6 +10,7 @@ import {
 } from '../../lib/api';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import bannerImage from '../../assets/login-banner.jpg';
+import { BrandMark, displayName } from '../../components/shared/BrandMark';
 
 
 export default function LoginPage() {
@@ -48,7 +49,8 @@ export default function LoginPage() {
 		};
 	}, []);
 
-	const businessName = publicProfile?.businessName || cachedProfile?.businessName || 'E6 CAR SPA';
+	const businessName = displayName(publicProfile?.businessName || cachedProfile?.businessName);
+	const hasBusinessName = Boolean(publicProfile?.businessName?.trim() || cachedProfile?.businessName?.trim());
 	const logoPath = publicProfile !== null ? publicProfile.logoPath : cachedProfile?.logoPath;
 	const updatedAt = publicProfile !== null ? publicProfile.updatedAt : cachedProfile?.updatedAt;
 	const hasCustomLogo = Boolean(logoPath && logoPath.trim().length > 0);
@@ -78,7 +80,7 @@ export default function LoginPage() {
 				{/* Background Image with Dark Vignette & Red Ambient Overlays */}
 				<img
 					src={bannerImage}
-					alt="E6 Car Spa Luxury Studio"
+					alt=""
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
 				<div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-side-950/70" />
@@ -88,7 +90,7 @@ export default function LoginPage() {
 				<div className="relative z-10 flex justify-center w-full">
 					<div className="inline-flex items-center gap-4 px-6 py-3.5 rounded-2xl bg-black/65 border border-white/20 backdrop-blur-xl shadow-2xl shadow-black/60">
 						<div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-side-600 to-side-900 text-white font-black text-lg shadow-lg shadow-side-950/60 ring-1 ring-white/20">
-							E6
+							<BrandMark name={hasBusinessName ? businessName : null} iconClassName="h-6 w-6" />
 						</div>
 						<div className="leading-tight text-left">
 							<span className="font-extrabold text-xl xl:text-2xl tracking-wider uppercase text-white block">
@@ -143,7 +145,7 @@ export default function LoginPage() {
 							</div>
 						) : (
 							<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-side-600 to-side-900 shadow-lg shadow-side-900/40 text-white font-black text-2xl mb-4">
-								E6
+								<BrandMark name={hasBusinessName ? businessName : null} iconClassName="h-8 w-8" />
 							</div>
 						)}
 						<h1 className="text-2xl font-extrabold text-white tracking-tight uppercase">

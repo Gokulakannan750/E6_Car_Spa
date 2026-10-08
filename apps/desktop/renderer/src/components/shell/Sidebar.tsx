@@ -17,6 +17,7 @@ import type { NavigationItem } from '../../types/app';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../../features/auth/auth-context';
 import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
+import { BrandMark, displayName } from '../shared/BrandMark';
 
 export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	const storeCollapsed = useAppStore((s) => s.sidebarCollapsed);
@@ -33,7 +34,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 		setImgError(false);
 	}, [logoUrl]);
 
-	const businessName = profile?.businessName || 'E6 Car Spa';
+	const businessName = displayName(profile?.businessName);
 	const showImage = hasCustomLogo && !imgError;
 
 	const currentWorkspace: Workspace = getWorkspaceFromPath(location.pathname);
@@ -138,7 +139,9 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 							/>
 						) : (
 							<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-side-950/50">
-								<span className="text-white font-bold text-xs">E6</span>
+								<span className="text-white font-bold text-xs">
+									<BrandMark name={profile?.businessName} iconClassName="h-4 w-4" />
+								</span>
 							</div>
 						)}
 						<div className="sidebar-transition overflow-hidden min-w-0 flex-1">
@@ -155,7 +158,9 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 					/>
 				) : (
 					<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-side-950/50">
-						<span className="text-white font-bold text-xs">E6</span>
+						<span className="text-white font-bold text-xs">
+									<BrandMark name={profile?.businessName} iconClassName="h-4 w-4" />
+								</span>
 					</div>
 				)}
 			</div>

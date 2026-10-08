@@ -62,7 +62,7 @@ function registerAppProtocol() {
 
 function createWindow() {
 	mainWindow = new BrowserWindow({
-		title: 'E6 Car Spa Management',
+		title: 'Car Spa Management',
 		width: 1400,
 		height: 900,
 		minWidth: 1024,

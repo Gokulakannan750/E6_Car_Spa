@@ -459,23 +459,23 @@ export function SystemPreferencesPage() {
 
 						<div className="space-y-2 text-[11px]">
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Billing</span>
+								<span className="text-slate-600">Billing</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 1</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Staff</span>
+								<span className="text-slate-600">Staff</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 2</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Showroom</span>
+								<span className="text-slate-600">Showroom</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 3</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Reports</span>
+								<span className="text-slate-600">Reports</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 4</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Settings</span>
+								<span className="text-slate-600">Settings</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 5</kbd>
 							</div>
 						</div>

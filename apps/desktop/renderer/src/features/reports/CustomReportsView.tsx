@@ -8,6 +8,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import type { DashboardSummaryDto } from '../../lib/api';
 import * as XLSX from 'xlsx';
+import { reportFilePrefix } from '../../lib/documentBranding';
 
 interface CustomReportsViewProps {
 	data: DashboardSummaryDto | undefined;
@@ -87,7 +88,7 @@ export function CustomReportsView({ data, isLoading, bounds, formatINR }: Custom
 			XLSX.utils.book_append_sheet(wb, ws, 'Showroom Operations');
 		}
 
-		XLSX.writeFile(wb, `E6_Custom_Report_${bounds.startStr}_to_${bounds.endStr}.xlsx`);
+		XLSX.writeFile(wb, `${reportFilePrefix()}Custom_Report_${bounds.startStr}_to_${bounds.endStr}.xlsx`);
 	};
 
 	return (

@@ -5,6 +5,7 @@ import { cn } from '../../utils/cn';
 import type { User } from '../../types/app';
 import { useAuth } from '../../features/auth/auth-context';
 import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
+import { BrandMark, displayName } from '../shared/BrandMark';
 
 interface HeaderProps {
 	pageTitle: string;
@@ -40,7 +41,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 		setImgError(false);
 	}, [logoUrl]);
 
-	const businessName = profile?.businessName || 'E6 Car Spa';
+	const businessName = displayName(profile?.businessName);
 	const showImage = hasCustomLogo && !imgError;
 
 	const handleClear = useCallback(() => {
@@ -91,7 +92,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 						/>
 					) : (
 						<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 text-white border border-white/20 flex items-center justify-center font-black text-xs shadow-sm shadow-side-950/30 flex-shrink-0">
-							E6
+							<BrandMark name={profile?.businessName} />
 						</div>
 					)}
 					<span className="font-bold text-sm text-slate-900 tracking-tight whitespace-nowrap">

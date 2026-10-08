@@ -4,7 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
 import { renderWithProviders } from '../../test/test-utils';
 
-describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
+describe('Suite Launcher (DashboardPage)', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
@@ -18,38 +18,38 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			// 1. E6 Billing
-			expect(screen.getByRole('heading', { name: 'E6 Billing', level: 3 })).toBeInTheDocument();
+			// 1. Billing
+			expect(screen.getByRole('heading', { name: 'Billing', level: 3 })).toBeInTheDocument();
 			expect(screen.getByText('Customers, job cards, invoices and payments')).toBeInTheDocument();
 			expect(screen.getByText('Customers')).toBeInTheDocument();
 			expect(screen.getByText('Job Cards')).toBeInTheDocument();
 			expect(screen.getByText('Invoices')).toBeInTheDocument();
 			expect(screen.getByText('Payments')).toBeInTheDocument();
 
-			// 2. E6 Staff
-			expect(screen.getByRole('heading', { name: 'E6 Staff', level: 3 })).toBeInTheDocument();
+			// 2. Staff
+			expect(screen.getByRole('heading', { name: 'Staff', level: 3 })).toBeInTheDocument();
 			expect(screen.getByText('Staff, attendance and salary management')).toBeInTheDocument();
-			expect(screen.getByText('Staff')).toBeInTheDocument();
+			expect(screen.getAllByText('Staff').length).toBeGreaterThan(0);
 			expect(screen.getAllByText('Attendance')).toHaveLength(2);
 			expect(screen.getByText('Salary')).toBeInTheDocument();
 			expect(screen.getByText('Advances')).toBeInTheDocument();
 
-			// 3. E6 Showroom
-			expect(screen.getByRole('heading', { name: 'E6 Showroom', level: 3 })).toBeInTheDocument();
+			// 3. Showroom
+			expect(screen.getByRole('heading', { name: 'Showroom', level: 3 })).toBeInTheDocument();
 			expect(screen.getByText('Showrooms, staff work and showroom billing')).toBeInTheDocument();
 			expect(screen.getByText('Showrooms')).toBeInTheDocument();
 			expect(screen.getByText('Staff Requests')).toBeInTheDocument();
 
-			// 4. E6 Reports
-			expect(screen.getByRole('heading', { name: 'E6 Reports', level: 3 })).toBeInTheDocument();
+			// 4. Reports
+			expect(screen.getByRole('heading', { name: 'Reports', level: 3 })).toBeInTheDocument();
 			expect(screen.getByText('Billing, staff, showroom and outside job reports')).toBeInTheDocument();
 			expect(screen.getByText('Billing Reports')).toBeInTheDocument();
 			expect(screen.getByText('Staff Reports')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Reports')).toBeInTheDocument();
 			expect(screen.getByText('Outside Jobs')).toBeInTheDocument();
 
-			// 5. E6 Settings
-			expect(screen.getByRole('heading', { name: 'E6 Settings', level: 3 })).toBeInTheDocument();
+			// 5. Settings
+			expect(screen.getByRole('heading', { name: 'Settings', level: 3 })).toBeInTheDocument();
 			expect(screen.getByText('Business configuration and system settings')).toBeInTheDocument();
 			expect(screen.getByText('Business Profile')).toBeInTheDocument();
 			expect(screen.getByText('Tax Settings')).toBeInTheDocument();
@@ -67,13 +67,13 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText(/WELCOME TO E6 CAR SPA/i)).toBeInTheDocument();
+			expect(screen.getByText(/WELCOME TO CAR SPA MANAGEMENT/i)).toBeInTheDocument();
 			expect(screen.getByText(/Good (Morning|Afternoon|Evening)/i)).toBeInTheDocument();
 			expect(screen.getByText('What would you like to manage today?')).toBeInTheDocument();
 		});
 	});
 
-	it('navigates to E6 Billing workspace (/job-cards) when clicking the Billing card', async () => {
+	it('navigates to Billing workspace (/job-cards) when clicking the Billing card', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/dashboard" element={<DashboardPage />} />
@@ -83,17 +83,17 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Open E6 Billing')).toBeInTheDocument();
+			expect(screen.getByText('Open Billing')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByText('Open E6 Billing'));
+		fireEvent.click(screen.getByText('Open Billing'));
 
 		await waitFor(() => {
 			expect(screen.getByText('Billing Workspace Mock')).toBeInTheDocument();
 		});
 	});
 
-	it('navigates to E6 Staff workspace (/staff) when clicking the Staff card', async () => {
+	it('navigates to Staff workspace (/staff) when clicking the Staff card', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/dashboard" element={<DashboardPage />} />
@@ -103,17 +103,17 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Open E6 Staff')).toBeInTheDocument();
+			expect(screen.getByText('Open Staff')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByText('Open E6 Staff'));
+		fireEvent.click(screen.getByText('Open Staff'));
 
 		await waitFor(() => {
 			expect(screen.getByText('Staff Workspace Mock')).toBeInTheDocument();
 		});
 	});
 
-	it('navigates to E6 Showroom workspace (/showroom) when clicking the Showroom card', async () => {
+	it('navigates to Showroom workspace (/showroom) when clicking the Showroom card', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/dashboard" element={<DashboardPage />} />
@@ -123,17 +123,17 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Open E6 Showroom')).toBeInTheDocument();
+			expect(screen.getByText('Open Showroom')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByText('Open E6 Showroom'));
+		fireEvent.click(screen.getByText('Open Showroom'));
 
 		await waitFor(() => {
 			expect(screen.getByText('Showroom Workspace Mock')).toBeInTheDocument();
 		});
 	});
 
-	it('navigates to E6 Reports workspace (/reports) when clicking the Reports card', async () => {
+	it('navigates to Reports workspace (/reports) when clicking the Reports card', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/dashboard" element={<DashboardPage />} />
@@ -143,17 +143,17 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText('Open E6 Reports')).toBeInTheDocument();
+			expect(screen.getByText('Open Reports')).toBeInTheDocument();
 		});
 
-		fireEvent.click(screen.getByText('Open E6 Reports'));
+		fireEvent.click(screen.getByText('Open Reports'));
 
 		await waitFor(() => {
 			expect(screen.getByText('Reports Workspace Mock')).toBeInTheDocument();
 		});
 	});
 
-	it('navigates to E6 Settings workspace (/settings) when clicking the Settings card', async () => {
+	it('navigates to Settings workspace (/settings) when clicking the Settings card', async () => {
 		renderWithProviders(
 			<Routes>
 				<Route path="/dashboard" element={<DashboardPage />} />
@@ -187,7 +187,7 @@ describe('E6 Car Spa Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByRole('heading', { name: 'E6 Billing', level: 3 })).toBeInTheDocument();
+			expect(screen.getByRole('heading', { name: 'Billing', level: 3 })).toBeInTheDocument();
 		});
 
 		// Alt + 1 -> Billing
