@@ -3075,7 +3075,8 @@ export interface FranchiseLinkDto {
 	id: string;
 	/** The viewer's own role in the link. */
 	role: 'Franchisor' | 'Franchisee';
-	partnerCode: string;
+	/** The other company's code with the middle hidden, for example "0••1". The full code is never sent. */
+	partnerCodeHint: string;
 	partnerName: string;
 	status: FranchiseLinkStatus;
 	invitedAt: string;

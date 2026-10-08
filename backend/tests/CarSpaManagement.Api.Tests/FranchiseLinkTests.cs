@@ -72,7 +72,7 @@ public class FranchiseLinkTests
         var (franchisor, _) = world.As(from);
         await franchisor.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = code, Scopes = scopes });
         var network = await franchisor.GetNetworkAsync();
-        return network.Franchisees.First(l => l.PartnerCode == code && l.Status == "Pending");
+        return network.Franchisees.First(l => l.PartnerCodeHint == FranchiseService.MaskCode(code) && l.Status == "Pending");
     }
 
     private static RespondToFranchiseInviteRequest Accept(params string[] scopes) =>
@@ -88,6 +88,8 @@ public class FranchiseLinkTests
         Assert.Equal("Pending", link.Status);
         Assert.Equal("Franchisor", link.Role);
         Assert.Equal("Beta Detailing", link.PartnerName);
+        Assert.Equal("0••2", link.PartnerCodeHint);
+        Assert.DoesNotContain("0002", System.Text.Json.JsonSerializer.Serialize(link));
         Assert.Equal(["financial_totals"], link.Scopes.Select(s => s.Scope));
 
         var (beta, _) = world.As(Org2);

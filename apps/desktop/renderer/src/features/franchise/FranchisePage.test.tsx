@@ -35,7 +35,7 @@ function link(over: Partial<api.FranchiseLinkDto>): api.FranchiseLinkDto {
 	return {
 		id: 'l1',
 		role: 'Franchisor',
-		partnerCode: '0002',
+		partnerCodeHint: '0••2',
 		partnerName: 'Beta Detailing',
 		status: 'Pending',
 		invitedAt: '2026-10-08T10:00:00Z',
@@ -64,7 +64,7 @@ describe('FranchisePage', () => {
 					link({
 						role: 'Franchisee',
 						partnerName: 'Alpha Car Spa',
-						partnerCode: '0001',
+						partnerCodeHint: '0••1',
 						scopes: [
 							scope('financial_totals', 'Financial totals (revenue, collections, jobs, invoices)', 'Requested'),
 							scope('staff', 'Staff and attendance', 'Requested'),

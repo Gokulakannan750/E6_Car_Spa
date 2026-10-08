@@ -8,7 +8,7 @@ public record FranchiseScopeDto(string Scope, string Label, string Status);
 public record FranchiseLinkDto(
     Guid Id,
     string Role,
-    string PartnerCode,
+    string PartnerCodeHint,
     string PartnerName,
     string Status,
     DateTime InvitedAt,

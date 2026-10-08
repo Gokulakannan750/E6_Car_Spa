@@ -205,7 +205,7 @@ function PartnerHeader({ link }: { link: FranchiseLinkDto }) {
 				</div>
 				<div className="min-w-0">
 					<p className="truncate text-sm font-semibold text-slate-900">{link.partnerName}</p>
-					<p className="text-xs text-slate-500">Company code {link.partnerCode}</p>
+					<p className="text-xs text-slate-500">Company code {link.partnerCodeHint}</p>
 				</div>
 			</div>
 			<StatusPill status={link.status} />

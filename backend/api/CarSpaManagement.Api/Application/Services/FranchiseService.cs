@@ -73,8 +73,8 @@ public class FranchiseService(
             return new FranchiseLinkDto(
                 l.Id,
                 iAmFranchisor ? "Franchisor" : "Franchisee",
-                partner?.Code ?? string.Empty,
-                string.IsNullOrWhiteSpace(partner?.Name) ? (partner?.Code ?? string.Empty) : partner!.Name,
+                MaskCode(partner?.Code),
+                string.IsNullOrWhiteSpace(partner?.Name) ? MaskCode(partner?.Code) : partner!.Name,
                 l.Status.ToString(),
                 l.CreatedAt,
                 l.ExpiresAt,
@@ -84,6 +84,19 @@ public class FranchiseService(
                     .Select(s => new FranchiseScopeDto(s.Scope, FranchiseScopes.Labels.GetValueOrDefault(s.Scope, s.Scope), s.Status.ToString()))
                     .ToList());
         }).ToList();
+    }
+
+    /// <summary>
+    /// The other company's code is not shown in full: only enough to recognise it (first and last character), so
+    /// one company never learns another's complete sign-in code from the franchise screens.
+    /// </summary>
+    public static string MaskCode(string? code)
+    {
+        if (string.IsNullOrEmpty(code))
+        {
+            return string.Empty;
+        }
+        return code.Length <= 2 ? new string('•', code.Length) : $"{code[0]}{new string('•', code.Length - 2)}{code[^1]}";
     }
 
     /// <summary>Invitations nobody answered in time stop being open, so the same pair can be invited again.</summary>
