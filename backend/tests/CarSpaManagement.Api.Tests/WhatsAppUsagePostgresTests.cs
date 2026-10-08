@@ -7,21 +7,19 @@ using CarSpaManagement.Api.Tests.TestSupport;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using Npgsql;
 using Xunit;
 
 namespace CarSpaManagement.Api.Tests;
 
 /// <summary>
-/// Real-PostgreSQL checks for the consent columns and the monthly usage query. The in-memory tests cannot prove that the
-/// month grouping translates to SQL or that rows created before the migration read back as "no consent".
-/// Skipped unless CARSPA_TEST_PG_CONNECTION is set.
+/// Real-PostgreSQL check for the monthly usage query: the in-memory tests cannot prove that the month grouping
+/// translates to SQL. Skipped unless CARSPA_TEST_PG_CONNECTION is set.
 /// </summary>
-public class WhatsAppConsentAndUsagePostgresTests : IClassFixture<PostgresTestDatabase>
+public class WhatsAppUsagePostgresTests : IClassFixture<PostgresTestDatabase>
 {
     private readonly PostgresTestDatabase _pg;
 
-    public WhatsAppConsentAndUsagePostgresTests(PostgresTestDatabase pg) => _pg = pg;
+    public WhatsAppUsagePostgresTests(PostgresTestDatabase pg) => _pg = pg;
 
     private static WhatsAppService CreateService(AppDbContext db)
     {
@@ -77,48 +75,5 @@ public class WhatsAppConsentAndUsagePostgresTests : IClassFixture<PostgresTestDa
         Assert.Equal(1, current.InvoiceMessagesSent);
         Assert.Equal(1, current.PaymentMessagesSent);
         Assert.Equal(1, usage.Months[1].Sent);
-    }
-
-    [PostgresFact]
-    public async Task Consent_RowsInsertedWithoutTheColumnDefaultToNoConsent()
-    {
-        var id = Guid.NewGuid();
-        await using (var conn = new NpgsqlConnection(_pg.ConnectionString))
-        {
-            await conn.OpenAsync();
-            // Mimics a customer that existed before the consent columns were added: the column is not mentioned at all.
-            await using var cmd = new NpgsqlCommand(
-                "INSERT INTO \"Customers\" (\"Id\", \"Name\", \"PhoneNumber\", \"CreatedAt\", \"IsDeleted\") VALUES (@id, 'Legacy Customer', '9000000099', now(), false)", conn);
-            cmd.Parameters.AddWithValue("id", id);
-            await cmd.ExecuteNonQueryAsync();
-        }
-
-        await using var db = _pg.CreateContext();
-        var customer = await db.Customers.AsNoTracking().SingleAsync(c => c.Id == id);
-
-        Assert.False(customer.WhatsAppConsent);
-        Assert.Null(customer.WhatsAppConsentUpdatedAtUtc);
-        Assert.Null(customer.WhatsAppConsentUpdatedByUserId);
-    }
-
-    [PostgresFact]
-    public async Task Configuration_RequireConsentDefaultsToOffAndPersists()
-    {
-        await using (var db = _pg.CreateContext())
-        {
-            var service = CreateService(db);
-            var initial = await service.GetConfigurationAsync();
-            Assert.False(initial.RequireCustomerConsent);
-
-            var updated = await service.UpdateConfigurationAsync(new Application.DTOs.WhatsApp.UpdateWhatsAppConfigRequest
-            {
-                IsEnabled = true,
-                RequireCustomerConsent = true
-            });
-            Assert.True(updated.RequireCustomerConsent);
-        }
-
-        await using var verify = _pg.CreateContext();
-        Assert.True((await verify.WhatsAppConfigurations.AsNoTracking().SingleAsync()).RequireCustomerConsent);
     }
 }

@@ -123,7 +123,6 @@ describe('CreateCustomerModal Component', () => {
 				phoneNumber: '9876543210',
 				email: 'priya@example.com',
 				address: 'Alwarpet, Chennai',
-				whatsAppConsent: false,
 			});
 			expect(mockOnSuccess).toHaveBeenCalledWith(newCustomer);
 		});
@@ -177,7 +176,6 @@ describe('CreateCustomerModal Component', () => {
 				phoneNumber: '9876543210',
 				email: null,
 				address: null,
-				whatsAppConsent: false,
 			});
 			expect(api.createVehicle).toHaveBeenCalledWith({
 				customerId: 'cust-200',
@@ -281,39 +279,6 @@ describe('CreateCustomerModal Component', () => {
 		await waitFor(() => {
 			expect(api.transferVehicleOwnership).toHaveBeenCalledWith('veh-v', 'cust-b');
 			expect(mockOnSuccess).toHaveBeenCalledWith(newCustomer);
-		});
-	});
-
-	it('records WhatsApp consent only when the box is ticked', async () => {
-		const newCustomer: api.CustomerDto = {
-			id: 'cust-300',
-			name: 'Meena',
-			phoneNumber: '9876500000',
-			email: null,
-			address: null,
-			createdAt: '2026-02-10T10:00:00Z',
-			whatsAppConsent: true,
-		};
-		vi.mocked(api.createCustomer).mockResolvedValue(newCustomer);
-
-		renderWithProviders(
-			<CreateCustomerModal open={true} onClose={mockOnClose} onSuccess={mockOnSuccess} />
-		);
-
-		const consent = screen.getByRole('checkbox', { name: /agrees to receive whatsapp updates/i });
-		expect(consent).not.toBeChecked();
-
-		fireEvent.change(screen.getByPlaceholderText(/e\.g\. John Doe/i), { target: { value: 'Meena' } });
-		fireEvent.change(screen.getByPlaceholderText(/e\.g\. 9876543210/i), { target: { value: '9876500000' } });
-		fireEvent.click(consent);
-		expect(consent).toBeChecked();
-
-		fireEvent.click(screen.getByRole('button', { name: /^create customer$/i }));
-
-		await waitFor(() => {
-			expect(api.createCustomer).toHaveBeenCalledWith(
-				expect.objectContaining({ name: 'Meena', whatsAppConsent: true })
-			);
 		});
 	});
 });

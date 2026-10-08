@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Phone, Calendar, RefreshCw, AlertCircle, Search, Edit3, Car, MessageCircle } from 'lucide-react';
+import { Plus, Phone, Calendar, RefreshCw, AlertCircle, Search, Edit3, Car } from 'lucide-react';
 import { useAppStore } from '../../stores/app';
 import { Button } from '../../components/ui/Button';
 import { CreateCustomerModal } from './CreateCustomerModal';
@@ -262,11 +262,6 @@ export function CustomersPage() {
 											<div className="flex items-center gap-1.5 text-sm">
 												<Phone className="w-3.5 h-3.5 text-on-surface-variant shrink-0" />
 												<span>{c.phoneNumber}</span>
-												{c.whatsAppConsent && (
-													<span title="Agreed to WhatsApp updates" aria-label="Agreed to WhatsApp updates" className="inline-flex shrink-0">
-														<MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
-													</span>
-												)}
 											</div>
 										</td>
 										<td>

@@ -78,9 +78,6 @@ public class WhatsAppService : IWhatsAppService
 		config.InvoiceNotificationsEnabled = request.InvoiceNotificationsEnabled;
 		config.PaymentCompletedNotificationsEnabled = request.PaymentCompletedNotificationsEnabled;
 
-		if (request.RequireCustomerConsent.HasValue)
-			config.RequireCustomerConsent = request.RequireCustomerConsent.Value;
-
 		if (!string.IsNullOrWhiteSpace(request.InvoiceTemplateName))
 			config.InvoiceTemplateName = request.InvoiceTemplateName.Trim();
 
@@ -135,8 +132,7 @@ public class WhatsAppService : IWhatsAppService
 				metaAppId = config.MetaAppId,
 				hasAccessToken = !string.IsNullOrEmpty(config.AccessTokenEncrypted),
 				invoiceNotificationsEnabled = config.InvoiceNotificationsEnabled,
-				paymentCompletedNotificationsEnabled = config.PaymentCompletedNotificationsEnabled,
-				requireCustomerConsent = config.RequireCustomerConsent
+				paymentCompletedNotificationsEnabled = config.PaymentCompletedNotificationsEnabled
 			}),
 			outcome: "Success",
 			cancellationToken: cancellationToken);
@@ -603,11 +599,6 @@ public class WhatsAppService : IWhatsAppService
 			message.Status = WhatsAppMessageStatus.Skipped;
 			message.ErrorMessage = "Customer phone number unavailable or invalid (Customer WhatsApp number is missing).";
 		}
-		else if (config.RequireCustomerConsent && invoice.Customer?.WhatsAppConsent != true)
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = NoConsentMessage;
-		}
 
 		_db.WhatsAppMessages.Add(message);
 		await _db.SaveChangesAsync(cancellationToken);
@@ -683,19 +674,12 @@ public class WhatsAppService : IWhatsAppService
 			message.Status = WhatsAppMessageStatus.Skipped;
 			message.ErrorMessage = "Customer phone number unavailable or invalid.";
 		}
-		else if (config.RequireCustomerConsent && invoice.Customer?.WhatsAppConsent != true)
-		{
-			message.Status = WhatsAppMessageStatus.Skipped;
-			message.ErrorMessage = NoConsentMessage;
-		}
 
 		_db.WhatsAppMessages.Add(message);
 		await _db.SaveChangesAsync(cancellationToken);
 
 		return message;
 	}
-
-	public const string NoConsentMessage = "Customer has not consented to WhatsApp updates.";
 
 	/// <summary>
 	/// Monthly message counts (UTC calendar months, newest first), computed from the message records so the numbers
@@ -806,15 +790,6 @@ public class WhatsAppService : IWhatsAppService
 			{
 				message.Status = WhatsAppMessageStatus.Skipped;
 				message.ErrorMessage = "Customer phone number unavailable or invalid (Customer WhatsApp number is missing).";
-				await _db.SaveChangesAsync(cancellationToken);
-				return true;
-			}
-
-			// Consent may have been withdrawn after the message was queued: honour it at send time.
-			if (config.RequireCustomerConsent && message.Customer?.WhatsAppConsent != true)
-			{
-				message.Status = WhatsAppMessageStatus.Skipped;
-				message.ErrorMessage = NoConsentMessage;
 				await _db.SaveChangesAsync(cancellationToken);
 				return true;
 			}
@@ -1942,8 +1917,7 @@ public class WhatsAppService : IWhatsAppService
 			c.LastSuccessAtUtc,
 			c.LastFailureAtUtc,
 			c.LastErrorMessage,
-			c.MetaAppId,
-			c.RequireCustomerConsent
+			c.MetaAppId
 		);
 	}
 

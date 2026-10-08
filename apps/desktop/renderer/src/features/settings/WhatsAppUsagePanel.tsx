@@ -97,8 +97,7 @@ export function WhatsAppUsagePanel() {
 						</tbody>
 					</table>
 					<p className="mt-2 text-[10px] text-slate-500">
-						Skipped messages were not sent: the customer has no consent recorded, no valid phone number, or WhatsApp was
-						switched off.
+						Skipped messages were not sent: the customer had no valid phone number, or WhatsApp was switched off.
 					</p>
 				</div>
 			)}

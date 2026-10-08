@@ -283,9 +283,6 @@ export interface CustomerDto {
 	totalPaidAmount?: number;
 	totalOutstandingAmount?: number;
 	paymentStatus?: string;
-	/** The customer agreed to automatic WhatsApp updates. */
-	whatsAppConsent?: boolean;
-	whatsAppConsentUpdatedAtUtc?: string | null;
 }
 
 export interface CustomerListResponse {
@@ -335,8 +332,6 @@ export interface CreateCustomerInput {
  phoneNumber: string;
  email?: string | null;
  address?: string | null;
- /** Omit to leave the recorded consent unchanged. */
- whatsAppConsent?: boolean;
 }
 
 export interface UpdateCustomerInput extends Partial<CreateCustomerInput> {
@@ -3204,7 +3199,6 @@ export interface WhatsAppConfigDto {
 	lastFailureAtUtc?: string | null;
 	lastErrorMessage?: string | null;
 	metaAppId?: string | null;
-	requireCustomerConsent?: boolean;
 }
 
 export interface WhatsAppUsageMonthDto {
@@ -3245,8 +3239,6 @@ export interface UpdateWhatsAppConfigRequest {
 	paymentCompletedTemplateName?: string;
 	paymentCompletedTemplateLanguage?: string;
 	metaAppId?: string;
-	/** Omit to leave the saved value unchanged. */
-	requireCustomerConsent?: boolean;
 }
 
 export interface TestWhatsAppConnectionRequest {

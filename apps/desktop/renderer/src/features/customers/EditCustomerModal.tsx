@@ -14,7 +14,6 @@ import {
 	type VehicleDto,
 	ApiError,
 } from '../../lib/api';
-import { WhatsAppConsentCheckbox } from './WhatsAppConsentCheckbox';
 
 interface EditCustomerModalProps {
 	open: boolean;
@@ -48,7 +47,6 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 	const [phoneNumber, setPhoneNumber] = useState('');
 	const [email, setEmail] = useState('');
 	const [address, setAddress] = useState('');
-	const [whatsAppConsent, setWhatsAppConsent] = useState(false);
 
 	// Vehicles state
 	const [vehicles, setVehicles] = useState<EditableVehicle[]>([]);
@@ -96,7 +94,6 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 			setPhoneNumber(customer.phoneNumber || '');
 			setEmail(customer.email || '');
 			setAddress(customer.address || '');
-			setWhatsAppConsent(customer.whatsAppConsent ?? false);
 			setError('');
 			setSuccessFeedback('');
 			setTransferError('');
@@ -314,7 +311,6 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 				phoneNumber: trimmedPhone,
 				email: trimmedEmail || null,
 				address: trimmedAddress || null,
-				whatsAppConsent,
 			});
 
 			// 2. Process vehicle updates and creations
@@ -647,14 +643,6 @@ export function EditCustomerModal({ open, customer, onClose, onSuccess }: EditCu
 								/>
 								<MapPin className="w-4 h-4 text-on-surface-variant/60 absolute left-3 top-1/2 -translate-y-1/2" />
 							</div>
-						</div>
-
-						<div className="sm:col-span-2">
-							<WhatsAppConsentCheckbox
-								checked={whatsAppConsent}
-								onChange={setWhatsAppConsent}
-								recordedAt={customer?.whatsAppConsentUpdatedAtUtc}
-							/>
 						</div>
 					</div>
 				</div>
