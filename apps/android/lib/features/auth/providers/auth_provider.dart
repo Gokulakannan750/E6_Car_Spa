@@ -197,9 +197,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> bootstrapOwner(BootstrapOwnerRequest request) async {
     state = const Authenticating();
     try {
-      await _repository.bootstrapOwner(request);
-      state = const Unauthenticated(
-        'Owner account created successfully. Please sign in.',
+      final companyCode = await _repository.bootstrapOwner(request);
+      state = Unauthenticated(
+        companyCode.isEmpty
+            ? 'Owner account created successfully. Please sign in.'
+            : 'Owner account created. Your company code is $companyCode. Please sign in.',
         true,
       );
       return true;

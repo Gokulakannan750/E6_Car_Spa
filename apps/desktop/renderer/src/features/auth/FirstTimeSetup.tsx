@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { getAuthStatus, bootstrapOwner, ApiError } from '../../lib/api';
+import { getAuthStatus, bootstrapOwner, rememberCompanyCode, ApiError } from '../../lib/api';
 import { capitalizeSentence } from '../../utils/text';
 import { useAuth } from './auth-context';
 import { ShieldCheck, UserCheck, Lock, User, CheckCircle2 } from 'lucide-react';
@@ -112,7 +112,7 @@ export default function FirstTimeSetup() {
 		setIsSubmitting(true);
 
 		try {
-			await bootstrapOwner({
+			const owner = await bootstrapOwner({
 				fullName: capitalizeSentence(fullName.trim()),
 				username: username.trim().toLowerCase(),
 				password,
@@ -120,7 +120,12 @@ export default function FirstTimeSetup() {
 			});
 
 			await checkInitialization();
-			setSuccessMsg('Owner account created successfully. Redirecting to login...');
+			if (owner.companyCode) rememberCompanyCode(owner.companyCode);
+			setSuccessMsg(
+				owner.companyCode
+					? `Owner account created. Your company code is ${owner.companyCode}. Redirecting to login...`
+					: 'Owner account created successfully. Redirecting to login...',
+			);
 
 			setTimeout(() => {
 				navigate('/login', { replace: true });

@@ -54,7 +54,7 @@ public class AuthService(
         return organization;
     }
 
-    public async Task<AuthUserDto> BootstrapOwnerAsync(BootstrapOwnerRequest request, CancellationToken cancellationToken = default)
+    public async Task<BootstrapOwnerResponse> BootstrapOwnerAsync(BootstrapOwnerRequest request, CancellationToken cancellationToken = default)
     {
         // Concurrency-safe owner bootstrap using database transaction with Serializable isolation
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
@@ -135,7 +135,18 @@ public class AuthService(
 
             Log.Information("Initial Owner account successfully bootstrapped with username '{Username}'", owner.Username);
 
-            return MapToAuthUserDto(owner, []);
+            var dto = MapToAuthUserDto(owner, []);
+            return new BootstrapOwnerResponse
+            {
+                Id = dto.Id,
+                FullName = dto.FullName,
+                Username = dto.Username,
+                Email = dto.Email,
+                Role = dto.Role,
+                IsOwner = dto.IsOwner,
+                Permissions = dto.Permissions,
+                CompanyCode = organization.Code
+            };
         }
         catch
         {

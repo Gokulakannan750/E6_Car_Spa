@@ -25,8 +25,13 @@ class AuthRepository {
   }
 
   /// Bootstraps initial Owner account against POST /api/auth/bootstrap
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
-    return await _api.bootstrapOwner(request);
+  /// Returns the new company's code, which is also remembered on this device.
+  Future<String> bootstrapOwner(BootstrapOwnerRequest request) async {
+    final result = await _api.bootstrapOwner(request);
+    if (result.companyCode.isNotEmpty) {
+      await _storage.saveCompanyCode(result.companyCode);
+    }
+    return result.companyCode;
   }
 
   /// Performs login, stores token and user in secure storage, and returns AuthUser

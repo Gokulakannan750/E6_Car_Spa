@@ -40,10 +40,14 @@ class MockAuthApi extends AuthApi {
   }
 
   @override
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+  Future<({AuthUser user, String companyCode})> bootstrapOwner(
+    BootstrapOwnerRequest request,
+  ) async {
     if (bootstrapError != null) throw bootstrapError!;
-    if (bootstrapResponse != null) return bootstrapResponse!;
-    return testUser;
+    if (bootstrapResponse != null) {
+      return (user: bootstrapResponse!, companyCode: '0001');
+    }
+    return (user: testUser, companyCode: '0001');
   }
 
   @override

@@ -36,7 +36,9 @@ class AuthApi {
   }
 
   /// Bootstraps initial Owner account against POST /api/auth/bootstrap
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+  Future<({AuthUser user, String companyCode})> bootstrapOwner(
+    BootstrapOwnerRequest request,
+  ) async {
     try {
       final response = await _dio.post(
         '/auth/bootstrap',
@@ -44,7 +46,11 @@ class AuthApi {
       );
 
       if (response.data is Map<String, dynamic>) {
-        return AuthUser.fromJson(response.data as Map<String, dynamic>);
+        final json = response.data as Map<String, dynamic>;
+        return (
+          user: AuthUser.fromJson(json),
+          companyCode: json['companyCode'] as String? ?? '',
+        );
       }
       throw const ApiException(
         message: 'Invalid response format from bootstrap API.',

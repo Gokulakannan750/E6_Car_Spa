@@ -2915,7 +2915,7 @@ export async function getAuthStatus() {
 }
 
 export async function bootstrapOwner(data: BootstrapOwnerInput) {
-	return request<AuthUserResponse>('/api/auth/bootstrap', {
+	return request<AuthUserResponse & { companyCode?: string }>('/api/auth/bootstrap', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'initialize owner account');

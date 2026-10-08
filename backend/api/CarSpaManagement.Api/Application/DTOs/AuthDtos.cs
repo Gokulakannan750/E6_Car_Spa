@@ -51,6 +51,12 @@ public class AuthUserDto
     public List<string> Permissions { get; set; } = [];
 }
 
+/// <summary>The new Owner plus the code of the company that was just created, which they sign in with.</summary>
+public class BootstrapOwnerResponse : AuthUserDto
+{
+    public string CompanyCode { get; set; } = string.Empty;
+}
+
 public class LoginResponse
 {
     public string Token { get; set; } = string.Empty;

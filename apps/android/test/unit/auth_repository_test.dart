@@ -28,16 +28,23 @@ class FakeAuthApi extends AuthApi {
   }
 
   @override
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+  Future<({AuthUser user, String companyCode})> bootstrapOwner(
+    BootstrapOwnerRequest request,
+  ) async {
     lastBootstrapRequest = request;
     if (errorToThrow != null) throw errorToThrow!;
-    if (mockBootstrapUser != null) return mockBootstrapUser!;
-    return const AuthUser(
-      id: 'owner-id',
-      fullName: 'Owner Admin',
-      username: 'owner',
-      role: 'Owner',
-      isOwner: true,
+    if (mockBootstrapUser != null) {
+      return (user: mockBootstrapUser!, companyCode: '0001');
+    }
+    return (
+      user: const AuthUser(
+        id: 'owner-id',
+        fullName: 'Owner Admin',
+        username: 'owner',
+        role: 'Owner',
+        isOwner: true,
+      ),
+      companyCode: '0001',
     );
   }
 
@@ -164,8 +171,7 @@ void main() {
 
         final created = await repository.bootstrapOwner(request);
 
-        expect(created.id, 'owner-created-id');
-        expect(created.isOwner, true);
+        expect(created, '0001');
         expect(fakeApi.lastBootstrapRequest?.username, 'founder');
         expect(fakeApi.lastBootstrapRequest?.fullName, 'E6 Founder');
       },

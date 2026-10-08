@@ -23,7 +23,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("bootstrap")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-bootstrap")]
-    public async Task<ActionResult<AuthUserDto>> BootstrapOwner([FromBody] BootstrapOwnerRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<BootstrapOwnerResponse>> BootstrapOwner([FromBody] BootstrapOwnerRequest request, CancellationToken cancellationToken)
     {
         try
         {
