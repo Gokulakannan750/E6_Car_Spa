@@ -1,9 +1,21 @@
+import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, ShieldCheck, Check } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { WhatsAppSettingsSection } from './WhatsAppSettingsSection';
+import { WhatsAppUsagePanel } from './WhatsAppUsagePanel';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 
+type WhatsAppTab = 'settings' | 'usage';
+
+const WHATSAPP_TABS: { id: WhatsAppTab; label: string }[] = [
+	{ id: 'settings', label: 'Settings' },
+	{ id: 'usage', label: 'Usage' },
+];
+
 export function WhatsAppSettingsPage() {
+	const [searchParams, setSearchParams] = useSearchParams();
+	const activeTab: WhatsAppTab = searchParams.get('tab') === 'usage' ? 'usage' : 'settings';
+	const selectTab = (tab: WhatsAppTab) => setSearchParams(tab === 'settings' ? {} : { tab }, { replace: true });
 	const { user, hasPermission } = useAuth();
 	const canManageBusiness = Boolean(user?.isOwner || hasPermission('settings.business'));
 
@@ -21,7 +33,30 @@ export function WhatsAppSettingsPage() {
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
+			<div role="tablist" aria-label="WhatsApp sections" className="flex gap-1 border-b border-slate-200">
+				{WHATSAPP_TABS.map((tab) => (
+					<button
+						key={tab.id}
+						type="button"
+						role="tab"
+						aria-selected={activeTab === tab.id}
+						onClick={() => selectTab(tab.id)}
+						className={`-mb-px px-4 py-2 text-xs font-semibold border-b-2 transition-colors ${
+							activeTab === tab.id
+								? 'border-emerald-600 text-emerald-700'
+								: 'border-transparent text-slate-500 hover:text-slate-800'
+						}`}
+					>
+						{tab.label}
+					</button>
+				))}
+			</div>
+
+			{/* The settings tab stays mounted (just hidden) so unsaved edits survive a visit to the Usage tab. */}
+			<div
+				data-testid="whatsapp-settings-tab"
+				className={`grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150 ${activeTab === 'settings' ? '' : 'hidden'}`}
+			>
 				{/* Main WhatsApp Settings Section */}
 				<div className="lg:col-span-2 space-y-6">
 					<WhatsAppSettingsSection canManage={canManageBusiness} />
@@ -100,6 +135,8 @@ export function WhatsAppSettingsPage() {
 					</div>
 				</div>
 			</div>
+
+			{activeTab === 'usage' && <WhatsAppUsagePanel />}
 		</div>
 	);
 }

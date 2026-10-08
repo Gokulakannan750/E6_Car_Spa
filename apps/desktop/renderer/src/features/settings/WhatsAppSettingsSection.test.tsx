@@ -12,7 +12,6 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		updateWhatsAppConfig: vi.fn(),
 		testWhatsAppConnection: vi.fn(),
 		getWhatsAppTemplates: vi.fn(),
-		getWhatsAppUsage: vi.fn(),
 		sendTestWhatsAppMessage: vi.fn(),
 	};
 });
@@ -71,7 +70,6 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(api.getWhatsAppConfig).mockResolvedValue(mockConfig);
-		vi.mocked(api.getWhatsAppUsage).mockResolvedValue({ months: [] });
 		vi.mocked(api.getWhatsAppTemplates).mockResolvedValue({
 			isSuccess: true,
 			templates: mockTemplates,

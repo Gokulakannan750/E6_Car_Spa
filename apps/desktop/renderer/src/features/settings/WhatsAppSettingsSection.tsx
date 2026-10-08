@@ -37,7 +37,6 @@ import {
 	MetaWhatsAppTemplateDto,
 } from '../../lib/api';
 import { ManagedTemplatesPanel } from './ManagedTemplatesPanel';
-import { WhatsAppUsagePanel } from './WhatsAppUsagePanel';
 
 interface Props {
 	canManage: boolean;
@@ -671,7 +670,6 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 
 				<ManagedTemplatesPanel canManage={canManage} onActivated={loadConfig} />
 
-				<WhatsAppUsagePanel />
 
 				{/* ============================================================== */}
 				{/* 2. AVAILABLE META TEMPLATES (STEP 1 DISCOVERY)                  */}
