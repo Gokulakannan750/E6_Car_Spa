@@ -192,7 +192,7 @@ void main() {
         expect(find.byType(SettingsScreen), findsOneWidget);
 
         // 2. Header contains "E6 Settings"
-        expect(find.text('E6 Settings'), findsOneWidget);
+        expect(find.text('Settings'), findsOneWidget);
 
         // 3. Header contains "Level-2 Workspace"
         expect(find.text('Level-2 Workspace'), findsOneWidget);
@@ -240,7 +240,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SettingsScreen), findsOneWidget);
-        expect(find.text('E6 Settings'), findsOneWidget);
+        expect(find.text('Settings'), findsOneWidget);
       },
     );
 
@@ -265,7 +265,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SettingsScreen), findsOneWidget);
-        expect(find.text('E6 Settings'), findsOneWidget);
+        expect(find.text('Settings'), findsOneWidget);
       },
     );
 
@@ -302,7 +302,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(SettingsScreen), findsOneWidget);
-        expect(find.text('E6 Settings'), findsOneWidget);
+        expect(find.text('Settings'), findsOneWidget);
       },
     );
 

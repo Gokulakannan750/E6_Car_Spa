@@ -52,7 +52,7 @@ class RevenueChart extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(Icons.insights, size: 18, color: AppColors.primary),
                   SizedBox(width: 8),

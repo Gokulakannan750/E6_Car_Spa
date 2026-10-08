@@ -5,7 +5,9 @@ import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/e6_brand_badge.dart';
+import '../../../../core/theme/brand_palette.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../settings/providers/settings_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -13,7 +15,12 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final userName = user?.fullName ?? user?.username ?? 'Gokul Kannan';
+    final userName = user?.fullName ?? user?.username ?? '';
+    final companyName =
+        ref.watch(businessProfileProvider)?.businessName.trim() ?? '';
+    final displayName = companyName.isEmpty
+        ? 'Car Spa Management'
+        : companyName;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -27,9 +34,9 @@ class DashboardScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'E6 Car Spa',
-                    style: TextStyle(
+                  Text(
+                    displayName,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 16,
                       color: AppColors.textPrimary,
@@ -72,7 +79,7 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Hero Promotional Vehicle Banner
-            _buildHeroBanner(),
+            _buildHeroBanner(displayName),
             const SizedBox(height: 24),
 
             // Applications Section Header
@@ -116,17 +123,21 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroBanner() {
+  Widget _buildHeroBanner(String displayName) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0F172A), Color(0xFF0A0F1D), Color(0xFF020617)],
+          colors: [
+            BrandPalette.side(900),
+            BrandPalette.side(950),
+            Colors.black,
+          ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1E293B), width: 1),
+        border: Border.all(color: BrandPalette.side(800), width: 1),
         boxShadow: const [
           BoxShadow(
             color: Color(0x1A000000),
@@ -150,7 +161,7 @@ class DashboardScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFDC2626).withValues(alpha: 0.18),
+                      BrandPalette.side(600).withValues(alpha: 0.35),
                       Colors.transparent,
                     ],
                   ),
@@ -173,15 +184,15 @@ class DashboardScreen extends ConsumerWidget {
                             Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFEF4444),
+                              decoration: BoxDecoration(
+                                color: BrandPalette.side(400),
                                 shape: BoxShape.circle,
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Text(
-                              'E6 CAR SPA',
-                              style: TextStyle(
+                            Text(
+                              displayName.toUpperCase(),
+                              style: const TextStyle(
                                 color: Color(0xFF94A3B8),
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -191,10 +202,10 @@ class DashboardScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'CLEAN CARS',
                               style: TextStyle(
                                 fontSize: 13,
@@ -203,7 +214,7 @@ class DashboardScreen extends ConsumerWidget {
                                 color: Colors.white,
                               ),
                             ),
-                            Text(
+                            const Text(
                               'HAPPY PEOPLE',
                               style: TextStyle(
                                 fontSize: 13,
@@ -218,7 +229,7 @@ class DashboardScreen extends ConsumerWidget {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.5,
-                                color: Color(0xFFEF4444),
+                                color: BrandPalette.side(400),
                               ),
                             ),
                           ],
@@ -228,7 +239,7 @@ class DashboardScreen extends ConsumerWidget {
                           width: 32,
                           height: 2.5,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDC2626),
+                            color: BrandPalette.side(600),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -241,8 +252,8 @@ class DashboardScreen extends ConsumerWidget {
                       height: 85,
                       child: CustomPaint(
                         painter: _CarSilhouettePainter(
-                          color: const Color(0xFF1E293B),
-                          accentColor: const Color(0xFF38BDF8),
+                          color: BrandPalette.side(800),
+                          accentColor: BrandPalette.side(300),
                         ),
                         size: const Size(double.infinity, 85),
                       ),
@@ -270,7 +281,7 @@ class DashboardScreen extends ConsumerWidget {
 
     const allApps = [
       _SuiteAppItem(
-        title: 'E6 Billing',
+        title: 'Billing',
         description: 'Customers, job cards, invoices and payments',
         icon: Icons.directions_car_rounded,
         iconColor: Color(0xFF0453CD),
@@ -284,7 +295,7 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       _SuiteAppItem(
-        title: 'E6 Staff',
+        title: 'Staff',
         description: 'Staff, attendance and salary management',
         icon: Icons.people_alt_rounded,
         iconColor: Color(0xFF059669),
@@ -298,7 +309,7 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       _SuiteAppItem(
-        title: 'E6 Showroom',
+        title: 'Showroom',
         description: 'Showrooms, staff work and showroom billing',
         icon: Icons.storefront_rounded,
         iconColor: Color(0xFF4F46E5),
@@ -307,7 +318,7 @@ class DashboardScreen extends ConsumerWidget {
         requiredPermissions: ['showroom.view'],
       ),
       _SuiteAppItem(
-        title: 'E6 Reports',
+        title: 'Reports',
         description: 'Business, billing, staff and showroom reports',
         icon: Icons.bar_chart_rounded,
         iconColor: Color(0xFF0284C7),

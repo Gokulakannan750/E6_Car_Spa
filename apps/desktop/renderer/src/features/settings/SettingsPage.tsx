@@ -67,6 +67,8 @@ export default function SettingsPage() {
 	const [phone, setPhone] = useState('');
 	const [email, setEmail] = useState('');
 	const [gstin, setGstin] = useState('');
+	const [tagline, setTagline] = useState('');
+	const [termsAndConditions, setTermsAndConditions] = useState('');
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +92,8 @@ export default function SettingsPage() {
 			setPhone(data.phone || '');
 			setEmail(data.email || '');
 			setGstin(data.gstin || '');
+			setTagline(data.tagline || '');
+			setTermsAndConditions(data.termsAndConditions || '');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to load business profile';
 			setErrorMsg(msg);
@@ -151,12 +155,17 @@ export default function SettingsPage() {
 				email: email.trim(),
 				gstin: trimmedGstin || null,
 				logoPath: profile?.logoPath ?? null,
+				// An empty string clears the value on the server; these appear on invoices and job cards.
+				tagline: tagline.trim(),
+				termsAndConditions: termsAndConditions.trim(),
 			});
 
 			setProfile(updated);
 			queryClient.setQueryData(BUSINESS_PROFILE_QUERY_KEY, updated);
 			setCachedBusinessProfile(updated);
 			setGstin(updated.gstin || '');
+			setTagline(updated.tagline || '');
+			setTermsAndConditions(updated.termsAndConditions || '');
 			setSuccessMsg('Business profile and invoice settings saved successfully.');
 			setTimeout(() => setSuccessMsg(null), 4000);
 		} catch (err: unknown) {
@@ -316,7 +325,7 @@ export default function SettingsPage() {
 												alt="Business Logo"
 												className="max-h-28 max-w-56 w-auto h-auto object-contain block"
 												onError={(e) => {
-													(e.target as HTMLImageElement).src = '/e6-logo.png';
+													(e.target as HTMLImageElement).style.display = 'none';
 												}}
 											/>
 										) : (
@@ -394,7 +403,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setBusinessName(e.target.value)}
 											onBlur={() => setBusinessName(capitalizeSentence(businessName))}
-											placeholder="e.g. E6 Car Spa"
+											placeholder="e.g. Sunrise Car Care"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -409,7 +418,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine1(e.target.value)}
 											onBlur={() => setAddressLine1(capitalizeSentence(addressLine1))}
-											placeholder="e.g. 36, Geetha Nagar Main Road"
+											placeholder="e.g. 12, Park Road"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -424,7 +433,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine2(e.target.value)}
 											onBlur={() => setAddressLine2(capitalizeSentence(addressLine2))}
-											placeholder="e.g. Behind Sakthi Mahal, Perundurai Road"
+											placeholder="e.g. Near City Mall"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -485,7 +494,7 @@ export default function SettingsPage() {
 												value={phone}
 												disabled={!canManageBusiness}
 												onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-												placeholder="e.g. 9578749449"
+												placeholder="e.g. 9876543210"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -498,7 +507,7 @@ export default function SettingsPage() {
 												value={email}
 												disabled={!canManageBusiness}
 												onChange={(e) => setEmail(e.target.value)}
-												placeholder="e.g. e6carspaerd@gmail.com"
+												placeholder="e.g. hello@yourcompany.com"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -522,6 +531,50 @@ export default function SettingsPage() {
 										/>
 										<p className="text-[11px] text-slate-400 mt-1">
 											Leave blank if unregistered. When supplied, GSTIN will be formatted and included on tax invoices.
+										</p>
+									</div>
+								</div>
+							</div>
+
+							{/* Wording printed on invoices and job cards (colours are in System Preferences) */}
+							<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+								<div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
+									<ImageIcon className="w-5 h-5 text-blue-600" />
+									<h2 className="text-base font-bold text-slate-800">Invoice &amp; Job Card Text</h2>
+								</div>
+
+								<div className="space-y-4">
+									<div>
+										<label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
+											Tagline (Optional)
+										</label>
+										<input
+											type="text"
+											value={tagline}
+											disabled={!canManageBusiness}
+											maxLength={150}
+											onChange={(e) => setTagline(e.target.value)}
+											placeholder="e.g. Premium car care you can trust"
+											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+										/>
+										<p className="text-[11px] text-slate-400 mt-1">Printed under your business name. Left off when blank.</p>
+									</div>
+
+									<div>
+										<label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
+											Terms &amp; Conditions (Optional)
+										</label>
+										<textarea
+											value={termsAndConditions}
+											disabled={!canManageBusiness}
+											rows={4}
+											maxLength={2000}
+											onChange={(e) => setTermsAndConditions(e.target.value)}
+											placeholder={'One line per term, e.g.\n1. Payment is due on delivery.\n2. Goods once sold are not returnable.'}
+											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
+										/>
+										<p className="text-[11px] text-slate-400 mt-1">
+											Printed at the bottom of every invoice, one line per row. Nothing is printed when blank.
 										</p>
 									</div>
 								</div>
@@ -553,7 +606,7 @@ export default function SettingsPage() {
 							<div className="space-y-3 text-xs">
 								<div className="flex justify-between py-1.5 border-b border-slate-100">
 									<span className="text-slate-500">Software</span>
-									<span className="text-slate-800 font-semibold">E6 Car Spa Management</span>
+									<span className="text-slate-800 font-semibold">Car Spa Management</span>
 								</div>
 								<div className="flex justify-between py-1.5 border-b border-slate-100">
 									<span className="text-slate-500">Version</span>

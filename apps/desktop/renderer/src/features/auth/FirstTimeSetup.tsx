@@ -4,6 +4,7 @@ import { getAuthStatus, bootstrapOwner, ApiError } from '../../lib/api';
 import { capitalizeSentence } from '../../utils/text';
 import { useAuth } from './auth-context';
 import { ShieldCheck, UserCheck, Lock, User, CheckCircle2 } from 'lucide-react';
+import { BrandMark, DEFAULT_APP_NAME } from '../../components/shared/BrandMark';
 
 export default function FirstTimeSetup() {
 	const [fullName, setFullName] = useState('');
@@ -138,15 +139,15 @@ export default function FirstTimeSetup() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-red-950 via-black to-red-950 flex items-center justify-center p-6">
+		<div className="min-h-screen bg-gradient-to-br from-side-950 via-black to-side-950 flex items-center justify-center p-6">
 			<div className="w-full max-w-md">
 				{/* Brand / Logo */}
 				<div className="text-center mb-8">
 					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/30 text-white font-black text-2xl mb-4">
-						E6
+						<BrandMark iconClassName="h-8 w-8" />
 					</div>
 					<h1 className="text-2xl font-extrabold text-white tracking-tight">
-						WELCOME TO E6 CAR SPA
+						WELCOME TO {DEFAULT_APP_NAME.toUpperCase()}
 					</h1>
 					<p className="text-sm text-blue-200/80 mt-1 font-medium">
 						First-Time Setup — Create Owner Account
@@ -270,7 +271,7 @@ export default function FirstTimeSetup() {
 				</div>
 
 				<p className="text-center text-slate-400 text-xs mt-6">
-					© {new Date().getFullYear()} E6 Car Spa Management. All rights reserved.
+					© {new Date().getFullYear()} {DEFAULT_APP_NAME}. All rights reserved.
 				</p>
 			</div>
 		</div>

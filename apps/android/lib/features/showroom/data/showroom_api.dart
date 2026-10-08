@@ -237,7 +237,9 @@ class ShowroomApi {
   }
 
   Future<ShowroomVehicleType> toggleVehicleTypeActive(String id) async {
-    final response = await _dio.patch('/showroom-vehicle-types/$id/toggle-active');
+    final response = await _dio.patch(
+      '/showroom-vehicle-types/$id/toggle-active',
+    );
     return ShowroomVehicleType.fromJson(response.data as Map<String, dynamic>);
   }
 

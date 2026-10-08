@@ -14,6 +14,8 @@ import {
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../auth';
+import { AppearanceCard } from './AppearanceCard';
+import { LoginImageCard } from './LoginImageCard';
 import {
 	getSystemPreferences,
 	updateSystemPreferences,
@@ -70,9 +72,10 @@ export function saveStoredPreferences(prefs: SystemPreferences): void {
 export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);
 	const queryClient = useQueryClient();
-	const { isAuthenticated, token, hasPermission } = useAuth();
+	const { user, isAuthenticated, token, hasPermission } = useAuth();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
+	const [tab, setTab] = useState<'general' | 'colours'>('general');
 	const [savedMsg, setSavedMsg] = useState<string | null>(null);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -166,6 +169,7 @@ export function SystemPreferencesPage() {
 					</p>
 				</div>
 
+				{tab === 'general' && (
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
@@ -185,6 +189,30 @@ export function SystemPreferencesPage() {
 						{saveMutation.isPending ? 'Saving...' : 'Save Preferences'}
 					</button>
 				</div>
+				)}
+			</div>
+
+			{/* Tabs */}
+			<div role="tablist" aria-label="System preferences sections" className="flex gap-1 border-b border-slate-200">
+				{([
+					['general', 'General'],
+					['colours', 'App colours'],
+				] as const).map(([id, label]) => (
+					<button
+						key={id}
+						type="button"
+						role="tab"
+						aria-selected={tab === id}
+						onClick={() => setTab(id)}
+						className={`px-4 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors cursor-pointer ${
+							tab === id
+								? 'border-blue-600 text-blue-700'
+								: 'border-transparent text-slate-500 hover:text-slate-800'
+						}`}
+					>
+						{label}
+					</button>
+				))}
 			</div>
 
 			{/* Loading banner */}
@@ -219,6 +247,16 @@ export function SystemPreferencesPage() {
 				</div>
 			)}
 
+			{tab === 'colours' && (
+				<div className="animate-in fade-in duration-150">
+					<AppearanceCard
+						canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))}
+						below={<LoginImageCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />}
+					/>
+				</div>
+			)}
+
+			{tab === 'general' && (
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
 				{/* Main Preferences Form */}
 				<form
@@ -455,23 +493,23 @@ export function SystemPreferencesPage() {
 
 						<div className="space-y-2 text-[11px]">
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Billing</span>
+								<span className="text-slate-600">Billing</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 1</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Staff</span>
+								<span className="text-slate-600">Staff</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 2</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Showroom</span>
+								<span className="text-slate-600">Showroom</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 3</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Reports</span>
+								<span className="text-slate-600">Reports</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 4</kbd>
 							</div>
 							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">E6 Settings</span>
+								<span className="text-slate-600">Settings</span>
 								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 5</kbd>
 							</div>
 						</div>
@@ -482,6 +520,7 @@ export function SystemPreferencesPage() {
 					</div>
 				</div>
 			</div>
+			)}
 		</div>
 	);
 }

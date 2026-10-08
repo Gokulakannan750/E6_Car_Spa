@@ -151,7 +151,7 @@ class _EditServiceBottomSheetState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Modal Header
-          const AppModalHeader(
+          AppModalHeader(
             title: 'Edit Service',
             subtitle: 'Update service pricing, details and category',
             icon: Icons.edit_outlined,
@@ -222,7 +222,7 @@ class _EditServiceBottomSheetState
                         enabledBorder: const OutlineInputBorder(
                           borderSide: BorderSide(color: AppColors.border),
                         ),
-                        focusedBorder: const OutlineInputBorder(
+                        focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
                             color: AppColors.accent,
                             width: 2,

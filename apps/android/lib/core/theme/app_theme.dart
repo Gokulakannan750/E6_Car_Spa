@@ -76,7 +76,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSM),
-          borderSide: const BorderSide(color: AppColors.accent, width: 2),
+          borderSide: BorderSide(color: AppColors.accent, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusSM),
@@ -128,7 +128,7 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLG)),
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.bottomNavBg,
         selectedItemColor: AppColors.bottomNavActive,
         unselectedItemColor: AppColors.bottomNavInactive,

@@ -77,7 +77,7 @@ void main() {
         await tester.pumpWidget(createLoginTestWidget());
         await tester.pumpAndSettle();
 
-        expect(find.text('E6 Car Spa'), findsOneWidget);
+        expect(find.text('Car Spa Management'), findsOneWidget);
         expect(find.text('Management Suite'), findsOneWidget);
         expect(find.text('Username'), findsOneWidget);
         expect(find.text('Password'), findsOneWidget);

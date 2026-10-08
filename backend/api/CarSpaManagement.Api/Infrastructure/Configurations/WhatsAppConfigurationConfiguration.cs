@@ -54,7 +54,7 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 
 		builder.Property(c => c.InvoiceTemplateName)
 			.HasMaxLength(100)
-			.HasDefaultValue("e6_carspa_invoice_generated")
+			.HasDefaultValue("invoice_generated")
 			.IsRequired();
 
 		builder.Property(c => c.InvoiceTemplateLanguage)
@@ -64,7 +64,7 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 
 		builder.Property(c => c.PaymentCompletedTemplateName)
 			.HasMaxLength(100)
-			.HasDefaultValue("e6_carspa_payment_completed")
+			.HasDefaultValue("payment_completed")
 			.IsRequired();
 
 		builder.Property(c => c.PaymentCompletedTemplateLanguage)

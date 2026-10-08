@@ -1,6 +1,7 @@
 // E6 Car Spa - Foundation Stabilization Tests
 
 import 'package:flutter/material.dart';
+import 'package:e6_car_spa/core/theme/brand_palette.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -35,10 +36,10 @@ void main() {
 
   group('1. Design System & Theme Tokens', () {
     test('AppColors match Desktop globals.css tokens', () {
-      expect(AppColors.primary, const Color(0xFF0453CD));
-      expect(AppColors.primaryContainer, const Color(0xFF0B1228));
-      expect(AppColors.accent, const Color(0xFF0453CD));
-      expect(AppColors.accentLight, const Color(0xFF356EE7));
+      expect(AppColors.primary, BrandPalette.app(700));
+      expect(AppColors.primaryContainer, BrandPalette.side(950));
+      expect(AppColors.accent, BrandPalette.app(700));
+      expect(AppColors.accentLight, BrandPalette.app(500));
       expect(AppColors.background, const Color(0xFFF8FAFC));
       expect(AppColors.surface, const Color(0xFFF8FAFC));
       expect(AppColors.card, const Color(0xFFFFFFFF));
@@ -78,7 +79,7 @@ void main() {
       expect(AppConstants.defaultDevApiUrl, 'http://192.168.1.7:5298/api');
       expect(AppConstants.defaultEmulatorApiUrl, 'http://10.0.2.2:5298/api');
       expect(AppConstants.defaultProdApiUrl, 'https://api.e6carspa.com/api');
-      expect(AppConstants.appName, 'E6 Car Spa');
+      expect(AppConstants.appName, 'Car Spa Management');
       expect(AppConstants.connectTimeoutMs, 30000);
       expect(AppConstants.receiveTimeoutMs, 30000);
       expect(AppEnvironment.apiBaseUrl, contains('5298'));
@@ -292,15 +293,18 @@ void main() {
     testWidgets('AppSectionHeader and AppScreenScaffold render correctly', (
       WidgetTester tester,
     ) async {
+      // The brand badge in the scaffold reads the company profile, so it needs a ProviderScope.
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: AppScreenScaffold(
-            title: 'Job Cards Overview',
-            body: AppSectionHeader(
-              title: 'Recent Activity',
-              actionLabel: 'View All',
-              onAction: () {},
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: AppScreenScaffold(
+              title: 'Job Cards Overview',
+              body: AppSectionHeader(
+                title: 'Recent Activity',
+                actionLabel: 'View All',
+                onAction: () {},
+              ),
             ),
           ),
         ),

@@ -144,7 +144,7 @@ class SalaryDetailsBottomSheet extends StatelessWidget {
                       item.staffName.isNotEmpty
                           ? item.staffName.substring(0, 1).toUpperCase()
                           : 'S',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary,
                       ),

@@ -57,7 +57,8 @@ class MockStaffRepository implements StaffRepository {
       finalSalary: max(0.0, enteredSalary - min(8000.0, enteredSalary)),
       remainingAdvance: max(0.0, 8000.0 - min(8000.0, enteredSalary)),
       status: 'Ready',
-      settlementId: 'db-ready-guid-101', // Real backend always returns settlementId Guid for Ready items
+      settlementId:
+          'db-ready-guid-101', // Real backend always returns settlementId Guid for Ready items
     );
   }
 

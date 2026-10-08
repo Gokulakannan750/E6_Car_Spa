@@ -137,7 +137,7 @@ class PermissionSelector extends StatelessWidget {
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          child: const Text(
+                          child: Text(
                             'Select All',
                             style: TextStyle(
                               fontSize: 12,

@@ -85,7 +85,7 @@ class _BillingReportScreenState extends ConsumerState<BillingReportScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.calendar_month,
                       size: 20,
                       color: AppColors.primary,
@@ -138,21 +138,20 @@ class _BillingReportScreenState extends ConsumerState<BillingReportScreen> {
                       child: DropdownButton<int>(
                         value: selectedYear,
                         dropdownColor: AppColors.surface,
-                        items:
-                            years
-                                .map(
-                                  (y) => DropdownMenuItem<int>(
-                                    value: y,
-                                    child: Text(
-                                      '$y',
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                        items: years
+                            .map(
+                              (y) => DropdownMenuItem<int>(
+                                value: y,
+                                child: Text(
+                                  '$y',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                )
-                                .toList(),
+                                ),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (val) {
                           if (val != null) {
                             ref
@@ -181,8 +180,9 @@ class _BillingReportScreenState extends ConsumerState<BillingReportScreen> {
                 ),
                 data: (report) {
                   final summary = report.summary;
-                  final activeSheets =
-                      report.dailySheets.where((s) => s.hasActivity).toList();
+                  final activeSheets = report.dailySheets
+                      .where((s) => s.hasActivity)
+                      .toList();
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,22 +390,14 @@ class _BillingReportScreenState extends ConsumerState<BillingReportScreen> {
           ),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textTertiary,
-            ),
+            style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusRow(
-    String label,
-    int count,
-    Color color,
-    IconData icon,
-  ) {
+  Widget _buildStatusRow(String label, int count, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -464,7 +456,7 @@ class _BillingReportScreenState extends ConsumerState<BillingReportScreen> {
             child: Center(
               child: Text(
                 '${sheet.day}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,

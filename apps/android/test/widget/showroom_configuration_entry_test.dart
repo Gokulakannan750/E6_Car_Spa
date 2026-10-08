@@ -19,10 +19,12 @@ class _EmptyShowroomRepository extends ShowroomRepository {
   _EmptyShowroomRepository() : super(ShowroomApi(Dio()));
 
   @override
-  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async => [];
+  Future<List<Showroom>> getShowrooms({String? search, bool? isActive}) async =>
+      [];
 }
 
-class _TestAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _TestAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _TestAuthNotifier(super.initialState);
 
   @override
@@ -56,7 +58,8 @@ Future<void> _pump(WidgetTester tester, String initialLocation) async {
         routes: [
           GoRoute(
             path: 'configuration',
-            builder: (context, state) => const Scaffold(body: Text('configuration page')),
+            builder: (context, state) =>
+                const Scaffold(body: Text('configuration page')),
           ),
         ],
       ),
@@ -65,9 +68,15 @@ Future<void> _pump(WidgetTester tester, String initialLocation) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
-        showroomRepositoryProvider.overrideWithValue(_EmptyShowroomRepository()),
-        authNotifierProvider.overrideWith((ref) => _TestAuthNotifier(const Authenticated(_viewer))),
-        systemPreferencesProvider.overrideWithValue(const SystemPreferencesModel(refreshInterval: 0)),
+        showroomRepositoryProvider.overrideWithValue(
+          _EmptyShowroomRepository(),
+        ),
+        authNotifierProvider.overrideWith(
+          (ref) => _TestAuthNotifier(const Authenticated(_viewer)),
+        ),
+        systemPreferencesProvider.overrideWithValue(
+          const SystemPreferencesModel(refreshInterval: 0),
+        ),
       ],
       child: MaterialApp.router(routerConfig: router),
     ),

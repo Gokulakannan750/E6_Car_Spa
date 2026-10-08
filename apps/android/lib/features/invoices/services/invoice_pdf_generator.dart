@@ -41,6 +41,17 @@ class InvoicePdfGenerator {
     final phone = businessProfile?.phone ?? '';
     final email = businessProfile?.email ?? '';
     final gstin = businessProfile?.gstin?.trim();
+    // Everything on the document comes from the company's own settings; what is not filled in is left off.
+    final tagline = businessProfile?.tagline?.trim() ?? '';
+    final contactLine = [
+      if (phone.trim().isNotEmpty) 'Phone: ${phone.trim()}',
+      if (email.trim().isNotEmpty) 'Email: ${email.trim()}',
+    ].join('  |  ');
+    final termsLines = (businessProfile?.termsAndConditions ?? '')
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
 
     final documentTitle = isDraft
         ? 'DRAFT INVOICE'
@@ -51,7 +62,9 @@ class InvoicePdfGenerator {
     // Tax rows per rate actually charged, from the server's stored values (no calculation here).
     final taxRows = isGst ? gstRows(invoice.taxBreakdown) : const <GstRow>[];
 
-    final primaryColor = PdfColor.fromHex('#A11A1A');
+    final primaryColor = PdfColor.fromHex(
+      resolveAccentColor(businessProfile?.brandColor),
+    );
     final darkTextColor = PdfColor.fromHex('#0F172A');
     final mutedTextColor = PdfColor.fromHex('#475569');
     final borderColor = PdfColor.fromHex('#CBD5E1');
@@ -86,23 +99,26 @@ class InvoicePdfGenerator {
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
-                          pw.Text(
-                            businessName.toUpperCase(),
-                            style: pw.TextStyle(
-                              fontSize: 18,
-                              fontWeight: pw.FontWeight.bold,
-                              color: primaryColor,
+                          if (businessName.trim().isNotEmpty)
+                            pw.Text(
+                              businessName.toUpperCase(),
+                              style: pw.TextStyle(
+                                fontSize: 18,
+                                fontWeight: pw.FontWeight.bold,
+                                color: primaryColor,
+                              ),
                             ),
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            'Premium Auto Detailing & Car Care Solutions',
-                            style: pw.TextStyle(
-                              fontSize: 9,
-                              color: mutedTextColor,
-                              fontWeight: pw.FontWeight.bold,
+                          if (tagline.isNotEmpty) ...[
+                            pw.SizedBox(height: 2),
+                            pw.Text(
+                              tagline,
+                              style: pw.TextStyle(
+                                fontSize: 9,
+                                color: mutedTextColor,
+                                fontWeight: pw.FontWeight.bold,
+                              ),
                             ),
-                          ),
+                          ],
                           pw.SizedBox(height: 4),
                           if (addressLine1.isNotEmpty)
                             pw.Text(
@@ -120,21 +136,24 @@ class InvoicePdfGenerator {
                                 color: mutedTextColor,
                               ),
                             ),
-                          pw.Text(
-                            cityStatePin,
-                            style: pw.TextStyle(
-                              fontSize: 8.5,
-                              color: mutedTextColor,
+                          if (cityStatePin.isNotEmpty)
+                            pw.Text(
+                              cityStatePin,
+                              style: pw.TextStyle(
+                                fontSize: 8.5,
+                                color: mutedTextColor,
+                              ),
                             ),
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            'Phone: $phone${email.isNotEmpty ? '  |  Email: $email' : ''}',
-                            style: pw.TextStyle(
-                              fontSize: 8.5,
-                              color: mutedTextColor,
+                          if (contactLine.isNotEmpty) ...[
+                            pw.SizedBox(height: 2),
+                            pw.Text(
+                              contactLine,
+                              style: pw.TextStyle(
+                                fontSize: 8.5,
+                                color: mutedTextColor,
+                              ),
                             ),
-                          ),
+                          ],
                           if (isGst && gstin != null && gstin.isNotEmpty) ...[
                             pw.SizedBox(height: 2),
                             pw.Text(
@@ -443,25 +462,25 @@ class InvoicePdfGenerator {
                       ),
                       pw.SizedBox(height: 8),
                     ],
-                    pw.Text(
-                      'TERMS & CONDITIONS:',
-                      style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: pw.FontWeight.bold,
-                        color: darkTextColor,
+                    if (termsLines.isNotEmpty) ...[
+                      pw.Text(
+                        'TERMS & CONDITIONS:',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: darkTextColor,
+                        ),
                       ),
-                    ),
-                    pw.SizedBox(height: 3),
-                    pw.Text(
-                      businessProfile?.termsAndConditions?.isNotEmpty == true
-                          ? businessProfile!.termsAndConditions!
-                          : '1. Payment is due upon completion of vehicle detailing services.\n2. Goods/services once provided are non-refundable.\n3. Please inspect your vehicle thoroughly prior to delivery handover.',
-                      style: pw.TextStyle(
-                        fontSize: 7.5,
-                        color: mutedTextColor,
-                        lineSpacing: 1.5,
+                      pw.SizedBox(height: 3),
+                      pw.Text(
+                        termsLines.join('\n'),
+                        style: pw.TextStyle(
+                          fontSize: 7.5,
+                          color: mutedTextColor,
+                          lineSpacing: 1.5,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -530,7 +549,9 @@ class InvoicePdfGenerator {
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
                   pw.Text(
-                    'Thank you for choosing $businessName!',
+                    businessName.trim().isEmpty
+                        ? 'Thank you!'
+                        : 'Thank you for choosing $businessName!',
                     style: pw.TextStyle(
                       fontSize: 9,
                       fontWeight: pw.FontWeight.bold,
@@ -627,4 +648,16 @@ class InvoicePdfGenerator {
       ],
     );
   }
+}
+
+
+/// Neutral dark slate, used until the company picks its own accent colour.
+const String defaultDocumentAccent = '#1E293B';
+
+/// The company's accent colour as #RRGGBB, or the neutral default when none (or an invalid one) is set.
+String resolveAccentColor(String? brandColor) {
+  final value = brandColor?.trim() ?? '';
+  return RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value)
+      ? value.toUpperCase()
+      : defaultDocumentAccent;
 }

@@ -23,7 +23,7 @@ class AppLogoutAction extends ConsumerWidget {
               color: AppColors.primary.withValues(alpha: 0.25),
             ),
           ),
-          child: const Center(
+          child: Center(
             child: Icon(
               Icons.logout_rounded,
               size: 18,
@@ -60,7 +60,7 @@ class AppLogoutAction extends ConsumerWidget {
         content: Text(
           username != null
               ? 'Are you sure you want to sign out from account "$username"?'
-              : 'Are you sure you want to sign out of E6 Car Spa?',
+              : 'Are you sure you want to sign out?',
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         actions: [

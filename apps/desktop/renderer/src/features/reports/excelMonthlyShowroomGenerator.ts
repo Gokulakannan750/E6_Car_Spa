@@ -1,5 +1,5 @@
 /**
- * E6 Car Spa Management — Professional Monthly Showroom Management Excel Generator (ExcelJS)
+ * Car Spa Management — Professional Monthly Showroom Management Excel Generator (ExcelJS)
  *
  * Generates an executive-grade, beautifully styled 7-sheet management & operations workbook:
  *   - SHEET 1: "Summary" (Executive presentation, KPIs, Service Summary, Vehicle Summary, Staff Summary, Audit Note)
@@ -32,6 +32,7 @@ import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
 } from './excelMonthlyBillingGenerator';
+import { reportCreator, reportFilePrefix, reportTitle } from '../../lib/documentBranding';
 
 export { ARGB, formatDateDisplay, formatDateTimeDisplay };
 
@@ -170,7 +171,7 @@ export function generateExecutiveSummaryWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:G${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — SHOWROOM MANAGEMENT REPORT';
+	titleRow.getCell(1).value = reportTitle('SHOWROOM MANAGEMENT REPORT');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -823,7 +824,7 @@ export function generateVehicleServiceDetailsWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:P${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — VEHICLE SERVICE DETAILS';
+	titleRow.getCell(1).value = reportTitle('VEHICLE SERVICE DETAILS');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1094,7 +1095,7 @@ export function generateStaffProductivityWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:R${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — STAFF PRODUCTIVITY AUDIT';
+	titleRow.getCell(1).value = reportTitle('STAFF PRODUCTIVITY AUDIT');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1348,7 +1349,7 @@ export function generateAttendanceWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:N${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — ATTENDANCE AUDIT LEDGER';
+	titleRow.getCell(1).value = reportTitle('ATTENDANCE AUDIT LEDGER');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1602,7 +1603,7 @@ export function generateStaffSwapsWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:S${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — STAFF SWAPS & COVERAGE AUDIT LEDGER';
+	titleRow.getCell(1).value = reportTitle('STAFF SWAPS & COVERAGE AUDIT LEDGER');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1832,7 +1833,7 @@ export function generateVehicleTypeSummaryWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:E${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — VEHICLE TYPE SUMMARY';
+	titleRow.getCell(1).value = reportTitle('VEHICLE TYPE SUMMARY');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -2014,7 +2015,7 @@ export function generateServiceSummaryWorksheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:F${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — SERVICE SUMMARY';
+	titleRow.getCell(1).value = reportTitle('SERVICE SUMMARY');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -2171,8 +2172,8 @@ export function exportSingleShowroomWorkbook(
 	reportData: MonthlyShowroomReportResponse
 ): ExcelJS.Workbook {
 	const wb = new ExcelJS.Workbook();
-	wb.creator = 'E6 Car Spa Management System';
-	wb.lastModifiedBy = 'E6 Car Spa Executive Reports';
+	wb.creator = reportCreator();
+	wb.lastModifiedBy = reportCreator();
 	wb.created = new Date();
 	wb.modified = new Date();
 
@@ -2221,7 +2222,7 @@ export async function generateAndDownloadMonthlyShowroomReport(
 
 		if (targetShowroom) {
 			const wb = exportSingleShowroomWorkbook(targetShowroom, reportData);
-			const fileName = `E6_Car_Spa_${targetShowroom.showroomName.replace(/\s+/g, '_')}_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
+			const fileName = `${reportFilePrefix()}${targetShowroom.showroomName.replace(/\s+/g, '_')}_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
 			await downloadWorkbook(wb, fileName);
 			return;
 		}
@@ -2231,7 +2232,7 @@ export async function generateAndDownloadMonthlyShowroomReport(
 	if (reportData.showrooms && reportData.showrooms.length > 0) {
 		for (const sr of reportData.showrooms) {
 			const wb = exportSingleShowroomWorkbook(sr, reportData);
-			const fileName = `E6_Car_Spa_${sr.showroomName.replace(/\s+/g, '_')}_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
+			const fileName = `${reportFilePrefix()}${sr.showroomName.replace(/\s+/g, '_')}_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
 			await downloadWorkbook(wb, fileName);
 		}
 		return;
@@ -2241,7 +2242,7 @@ export async function generateAndDownloadMonthlyShowroomReport(
 	const wb = new ExcelJS.Workbook();
 	const emptyWs = wb.addWorksheet('No Data');
 	emptyWs.getCell('A1').value = 'No showroom data available for export';
-	const fileName = `E6_Car_Spa_Showroom_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
+	const fileName = `${reportFilePrefix()}Showroom_Report_${reportData.monthName.replace(/\s+/g, '_')}.xlsx`;
 	await downloadWorkbook(wb, fileName);
 }
 

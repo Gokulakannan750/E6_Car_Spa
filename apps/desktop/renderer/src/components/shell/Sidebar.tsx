@@ -17,6 +17,7 @@ import type { NavigationItem } from '../../types/app';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../../features/auth/auth-context';
 import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
+import { BrandMark, displayName } from '../shared/BrandMark';
 
 export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	const storeCollapsed = useAppStore((s) => s.sidebarCollapsed);
@@ -33,7 +34,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 		setImgError(false);
 	}, [logoUrl]);
 
-	const businessName = profile?.businessName || 'E6 Car Spa';
+	const businessName = displayName(profile?.businessName);
 	const showImage = hasCustomLogo && !imgError;
 
 	const currentWorkspace: Workspace = getWorkspaceFromPath(location.pathname);
@@ -80,12 +81,12 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 					className={cn(
 						'sidebar-transition w-[calc(100%-16px)] flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2 transition-all cursor-pointer text-left',
 						active
-							? 'bg-[#831821] text-white font-semibold shadow-sm border border-red-500/30'
-							: 'text-red-100/70 hover:text-white hover:bg-white/10'
+							? 'bg-side-800 text-white font-semibold shadow-sm border border-side-500/30'
+							: 'text-side-100/70 hover:text-white hover:bg-white/10'
 					)}
 					title={isCollapsed ? item.label : undefined}
 				>
-					<Icon className={cn('h-5 w-5 flex-shrink-0', active ? 'text-red-300' : 'text-red-200/60')} />
+					<Icon className={cn('h-5 w-5 flex-shrink-0', active ? 'text-side-300' : 'text-side-200/60')} />
 					{!isCollapsed && <span className="sidebar-transition truncate">{item.label}</span>}
 				</button>
 			);
@@ -98,12 +99,12 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 				className={cn(
 					'sidebar-transition flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium mx-2 transition-all',
 					active
-						? 'bg-[#831821] text-white font-semibold shadow-sm border border-red-500/30'
-						: 'text-red-100/70 hover:text-white hover:bg-white/10'
+						? 'bg-side-800 text-white font-semibold shadow-sm border border-side-500/30'
+						: 'text-side-100/70 hover:text-white hover:bg-white/10'
 				)}
 				title={isCollapsed ? item.label : undefined}
 			>
-				<Icon className={cn('h-5 w-5 flex-shrink-0', active ? 'text-red-300' : 'text-red-200/60')} />
+				<Icon className={cn('h-5 w-5 flex-shrink-0', active ? 'text-side-300' : 'text-side-200/60')} />
 				{!isCollapsed && <span className="sidebar-transition truncate">{item.label}</span>}
 			</NavLink>
 		);
@@ -120,7 +121,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 
 	return (
 		<aside
-			className="h-screen flex flex-col bg-gradient-to-br from-red-900 via-black to-red-950 border-r border-white/10 fixed left-0 top-0 z-40 sidebar-transition shadow-2xl"
+			className="h-screen flex flex-col bg-gradient-to-br from-side-900 via-black to-side-950 border-r border-white/10 fixed left-0 top-0 z-40 sidebar-transition shadow-2xl"
 			style={{
 				width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
 			}}
@@ -137,13 +138,15 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 								onError={() => setImgError(true)}
 							/>
 						) : (
-							<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-950/50">
-								<span className="text-white font-bold text-xs">E6</span>
+							<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-side-950/50">
+								<span className="text-white font-bold text-xs">
+									<BrandMark name={profile?.businessName} iconClassName="h-4 w-4" />
+								</span>
 							</div>
 						)}
 						<div className="sidebar-transition overflow-hidden min-w-0 flex-1">
 							<span className="text-white font-semibold text-sm truncate block leading-tight">{businessName}</span>
-							<span className="text-red-200/70 text-[11px] font-medium tracking-tight block mt-0.5 whitespace-nowrap pr-1">Management Suite</span>
+							<span className="text-side-200/70 text-[11px] font-medium tracking-tight block mt-0.5 whitespace-nowrap pr-1">Management Suite</span>
 						</div>
 					</div>
 				) : showImage ? (
@@ -154,8 +157,10 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 						onError={() => setImgError(true)}
 					/>
 				) : (
-					<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-red-950/50">
-						<span className="text-white font-bold text-xs">E6</span>
+					<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 flex items-center justify-center flex-shrink-0 shadow-md shadow-side-950/50">
+						<span className="text-white font-bold text-xs">
+									<BrandMark name={profile?.businessName} iconClassName="h-4 w-4" />
+								</span>
 					</div>
 				)}
 			</div>
@@ -167,7 +172,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 						<span
 							className={cn(
 								'h-2 w-2 rounded-full shrink-0',
-								currentWorkspace === 'launcher' ? 'bg-emerald-400' : 'bg-red-400 animate-pulse'
+								currentWorkspace === 'launcher' ? 'bg-emerald-400' : 'bg-side-400 animate-pulse'
 							)}
 						/>
 						<span className="text-xs font-bold text-white tracking-wide truncate">
@@ -179,7 +184,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 							'text-[10px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded border',
 							currentWorkspace === 'launcher'
 								? 'text-emerald-300/80 bg-emerald-500/10 border-emerald-500/20'
-								: 'text-red-300/80 bg-red-500/10 border-red-500/20'
+								: 'text-side-300/80 bg-side-500/10 border-side-500/20'
 						)}
 					>
 						{currentWorkspace === 'launcher' ? 'Home' : 'App'}
@@ -194,7 +199,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 				{/* Global Utility: Audit Trail */}
 				<div className="border-t border-white/10 pt-2 my-2 space-y-1">
 					{!isCollapsed && (
-						<div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wider text-red-300/40">
+						<div className="px-4 py-1 text-[10px] font-semibold uppercase tracking-wider text-side-300/40">
 							Global
 						</div>
 					)}
@@ -207,7 +212,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 				<button
 					onClick={toggleSidebar}
 					className={cn(
-						'sidebar-transition flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-200/70 hover:text-white hover:bg-white/10 cursor-pointer',
+						'sidebar-transition flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-side-200/70 hover:text-white hover:bg-white/10 cursor-pointer',
 						isCollapsed ? 'justify-center' : 'w-full'
 					)}
 					title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -226,7 +231,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 			{/* User Profile at Bottom */}
 			{authUser && (
 				<div className={cn('border-t border-white/10 p-3 shrink-0', 'flex items-center gap-3')}>
-					<div className="h-8 w-8 rounded-full bg-gradient-to-tr from-red-600 to-red-900 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md shadow-red-950/50">
+					<div className="h-8 w-8 rounded-full bg-gradient-to-tr from-side-600 to-side-900 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md shadow-side-950/50">
 						{userInitials}
 					</div>
 					{!isCollapsed && (
@@ -234,7 +239,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 							<p className="text-white text-sm font-medium truncate">
 								{authUser.fullName}
 							</p>
-							<p className="text-red-200/60 text-xs truncate capitalize">
+							<p className="text-side-200/60 text-xs truncate capitalize">
 								{authUser.role}
 							</p>
 						</div>

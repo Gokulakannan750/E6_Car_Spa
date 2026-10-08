@@ -52,6 +52,8 @@ public static class AuditActions
     public const string BusinessProfileUpdated = "BUSINESS_PROFILE_UPDATED";
     public const string LogoChanged = "LOGO_CHANGED";
     public const string LogoRemoved = "LOGO_REMOVED";
+    public const string LoginImageChanged = "LOGIN_IMAGE_CHANGED";
+    public const string LoginImageRemoved = "LOGIN_IMAGE_REMOVED";
 
     public const string StatusChanged = "STATUS_CHANGED";
     

@@ -130,6 +130,14 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("AppColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("BrandColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
                     b.Property<string>("BusinessName")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -162,6 +170,10 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LoginImagePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("LogoPath")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -180,6 +192,10 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("SidebarColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
                     b.Property<int>("SingletonKey")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -189,6 +205,10 @@ namespace CarSpaManagement.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Tagline")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
 
                     b.Property<string>("TermsAndConditions")
                         .HasMaxLength(2000)
@@ -2242,7 +2262,7 @@ namespace CarSpaManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasDefaultValue("e6_carspa_invoice_generated");
+                        .HasDefaultValue("invoice_generated");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -2286,7 +2306,7 @@ namespace CarSpaManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
-                        .HasDefaultValue("e6_carspa_payment_completed");
+                        .HasDefaultValue("payment_completed");
 
                     b.Property<string>("PhoneNumberId")
                         .IsRequired()

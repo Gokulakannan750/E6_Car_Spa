@@ -315,8 +315,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'configuration',
-                pageBuilder: (context, state) =>
-                    const NoTransitionPage(child: ShowroomConfigurationScreen()),
+                pageBuilder: (context, state) => const NoTransitionPage(
+                  child: ShowroomConfigurationScreen(),
+                ),
               ),
             ],
           ),

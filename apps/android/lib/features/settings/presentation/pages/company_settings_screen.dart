@@ -324,7 +324,7 @@ class _CompanySettingsScreenState extends ConsumerState<CompanySettingsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(
                         Icons.visibility_outlined,

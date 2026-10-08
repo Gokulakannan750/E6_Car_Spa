@@ -1,3 +1,5 @@
+const Object _keep = Object();
+
 class BusinessProfileModel {
   final String id;
   final String businessName;
@@ -12,6 +14,17 @@ class BusinessProfileModel {
   final String? logoPath;
   final String invoicePrefix;
   final String? termsAndConditions;
+  final String? tagline;
+  final String? brandColor;
+
+  /// Accent colour of the app itself (#RRGGBB); null means the neutral default.
+  final String? appColor;
+
+  /// Colour of the login page and dark surfaces (#RRGGBB); null means the neutral default.
+  final String? sidebarColor;
+
+  /// The company's own picture for the login page (server-relative URL); null when none is uploaded.
+  final String? loginImagePath;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -29,6 +42,11 @@ class BusinessProfileModel {
     this.logoPath,
     this.invoicePrefix = 'INV',
     this.termsAndConditions,
+    this.tagline,
+    this.brandColor,
+    this.appColor,
+    this.sidebarColor,
+    this.loginImagePath,
     this.createdAt,
     this.updatedAt,
   });
@@ -36,7 +54,7 @@ class BusinessProfileModel {
   factory BusinessProfileModel.fromJson(Map<String, dynamic> json) {
     return BusinessProfileModel(
       id: json['id']?.toString() ?? '',
-      businessName: json['businessName'] as String? ?? 'E6 Car Spa',
+      businessName: json['businessName'] as String? ?? '',
       addressLine1: json['addressLine1'] as String? ?? '',
       addressLine2: json['addressLine2'] as String?,
       city: json['city'] as String? ?? '',
@@ -48,6 +66,11 @@ class BusinessProfileModel {
       logoPath: json['logoPath'] as String?,
       invoicePrefix: json['invoicePrefix'] as String? ?? 'INV',
       termsAndConditions: json['termsAndConditions'] as String?,
+      tagline: json['tagline'] as String?,
+      brandColor: json['brandColor'] as String?,
+      appColor: json['appColor'] as String?,
+      sidebarColor: json['sidebarColor'] as String?,
+      loginImagePath: json['loginImagePath'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -72,6 +95,11 @@ class BusinessProfileModel {
       'logoPath': logoPath,
       'invoicePrefix': invoicePrefix,
       'termsAndConditions': termsAndConditions,
+      'tagline': tagline,
+      'brandColor': brandColor,
+      'appColor': appColor,
+      'sidebarColor': sidebarColor,
+      'loginImagePath': loginImagePath,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -100,6 +128,12 @@ class BusinessProfileModel {
     String? logoPath,
     String? invoicePrefix,
     String? termsAndConditions,
+    String? tagline,
+    String? brandColor,
+    // Pass null to clear a colour (the company went back to the default); omit to keep the current one.
+    Object? appColor = _keep,
+    Object? sidebarColor = _keep,
+    Object? loginImagePath = _keep,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -117,6 +151,17 @@ class BusinessProfileModel {
       logoPath: logoPath ?? this.logoPath,
       invoicePrefix: invoicePrefix ?? this.invoicePrefix,
       termsAndConditions: termsAndConditions ?? this.termsAndConditions,
+      tagline: tagline ?? this.tagline,
+      brandColor: brandColor ?? this.brandColor,
+      appColor: identical(appColor, _keep)
+          ? this.appColor
+          : appColor as String?,
+      sidebarColor: identical(sidebarColor, _keep)
+          ? this.sidebarColor
+          : sidebarColor as String?,
+      loginImagePath: identical(loginImagePath, _keep)
+          ? this.loginImagePath
+          : loginImagePath as String?,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

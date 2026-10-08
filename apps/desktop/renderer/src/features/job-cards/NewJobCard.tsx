@@ -892,6 +892,7 @@ export default function NewJobCard() {
 									jobCard={createdJobCard}
 									logoUrl={logoUrl}
 									businessName={profile?.businessName}
+									brandColor={profile?.brandColor}
 								/>
 							</div>
 						</div>
@@ -905,6 +906,7 @@ export default function NewJobCard() {
 							jobCard={createdJobCard}
 							logoUrl={logoUrl}
 							businessName={profile?.businessName}
+							brandColor={profile?.brandColor}
 						/>
 					</div>
 				)}

@@ -48,8 +48,9 @@ class _EditVehicleWorkModalSheetState
     _notesController = TextEditingController(text: widget.work.notes ?? '');
     _workTypeNoteControllers = {};
     for (final item in widget.work.serviceItems) {
-      _workTypeNoteControllers[item.workTypeId] =
-          TextEditingController(text: item.notes ?? '');
+      _workTypeNoteControllers[item.workTypeId] = TextEditingController(
+        text: item.notes ?? '',
+      );
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -138,7 +139,9 @@ class _EditVehicleWorkModalSheetState
         ),
       );
       // Only a newly added "Other" needs a description; older records may have none.
-      final wasOnRecord = widget.work.serviceItems.any((i) => i.workTypeId == id);
+      final wasOnRecord = widget.work.serviceItems.any(
+        (i) => i.workTypeId == id,
+      );
       if (wt.isOtherType && !wasOnRecord) {
         final note = _workTypeNoteControllers[id]?.text.trim() ?? '';
         if (note.isEmpty) {
@@ -244,10 +247,7 @@ class _EditVehicleWorkModalSheetState
         value: vType.id,
         child: Text(
           vType.name,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
           overflow: TextOverflow.ellipsis,
         ),
       );

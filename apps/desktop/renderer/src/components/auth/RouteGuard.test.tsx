@@ -18,7 +18,7 @@ describe('RouteGuard Component', () => {
 			}
 		);
 
-		expect(screen.getByText(/loading e6 car spa\.\.\./i)).toBeInTheDocument();
+		expect(screen.getByText(/^loading\.\.\.$/i)).toBeInTheDocument();
 		expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument();
 	});
 

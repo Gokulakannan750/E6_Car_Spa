@@ -31,7 +31,7 @@ describe('FirstTimeSetup Component & Cross-Device Refresh', () => {
 			initialEntries: ['/setup'],
 		});
 
-		expect(screen.getByText('WELCOME TO E6 CAR SPA')).toBeInTheDocument();
+		expect(screen.getByText('WELCOME TO CAR SPA MANAGEMENT')).toBeInTheDocument();
 		expect(screen.getByText('First-Time Setup — Create Owner Account')).toBeInTheDocument();
 		expect(screen.getByText(/initial setup/i)).toBeInTheDocument();
 		expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('FirstTimeSetup Component & Cross-Device Refresh', () => {
 		});
 
 		// Initial render: screen is visible
-		expect(screen.getByText('WELCOME TO E6 CAR SPA')).toBeInTheDocument();
+		expect(screen.getByText('WELCOME TO CAR SPA MANAGEMENT')).toBeInTheDocument();
 
 		// Advance time by 10s (first poll interval)
 		await act(async () => {
@@ -136,7 +136,7 @@ describe('FirstTimeSetup Component & Cross-Device Refresh', () => {
 		});
 
 		// Screen remains intact and field value is preserved
-		expect(screen.getByText('WELCOME TO E6 CAR SPA')).toBeInTheDocument();
+		expect(screen.getByText('WELCOME TO CAR SPA MANAGEMENT')).toBeInTheDocument();
 		expect(nameInput.value).toBe('Draft Owner Name');
 		expect(mockCheckInit).not.toHaveBeenCalled();
 	});

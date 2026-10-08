@@ -183,7 +183,7 @@ class SalesReportScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Draft',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primary,

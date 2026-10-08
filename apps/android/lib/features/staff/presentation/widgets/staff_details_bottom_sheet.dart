@@ -144,7 +144,7 @@ class _StaffDetailsBottomSheetState
                     staff.name.isNotEmpty
                         ? staff.name.substring(0, 1).toUpperCase()
                         : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
@@ -260,7 +260,7 @@ class _StaffDetailsBottomSheetState
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.shield_outlined,
                             size: 20,
                             color: AppColors.primary,
@@ -401,7 +401,7 @@ class _StaffDetailsBottomSheetState
                         const SizedBox(height: 4),
                         Text(
                           '${staff.totalAdvances} Records',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             color: AppColors.primary,

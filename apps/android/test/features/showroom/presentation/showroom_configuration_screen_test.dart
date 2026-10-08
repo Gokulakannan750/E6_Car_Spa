@@ -165,25 +165,25 @@ class FakeConfigAuthNotifier extends StateNotifier<AuthState>
     implements AuthNotifier {
   final bool isOwner;
   FakeConfigAuthNotifier({this.isOwner = true})
-      : super(
-          Authenticated(
-            AuthUser(
-              id: isOwner ? 'owner-1' : 'staff-1',
-              username: isOwner ? 'owner' : 'staff',
-              fullName: isOwner ? 'Owner User' : 'Staff User',
-              role: isOwner ? 'Owner' : 'Staff',
-              isOwner: isOwner,
-              permissions: isOwner
-                  ? [
-                      'showroom.view',
-                      'showroom.manage',
-                      'settings.view',
-                      'settings.manage',
-                    ]
-                  : ['showroom.view'],
-            ),
+    : super(
+        Authenticated(
+          AuthUser(
+            id: isOwner ? 'owner-1' : 'staff-1',
+            username: isOwner ? 'owner' : 'staff',
+            fullName: isOwner ? 'Owner User' : 'Staff User',
+            role: isOwner ? 'Owner' : 'Staff',
+            isOwner: isOwner,
+            permissions: isOwner
+                ? [
+                    'showroom.view',
+                    'showroom.manage',
+                    'settings.view',
+                    'settings.manage',
+                  ]
+                : ['showroom.view'],
           ),
-        );
+        ),
+      );
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -204,14 +204,14 @@ void main() {
           (ref) => FakeConfigAuthNotifier(isOwner: isOwner),
         ),
       ],
-      child: const MaterialApp(
-        home: ShowroomConfigurationScreen(),
-      ),
+      child: const MaterialApp(home: ShowroomConfigurationScreen()),
     );
   }
 
   group('ShowroomConfigurationScreen Widget Tests', () {
-    testWidgets('Owner can view vehicle types and add new vehicle type', (tester) async {
+    testWidgets('Owner can view vehicle types and add new vehicle type', (
+      tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(isOwner: true));
       await tester.pumpAndSettle();
 
@@ -232,7 +232,10 @@ void main() {
       expect(find.text('Add Vehicle Type'), findsWidgets);
 
       // Enter name
-      await tester.enterText(find.byKey(const Key('vt_name_field')), 'Electric SUV');
+      await tester.enterText(
+        find.byKey(const Key('vt_name_field')),
+        'Electric SUV',
+      );
       await tester.pumpAndSettle();
 
       // Submit
@@ -242,21 +245,24 @@ void main() {
       expect(fakeRepo.createdVehicleTypeName, 'Electric SUV');
     });
 
-    testWidgets('Non-owner sees read-only banner and Add buttons are disabled/hidden', (tester) async {
-      await tester.pumpWidget(createTestWidget(isOwner: false));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Non-owner sees read-only banner and Add buttons are disabled/hidden',
+      (tester) async {
+        await tester.pumpWidget(createTestWidget(isOwner: false));
+        await tester.pumpAndSettle();
 
-      // Should display read-only banner
-      expect(
-        find.text(
-          'Owner-Only Management: You are viewing in read-only mode.',
-        ),
-        findsOneWidget,
-      );
+        // Should display read-only banner
+        expect(
+          find.text(
+            'Owner-Only Management: You are viewing in read-only mode.',
+          ),
+          findsOneWidget,
+        );
 
-      // Add FAB should not be present for non-owner
-      expect(find.byKey(const Key('add_showroom_config_fab')), findsNothing);
-    });
+        // Add FAB should not be present for non-owner
+        expect(find.byKey(const Key('add_showroom_config_fab')), findsNothing);
+      },
+    );
 
     testWidgets('Owner can toggle vehicle type active state', (tester) async {
       await tester.pumpWidget(createTestWidget(isOwner: true));
@@ -269,7 +275,9 @@ void main() {
       expect(fakeRepo.toggleVehicleTypeCalled, true);
     });
 
-    testWidgets('Owner can switch to Work Types tab and view list', (tester) async {
+    testWidgets('Owner can switch to Work Types tab and view list', (
+      tester,
+    ) async {
       await tester.pumpWidget(createTestWidget(isOwner: true));
       await tester.pumpAndSettle();
 

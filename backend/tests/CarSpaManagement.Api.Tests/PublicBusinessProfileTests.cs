@@ -141,6 +141,9 @@ public class PublicBusinessProfileTests
     {
         public Task<BusinessProfileDto> GetProfileAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<BusinessProfileDto> UpdateProfileAsync(UpdateBusinessProfileRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<BusinessProfileDto> UpdateAppearanceAsync(UpdateAppearanceRequest request, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<LoginImageUploadResponse> UploadLoginImageAsync(IFormFile file, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<BusinessProfileDto> RemoveLoginImageAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<LogoUploadResponse> UploadLogoAsync(IFormFile file, CancellationToken ct = default) => throw new NotImplementedException();
         public Task<BusinessProfileDto> RemoveLogoAsync(CancellationToken ct = default) => throw new NotImplementedException();
         public Task<PublicBusinessProfileDto> GetPublicProfileAsync(CancellationToken ct = default)

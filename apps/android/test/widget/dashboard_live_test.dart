@@ -32,7 +32,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Title & Greeting
-      expect(find.text('E6 Car Spa'), findsWidgets);
+      expect(find.text('Car Spa Management'), findsWidgets);
       expect(find.text('Good Morning, Admin User'), findsOneWidget);
       expect(
         find.text('Choose an application to manage your business'),
@@ -49,10 +49,10 @@ void main() {
       expect(find.text('Choose a workspace to continue'), findsOneWidget);
 
       // Verify the 5 Applications are displayed
-      expect(find.text('E6 Billing'), findsOneWidget);
-      expect(find.text('E6 Staff'), findsOneWidget);
-      expect(find.text('E6 Showroom'), findsOneWidget);
-      expect(find.text('E6 Reports'), findsOneWidget);
+      expect(find.text('Billing'), findsOneWidget);
+      expect(find.text('Staff'), findsOneWidget);
+      expect(find.text('Showroom'), findsOneWidget);
+      expect(find.text('Reports'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
 
       // Verify descriptions

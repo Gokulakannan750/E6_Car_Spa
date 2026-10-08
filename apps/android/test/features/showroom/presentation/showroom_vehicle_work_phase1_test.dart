@@ -150,25 +150,25 @@ class FakePhase1AuthNotifier extends StateNotifier<AuthState>
     implements AuthNotifier {
   final bool isOwner;
   FakePhase1AuthNotifier({this.isOwner = true})
-      : super(
-          Authenticated(
-            AuthUser(
-              id: isOwner ? 'owner-1' : 'staff-1',
-              username: isOwner ? 'owner' : 'staff',
-              fullName: isOwner ? 'Owner User' : 'Staff User',
-              role: isOwner ? 'Owner' : 'Staff',
-              isOwner: isOwner,
-              permissions: isOwner
-                  ? [
-                      'showroom.view',
-                      'showroom.manage',
-                      'settings.view',
-                      'settings.manage',
-                    ]
-                  : ['showroom.view'],
-            ),
+    : super(
+        Authenticated(
+          AuthUser(
+            id: isOwner ? 'owner-1' : 'staff-1',
+            username: isOwner ? 'owner' : 'staff',
+            fullName: isOwner ? 'Owner User' : 'Staff User',
+            role: isOwner ? 'Owner' : 'Staff',
+            isOwner: isOwner,
+            permissions: isOwner
+                ? [
+                    'showroom.view',
+                    'showroom.manage',
+                    'settings.view',
+                    'settings.manage',
+                  ]
+                : ['showroom.view'],
           ),
-        );
+        ),
+      );
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -189,9 +189,7 @@ void main() {
           (ref) => FakePhase1AuthNotifier(isOwner: isOwner),
         ),
       ],
-      child: MaterialApp(
-        home: Scaffold(body: child),
-      ),
+      child: MaterialApp(home: Scaffold(body: child)),
     );
   }
 
@@ -245,7 +243,9 @@ void main() {
         expect(find.text('Wax Coating (Inactive)'), findsOneWidget);
 
         // User can unselect the inactive work type
-        await tester.tap(find.byKey(const Key('edit_work_type_chip_wt-deactivated')));
+        await tester.tap(
+          find.byKey(const Key('edit_work_type_chip_wt-deactivated')),
+        );
         await tester.pumpAndSettle();
 
         // Select active work type Body Wash
@@ -253,11 +253,16 @@ void main() {
         await tester.pumpAndSettle();
 
         // Save
-        await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_update_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
         expect(fakeRepo.lastUpdateRequest, isNotNull);
-        expect(fakeRepo.lastUpdateRequest!.serviceItems!.first.workTypeId, 'wt-wash');
+        expect(
+          fakeRepo.lastUpdateRequest!.serviceItems!.first.workTypeId,
+          'wt-wash',
+        );
       },
     );
 
@@ -306,11 +311,16 @@ void main() {
         expect(find.text('Specify work performed: *'), findsOneWidget);
 
         // Try submitting without filling Other description
-        await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_update_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
         // Error message displayed
-        expect(find.text('Please specify work performed for "Other".'), findsOneWidget);
+        expect(
+          find.text('Please specify work performed for "Other".'),
+          findsOneWidget,
+        );
         expect(fakeRepo.lastUpdateRequest, isNull);
 
         // Fill in Other description
@@ -321,12 +331,15 @@ void main() {
         await tester.pumpAndSettle();
 
         // Submit again
-        await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_update_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
         expect(fakeRepo.lastUpdateRequest, isNotNull);
-        final otherItem = fakeRepo.lastUpdateRequest!.serviceItems!
-            .firstWhere((i) => i.workTypeId == 'wt-other');
+        final otherItem = fakeRepo.lastUpdateRequest!.serviceItems!.firstWhere(
+          (i) => i.workTypeId == 'wt-other',
+        );
         expect(otherItem.notes, 'Engine bay steam clean');
       },
     );
@@ -347,7 +360,10 @@ void main() {
 
         // Showroom staff is displayed and selectable
         expect(find.text('Assigned Staff *'), findsOneWidget);
-        expect(find.text('Ramesh Kumar (#STF001) • Showroom Attendant'), findsOneWidget);
+        expect(
+          find.text('Ramesh Kumar (#STF001) • Showroom Attendant'),
+          findsOneWidget,
+        );
 
         // Showroom work is labelled "Work Types", not catalogue "Services"
         expect(find.text('Work Types *'), findsOneWidget);
@@ -361,7 +377,9 @@ void main() {
         expect(find.text('Specify work performed: *'), findsOneWidget);
 
         // Submit without filling
-        await tester.tap(find.byKey(const Key('modal_save_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_save_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
         expect(
@@ -378,12 +396,15 @@ void main() {
         await tester.pumpAndSettle();
 
         // Submit
-        await tester.tap(find.byKey(const Key('modal_save_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_save_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
         expect(fakeRepo.lastCreateRequest, isNotNull);
-        final otherItem = fakeRepo.lastCreateRequest!.serviceItems!
-            .firstWhere((i) => i.workTypeId == 'wt-other');
+        final otherItem = fakeRepo.lastCreateRequest!.serviceItems!.firstWhere(
+          (i) => i.workTypeId == 'wt-other',
+        );
         expect(otherItem.notes, 'Ceramic coating touch up');
       },
     );
@@ -417,9 +438,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
-            home: Scaffold(
-              body: VehicleWorkCard(work: work),
-            ),
+            home: Scaffold(body: VehicleWorkCard(work: work)),
           ),
         );
         await tester.pumpAndSettle();
@@ -434,9 +453,27 @@ void main() {
         fakeRepo.activeWorkTypes
           ..clear()
           ..addAll([
-            ShowroomWorkType(id: 'wt-wash', code: 'WASH', name: 'Body Wash', createdAt: DateTime(2026, 1, 1), isOther: false),
-            ShowroomWorkType(id: 'wt-misc', code: 'MISC', name: 'Miscellaneous', createdAt: DateTime(2026, 1, 1), isOther: true),
-            ShowroomWorkType(id: 'wt-look', code: 'OTHER_POLISH', name: 'Other Polish', createdAt: DateTime(2026, 1, 1), isOther: false),
+            ShowroomWorkType(
+              id: 'wt-wash',
+              code: 'WASH',
+              name: 'Body Wash',
+              createdAt: DateTime(2026, 1, 1),
+              isOther: false,
+            ),
+            ShowroomWorkType(
+              id: 'wt-misc',
+              code: 'MISC',
+              name: 'Miscellaneous',
+              createdAt: DateTime(2026, 1, 1),
+              isOther: true,
+            ),
+            ShowroomWorkType(
+              id: 'wt-look',
+              code: 'OTHER_POLISH',
+              name: 'Other Polish',
+              createdAt: DateTime(2026, 1, 1),
+              isOther: false,
+            ),
           ]);
 
         await tester.pumpWidget(
@@ -490,15 +527,24 @@ void main() {
 
         await tester.pumpWidget(
           createTestWidget(
-            child: EditVehicleWorkModalSheet(work: work, showroomId: 'sr-1', showroomName: 'Test Showroom'),
+            child: EditVehicleWorkModalSheet(
+              work: work,
+              showroomId: 'sr-1',
+              showroomName: 'Test Showroom',
+            ),
           ),
         );
         await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key('modal_update_vehicle_work_button')));
+        await tester.tap(
+          find.byKey(const Key('modal_update_vehicle_work_button')),
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('Please specify work performed for "Other".'), findsNothing);
+        expect(
+          find.text('Please specify work performed for "Other".'),
+          findsNothing,
+        );
         expect(fakeRepo.lastUpdateRequest, isNotNull);
       },
     );

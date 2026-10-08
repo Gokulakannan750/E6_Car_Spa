@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/theme/brand_palette.dart';
 import '../models/business_profile_model.dart';
 import '../models/public_business_profile_model.dart';
 import '../models/update_business_profile_request.dart';
@@ -27,6 +28,28 @@ class SettingsRepository {
 
   static const String _cachedProfileKey = 'e6_cached_business_profile';
   static const String _cachedPublicBrandingKey = 'e6_cached_public_branding';
+
+  /// Applies the colours saved from the last session, before the first screen is drawn, so the app does not
+  /// flash the default colours while the company profile is loading.
+  static Future<void> applyCachedBrandColours([
+    FlutterSecureStorage? storage,
+  ]) async {
+    final secure = storage ?? const FlutterSecureStorage();
+    try {
+      for (final key in [_cachedProfileKey, _cachedPublicBrandingKey]) {
+        final jsonStr = await secure.read(key: key);
+        if (jsonStr == null || jsonStr.isEmpty) continue;
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+        BrandPalette.apply(
+          appHex: map['appColor'] as String?,
+          sidebarHex: map['sidebarColor'] as String?,
+        );
+        return;
+      }
+    } catch (_) {
+      // No cached colours: the neutral defaults stay in place.
+    }
+  }
 
   SettingsRepository(this._api, [FlutterSecureStorage? storage])
     : _storage = storage ?? const FlutterSecureStorage();
@@ -100,6 +123,50 @@ class SettingsRepository {
   ) async {
     try {
       final profile = await _api.updateBusinessProfile(request);
+      await _saveCachedProfile(profile);
+      return profile;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<BusinessProfileModel> updateAppearance({
+    String? appColor,
+    String? sidebarColor,
+    String? brandColor,
+  }) async {
+    try {
+      final profile = await _api.updateAppearance(
+        appColor: appColor,
+        sidebarColor: sidebarColor,
+        brandColor: brandColor,
+      );
+      await _saveCachedProfile(profile);
+      return profile;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<BusinessProfileModel> uploadLoginImage({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    try {
+      final profile = await _api.uploadLoginImage(
+        bytes: bytes,
+        filename: filename,
+      );
+      await _saveCachedProfile(profile);
+      return profile;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<BusinessProfileModel> removeLoginImage() async {
+    try {
+      final profile = await _api.removeLoginImage();
       await _saveCachedProfile(profile);
       return profile;
     } on DioException catch (e) {

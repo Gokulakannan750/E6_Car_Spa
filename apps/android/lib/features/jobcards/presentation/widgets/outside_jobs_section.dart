@@ -116,7 +116,7 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.edit_rounded, color: AppColors.primary, size: 20),
               SizedBox(width: 8),
@@ -881,12 +881,12 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                   TextButton.icon(
                     key: Key('btn_edit_cost_${job.id}'),
                     onPressed: () => _showEditCostDialog(job),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.edit_outlined,
                       size: 14,
                       color: AppColors.primary,
                     ),
-                    label: const Text(
+                    label: Text(
                       'Edit Cost',
                       style: TextStyle(fontSize: 12, color: AppColors.primary),
                     ),
@@ -1162,7 +1162,7 @@ class _SendOutsideSheetState extends ConsumerState<_SendOutsideSheet> {
                 // Title
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.local_shipping_rounded,
                       size: 22,
                       color: AppColors.primary,

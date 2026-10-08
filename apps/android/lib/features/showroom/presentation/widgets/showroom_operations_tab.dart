@@ -226,7 +226,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                     if (opsState.vehicleTypeBreakdown.isNotEmpty) ...[
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.pie_chart_outline_rounded,
                             size: 14,
                             color: AppColors.primary,
@@ -260,7 +260,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                             ),
                             child: Text(
                               '${item.vehicleTypeName}: ${item.totalVehicles}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary,
@@ -575,7 +575,9 @@ class ShowroomOperationsTab extends ConsumerWidget {
     final staffList = dailyState.staffAssignments;
     final vehicleTypes = opsState.vehicleTypes;
     final Set<String> knownIds = vehicleTypes.map((v) => v.id).toSet();
-    final List<ShowroomVehicleType> filterVehicleTypes = List.from(vehicleTypes);
+    final List<ShowroomVehicleType> filterVehicleTypes = List.from(
+      vehicleTypes,
+    );
     for (final w in opsState.vehicleWorks) {
       if (!knownIds.contains(w.vehicleTypeId) && w.vehicleTypeId.isNotEmpty) {
         filterVehicleTypes.add(
@@ -815,7 +817,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.badge_outlined,
                     size: 15,
                     color: AppColors.primary,
@@ -859,7 +861,7 @@ class ShowroomOperationsTab extends ConsumerWidget {
                       backgroundColor: AppColors.primary.withAlpha(25),
                       child: Text(
                         session.initials,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,

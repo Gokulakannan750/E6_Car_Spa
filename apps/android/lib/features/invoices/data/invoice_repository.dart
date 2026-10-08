@@ -89,15 +89,25 @@ class InvoiceRepository {
     required bool isGstEnabled,
   }) async {
     try {
-      return await _api.previewInvoice(id, discount: discount, isGstEnabled: isGstEnabled);
+      return await _api.previewInvoice(
+        id,
+        discount: discount,
+        isGstEnabled: isGstEnabled,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
   }
 
-  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
+  Future<Invoice> generateInvoice(
+    String id, {
+    double? expectedTotalAmount,
+  }) async {
     try {
-      return await _api.generateInvoice(id, expectedTotalAmount: expectedTotalAmount);
+      return await _api.generateInvoice(
+        id,
+        expectedTotalAmount: expectedTotalAmount,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

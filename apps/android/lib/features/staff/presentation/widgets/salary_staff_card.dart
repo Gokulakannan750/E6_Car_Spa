@@ -95,7 +95,7 @@ class SalaryStaffCard extends ConsumerWidget {
                     item.staffName.isNotEmpty
                         ? item.staffName.substring(0, 1).toUpperCase()
                         : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
                     ),
@@ -250,17 +250,17 @@ class SalaryStaffCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.visibility_outlined,
                         size: 15,
                         color: AppColors.primary,
                       ),
-                      label: const Text(
+                      label: Text(
                         'View Details',
                         style: TextStyle(
                           fontSize: 12,
@@ -284,12 +284,12 @@ class SalaryStaffCard extends ConsumerWidget {
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 8),
-                          side: const BorderSide(color: AppColors.primary),
+                          side: BorderSide(color: AppColors.primary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.edit_outlined,
                           size: 15,
                           color: AppColors.primary,
@@ -298,7 +298,7 @@ class SalaryStaffCard extends ConsumerWidget {
                           item.enteredSalary != null
                               ? 'Edit Salary'
                               : 'Enter Salary',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: AppColors.primary,

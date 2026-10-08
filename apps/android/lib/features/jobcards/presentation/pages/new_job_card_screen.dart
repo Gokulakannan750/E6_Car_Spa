@@ -250,11 +250,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.info_outline,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
+                Icon(Icons.info_outline, color: AppColors.primary, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -275,7 +271,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
           style: OutlinedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: AppColors.primary,
-            side: const BorderSide(color: AppColors.primary, width: 1.2),
+            side: BorderSide(color: AppColors.primary, width: 1.2),
             padding: const EdgeInsets.symmetric(vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -326,7 +322,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         color: AppColors.accentPill,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.person_rounded,
                           size: 22,
@@ -383,7 +379,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                         ],
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.check_circle,
                       color: AppColors.primary,
                       size: 22,
@@ -406,8 +402,8 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 ),
               ),
               TextButton.icon(
-                icon: const Icon(Icons.add, size: 16, color: AppColors.primary),
-                label: const Text(
+                icon: Icon(Icons.add, size: 16, color: AppColors.primary),
+                label: Text(
                   'Add Vehicle',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
@@ -492,7 +488,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   vehicle: v,
                   onTap: () => notifier.selectVehicle(v),
                   trailing: isSelected
-                      ? const Icon(
+                      ? Icon(
                           Icons.check_circle,
                           color: AppColors.primary,
                           size: 24,
@@ -608,7 +604,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.shopping_bag_outlined,
                           color: AppColors.primary,
                           size: 18,
@@ -626,7 +622,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                     ),
                     Text(
                       '₹${state.previewSubtotal.toStringAsFixed(2)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                         color: AppColors.primary,
@@ -704,7 +700,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                                   item.service.id,
                                   item.quantity + 1,
                                 ),
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(4),
                                   child: Icon(
                                     Icons.add,
@@ -829,7 +825,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                           const SizedBox(height: 6),
                           Text(
                             '₹${svc.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                               color: AppColors.primary,
@@ -934,7 +930,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(
                     Icons.person_pin_outlined,
@@ -963,7 +959,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
               const SizedBox(height: 4),
               Text(
                 'Vehicle: ${state.selectedVehicle?.registrationNumber.toUpperCase() ?? ''} — ${state.selectedVehicle?.displayName ?? ''}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
@@ -990,7 +986,7 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.build_circle_outlined,
                         color: AppColors.primary,
                         size: 18,
@@ -1095,14 +1091,17 @@ class _NewJobCardScreenState extends ConsumerState<NewJobCardScreen> {
                 'Estimated Subtotal',
                 '₹${(state.estimate?.subtotal ?? state.previewSubtotal).toStringAsFixed(2)}',
               ),
-              if (state.estimate != null && state.estimate!.discountAmount > 0) ...[
+              if (state.estimate != null &&
+                  state.estimate!.discountAmount > 0) ...[
                 const SizedBox(height: 6),
                 _buildSummaryRow(
                   'Discount',
                   '-₹${state.estimate!.discountAmount.toStringAsFixed(2)}',
                 ),
               ],
-              for (final row in gstRows(state.estimate?.taxBreakdown ?? const [])) ...[
+              for (final row in gstRows(
+                state.estimate?.taxBreakdown ?? const [],
+              )) ...[
                 const SizedBox(height: 6),
                 _buildSummaryRow(
                   row.taxableAmount == null

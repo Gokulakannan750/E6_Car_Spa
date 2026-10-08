@@ -133,7 +133,10 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     super.initState();
     final authorized = _getAuthorizedTabs();
     if (authorized.isNotEmpty) {
-      final safeIndex = _resolveInitialIndex(authorized, widget.initialTabIndex);
+      final safeIndex = _resolveInitialIndex(
+        authorized,
+        widget.initialTabIndex,
+      );
       _tabController = TabController(
         length: authorized.length,
         initialIndex: safeIndex,
@@ -148,7 +151,10 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     if (oldWidget.initialTabIndex != widget.initialTabIndex &&
         _tabController != null) {
       final authorized = _getAuthorizedTabs();
-      final safeIndex = _resolveInitialIndex(authorized, widget.initialTabIndex);
+      final safeIndex = _resolveInitialIndex(
+        authorized,
+        widget.initialTabIndex,
+      );
       if (safeIndex >= 0 && safeIndex < _tabController!.length) {
         _tabController!.animateTo(safeIndex);
       }
@@ -242,7 +248,10 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
 
     if (_tabController == null ||
         _tabController!.length != authorizedTabs.length) {
-      final safeIndex = _resolveInitialIndex(authorizedTabs, widget.initialTabIndex);
+      final safeIndex = _resolveInitialIndex(
+        authorizedTabs,
+        widget.initialTabIndex,
+      );
       _tabController?.dispose();
       _tabController = TabController(
         length: authorizedTabs.length,
@@ -289,12 +298,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
               context,
             ).colorScheme.onSurfaceVariant,
             tabs: authorizedTabs
-                .map(
-                  (t) => Tab(
-                    icon: Icon(t.icon, size: 20),
-                    text: t.label,
-                  ),
-                )
+                .map((t) => Tab(icon: Icon(t.icon, size: 20), text: t.label))
                 .toList(),
           ),
         ),

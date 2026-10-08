@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { useAppStore } from '../../stores/app';
+import { displayName } from '../../components/shared/BrandMark';
+import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
 
 interface SuiteAppConfig {
 	id: string;
@@ -46,6 +48,7 @@ interface SuiteAppConfig {
 export function DashboardPage() {
 	const navigate = useNavigate();
 	const { user: authUser } = useAuth();
+	const { profile } = useBusinessProfile();
 	const storeUser = useAppStore((s) => s.currentUser);
 	const user = authUser || storeUser;
 
@@ -102,7 +105,7 @@ export function DashboardPage() {
 	const suiteApplications: SuiteAppConfig[] = [
 		{
 			id: 'billing',
-			name: 'E6 Billing',
+			name: 'Billing',
 			description: 'Customers, job cards, invoices and payments',
 			accent: '#2563EB',
 			iconBg: 'bg-blue-50',
@@ -120,11 +123,11 @@ export function DashboardPage() {
 			],
 			route: '/job-cards',
 			shortcutKey: 'Alt + 1',
-			buttonLabel: 'Open E6 Billing',
+			buttonLabel: 'Open Billing',
 		},
 		{
 			id: 'staff',
-			name: 'E6 Staff',
+			name: 'Staff',
 			description: 'Staff, attendance and salary management',
 			accent: '#059669',
 			iconBg: 'bg-emerald-50',
@@ -142,11 +145,11 @@ export function DashboardPage() {
 			],
 			route: '/staff',
 			shortcutKey: 'Alt + 2',
-			buttonLabel: 'Open E6 Staff',
+			buttonLabel: 'Open Staff',
 		},
 		{
 			id: 'showroom',
-			name: 'E6 Showroom',
+			name: 'Showroom',
 			description: 'Showrooms, staff work and showroom billing',
 			accent: '#D97706',
 			iconBg: 'bg-amber-50',
@@ -164,11 +167,11 @@ export function DashboardPage() {
 			],
 			route: '/showroom',
 			shortcutKey: 'Alt + 3',
-			buttonLabel: 'Open E6 Showroom',
+			buttonLabel: 'Open Showroom',
 		},
 		{
 			id: 'reports',
-			name: 'E6 Reports',
+			name: 'Reports',
 			description: 'Billing, staff, showroom and outside job reports',
 			accent: '#7C3AED',
 			iconBg: 'bg-purple-50',
@@ -186,11 +189,11 @@ export function DashboardPage() {
 			],
 			route: '/reports',
 			shortcutKey: 'Alt + 4',
-			buttonLabel: 'Open E6 Reports',
+			buttonLabel: 'Open Reports',
 		},
 		{
 			id: 'settings',
-			name: 'E6 Settings',
+			name: 'Settings',
 			description: 'Business configuration and system settings',
 			accent: '#475569',
 			iconBg: 'bg-slate-100',
@@ -222,7 +225,7 @@ export function DashboardPage() {
 				{/* Left Greeting Text Content */}
 				<div className="p-6 sm:p-8 z-10 max-w-xl">
 					<p className="text-[11px] font-bold text-blue-600 tracking-wider uppercase mb-1">
-						WELCOME TO E6 CAR SPA
+						WELCOME TO {displayName(profile?.businessName).toUpperCase()}
 					</p>
 					<h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-1.5">
 						{greeting}
@@ -307,7 +310,7 @@ export function DashboardPage() {
 					</p>
 				</div>
 
-				{/* Row 1: 3 Columns (E6 Billing, E6 Staff, E6 Showroom) */}
+				{/* Row 1: 3 Columns (Billing, Staff, Showroom) */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 					{suiteApplications.slice(0, 3).map((app) => (
 						<article
@@ -371,7 +374,7 @@ export function DashboardPage() {
 					))}
 				</div>
 
-				{/* Row 2: 2 Wider Columns (E6 Reports, E6 Settings) */}
+				{/* Row 2: 2 Wider Columns (Reports, Settings) */}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
 					{suiteApplications.slice(3, 5).map((app) => (
 						<article

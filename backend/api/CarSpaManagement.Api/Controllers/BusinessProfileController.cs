@@ -53,6 +53,28 @@ public class BusinessProfileController : ControllerBase
     }
 
     /// <summary>
+    /// Updates the company's colours (app accent, sidebar and login, documents).
+    /// </summary>
+    [HttpPut("appearance")]
+    [RequirePermission("settings.business")]
+    public async Task<IActionResult> UpdateAppearance([FromBody] UpdateAppearanceRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            return Ok(await _profileService.UpdateAppearanceAsync(request, ct));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Uploads a new business logo (PNG, JPEG, WebP up to 5MB).
     /// </summary>
     [HttpPost("logo")]
@@ -71,6 +93,36 @@ public class BusinessProfileController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Uploads the company's own picture for the login page (PNG, JPEG, WebP up to 5MB).
+    /// </summary>
+    [HttpPost("login-image")]
+    [RequirePermission("settings.business")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 5 * 1024 * 1024)]
+    [EnableRateLimiting("file-upload")]
+    public async Task<IActionResult> UploadLoginImage([FromForm] IFormFile file, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _profileService.UploadLoginImageAsync(file, ct));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Removes the company's login page picture.
+    /// </summary>
+    [HttpDelete("login-image")]
+    [RequirePermission("settings.business")]
+    public async Task<IActionResult> RemoveLoginImage(CancellationToken ct)
+    {
+        return Ok(await _profileService.RemoveLoginImageAsync(ct));
     }
 
     /// <summary>

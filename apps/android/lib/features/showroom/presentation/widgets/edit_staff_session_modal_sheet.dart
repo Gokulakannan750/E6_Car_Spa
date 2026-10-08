@@ -497,7 +497,7 @@ class _EditStaffSessionModalSheetState
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.access_time,
                                       size: 16,
                                       color: AppColors.primary,
@@ -546,7 +546,7 @@ class _EditStaffSessionModalSheetState
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.access_time,
                                       size: 16,
                                       color: AppColors.primary,

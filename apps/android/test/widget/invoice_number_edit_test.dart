@@ -22,7 +22,9 @@ class _FakeInvoiceApi extends InvoiceApi {
   Future<Invoice> getInvoiceById(String id) async => invoice;
 
   @override
-  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(String invoiceId) async => const [];
+  Future<List<InvoiceWhatsAppStatus>> getInvoiceWhatsAppStatus(
+    String invoiceId,
+  ) async => const [];
 
   @override
   Future<InvoiceListResponse> getInvoices({
@@ -32,8 +34,12 @@ class _FakeInvoiceApi extends InvoiceApi {
     InvoiceStatus? status,
     DateTime? fromDate,
     DateTime? toDate,
-  }) async =>
-      const InvoiceListResponse(items: [], totalCount: 0, page: 1, pageSize: 20);
+  }) async => const InvoiceListResponse(
+    items: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: 20,
+  );
 
   @override
   Future<Invoice> updateInvoiceNumber(String id, String invoiceNumber) async {
@@ -42,7 +48,11 @@ class _FakeInvoiceApi extends InvoiceApi {
       final options = RequestOptions(path: '/invoices/$id/invoice-number');
       throw DioException(
         requestOptions: options,
-        response: Response(requestOptions: options, statusCode: 409, data: {'error': rejectWith}),
+        response: Response(
+          requestOptions: options,
+          statusCode: 409,
+          data: {'error': rejectWith},
+        ),
         type: DioExceptionType.badResponse,
       );
     }
@@ -51,7 +61,8 @@ class _FakeInvoiceApi extends InvoiceApi {
   }
 }
 
-class _FakeAuthNotifier extends StateNotifier<AuthState> implements AuthNotifier {
+class _FakeAuthNotifier extends StateNotifier<AuthState>
+    implements AuthNotifier {
   _FakeAuthNotifier(super.state);
 
   @override
@@ -75,7 +86,12 @@ const _manager = AuthUser(
   email: null,
   role: 'Manager',
   isOwner: false,
-  permissions: ['invoices.view', 'invoices.generate', 'invoices.cancel', 'payments.record'],
+  permissions: [
+    'invoices.view',
+    'invoices.generate',
+    'invoices.cancel',
+    'payments.record',
+  ],
 );
 
 Invoice _invoice({InvoiceStatus status = InvoiceStatus.paid, bool gst = true}) {
@@ -112,42 +128,48 @@ Invoice _invoice({InvoiceStatus status = InvoiceStatus.paid, bool gst = true}) {
 
 extension on Invoice {
   Invoice copyWithNumber(String number) => Invoice(
-        id: id,
-        invoiceNumber: number,
-        jobCardId: jobCardId,
-        jobCardNumber: jobCardNumber,
-        customerId: customerId,
-        customerName: customerName,
-        customerPhone: customerPhone,
-        vehicleId: vehicleId,
-        registrationNumber: registrationNumber,
-        vehicleMake: vehicleMake,
-        vehicleModel: vehicleModel,
-        vehicleVariant: vehicleVariant,
-        invoiceDate: invoiceDate,
-        subtotal: subtotal,
-        discount: discount,
-        taxableAmount: taxableAmount,
-        gstAmount: gstAmount,
-        totalAmount: totalAmount,
-        paidAmount: paidAmount,
-        balanceAmount: balanceAmount,
-        status: status,
-        isGstEnabled: isGstEnabled,
-        items: items,
-        payments: payments,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    invoiceNumber: number,
+    jobCardId: jobCardId,
+    jobCardNumber: jobCardNumber,
+    customerId: customerId,
+    customerName: customerName,
+    customerPhone: customerPhone,
+    vehicleId: vehicleId,
+    registrationNumber: registrationNumber,
+    vehicleMake: vehicleMake,
+    vehicleModel: vehicleModel,
+    vehicleVariant: vehicleVariant,
+    invoiceDate: invoiceDate,
+    subtotal: subtotal,
+    discount: discount,
+    taxableAmount: taxableAmount,
+    gstAmount: gstAmount,
+    totalAmount: totalAmount,
+    paidAmount: paidAmount,
+    balanceAmount: balanceAmount,
+    status: status,
+    isGstEnabled: isGstEnabled,
+    items: items,
+    payments: payments,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 }
 
-Future<_FakeInvoiceApi> _pump(WidgetTester tester, Invoice invoice, AuthUser user) async {
+Future<_FakeInvoiceApi> _pump(
+  WidgetTester tester,
+  Invoice invoice,
+  AuthUser user,
+) async {
   final api = _FakeInvoiceApi(invoice);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         invoiceApiProvider.overrideWithValue(api),
-        authNotifierProvider.overrideWith((ref) => _FakeAuthNotifier(Authenticated(user))),
+        authNotifierProvider.overrideWith(
+          (ref) => _FakeAuthNotifier(Authenticated(user)),
+        ),
       ],
       child: const MaterialApp(home: InvoiceDetailsScreen(invoiceId: 'inv-77')),
     ),
@@ -161,7 +183,9 @@ final _field = find.byKey(const Key('edit_invoice_number_field'));
 final _saveButton = find.byKey(const Key('save_invoice_number_button'));
 
 void main() {
-  testWidgets('1. Owner can change the number of a fully paid GST invoice', (tester) async {
+  testWidgets('1. Owner can change the number of a fully paid GST invoice', (
+    tester,
+  ) async {
     final api = await _pump(tester, _invoice(), _owner);
 
     expect(_editButton, findsOneWidget);
@@ -175,27 +199,44 @@ void main() {
 
     expect(api.renameCalls, ['inv-77|E6/INV/00125']);
     expect(_field, findsNothing); // dialog closed
-    expect(find.text('E6/INV/00125'), findsWidgets); // app bar shows the new number
+    expect(
+      find.text('E6/INV/00125'),
+      findsWidgets,
+    ); // app bar shows the new number
   });
 
-  testWidgets('2. Manager (even with invoice permissions) does not see the action', (tester) async {
-    await _pump(tester, _invoice(), _manager);
-    expect(_editButton, findsNothing);
-  });
+  testWidgets(
+    '2. Manager (even with invoice permissions) does not see the action',
+    (tester) async {
+      await _pump(tester, _invoice(), _manager);
+      expect(_editButton, findsNothing);
+    },
+  );
 
-  testWidgets('3. Owner does not see the action on a non-GST invoice', (tester) async {
+  testWidgets('3. Owner does not see the action on a non-GST invoice', (
+    tester,
+  ) async {
     await _pump(tester, _invoice(gst: false), _owner);
     expect(_editButton, findsNothing);
   });
 
-  for (final status in [InvoiceStatus.generated, InvoiceStatus.partiallyPaid, InvoiceStatus.cancelled]) {
-    testWidgets('4. Owner does not see the action when the GST invoice is ${status.name}', (tester) async {
-      await _pump(tester, _invoice(status: status), _owner);
-      expect(_editButton, findsNothing);
-    });
+  for (final status in [
+    InvoiceStatus.generated,
+    InvoiceStatus.partiallyPaid,
+    InvoiceStatus.cancelled,
+  ]) {
+    testWidgets(
+      '4. Owner does not see the action when the GST invoice is ${status.name}',
+      (tester) async {
+        await _pump(tester, _invoice(status: status), _owner);
+        expect(_editButton, findsNothing);
+      },
+    );
   }
 
-  testWidgets('5. Invalid format disables saving and explains the rule', (tester) async {
+  testWidgets('5. Invalid format disables saving and explains the rule', (
+    tester,
+  ) async {
     final api = await _pump(tester, _invoice(), _owner);
     await tester.tap(_editButton);
     await tester.pumpAndSettle();
@@ -208,20 +249,30 @@ void main() {
     expect(api.renameCalls, isEmpty);
   });
 
-  testWidgets('6. Server rejection (duplicate) is shown and the old number is kept', (tester) async {
-    final api = await _pump(tester, _invoice(), _owner);
-    api.rejectWith = "Invoice number 'E6/INV/00001' is already used by another invoice.";
+  testWidgets(
+    '6. Server rejection (duplicate) is shown and the old number is kept',
+    (tester) async {
+      final api = await _pump(tester, _invoice(), _owner);
+      api.rejectWith =
+          "Invoice number 'E6/INV/00001' is already used by another invoice.";
 
-    await tester.tap(_editButton);
-    await tester.pumpAndSettle();
-    await tester.enterText(_field, 'E6/INV/00001');
-    await tester.pump();
-    await tester.tap(_saveButton);
-    await tester.pumpAndSettle();
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_field, 'E6/INV/00001');
+      await tester.pump();
+      await tester.tap(_saveButton);
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('edit_invoice_number_error')), findsOneWidget);
-    expect(find.textContaining('already used by another invoice'), findsOneWidget);
-    expect(_field, findsOneWidget); // dialog stays open
-    expect(api.invoice.invoiceNumber, 'INV-2026-000125');
-  });
+      expect(
+        find.byKey(const Key('edit_invoice_number_error')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('already used by another invoice'),
+        findsOneWidget,
+      );
+      expect(_field, findsOneWidget); // dialog stays open
+      expect(api.invoice.invoiceNumber, 'INV-2026-000125');
+    },
+  );
 }

@@ -1293,17 +1293,20 @@ public class InvoiceService : IInvoiceService
 		var profile = await _db.BusinessProfiles.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
 		var isGst = invoice.IsGstEnabled;
 
+		// Everything shown here comes from the company's own profile; nothing is filled in on its behalf.
 		var businessDto = new PublicBusinessDto(
-			BusinessName: profile?.BusinessName ?? "E6 Car Spa",
-			AddressLine1: profile?.AddressLine1 ?? "36, Geetha Nagar Main Road",
-			AddressLine2: profile?.AddressLine2 ?? "Behind Sakthi Mahal, Perundurai Road",
-			City: profile?.City ?? "Erode",
-			State: profile?.State ?? "Tamil Nadu",
-			PostalCode: profile?.PostalCode ?? "638011",
-			Phone: profile?.Phone ?? "9578749449",
-			Email: profile?.Email ?? "e6carspaerd@gmail.com",
+			BusinessName: profile?.BusinessName ?? string.Empty,
+			AddressLine1: profile?.AddressLine1,
+			AddressLine2: profile?.AddressLine2,
+			City: profile?.City,
+			State: profile?.State,
+			PostalCode: profile?.PostalCode,
+			Phone: profile?.Phone,
+			Email: profile?.Email,
 			Gstin: isGst && !string.IsNullOrWhiteSpace(profile?.Gstin) ? profile.Gstin.Trim() : null,
-			LogoUrl: profile?.LogoPath ?? "/uploads/logos/e6-logo.png"
+			LogoUrl: string.IsNullOrWhiteSpace(profile?.LogoPath) ? null : profile.LogoPath,
+			Tagline: string.IsNullOrWhiteSpace(profile?.Tagline) ? null : profile.Tagline.Trim(),
+			BrandColor: profile?.BrandColor
 		);
 
 		var vehicleName = string.Join(" ", new[] { invoice.Vehicle?.Make, invoice.Vehicle?.Model }.Where(s => !string.IsNullOrWhiteSpace(s)));
@@ -1326,7 +1329,6 @@ public class InvoiceService : IInvoiceService
 				Quantity: ii.Quantity,
 				Rate: ii.UnitPrice,
 				Amount: InvoiceCalculator.Round(ii.UnitPrice * ii.Quantity) - ii.Discount, // sums to Subtotal, as on every invoice view
-				HsnSac: isGst ? "998729" : null,
 				TaxRatePercent: isGst ? ii.TaxRatePercent : null
 			))
 			.ToList();
@@ -1359,7 +1361,7 @@ public class InvoiceService : IInvoiceService
 			Items: items,
 			Financials: financials,
 			Notes: invoice.Notes,
-			TermsAndConditions: "1. Payment is due upon completion of vehicle detailing services.\n2. Goods/services once provided are non-refundable.\n3. Please inspect your vehicle thoroughly prior to delivery handover."
+			TermsAndConditions: string.IsNullOrWhiteSpace(profile?.TermsAndConditions) ? null : profile.TermsAndConditions.Trim()
 		);
 	}
 
@@ -1378,8 +1380,7 @@ public class InvoiceService : IInvoiceService
 
 	private string GetPublicInvoiceUrl(string rawToken)
 	{
-		var baseUrl = _configuration["PublicInvoiceBaseUrl"] ?? "https://invoice.e6carspa.com";
-		baseUrl = baseUrl.TrimEnd('/');
+		var baseUrl = PublicLinks.BaseUrl(_configuration);
 		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
 		{
 			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');

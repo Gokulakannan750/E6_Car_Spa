@@ -39,7 +39,7 @@ class VehicleCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.directions_car_filled_rounded,
                   color: AppColors.primary,
                   size: 22,

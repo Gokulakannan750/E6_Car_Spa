@@ -52,6 +52,22 @@ class FakeSettingsNotifier extends StateNotifier<SettingsState>
   }) async => true;
 
   @override
+  Future<bool> updateAppearance({
+    String? appColor,
+    String? sidebarColor,
+    String? brandColor,
+  }) async => true;
+
+  @override
+  Future<bool> uploadLoginImage({
+    required List<int> bytes,
+    required String filename,
+  }) async => true;
+
+  @override
+  Future<bool> removeLoginImage() async => true;
+
+  @override
   Future<bool> removeLogo() async => true;
 
   @override

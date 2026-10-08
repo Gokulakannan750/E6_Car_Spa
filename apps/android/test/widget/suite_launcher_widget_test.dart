@@ -134,7 +134,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // 1. Verify Header branding and greeting
-        expect(find.text('E6 Car Spa'), findsWidgets);
+        expect(find.text('Car Spa Management'), findsWidgets);
         expect(find.text('Good Morning, E6 Owner'), findsOneWidget);
         expect(
           find.text('Choose an application to manage your business'),
@@ -142,7 +142,7 @@ void main() {
         );
 
         // 2. Verify Promotional Vehicle Hero Banner
-        expect(find.text('E6 CAR SPA'), findsOneWidget);
+        expect(find.text('CAR SPA MANAGEMENT'), findsOneWidget);
         expect(find.textContaining('CLEAN CARS'), findsOneWidget);
         expect(find.textContaining('HAPPY PEOPLE'), findsOneWidget);
         expect(find.textContaining('DRIVE BETTER'), findsOneWidget);
@@ -152,10 +152,10 @@ void main() {
         expect(find.text('Choose a workspace to continue'), findsOneWidget);
 
         // 4. Verify exactly the 5 application titles
-        expect(find.text('E6 Billing'), findsOneWidget);
-        expect(find.text('E6 Staff'), findsOneWidget);
-        expect(find.text('E6 Showroom'), findsOneWidget);
-        expect(find.text('E6 Reports'), findsOneWidget);
+        expect(find.text('Billing'), findsOneWidget);
+        expect(find.text('Staff'), findsOneWidget);
+        expect(find.text('Showroom'), findsOneWidget);
+        expect(find.text('Reports'), findsOneWidget);
         expect(find.text('Settings'), findsOneWidget);
 
         // 5. Verify exact descriptions
@@ -210,7 +210,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap on E6 Staff card
-      await tester.tap(find.byKey(const Key('launcher_tile_E6 Staff')));
+      await tester.tap(find.byKey(const Key('launcher_tile_Staff')));
       await tester.pumpAndSettle();
 
       expect(find.text('Staff Screen Destination'), findsOneWidget);
@@ -231,7 +231,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap on E6 Billing card
-      await tester.tap(find.byKey(const Key('launcher_tile_E6 Billing')));
+      await tester.tap(find.byKey(const Key('launcher_tile_Billing')));
       await tester.pumpAndSettle();
 
       expect(find.text('Billing Suite'), findsOneWidget);
@@ -259,12 +259,12 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Applications'), findsOneWidget);
-        expect(find.text('E6 Billing'), findsOneWidget);
+        expect(find.text('Billing'), findsOneWidget);
 
         // Restricted applications should NOT be rendered
-        expect(find.text('E6 Staff'), findsNothing);
-        expect(find.text('E6 Showroom'), findsNothing);
-        expect(find.text('E6 Reports'), findsNothing);
+        expect(find.text('Staff'), findsNothing);
+        expect(find.text('Showroom'), findsNothing);
+        expect(find.text('Reports'), findsNothing);
         expect(find.text('Settings'), findsNothing);
       },
     );
@@ -286,12 +286,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Applications'), findsOneWidget);
-      expect(find.text('E6 Billing'), findsOneWidget);
-      expect(find.text('E6 Staff'), findsOneWidget);
-      expect(find.text('E6 Reports'), findsOneWidget);
+      expect(find.text('Billing'), findsOneWidget);
+      expect(find.text('Staff'), findsOneWidget);
+      expect(find.text('Reports'), findsOneWidget);
 
       expect(find.text('Settings'), findsNothing);
-      expect(find.text('E6 Showroom'), findsNothing);
+      expect(find.text('Showroom'), findsNothing);
     });
   });
 }

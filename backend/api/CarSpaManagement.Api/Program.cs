@@ -55,6 +55,7 @@ builder.Host.UseSerilog();
 // Refuse to start Production with placeholder credentials; warn about risky settings.
 var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 StartupConfigurationGuard.ValidateConnectionString(configuredConnectionString, builder.Environment.IsProduction());
+StartupConfigurationGuard.ValidatePublicInvoiceBaseUrl(builder.Configuration["PublicInvoiceBaseUrl"], builder.Environment.IsProduction());
 foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
 	configuredConnectionString,
 	builder.Environment.IsProduction(),
@@ -176,7 +177,7 @@ builder.Services.AddAuthentication(options =>
  ValidateIssuer = true,
  ValidIssuer = jwtOptions.Issuer,
  ValidateAudience = true,
- ValidAudiences = new[] { jwtOptions.Audience, "E6CarSpaMobile", "E6CarSpa" },
+ ValidAudiences = new[] { jwtOptions.Audience },
  ValidateLifetime = true,
  ClockSkew = TimeSpan.Zero
  };
@@ -456,23 +457,6 @@ using (var scope = app.Services.CreateScope())
 			Directory.CreateDirectory(logosDir);
 		}
 
-		var targetLogoPath = Path.Combine(logosDir, "e6-logo.png");
-		if (!File.Exists(targetLogoPath))
-		{
-			var sourceLogo = Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "apps", "desktop", "renderer", "public", "e6-logo.png");
-			if (File.Exists(sourceLogo))
-			{
-				try
-				{
-					File.Copy(sourceLogo, targetLogoPath, true);
-				}
-				catch (Exception ex)
-				{
-					Log.Warning(ex, "Could not copy default logo from frontend public directory");
-				}
-			}
-		}
-
 		var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
 		if (!await db.BusinessProfiles.AnyAsync())
@@ -482,16 +466,19 @@ using (var scope = app.Services.CreateScope())
 			{
 				Id = Guid.NewGuid(),
 				SingletonKey = 1,
-				BusinessName = defaultProfileSection["BusinessName"] ?? "E6 Car Spa",
-				AddressLine1 = defaultProfileSection["AddressLine1"] ?? "36, Geetha Nagar Main Road",
-				AddressLine2 = defaultProfileSection["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
-				City = defaultProfileSection["City"] ?? "Erode",
-				State = defaultProfileSection["State"] ?? "Tamil Nadu",
-				PostalCode = defaultProfileSection["PostalCode"] ?? "638011",
-				Phone = defaultProfileSection["Phone"] ?? "9578749449",
-				Email = defaultProfileSection["Email"] ?? "e6carspaerd@gmail.com",
+				// Nothing company-specific is built in: a new database starts empty (or with the deployment's own
+				// DefaultBusinessProfile configuration) and the company fills in Company Settings.
+				BusinessName = defaultProfileSection["BusinessName"] ?? string.Empty,
+				AddressLine1 = defaultProfileSection["AddressLine1"] ?? string.Empty,
+				AddressLine2 = defaultProfileSection["AddressLine2"],
+				City = defaultProfileSection["City"] ?? string.Empty,
+				State = defaultProfileSection["State"] ?? string.Empty,
+				PostalCode = defaultProfileSection["PostalCode"] ?? string.Empty,
+				Phone = defaultProfileSection["Phone"] ?? string.Empty,
+				Email = defaultProfileSection["Email"] ?? string.Empty,
 				Gstin = defaultProfileSection["Gstin"],
-				LogoPath = defaultProfileSection["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+				LogoPath = defaultProfileSection["LogoPath"],
+				Tagline = defaultProfileSection["Tagline"],
 				InvoicePrefix = defaultProfileSection["InvoicePrefix"] ?? "INV",
 				CreatedAt = DateTime.UtcNow
 			};

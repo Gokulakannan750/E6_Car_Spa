@@ -169,7 +169,9 @@ void main() {
   );
 
   group('BillingReportScreen Tests', () {
-    testWidgets('Renders Monthly Billing KPIs and Daily Sheets', (tester) async {
+    testWidgets('Renders Monthly Billing KPIs and Daily Sheets', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [

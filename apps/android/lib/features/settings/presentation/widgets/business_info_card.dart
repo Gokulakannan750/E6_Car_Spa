@@ -39,7 +39,7 @@ class BusinessInfoCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.business_outlined,
                   color: AppColors.primary,
                   size: 20,
@@ -60,7 +60,7 @@ class BusinessInfoCard extends StatelessWidget {
           AppTextField(
             controller: nameController,
             label: 'Business Name',
-            hintText: 'e.g. E6 Car Spa',
+            hintText: 'e.g. Sunrise Car Care',
             isRequired: true,
             isEnabled: isEnabled,
             prefixIcon: const Icon(Icons.store_outlined, size: 20),
@@ -82,7 +82,7 @@ class BusinessInfoCard extends StatelessWidget {
                 child: AppTextField(
                   controller: phoneController,
                   label: 'Phone Number',
-                  hintText: 'e.g. 9578749449',
+                  hintText: 'e.g. 9876543210',
                   isRequired: true,
                   isEnabled: isEnabled,
                   keyboardType: TextInputType.phone,
@@ -98,7 +98,7 @@ class BusinessInfoCard extends StatelessWidget {
                 child: AppTextField(
                   controller: emailController,
                   label: 'Email Address',
-                  hintText: 'e.g. e6carspaerd@gmail.com',
+                  hintText: 'e.g. hello@yourcompany.com',
                   isRequired: true,
                   isEnabled: isEnabled,
                   keyboardType: TextInputType.emailAddress,

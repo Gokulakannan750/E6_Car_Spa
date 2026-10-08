@@ -150,7 +150,7 @@ public class WhatsAppProductionNotificationTests
             {
                 new
                 {
-                    name = "e6_carspa_invoice_generated",
+                    name = "invoice_generated",
                     status = "APPROVED",
                     category = "UTILITY",
                     language = invoiceLanguage,
@@ -178,7 +178,7 @@ public class WhatsAppProductionNotificationTests
                 },
                 new
                 {
-                    name = "e6_carspa_payment_completed",
+                    name = "payment_completed",
                     status = "APPROVED",
                     category = "UTILITY",
                     language = "en_US",
@@ -529,7 +529,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_meta_888",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("meta_secret_token_abc"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -593,7 +593,7 @@ public class WhatsAppProductionNotificationTests
         Assert.Equal("template", root.GetProperty("type").GetString());
 
         var tpl = root.GetProperty("template");
-        Assert.Equal("e6_carspa_invoice_generated", tpl.GetProperty("name").GetString());
+        Assert.Equal("invoice_generated", tpl.GetProperty("name").GetString());
         Assert.Equal("en_US", tpl.GetProperty("language").GetProperty("code").GetString());
 
         var headerParam = tpl.GetProperty("components")[0].GetProperty("parameters")[0];
@@ -628,7 +628,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_meta_888",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("meta_token_123"),
-            PaymentCompletedTemplateName = "e6_carspa_payment_completed",
+            PaymentCompletedTemplateName = "payment_completed",
             PaymentCompletedTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -672,7 +672,7 @@ public class WhatsAppProductionNotificationTests
         var postPayload = handler.RecordedPayloads.First(p => !string.IsNullOrEmpty(p));
         using var doc = JsonDocument.Parse(postPayload);
         var tpl = doc.RootElement.GetProperty("template");
-        Assert.Equal("e6_carspa_payment_completed", tpl.GetProperty("name").GetString());
+        Assert.Equal("payment_completed", tpl.GetProperty("name").GetString());
 
         var bodyParams = tpl.GetProperty("components")[0].GetProperty("parameters");
         Assert.Equal(3, bodyParams.GetArrayLength());
@@ -792,7 +792,7 @@ public class WhatsAppProductionNotificationTests
             PhoneNumberId = "phone_meta_777",
             BusinessAccountId = "waba_meta_888",
             AccessTokenEncrypted = enc.Encrypt("token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "es_ES" // Template is en_US
         });
         await db.SaveChangesAsync();
@@ -838,7 +838,7 @@ public class WhatsAppProductionNotificationTests
             PhoneNumberId = "phone_meta_777",
             BusinessAccountId = "waba_meta_888",
             AccessTokenEncrypted = enc.Encrypt("token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -895,7 +895,7 @@ public class WhatsAppProductionNotificationTests
             PhoneNumberId = "phone_meta_777",
             BusinessAccountId = "waba_meta_888",
             AccessTokenEncrypted = enc.Encrypt("token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -997,7 +997,7 @@ public class WhatsAppProductionNotificationTests
             PhoneNumberId = "phone_meta_777",
             BusinessAccountId = "waba_meta_888",
             AccessTokenEncrypted = enc.Encrypt(rawSecret),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -1048,9 +1048,9 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_untouched_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("token_untouched"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US",
-            PaymentCompletedTemplateName = "e6_carspa_payment_completed",
+            PaymentCompletedTemplateName = "payment_completed",
             PaymentCompletedTemplateLanguage = "en_US"
         };
         db.WhatsAppConfigurations.Add(originalConfig);
@@ -1080,8 +1080,8 @@ public class WhatsAppProductionNotificationTests
         Assert.Equal("waba_untouched_456", dbConfig.BusinessAccountId);
         Assert.Equal("v25.0", dbConfig.GraphApiVersion);
         Assert.Equal("token_untouched", enc.Decrypt(dbConfig.AccessTokenEncrypted));
-        Assert.Equal("e6_carspa_invoice_generated", dbConfig.InvoiceTemplateName);
-        Assert.Equal("e6_carspa_payment_completed", dbConfig.PaymentCompletedTemplateName);
+        Assert.Equal("invoice_generated", dbConfig.InvoiceTemplateName);
+        Assert.Equal("payment_completed", dbConfig.PaymentCompletedTemplateName);
     }
 
     [Fact]
@@ -1129,7 +1129,7 @@ public class WhatsAppProductionNotificationTests
     [Fact]
     public void ResolveBodyParameters_E6CarSpaInvoiceGenerated_ContextualMatching_MapsExactFourVariablesInCorrectOrder()
     {
-        // Arrange - Meta template e6_carspa_invoice_generated:
+        // Arrange - Meta template invoice_generated:
         // {{1}} Customer Name, {{2}} Invoice Number, {{3}} Vehicle Number, {{4}} Invoice Total
         var templateText = "Hello {{1}},\n\nYour invoice {{2}} for your vehicle {{3}} has been generated by E6 Car Spa.\n\nAmount: Rs.{{4}}\n\nYou can view your invoice using the button below.\n\nThank you for choosing E6 Car Spa.";
 
@@ -1259,7 +1259,7 @@ public class WhatsAppProductionNotificationTests
             {
                 new
                 {
-                    name = "e6_carspa_invoice_generated",
+                    name = "invoice_generated",
                     status = "APPROVED",
                     category = "UTILITY",
                     language = "en",
@@ -1357,7 +1357,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1413,7 +1413,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -1495,7 +1495,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1639,7 +1639,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1657,7 +1657,7 @@ public class WhatsAppProductionNotificationTests
                     {
                         new
                         {
-                            name = "e6_carspa_invoice_generated",
+                            name = "invoice_generated",
                             status = "APPROVED",
                             category = "UTILITY",
                             language = "en",
@@ -1725,7 +1725,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1742,7 +1742,7 @@ public class WhatsAppProductionNotificationTests
                     {
                         new
                         {
-                            name = "e6_carspa_invoice_generated",
+                            name = "invoice_generated",
                             status = "APPROVED",
                             category = "UTILITY",
                             language = "en",
@@ -1793,7 +1793,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1810,7 +1810,7 @@ public class WhatsAppProductionNotificationTests
                     {
                         new
                         {
-                            name = "e6_carspa_invoice_generated",
+                            name = "invoice_generated",
                             status = "APPROVED",
                             category = "UTILITY",
                             language = "en",
@@ -1864,7 +1864,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "hi_IN" // Configured for hi_IN, but template is only in en
         });
         await db.SaveChangesAsync();
@@ -1913,7 +1913,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -1947,7 +1947,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2003,7 +2003,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2062,7 +2062,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            PaymentCompletedTemplateName = "e6_carspa_invoice_generated",
+            PaymentCompletedTemplateName = "invoice_generated",
             PaymentCompletedTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2140,7 +2140,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2201,7 +2201,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2255,7 +2255,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2309,7 +2309,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2378,7 +2378,7 @@ public class WhatsAppProductionNotificationTests
             BusinessAccountId = "waba_456",
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en"
         });
         await db.SaveChangesAsync();
@@ -2459,7 +2459,7 @@ public class WhatsAppProductionNotificationTests
             GraphApiVersion = "v25.0",
             AccessTokenEncrypted = enc.Encrypt("test_token"),
             PaymentCompletedNotificationsEnabled = true,
-            PaymentCompletedTemplateName = "e6_carspa_payment_completed",
+            PaymentCompletedTemplateName = "payment_completed",
             PaymentCompletedTemplateLanguage = "en_US"
         });
         await db.SaveChangesAsync();
@@ -2610,7 +2610,7 @@ public class WhatsAppProductionNotificationTests
             SingletonKey = 1,
             IsEnabled = true,
             InvoiceNotificationsEnabled = true,
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US",
             PhoneNumberId = "phone_123",
             BusinessAccountId = "waba_123",
@@ -2712,7 +2712,7 @@ public class WhatsAppProductionNotificationTests
             SingletonKey = 1,
             IsEnabled = true,
             InvoiceNotificationsEnabled = true,
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US",
             PhoneNumberId = "phone_123",
             BusinessAccountId = "waba_123",
@@ -2779,7 +2779,7 @@ public class WhatsAppProductionNotificationTests
             SingletonKey = 1,
             IsEnabled = true,
             InvoiceNotificationsEnabled = true,
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US",
             PhoneNumberId = "phone_123",
             BusinessAccountId = "waba_123",
@@ -2947,7 +2947,7 @@ public class WhatsAppProductionNotificationTests
             SingletonKey = 1,
             IsEnabled = true,
             InvoiceNotificationsEnabled = true,
-            InvoiceTemplateName = "e6_carspa_invoice_generated",
+            InvoiceTemplateName = "invoice_generated",
             InvoiceTemplateLanguage = "en_US",
             PhoneNumberId = "phone_123",
             BusinessAccountId = "waba_123",

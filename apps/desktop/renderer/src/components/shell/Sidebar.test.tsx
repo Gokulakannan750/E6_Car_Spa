@@ -407,17 +407,17 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			expect(isItemActive(advancesItem, '/staff-salary')).toBe(false);
 		});
 
-		it('renders active class #831821 on active navigation item', () => {
+		it('renders active class the sidebar theme colour on active navigation item', () => {
 			renderWithProviders(<Sidebar />, {
 				initialEntries: ['/job-cards'],
 				authUser: mockOwnerUser,
 			});
 
 			const jobCardsLink = screen.getByRole('link', { name: /job cards/i });
-			expect(jobCardsLink.className).toContain('bg-[#831821]');
+			expect(jobCardsLink.className).toContain('bg-side-800');
 
 			const customersLink = screen.getByRole('link', { name: /customers/i });
-			expect(customersLink.className).not.toContain('bg-[#831821]');
+			expect(customersLink.className).not.toContain('bg-side-800');
 		});
 	});
 

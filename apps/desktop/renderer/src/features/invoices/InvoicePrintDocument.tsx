@@ -1,5 +1,6 @@
 import { type InvoiceDto, type BusinessProfileDto, resolveLogoUrl } from '../../lib/api';
 import { formatRate, lineAmount, taxRows } from '../../lib/gstDisplay';
+import { accentStyle, cleanTagline, formatCityStatePin, termsLines } from '../../lib/documentBranding';
 
 interface InvoicePrintDocumentProps {
 	invoice: InvoiceDto;
@@ -31,14 +32,13 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 	const businessName = businessProfile?.businessName || '';
 	const addressLine1 = businessProfile?.addressLine1 || '';
 	const addressLine2 = businessProfile?.addressLine2 || '';
-	const cityStatePin = [
-		businessProfile?.city,
-		businessProfile?.state,
-	].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : '');
+	const cityStatePin = formatCityStatePin(businessProfile?.city, businessProfile?.state, businessProfile?.postalCode);
 	const phone = businessProfile?.phone || '';
 	const email = businessProfile?.email || '';
 	const gstin = businessProfile?.gstin?.trim() || null;
 	const logoUrl = resolveLogoUrl(businessProfile?.logoPath, businessProfile?.updatedAt);
+	const tagline = cleanTagline(businessProfile?.tagline);
+	const terms = termsLines(businessProfile?.termsAndConditions);
 
 	// Header Title
 	const documentTitle = isDraft ? 'DRAFT INVOICE' : isGst ? 'TAX INVOICE' : 'INVOICE';
@@ -47,41 +47,55 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 	const rows = isGst ? taxRows(invoice.taxBreakdown) : [];
 
 	return (
-		<div className="bg-white text-slate-900 font-sans p-8 sm:p-10 w-[210mm] min-h-[297mm] mx-auto box-border flex flex-col justify-between text-xs leading-normal">
+		<div
+			style={accentStyle(businessProfile?.brandColor)}
+			className="bg-white text-slate-900 font-sans p-8 sm:p-10 w-[210mm] min-h-[297mm] mx-auto box-border flex flex-col justify-between text-xs leading-normal"
+		>
 			<div>
 				{/* ── Header: Brand & Document Meta ─────────────────────────── */}
 				<div className="flex items-start justify-between gap-6 pb-4">
 					{/* Left: Brand Logo & Verified Business Details */}
 					<div className="space-y-1 max-w-[60%]">
 						<div className="flex items-center gap-3">
-							<img
-								src={logoUrl}
-								alt={businessName}
-								className="h-12 w-auto object-contain rounded-xs"
-								onError={(e) => {
-									(e.target as HTMLElement).style.display = 'none';
-								}}
-							/>
+							{logoUrl && (
+								<img
+									src={logoUrl}
+									alt={businessName}
+									className="h-12 w-auto object-contain rounded-xs"
+									onError={(e) => {
+										(e.target as HTMLElement).style.display = 'none';
+									}}
+								/>
+							)}
 							<div>
-								<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight uppercase">
-									{businessName}
-								</h1>
-								<p className="text-[11px] text-slate-500 font-medium">
-									Premium Auto Detailing &amp; Car Care Solutions
-								</p>
+								{businessName && (
+									<h1 className="text-xl font-bold text-[color:var(--doc-accent)] tracking-tight uppercase">
+										{businessName}
+									</h1>
+								)}
+								{tagline && <p className="text-[11px] text-slate-500 font-medium">{tagline}</p>}
 							</div>
 						</div>
 
 						<div className="text-slate-600 text-[11px] leading-relaxed pt-1">
 							{addressLine1 && <p>{addressLine1}</p>}
 							{addressLine2 && <p>{addressLine2}</p>}
-							<p>{cityStatePin}</p>
-							<p>
-								Phone: <span className="font-semibold text-slate-800">{phone}</span>
-								{email && (
-									<span> &nbsp;|&nbsp; Email: <span className="text-slate-800">{email}</span></span>
-								)}
-							</p>
+							{cityStatePin && <p>{cityStatePin}</p>}
+							{(phone || email) && (
+								<p>
+									{phone && (
+										<>
+											Phone: <span className="font-semibold text-slate-800">{phone}</span>
+										</>
+									)}
+									{phone && email && <span> &nbsp;|&nbsp; </span>}
+									{email && (
+										<>
+											Email: <span className="text-slate-800">{email}</span>
+										</>
+									)}
+								</p>
+							)}
 							{/* GSTIN displayed ONLY when invoice is GST-enabled AND GSTIN exists */}
 							{isGst && gstin && (
 								<p className="font-bold text-slate-900 pt-0.5">
@@ -93,7 +107,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 
 					{/* Right: Document Title, Number, Date, Job Card */}
 					<div className="text-right space-y-1">
-						<h2 className="text-2xl font-bold text-[#a11a1a] tracking-tight uppercase leading-none">
+						<h2 className="text-2xl font-bold text-[color:var(--doc-accent)] tracking-tight uppercase leading-none">
 							{documentTitle}
 						</h2>
 						<div className="pt-2 text-slate-700 text-xs space-y-0.5">
@@ -118,8 +132,8 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 					</div>
 				</div>
 
-				{/* ── Red Accent Divider ──────────────────────────────────────── */}
-				<div className="h-[2.5px] bg-[#a11a1a] w-full my-3" />
+				{/* ── Accent Divider (the company's brand colour) ─────────────── */}
+				<div className="h-[2.5px] bg-[var(--doc-accent)] w-full my-3" />
 
 				{/* ── Bill To & Vehicle Details Grid ──────────────────────────── */}
 				<table className="w-full border-collapse border border-slate-300 text-xs mb-6">
@@ -165,10 +179,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 								<th className="py-2.5 px-3 border-r border-slate-300 w-10 text-center">#</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-left">Description</th>
 								{isGst && (
-									<>
-										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-24">HSN/SAC</th>
-										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">GST</th>
-									</>
+									<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">GST</th>
 								)}
 								<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">Qty</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-right w-24">Rate</th>
@@ -179,7 +190,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 							{(!invoice.items || invoice.items.length === 0) && (
 								<tr>
 									<td
-										colSpan={isGst ? 7 : 5}
+										colSpan={isGst ? 6 : 5}
 										className="py-6 text-center text-slate-500 italic"
 									>
 										No service items recorded on this invoice.
@@ -188,7 +199,6 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 							)}
 							{invoice.items?.map((item, idx) => {
 								const amount = lineAmount(item);
-								const itemHsnSac = (item as unknown as { hsnSac?: string }).hsnSac || '—';
 
 								return (
 									<tr key={item.id || idx} className="border-b border-slate-200">
@@ -199,14 +209,9 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 											{item.description}
 										</td>
 										{isGst && (
-											<>
-												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
-													{itemHsnSac}
-												</td>
-												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
-													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
-												</td>
-											</>
+											<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
+												{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
+											</td>
 										)}
 										<td className="py-2.5 px-3 border-r border-slate-300 text-center font-medium text-slate-900">
 											{item.quantity}
@@ -236,12 +241,14 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 								<p className="text-xs text-slate-700 whitespace-pre-wrap">{invoice.notes}</p>
 							</div>
 						)}
-						<div className="text-[11px] text-slate-500 space-y-1">
-							<p className="font-semibold text-slate-700">Terms &amp; Conditions:</p>
-							<p>1. Payment is due upon completion of vehicle detailing services.</p>
-							<p>2. Goods/services once provided are non-refundable.</p>
-							<p>3. Please inspect your vehicle thoroughly prior to delivery handover.</p>
-						</div>
+						{terms.length > 0 && (
+							<div className="text-[11px] text-slate-500 space-y-1">
+								<p className="font-semibold text-slate-700">Terms &amp; Conditions:</p>
+								{terms.map((line, index) => (
+									<p key={index}>{line}</p>
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* Right: Totals Breakdown Table */}
@@ -302,7 +309,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 									<td className="p-2.5 font-bold text-slate-950 border-r border-slate-300 uppercase text-[11px]">
 										Grand Total
 									</td>
-									<td className="p-2.5 text-right font-mono font-bold text-[#a11a1a] text-sm">
+									<td className="p-2.5 text-right font-mono font-bold text-[color:var(--doc-accent)] text-sm">
 										{formatCurrency(invoice.totalAmount)}
 									</td>
 								</tr>
@@ -336,8 +343,8 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 			<div className="pt-4 border-t border-slate-200">
 				<div className="flex items-center justify-between text-xs text-slate-600">
 					<div>
-						<p className="font-bold text-[#a11a1a] text-sm tracking-tight mb-0.5">
-							Thank you for choosing {businessName}!
+						<p className="font-bold text-[color:var(--doc-accent)] text-sm tracking-tight mb-0.5">
+							{businessName ? `Thank you for choosing ${businessName}!` : 'Thank you!'}
 						</p>
 						<p className="text-[11px] text-slate-400">
 							This is a computer generated invoice. No physical signature is required.

@@ -17,7 +17,12 @@ public record BusinessProfileDto(
     string InvoicePrefix,
     string? TermsAndConditions,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    string? Tagline = null,
+    string? BrandColor = null,
+    string? AppColor = null,
+    string? SidebarColor = null,
+    string? LoginImagePath = null
 );
 
 public class UpdateBusinessProfileRequest
@@ -66,7 +71,39 @@ public class UpdateBusinessProfileRequest
 
     [MaxLength(2000, ErrorMessage = "Terms & conditions cannot exceed 2000 characters.")]
     public string? TermsAndConditions { get; set; }
+
+    /// <summary>Null leaves the saved value unchanged; an empty string clears it.</summary>
+    [MaxLength(150, ErrorMessage = "Tagline cannot exceed 150 characters.")]
+    public string? Tagline { get; set; }
+
+    /// <summary>Document accent colour as #RRGGBB. Null leaves the saved value unchanged; an empty string clears it.</summary>
+    [MaxLength(7, ErrorMessage = "Brand colour must look like #RRGGBB.")]
+    public string? BrandColor { get; set; }
 }
+
+/// <summary>
+/// The company's colours. Each is #RRGGBB; null leaves the saved value unchanged and an empty string clears it
+/// (the app then uses its neutral default for that colour).
+/// </summary>
+public class UpdateAppearanceRequest
+{
+    /// <summary>Accent of the app itself: buttons, links and highlights.</summary>
+    [MaxLength(7, ErrorMessage = "App colour must look like #RRGGBB.")]
+    public string? AppColor { get; set; }
+
+    /// <summary>Sidebar menu and login page.</summary>
+    [MaxLength(7, ErrorMessage = "Sidebar colour must look like #RRGGBB.")]
+    public string? SidebarColor { get; set; }
+
+    /// <summary>Invoice and job card documents.</summary>
+    [MaxLength(7, ErrorMessage = "Document colour must look like #RRGGBB.")]
+    public string? BrandColor { get; set; }
+}
+
+public record LoginImageUploadResponse(
+    string ImageUrl,
+    BusinessProfileDto Profile
+);
 
 public record LogoUploadResponse(
     string LogoUrl,

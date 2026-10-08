@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getPublicInvoice, type PublicInvoiceDto } from '../../lib/api';
 import { formatRate, taxRows } from '../../lib/gstDisplay';
+import { accentStyle, businessInitial, cleanTagline } from '../../lib/documentBranding';
 
 function formatCurrency(val: number): string {
 	return '₹' + (val || 0).toLocaleString('en-IN', {
@@ -99,16 +100,21 @@ export function PublicInvoicePage() {
 	const isPartial = invoice.financials.paidAmount > 0 && invoice.financials.balanceAmount > 0;
 
 	return (
-		<div className="h-screen w-full overflow-y-auto bg-slate-950 text-slate-900 antialiased py-6 px-3 sm:px-6 lg:px-8 print:p-0 print:bg-white print:m-0 print:overflow-visible print:h-auto">
+		<div
+			style={accentStyle(invoice.business.brandColor)}
+			className="h-screen w-full overflow-y-auto bg-slate-950 text-slate-900 antialiased py-6 px-3 sm:px-6 lg:px-8 print:p-0 print:bg-white print:m-0 print:overflow-visible print:h-auto"
+		>
 			{/* Non-print Floating Top Actions Bar */}
 			<div className="max-w-3xl mx-auto mb-6 flex items-center justify-between print:hidden">
 				<div className="flex items-center gap-2">
-					<div className="h-8 w-8 rounded-lg bg-[#a11a1a] flex items-center justify-center text-white font-black text-sm">
-						E6
+					<div className="h-8 w-8 rounded-lg bg-[var(--doc-accent)] flex items-center justify-center text-white font-black text-sm">
+						{businessInitial(invoice.business.businessName)}
 					</div>
-					<span className="text-sm font-bold text-white tracking-tight">
-						{invoice.business.businessName || 'E6 Car Spa'}
-					</span>
+					{invoice.business.businessName && (
+						<span className="text-sm font-bold text-white tracking-tight">
+							{invoice.business.businessName}
+						</span>
+					)}
 				</div>
 				<div className="flex items-center gap-2">
 					<button
@@ -124,7 +130,7 @@ export function PublicInvoicePage() {
 			{/* Main Invoice Card (Rendered for Customer Mobile & Desktop, and Print-Ready) */}
 			<div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 print:border-none print:shadow-none print:rounded-none print:max-w-none">
 				{/* ── Brand Header Banner ────────────────────────────────────── */}
-				<div className="bg-[#a11a1a] text-white p-6 sm:p-8">
+				<div className="bg-[var(--doc-accent)] text-white p-6 sm:p-8">
 					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
 						<div className="flex items-center gap-4">
 							{invoice.business.logoUrl && (
@@ -138,12 +144,16 @@ export function PublicInvoicePage() {
 								/>
 							)}
 							<div>
-								<h1 className="text-2xl font-black tracking-tight uppercase">
-									{invoice.business.businessName || 'E6 Car Spa'}
-								</h1>
-								<p className="text-xs text-red-100 font-medium">
-									Premium Auto Detailing &amp; Car Care Solutions
-								</p>
+								{invoice.business.businessName && (
+									<h1 className="text-2xl font-black tracking-tight uppercase">
+										{invoice.business.businessName}
+									</h1>
+								)}
+								{cleanTagline(invoice.business.tagline) && (
+									<p className="text-xs text-white/80 font-medium">
+										{cleanTagline(invoice.business.tagline)}
+									</p>
+								)}
 							</div>
 						</div>
 
@@ -154,7 +164,7 @@ export function PublicInvoicePage() {
 							<p className="text-xl font-mono font-bold tracking-tight">
 								{invoice.invoiceNumber || '—'}
 							</p>
-							<p className="text-xs text-red-100">
+							<p className="text-xs text-white/80">
 								Date: <span className="font-semibold text-white">{formatDate(invoice.invoiceDate)}</span>
 							</p>
 						</div>
@@ -230,7 +240,6 @@ export function PublicInvoicePage() {
 									<tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-[11px] uppercase">
 										<th className="py-3 px-4">#</th>
 										<th className="py-3 px-4">Service Description</th>
-										{isGst && <th className="py-3 px-4 text-center">HSN/SAC</th>}
 										{isGst && <th className="py-3 px-4 text-center">GST</th>}
 										<th className="py-3 px-4 text-center">Qty</th>
 										<th className="py-3 px-4 text-right">Rate</th>
@@ -242,11 +251,6 @@ export function PublicInvoicePage() {
 										<tr key={idx} className="hover:bg-slate-50/50 transition-colors">
 											<td className="py-3 px-4 text-slate-400 font-mono">{idx + 1}</td>
 											<td className="py-3 px-4 font-semibold text-slate-900">{item.description}</td>
-											{isGst && (
-												<td className="py-3 px-4 text-center font-mono text-slate-600">
-													{item.hsnSac || '—'}
-												</td>
-											)}
 											{isGst && (
 												<td className="py-3 px-4 text-center font-mono text-slate-600">
 													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
@@ -327,7 +331,7 @@ export function PublicInvoicePage() {
 
 							<div className="flex justify-between text-sm font-bold text-slate-950">
 								<span>Grand Total</span>
-								<span className="font-mono text-[#a11a1a] text-base">
+								<span className="font-mono text-[color:var(--doc-accent)] text-base">
 									{formatCurrency(invoice.financials.totalAmount)}
 								</span>
 							</div>
@@ -351,8 +355,8 @@ export function PublicInvoicePage() {
 					{/* ── Footer ─────────────────────────────────────────────────── */}
 					<div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
 						<div>
-							<p className="font-bold text-[#a11a1a] text-sm mb-0.5">
-								Thank you for choosing {invoice.business.businessName}!
+							<p className="font-bold text-[color:var(--doc-accent)] text-sm mb-0.5">
+								{invoice.business.businessName ? `Thank you for choosing ${invoice.business.businessName}!` : 'Thank you!'}
 							</p>
 							<p className="text-[11px] text-slate-400">
 								This is a computer generated invoice. No physical signature required.

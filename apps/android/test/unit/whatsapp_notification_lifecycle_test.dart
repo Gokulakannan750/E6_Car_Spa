@@ -42,7 +42,10 @@ class _StubInvoiceRepoForWhatsApp extends InvoiceRepository {
   Future<Invoice> getInvoiceById(String id) async => invoiceToReturn;
 
   @override
-  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async => invoiceToReturn;
+  Future<Invoice> generateInvoice(
+    String id, {
+    double? expectedTotalAmount,
+  }) async => invoiceToReturn;
 
   @override
   Future<PaymentDto> recordPayment(

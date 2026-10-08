@@ -294,7 +294,7 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                           color: AppColors.primary,
                           width: 2,
                         ),
@@ -337,7 +337,7 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                           color: AppColors.primary,
                           width: 2,
                         ),

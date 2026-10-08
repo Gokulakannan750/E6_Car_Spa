@@ -159,7 +159,7 @@ class OutstandingInvoicesScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Invoice',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primary,

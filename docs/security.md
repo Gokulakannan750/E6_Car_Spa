@@ -35,8 +35,7 @@ This is an **on-premise / local-first** architecture. No internet is needed for 
 
 The only internet-dependent features are:
 - **WhatsApp integration** (`WhatsAppBackgroundWorker`) — for sending notifications
-- **Public invoice links** (`invoice.e6carspa.com`) — if you use the share feature
-- **Logo seeding** — the API copies `e6-logo.png` from the renderer's public folder (local file copy, no internet)
+- **Public invoice links** (the address set in `PublicInvoiceBaseUrl`) — if you use the share feature
 
 ---
 

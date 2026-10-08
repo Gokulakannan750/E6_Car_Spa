@@ -293,7 +293,7 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
                   ],
                 );
               },
-              loading: () => const SliverFillRemaining(
+              loading: () => SliverFillRemaining(
                 child: Center(
                   child: CircularProgressIndicator(color: AppColors.primary),
                 ),
@@ -363,7 +363,7 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: const [
+              children: [
                 Icon(Icons.date_range, size: 20, color: AppColors.primary),
                 SizedBox(width: 8),
                 Text(
@@ -532,11 +532,7 @@ class _StaffSalaryTabState extends ConsumerState<StaffSalaryTab> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.people_outline,
-                size: 16,
-                color: AppColors.primary,
-              ),
+              Icon(Icons.people_outline, size: 16, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 '$settledCount / $staffCount Settled',

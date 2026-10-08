@@ -80,7 +80,10 @@ class FakeInvoiceApi extends InvoiceApi {
   }
 
   @override
-  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
+  Future<Invoice> generateInvoice(
+    String id, {
+    double? expectedTotalAmount,
+  }) async {
     if (dioErrorToThrow != null) throw dioErrorToThrow!;
     if (mockInvoice != null) return mockInvoice!;
     throw DioException(

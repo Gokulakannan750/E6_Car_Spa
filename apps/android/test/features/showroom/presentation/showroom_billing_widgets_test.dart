@@ -315,7 +315,10 @@ void main() {
         showroomRepositoryProvider.overrideWithValue(fakeRepo),
         currentUserProvider.overrideWithValue(user),
         authNotifierProvider.overrideWith(
-          (ref) => FakeBillingAuthNotifier(permissions: permissions, isOwner: isOwner),
+          (ref) => FakeBillingAuthNotifier(
+            permissions: permissions,
+            isOwner: isOwner,
+          ),
         ),
       ],
       child: MaterialApp(home: Scaffold(body: child)),
@@ -538,53 +541,50 @@ void main() {
       },
     );
 
-    testWidgets(
-      '2E-04: showroom.manage_billing renders Edit Daily Bill',
-      (tester) async {
-        await tester.pumpWidget(
-          buildTestableWidget(
-            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
-            permissions: ['showroom.view', 'showroom.manage_billing'],
-            isOwner: false,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('2E-04: showroom.manage_billing renders Edit Daily Bill', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestableWidget(
+          ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+          permissions: ['showroom.view', 'showroom.manage_billing'],
+          isOwner: false,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Edit Bill'), findsOneWidget);
-      },
-    );
+      expect(find.text('Edit Bill'), findsOneWidget);
+    });
 
-    testWidgets(
-      '2E-04: showroom.manage alone does NOT render Record Payment',
-      (tester) async {
-        await tester.pumpWidget(
-          buildTestableWidget(
-            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
-            permissions: ['showroom.view', 'showroom.manage'],
-            isOwner: false,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('2E-04: showroom.manage alone does NOT render Record Payment', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestableWidget(
+          ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+          permissions: ['showroom.view', 'showroom.manage'],
+          isOwner: false,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Record Payment'), findsNothing);
-      },
-    );
+      expect(find.text('Record Payment'), findsNothing);
+    });
 
-    testWidgets(
-      '2E-04: showroom.record_payment renders Record Payment',
-      (tester) async {
-        await tester.pumpWidget(
-          buildTestableWidget(
-            ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
-            permissions: ['showroom.view', 'showroom.record_payment'],
-            isOwner: false,
-          ),
-        );
-        await tester.pumpAndSettle();
+    testWidgets('2E-04: showroom.record_payment renders Record Payment', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestableWidget(
+          ShowroomBillingTab(showroom: testShowroom, selectedDate: testDate),
+          permissions: ['showroom.view', 'showroom.record_payment'],
+          isOwner: false,
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('Record Payment'), findsOneWidget);
-      },
-    );
+      expect(find.text('Record Payment'), findsOneWidget);
+    });
   });
 
   group('ShowroomReceivablesScreen Widget Tests', () {

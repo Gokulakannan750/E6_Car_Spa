@@ -1,4 +1,4 @@
-package com.e6.e6_car_spa
+package com.carspapro.management
 
 import io.flutter.embedding.android.FlutterActivity
 

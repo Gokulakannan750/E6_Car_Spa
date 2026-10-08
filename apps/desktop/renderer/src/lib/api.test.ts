@@ -1326,9 +1326,9 @@ describe('WhatsApp Integration API Client', () => {
       hasAccessToken: true,
       invoiceNotificationsEnabled: true,
       paymentCompletedNotificationsEnabled: true,
-      invoiceTemplateName: 'e6_carspa_invoice_generated',
+      invoiceTemplateName: 'invoice_generated',
       invoiceTemplateLanguage: 'en_US',
-      paymentCompletedTemplateName: 'e6_carspa_payment_completed',
+      paymentCompletedTemplateName: 'payment_completed',
       paymentCompletedTemplateLanguage: 'en_US',
       healthStatus: 'Healthy',
     };
@@ -1433,7 +1433,7 @@ describe('WhatsApp Integration API Client', () => {
     expect(connResult.isSuccess).toBe(true);
 
     const sendResult = await api.sendTestWhatsAppMessage({
-      templateName: 'e6_carspa_invoice_generated',
+      templateName: 'invoice_generated',
       languageCode: 'en_US',
       recipientPhoneNumber: '+919876543210',
       parameters: ['Gokul', '500', 'TN01AB1234'],
@@ -1442,7 +1442,7 @@ describe('WhatsApp Integration API Client', () => {
       expect.stringContaining('/api/settings/whatsapp/test-message'),
       expect.objectContaining({
         method: 'POST',
-        body: expect.stringContaining('"templateName":"e6_carspa_invoice_generated"'),
+        body: expect.stringContaining('"templateName":"invoice_generated"'),
       })
     );
     expect(sendResult.messageId).toBe('wamid.123');
@@ -1572,6 +1572,84 @@ describe('Business Profile & Settings API Client', () => {
     expect(result.businessName).toBe('E6 Car Spa Prime');
   });
 
+  it('sends an emptied tagline and terms as empty strings so the server clears them', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1' }),
+    });
+
+    await api.updateBusinessProfile({
+      businessName: 'Sunrise',
+      addressLine1: '12 Park Road',
+      city: 'Pune',
+      state: 'Maharashtra',
+      postalCode: '411001',
+      phone: '9123456789',
+      email: 'hello@sunrise.example',
+      tagline: '',
+      termsAndConditions: '',
+    });
+
+    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body.tagline).toBe('');
+    expect(body.termsAndConditions).toBe('');
+  });
+
+  it('saves company colours through the appearance endpoint and applies them', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1', businessName: 'Sunrise', appColor: '#0F766E', sidebarColor: null, brandColor: '#A11A1A' }),
+    });
+
+    const result = await api.updateAppearance({ appColor: '#0f766e', sidebarColor: '', brandColor: '#a11a1a' });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/appearance'),
+      expect.objectContaining({ method: 'PUT' })
+    );
+    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body).toEqual({ appColor: '#0f766e', sidebarColor: '', brandColor: '#a11a1a' });
+    expect(result.appColor).toBe('#0F766E');
+    expect(document.documentElement.style.getPropertyValue('--app-600')).toBe('#0F766E');
+    expect(api.getCachedBusinessProfile()?.appColor).toBe('#0F766E');
+  });
+
+  it('uploads and removes the login page picture through the login-image endpoint', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ imageUrl: '/uploads/login/login_1.png', profile: { id: 'biz-1', loginImagePath: '/uploads/login/login_1.png' } }),
+    });
+
+    const file = new File(['png'], 'banner.png', { type: 'image/png' });
+    const res = await api.uploadLoginImage(file);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/login-image'),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) })
+    );
+    expect(res.imageUrl).toBe('/uploads/login/login_1.png');
+    expect(api.getCachedBusinessProfile()?.loginImagePath).toBe('/uploads/login/login_1.png');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1', loginImagePath: null }),
+    });
+    await api.removeLoginImage();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/login-image'),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+    expect(api.getCachedBusinessProfile()?.loginImagePath).toBeNull();
+  });
+
   it('calls uploadBusinessLogo with FormData and removeBusinessLogo with DELETE', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -1598,8 +1676,8 @@ describe('Business Profile & Settings API Client', () => {
   });
 
   it('correctly resolves logo URLs with relative paths and version cache busters', () => {
-    expect(api.resolveLogoUrl(null)).toBe('/e6-logo.png');
-    expect(api.resolveLogoUrl('')).toBe('/e6-logo.png');
+    expect(api.resolveLogoUrl(null)).toBe('');
+    expect(api.resolveLogoUrl('')).toBe('');
     expect(api.resolveLogoUrl('https://cdn.example.com/logo.png')).toBe('https://cdn.example.com/logo.png');
     expect(api.resolveLogoUrl('/uploads/biz.png', '2026-02-01T10:00:00Z')).toContain('?v=2026-02-01T10%3A00%3A00Z');
   });

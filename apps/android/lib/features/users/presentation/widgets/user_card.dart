@@ -133,7 +133,7 @@ class UserCard extends StatelessWidget {
                                 color: AppColors.primary.withAlpha(20),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'You',
                                 style: TextStyle(
                                   fontSize: 10,

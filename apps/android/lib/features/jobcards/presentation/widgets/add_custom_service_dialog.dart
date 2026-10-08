@@ -130,7 +130,7 @@ class _AddCustomServiceDialogState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Pinned Fixed Header
-          const AppModalHeader(
+          AppModalHeader(
             title: 'Add Custom Service',
             subtitle: 'Create a permanent detailing service for this job',
             icon: Icons.add_task_rounded,
@@ -224,7 +224,7 @@ class _AddCustomServiceDialogState
                               enabledBorder: const OutlineInputBorder(
                                 borderSide: BorderSide(color: AppColors.border),
                               ),
-                              focusedBorder: const OutlineInputBorder(
+                              focusedBorder: OutlineInputBorder(
                                 borderSide: BorderSide(
                                   color: AppColors.accent,
                                   width: 2,

@@ -88,7 +88,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.storefront,
                             size: 18,
                             color: AppColors.primary,
@@ -361,7 +361,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                     ),
                     trailing: Text(
                       '${vt.totalVehicles} cars',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
@@ -417,7 +417,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                     ),
                     trailing: Text(
                       '${srv.totalVehicles} cars',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
@@ -533,7 +533,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                 children: [
                   Text(
                     '${row.vehicleQuantity} vehicle • ${row.workingHours.toStringAsFixed(1)} hrs',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primary,
@@ -609,7 +609,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                     ),
                     child: Text(
                       '${staff.workloadSharePercent.toStringAsFixed(1)}% Share',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
@@ -823,11 +823,7 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
                       ),
                     ),
                   ),
-                  const Icon(
-                    Icons.arrow_forward,
-                    size: 14,
-                    color: AppColors.primary,
-                  ),
+                  Icon(Icons.arrow_forward, size: 14, color: AppColors.primary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

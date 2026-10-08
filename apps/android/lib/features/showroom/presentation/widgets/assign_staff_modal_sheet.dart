@@ -606,7 +606,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.access_time,
                                       size: 16,
                                       color: AppColors.primary,
@@ -655,7 +655,7 @@ class _AssignStaffModalSheetState extends ConsumerState<AssignStaffModalSheet> {
                                         fontFamily: 'monospace',
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.access_time,
                                       size: 16,
                                       color: AppColors.primary,

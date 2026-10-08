@@ -92,7 +92,8 @@ class TaxBreakdown {
   });
 
   factory TaxBreakdown.fromJson(Map<String, dynamic> json) {
-    double num0(String a, String b) => ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
+    double num0(String a, String b) =>
+        ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
     final rate = json['ratePercent'] ?? json['RatePercent'];
     return TaxBreakdown(
       ratePercent: rate == null ? null : (rate as num).toDouble(),
@@ -103,9 +104,10 @@ class TaxBreakdown {
     );
   }
 
-  static List<TaxBreakdown> listFromJson(dynamic raw) => (raw as List<dynamic>? ?? const [])
-      .map((e) => TaxBreakdown.fromJson(e as Map<String, dynamic>))
-      .toList();
+  static List<TaxBreakdown> listFromJson(dynamic raw) =>
+      (raw as List<dynamic>? ?? const [])
+          .map((e) => TaxBreakdown.fromJson(e as Map<String, dynamic>))
+          .toList();
 }
 
 @immutable
@@ -158,7 +160,8 @@ class InvoiceItem {
           .toDouble(),
       taxRatePercent: (json['taxRatePercent'] ?? json['TaxRatePercent']) == null
           ? null
-          : ((json['taxRatePercent'] ?? json['TaxRatePercent']) as num).toDouble(),
+          : ((json['taxRatePercent'] ?? json['TaxRatePercent']) as num)
+                .toDouble(),
     );
   }
 
@@ -439,7 +442,9 @@ class Invoice {
           : (json['UpdatedAt'] != null
                 ? DateTime.tryParse(json['UpdatedAt'].toString())
                 : null),
-      taxBreakdown: TaxBreakdown.listFromJson(json['taxBreakdown'] ?? json['TaxBreakdown']),
+      taxBreakdown: TaxBreakdown.listFromJson(
+        json['taxBreakdown'] ?? json['TaxBreakdown'],
+      ),
     );
   }
 }

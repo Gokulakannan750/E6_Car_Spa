@@ -169,7 +169,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('launcher_app_E6 Billing')));
+      await tester.tap(find.byKey(const Key('launcher_app_Billing')));
       await tester.pumpAndSettle();
 
       expect(find.text('Billing Suite'), findsOneWidget);
@@ -201,7 +201,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('launcher_app_E6 Staff')));
+      await tester.tap(find.byKey(const Key('launcher_app_Staff')));
       await tester.pumpAndSettle();
 
       expect(find.text('Staff Destination'), findsOneWidget);
@@ -228,7 +228,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final finder = find.byKey(const Key('launcher_app_E6 Showroom'));
+      final finder = find.byKey(const Key('launcher_app_Showroom'));
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);
@@ -258,7 +258,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final finder = find.byKey(const Key('launcher_app_E6 Reports'));
+      final finder = find.byKey(const Key('launcher_app_Reports'));
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       await tester.tap(finder);

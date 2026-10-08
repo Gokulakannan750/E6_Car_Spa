@@ -409,7 +409,8 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
       if (!mounted) return null;
       state = state.copyWith(
         invoice: updated,
-        actionSuccessMessage: 'Invoice number changed to ${updated.invoiceNumber}.',
+        actionSuccessMessage:
+            'Invoice number changed to ${updated.invoiceNumber}.',
         clearError: true,
       );
       _ref.read(invoiceListProvider.notifier).loadInvoices();

@@ -40,7 +40,7 @@ class AddressInfoCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on_outlined,
                   color: AppColors.primary,
                   size: 20,
@@ -61,7 +61,7 @@ class AddressInfoCard extends StatelessWidget {
           AppTextField(
             controller: address1Controller,
             label: 'Address Line 1',
-            hintText: 'e.g. 36, Geetha Nagar Main Road',
+            hintText: 'e.g. 12, Park Road',
             isRequired: true,
             isEnabled: isEnabled,
             prefixIcon: const Icon(Icons.home_outlined, size: 20),

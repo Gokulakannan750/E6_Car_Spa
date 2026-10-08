@@ -53,7 +53,10 @@ public partial class BusinessProfileService : IBusinessProfileService
         return new PublicBusinessProfileDto(
             BusinessName: profile.BusinessName,
             LogoPath: profile.LogoPath,
-            UpdatedAt: profile.UpdatedAt
+            UpdatedAt: profile.UpdatedAt,
+            AppColor: profile.AppColor,
+            SidebarColor: profile.SidebarColor,
+            LoginImagePath: profile.LoginImagePath
         );
     }
 
@@ -97,6 +100,16 @@ public partial class BusinessProfileService : IBusinessProfileService
             profile.TermsAndConditions = string.IsNullOrWhiteSpace(request.TermsAndConditions) ? null : request.TermsAndConditions.Trim();
         }
 
+        if (request.Tagline != null)
+        {
+            profile.Tagline = string.IsNullOrWhiteSpace(request.Tagline) ? null : request.Tagline.Trim();
+        }
+
+        if (request.BrandColor != null)
+        {
+            profile.BrandColor = NormalizeBrandColor(request.BrandColor);
+        }
+
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
@@ -120,7 +133,129 @@ public partial class BusinessProfileService : IBusinessProfileService
         return ToDto(profile);
     }
 
+    public async Task<BusinessProfileDto> UpdateAppearanceAsync(UpdateAppearanceRequest request, CancellationToken ct = default)
+    {
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+
+        // Validate everything first so a bad value changes nothing.
+        var app = request.AppColor == null ? profile.AppColor : NormalizeBrandColor(request.AppColor, "App colour");
+        var sidebar = request.SidebarColor == null ? profile.SidebarColor : NormalizeBrandColor(request.SidebarColor, "Sidebar colour");
+        var document = request.BrandColor == null ? profile.BrandColor : NormalizeBrandColor(request.BrandColor, "Document colour");
+
+        profile.AppColor = app;
+        profile.SidebarColor = sidebar;
+        profile.BrandColor = document;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.BusinessProfileUpdated,
+            module: Domain.Constants.AuditModules.Settings,
+            description: "Company colours updated.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new { appColor = app, sidebarColor = sidebar, documentColor = document }),
+            cancellationToken: ct);
+
+        return ToDto(profile);
+    }
+
+    /// <summary>Accepts #RRGGBB (any case) or empty; returns upper-case #RRGGBB or null.</summary>
+    public static string? NormalizeBrandColor(string? value, string label = "Brand colour")
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9a-fA-F]{6}$"))
+        {
+            throw new ValidationException($"{label} must be a colour code like #A11A1A.");
+        }
+        return trimmed.ToUpperInvariant();
+    }
+
     public async Task<LogoUploadResponse> UploadLogoAsync(IFormFile file, CancellationToken ct = default)
+    {
+        var relativeUrl = await SaveImageAsync(file, "logos", "logo_", "business logo", ct);
+
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previousLogo = profile.LogoPath;
+        profile.LogoPath = relativeUrl;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        // Safely cleanup the previous custom logo
+        SafeDeleteOldCustomLogo(previousLogo);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LogoChanged,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Business profile logo uploaded/updated: '{relativeUrl}'.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return new LogoUploadResponse(relativeUrl, ToDto(profile));
+    }
+
+    public async Task<LoginImageUploadResponse> UploadLoginImageAsync(IFormFile file, CancellationToken ct = default)
+    {
+        var relativeUrl = await SaveImageAsync(file, "login", "login_", "login page picture", ct);
+
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previous = profile.LoginImagePath;
+        profile.LoginImagePath = relativeUrl;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        SafeDeleteOwnUpload(previous, "uploads/login/", "login_");
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LoginImageChanged,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Login page picture uploaded/updated: '{relativeUrl}'.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return new LoginImageUploadResponse(relativeUrl, ToDto(profile));
+    }
+
+    public async Task<BusinessProfileDto> RemoveLoginImageAsync(CancellationToken ct = default)
+    {
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previous = profile.LoginImagePath;
+        profile.LoginImagePath = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        SafeDeleteOwnUpload(previous, "uploads/login/", "login_");
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LoginImageRemoved,
+            module: Domain.Constants.AuditModules.Settings,
+            description: "Login page picture removed.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return ToDto(profile);
+    }
+
+    /// <summary>
+    /// Validates an uploaded picture (size, extension, content type, file signature) and stores it under
+    /// wwwroot/uploads/&lt;folder&gt; with a random server-side name. Returns the relative URL.
+    /// </summary>
+    private async Task<string> SaveImageAsync(IFormFile file, string folder, string filePrefix, string label, CancellationToken ct)
     {
         if (file == null || file.Length == 0)
         {
@@ -129,13 +264,13 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         if (file.Length > MaxFileSizeBytes)
         {
-            throw new ValidationException("Logo image size cannot exceed 5 MB.");
+            throw new ValidationException($"The {label} cannot be larger than 5 MB.");
         }
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(ext) || !AllowedImageExtensions.Contains(ext))
         {
-            throw new ValidationException("Only PNG, JPEG, and WebP image formats are supported for business logo.");
+            throw new ValidationException($"Only PNG, JPEG, and WebP image formats are supported for the {label}.");
         }
 
         if (!AllowedMimeTypes.Contains(file.ContentType))
@@ -159,14 +294,14 @@ public partial class BusinessProfileService : IBusinessProfileService
             webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         }
 
-        var uploadsDir = Path.Combine(webRoot, "uploads", "logos");
+        var uploadsDir = Path.Combine(webRoot, "uploads", folder);
         if (!Directory.Exists(uploadsDir))
         {
             Directory.CreateDirectory(uploadsDir);
         }
 
         // Generate safe random server-side filename
-        var safeFileName = $"logo_{Guid.NewGuid():N}{ext}";
+        var safeFileName = $"{filePrefix}{Guid.NewGuid():N}{ext}";
         var physicalPath = Path.Combine(uploadsDir, safeFileName);
 
         await using (var stream = new FileStream(physicalPath, FileMode.Create, FileAccess.Write))
@@ -174,29 +309,7 @@ public partial class BusinessProfileService : IBusinessProfileService
             await file.CopyToAsync(stream, ct);
         }
 
-        var relativeUrl = $"/uploads/logos/{safeFileName}";
-
-        var profile = await GetOrCreateProfileEntityAsync(ct);
-        var previousLogo = profile.LogoPath;
-        profile.LogoPath = relativeUrl;
-        profile.UpdatedAt = DateTime.UtcNow;
-
-        await _db.SaveChangesAsync(ct);
-
-        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
-        SafeDeleteOldCustomLogo(previousLogo);
-
-        await _auditLogService.RecordAsync(
-            action: Domain.Constants.AuditActions.LogoChanged,
-            module: Domain.Constants.AuditModules.Settings,
-            description: $"Business profile logo uploaded/updated: '{relativeUrl}'.",
-            entityType: "BusinessProfile",
-            entityId: profile.Id,
-            entityReference: profile.BusinessName,
-            outcome: "Success",
-            cancellationToken: ct);
-
-        return new LogoUploadResponse(relativeUrl, ToDto(profile));
+        return $"/uploads/{folder}/{safeFileName}";
     }
 
     public async Task<BusinessProfileDto> RemoveLogoAsync(CancellationToken ct = default)
@@ -208,7 +321,7 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         await _db.SaveChangesAsync(ct);
 
-        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
+        // Safely cleanup the previous custom logo
         SafeDeleteOldCustomLogo(previousLogo);
 
         await _auditLogService.RecordAsync(
@@ -254,15 +367,17 @@ public partial class BusinessProfileService : IBusinessProfileService
         };
     }
 
-    private void SafeDeleteOldCustomLogo(string? oldRelativeUrl)
+    private void SafeDeleteOldCustomLogo(string? oldRelativeUrl) =>
+        SafeDeleteOwnUpload(oldRelativeUrl, "uploads/logos/", "logo_");
+
+    /// <summary>Deletes a previous upload, but only a file this service created (right folder, right name prefix).</summary>
+    private void SafeDeleteOwnUpload(string? oldRelativeUrl, string folderMarker, string namePrefix)
     {
         if (string.IsNullOrWhiteSpace(oldRelativeUrl)) return;
 
         var normalized = oldRelativeUrl.Trim().Replace('\\', '/');
-        // Only delete custom uploaded files (starting with /uploads/logos/logo_ or containing logo_)
-        // Explicitly protect standard asset files like e6-logo.png
-        if (normalized.Contains("logo_", StringComparison.OrdinalIgnoreCase) &&
-            !normalized.EndsWith("e6-logo.png", StringComparison.OrdinalIgnoreCase))
+        if (normalized.Contains(folderMarker, StringComparison.OrdinalIgnoreCase) &&
+            normalized.Contains(namePrefix, StringComparison.OrdinalIgnoreCase))
         {
             var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var relativePart = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
@@ -277,7 +392,7 @@ public partial class BusinessProfileService : IBusinessProfileService
             }
             catch (Exception ex)
             {
-                Serilog.Log.Warning(ex, "Failed to clean up old custom logo file: {Path}", physicalPath);
+                Serilog.Log.Warning(ex, "Failed to clean up old uploaded file: {Path}", physicalPath);
             }
         }
     }
@@ -291,21 +406,24 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         var defaultProfileSection = _configuration?.GetSection("DefaultBusinessProfile");
 
-        // Initialize default business profile from configuration with graceful defaults
+        // A new database starts with an empty profile (or whatever the deployment's DefaultBusinessProfile configuration
+        // provides). Nothing company-specific is built into the code: the company fills in Company Settings.
         profile = new BusinessProfile
         {
             Id = Guid.NewGuid(),
             SingletonKey = 1,
-            BusinessName = defaultProfileSection?["BusinessName"] ?? "E6 Car Spa",
-            AddressLine1 = defaultProfileSection?["AddressLine1"] ?? "36, Geetha Nagar Main Road",
-            AddressLine2 = defaultProfileSection?["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
-            City = defaultProfileSection?["City"] ?? "Erode",
-            State = defaultProfileSection?["State"] ?? "Tamil Nadu",
-            PostalCode = defaultProfileSection?["PostalCode"] ?? "638011",
-            Phone = defaultProfileSection?["Phone"] ?? "9578749449",
-            Email = defaultProfileSection?["Email"] ?? "e6carspaerd@gmail.com",
+            BusinessName = defaultProfileSection?["BusinessName"] ?? string.Empty,
+            AddressLine1 = defaultProfileSection?["AddressLine1"] ?? string.Empty,
+            AddressLine2 = defaultProfileSection?["AddressLine2"],
+            City = defaultProfileSection?["City"] ?? string.Empty,
+            State = defaultProfileSection?["State"] ?? string.Empty,
+            PostalCode = defaultProfileSection?["PostalCode"] ?? string.Empty,
+            Phone = defaultProfileSection?["Phone"] ?? string.Empty,
+            Email = defaultProfileSection?["Email"] ?? string.Empty,
             Gstin = defaultProfileSection?["Gstin"],
-            LogoPath = defaultProfileSection?["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+            LogoPath = defaultProfileSection?["LogoPath"],
+            Tagline = defaultProfileSection?["Tagline"],
+            BrandColor = NormalizeBrandColorOrNull(defaultProfileSection?["BrandColor"]),
             InvoicePrefix = defaultProfileSection?["InvoicePrefix"] ?? "INV",
             CreatedAt = DateTime.UtcNow
         };
@@ -314,6 +432,12 @@ public partial class BusinessProfileService : IBusinessProfileService
         await _db.SaveChangesAsync(ct);
 
         return profile;
+    }
+
+    private static string? NormalizeBrandColorOrNull(string? value)
+    {
+        try { return NormalizeBrandColor(value); }
+        catch (ValidationException) { return null; }
     }
 
     private static BusinessProfileDto ToDto(BusinessProfile b) => new(
@@ -331,6 +455,11 @@ public partial class BusinessProfileService : IBusinessProfileService
         b.InvoicePrefix,
         b.TermsAndConditions,
         b.CreatedAt,
-        b.UpdatedAt
+        b.UpdatedAt,
+        b.Tagline,
+        b.BrandColor,
+        b.AppColor,
+        b.SidebarColor,
+        b.LoginImagePath
     );
 }

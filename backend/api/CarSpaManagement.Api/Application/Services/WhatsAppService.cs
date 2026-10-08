@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -633,7 +634,7 @@ public class WhatsAppService : IWhatsAppService
 		var normalizedPhone = NormalizePhoneNumber(invoice.Customer?.PhoneNumber);
 
 		// Public URL resolution
-		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+		var baseUrl = PublicLinks.BaseUrl(_configuration);
 		var publicUrl = !string.IsNullOrWhiteSpace(publicInvoiceUrl)
 			? publicInvoiceUrl
 			: (invoice.PublicLinks.Any(l => !l.IsRevoked)
@@ -1936,7 +1937,7 @@ public class WhatsAppService : IWhatsAppService
 
 	private string GetPublicInvoiceUrl(string rawToken)
 	{
-		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "https://invoice.e6carspa.com").TrimEnd('/');
+		var baseUrl = PublicLinks.BaseUrl(_configuration);
 		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
 		{
 			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');
@@ -1959,9 +1960,9 @@ public class WhatsAppService : IWhatsAppService
 				GraphApiVersion = "v25.0",
 				InvoiceNotificationsEnabled = true,
 				PaymentCompletedNotificationsEnabled = true,
-				InvoiceTemplateName = "e6_carspa_invoice_generated",
+				InvoiceTemplateName = "invoice_generated",
 				InvoiceTemplateLanguage = "en",
-				PaymentCompletedTemplateName = "e6_carspa_payment_completed",
+				PaymentCompletedTemplateName = "payment_completed",
 				PaymentCompletedTemplateLanguage = "en_US",
 				CreatedAt = DateTime.UtcNow
 			};

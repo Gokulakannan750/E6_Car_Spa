@@ -621,9 +621,7 @@ void main() {
 
       expect(find.byKey(const Key('modal_error_banner')), findsOneWidget);
       expect(
-        find.text(
-          'Please select at least one work type for Vehicle #1.',
-        ),
+        find.text('Please select at least one work type for Vehicle #1.'),
         findsOneWidget,
       );
     });

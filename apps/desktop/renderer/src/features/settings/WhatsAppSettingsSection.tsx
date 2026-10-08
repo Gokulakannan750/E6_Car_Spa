@@ -82,9 +82,9 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 	const [accessToken, setAccessToken] = useState('');
 	const [invoiceNotificationsEnabled, setInvoiceNotificationsEnabled] = useState(true);
 	const [paymentCompletedNotificationsEnabled, setPaymentCompletedNotificationsEnabled] = useState(true);
-	const [invoiceTemplateName, setInvoiceTemplateName] = useState('e6_carspa_invoice_generated');
+	const [invoiceTemplateName, setInvoiceTemplateName] = useState('invoice_generated');
 	const [invoiceTemplateLanguage, setInvoiceTemplateLanguage] = useState('en_US');
-	const [paymentCompletedTemplateName, setPaymentCompletedTemplateName] = useState('e6_carspa_payment_completed');
+	const [paymentCompletedTemplateName, setPaymentCompletedTemplateName] = useState('payment_completed');
 	const [paymentCompletedTemplateLanguage, setPaymentCompletedTemplateLanguage] = useState('en_US');
 
 	useEffect(() => {
@@ -104,9 +104,9 @@ export function WhatsAppSettingsSection({ canManage }: Props) {
 			setMetaAppId(data.metaAppId || '');
 			setInvoiceNotificationsEnabled(data.invoiceNotificationsEnabled);
 			setPaymentCompletedNotificationsEnabled(data.paymentCompletedNotificationsEnabled);
-			setInvoiceTemplateName(data.invoiceTemplateName || 'e6_carspa_invoice_generated');
+			setInvoiceTemplateName(data.invoiceTemplateName || 'invoice_generated');
 			setInvoiceTemplateLanguage(data.invoiceTemplateLanguage || 'en_US');
-			setPaymentCompletedTemplateName(data.paymentCompletedTemplateName || 'e6_carspa_payment_completed');
+			setPaymentCompletedTemplateName(data.paymentCompletedTemplateName || 'payment_completed');
 			setPaymentCompletedTemplateLanguage(data.paymentCompletedTemplateLanguage || 'en_US');
 
 			// Auto-discover templates if credentials exist

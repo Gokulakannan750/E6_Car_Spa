@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	createOutsideJobsWorkbook,
 	ROW_HEIGHTS,
 } from './excelOutsideJobsGenerator';
 import type { OutsideJobsReportDto } from '../../lib/api';
 import ExcelJS from 'exceljs';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('Sample Outside Jobs Excel Verification (ExcelJS)', () => {
 	it('generates a real 4-sheet Excel file and verifies professional formatting integrity', async () => {
@@ -188,7 +193,7 @@ describe('Sample Outside Jobs Excel Verification (ExcelJS)', () => {
 		expect(wsSummary).toBeDefined();
 		expect(wsSummary.getRow(1).height).toBe(ROW_HEIGHTS.TITLE);
 		expect(wsSummary.getRow(2).height).toBe(ROW_HEIGHTS.SUBTITLE);
-		expect(wsSummary.getCell('A1').value).toContain('E6 CAR SPA');
+		expect(wsSummary.getCell('A1').value).toContain('SUNRISE DETAILING');
 		expect(wsSummary.views[0].state).toBe('frozen');
 
 		// 2. Currently Outside Verification

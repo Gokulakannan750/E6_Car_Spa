@@ -181,7 +181,7 @@ class JobCardReportScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         jc.jobCardNumber,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primary,

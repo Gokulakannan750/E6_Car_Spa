@@ -160,7 +160,7 @@ class ShowroomCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.people_alt_outlined,
                             size: 15,
                             color: AppColors.primary,

@@ -37,7 +37,7 @@ class RecentActivityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Icon(Icons.history, size: 18, color: AppColors.primary),
               SizedBox(width: 8),

@@ -95,43 +95,56 @@ function emptyServiceRow(svc: ServiceDto): ServiceRow {
 }
 
 import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
+import { accentStyle, businessInitial } from '../../lib/documentBranding';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ── SINGLE REUSABLE PRINTABLE JOB CARD DOCUMENT COMPONENT ───────────────────
 // ═════════════════════════════════════════════════════════════════════════════
 export interface JobCardPrintDocumentProps {
 	jobCard: JobCardDto;
+	/** The company's logo; omitted when it has none. */
 	logoUrl?: string;
+	/** The company's name; omitted until it is filled in under Company Settings. */
 	businessName?: string;
+	/** The company's accent colour (#RRGGBB). */
+	brandColor?: string | null;
 }
 
 export function JobCardPrintDocument({
 	jobCard,
-	logoUrl = '/e6-logo.png',
-	businessName = 'E6 Car Spa',
+	logoUrl,
+	businessName,
+	brandColor,
 }: JobCardPrintDocumentProps) {
 	return (
-		<div className="bg-white text-slate-900 font-sans p-8 w-[210mm] min-h-[297mm] mx-auto box-border">
+		<div
+			style={accentStyle(brandColor)}
+			className="bg-white text-slate-900 font-sans p-8 w-[210mm] min-h-[297mm] mx-auto box-border"
+		>
 			{/* ── Header: Logo Banner & Titles ─────────────────────────────── */}
 			<div className="flex items-start justify-between">
 				{/* Left: Brand Logo & Title */}
 				<div className="space-y-1">
-					<img
-						src={logoUrl}
-						alt={businessName}
-						className="h-10 w-auto object-contain rounded-xs"
-						onError={(e) => {
-							(e.target as HTMLElement).style.display = 'none';
-						}}
-					/>
-					<h1 className="text-xl font-bold text-[#a11a1a] tracking-tight leading-tight">
-						{businessName}
-					</h1>
+					{logoUrl && (
+						<img
+							src={logoUrl}
+							alt={businessName ?? ''}
+							className="h-10 w-auto object-contain rounded-xs"
+							onError={(e) => {
+								(e.target as HTMLElement).style.display = 'none';
+							}}
+						/>
+					)}
+					{businessName && (
+						<h1 className="text-xl font-bold text-[color:var(--doc-accent)] tracking-tight leading-tight">
+							{businessName}
+						</h1>
+					)}
 				</div>
 
 				{/* Right: JOB CARD & Workshop work order */}
 				<div className="text-right">
-					<h2 className="text-3xl font-bold text-[#a11a1a] tracking-tight uppercase leading-none">
+					<h2 className="text-3xl font-bold text-[color:var(--doc-accent)] tracking-tight uppercase leading-none">
 						JOB CARD
 					</h2>
 					<p className="text-xs text-slate-500 font-normal mt-1">
@@ -140,8 +153,8 @@ export function JobCardPrintDocument({
 				</div>
 			</div>
 
-			{/* ── Red Horizontal Accent Divider Line ──────────────────────── */}
-			<div className="h-[3px] bg-[#a11a1a] w-full mt-3 mb-5" />
+			{/* ── Accent divider line (company brand colour) ──────────────── */}
+			<div className="h-[3px] bg-[var(--doc-accent)] w-full mt-3 mb-5" />
 
 			{/* ── Customer / Vehicle Information Table ─────────────────────── */}
 			<table className="w-full border-collapse border border-slate-400 text-xs mb-5">
@@ -195,7 +208,7 @@ export function JobCardPrintDocument({
 
 			{/* ── Jobs to be done Section ──────────────────────────────────── */}
 			<div className="mb-6">
-				<h3 className="text-sm font-medium text-[#a11a1a] mb-2">
+				<h3 className="text-sm font-medium text-[color:var(--doc-accent)] mb-2">
 					Jobs to be done
 				</h3>
 
@@ -922,8 +935,8 @@ export default function JobCardDetails() {
 					{/* Top Preview Controls Toolbar */}
 					<div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800 text-white shadow-md shrink-0">
 						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center font-bold text-xs text-white">
-								E6
+							<div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center font-bold text-xs text-white">
+								{businessInitial(profile?.businessName)}
 							</div>
 							<div>
 								<h2 className="text-sm font-bold text-white tracking-tight">
@@ -972,6 +985,7 @@ export default function JobCardDetails() {
 								jobCard={jobCard}
 								logoUrl={logoUrl}
 								businessName={profile?.businessName}
+								brandColor={profile?.brandColor}
 							/>
 						</div>
 					</div>
@@ -986,6 +1000,7 @@ export default function JobCardDetails() {
 					jobCard={jobCard}
 					logoUrl={logoUrl}
 					businessName={profile?.businessName}
+					brandColor={profile?.brandColor}
 				/>
 			</div>
 		</>

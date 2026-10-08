@@ -73,7 +73,10 @@ class _ShowroomConfigurationScreenState
                     if (errorText != null) ...[
                       Text(
                         errorText!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -133,15 +136,28 @@ class _ShowroomConfigurationScreenState
                                       errorText = null;
                                     });
                                     try {
-                                      final order = int.tryParse(orderController.text.trim()) ?? 0;
+                                      final order =
+                                          int.tryParse(
+                                            orderController.text.trim(),
+                                          ) ??
+                                          0;
                                       await ref
-                                          .read(showroomConfigurationProvider.notifier)
-                                          .createVehicleType(name: name, displayOrder: order);
+                                          .read(
+                                            showroomConfigurationProvider
+                                                .notifier,
+                                          )
+                                          .createVehicleType(
+                                            name: name,
+                                            displayOrder: order,
+                                          );
                                       if (ctx.mounted) Navigator.of(ctx).pop();
                                     } catch (e) {
                                       setModalState(() {
                                         isSaving = false;
-                                        errorText = e.toString().replaceFirst('Exception: ', '');
+                                        errorText = e.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        );
                                       });
                                     }
                                   },
@@ -161,7 +177,9 @@ class _ShowroomConfigurationScreenState
 
   void _showEditVehicleTypeSheet(BuildContext context, ShowroomVehicleType vt) {
     final nameController = TextEditingController(text: vt.name);
-    final orderController = TextEditingController(text: vt.displayOrder.toString());
+    final orderController = TextEditingController(
+      text: vt.displayOrder.toString(),
+    );
     bool isActive = vt.isActive;
     String? errorText;
     bool isSaving = false;
@@ -194,7 +212,10 @@ class _ShowroomConfigurationScreenState
                     if (errorText != null) ...[
                       Text(
                         errorText!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -206,9 +227,7 @@ class _ShowroomConfigurationScreenState
                       ),
                     ),
                     const SizedBox(height: 4),
-                    AppTextField(
-                      controller: nameController,
-                    ),
+                    AppTextField(controller: nameController),
                     const SizedBox(height: 12),
                     Text(
                       'Display Order',
@@ -224,10 +243,16 @@ class _ShowroomConfigurationScreenState
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile.adaptive(
-                      title: const Text('Active', style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'Active',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       subtitle: const Text(
                         'Available for new showroom vehicle work records',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       value: isActive,
                       onChanged: (val) {
@@ -266,9 +291,16 @@ class _ShowroomConfigurationScreenState
                                       errorText = null;
                                     });
                                     try {
-                                      final order = int.tryParse(orderController.text.trim()) ?? 0;
+                                      final order =
+                                          int.tryParse(
+                                            orderController.text.trim(),
+                                          ) ??
+                                          0;
                                       await ref
-                                          .read(showroomConfigurationProvider.notifier)
+                                          .read(
+                                            showroomConfigurationProvider
+                                                .notifier,
+                                          )
                                           .updateVehicleType(
                                             vt.id,
                                             name: name,
@@ -279,7 +311,10 @@ class _ShowroomConfigurationScreenState
                                     } catch (e) {
                                       setModalState(() {
                                         isSaving = false;
-                                        errorText = e.toString().replaceFirst('Exception: ', '');
+                                        errorText = e.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        );
                                       });
                                     }
                                   },
@@ -332,7 +367,10 @@ class _ShowroomConfigurationScreenState
                     if (errorText != null) ...[
                       Text(
                         errorText!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -406,20 +444,32 @@ class _ShowroomConfigurationScreenState
                                       errorText = null;
                                     });
                                     try {
-                                      final order = int.tryParse(orderController.text.trim()) ?? 0;
+                                      final order =
+                                          int.tryParse(
+                                            orderController.text.trim(),
+                                          ) ??
+                                          0;
                                       final desc = descController.text.trim();
                                       await ref
-                                          .read(showroomConfigurationProvider.notifier)
+                                          .read(
+                                            showroomConfigurationProvider
+                                                .notifier,
+                                          )
                                           .createWorkType(
                                             name: name,
-                                            description: desc.isEmpty ? null : desc,
+                                            description: desc.isEmpty
+                                                ? null
+                                                : desc,
                                             displayOrder: order,
                                           );
                                       if (ctx.mounted) Navigator.of(ctx).pop();
                                     } catch (e) {
                                       setModalState(() {
                                         isSaving = false;
-                                        errorText = e.toString().replaceFirst('Exception: ', '');
+                                        errorText = e.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        );
                                       });
                                     }
                                   },
@@ -440,7 +490,9 @@ class _ShowroomConfigurationScreenState
   void _showEditWorkTypeSheet(BuildContext context, ShowroomWorkType wt) {
     final nameController = TextEditingController(text: wt.name);
     final descController = TextEditingController(text: wt.description ?? '');
-    final orderController = TextEditingController(text: wt.displayOrder.toString());
+    final orderController = TextEditingController(
+      text: wt.displayOrder.toString(),
+    );
     bool isActive = wt.isActive;
     String? errorText;
     bool isSaving = false;
@@ -473,7 +525,10 @@ class _ShowroomConfigurationScreenState
                     if (errorText != null) ...[
                       Text(
                         errorText!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 12),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                     ],
@@ -485,9 +540,7 @@ class _ShowroomConfigurationScreenState
                       ),
                     ),
                     const SizedBox(height: 4),
-                    AppTextField(
-                      controller: nameController,
-                    ),
+                    AppTextField(controller: nameController),
                     const SizedBox(height: 12),
                     Text(
                       'Description (Optional)',
@@ -497,10 +550,7 @@ class _ShowroomConfigurationScreenState
                       ),
                     ),
                     const SizedBox(height: 4),
-                    AppTextField(
-                      controller: descController,
-                      maxLines: 2,
-                    ),
+                    AppTextField(controller: descController, maxLines: 2),
                     const SizedBox(height: 12),
                     Text(
                       'Display Order',
@@ -516,10 +566,16 @@ class _ShowroomConfigurationScreenState
                     ),
                     const SizedBox(height: 12),
                     SwitchListTile.adaptive(
-                      title: const Text('Active', style: TextStyle(fontSize: 14)),
+                      title: const Text(
+                        'Active',
+                        style: TextStyle(fontSize: 14),
+                      ),
                       subtitle: const Text(
                         'Available for new showroom vehicle work records',
-                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       value: isActive,
                       onChanged: (val) {
@@ -558,14 +614,23 @@ class _ShowroomConfigurationScreenState
                                       errorText = null;
                                     });
                                     try {
-                                      final order = int.tryParse(orderController.text.trim()) ?? 0;
+                                      final order =
+                                          int.tryParse(
+                                            orderController.text.trim(),
+                                          ) ??
+                                          0;
                                       final desc = descController.text.trim();
                                       await ref
-                                          .read(showroomConfigurationProvider.notifier)
+                                          .read(
+                                            showroomConfigurationProvider
+                                                .notifier,
+                                          )
                                           .updateWorkType(
                                             wt.id,
                                             name: name,
-                                            description: desc.isEmpty ? null : desc,
+                                            description: desc.isEmpty
+                                                ? null
+                                                : desc,
                                             displayOrder: order,
                                             isActive: isActive,
                                           );
@@ -573,7 +638,10 @@ class _ShowroomConfigurationScreenState
                                     } catch (e) {
                                       setModalState(() {
                                         isSaving = false;
-                                        errorText = e.toString().replaceFirst('Exception: ', '');
+                                        errorText = e.toString().replaceFirst(
+                                          'Exception: ',
+                                          '',
+                                        );
                                       });
                                     }
                                   },
@@ -627,10 +695,17 @@ class _ShowroomConfigurationScreenState
                   Container(
                     width: double.infinity,
                     color: const Color(0xFFFEF3C7),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
+                        Icon(
+                          Icons.info_outline,
+                          color: Color(0xFFD97706),
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -671,7 +746,11 @@ class _ShowroomConfigurationScreenState
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
-              label: Text(_tabController.index == 0 ? 'Add Vehicle Type' : 'Add Work Type'),
+              label: Text(
+                _tabController.index == 0
+                    ? 'Add Vehicle Type'
+                    : 'Add Work Type',
+              ),
             )
           : null,
     );
@@ -722,7 +801,10 @@ class _ShowroomConfigurationScreenState
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: vt.isActive
                         ? const Color(0xFFECFDF5)
@@ -749,7 +831,10 @@ class _ShowroomConfigurationScreenState
             ),
             subtitle: Text(
               'Order: ${vt.displayOrder}',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             trailing: isOwner
                 ? Row(
@@ -768,7 +853,9 @@ class _ShowroomConfigurationScreenState
                               ? Icons.toggle_on_rounded
                               : Icons.toggle_off_outlined,
                           size: 26,
-                          color: vt.isActive ? AppColors.primary : AppColors.textSecondary,
+                          color: vt.isActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                         ),
                         tooltip: vt.isActive ? 'Deactivate' : 'Activate',
                         onPressed: () {
@@ -831,7 +918,10 @@ class _ShowroomConfigurationScreenState
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: wt.isActive
                         ? const Color(0xFFECFDF5)
@@ -864,14 +954,20 @@ class _ShowroomConfigurationScreenState
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
                       wt.description!,
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
                   child: Text(
                     'Order: ${wt.displayOrder}',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ),
               ],
@@ -893,7 +989,9 @@ class _ShowroomConfigurationScreenState
                               ? Icons.toggle_on_rounded
                               : Icons.toggle_off_outlined,
                           size: 26,
-                          color: wt.isActive ? AppColors.primary : AppColors.textSecondary,
+                          color: wt.isActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                         ),
                         tooltip: wt.isActive ? 'Deactivate' : 'Activate',
                         onPressed: () {

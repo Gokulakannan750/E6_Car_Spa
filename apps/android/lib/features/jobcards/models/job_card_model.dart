@@ -522,14 +522,17 @@ class JobCardEstimate {
   });
 
   factory JobCardEstimate.fromJson(Map<String, dynamic> json) {
-    double n(String a, String b) => ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
+    double n(String a, String b) =>
+        ((json[a] ?? json[b] ?? 0.0) as num).toDouble();
     return JobCardEstimate(
       subtotal: n('subtotal', 'Subtotal'),
       discountAmount: n('discountAmount', 'DiscountAmount'),
       taxableAmount: n('taxableAmount', 'TaxableAmount'),
       taxAmount: n('taxAmount', 'TaxAmount'),
       totalAmount: n('totalAmount', 'TotalAmount'),
-      taxBreakdown: TaxBreakdown.listFromJson(json['taxBreakdown'] ?? json['TaxBreakdown']),
+      taxBreakdown: TaxBreakdown.listFromJson(
+        json['taxBreakdown'] ?? json['TaxBreakdown'],
+      ),
     );
   }
 }

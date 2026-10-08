@@ -181,7 +181,7 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'WELCOME TO E6 CAR SPA',
+                      'WELCOME TO CAR SPA MANAGEMENT',
                       style: AppTextStyles.displaySmall.copyWith(
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,

@@ -350,8 +350,10 @@ class DashboardOutstandingModel {
   factory DashboardOutstandingModel.fromJson(Map<String, dynamic> json) {
     final inv = json['invoiceOutstanding'] ?? json['InvoiceOutstanding'];
     final show = json['showroomOutstanding'] ?? json['ShowroomOutstanding'];
-    final adv = json['staffAdvanceOutstanding'] ?? json['StaffAdvanceOutstanding'];
-    final tot = json['totalOutstandingCombined'] ?? json['TotalOutstandingCombined'];
+    final adv =
+        json['staffAdvanceOutstanding'] ?? json['StaffAdvanceOutstanding'];
+    final tot =
+        json['totalOutstandingCombined'] ?? json['TotalOutstandingCombined'];
 
     return DashboardOutstandingModel(
       invoiceOutstanding: inv != null ? (inv as num).toDouble() : null,
@@ -462,7 +464,8 @@ class DashboardSummaryModel {
               (json['sales'] ?? json['Sales']) as Map<String, dynamic>,
             )
           : null,
-      paymentCollection: (json['paymentCollection'] != null ||
+      paymentCollection:
+          (json['paymentCollection'] != null ||
               json['PaymentCollection'] != null)
           ? DashboardPaymentCollectionModel.fromJson(
               (json['paymentCollection'] ?? json['PaymentCollection'])
@@ -474,8 +477,8 @@ class DashboardSummaryModel {
               (json['showroom'] ?? json['Showroom']) as Map<String, dynamic>,
             )
           : null,
-      staffAdvances: (json['staffAdvances'] != null ||
-              json['StaffAdvances'] != null)
+      staffAdvances:
+          (json['staffAdvances'] != null || json['StaffAdvances'] != null)
           ? DashboardStaffAdvanceModel.fromJson(
               (json['staffAdvances'] ?? json['StaffAdvances'])
                   as Map<String, dynamic>,

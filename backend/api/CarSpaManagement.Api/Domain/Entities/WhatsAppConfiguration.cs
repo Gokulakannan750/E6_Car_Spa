@@ -30,13 +30,13 @@ public class WhatsAppConfiguration : BaseEntity
 	public bool PaymentCompletedNotificationsEnabled { get; set; } = true;
 
 	[MaxLength(100)]
-	public string InvoiceTemplateName { get; set; } = "e6_carspa_invoice_generated";
+	public string InvoiceTemplateName { get; set; } = "invoice_generated";
 
 	[MaxLength(20)]
 	public string InvoiceTemplateLanguage { get; set; } = "en";
 
 	[MaxLength(100)]
-	public string PaymentCompletedTemplateName { get; set; } = "e6_carspa_payment_completed";
+	public string PaymentCompletedTemplateName { get; set; } = "payment_completed";
 
 	[MaxLength(20)]
 	public string PaymentCompletedTemplateLanguage { get; set; } = "en_US";

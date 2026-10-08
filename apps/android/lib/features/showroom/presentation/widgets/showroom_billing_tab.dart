@@ -369,7 +369,7 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.account_balance_wallet_rounded,
                           size: 16,
                           color: AppColors.primary,
@@ -480,7 +480,7 @@ class _ShowroomBillingTabState extends ConsumerState<ShowroomBillingTab> {
                             vertical: 10,
                             horizontal: 8,
                           ),
-                          side: const BorderSide(color: AppColors.primary),
+                          side: BorderSide(color: AppColors.primary),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

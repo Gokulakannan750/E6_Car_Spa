@@ -113,17 +113,25 @@ class ReportsScreen extends ConsumerWidget {
                   final advances = dashboard.staffAdvances;
 
                   final billedRevenue = canViewSales ? sales?.netSales : null;
-                  final collections = canViewPayments ? paymentCollection?.totalReceived : null;
-                  final outstanding = canViewInvoices ? sales?.outstanding : null;
-                  final totalInvoices = (canViewSales || canViewInvoices) && invoiceKpis != null
+                  final collections = canViewPayments
+                      ? paymentCollection?.totalReceived
+                      : null;
+                  final outstanding = canViewInvoices
+                      ? sales?.outstanding
+                      : null;
+                  final totalInvoices =
+                      (canViewSales || canViewInvoices) && invoiceKpis != null
                       ? invoiceKpis.generatedCount +
-                          invoiceKpis.partiallyPaidCount +
-                          invoiceKpis.paidCount
+                            invoiceKpis.partiallyPaidCount +
+                            invoiceKpis.paidCount
                       : 0;
                   final avgTicket = (billedRevenue != null && totalInvoices > 0)
                       ? billedRevenue / totalInvoices
                       : 0.0;
-                  final collectionRate = (billedRevenue != null && collections != null && billedRevenue > 0)
+                  final collectionRate =
+                      (billedRevenue != null &&
+                          collections != null &&
+                          billedRevenue > 0)
                       ? (collections / billedRevenue) * 100
                       : 0.0;
 
@@ -162,7 +170,8 @@ class ReportsScreen extends ConsumerWidget {
                               subtitle: 'Advances, log & settlements',
                               icon: Icons.people,
                               color: const Color(0xFF8B5CF6), // Purple
-                              onTap: () => context.go('/reports/staff-advances'),
+                              onTap: () =>
+                                  context.go('/reports/staff-advances'),
                             ),
                           if (canViewShowrooms)
                             _buildPrimaryModuleCard(
@@ -282,9 +291,7 @@ class ReportsScreen extends ConsumerWidget {
                             _buildMiniMetric(
                               label: 'Staff Advances',
                               value: (canViewAdvances && advances != null)
-                                  ? _formatCurrency(
-                                      advances.outstandingAmount,
-                                    )
+                                  ? _formatCurrency(advances.outstandingAmount)
                                   : '—',
                               color: AppColors.warning,
                               onTap: canViewAdvances
@@ -323,7 +330,10 @@ class ReportsScreen extends ConsumerWidget {
                       const SizedBox(height: 20),
 
                       // 5. Charts Row
-                      if (canViewSales && canViewPayments && sales != null && paymentCollection != null) ...[
+                      if (canViewSales &&
+                          canViewPayments &&
+                          sales != null &&
+                          paymentCollection != null) ...[
                         RevenueChart(
                           sales: sales,
                           paymentCollection: paymentCollection,

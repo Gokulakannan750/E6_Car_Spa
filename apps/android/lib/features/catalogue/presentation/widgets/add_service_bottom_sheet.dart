@@ -134,7 +134,7 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Modal Header
-          const AppModalHeader(
+          AppModalHeader(
             title: 'Add Service',
             subtitle: 'Create a new service for your catalogue',
             icon: Icons.add_circle_outline,
@@ -205,7 +205,7 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                         enabledBorder: const OutlineInputBorder(
                           borderSide: BorderSide(color: AppColors.border),
                         ),
-                        focusedBorder: const OutlineInputBorder(
+                        focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
                             color: AppColors.accent,
                             width: 2,

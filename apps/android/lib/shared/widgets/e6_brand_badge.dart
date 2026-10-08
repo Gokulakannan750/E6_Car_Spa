@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import '../../features/settings/providers/settings_provider.dart';
 
-/// A reusable luxury branded 'E6' badge with the red-to-black gradient
-/// matching the login screen and desktop shell.
-class E6BrandBadge extends StatelessWidget {
+/// A branded badge in the company's colour gradient, showing the first letter of the company name
+/// (or a neutral car icon until a name is saved).
+class E6BrandBadge extends ConsumerWidget {
   final double size;
   final double borderRadius;
   final double? fontSize;
@@ -20,7 +22,8 @@ class E6BrandBadge extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final name = ref.watch(businessProfileProvider)?.businessName.trim() ?? '';
     final effectiveFontSize = fontSize ?? (size * 0.44);
 
     return Container(
@@ -48,15 +51,21 @@ class E6BrandBadge extends StatelessWidget {
             ],
       ),
       child: Center(
-        child: Text(
-          'E6',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: effectiveFontSize,
-            letterSpacing: 0.5,
-          ),
-        ),
+        child: name.isEmpty
+            ? Icon(
+                Icons.directions_car_rounded,
+                color: Colors.white,
+                size: effectiveFontSize * 1.3,
+              )
+            : Text(
+                name[0].toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: effectiveFontSize,
+                  letterSpacing: 0.5,
+                ),
+              ),
       ),
     );
   }

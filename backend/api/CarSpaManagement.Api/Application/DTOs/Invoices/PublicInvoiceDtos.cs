@@ -23,7 +23,9 @@ public record PublicBusinessDto(
     string? Phone,
     string? Email,
     string? Gstin,
-    string? LogoUrl
+    string? LogoUrl,
+    string? Tagline = null,
+    string? BrandColor = null
 );
 
 public record PublicCustomerDto(
@@ -37,7 +39,6 @@ public record PublicInvoiceItemDto(
     int Quantity,
     decimal Rate,
     decimal Amount,
-    string? HsnSac,
     decimal? TaxRatePercent = null
 );
 
