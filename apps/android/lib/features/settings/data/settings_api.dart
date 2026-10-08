@@ -95,6 +95,32 @@ class SettingsApi {
     );
   }
 
+  /// Uploads the company's own picture for the login page.
+  Future<BusinessProfileModel> uploadLoginImage({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+
+    final response = await _dio.post(
+      '/settings/business/login-image',
+      data: formData,
+      options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+    );
+    final json = response.data as Map<String, dynamic>;
+    return BusinessProfileModel.fromJson(
+      json['profile'] as Map<String, dynamic>? ?? {},
+    );
+  }
+
+  /// Removes the company's login page picture.
+  Future<BusinessProfileModel> removeLoginImage() async {
+    final response = await _dio.delete('/settings/business/login-image');
+    return BusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// Removes the current business logo
   Future<BusinessProfileModel> removeLogo() async {
     final response = await _dio.delete('/settings/business/logo');

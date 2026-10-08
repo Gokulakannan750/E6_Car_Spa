@@ -15,6 +15,7 @@ import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../auth';
 import { AppearanceCard } from './AppearanceCard';
+import { LoginImageCard } from './LoginImageCard';
 import {
 	getSystemPreferences,
 	updateSystemPreferences,
@@ -247,8 +248,11 @@ export function SystemPreferencesPage() {
 			)}
 
 			{tab === 'colours' && (
-				<div className="animate-in fade-in duration-150">
+				<div className="animate-in fade-in duration-150 space-y-6">
 					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
+					<div className="max-w-[640px]">
+						<LoginImageCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
+					</div>
 				</div>
 			)}
 

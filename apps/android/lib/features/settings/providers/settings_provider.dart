@@ -60,6 +60,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
             updatedAt: publicBranding.updatedAt,
             appColor: publicBranding.appColor,
             sidebarColor: publicBranding.sidebarColor,
+            loginImagePath: publicBranding.loginImagePath,
           ),
         );
       } catch (_) {}
@@ -79,6 +80,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
             updatedAt: publicBranding.updatedAt,
             appColor: publicBranding.appColor,
             sidebarColor: publicBranding.sidebarColor,
+            loginImagePath: publicBranding.loginImagePath,
           ),
         );
       } catch (_) {}
@@ -129,6 +131,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
                   updatedAt: publicBranding.updatedAt,
                   appColor: publicBranding.appColor,
                   sidebarColor: publicBranding.sidebarColor,
+                  loginImagePath: publicBranding.loginImagePath,
                 ),
       );
     } catch (_) {
@@ -196,6 +199,73 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     } catch (e) {
       final message = e is ApiException ? e.message : 'Failed to save colours.';
       state = currentState.copyWith(isSaving: false, errorMessage: message);
+      return false;
+    }
+  }
+
+  /// Uploads the company's own picture for the login page.
+  Future<bool> uploadLoginImage({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    final currentState = state;
+    if (currentState is! SettingsLoaded) return false;
+
+    state = currentState.copyWith(
+      isUploadingLogo: true,
+      clearSuccess: true,
+      clearError: true,
+    );
+
+    try {
+      final profile = await _repository.uploadLoginImage(
+        bytes: bytes,
+        filename: filename,
+      );
+      state = SettingsLoaded(
+        profile: profile,
+        isUploadingLogo: false,
+        successMessage: 'Login page picture updated.',
+      );
+      return true;
+    } catch (e) {
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to upload the picture.';
+      state = currentState.copyWith(
+        isUploadingLogo: false,
+        errorMessage: message,
+      );
+      return false;
+    }
+  }
+
+  Future<bool> removeLoginImage() async {
+    final currentState = state;
+    if (currentState is! SettingsLoaded) return false;
+
+    state = currentState.copyWith(
+      isUploadingLogo: true,
+      clearSuccess: true,
+      clearError: true,
+    );
+
+    try {
+      final profile = await _repository.removeLoginImage();
+      state = SettingsLoaded(
+        profile: profile,
+        isUploadingLogo: false,
+        successMessage: 'Login page picture removed.',
+      );
+      return true;
+    } catch (e) {
+      final message = e is ApiException
+          ? e.message
+          : 'Failed to remove the picture.';
+      state = currentState.copyWith(
+        isUploadingLogo: false,
+        errorMessage: message,
+      );
       return false;
     }
   }

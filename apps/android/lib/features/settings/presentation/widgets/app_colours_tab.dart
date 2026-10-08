@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/theme/brand_palette.dart';
+import '../../../../shared/widgets/app_business_logo.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/auth_state.dart';
@@ -183,6 +185,8 @@ class _AppColoursTabState extends ConsumerState<AppColoursTab> {
           doc: BrandPalette.parse(_doc.text) ?? BrandPalette.defaultDocument,
           businessName: businessName,
         ),
+        const SizedBox(height: 16),
+        _LoginImageCard(canEdit: canEdit),
         const SizedBox(height: 16),
       ],
     );
@@ -723,6 +727,175 @@ class _ColourPreview extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Lets the company upload its own picture for the login page.
+class _LoginImageCard extends ConsumerWidget {
+  final bool canEdit;
+
+  const _LoginImageCard({required this.canEdit});
+
+  Future<void> _pick(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final ok = await ref
+          .read(settingsNotifierProvider.notifier)
+          .uploadLoginImage(bytes: bytes, filename: picked.name);
+      messenger.showSnackBar(
+        _snack(
+          ref,
+          ok,
+          'Login page picture updated.',
+          'Failed to upload the picture.',
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Failed to select image: $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _remove(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(settingsNotifierProvider.notifier)
+        .removeLoginImage();
+    messenger.showSnackBar(
+      _snack(
+        ref,
+        ok,
+        'Login page picture removed.',
+        'Failed to remove the picture.',
+      ),
+    );
+  }
+
+  SnackBar _snack(WidgetRef ref, bool ok, String success, String failure) {
+    final state = ref.read(settingsNotifierProvider);
+    final error = state is SettingsLoaded ? state.errorMessage : null;
+    return SnackBar(
+      content: Text(ok ? success : (error ?? failure)),
+      backgroundColor: ok ? AppColors.success : AppColors.error,
+      behavior: SnackBarBehavior.floating,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(settingsNotifierProvider);
+    final profile = state is SettingsLoaded ? state.profile : null;
+    final busy = state is SettingsLoaded && state.isUploadingLogo;
+    final url = AppBusinessLogo.resolveLogoUrl(
+      profile?.loginImagePath,
+      profile?.updatedAt,
+    );
+
+    return Container(
+      key: const Key('login_image_card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Login page picture',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Shown behind the sign-in screen. Without one, the page uses your login colour.',
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              height: 140,
+              width: double.infinity,
+              color: AppColors.surfaceAlt,
+              child: url == null
+                  ? const Center(
+                      child: Text(
+                        'NO PICTURE',
+                        key: Key('login_image_empty'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                    )
+                  : Image.network(
+                      url,
+                      key: const Key('login_image_preview'),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (canEdit)
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    key: const Key('upload_login_image_button'),
+                    label: url == null ? 'Upload picture' : 'Change picture',
+                    icon: Icons.upload_rounded,
+                    isLoading: busy,
+                    onPressed: busy ? null : () => _pick(context, ref),
+                  ),
+                ),
+                if (url != null) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    key: const Key('remove_login_image_button'),
+                    onPressed: busy ? null : () => _remove(context, ref),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    label: const Text('Remove'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
+            const Text(
+              'Only an owner or administrator can change the login page picture.',
+              style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+            ),
         ],
       ),
     );

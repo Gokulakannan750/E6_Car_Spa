@@ -75,6 +75,9 @@ public class BusinessProfileConfiguration : IEntityTypeConfiguration<BusinessPro
         builder.Property(b => b.SidebarColor)
             .HasMaxLength(7);
 
+        builder.Property(b => b.LoginImagePath)
+            .HasMaxLength(500);
+
         builder.Property(b => b.TermsAndConditions)
             .HasMaxLength(2000);
 

@@ -1618,6 +1618,38 @@ describe('Business Profile & Settings API Client', () => {
     expect(api.getCachedBusinessProfile()?.appColor).toBe('#0F766E');
   });
 
+  it('uploads and removes the login page picture through the login-image endpoint', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ imageUrl: '/uploads/login/login_1.png', profile: { id: 'biz-1', loginImagePath: '/uploads/login/login_1.png' } }),
+    });
+
+    const file = new File(['png'], 'banner.png', { type: 'image/png' });
+    const res = await api.uploadLoginImage(file);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/login-image'),
+      expect.objectContaining({ method: 'POST', body: expect.any(FormData) })
+    );
+    expect(res.imageUrl).toBe('/uploads/login/login_1.png');
+    expect(api.getCachedBusinessProfile()?.loginImagePath).toBe('/uploads/login/login_1.png');
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1', loginImagePath: null }),
+    });
+    await api.removeLoginImage();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/login-image'),
+      expect.objectContaining({ method: 'DELETE' })
+    );
+    expect(api.getCachedBusinessProfile()?.loginImagePath).toBeNull();
+  });
+
   it('calls uploadBusinessLogo with FormData and removeBusinessLogo with DELETE', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

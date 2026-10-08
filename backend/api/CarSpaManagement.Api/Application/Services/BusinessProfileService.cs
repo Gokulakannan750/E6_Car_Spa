@@ -55,7 +55,8 @@ public partial class BusinessProfileService : IBusinessProfileService
             LogoPath: profile.LogoPath,
             UpdatedAt: profile.UpdatedAt,
             AppColor: profile.AppColor,
-            SidebarColor: profile.SidebarColor
+            SidebarColor: profile.SidebarColor,
+            LoginImagePath: profile.LoginImagePath
         );
     }
 
@@ -175,6 +176,87 @@ public partial class BusinessProfileService : IBusinessProfileService
 
     public async Task<LogoUploadResponse> UploadLogoAsync(IFormFile file, CancellationToken ct = default)
     {
+        var relativeUrl = await SaveImageAsync(file, "logos", "logo_", "business logo", ct);
+
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previousLogo = profile.LogoPath;
+        profile.LogoPath = relativeUrl;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        // Safely cleanup the previous custom logo
+        SafeDeleteOldCustomLogo(previousLogo);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LogoChanged,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Business profile logo uploaded/updated: '{relativeUrl}'.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return new LogoUploadResponse(relativeUrl, ToDto(profile));
+    }
+
+    public async Task<LoginImageUploadResponse> UploadLoginImageAsync(IFormFile file, CancellationToken ct = default)
+    {
+        var relativeUrl = await SaveImageAsync(file, "login", "login_", "login page picture", ct);
+
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previous = profile.LoginImagePath;
+        profile.LoginImagePath = relativeUrl;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        SafeDeleteOwnUpload(previous, "uploads/login/", "login_");
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LoginImageChanged,
+            module: Domain.Constants.AuditModules.Settings,
+            description: $"Login page picture uploaded/updated: '{relativeUrl}'.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return new LoginImageUploadResponse(relativeUrl, ToDto(profile));
+    }
+
+    public async Task<BusinessProfileDto> RemoveLoginImageAsync(CancellationToken ct = default)
+    {
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+        var previous = profile.LoginImagePath;
+        profile.LoginImagePath = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        SafeDeleteOwnUpload(previous, "uploads/login/", "login_");
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.LoginImageRemoved,
+            module: Domain.Constants.AuditModules.Settings,
+            description: "Login page picture removed.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            outcome: "Success",
+            cancellationToken: ct);
+
+        return ToDto(profile);
+    }
+
+    /// <summary>
+    /// Validates an uploaded picture (size, extension, content type, file signature) and stores it under
+    /// wwwroot/uploads/&lt;folder&gt; with a random server-side name. Returns the relative URL.
+    /// </summary>
+    private async Task<string> SaveImageAsync(IFormFile file, string folder, string filePrefix, string label, CancellationToken ct)
+    {
         if (file == null || file.Length == 0)
         {
             throw new ValidationException("Please choose an image file to upload.");
@@ -182,13 +264,13 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         if (file.Length > MaxFileSizeBytes)
         {
-            throw new ValidationException("Logo image size cannot exceed 5 MB.");
+            throw new ValidationException($"The {label} cannot be larger than 5 MB.");
         }
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(ext) || !AllowedImageExtensions.Contains(ext))
         {
-            throw new ValidationException("Only PNG, JPEG, and WebP image formats are supported for business logo.");
+            throw new ValidationException($"Only PNG, JPEG, and WebP image formats are supported for the {label}.");
         }
 
         if (!AllowedMimeTypes.Contains(file.ContentType))
@@ -212,14 +294,14 @@ public partial class BusinessProfileService : IBusinessProfileService
             webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         }
 
-        var uploadsDir = Path.Combine(webRoot, "uploads", "logos");
+        var uploadsDir = Path.Combine(webRoot, "uploads", folder);
         if (!Directory.Exists(uploadsDir))
         {
             Directory.CreateDirectory(uploadsDir);
         }
 
         // Generate safe random server-side filename
-        var safeFileName = $"logo_{Guid.NewGuid():N}{ext}";
+        var safeFileName = $"{filePrefix}{Guid.NewGuid():N}{ext}";
         var physicalPath = Path.Combine(uploadsDir, safeFileName);
 
         await using (var stream = new FileStream(physicalPath, FileMode.Create, FileAccess.Write))
@@ -227,29 +309,7 @@ public partial class BusinessProfileService : IBusinessProfileService
             await file.CopyToAsync(stream, ct);
         }
 
-        var relativeUrl = $"/uploads/logos/{safeFileName}";
-
-        var profile = await GetOrCreateProfileEntityAsync(ct);
-        var previousLogo = profile.LogoPath;
-        profile.LogoPath = relativeUrl;
-        profile.UpdatedAt = DateTime.UtcNow;
-
-        await _db.SaveChangesAsync(ct);
-
-        // Safely cleanup the previous custom logo
-        SafeDeleteOldCustomLogo(previousLogo);
-
-        await _auditLogService.RecordAsync(
-            action: Domain.Constants.AuditActions.LogoChanged,
-            module: Domain.Constants.AuditModules.Settings,
-            description: $"Business profile logo uploaded/updated: '{relativeUrl}'.",
-            entityType: "BusinessProfile",
-            entityId: profile.Id,
-            entityReference: profile.BusinessName,
-            outcome: "Success",
-            cancellationToken: ct);
-
-        return new LogoUploadResponse(relativeUrl, ToDto(profile));
+        return $"/uploads/{folder}/{safeFileName}";
     }
 
     public async Task<BusinessProfileDto> RemoveLogoAsync(CancellationToken ct = default)
@@ -307,14 +367,17 @@ public partial class BusinessProfileService : IBusinessProfileService
         };
     }
 
-    private void SafeDeleteOldCustomLogo(string? oldRelativeUrl)
+    private void SafeDeleteOldCustomLogo(string? oldRelativeUrl) =>
+        SafeDeleteOwnUpload(oldRelativeUrl, "uploads/logos/", "logo_");
+
+    /// <summary>Deletes a previous upload, but only a file this service created (right folder, right name prefix).</summary>
+    private void SafeDeleteOwnUpload(string? oldRelativeUrl, string folderMarker, string namePrefix)
     {
         if (string.IsNullOrWhiteSpace(oldRelativeUrl)) return;
 
         var normalized = oldRelativeUrl.Trim().Replace('\\', '/');
-        // Only delete files this service created (uploads are named logo_<id>.<ext>); anything else is left alone.
-        if (normalized.Contains("uploads/logos/", StringComparison.OrdinalIgnoreCase) &&
-            normalized.Contains("logo_", StringComparison.OrdinalIgnoreCase))
+        if (normalized.Contains(folderMarker, StringComparison.OrdinalIgnoreCase) &&
+            normalized.Contains(namePrefix, StringComparison.OrdinalIgnoreCase))
         {
             var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var relativePart = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
@@ -329,7 +392,7 @@ public partial class BusinessProfileService : IBusinessProfileService
             }
             catch (Exception ex)
             {
-                Serilog.Log.Warning(ex, "Failed to clean up old custom logo file: {Path}", physicalPath);
+                Serilog.Log.Warning(ex, "Failed to clean up old uploaded file: {Path}", physicalPath);
             }
         }
     }
@@ -396,6 +459,7 @@ public partial class BusinessProfileService : IBusinessProfileService
         b.Tagline,
         b.BrandColor,
         b.AppColor,
-        b.SidebarColor
+        b.SidebarColor,
+        b.LoginImagePath
     );
 }

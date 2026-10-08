@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Loader2, Palette, RotateCcw, Save } from 'lucide-react';
-import { updateAppearance } from '../../lib/api';
+import { resolveLogoUrl, updateAppearance } from '../../lib/api';
 import {
 	COLOR_PRESETS,
 	DEFAULT_APP_COLOR,
@@ -249,6 +249,7 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 				sidebarColor={sidebarColor}
 				documentColor={documentColor}
 				businessName={profile?.businessName}
+				loginImageUrl={profile?.loginImagePath ? resolveLogoUrl(profile.loginImagePath, profile.updatedAt) : null}
 			/>
 		</div>
 		</div>

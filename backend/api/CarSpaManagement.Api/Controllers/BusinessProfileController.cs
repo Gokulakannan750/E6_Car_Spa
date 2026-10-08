@@ -96,6 +96,36 @@ public class BusinessProfileController : ControllerBase
     }
 
     /// <summary>
+    /// Uploads the company's own picture for the login page (PNG, JPEG, WebP up to 5MB).
+    /// </summary>
+    [HttpPost("login-image")]
+    [RequirePermission("settings.business")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 5 * 1024 * 1024)]
+    [EnableRateLimiting("file-upload")]
+    public async Task<IActionResult> UploadLoginImage([FromForm] IFormFile file, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _profileService.UploadLoginImageAsync(file, ct));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Removes the company's login page picture.
+    /// </summary>
+    [HttpDelete("login-image")]
+    [RequirePermission("settings.business")]
+    public async Task<IActionResult> RemoveLoginImage(CancellationToken ct)
+    {
+        return Ok(await _profileService.RemoveLoginImageAsync(ct));
+    }
+
+    /// <summary>
     /// Removes the configured business logo.
     /// </summary>
     [HttpDelete("logo")]

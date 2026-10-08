@@ -8,7 +8,7 @@
 PRODUCT_NAME = e6_car_spa
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.e6.e6CarSpa
+PRODUCT_BUNDLE_IDENTIFIER = com.carspapro.management
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.e6. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Car Spa Pro. All rights reserved.

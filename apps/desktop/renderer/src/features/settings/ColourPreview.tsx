@@ -6,6 +6,8 @@ interface ColourPreviewProps {
 	sidebarColor: string;
 	documentColor: string;
 	businessName?: string | null;
+	/** The company's login picture, when it has one. */
+	loginImageUrl?: string | null;
 }
 
 const pick = (value: string, fallback: string) => (isValidColor(value) ? value.trim() : fallback);
@@ -30,7 +32,7 @@ function Frame({ title, children }: { title: string; children: React.ReactNode }
  * Small mock-ups of the main app, the login page and an invoice that repaint as colours are chosen, so a company
  * can see the result before saving. They are drawings, not the real screens.
  */
-export function ColourPreview({ appColor, sidebarColor, documentColor, businessName }: ColourPreviewProps) {
+export function ColourPreview({ appColor, sidebarColor, documentColor, businessName, loginImageUrl }: ColourPreviewProps) {
 	const app = buildScale(pick(appColor, DEFAULT_APP_COLOR));
 	const side = buildScale(pick(sidebarColor, DEFAULT_SIDEBAR_COLOR));
 	const docColor = pick(documentColor, DEFAULT_DOCUMENT_ACCENT);
@@ -94,11 +96,17 @@ export function ColourPreview({ appColor, sidebarColor, documentColor, businessN
 			{/* ── Login page ─────────────────────────────────────────── */}
 			<Frame title="Login page">
 				<div className="flex h-full" data-testid="preview-login">
-					<div className="w-1/2 p-3 flex flex-col justify-center gap-1.5" style={{ backgroundImage: darkGradient(side, true) }}>
-						<span className="h-2 w-16 rounded bg-white/90" />
-						<span className="h-2 w-20 rounded" style={{ backgroundColor: side[300] }} />
-						<span className="h-1 w-24 rounded bg-white/30" />
-						<span className="h-1 w-20 rounded bg-white/30" />
+					<div className="relative w-1/2 p-3 flex flex-col justify-center gap-1.5 overflow-hidden" style={{ backgroundImage: darkGradient(side, true) }}>
+						{loginImageUrl && (
+							<>
+								<img src={loginImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" data-testid="preview-login-image" />
+								<span className="absolute inset-0 bg-black/45" />
+							</>
+						)}
+						<span className="relative h-2 w-16 rounded bg-white/90" />
+						<span className="relative h-2 w-20 rounded" style={{ backgroundColor: side[300] }} />
+						<span className="relative h-1 w-24 rounded bg-white/30" />
+						<span className="relative h-1 w-20 rounded bg-white/30" />
 					</div>
 					<div className="w-1/2 p-3 flex items-center justify-center" style={{ backgroundImage: darkGradient(side) }}>
 						<div className="w-full rounded-lg bg-white p-2 flex flex-col gap-1.5">

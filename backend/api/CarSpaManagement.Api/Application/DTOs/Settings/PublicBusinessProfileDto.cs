@@ -9,5 +9,6 @@ public record PublicBusinessProfileDto(
     string? LogoPath,
     DateTime? UpdatedAt,
     string? AppColor = null,
-    string? SidebarColor = null
+    string? SidebarColor = null,
+    string? LoginImagePath = null
 );

@@ -4,6 +4,7 @@ class PublicBusinessProfileModel {
   final DateTime? updatedAt;
   final String? appColor;
   final String? sidebarColor;
+  final String? loginImagePath;
 
   const PublicBusinessProfileModel({
     required this.businessName,
@@ -11,6 +12,7 @@ class PublicBusinessProfileModel {
     this.updatedAt,
     this.appColor,
     this.sidebarColor,
+    this.loginImagePath,
   });
 
   factory PublicBusinessProfileModel.fromJson(Map<String, dynamic> json) {
@@ -19,6 +21,7 @@ class PublicBusinessProfileModel {
       logoPath: json['logoPath'] as String?,
       appColor: json['appColor'] as String?,
       sidebarColor: json['sidebarColor'] as String?,
+      loginImagePath: json['loginImagePath'] as String?,
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())
           : null,
@@ -31,6 +34,7 @@ class PublicBusinessProfileModel {
       'logoPath': logoPath,
       'appColor': appColor,
       'sidebarColor': sidebarColor,
+      'loginImagePath': loginImagePath,
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }

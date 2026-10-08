@@ -9,7 +9,6 @@ import {
 	type PublicBusinessProfileDto,
 } from '../../lib/api';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
-import bannerImage from '../../assets/login-banner.jpg';
 import { BrandMark, displayName } from '../../components/shared/BrandMark';
 
 
@@ -22,11 +21,13 @@ export default function LoginPage() {
 				businessName: cachedProfile.businessName,
 				logoPath: cachedProfile.logoPath,
 				updatedAt: cachedProfile.updatedAt,
+				loginImagePath: cachedProfile.loginImagePath,
 			};
 		}
 		return null;
 	});
 	const [imgError, setImgError] = useState(false);
+	const [bannerError, setBannerError] = useState(false);
 
 	useEffect(() => {
 		// Revalidate auth initialization state upon navigating to login
@@ -56,6 +57,8 @@ export default function LoginPage() {
 	const hasCustomLogo = Boolean(logoPath && logoPath.trim().length > 0);
 	const showImage = hasCustomLogo && !imgError;
 	const logoUrl = resolveLogoUrl(logoPath, updatedAt);
+	const loginImagePath = publicProfile !== null ? publicProfile.loginImagePath : cachedProfile?.loginImagePath;
+	const bannerUrl = resolveLogoUrl(loginImagePath, updatedAt);
 
 	if (isLoading) {
 		return (
@@ -78,11 +81,14 @@ export default function LoginPage() {
 			{/* Left Hero Banner (Desktop / Widescreen) */}
 			<div className="hidden lg:flex lg:w-1/2 xl:w-7/12 relative overflow-hidden flex-col justify-between p-10 xl:p-14 select-none">
 				{/* Background Image with Dark Vignette & Red Ambient Overlays */}
-				<img
-					src={bannerImage}
-					alt=""
-					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
-				/>
+				{bannerUrl && !bannerError && (
+					<img
+						src={bannerUrl}
+						alt=""
+						className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+						onError={() => setBannerError(true)}
+					/>
+				)}
 				<div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-side-950/70" />
 				<div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-side-950" />
 

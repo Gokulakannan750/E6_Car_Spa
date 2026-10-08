@@ -67,6 +67,10 @@ public class BusinessProfile : BaseEntity
     [MaxLength(7)]
     public string? SidebarColor { get; set; }
 
+    /// <summary>The company's own picture for the login page (relative upload URL). Optional; the page is plain colour when empty.</summary>
+    [MaxLength(500)]
+    public string? LoginImagePath { get; set; }
+
     [MaxLength(2000)]
     public string? TermsAndConditions { get; set; }
 

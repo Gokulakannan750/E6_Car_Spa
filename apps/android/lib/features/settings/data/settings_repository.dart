@@ -148,6 +148,32 @@ class SettingsRepository {
     }
   }
 
+  Future<BusinessProfileModel> uploadLoginImage({
+    required List<int> bytes,
+    required String filename,
+  }) async {
+    try {
+      final profile = await _api.uploadLoginImage(
+        bytes: bytes,
+        filename: filename,
+      );
+      await _saveCachedProfile(profile);
+      return profile;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<BusinessProfileModel> removeLoginImage() async {
+    try {
+      final profile = await _api.removeLoginImage();
+      await _saveCachedProfile(profile);
+      return profile;
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<LogoUploadResponseModel> uploadLogo({
     required List<int> bytes,
     required String filename,

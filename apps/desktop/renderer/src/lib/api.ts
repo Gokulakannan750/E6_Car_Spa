@@ -2966,6 +2966,8 @@ export interface BusinessProfileDto {
 	appColor?: string | null;
 	/** Colour of the sidebar and login page (#RRGGBB). */
 	sidebarColor?: string | null;
+	/** The company's own picture for the login page; none until one is uploaded. */
+	loginImagePath?: string | null;
 	createdAt: string;
 	updatedAt: string | null;
 }
@@ -3041,6 +3043,7 @@ export interface PublicBusinessProfileDto {
 	updatedAt: string | null;
 	appColor?: string | null;
 	sidebarColor?: string | null;
+	loginImagePath?: string | null;
 }
 
 export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileDto> {
@@ -3055,6 +3058,7 @@ export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileD
 			updatedAt: res.updatedAt,
 			appColor: res.appColor,
 			sidebarColor: res.sidebarColor,
+			loginImagePath: res.loginImagePath,
 		});
 	} else {
 		setCachedBusinessProfile({
@@ -3146,6 +3150,31 @@ export async function uploadBusinessLogo(file: File) {
 		method: 'POST',
 		body: formData,
 	}, 'change business settings');
+}
+
+export interface LoginImageUploadResponse {
+	imageUrl: string;
+	profile: BusinessProfileDto;
+}
+
+/** Uploads the company's own picture for the login page. */
+export async function uploadLoginImage(file: File) {
+	const formData = new FormData();
+	formData.append('file', file);
+	const res = await request<LoginImageUploadResponse>('/api/settings/business/login-image', {
+		method: 'POST',
+		body: formData,
+	}, 'change the login page picture');
+	setCachedBusinessProfile(res.profile);
+	return res;
+}
+
+export async function removeLoginImage() {
+	const profile = await request<BusinessProfileDto>('/api/settings/business/login-image', {
+		method: 'DELETE',
+	}, 'change the login page picture');
+	setCachedBusinessProfile(profile);
+	return profile;
 }
 
 export async function removeBusinessLogo() {

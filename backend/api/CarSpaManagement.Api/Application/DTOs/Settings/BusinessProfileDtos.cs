@@ -21,7 +21,8 @@ public record BusinessProfileDto(
     string? Tagline = null,
     string? BrandColor = null,
     string? AppColor = null,
-    string? SidebarColor = null
+    string? SidebarColor = null,
+    string? LoginImagePath = null
 );
 
 public class UpdateBusinessProfileRequest
@@ -98,6 +99,11 @@ public class UpdateAppearanceRequest
     [MaxLength(7, ErrorMessage = "Document colour must look like #RRGGBB.")]
     public string? BrandColor { get; set; }
 }
+
+public record LoginImageUploadResponse(
+    string ImageUrl,
+    BusinessProfileDto Profile
+);
 
 public record LogoUploadResponse(
     string LogoUrl,

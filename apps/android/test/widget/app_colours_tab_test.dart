@@ -23,6 +23,7 @@ class _FakeSettingsNotifier extends StateNotifier<SettingsState>
   _FakeSettingsNotifier(super.initialState);
 
   Map<String, String?>? saved;
+  bool removedLoginImage = false;
 
   @override
   Future<bool> updateAppearance({
@@ -30,11 +31,13 @@ class _FakeSettingsNotifier extends StateNotifier<SettingsState>
     String? sidebarColor,
     String? brandColor,
   }) async {
-    saved = {
-      'app': appColor,
-      'sidebar': sidebarColor,
-      'document': brandColor,
-    };
+    saved = {'app': appColor, 'sidebar': sidebarColor, 'document': brandColor};
+    return true;
+  }
+
+  @override
+  Future<bool> removeLoginImage() async {
+    removedLoginImage = true;
     return true;
   }
 
@@ -199,6 +202,69 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('save_colours_button')), findsNothing);
-    expect(find.textContaining('Only an owner or administrator'), findsOneWidget);
+    expect(
+      find.textContaining('Only an owner or administrator'),
+      findsNWidgets(2),
+    );
   });
+
+  testWidgets(
+    'invites the company to upload a login picture when it has none',
+    (tester) async {
+      useTallScreen(tester);
+      await tester.pumpWidget(build(owner));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('login_image_card')), findsOneWidget);
+      expect(find.byKey(const Key('login_image_empty')), findsOneWidget);
+      expect(find.text('Upload picture'), findsOneWidget);
+      expect(find.byKey(const Key('remove_login_image_button')), findsNothing);
+    },
+  );
+
+  testWidgets('shows the current login picture and lets the owner remove it', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    notifier = _FakeSettingsNotifier(
+      SettingsLoaded(
+        profile: profile.copyWith(loginImagePath: '/uploads/login/login_1.png'),
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authNotifierProvider.overrideWith(
+            (ref) => _TestAuthNotifier(const Authenticated(owner)),
+          ),
+          settingsNotifierProvider.overrideWith((ref) => notifier),
+        ],
+        child: const MaterialApp(home: Scaffold(body: AppColoursTab())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('login_image_preview')), findsOneWidget);
+    expect(find.text('Change picture'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('remove_login_image_button')));
+    await tester.pumpAndSettle();
+
+    expect(notifier.removedLoginImage, isTrue);
+  });
+
+  testWidgets(
+    'hides the upload controls without the settings.business permission',
+    (tester) async {
+      useTallScreen(tester);
+      await tester.pumpWidget(build(viewer));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('upload_login_image_button')), findsNothing);
+      expect(
+        find.textContaining('change the login page picture'),
+        findsOneWidget,
+      );
+    },
+  );
 }

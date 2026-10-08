@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.e6" "\0"
+            VALUE "CompanyName", "Car Spa Pro" "\0"
             VALUE "FileDescription", "e6_car_spa" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "e6_car_spa" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.e6. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Car Spa Pro. All rights reserved." "\0"
             VALUE "OriginalFilename", "e6_car_spa.exe" "\0"
             VALUE "ProductName", "e6_car_spa" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

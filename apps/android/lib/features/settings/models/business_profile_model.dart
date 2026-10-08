@@ -22,6 +22,9 @@ class BusinessProfileModel {
 
   /// Colour of the login page and dark surfaces (#RRGGBB); null means the neutral default.
   final String? sidebarColor;
+
+  /// The company's own picture for the login page (server-relative URL); null when none is uploaded.
+  final String? loginImagePath;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -43,6 +46,7 @@ class BusinessProfileModel {
     this.brandColor,
     this.appColor,
     this.sidebarColor,
+    this.loginImagePath,
     this.createdAt,
     this.updatedAt,
   });
@@ -66,6 +70,7 @@ class BusinessProfileModel {
       brandColor: json['brandColor'] as String?,
       appColor: json['appColor'] as String?,
       sidebarColor: json['sidebarColor'] as String?,
+      loginImagePath: json['loginImagePath'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -94,6 +99,7 @@ class BusinessProfileModel {
       'brandColor': brandColor,
       'appColor': appColor,
       'sidebarColor': sidebarColor,
+      'loginImagePath': loginImagePath,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -127,6 +133,7 @@ class BusinessProfileModel {
     // Pass null to clear a colour (the company went back to the default); omit to keep the current one.
     Object? appColor = _keep,
     Object? sidebarColor = _keep,
+    Object? loginImagePath = _keep,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -152,6 +159,9 @@ class BusinessProfileModel {
       sidebarColor: identical(sidebarColor, _keep)
           ? this.sidebarColor
           : sidebarColor as String?,
+      loginImagePath: identical(loginImagePath, _keep)
+          ? this.loginImagePath
+          : loginImagePath as String?,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
