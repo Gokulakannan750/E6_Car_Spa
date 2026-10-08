@@ -248,11 +248,11 @@ export function SystemPreferencesPage() {
 			)}
 
 			{tab === 'colours' && (
-				<div className="animate-in fade-in duration-150 space-y-6">
-					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
-					<div className="max-w-[640px]">
-						<LoginImageCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
-					</div>
+				<div className="animate-in fade-in duration-150">
+					<AppearanceCard
+						canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))}
+						below={<LoginImageCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />}
+					/>
 				</div>
 			)}
 

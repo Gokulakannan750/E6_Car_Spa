@@ -179,14 +179,14 @@ class _AppColoursTabState extends ConsumerState<AppColoursTab> {
           ],
         ),
         const SizedBox(height: 16),
+        _LoginImageCard(canEdit: canEdit),
+        const SizedBox(height: 16),
         _ColourPreview(
           app: BrandPalette.parse(_app.text) ?? BrandPalette.defaultApp,
           side: BrandPalette.parse(_side.text) ?? BrandPalette.defaultSidebar,
           doc: BrandPalette.parse(_doc.text) ?? BrandPalette.defaultDocument,
           businessName: businessName,
         ),
-        const SizedBox(height: 16),
-        _LoginImageCard(canEdit: canEdit),
         const SizedBox(height: 16),
       ],
     );

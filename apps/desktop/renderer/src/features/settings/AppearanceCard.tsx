@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, Loader2, Palette, RotateCcw, Save } from 'lucide-react';
 import { resolveLogoUrl, updateAppearance } from '../../lib/api';
@@ -98,7 +98,8 @@ function ColourRow({ label, description, value, fallback, disabled, onChange }: 
 }
 
 /** System Preferences card where a company chooses its own app, sidebar/login and document colours. */
-export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
+/** `below` is shown directly under the colours card, in the same column (the preview stays on the right). */
+export function AppearanceCard({ canEdit, below }: { canEdit: boolean; below?: ReactNode }) {
 	const queryClient = useQueryClient();
 	const { profile } = useBusinessProfile();
 
@@ -164,6 +165,7 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 
 	return (
 		<div className="grid grid-cols-1 xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)] gap-6 items-start">
+		<div className="space-y-6 min-w-0">
 		<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
 			<div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
 				<div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
@@ -241,6 +243,8 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 			) : (
 				<p className="text-[11px] text-slate-400 mt-4">Only an owner or administrator can change the company colours.</p>
 			)}
+		</div>
+		{below}
 		</div>
 
 		<div className="xl:sticky xl:top-2 max-w-xl bg-slate-50/70 rounded-2xl border border-slate-200 p-5">
