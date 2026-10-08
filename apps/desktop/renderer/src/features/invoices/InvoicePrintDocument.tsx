@@ -179,10 +179,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 								<th className="py-2.5 px-3 border-r border-slate-300 w-10 text-center">#</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-left">Description</th>
 								{isGst && (
-									<>
-										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-24">HSN/SAC</th>
-										<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">GST</th>
-									</>
+									<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">GST</th>
 								)}
 								<th className="py-2.5 px-3 border-r border-slate-300 text-center w-16">Qty</th>
 								<th className="py-2.5 px-3 border-r border-slate-300 text-right w-24">Rate</th>
@@ -193,7 +190,7 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 							{(!invoice.items || invoice.items.length === 0) && (
 								<tr>
 									<td
-										colSpan={isGst ? 7 : 5}
+										colSpan={isGst ? 6 : 5}
 										className="py-6 text-center text-slate-500 italic"
 									>
 										No service items recorded on this invoice.
@@ -202,7 +199,6 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 							)}
 							{invoice.items?.map((item, idx) => {
 								const amount = lineAmount(item);
-								const itemHsnSac = (item as unknown as { hsnSac?: string }).hsnSac || '—';
 
 								return (
 									<tr key={item.id || idx} className="border-b border-slate-200">
@@ -213,14 +209,9 @@ export function InvoicePrintDocument({ invoice, businessProfile }: InvoicePrintD
 											{item.description}
 										</td>
 										{isGst && (
-											<>
-												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
-													{itemHsnSac}
-												</td>
-												<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
-													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
-												</td>
-											</>
+											<td className="py-2.5 px-3 border-r border-slate-300 text-center font-mono text-slate-700">
+												{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}
+											</td>
 										)}
 										<td className="py-2.5 px-3 border-r border-slate-300 text-center font-medium text-slate-900">
 											{item.quantity}

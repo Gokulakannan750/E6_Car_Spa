@@ -26,16 +26,51 @@ export interface ThemeColors {
 	sidebarColor?: string | null;
 }
 
-/** Ready-made colours offered next to the free colour picker. */
+/** Ready-made colours offered next to the free colour picker, grouped by family. */
 export const COLOR_PRESETS: { name: string; hex: string }[] = [
-	{ name: 'Blue', hex: '#2563EB' },
+	// Blues
+	{ name: 'Sky', hex: '#0284C7' },
+	{ name: 'Royal Blue', hex: '#2563EB' },
+	{ name: 'Indigo', hex: '#4F46E5' },
+	{ name: 'Navy', hex: '#1E3A8A' },
+	// Greens and teals
+	{ name: 'Cyan', hex: '#0E7490' },
 	{ name: 'Teal', hex: '#0F766E' },
-	{ name: 'Green', hex: '#15803D' },
-	{ name: 'Purple', hex: '#7C3AED' },
-	{ name: 'Crimson', hex: '#A11A1A' },
+	{ name: 'Emerald', hex: '#059669' },
+	{ name: 'Forest', hex: '#15803D' },
+	{ name: 'Olive', hex: '#4D7C0F' },
+	// Warm
+	{ name: 'Gold', hex: '#A16207' },
+	{ name: 'Amber', hex: '#B45309' },
 	{ name: 'Orange', hex: '#C2410C' },
+	{ name: 'Red', hex: '#DC2626' },
+	{ name: 'Crimson', hex: '#A11A1A' },
+	{ name: 'Maroon', hex: '#7F1D1D' },
+	{ name: 'Rose', hex: '#BE123C' },
+	{ name: 'Pink', hex: '#BE185D' },
+	// Purples
+	{ name: 'Violet', hex: '#7C3AED' },
+	{ name: 'Purple', hex: '#9333EA' },
+	{ name: 'Plum', hex: '#86198F' },
+	// Neutrals
+	{ name: 'Brown', hex: '#78350F' },
 	{ name: 'Slate', hex: '#1E293B' },
+	{ name: 'Graphite', hex: '#374151' },
 	{ name: 'Black', hex: '#111111' },
+];
+
+/** Ready-made looks that set the app, sidebar/login and document colours together. */
+export const COLOR_THEMES: { name: string; app: string; sidebar: string; document: string }[] = [
+	{ name: 'Midnight', app: '#2563EB', sidebar: '#1E293B', document: '#1E293B' },
+	{ name: 'Ocean', app: '#0284C7', sidebar: '#0C4A6E', document: '#0369A1' },
+	{ name: 'Teal', app: '#0F766E', sidebar: '#134E4A', document: '#0F766E' },
+	{ name: 'Forest', app: '#15803D', sidebar: '#14532D', document: '#166534' },
+	{ name: 'Royal', app: '#7C3AED', sidebar: '#4C1D95', document: '#6D28D9' },
+	{ name: 'Berry', app: '#BE185D', sidebar: '#831843', document: '#9D174D' },
+	{ name: 'Crimson', app: '#B91C1C', sidebar: '#A11A1A', document: '#A11A1A' },
+	{ name: 'Sunset', app: '#C2410C', sidebar: '#7C2D12', document: '#C2410C' },
+	{ name: 'Gold', app: '#B45309', sidebar: '#451A03', document: '#92400E' },
+	{ name: 'Graphite', app: '#374151', sidebar: '#111111', document: '#111111' },
 ];
 
 export function isValidColor(value?: string | null): value is string {

@@ -4,6 +4,7 @@ import { AlertCircle, CheckCircle2, Loader2, Palette, RotateCcw, Save } from 'lu
 import { updateAppearance } from '../../lib/api';
 import {
 	COLOR_PRESETS,
+	COLOR_THEMES,
 	DEFAULT_APP_COLOR,
 	DEFAULT_SIDEBAR_COLOR,
 	applyTheme,
@@ -42,7 +43,7 @@ function ColourRow({ label, description, value, fallback, disabled, onChange }: 
 				/>
 			</div>
 
-			<div className="flex flex-wrap items-center gap-2 mt-3">
+			<div className="flex flex-wrap items-center gap-1.5 mt-3">
 				{COLOR_PRESETS.map((preset) => (
 					<button
 						key={preset.hex}
@@ -51,7 +52,7 @@ function ColourRow({ label, description, value, fallback, disabled, onChange }: 
 						aria-label={`${label}: ${preset.name}`}
 						disabled={disabled}
 						onClick={() => onChange(preset.hex)}
-						className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+						className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
 							shown.toUpperCase() === preset.hex ? 'border-slate-800' : 'border-white ring-1 ring-slate-200'
 						}`}
 						style={{ backgroundColor: preset.hex }}
@@ -170,6 +171,41 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 				<div>
 					<h3 className="text-sm font-bold text-slate-800">Colours</h3>
 					<p className="text-[11px] text-slate-500">Make the app, login page and documents match your company.</p>
+				</div>
+			</div>
+
+			<div className="pb-4 mb-1 border-b border-slate-100">
+				<p className="text-xs font-bold text-slate-800">Ready-made themes</p>
+				<p className="text-[11px] text-slate-500 mt-0.5">One click sets all three colours. You can still adjust each one below.</p>
+				<div className="grid grid-cols-2 gap-2 mt-3">
+					{COLOR_THEMES.map((theme) => {
+						const active =
+							appColor.toUpperCase() === theme.app &&
+							sidebarColor.toUpperCase() === theme.sidebar &&
+							documentColor.toUpperCase() === theme.document;
+						return (
+							<button
+								key={theme.name}
+								type="button"
+								disabled={!canEdit || saving}
+								onClick={() => {
+									setAppColor(theme.app);
+									setSidebarColor(theme.sidebar);
+									setDocumentColor(theme.document);
+								}}
+								className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+									active ? 'border-slate-800 bg-slate-50' : 'border-slate-200 hover:border-slate-400'
+								}`}
+							>
+								<span className="flex h-6 w-10 shrink-0 overflow-hidden rounded-md ring-1 ring-slate-200" aria-hidden>
+									<span className="flex-1" style={{ backgroundColor: theme.sidebar }} />
+									<span className="flex-1" style={{ backgroundColor: theme.app }} />
+									<span className="flex-1" style={{ backgroundColor: theme.document }} />
+								</span>
+								<span className="text-xs font-semibold text-slate-700">{theme.name}</span>
+							</button>
+						);
+					})}
 				</div>
 			</div>
 

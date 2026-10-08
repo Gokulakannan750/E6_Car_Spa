@@ -123,4 +123,19 @@ describe('InvoicePrintDocument — company branding', () => {
 		expect(text).not.toContain('Terms');
 		expectNoLegacyText(container.innerHTML);
 	});
+
+	it('has no HSN/SAC column on a GST invoice, but still shows the GST rate', () => {
+		const gstInvoice = {
+			...invoice,
+			isGstEnabled: true,
+			items: [{ ...invoice.items[0], taxRatePercent: 18 }],
+		} as InvoiceDto;
+
+		const { container } = render(<InvoicePrintDocument invoice={gstInvoice} businessProfile={null} />);
+		const headers = Array.from(container.querySelectorAll('thead th')).map((th) => th.textContent?.trim());
+
+		expect(headers).toContain('GST');
+		expect(headers.join(' ')).not.toMatch(/HSN|SAC/i);
+		expect(container.textContent).not.toMatch(/HSN|SAC|998714|998729/);
+	});
 });

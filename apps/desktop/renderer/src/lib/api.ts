@@ -824,7 +824,6 @@ export interface PublicInvoiceItemDto {
   quantity: number;
   rate: number;
   amount: number;
-  hsnSac?: string | null;
   taxRatePercent?: number | null;
 }
 

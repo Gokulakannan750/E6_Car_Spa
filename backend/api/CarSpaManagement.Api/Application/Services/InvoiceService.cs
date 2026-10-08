@@ -1329,7 +1329,6 @@ public class InvoiceService : IInvoiceService
 				Quantity: ii.Quantity,
 				Rate: ii.UnitPrice,
 				Amount: InvoiceCalculator.Round(ii.UnitPrice * ii.Quantity) - ii.Discount, // sums to Subtotal, as on every invoice view
-				HsnSac: isGst ? "998729" : null,
 				TaxRatePercent: isGst ? ii.TaxRatePercent : null
 			))
 			.ToList();

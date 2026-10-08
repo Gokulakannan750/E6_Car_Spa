@@ -224,7 +224,6 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 						{
 							columns.ConstantColumn(24);
 							columns.RelativeColumn(6);
-							if (isGst) columns.ConstantColumn(65);
 							if (isGst) columns.ConstantColumn(40);
 							columns.ConstantColumn(35);
 							columns.ConstantColumn(75);
@@ -240,8 +239,6 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 							if (isGst)
 							{
 								header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
-									.AlignCenter().Text("HSN/SAC").FontSize(8).Bold().FontColor(darkColor);
-								header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
 									.AlignCenter().Text("GST").FontSize(8).Bold().FontColor(darkColor);
 							}
 							header.Cell().Border(1).BorderColor(borderColor).Background(tableHeaderBg).Padding(5)
@@ -255,7 +252,7 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 						var items = invoice.InvoiceItems?.Where(it => !it.IsDeleted).OrderBy(it => it.CreatedAt).ToList() ?? new List<InvoiceItem>();
 						if (items.Count == 0)
 						{
-							var colSpan = isGst ? 7 : 5;
+							var colSpan = isGst ? 6 : 5;
 							table.Cell().ColumnSpan((uint)colSpan).Border(1).BorderColor(borderColor).Padding(12)
 								.AlignCenter().Text("No service items recorded on this invoice.").Italic().FontColor(mutedColor);
 						}
@@ -273,8 +270,6 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 									.Text(itm.Description).FontSize(8.5f).SemiBold().FontColor(darkColor);
 								if (isGst)
 								{
-									table.Cell().Border(1).BorderColor(borderColor).Padding(5)
-										.AlignCenter().Text("998714").FontSize(8).FontColor(mutedColor);
 									table.Cell().Border(1).BorderColor(borderColor).Padding(5)
 										.AlignCenter().Text(itm.TaxRatePercent.HasValue ? InvoiceCalculator.FormatRate(itm.TaxRatePercent.Value) : "—").FontSize(8).FontColor(mutedColor);
 								}

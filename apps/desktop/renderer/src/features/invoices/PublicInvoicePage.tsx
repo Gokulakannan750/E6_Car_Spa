@@ -240,7 +240,6 @@ export function PublicInvoicePage() {
 									<tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-[11px] uppercase">
 										<th className="py-3 px-4">#</th>
 										<th className="py-3 px-4">Service Description</th>
-										{isGst && <th className="py-3 px-4 text-center">HSN/SAC</th>}
 										{isGst && <th className="py-3 px-4 text-center">GST</th>}
 										<th className="py-3 px-4 text-center">Qty</th>
 										<th className="py-3 px-4 text-right">Rate</th>
@@ -252,11 +251,6 @@ export function PublicInvoicePage() {
 										<tr key={idx} className="hover:bg-slate-50/50 transition-colors">
 											<td className="py-3 px-4 text-slate-400 font-mono">{idx + 1}</td>
 											<td className="py-3 px-4 font-semibold text-slate-900">{item.description}</td>
-											{isGst && (
-												<td className="py-3 px-4 text-center font-mono text-slate-600">
-													{item.hsnSac || '—'}
-												</td>
-											)}
 											{isGst && (
 												<td className="py-3 px-4 text-center font-mono text-slate-600">
 													{item.taxRatePercent == null ? '—' : formatRate(item.taxRatePercent)}

@@ -476,4 +476,19 @@ public class InvoicePdfGeneratorTests
         Assert.DoesNotContain("mail:", text);
         AssertNoLegacyText(text);
     }
+
+    [Fact]
+    public void GenerateInvoicePdf_GstInvoice_HasNoHsnSacColumnOrHardCodedCode()
+    {
+        var invoice = CreateSampleInvoice();
+        invoice.IsGstEnabled = true;
+        foreach (var item in invoice.InvoiceItems) item.TaxRatePercent = 18m;
+
+        var text = ExtractAllText(new InvoicePdfGenerator().GenerateInvoicePdf(invoice, new BusinessProfile { BusinessName = "Sunrise" }));
+
+        Assert.DoesNotContain("998714", text);
+        Assert.DoesNotContain("998729", text);
+        Assert.DoesNotContain("SAC", text);
+        Assert.DoesNotContain("HSN", text);
+    }
 }

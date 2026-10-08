@@ -39,7 +39,6 @@ public record PublicInvoiceItemDto(
     int Quantity,
     decimal Rate,
     decimal Amount,
-    string? HsnSac,
     decimal? TaxRatePercent = null
 );
 
