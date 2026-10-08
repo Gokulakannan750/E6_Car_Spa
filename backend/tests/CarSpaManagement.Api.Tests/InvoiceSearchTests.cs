@@ -60,6 +60,9 @@ public class InvoiceSearchTests
         public Task<Application.DTOs.WhatsApp.SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(Application.DTOs.WhatsApp.SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task ProcessPendingMessagesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogResponse> GetMessageLogAsync(string? status = null, int? year = null, int? month = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogResponse(Array.Empty<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogItemDto>(), 0, page, pageSize));
+
         public Task<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse> GetUsageAsync(int months = 6, CancellationToken cancellationToken = default) =>
             Task.FromResult(new CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse(Array.Empty<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageMonthDto>()));
 

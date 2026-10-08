@@ -62,6 +62,23 @@ public record WhatsAppUsageMonthDto(
 
 public record WhatsAppUsageResponse(IReadOnlyList<WhatsAppUsageMonthDto> Months);
 
+/// <summary>One automatic WhatsApp message that was not sent (failed or skipped), with who it was for and why.</summary>
+public record WhatsAppMessageLogItemDto(
+	Guid Id,
+	DateTime CreatedAtUtc,
+	string MessageType,
+	string Status,
+	Guid CustomerId,
+	string CustomerName,
+	string RecipientPhone,
+	Guid InvoiceId,
+	string? InvoiceNumber,
+	string? Reason,
+	int AttemptCount
+);
+
+public record WhatsAppMessageLogResponse(IReadOnlyList<WhatsAppMessageLogItemDto> Items, int TotalCount, int Page, int PageSize);
+
 public record TestWhatsAppConnectionRequest(
 	string? PhoneNumberId = null,
 	string? BusinessAccountId = null,

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using CarSpaManagement.Api.Application.DTOs.WhatsApp;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -13,11 +14,16 @@ public class WhatsAppSettingsController : ControllerBase
 {
 	private readonly IWhatsAppService _whatsAppService;
 	private readonly IWhatsAppTemplateProvisioningService _templateProvisioning;
+	private readonly IAuthorizationService _authorizationService;
 
-	public WhatsAppSettingsController(IWhatsAppService whatsAppService, IWhatsAppTemplateProvisioningService templateProvisioning)
+	public WhatsAppSettingsController(
+		IWhatsAppService whatsAppService,
+		IWhatsAppTemplateProvisioningService templateProvisioning,
+		IAuthorizationService authorizationService)
 	{
 		_whatsAppService = whatsAppService;
 		_templateProvisioning = templateProvisioning;
+		_authorizationService = authorizationService;
 	}
 
 	[HttpGet]
@@ -63,6 +69,26 @@ public class WhatsAppSettingsController : ControllerBase
 	{
 		var usage = await _whatsAppService.GetUsageAsync(months, ct);
 		return Ok(usage);
+	}
+
+	/// <summary>Failed and skipped messages with the customer they were for. Shows names and phone numbers, so it also needs customers.view.</summary>
+	[HttpGet("messages")]
+	[RequirePermission("settings.view")]
+	public async Task<IActionResult> GetMessages(
+		[FromQuery] string? status,
+		[FromQuery] int? year,
+		[FromQuery] int? month,
+		[FromQuery] int page = 1,
+		[FromQuery] int pageSize = 20,
+		CancellationToken ct = default)
+	{
+		if (!(await _authorizationService.AuthorizeAsync(User, "Permission:customers.view")).Succeeded)
+		{
+			return StatusCode(StatusCodes.Status403Forbidden, new { error = "Viewing who a message was for requires the 'customers.view' permission." });
+		}
+
+		var result = await _whatsAppService.GetMessageLogAsync(status, year, month, page, pageSize, ct);
+		return Ok(result);
 	}
 
 	[HttpGet("templates")]

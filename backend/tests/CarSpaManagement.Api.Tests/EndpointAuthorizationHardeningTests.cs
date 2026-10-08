@@ -65,6 +65,9 @@ public class EndpointAuthorizationHardeningTests
         public Task<IReadOnlyList<InvoiceWhatsAppStatusDto>> GetInvoiceWhatsAppStatusAsync(Guid invoiceId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<InvoiceWhatsAppStatusDto>>(new List<InvoiceWhatsAppStatusDto>());
         public Task<MetaWhatsAppTemplatesResponse> GetMetaTemplatesAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException();
         public Task<SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+        public Task<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogResponse> GetMessageLogAsync(string? status = null, int? year = null, int? month = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogResponse(Array.Empty<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppMessageLogItemDto>(), 0, page, pageSize));
+
         public Task<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse> GetUsageAsync(int months = 6, CancellationToken cancellationToken = default) =>
             Task.FromResult(new CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageResponse(Array.Empty<CarSpaManagement.Api.Application.DTOs.WhatsApp.WhatsAppUsageMonthDto>()));
 

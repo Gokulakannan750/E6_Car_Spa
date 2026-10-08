@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { getWhatsAppUsage, type WhatsAppUsageMonthDto } from '../../lib/api';
+import { WhatsAppMessageLog, type MessageLogMonth, type MessageLogStatus } from './WhatsAppMessageLog';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -13,6 +14,13 @@ export function WhatsAppUsagePanel() {
 	const [rows, setRows] = useState<WhatsAppUsageMonthDto[] | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [logStatus, setLogStatus] = useState<MessageLogStatus>('all');
+	const [logMonth, setLogMonth] = useState<MessageLogMonth | null>(null);
+
+	const showMessages = (status: MessageLogStatus, row: WhatsAppUsageMonthDto) => {
+		setLogStatus(status);
+		setLogMonth({ year: row.year, month: row.month });
+	};
 
 	async function load() {
 		try {
@@ -34,6 +42,7 @@ export function WhatsAppUsagePanel() {
 	const hasAnyMessages = (rows ?? []).some((row) => row.total > 0);
 
 	return (
+		<div className="space-y-6">
 		<div className="p-5 rounded-2xl border border-slate-200 bg-white space-y-4 shadow-xs">
 			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
 				<div className="flex items-center gap-2.5">
@@ -87,8 +96,34 @@ export function WhatsAppUsagePanel() {
 								<tr key={`${row.year}-${row.month}`} className="border-b border-slate-50 last:border-0">
 									<td className="py-2 pr-4 font-medium text-slate-700">{monthLabel(row)}</td>
 									<td className="py-2 pr-4 text-right font-mono text-emerald-700">{row.sent}</td>
-									<td className="py-2 pr-4 text-right font-mono text-rose-600">{row.failed}</td>
-									<td className="py-2 pr-4 text-right font-mono text-slate-600">{row.skipped}</td>
+									<td className="py-2 pr-4 text-right font-mono text-rose-600">
+										{row.failed > 0 ? (
+											<button
+												type="button"
+												onClick={() => showMessages('failed', row)}
+												aria-label={`Show ${row.failed} failed messages for ${monthLabel(row)}`}
+												className="underline decoration-dotted underline-offset-2 hover:text-rose-800"
+											>
+												{row.failed}
+											</button>
+										) : (
+											row.failed
+										)}
+									</td>
+									<td className="py-2 pr-4 text-right font-mono text-slate-600">
+										{row.skipped > 0 ? (
+											<button
+												type="button"
+												onClick={() => showMessages('skipped', row)}
+												aria-label={`Show ${row.skipped} skipped messages for ${monthLabel(row)}`}
+												className="underline decoration-dotted underline-offset-2 hover:text-slate-900"
+											>
+												{row.skipped}
+											</button>
+										) : (
+											row.skipped
+										)}
+									</td>
 									<td className="py-2 pr-4 text-right font-mono text-slate-600">{row.pending}</td>
 									<td className="py-2 pr-4 text-right font-mono text-slate-600">{row.invoiceMessagesSent}</td>
 									<td className="py-2 text-right font-mono text-slate-600">{row.paymentMessagesSent}</td>
@@ -101,6 +136,14 @@ export function WhatsAppUsagePanel() {
 					</p>
 				</div>
 			)}
+		</div>
+
+		<WhatsAppMessageLog
+			status={logStatus}
+			onStatusChange={setLogStatus}
+			month={logMonth}
+			onClearMonth={() => setLogMonth(null)}
+		/>
 		</div>
 	);
 }

@@ -17,6 +17,7 @@ public interface IWhatsAppService
 	Task<SendTestWhatsAppMessageResponse> SendTestTemplateMessageAsync(SendTestWhatsAppMessageRequest request, CancellationToken cancellationToken = default);
 	Task<WhatsAppHealthDto> GetHealthStatusAsync(bool forceProbe = false, CancellationToken cancellationToken = default);
 	Task<WhatsAppUsageResponse> GetUsageAsync(int months = 6, CancellationToken cancellationToken = default);
+	Task<WhatsAppMessageLogResponse> GetMessageLogAsync(string? status = null, int? year = null, int? month = null, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default);
 	Task ProbeHealthAsync(CancellationToken cancellationToken = default);
 	string? NormalizePhoneNumber(string? phone);
 }

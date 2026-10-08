@@ -3217,6 +3217,36 @@ export interface WhatsAppUsageResponse {
 	months: WhatsAppUsageMonthDto[];
 }
 
+/** One automatic message that was not sent (failed or skipped), with who it was for and why. */
+export interface WhatsAppMessageLogItemDto {
+	id: string;
+	createdAtUtc: string;
+	messageType: 'InvoiceFinalized' | 'PaymentCompleted' | string;
+	status: 'Failed' | 'Skipped' | string;
+	customerId: string;
+	customerName: string;
+	recipientPhone: string;
+	invoiceId: string;
+	invoiceNumber: string | null;
+	reason: string | null;
+	attemptCount: number;
+}
+
+export interface WhatsAppMessageLogResponse {
+	items: WhatsAppMessageLogItemDto[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+}
+
+export interface WhatsAppMessageLogParams {
+	status?: 'failed' | 'skipped';
+	year?: number;
+	month?: number;
+	page?: number;
+	pageSize?: number;
+}
+
 export interface WhatsAppHealthDto {
 	status: 'NotConfigured' | 'Healthy' | 'AuthenticationFailed' | 'ConfigurationInvalid' | 'TemporarilyUnavailable' | string;
 	lastCheckedAtUtc?: string | null;
@@ -3304,6 +3334,17 @@ export async function getWhatsAppConfig() {
 
 export async function getWhatsAppUsage(months = 6) {
 	return request<WhatsAppUsageResponse>(`/api/settings/whatsapp/usage?months=${encodeURIComponent(String(months))}`, {}, 'view WhatsApp usage');
+}
+
+export async function getWhatsAppMessageLog(params: WhatsAppMessageLogParams = {}) {
+	const query = new URLSearchParams();
+	if (params.status) query.set('status', params.status);
+	if (params.year) query.set('year', String(params.year));
+	if (params.month) query.set('month', String(params.month));
+	if (params.page) query.set('page', String(params.page));
+	if (params.pageSize) query.set('pageSize', String(params.pageSize));
+	const qs = query.toString();
+	return request<WhatsAppMessageLogResponse>(`/api/settings/whatsapp/messages${qs ? `?${qs}` : ''}`, {}, 'view WhatsApp messages');
 }
 
 export async function getWhatsAppHealth(probe = false) {

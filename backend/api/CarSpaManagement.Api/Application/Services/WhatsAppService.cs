@@ -722,6 +722,81 @@ public class WhatsAppService : IWhatsAppService
 		return new WhatsAppUsageResponse(result);
 	}
 
+	/// <summary>
+	/// The messages that were not sent (failed or skipped), newest first, so staff can see whose messages need attention.
+	/// Without a month it covers the last 6 months. Customer and invoice details are read even if those records were
+	/// deleted later, so the list always matches the usage counts.
+	/// </summary>
+	public async Task<WhatsAppMessageLogResponse> GetMessageLogAsync(
+		string? status = null, int? year = null, int? month = null, int page = 1, int pageSize = 20,
+		CancellationToken cancellationToken = default)
+	{
+		page = Math.Max(1, page);
+		pageSize = Math.Clamp(pageSize, 1, 100);
+
+		var wanted = (status?.Trim().ToLowerInvariant()) switch
+		{
+			"failed" => new[] { WhatsAppMessageStatus.Failed },
+			"skipped" => new[] { WhatsAppMessageStatus.Skipped },
+			_ => new[] { WhatsAppMessageStatus.Failed, WhatsAppMessageStatus.Skipped }
+		};
+
+		var now = DateTime.UtcNow;
+		var thisMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+		DateTime from;
+		DateTime? until = null;
+		if (year.HasValue && month is >= 1 and <= 12 && year is >= 2000 and <= 2200)
+		{
+			from = new DateTime(year.Value, month.Value, 1, 0, 0, 0, DateTimeKind.Utc);
+			until = from.AddMonths(1);
+		}
+		else
+		{
+			from = thisMonth.AddMonths(-5);
+		}
+
+		var query = _db.WhatsAppMessages
+			.AsNoTracking()
+			.Where(m => wanted.Contains(m.Status) && m.CreatedAt >= from && (until == null || m.CreatedAt < until));
+
+		var total = await query.CountAsync(cancellationToken);
+		var rows = await query
+			.OrderByDescending(m => m.CreatedAt)
+			.ThenBy(m => m.Id)
+			.Skip((page - 1) * pageSize)
+			.Take(pageSize)
+			.Select(m => new
+			{
+				m.Id, m.CreatedAt, m.MessageType, m.Status, m.CustomerId, m.InvoiceId,
+				m.RecipientPhone, m.ErrorMessage, m.AttemptCount
+			})
+			.ToListAsync(cancellationToken);
+
+		var customerIds = rows.Select(r => r.CustomerId).Distinct().ToList();
+		var invoiceIds = rows.Select(r => r.InvoiceId).Distinct().ToList();
+		var customerNames = await _db.Customers.IgnoreQueryFilters().AsNoTracking()
+			.Where(c => customerIds.Contains(c.Id)).Select(c => new { c.Id, c.Name })
+			.ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
+		var invoiceNumbers = await _db.Invoices.IgnoreQueryFilters().AsNoTracking()
+			.Where(i => invoiceIds.Contains(i.Id)).Select(i => new { i.Id, i.InvoiceNumber })
+			.ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken);
+
+		var items = rows.Select(r => new WhatsAppMessageLogItemDto(
+			r.Id,
+			r.CreatedAt,
+			r.MessageType.ToString(),
+			r.Status.ToString(),
+			r.CustomerId,
+			customerNames.TryGetValue(r.CustomerId, out var name) ? name : "Unknown customer",
+			r.RecipientPhone,
+			r.InvoiceId,
+			invoiceNumbers.TryGetValue(r.InvoiceId, out var number) ? number : null,
+			r.ErrorMessage,
+			r.AttemptCount)).ToList();
+
+		return new WhatsAppMessageLogResponse(items, total, page, pageSize);
+	}
+
 	public async Task<bool> ProcessMessageAsync(Guid messageId, CancellationToken cancellationToken = default)
 	{
 		var semaphore = _messageLocks.GetOrAdd(messageId, _ => new SemaphoreSlim(1, 1));

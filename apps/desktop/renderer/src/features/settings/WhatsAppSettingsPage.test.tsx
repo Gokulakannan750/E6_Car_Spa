@@ -13,6 +13,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		testWhatsAppConnection: vi.fn(),
 		getWhatsAppTemplates: vi.fn(),
 		getWhatsAppUsage: vi.fn(),
+		getWhatsAppMessageLog: vi.fn(),
 		sendTestWhatsAppMessage: vi.fn(),
 	};
 });
@@ -43,6 +44,7 @@ describe('WhatsAppSettingsPage Component', () => {
 				{ year: 2026, month: 10, total: 10, sent: 8, failed: 1, skipped: 1, pending: 0, invoiceMessagesSent: 5, paymentMessagesSent: 3 },
 			],
 		});
+		vi.mocked(api.getWhatsAppMessageLog).mockResolvedValue({ items: [], totalCount: 0, page: 1, pageSize: 15 });
 		vi.mocked(api.getWhatsAppTemplates).mockResolvedValue({
 			isSuccess: true,
 			templates: [],
