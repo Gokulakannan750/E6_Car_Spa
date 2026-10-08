@@ -749,7 +749,7 @@ export function MonthlyShowroomReportView() {
 						<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 							<div>
 								<span className="text-[11px] font-bold text-secondary uppercase tracking-widest">
-									E6 Car Spa Management Report
+									Management Report
 								</span>
 								<h3 className="text-xl font-bold text-on-surface mt-0.5">{activeShowroomTitle}</h3>
 								<p className="text-xs text-on-surface-variant mt-0.5">

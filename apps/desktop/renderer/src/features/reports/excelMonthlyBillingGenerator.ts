@@ -1,5 +1,5 @@
 /**
- * E6 Car Spa Management — Monthly Billing Reports Excel Generator (ExcelJS)
+ * Car Spa Management — Monthly Billing Reports Excel Generator (ExcelJS)
  *
  * Generates an executive-grade, beautifully formatted Excel workbook:
  *   - SHEET 1: "Monthly Summary" (Executive presentation, KPIs, Invoice & Payment breakdown, Reconciliation note)
@@ -24,6 +24,7 @@ import type {
 	MonthlyBillingSummaryDto,
 	DailyBillingSheetDto,
 } from '../../lib/api';
+import { reportCreator, reportFilePrefix, reportTitle } from '../../lib/documentBranding';
 
 // ────────────────────────────────────────────────────────────────────────────
 // COLOR PALETTE (ARGB Hex Strings with 'FF' Alpha prefix)
@@ -174,7 +175,7 @@ export function buildMonthlySummarySheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = 34;
 	ws.mergeCells(`A${r}:D${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — MONTHLY BILLING REPORT';
+	titleRow.getCell(1).value = reportTitle('MONTHLY BILLING REPORT');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -558,7 +559,7 @@ export function buildDailySheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = 34;
 	ws.mergeCells(`A${r}:I${r}`);
-	titleRow.getCell(1).value = `E6 CAR SPA — BILLING ACTIVITY FOR ${sheet.dateFormatted.toUpperCase()}`;
+	titleRow.getCell(1).value = reportTitle(`BILLING ACTIVITY FOR ${sheet.dateFormatted.toUpperCase()}`);
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1176,8 +1177,8 @@ export function createMonthlyBillingWorkbook(
 	report: MonthlyBillingReportResponse
 ): ExcelJS.Workbook {
 	const workbook = new ExcelJS.Workbook();
-	workbook.creator = 'E6 Car Spa Management Suite';
-	workbook.lastModifiedBy = 'E6 Car Spa Management Suite';
+	workbook.creator = reportCreator();
+	workbook.lastModifiedBy = reportCreator();
 	workbook.created = new Date();
 	workbook.modified = new Date();
 
@@ -1202,7 +1203,7 @@ export async function generateAndDownloadMonthlyBillingReport(
 ): Promise<string> {
 	const workbook = createMonthlyBillingWorkbook(report);
 	const sanitizedMonth = (report.monthName || `${report.year}_${report.month}`).replace(/\s+/g, '_');
-	const fileName = `E6_Car_Spa_Billing_Report_${sanitizedMonth}.xlsx`;
+	const fileName = `${reportFilePrefix()}Billing_Report_${sanitizedMonth}.xlsx`;
 
 	const buffer = await workbook.xlsx.writeBuffer();
 	const blob = new Blob([buffer], {

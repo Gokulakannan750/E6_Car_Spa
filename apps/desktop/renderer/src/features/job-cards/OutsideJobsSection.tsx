@@ -1099,7 +1099,7 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 									type="text"
 									value={newVendorAddress}
 									onChange={(e) => setNewVendorAddress(e.target.value)}
-									placeholder="e.g. Perundurai Road, Erode"
+									placeholder="e.g. Main Road, City"
 									className="w-full border border-outline-variant rounded px-2.5 py-1.5 text-sm"
 								/>
 							</div>

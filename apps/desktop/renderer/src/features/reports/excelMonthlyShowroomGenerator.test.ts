@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	exportSingleShowroomWorkbook,
 	generateExecutiveSummaryWorksheet,
@@ -12,6 +13,10 @@ import type {
 	MonthlyShowroomDetailDto,
 } from '../../lib/api';
 import ExcelJS from 'exceljs';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('excelMonthlyShowroomGenerator (ExcelJS) — 7-Sheet Executive Styling & Formatting Parity', () => {
 	beforeEach(() => {
@@ -307,7 +312,7 @@ describe('excelMonthlyShowroomGenerator (ExcelJS) — 7-Sheet Executive Styling 
 
 		// Title formatting
 		const titleCell = ws.getCell('A1');
-		expect(titleCell.value).toBe('E6 CAR SPA — SHOWROOM MANAGEMENT REPORT');
+		expect(titleCell.value).toBe('SUNRISE DETAILING — SHOWROOM MANAGEMENT REPORT');
 		expect(titleCell.font?.bold).toBe(true);
 		expect(titleCell.font?.color?.argb).toBe(ARGB.WHITE);
 		expect(titleCell.fill).toEqual({
@@ -390,7 +395,7 @@ describe('excelMonthlyShowroomGenerator (ExcelJS) — 7-Sheet Executive Styling 
 		expect(loadedWb.worksheets[6].name).toBe('Service Summary');
 
 		const summaryWs = loadedWb.getWorksheet('Summary')!;
-		expect(summaryWs.getCell('A1').value).toBe('E6 CAR SPA — SHOWROOM MANAGEMENT REPORT');
+		expect(summaryWs.getCell('A1').value).toBe('SUNRISE DETAILING — SHOWROOM MANAGEMENT REPORT');
 	});
 
 	it('handles empty showroom records gracefully across all 7 sheets without crashing', () => {

@@ -17,7 +17,9 @@ public record BusinessProfileDto(
     string InvoicePrefix,
     string? TermsAndConditions,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    string? Tagline = null,
+    string? BrandColor = null
 );
 
 public class UpdateBusinessProfileRequest
@@ -66,6 +68,14 @@ public class UpdateBusinessProfileRequest
 
     [MaxLength(2000, ErrorMessage = "Terms & conditions cannot exceed 2000 characters.")]
     public string? TermsAndConditions { get; set; }
+
+    /// <summary>Null leaves the saved value unchanged; an empty string clears it.</summary>
+    [MaxLength(150, ErrorMessage = "Tagline cannot exceed 150 characters.")]
+    public string? Tagline { get; set; }
+
+    /// <summary>Document accent colour as #RRGGBB. Null leaves the saved value unchanged; an empty string clears it.</summary>
+    [MaxLength(7, ErrorMessage = "Brand colour must look like #RRGGBB.")]
+    public string? BrandColor { get; set; }
 }
 
 public record LogoUploadResponse(

@@ -23,7 +23,9 @@ public record PublicBusinessDto(
     string? Phone,
     string? Email,
     string? Gstin,
-    string? LogoUrl
+    string? LogoUrl,
+    string? Tagline = null,
+    string? BrandColor = null
 );
 
 public record PublicCustomerDto(

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	createStaffAdvancesWorkbook,
 	calculateStaffAdvancesSummary,
@@ -9,6 +10,10 @@ import {
 	type StaffAdvancesReportData,
 } from './excelStaffAdvancesGenerator';
 import ExcelJS from 'exceljs';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('Sample Staff Advances Excel Verification (ExcelJS)', () => {
 	it('generates a real multi-sheet Excel file and verifies formatting integrity & reconciliation', async () => {
@@ -120,7 +125,7 @@ describe('Sample Staff Advances Excel Verification (ExcelJS)', () => {
 
 		// Title formatting
 		const titleCell = summaryWs.getCell('A1');
-		expect(titleCell.value).toBe('E6 CAR SPA — STAFF ADVANCE REPORT');
+		expect(titleCell.value).toBe('SUNRISE DETAILING — STAFF ADVANCE REPORT');
 		expect(titleCell.font?.bold).toBe(true);
 		expect(titleCell.font?.color?.argb).toBe(ARGB.WHITE);
 		expect(titleCell.fill).toEqual({
@@ -150,7 +155,7 @@ describe('Sample Staff Advances Excel Verification (ExcelJS)', () => {
 		expect(rameshWs).toBeDefined();
 
 		const rTitleCell = rameshWs.getCell('A1');
-		expect(rTitleCell.value).toBe('E6 CAR SPA — STAFF ADVANCE REPORT');
+		expect(rTitleCell.value).toBe('SUNRISE DETAILING — STAFF ADVANCE REPORT');
 		const rSubCell = rameshWs.getCell('A2');
 		expect(rSubCell.value).toContain('STAFF STATEMENT: RAMESH');
 

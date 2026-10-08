@@ -111,7 +111,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
             (current ??
                     const BusinessProfileModel(
                       id: '',
-                      businessName: 'E6 Car Spa',
+                      businessName: '',
                       addressLine1: '',
                       city: '',
                       state: '',

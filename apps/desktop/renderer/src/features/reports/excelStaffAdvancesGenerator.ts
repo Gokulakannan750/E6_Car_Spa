@@ -1,5 +1,5 @@
 /**
- * E6 Car Spa Management — Staff Advances Excel Generator (ExcelJS)
+ * Car Spa Management — Staff Advances Excel Generator (ExcelJS)
  *
  * Generates an executive-grade, beautifully formatted Excel workbook:
  *   - SHEET 1: "Staff Summary" (Executive presentation, KPIs, Monthly Advance Summary, Staff Directory & Balances, Reconciliation note)
@@ -29,6 +29,7 @@ import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
 } from './excelMonthlyBillingGenerator';
+import { reportCreator, reportFilePrefix, reportTitle } from '../../lib/documentBranding';
 
 export { ARGB, NUM_FORMATS, formatDateDisplay, formatDateTimeDisplay };
 
@@ -477,7 +478,7 @@ export function buildStaffSummarySheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:F${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — STAFF ADVANCE REPORT';
+	titleRow.getCell(1).value = reportTitle('STAFF ADVANCE REPORT');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1032,7 +1033,7 @@ export function buildStaffMemberSheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells(`A${r}:F${r}`);
-	titleRow.getCell(1).value = 'E6 CAR SPA — STAFF ADVANCE REPORT';
+	titleRow.getCell(1).value = reportTitle('STAFF ADVANCE REPORT');
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1490,8 +1491,8 @@ export function createStaffAdvancesWorkbook(
 	reportData: StaffAdvancesReportData
 ): ExcelJS.Workbook {
 	const workbook = new ExcelJS.Workbook();
-	workbook.creator = 'E6 Car Spa Management System';
-	workbook.lastModifiedBy = 'E6 Car Spa Executive Reports';
+	workbook.creator = reportCreator();
+	workbook.lastModifiedBy = reportCreator();
 	workbook.created = new Date();
 	workbook.modified = new Date();
 
@@ -1524,7 +1525,7 @@ export async function generateAndDownloadStaffAdvancesReport(
 ): Promise<void> {
 	const workbook = createStaffAdvancesWorkbook(reportData);
 
-	const defaultFileName = fileName || `E6_Car_Spa_Staff_Advances_Report_${reportData.startDate}_to_${reportData.endDate}.xlsx`;
+	const defaultFileName = fileName || `${reportFilePrefix()}Staff_Advances_Report_${reportData.startDate}_to_${reportData.endDate}.xlsx`;
 
 	const buffer = await workbook.xlsx.writeBuffer();
 	const blob = new Blob([buffer], {

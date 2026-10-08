@@ -1,5 +1,5 @@
 /**
- * E6 Car Spa Management — Outside Jobs & External Movements Excel Generator (ExcelJS)
+ * Car Spa Management — Outside Jobs & External Movements Excel Generator (ExcelJS)
  *
  * Generates an executive-grade, beautifully formatted 4-sheet operational & accounting workbook:
  *   - SHEET 1: "Executive Summary" (Executive presentation, KPIs, Vendor Workload & Cost Allocation, Reconciliation Notes)
@@ -40,6 +40,7 @@ import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
 } from './excelMonthlyBillingGenerator';
+import { reportCreator, reportFilePrefix, reportTitle } from '../../lib/documentBranding';
 
 export { ARGB, formatDateDisplay, formatDateTimeDisplay };
 
@@ -174,7 +175,7 @@ export function buildExecutiveSummarySheet(
 	r1.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells('A1:I1');
 	const cTitle = ws.getCell('A1');
-	cTitle.value = 'E6 CAR SPA — OUTSIDE JOBS & EXTERNAL MOVEMENTS REPORT';
+	cTitle.value = reportTitle('OUTSIDE JOBS & EXTERNAL MOVEMENTS REPORT');
 	styleCell(cTitle, {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -607,7 +608,7 @@ export function buildCurrentlyOutsideSheet(
 	r1.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells('A1:O1');
 	const cTitle = ws.getCell('A1');
-	cTitle.value = 'E6 CAR SPA — CURRENTLY OUTSIDE VEHICLES (ACTIVE MOVEMENTS)';
+	cTitle.value = reportTitle('CURRENTLY OUTSIDE VEHICLES (ACTIVE MOVEMENTS)');
 	styleCell(cTitle, {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -890,7 +891,7 @@ export function buildMovementHistorySheet(
 	r1.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells('A1:Q1');
 	const cTitle = ws.getCell('A1');
-	cTitle.value = 'E6 CAR SPA — OUTSIDE JOB & EXTERNAL MOVEMENT AUDIT TRAIL';
+	cTitle.value = reportTitle('OUTSIDE JOB & EXTERNAL MOVEMENT AUDIT TRAIL');
 	styleCell(cTitle, {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1186,7 +1187,7 @@ export function buildVendorAnalysisSheet(
 	r1.height = ROW_HEIGHTS.TITLE;
 	ws.mergeCells('A1:K1');
 	const cTitle = ws.getCell('A1');
-	cTitle.value = 'E6 CAR SPA — EXTERNAL VENDOR OPERATIONAL & FINANCIAL ANALYSIS';
+	cTitle.value = reportTitle('EXTERNAL VENDOR OPERATIONAL & FINANCIAL ANALYSIS');
 	styleCell(cTitle, {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1434,8 +1435,8 @@ export function createOutsideJobsWorkbook(
 	dateRangeLabel: string = 'All Time'
 ): ExcelJS.Workbook {
 	const workbook = new ExcelJS.Workbook();
-	workbook.creator = 'E6 Car Spa Management Suite';
-	workbook.lastModifiedBy = 'E6 Car Spa Management Suite';
+	workbook.creator = reportCreator();
+	workbook.lastModifiedBy = reportCreator();
 	workbook.created = new Date();
 	workbook.modified = new Date();
 
@@ -1461,7 +1462,7 @@ export async function generateAndDownloadOutsideJobsReport(
 ): Promise<string> {
 	const workbook = createOutsideJobsWorkbook(reportData, dateRangeLabel);
 	const sanitizedScope = dateRangeLabel.replace(/[\s/\\:]+/g, '_');
-	const defaultFileName = fileName || `E6_Outside_Jobs_Report_${sanitizedScope}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+	const defaultFileName = fileName || `${reportFilePrefix()}Outside_Jobs_Report_${sanitizedScope}_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
 	const buffer = await workbook.xlsx.writeBuffer();
 	const blob = new Blob([buffer], {

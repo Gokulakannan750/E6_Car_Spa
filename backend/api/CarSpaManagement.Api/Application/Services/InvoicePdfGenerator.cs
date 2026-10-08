@@ -58,17 +58,21 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 		var isDraft = invoice.Status == InvoiceStatus.Draft;
 		var isGst = invoice.IsGstEnabled;
 
-		// Authoritative Business Profile Details with graceful fallbacks
-		var businessName = string.IsNullOrWhiteSpace(businessProfile?.BusinessName) ? "E6 Car Spa" : businessProfile.BusinessName.Trim();
-		var addressLine1 = string.IsNullOrWhiteSpace(businessProfile?.AddressLine1) ? "36, Geetha Nagar Main Road" : businessProfile.AddressLine1.Trim();
-		var addressLine2 = string.IsNullOrWhiteSpace(businessProfile?.AddressLine2) ? "Behind Sakthi Mahal, Perundurai Road" : businessProfile.AddressLine2.Trim();
-		var city = string.IsNullOrWhiteSpace(businessProfile?.City) ? "Erode" : businessProfile.City.Trim();
-		var state = string.IsNullOrWhiteSpace(businessProfile?.State) ? "Tamil Nadu" : businessProfile.State.Trim();
-		var postalCode = string.IsNullOrWhiteSpace(businessProfile?.PostalCode) ? "638011" : businessProfile.PostalCode.Trim();
-		var cityStatePin = $"{city}, {state} - {postalCode}";
-		var phone = string.IsNullOrWhiteSpace(businessProfile?.Phone) ? "9578749449" : businessProfile.Phone.Trim();
-		var email = string.IsNullOrWhiteSpace(businessProfile?.Email) ? "e6carspaerd@gmail.com" : businessProfile.Email.Trim();
+		// Everything about the company comes from its own profile. A detail that has not been filled in is simply left
+		// off the document; the generator never substitutes another company's name, address, contacts or logo.
+		var businessName = businessProfile?.BusinessName?.Trim() ?? string.Empty;
+		var addressLine1 = businessProfile?.AddressLine1?.Trim();
+		var addressLine2 = businessProfile?.AddressLine2?.Trim();
+		var city = businessProfile?.City?.Trim();
+		var state = businessProfile?.State?.Trim();
+		var postalCode = businessProfile?.PostalCode?.Trim();
+		var cityStatePin = BuildCityStatePin(city, state, postalCode);
+		var phone = businessProfile?.Phone?.Trim();
+		var email = businessProfile?.Email?.Trim();
+		var contactLine = BuildContactLine(phone, email);
 		var gstin = businessProfile?.Gstin?.Trim();
+		var tagline = string.IsNullOrWhiteSpace(businessProfile?.Tagline) ? null : businessProfile.Tagline.Trim();
+		var termsLines = SplitLines(businessProfile?.TermsAndConditions);
 
 		// Document Title
 		var documentTitle = isDraft ? "DRAFT INVOICE" : isGst ? "TAX INVOICE" : "INVOICE";
@@ -93,7 +97,7 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 		if (!string.IsNullOrWhiteSpace(invoice.Vehicle?.Variant)) vehicleModelStr += $" ({invoice.Vehicle.Variant.Trim()})";
 		if (!string.IsNullOrWhiteSpace(invoice.Vehicle?.Color)) vehicleModelStr += $" - {invoice.Vehicle.Color.Trim()}";
 
-		var primaryColor = "#A11A1A";
+		var primaryColor = ResolveAccentColor(businessProfile?.BrandColor);
 		var darkColor = "#0F172A";
 		var mutedColor = "#475569";
 		var borderColor = "#CBD5E1";
@@ -124,16 +128,20 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 
 								brandRow.RelativeItem().Column(brandCol =>
 								{
-									brandCol.Item().Text(businessName.ToUpperInvariant())
-										.FontSize(16).Bold().FontColor(primaryColor);
-									brandCol.Item().PaddingTop(1).Text("Premium Auto Detailing & Car Care Solutions")
-										.FontSize(8).FontColor(mutedColor).SemiBold();
+									if (!string.IsNullOrWhiteSpace(businessName))
+										brandCol.Item().Text(businessName.ToUpperInvariant())
+											.FontSize(16).Bold().FontColor(primaryColor);
+									if (tagline != null)
+										brandCol.Item().PaddingTop(1).Text(tagline)
+											.FontSize(8).FontColor(mutedColor).SemiBold();
 									if (!string.IsNullOrWhiteSpace(addressLine1))
 										brandCol.Item().PaddingTop(2).Text(addressLine1).FontSize(8).FontColor(mutedColor);
 									if (!string.IsNullOrWhiteSpace(addressLine2))
 										brandCol.Item().Text(addressLine2).FontSize(8).FontColor(mutedColor);
-									brandCol.Item().Text(cityStatePin).FontSize(8).FontColor(mutedColor);
-									brandCol.Item().Text($"Phone: {phone}  |  Email: {email}").FontSize(8).FontColor(mutedColor);
+									if (cityStatePin != null)
+										brandCol.Item().Text(cityStatePin).FontSize(8).FontColor(mutedColor);
+									if (contactLine != null)
+										brandCol.Item().Text(contactLine).FontSize(8).FontColor(mutedColor);
 
 									if (isGst && !string.IsNullOrWhiteSpace(gstin))
 									{
@@ -299,13 +307,19 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 								notesCol.Item().PaddingVertical(4);
 							}
 
-							notesCol.Item().Column(termsCol =>
+							if (termsLines.Count > 0)
 							{
-								termsCol.Item().Text("Terms & Conditions:").FontSize(8).Bold().FontColor(darkColor);
-								termsCol.Item().PaddingTop(2).Text("1. Payment is due upon completion of vehicle detailing services.").FontSize(7.5f).FontColor(mutedColor);
-								termsCol.Item().Text("2. Goods/services once provided are non-refundable.").FontSize(7.5f).FontColor(mutedColor);
-								termsCol.Item().Text("3. Please inspect your vehicle thoroughly prior to delivery handover.").FontSize(7.5f).FontColor(mutedColor);
-							});
+								notesCol.Item().Column(termsCol =>
+								{
+									termsCol.Item().Text("Terms & Conditions:").FontSize(8).Bold().FontColor(darkColor);
+									for (var i = 0; i < termsLines.Count; i++)
+									{
+										var line = termsCol.Item();
+										if (i == 0) line = line.PaddingTop(2);
+										line.Text(termsLines[i]).FontSize(7.5f).FontColor(mutedColor);
+									}
+								});
+							}
 						});
 
 						summaryRow.ConstantItem(16);
@@ -379,7 +393,7 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 					{
 						r.RelativeItem().Column(c =>
 						{
-							c.Item().Text($"Thank you for choosing {businessName}!").FontSize(8.5f).Bold().FontColor(primaryColor);
+							c.Item().Text(string.IsNullOrWhiteSpace(businessName) ? "Thank you!" : $"Thank you for choosing {businessName}!").FontSize(8.5f).Bold().FontColor(primaryColor);
 							c.Item().Text("This is a computer generated invoice. No physical signature is required.").FontSize(7).FontColor(mutedColor);
 						});
 					});
@@ -398,13 +412,52 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
 		return pdfBytes;
 	}
 
+	/// <summary>Neutral dark slate unless the company chose its own accent colour (#RRGGBB).</summary>
+	public static string ResolveAccentColor(string? brandColor)
+	{
+		if (!string.IsNullOrWhiteSpace(brandColor) &&
+			System.Text.RegularExpressions.Regex.IsMatch(brandColor.Trim(), "^#[0-9a-fA-F]{6}$"))
+		{
+			return brandColor.Trim().ToUpperInvariant();
+		}
+
+		return DefaultAccentColor;
+	}
+
+	public const string DefaultAccentColor = "#1E293B";
+
+	private static string? BuildCityStatePin(string? city, string? state, string? postalCode)
+	{
+		var place = string.Join(", ", new[] { city, state }.Where(part => !string.IsNullOrWhiteSpace(part)));
+		if (!string.IsNullOrWhiteSpace(postalCode))
+		{
+			place = place.Length > 0 ? $"{place} - {postalCode}" : postalCode;
+		}
+
+		return place.Length > 0 ? place : null;
+	}
+
+	private static string? BuildContactLine(string? phone, string? email)
+	{
+		var parts = new List<string>();
+		if (!string.IsNullOrWhiteSpace(phone)) parts.Add($"Phone: {phone}");
+		if (!string.IsNullOrWhiteSpace(email)) parts.Add($"Email: {email}");
+		return parts.Count > 0 ? string.Join("  |  ", parts) : null;
+	}
+
+	private static List<string> SplitLines(string? text) =>
+		string.IsNullOrWhiteSpace(text)
+			? new List<string>()
+			: text.Replace("\r\n", "\n").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+
 	private byte[]? ResolveLogoBytes(string? logoPath)
 	{
 		try
 		{
+			// No logo configured means no logo on the document; there is no built-in default.
 			if (string.IsNullOrWhiteSpace(logoPath))
 			{
-				logoPath = "/uploads/logos/e6-logo.png";
+				return null;
 			}
 
 			var cleanPath = logoPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);

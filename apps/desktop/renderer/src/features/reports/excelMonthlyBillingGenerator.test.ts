@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { clearCompanyProfile, seedCompanyProfile } from '../../test/seedCompanyProfile';
+import { reportCreator, reportFilePrefix, reportTitle } from '../../lib/documentBranding';
 import {
 	formatDateDisplay,
 	formatDateTimeDisplay,
@@ -10,6 +12,10 @@ import {
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
 import ExcelJS from 'exceljs';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workbook Structure', () => {
 	beforeEach(() => {
@@ -47,7 +53,7 @@ describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workboo
 
 		// Title cell A1
 		const cellA1 = ws.getCell('A1');
-		expect(cellA1.value).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
+		expect(cellA1.value).toBe('SUNRISE DETAILING — MONTHLY BILLING REPORT');
 		expect(cellA1.font?.bold).toBe(true);
 		expect(cellA1.font?.color?.argb).toBe(ARGB.WHITE);
 		expect(cellA1.fill).toEqual({
@@ -100,7 +106,7 @@ describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workboo
 		expect(ws).toBeDefined();
 
 		// Header checks
-		expect(ws.getCell('A1').value).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 01-OCT-2026');
+		expect(ws.getCell('A1').value).toContain('SUNRISE DETAILING — BILLING ACTIVITY FOR 01-OCT-2026');
 		expect(ws.getCell('A7').value).toBe('No billing activity for this date.');
 		expect(ws.getCell('A7').fill).toEqual({
 			type: 'pattern',
@@ -182,7 +188,7 @@ describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workboo
 		expect(ws).toBeDefined();
 
 		// Header checks
-		expect(ws.getCell('A1').value).toContain('E6 CAR SPA — BILLING ACTIVITY FOR 15-OCT-2026');
+		expect(ws.getCell('A1').value).toContain('SUNRISE DETAILING — BILLING ACTIVITY FOR 15-OCT-2026');
 		expect(ws.pageSetup.orientation).toBe('landscape');
 
 		// Check all values are present in sheet
@@ -309,11 +315,27 @@ describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workboo
 		};
 
 		const fileName = await generateAndDownloadMonthlyBillingReport(mockReport);
-		expect(fileName).toBe('E6_Car_Spa_Billing_Report_October_2026.xlsx');
+		expect(fileName).toBe('Sunrise_Detailing_Billing_Report_October_2026.xlsx');
 		expect(mockClick).toHaveBeenCalled();
 
 		createElementSpy.mockRestore();
 		mockAppendChild.mockRestore();
 		mockRemoveChild.mockRestore();
+	});
+});
+
+describe('report titles without a saved company', () => {
+	it('carry no company name and no company prefix on the file', () => {
+		clearCompanyProfile();
+		expect(reportTitle('MONTHLY BILLING REPORT')).toBe('MONTHLY BILLING REPORT');
+		expect(reportFilePrefix()).toBe('');
+		expect(reportCreator()).toBe('Management Suite');
+	});
+
+	it('use the saved company name, upper-cased in titles and underscored in file names', () => {
+		seedCompanyProfile('Blue Wave & Co.');
+		expect(reportTitle('MONTHLY BILLING REPORT')).toBe('BLUE WAVE & CO. — MONTHLY BILLING REPORT');
+		expect(reportFilePrefix()).toBe('Blue_Wave_Co_');
+		expect(reportCreator()).toBe('Blue Wave & Co.');
 	});
 });

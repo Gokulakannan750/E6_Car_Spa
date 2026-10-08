@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	createOutsideJobsWorkbook,
 	generateAndDownloadOutsideJobsReport,
@@ -9,6 +10,10 @@ import {
 	NUM_FORMATS,
 } from './excelOutsideJobsGenerator';
 import type { OutsideJobsReportDto } from '../../lib/api';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('excelOutsideJobsGenerator (ExcelJS) — Executive Styling & Workbook Structure', () => {
 	const sampleReportData: OutsideJobsReportDto = {
@@ -185,7 +190,7 @@ describe('excelOutsideJobsGenerator (ExcelJS) — Executive Styling & Workbook S
 		const r1 = ws!.getRow(1);
 		expect(r1.height).toBe(ROW_HEIGHTS.TITLE);
 		const cellA1 = ws!.getCell('A1');
-		expect(cellA1.value).toContain('E6 CAR SPA — OUTSIDE JOBS & EXTERNAL MOVEMENTS REPORT');
+		expect(cellA1.value).toContain('SUNRISE DETAILING — OUTSIDE JOBS & EXTERNAL MOVEMENTS REPORT');
 		expect(cellA1.fill?.type).toBe('pattern');
 		if (cellA1.fill?.type === 'pattern') {
 			expect(cellA1.fill.fgColor?.argb).toBe(ARGB.PRIMARY_DARK);
@@ -363,7 +368,7 @@ describe('excelOutsideJobsGenerator (ExcelJS) — Executive Styling & Workbook S
 		const removeSpy = vi.spyOn(document.body, 'removeChild');
 
 		const fileName = await generateAndDownloadOutsideJobsReport(sampleReportData, 'September 2026');
-		expect(fileName).toContain('E6_Outside_Jobs_Report');
+		expect(fileName).toContain('Sunrise_Detailing_Outside_Jobs_Report');
 		expect(mockCreateObjectURL).toHaveBeenCalled();
 		expect(appendSpy).toHaveBeenCalled();
 		expect(removeSpy).toHaveBeenCalled();
@@ -371,6 +376,6 @@ describe('excelOutsideJobsGenerator (ExcelJS) — Executive Styling & Workbook S
 
 		// Test alias
 		const aliasFileName = await generateOutsideJobsExcel(sampleReportData, 'September 2026');
-		expect(aliasFileName).toContain('E6_Outside_Jobs_Report');
+		expect(aliasFileName).toContain('Sunrise_Detailing_Outside_Jobs_Report');
 	});
 });

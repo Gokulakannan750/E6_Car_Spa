@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	createMonthlyBillingWorkbook,
 	ARGB,
 } from './excelMonthlyBillingGenerator';
 import type { MonthlyBillingReportResponse } from '../../lib/api';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('Sample Excel Workbook Generation Verification (ExcelJS)', () => {
 	it('generates a real September 2026 Excel file and verifies formatting integrity', async () => {
@@ -168,7 +173,7 @@ describe('Sample Excel Workbook Generation Verification (ExcelJS)', () => {
 		// Verify Monthly Summary cells & styles
 		const summaryWs = wb.getWorksheet('Monthly Summary');
 		expect(summaryWs).toBeDefined();
-		expect(summaryWs?.getCell('A1').value).toBe('E6 CAR SPA — MONTHLY BILLING REPORT');
+		expect(summaryWs?.getCell('A1').value).toBe('SUNRISE DETAILING — MONTHLY BILLING REPORT');
 		expect(summaryWs?.getCell('A1').font?.bold).toBe(true);
 		expect(summaryWs?.getCell('A1').fill).toEqual({
 			type: 'pattern',

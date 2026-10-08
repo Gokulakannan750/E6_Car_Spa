@@ -12,6 +12,8 @@ class BusinessProfileModel {
   final String? logoPath;
   final String invoicePrefix;
   final String? termsAndConditions;
+  final String? tagline;
+  final String? brandColor;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -29,6 +31,8 @@ class BusinessProfileModel {
     this.logoPath,
     this.invoicePrefix = 'INV',
     this.termsAndConditions,
+    this.tagline,
+    this.brandColor,
     this.createdAt,
     this.updatedAt,
   });
@@ -36,7 +40,7 @@ class BusinessProfileModel {
   factory BusinessProfileModel.fromJson(Map<String, dynamic> json) {
     return BusinessProfileModel(
       id: json['id']?.toString() ?? '',
-      businessName: json['businessName'] as String? ?? 'E6 Car Spa',
+      businessName: json['businessName'] as String? ?? '',
       addressLine1: json['addressLine1'] as String? ?? '',
       addressLine2: json['addressLine2'] as String?,
       city: json['city'] as String? ?? '',
@@ -48,6 +52,8 @@ class BusinessProfileModel {
       logoPath: json['logoPath'] as String?,
       invoicePrefix: json['invoicePrefix'] as String? ?? 'INV',
       termsAndConditions: json['termsAndConditions'] as String?,
+      tagline: json['tagline'] as String?,
+      brandColor: json['brandColor'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -72,6 +78,8 @@ class BusinessProfileModel {
       'logoPath': logoPath,
       'invoicePrefix': invoicePrefix,
       'termsAndConditions': termsAndConditions,
+      'tagline': tagline,
+      'brandColor': brandColor,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -100,6 +108,8 @@ class BusinessProfileModel {
     String? logoPath,
     String? invoicePrefix,
     String? termsAndConditions,
+    String? tagline,
+    String? brandColor,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -117,6 +127,8 @@ class BusinessProfileModel {
       logoPath: logoPath ?? this.logoPath,
       invoicePrefix: invoicePrefix ?? this.invoicePrefix,
       termsAndConditions: termsAndConditions ?? this.termsAndConditions,
+      tagline: tagline ?? this.tagline,
+      brandColor: brandColor ?? this.brandColor,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

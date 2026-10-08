@@ -11,7 +11,7 @@ class PublicBusinessProfileModel {
 
   factory PublicBusinessProfileModel.fromJson(Map<String, dynamic> json) {
     return PublicBusinessProfileModel(
-      businessName: json['businessName'] as String? ?? 'E6 Car Spa',
+      businessName: json['businessName'] as String? ?? '',
       logoPath: json['logoPath'] as String?,
       updatedAt: json['updatedAt'] != null
           ? DateTime.tryParse(json['updatedAt'].toString())

@@ -1810,7 +1810,7 @@ public class WhatsAppService : IWhatsAppService
 
 	private string GetPublicInvoiceUrl(string rawToken)
 	{
-		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "https://invoice.e6carspa.com").TrimEnd('/');
+		var baseUrl = (_configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
 		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
 		{
 			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');

@@ -47,6 +47,7 @@ import { ShareInvoiceModal } from './ShareInvoiceModal';
 import { EditInvoiceNumberDialog } from './EditInvoiceNumberDialog';
 import { useAuth } from '../auth/auth-context';
 import { formatRate, lineAmount, ratesSummary, taxRows } from '../../lib/gstDisplay';
+import { businessInitial, cleanTagline, formatCityStatePin } from '../../lib/documentBranding';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
 const STATUS_ENUM_MAP: Record<number, InvoiceStatus> = {
@@ -886,20 +887,38 @@ export function InvoiceDetailPage() {
 				{/* ── Document Header ───────────────────────────────────────── */}
 				<div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-outline-variant">
 					<div className="space-y-1">
-						<h2 className="text-2xl font-bold text-on-surface tracking-tight uppercase">
-							{businessProfile?.businessName || 'E6 Car Spa'}
-						</h2>
-						<p className="text-xs text-on-surface-variant font-medium">
-							Premium Auto Detailing &amp; Car Care Solutions
-						</p>
-						<p className="text-xs text-on-surface-variant">
-							{[businessProfile?.addressLine1, businessProfile?.addressLine2, businessProfile?.city, businessProfile?.state].filter(Boolean).join(', ') + (businessProfile?.postalCode ? ` - ${businessProfile.postalCode}` : '')}
-						</p>
-						<p className="text-xs text-on-surface-variant">
-							{businessProfile?.phone ? `Phone: ${businessProfile.phone}` : ''}
-							{businessProfile?.email && <span> &nbsp;|&nbsp; Email: {businessProfile.email}</span>}
-							{isGstEnabled && businessProfile?.gstin && <span> &nbsp;|&nbsp; GSTIN: <strong className="font-mono">{businessProfile.gstin}</strong></span>}
-						</p>
+						{businessProfile?.businessName && (
+							<h2 className="text-2xl font-bold text-on-surface tracking-tight uppercase">
+								{businessProfile.businessName}
+							</h2>
+						)}
+						{cleanTagline(businessProfile?.tagline) && (
+							<p className="text-xs text-on-surface-variant font-medium">
+								{cleanTagline(businessProfile?.tagline)}
+							</p>
+						)}
+						{(businessProfile?.addressLine1 || businessProfile?.addressLine2 || formatCityStatePin(businessProfile?.city, businessProfile?.state, businessProfile?.postalCode)) && (
+							<p className="text-xs text-on-surface-variant">
+								{[
+									businessProfile?.addressLine1,
+									businessProfile?.addressLine2,
+									formatCityStatePin(businessProfile?.city, businessProfile?.state, businessProfile?.postalCode),
+								].filter(Boolean).join(', ')}
+							</p>
+						)}
+						{(businessProfile?.phone || businessProfile?.email || (isGstEnabled && businessProfile?.gstin)) && (
+							<p className="text-xs text-on-surface-variant">
+								{[
+									businessProfile?.phone ? `Phone: ${businessProfile.phone}` : null,
+									businessProfile?.email ? `Email: ${businessProfile.email}` : null,
+								].filter(Boolean).join('  |  ')}
+								{isGstEnabled && businessProfile?.gstin && (
+									<span>
+										{businessProfile?.phone || businessProfile?.email ? '  |  ' : ''}GSTIN: <strong className="font-mono">{businessProfile.gstin}</strong>
+									</span>
+								)}
+							</p>
+						)}
 					</div>
 
 					<div className="sm:text-right space-y-1">
@@ -1039,7 +1058,7 @@ export function InvoiceDetailPage() {
 						) : (
 							<div className="p-3.5 bg-surface-container-low rounded-lg border border-outline-variant/60 min-h-[5.5rem] text-xs text-on-surface space-y-2">
 								<p className="whitespace-pre-wrap font-medium">
-									{invoice.notes || 'Thank you for choosing E6 Car Spa! Drive safe and visit again.'}
+									{invoice.notes || (businessProfile?.businessName ? `Thank you for choosing ${businessProfile.businessName}!` : 'Thank you!')}
 								</p>
 								<p className="text-[10px] text-on-surface-variant pt-2 border-t border-outline-variant/50">
 									* This is a computer-generated tax invoice.
@@ -1561,8 +1580,8 @@ export function InvoiceDetailPage() {
 					{/* Top Preview Controls Toolbar */}
 					<div className="flex items-center justify-between px-6 py-3 bg-slate-900 border-b border-slate-800 text-white shadow-md shrink-0">
 						<div className="flex items-center gap-3">
-							<div className="w-8 h-8 rounded-lg bg-[#a11a1a] flex items-center justify-center font-bold text-xs text-white">
-								E6
+							<div className="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center font-bold text-xs text-white">
+								{businessInitial(businessProfile?.businessName)}
 							</div>
 							<div>
 								<h2 className="text-sm font-bold text-white tracking-tight">

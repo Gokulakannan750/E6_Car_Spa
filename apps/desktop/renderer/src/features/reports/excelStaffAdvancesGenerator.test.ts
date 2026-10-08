@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { seedCompanyProfile } from '../../test/seedCompanyProfile';
 import {
 	createStaffAdvancesWorkbook,
 	buildStaffSummarySheet,
@@ -16,6 +17,10 @@ import {
 	type StaffAdvancesReportData,
 } from './excelStaffAdvancesGenerator';
 import ExcelJS from 'exceljs';
+
+beforeEach(() => {
+	seedCompanyProfile();
+});
 
 describe('excelStaffAdvancesGenerator (ExcelJS) — Executive Styling & Staff-Centric Structure', () => {
 	beforeEach(() => {
@@ -192,7 +197,7 @@ describe('excelStaffAdvancesGenerator (ExcelJS) — Executive Styling & Staff-Ce
 
 		// Title cell A1
 		const cellA1 = ws.getCell('A1');
-		expect(cellA1.value).toBe('E6 CAR SPA — STAFF ADVANCE REPORT');
+		expect(cellA1.value).toBe('SUNRISE DETAILING — STAFF ADVANCE REPORT');
 		expect(cellA1.font?.bold).toBe(true);
 		expect(cellA1.font?.color?.argb).toBe(ARGB.WHITE);
 		expect(cellA1.fill).toEqual({
@@ -229,7 +234,7 @@ describe('excelStaffAdvancesGenerator (ExcelJS) — Executive Styling & Staff-Ce
 
 		// Title cell A1
 		const cellA1 = ws.getCell('A1');
-		expect(cellA1.value).toBe('E6 CAR SPA — STAFF ADVANCE REPORT');
+		expect(cellA1.value).toBe('SUNRISE DETAILING — STAFF ADVANCE REPORT');
 		expect(cellA1.font?.bold).toBe(true);
 		expect(cellA1.font?.color?.argb).toBe(ARGB.WHITE);
 

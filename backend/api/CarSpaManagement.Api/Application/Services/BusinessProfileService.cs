@@ -97,6 +97,16 @@ public partial class BusinessProfileService : IBusinessProfileService
             profile.TermsAndConditions = string.IsNullOrWhiteSpace(request.TermsAndConditions) ? null : request.TermsAndConditions.Trim();
         }
 
+        if (request.Tagline != null)
+        {
+            profile.Tagline = string.IsNullOrWhiteSpace(request.Tagline) ? null : request.Tagline.Trim();
+        }
+
+        if (request.BrandColor != null)
+        {
+            profile.BrandColor = NormalizeBrandColor(request.BrandColor);
+        }
+
         profile.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(ct);
@@ -118,6 +128,18 @@ public partial class BusinessProfileService : IBusinessProfileService
             cancellationToken: ct);
 
         return ToDto(profile);
+    }
+
+    /// <summary>Accepts #RRGGBB (any case) or empty; returns upper-case #RRGGBB or null.</summary>
+    public static string? NormalizeBrandColor(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var trimmed = value.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9a-fA-F]{6}$"))
+        {
+            throw new ValidationException("Brand colour must be a colour code like #A11A1A.");
+        }
+        return trimmed.ToUpperInvariant();
     }
 
     public async Task<LogoUploadResponse> UploadLogoAsync(IFormFile file, CancellationToken ct = default)
@@ -183,7 +205,7 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         await _db.SaveChangesAsync(ct);
 
-        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
+        // Safely cleanup the previous custom logo
         SafeDeleteOldCustomLogo(previousLogo);
 
         await _auditLogService.RecordAsync(
@@ -208,7 +230,7 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         await _db.SaveChangesAsync(ct);
 
-        // Safely cleanup previous custom logo (ignoring seed asset e6-logo.png)
+        // Safely cleanup the previous custom logo
         SafeDeleteOldCustomLogo(previousLogo);
 
         await _auditLogService.RecordAsync(
@@ -259,10 +281,9 @@ public partial class BusinessProfileService : IBusinessProfileService
         if (string.IsNullOrWhiteSpace(oldRelativeUrl)) return;
 
         var normalized = oldRelativeUrl.Trim().Replace('\\', '/');
-        // Only delete custom uploaded files (starting with /uploads/logos/logo_ or containing logo_)
-        // Explicitly protect standard asset files like e6-logo.png
-        if (normalized.Contains("logo_", StringComparison.OrdinalIgnoreCase) &&
-            !normalized.EndsWith("e6-logo.png", StringComparison.OrdinalIgnoreCase))
+        // Only delete files this service created (uploads are named logo_<id>.<ext>); anything else is left alone.
+        if (normalized.Contains("uploads/logos/", StringComparison.OrdinalIgnoreCase) &&
+            normalized.Contains("logo_", StringComparison.OrdinalIgnoreCase))
         {
             var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var relativePart = normalized.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
@@ -291,21 +312,24 @@ public partial class BusinessProfileService : IBusinessProfileService
 
         var defaultProfileSection = _configuration?.GetSection("DefaultBusinessProfile");
 
-        // Initialize default business profile from configuration with graceful defaults
+        // A new database starts with an empty profile (or whatever the deployment's DefaultBusinessProfile configuration
+        // provides). Nothing company-specific is built into the code: the company fills in Company Settings.
         profile = new BusinessProfile
         {
             Id = Guid.NewGuid(),
             SingletonKey = 1,
-            BusinessName = defaultProfileSection?["BusinessName"] ?? "E6 Car Spa",
-            AddressLine1 = defaultProfileSection?["AddressLine1"] ?? "36, Geetha Nagar Main Road",
-            AddressLine2 = defaultProfileSection?["AddressLine2"] ?? "Behind Sakthi Mahal, Perundurai Road",
-            City = defaultProfileSection?["City"] ?? "Erode",
-            State = defaultProfileSection?["State"] ?? "Tamil Nadu",
-            PostalCode = defaultProfileSection?["PostalCode"] ?? "638011",
-            Phone = defaultProfileSection?["Phone"] ?? "9578749449",
-            Email = defaultProfileSection?["Email"] ?? "e6carspaerd@gmail.com",
+            BusinessName = defaultProfileSection?["BusinessName"] ?? string.Empty,
+            AddressLine1 = defaultProfileSection?["AddressLine1"] ?? string.Empty,
+            AddressLine2 = defaultProfileSection?["AddressLine2"],
+            City = defaultProfileSection?["City"] ?? string.Empty,
+            State = defaultProfileSection?["State"] ?? string.Empty,
+            PostalCode = defaultProfileSection?["PostalCode"] ?? string.Empty,
+            Phone = defaultProfileSection?["Phone"] ?? string.Empty,
+            Email = defaultProfileSection?["Email"] ?? string.Empty,
             Gstin = defaultProfileSection?["Gstin"],
-            LogoPath = defaultProfileSection?["LogoPath"] ?? "/uploads/logos/e6-logo.png",
+            LogoPath = defaultProfileSection?["LogoPath"],
+            Tagline = defaultProfileSection?["Tagline"],
+            BrandColor = NormalizeBrandColorOrNull(defaultProfileSection?["BrandColor"]),
             InvoicePrefix = defaultProfileSection?["InvoicePrefix"] ?? "INV",
             CreatedAt = DateTime.UtcNow
         };
@@ -314,6 +338,12 @@ public partial class BusinessProfileService : IBusinessProfileService
         await _db.SaveChangesAsync(ct);
 
         return profile;
+    }
+
+    private static string? NormalizeBrandColorOrNull(string? value)
+    {
+        try { return NormalizeBrandColor(value); }
+        catch (ValidationException) { return null; }
     }
 
     private static BusinessProfileDto ToDto(BusinessProfile b) => new(
@@ -331,6 +361,8 @@ public partial class BusinessProfileService : IBusinessProfileService
         b.InvoicePrefix,
         b.TermsAndConditions,
         b.CreatedAt,
-        b.UpdatedAt
+        b.UpdatedAt,
+        b.Tagline,
+        b.BrandColor
     );
 }

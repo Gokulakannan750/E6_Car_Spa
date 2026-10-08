@@ -391,4 +391,89 @@ public class InvoicePdfGeneratorTests
         Assert.True(bytes.Length < 5 * 1024 * 1024);
         Assert.True(bytes.Length > 1024);
     }
+
+    // ── Company-neutral documents ───────────────────────────────────────────────────
+
+    private static readonly string[] LegacyBuiltInText =
+    {
+        "E6 CAR SPA", "E6 Car Spa", "e6carspa", "Geetha", "Sakthi", "9578749449", "Perundurai",
+        "Premium Auto Detailing", "vehicle detailing services"
+    };
+
+    private static void AssertNoLegacyText(string text)
+    {
+        foreach (var legacy in LegacyBuiltInText)
+            Assert.DoesNotContain(legacy, text, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GenerateInvoicePdf_ShowsTheCompanysOwnDetailsTaglineAndTerms()
+    {
+        var profile = new BusinessProfile
+        {
+            Id = Guid.NewGuid(),
+            BusinessName = "Sunrise Detailing",
+            AddressLine1 = "12 Park Road",
+            City = "Pune",
+            State = "Maharashtra",
+            PostalCode = "411001",
+            Phone = "9123456789",
+            Email = "hello@sunrise.example",
+            Tagline = "Shine every day",
+            TermsAndConditions = "Pay within 7 days." + Environment.NewLine + "No refunds after delivery.",
+            BrandColor = "#0F766E"
+        };
+
+        var text = ExtractAllText(new InvoicePdfGenerator().GenerateInvoicePdf(CreateSampleInvoice(), profile));
+
+        Assert.Contains("SUNRISE DETAILING", text);
+        Assert.Contains("12 Park Road", text);
+        Assert.Contains("Pune", text);
+        Assert.Contains("411001", text);
+        Assert.Contains("9123456789", text);
+        Assert.Contains("hello@sunrise.example", text);
+        Assert.Contains("Shine every day", text);
+        Assert.Contains("onditions", text);
+        Assert.Contains("within", text);
+        Assert.Contains("refunds", text);
+        Assert.Contains("Thank you for choosing Sunrise Detailing!", text);
+        AssertNoLegacyText(text);
+    }
+
+    [Fact]
+    public void GenerateInvoicePdf_WithNoProfile_PrintsNoCompanyDetailsAtAll()
+    {
+        var text = ExtractAllText(new InvoicePdfGenerator().GenerateInvoicePdf(CreateSampleInvoice(), businessProfile: null));
+
+        Assert.Contains("INV-2026-000013", text);
+        Assert.Contains("Thank you!", text);
+        Assert.DoesNotContain("onditions", text);
+        Assert.DoesNotContain("hone:", text);
+        Assert.DoesNotContain("mail:", text);
+        AssertNoLegacyText(text);
+    }
+
+    [Fact]
+    public void GenerateInvoicePdf_WithAnEmptyProfile_PrintsNoCompanyDetailsAtAll()
+    {
+        var text = ExtractAllText(new InvoicePdfGenerator().GenerateInvoicePdf(CreateSampleInvoice(), new BusinessProfile()));
+
+        Assert.DoesNotContain("onditions", text);
+        Assert.DoesNotContain("hone:", text);
+        AssertNoLegacyText(text);
+    }
+
+    [Fact]
+    public void GenerateInvoicePdf_LeavesOutTheContactLinesThatAreNotFilledIn()
+    {
+        var profile = new BusinessProfile { BusinessName = "Only A Name", Phone = "9123456789" };
+
+        var text = ExtractAllText(new InvoicePdfGenerator().GenerateInvoicePdf(CreateSampleInvoice(), profile));
+
+        Assert.Contains("ONLY A NAME", text);
+        Assert.Contains("hone:", text);
+        Assert.Contains("9123456789", text);
+        Assert.DoesNotContain("mail:", text);
+        AssertNoLegacyText(text);
+    }
 }

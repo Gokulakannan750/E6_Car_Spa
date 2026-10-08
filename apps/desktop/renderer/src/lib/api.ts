@@ -807,6 +807,8 @@ export interface PublicBusinessDto {
   email?: string | null;
   gstin?: string | null;
   logoUrl?: string | null;
+  tagline?: string | null;
+  brandColor?: string | null;
 }
 
 export interface PublicCustomerDto {
@@ -2956,6 +2958,8 @@ export interface BusinessProfileDto {
 	logoPath: string | null;
 	invoicePrefix: string;
 	termsAndConditions?: string | null;
+	tagline?: string | null;
+	brandColor?: string | null;
 	createdAt: string;
 	updatedAt: string | null;
 }
@@ -2973,6 +2977,10 @@ export interface UpdateBusinessProfileInput {
 	logoPath?: string | null;
 	invoicePrefix?: string | null;
 	termsAndConditions?: string | null;
+	/** Omit to leave unchanged; an empty string clears it. */
+	tagline?: string | null;
+	/** #RRGGBB. Omit to leave unchanged; an empty string clears it. */
+	brandColor?: string | null;
 }
 
 export interface LogoUploadResponse {
@@ -3005,9 +3013,10 @@ export function setCachedBusinessProfile(profile: BusinessProfileDto | null): vo
 	}
 }
 
+/** The company's logo address, or an empty string when it has none. There is no built-in logo to fall back to. */
 export function resolveLogoUrl(logoPath?: string | null, updatedAt?: string | null): string {
 	if (!logoPath || !logoPath.trim()) {
-		return '/e6-logo.png';
+		return '';
 	}
 	const trimmed = logoPath.trim();
 	const versionParam = updatedAt ? `?v=${encodeURIComponent(updatedAt)}` : '';

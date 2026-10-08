@@ -12,44 +12,52 @@ public class BusinessProfile : BaseEntity
 
     [Required]
     [MaxLength(150)]
-    public string BusinessName { get; set; } = "E6 Car Spa";
+    public string BusinessName { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(200)]
-    public string AddressLine1 { get; set; } = "36, Geetha Nagar Main Road";
+    public string AddressLine1 { get; set; } = string.Empty;
 
     [MaxLength(200)]
-    public string? AddressLine2 { get; set; } = "Behind Sakthi Mahal, Perundurai Road";
+    public string? AddressLine2 { get; set; }
 
     [Required]
     [MaxLength(100)]
-    public string City { get; set; } = "Erode";
+    public string City { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(100)]
-    public string State { get; set; } = "Tamil Nadu";
+    public string State { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(20)]
-    public string PostalCode { get; set; } = "638011";
+    public string PostalCode { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(10)]
-    public string Phone { get; set; } = "9578749449";
+    public string Phone { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(150)]
-    public string Email { get; set; } = "e6carspaerd@gmail.com";
+    public string Email { get; set; } = string.Empty;
 
     [MaxLength(20)]
     public string? Gstin { get; set; }
 
     [MaxLength(500)]
-    public string? LogoPath { get; set; } = "/uploads/logos/e6-logo.png";
+    public string? LogoPath { get; set; }
 
     [Required]
     [MaxLength(10)]
     public string InvoicePrefix { get; set; } = "INV";
+
+    /// <summary>Short line printed under the business name on documents. Optional.</summary>
+    [MaxLength(150)]
+    public string? Tagline { get; set; }
+
+    /// <summary>Accent colour for documents as #RRGGBB. Optional; documents use a neutral colour when empty.</summary>
+    [MaxLength(7)]
+    public string? BrandColor { get; set; }
 
     [MaxLength(2000)]
     public string? TermsAndConditions { get; set; }

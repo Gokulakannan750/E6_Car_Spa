@@ -1598,8 +1598,8 @@ describe('Business Profile & Settings API Client', () => {
   });
 
   it('correctly resolves logo URLs with relative paths and version cache busters', () => {
-    expect(api.resolveLogoUrl(null)).toBe('/e6-logo.png');
-    expect(api.resolveLogoUrl('')).toBe('/e6-logo.png');
+    expect(api.resolveLogoUrl(null)).toBe('');
+    expect(api.resolveLogoUrl('')).toBe('');
     expect(api.resolveLogoUrl('https://cdn.example.com/logo.png')).toBe('https://cdn.example.com/logo.png');
     expect(api.resolveLogoUrl('/uploads/biz.png', '2026-02-01T10:00:00Z')).toContain('?v=2026-02-01T10%3A00%3A00Z');
   });
