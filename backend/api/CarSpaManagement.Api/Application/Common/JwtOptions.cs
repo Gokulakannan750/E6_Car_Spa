@@ -24,10 +24,10 @@ public class JwtOptions
     public string Key { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "JWT Issuer is required.")]
-    public string Issuer { get; set; } = "E6CarSpa";
+    public string Issuer { get; set; } = "CarSpaManagement";
 
     [Required(ErrorMessage = "JWT Audience is required.")]
-    public string Audience { get; set; } = "E6CarSpaDesktop";
+    public string Audience { get; set; } = "CarSpaManagementClients";
 
     [Range(1, 43200, ErrorMessage = "ExpirationMinutes must be between 1 minute and 30 days.")]
     public int ExpirationMinutes { get; set; } = 1440;

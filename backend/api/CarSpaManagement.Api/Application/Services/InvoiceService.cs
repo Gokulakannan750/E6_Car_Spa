@@ -1380,8 +1380,7 @@ public class InvoiceService : IInvoiceService
 
 	private string GetPublicInvoiceUrl(string rawToken)
 	{
-		var baseUrl = _configuration["PublicInvoiceBaseUrl"] ?? "http://localhost:5173";
-		baseUrl = baseUrl.TrimEnd('/');
+		var baseUrl = PublicLinks.BaseUrl(_configuration);
 		if (baseUrl.EndsWith("/i", StringComparison.OrdinalIgnoreCase))
 		{
 			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');

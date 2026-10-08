@@ -1326,9 +1326,9 @@ describe('WhatsApp Integration API Client', () => {
       hasAccessToken: true,
       invoiceNotificationsEnabled: true,
       paymentCompletedNotificationsEnabled: true,
-      invoiceTemplateName: 'e6_carspa_invoice_generated',
+      invoiceTemplateName: 'invoice_generated',
       invoiceTemplateLanguage: 'en_US',
-      paymentCompletedTemplateName: 'e6_carspa_payment_completed',
+      paymentCompletedTemplateName: 'payment_completed',
       paymentCompletedTemplateLanguage: 'en_US',
       healthStatus: 'Healthy',
     };
@@ -1433,7 +1433,7 @@ describe('WhatsApp Integration API Client', () => {
     expect(connResult.isSuccess).toBe(true);
 
     const sendResult = await api.sendTestWhatsAppMessage({
-      templateName: 'e6_carspa_invoice_generated',
+      templateName: 'invoice_generated',
       languageCode: 'en_US',
       recipientPhoneNumber: '+919876543210',
       parameters: ['Gokul', '500', 'TN01AB1234'],
@@ -1442,7 +1442,7 @@ describe('WhatsApp Integration API Client', () => {
       expect.stringContaining('/api/settings/whatsapp/test-message'),
       expect.objectContaining({
         method: 'POST',
-        body: expect.stringContaining('"templateName":"e6_carspa_invoice_generated"'),
+        body: expect.stringContaining('"templateName":"invoice_generated"'),
       })
     );
     expect(sendResult.messageId).toBe('wamid.123');

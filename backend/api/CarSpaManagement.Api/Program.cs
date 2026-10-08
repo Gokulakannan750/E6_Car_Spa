@@ -55,6 +55,7 @@ builder.Host.UseSerilog();
 // Refuse to start Production with placeholder credentials; warn about risky settings.
 var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 StartupConfigurationGuard.ValidateConnectionString(configuredConnectionString, builder.Environment.IsProduction());
+StartupConfigurationGuard.ValidatePublicInvoiceBaseUrl(builder.Configuration["PublicInvoiceBaseUrl"], builder.Environment.IsProduction());
 foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
 	configuredConnectionString,
 	builder.Environment.IsProduction(),
@@ -175,7 +176,7 @@ builder.Services.AddAuthentication(options =>
  ValidateIssuer = true,
  ValidIssuer = jwtOptions.Issuer,
  ValidateAudience = true,
- ValidAudiences = new[] { jwtOptions.Audience, "E6CarSpaMobile", "E6CarSpa" },
+ ValidAudiences = new[] { jwtOptions.Audience },
  ValidateLifetime = true,
  ClockSkew = TimeSpan.Zero
  };

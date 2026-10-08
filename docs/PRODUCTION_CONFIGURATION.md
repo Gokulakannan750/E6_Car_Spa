@@ -38,7 +38,7 @@ dotnet CarSpaManagement.Api.dll
 | `WHATSAPP_ENCRYPTION_KEY` (or `WhatsApp__EncryptionKey`) | AES-GCM key protecting the stored WhatsApp token and Aadhaar numbers. **Do not change it** without re-encrypting existing data. |
 | `Database__ApplyMigrationsOnStartup` | `true` (default) or `false` for least-privilege deployments (§3) |
 | `Cors__AllowedOrigins__0` … | Only if additional browser origins must call the API |
-| `PublicInvoiceBaseUrl` | Base URL used in customer invoice links; should be `https://` |
+| `PublicInvoiceBaseUrl` | **Required in Production.** Base URL used in customer invoice links, e.g. `https://invoices.yourcompany.com`; should be `https://`. The API refuses to start in Production without it. |
 
 `appsettings.Production.json`, `appsettings.*.local.json`, `.env*` and `secrets.json` are git-ignored.
 
@@ -76,10 +76,10 @@ JWTs, customer data and Aadhaar reveals must not cross a network in clear text. 
 
 | Client | Location | Production behaviour |
 |---|---|---|
-| API (links in WhatsApp/public invoices) | `PublicInvoiceBaseUrl` in configuration | `https://invoice.e6carspa.com` in `appsettings.json`; Development overrides to `http://localhost:5173` |
+| API (links in WhatsApp/public invoices) | `PublicInvoiceBaseUrl` in configuration | Empty in `appsettings.json` — **each deployment must set its own** (Production refuses to start without it); Development uses `http://localhost:5173` |
 | Windows app | `apps/desktop/renderer/src/lib/api.ts` → `VITE_API_URL` at build time, default `http://localhost:5298` (API on the same PC) | Set `VITE_API_URL` when building if the API runs elsewhere, **and** add that origin to the CSP `connect-src` in `apps/desktop/renderer/index.html` (currently hard-coded to localhost — tracked for Phase 1) |
 | Windows app dev proxy | `apps/desktop/renderer/vite.config.ts` → `http://localhost:5298` | Dev server only |
-| Android | `apps/android/lib/core/utils/app_environment.dart` → `--dart-define=E6_API_URL=...` | Release builds without `E6_API_URL` now use `AppConstants.defaultProdApiUrl` (`https://api.e6carspa.com/api`) and **never** the development LAN IP. Debug builds keep `http://192.168.1.7:5298/api`. |
+| Android | `apps/android/lib/core/utils/app_environment.dart` → `--dart-define=E6_API_URL=...` | Release builds without `E6_API_URL` use `AppConstants.defaultProdApiUrl` — build each company's release with `--dart-define=E6_API_URL=https://<its server>/api` and **never** the development LAN IP. Debug builds keep `http://192.168.1.7:5298/api`. |
 | Android cleartext policy | `android/app/src/main/res/xml/network_security_config.xml` (release: HTTPS only) and `android/app/src/debug/res/xml/network_security_config.xml` (debug: localhost, 10.0.2.2, 192.168.1.7 over HTTP) | A release APK can no longer talk to an HTTP-only server unless that host is deliberately added to the main config |
 
 Release Android build example:
@@ -98,3 +98,22 @@ Existing databases are not modified. Databases created before Phase 0 may contai
 "Sri Lakshmi Auto Works", "Sri Krishna Wheel Alignment & Tyres" and "Erode Auto Electricians & AC"
 (fictitious names and phone numbers). Review them in Settings / Vendors and deactivate them if they are not
 real suppliers; they cannot simply be deleted if outside jobs already reference them.
+
+## 6. Company-neutral defaults
+
+Nothing in the shared configuration names a company. A deployment supplies its own:
+
+| Setting | Default | Note |
+|---|---|---|
+| `Jwt:Issuer` / `Jwt:Audience` | `CarSpaManagement` / `CarSpaManagementClients` | Changing these signs everyone out once (tokens last 24 hours). |
+| `PublicInvoiceBaseUrl` | empty | Required in Production (see §5). |
+| `DefaultBusinessProfile` | all empty | The company fills in its details under Company Settings. |
+| Database name in the sample connection string | `CarSpaManagement` | Use whatever name your deployment creates. |
+| WhatsApp template names | `invoice_generated`, `payment_completed` | Only applies to a company that has not saved its own names; saved names are never changed. |
+
+### Moving an existing installation to these defaults
+
+An installation that was already running with the old values must set them explicitly, or be prepared for a one-time sign-out:
+
+- Set `PublicInvoiceBaseUrl` (e.g. as the environment variable `PublicInvoiceBaseUrl`) **before** deploying, or the API will not start in Production.
+- If you want existing sessions to stay valid, set `Jwt__Issuer` and `Jwt__Audience` to the previous values; otherwise users simply sign in again once.

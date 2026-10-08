@@ -27,6 +27,16 @@ public static class StartupConfigurationGuard
                 "The production database password is missing or still a placeholder. Supply the real connection string via 'ConnectionStrings__DefaultConnection'.");
     }
 
+    /// <exception cref="InvalidOperationException">Production has no public invoice address, so customer links would be unusable.</exception>
+    public static void ValidatePublicInvoiceBaseUrl(string? publicInvoiceBaseUrl, bool isProduction)
+    {
+        if (!isProduction) return;
+
+        if (string.IsNullOrWhiteSpace(publicInvoiceBaseUrl))
+            throw new InvalidOperationException(
+                "'PublicInvoiceBaseUrl' is not configured. Set it to the https address that serves your customer invoice links (for example https://invoices.yourcompany.com) via configuration or the environment variable 'PublicInvoiceBaseUrl'.");
+    }
+
     public static IReadOnlyList<string> GetWarnings(
         string? connectionString,
         bool isProduction,

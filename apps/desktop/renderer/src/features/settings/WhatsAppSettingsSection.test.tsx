@@ -25,9 +25,9 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 		hasAccessToken: true,
 		invoiceNotificationsEnabled: true,
 		paymentCompletedNotificationsEnabled: true,
-		invoiceTemplateName: 'e6_carspa_invoice_generated',
+		invoiceTemplateName: 'invoice_generated',
 		invoiceTemplateLanguage: 'en_US',
-		paymentCompletedTemplateName: 'e6_carspa_payment_completed',
+		paymentCompletedTemplateName: 'payment_completed',
 		paymentCompletedTemplateLanguage: 'en_US',
 		healthStatus: 'Healthy',
 		lastCheckedAtUtc: '2026-02-01T12:00:00Z',
@@ -37,7 +37,7 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 	const mockTemplates: api.MetaWhatsAppTemplateDto[] = [
 		{
 			id: 'tpl-1',
-			name: 'e6_carspa_invoice_generated',
+			name: 'invoice_generated',
 			language: 'en_US',
 			status: 'APPROVED',
 			category: 'UTILITY',
@@ -52,7 +52,7 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 		},
 		{
 			id: 'tpl-2',
-			name: 'e6_carspa_payment_completed',
+			name: 'payment_completed',
 			language: 'en_US',
 			status: 'APPROVED',
 			category: 'UTILITY',
@@ -244,11 +244,11 @@ describe('WhatsAppSettingsSection Component & Security Boundary', () => {
 
 		// Wait for template list item button to render
 		await waitFor(() => {
-			expect(screen.getByRole('button', { name: /^e6_carspa_invoice_generated/ })).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: /^invoice_generated/ })).toBeInTheDocument();
 		});
 
 		// Click template expand button in Section 2
-		const expandBtn = screen.getByRole('button', { name: /^e6_carspa_invoice_generated/ });
+		const expandBtn = screen.getByRole('button', { name: /^invoice_generated/ });
 		fireEvent.click(expandBtn);
 
 		await waitFor(() => {
