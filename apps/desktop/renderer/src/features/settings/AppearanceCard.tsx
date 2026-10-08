@@ -8,18 +8,11 @@ import {
 	DEFAULT_APP_COLOR,
 	DEFAULT_SIDEBAR_COLOR,
 	applyTheme,
-	buildScale,
 	contrastWithWhite,
 	isValidColor,
 } from '../../lib/theme';
 import { DEFAULT_DOCUMENT_ACCENT } from '../../lib/documentBranding';
 import { BUSINESS_PROFILE_QUERY_KEY, useBusinessProfile } from './hooks/useBusinessProfile';
-
-/** A soft light-to-dark gradient of one colour, so swatches show how the colour will look across the app. */
-export function gradientFor(hex: string): string {
-	const scale = buildScale(hex);
-	return `linear-gradient(135deg, ${scale[400]} 0%, ${scale[600]} 50%, ${scale[800]} 100%)`;
-}
 
 interface ColourRowProps {
 	label: string;
@@ -45,7 +38,7 @@ function ColourRow({ label, description, value, fallback, disabled, onChange }: 
 				</div>
 				<div
 					className="h-9 w-16 rounded-lg border border-slate-200 shadow-xs shrink-0"
-					style={{ backgroundImage: gradientFor(shown) }}
+					style={{ backgroundColor: shown }}
 					aria-hidden
 				/>
 			</div>
@@ -59,10 +52,10 @@ function ColourRow({ label, description, value, fallback, disabled, onChange }: 
 						aria-label={`${label}: ${preset.name}`}
 						disabled={disabled}
 						onClick={() => onChange(preset.hex)}
-						className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
+						className={`h-5 w-5 rounded-full border-2 transition-transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${
 							shown.toUpperCase() === preset.hex ? 'border-slate-800' : 'border-white ring-1 ring-slate-200'
 						}`}
-						style={{ backgroundImage: gradientFor(preset.hex) }}
+						style={{ backgroundColor: preset.hex }}
 					/>
 				))}
 				<input
@@ -204,10 +197,10 @@ export function AppearanceCard({ canEdit }: { canEdit: boolean }) {
 									active ? 'border-slate-800 bg-slate-50' : 'border-slate-200 hover:border-slate-400'
 								}`}
 							>
-								<span className="flex h-7 w-12 shrink-0 overflow-hidden rounded-md ring-1 ring-slate-200" aria-hidden>
-									<span className="flex-1" style={{ backgroundImage: gradientFor(theme.sidebar) }} />
-									<span className="flex-1" style={{ backgroundImage: gradientFor(theme.app) }} />
-									<span className="flex-1" style={{ backgroundImage: gradientFor(theme.document) }} />
+								<span className="flex h-6 w-10 shrink-0 overflow-hidden rounded-md ring-1 ring-slate-200" aria-hidden>
+									<span className="flex-1" style={{ backgroundColor: theme.sidebar }} />
+									<span className="flex-1" style={{ backgroundColor: theme.app }} />
+									<span className="flex-1" style={{ backgroundColor: theme.document }} />
 								</span>
 								<span className="text-xs font-semibold text-slate-700">{theme.name}</span>
 							</button>
