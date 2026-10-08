@@ -68,7 +68,6 @@ export default function SettingsPage() {
 	const [email, setEmail] = useState('');
 	const [gstin, setGstin] = useState('');
 	const [tagline, setTagline] = useState('');
-	const [brandColor, setBrandColor] = useState('');
 	const [termsAndConditions, setTermsAndConditions] = useState('');
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +93,6 @@ export default function SettingsPage() {
 			setEmail(data.email || '');
 			setGstin(data.gstin || '');
 			setTagline(data.tagline || '');
-			setBrandColor(data.brandColor || '');
 			setTermsAndConditions(data.termsAndConditions || '');
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to load business profile';
@@ -141,12 +139,6 @@ export default function SettingsPage() {
 			return;
 		}
 
-		const trimmedBrandColor = brandColor.trim();
-		if (trimmedBrandColor && !/^#[0-9a-fA-F]{6}$/.test(trimmedBrandColor)) {
-			setErrorMsg('Brand colour must be a colour code like #1E293B.');
-			return;
-		}
-
 		try {
 			setSaving(true);
 			setErrorMsg(null);
@@ -165,7 +157,6 @@ export default function SettingsPage() {
 				logoPath: profile?.logoPath ?? null,
 				// An empty string clears the value on the server; these appear on invoices and job cards.
 				tagline: tagline.trim(),
-				brandColor: trimmedBrandColor,
 				termsAndConditions: termsAndConditions.trim(),
 			});
 
@@ -174,7 +165,6 @@ export default function SettingsPage() {
 			setCachedBusinessProfile(updated);
 			setGstin(updated.gstin || '');
 			setTagline(updated.tagline || '');
-			setBrandColor(updated.brandColor || '');
 			setTermsAndConditions(updated.termsAndConditions || '');
 			setSuccessMsg('Business profile and invoice settings saved successfully.');
 			setTimeout(() => setSuccessMsg(null), 4000);
@@ -546,11 +536,11 @@ export default function SettingsPage() {
 								</div>
 							</div>
 
-							{/* Document Appearance: what customers see on invoices and job cards */}
+							{/* Wording printed on invoices and job cards (colours are in System Preferences) */}
 							<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
 								<div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-100">
 									<ImageIcon className="w-5 h-5 text-blue-600" />
-									<h2 className="text-base font-bold text-slate-800">Invoice &amp; Job Card Appearance</h2>
+									<h2 className="text-base font-bold text-slate-800">Invoice &amp; Job Card Text</h2>
 								</div>
 
 								<div className="space-y-4">
@@ -568,43 +558,6 @@ export default function SettingsPage() {
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 										<p className="text-[11px] text-slate-400 mt-1">Printed under your business name. Left off when blank.</p>
-									</div>
-
-									<div>
-										<label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">
-											Brand Colour (Optional)
-										</label>
-										<div className="flex items-center gap-3">
-											<input
-												type="color"
-												aria-label="Pick brand colour"
-												value={/^#[0-9a-fA-F]{6}$/.test(brandColor.trim()) ? brandColor.trim() : '#1E293B'}
-												disabled={!canManageBusiness}
-												onChange={(e) => setBrandColor(e.target.value.toUpperCase())}
-												className="h-9 w-12 rounded-lg border border-slate-200 bg-white p-1 cursor-pointer disabled:cursor-not-allowed"
-											/>
-											<input
-												type="text"
-												value={brandColor}
-												disabled={!canManageBusiness}
-												maxLength={7}
-												onChange={(e) => setBrandColor(e.target.value.toUpperCase())}
-												placeholder="#1E293B"
-												className="w-36 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
-											/>
-											{brandColor && canManageBusiness && (
-												<button
-													type="button"
-													onClick={() => setBrandColor('')}
-													className="text-xs text-slate-500 hover:text-slate-700 underline cursor-pointer"
-												>
-													Use default
-												</button>
-											)}
-										</div>
-										<p className="text-[11px] text-slate-400 mt-1">
-											Used for headings and accents on invoices and job cards. A dark colour reads best.
-										</p>
 									</div>
 
 									<div>

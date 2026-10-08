@@ -53,7 +53,9 @@ public partial class BusinessProfileService : IBusinessProfileService
         return new PublicBusinessProfileDto(
             BusinessName: profile.BusinessName,
             LogoPath: profile.LogoPath,
-            UpdatedAt: profile.UpdatedAt
+            UpdatedAt: profile.UpdatedAt,
+            AppColor: profile.AppColor,
+            SidebarColor: profile.SidebarColor
         );
     }
 
@@ -130,14 +132,43 @@ public partial class BusinessProfileService : IBusinessProfileService
         return ToDto(profile);
     }
 
+    public async Task<BusinessProfileDto> UpdateAppearanceAsync(UpdateAppearanceRequest request, CancellationToken ct = default)
+    {
+        var profile = await GetOrCreateProfileEntityAsync(ct);
+
+        // Validate everything first so a bad value changes nothing.
+        var app = request.AppColor == null ? profile.AppColor : NormalizeBrandColor(request.AppColor, "App colour");
+        var sidebar = request.SidebarColor == null ? profile.SidebarColor : NormalizeBrandColor(request.SidebarColor, "Sidebar colour");
+        var document = request.BrandColor == null ? profile.BrandColor : NormalizeBrandColor(request.BrandColor, "Document colour");
+
+        profile.AppColor = app;
+        profile.SidebarColor = sidebar;
+        profile.BrandColor = document;
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        await _auditLogService.RecordAsync(
+            action: Domain.Constants.AuditActions.BusinessProfileUpdated,
+            module: Domain.Constants.AuditModules.Settings,
+            description: "Company colours updated.",
+            entityType: "BusinessProfile",
+            entityId: profile.Id,
+            entityReference: profile.BusinessName,
+            newValues: System.Text.Json.JsonSerializer.Serialize(new { appColor = app, sidebarColor = sidebar, documentColor = document }),
+            cancellationToken: ct);
+
+        return ToDto(profile);
+    }
+
     /// <summary>Accepts #RRGGBB (any case) or empty; returns upper-case #RRGGBB or null.</summary>
-    public static string? NormalizeBrandColor(string? value)
+    public static string? NormalizeBrandColor(string? value, string label = "Brand colour")
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         var trimmed = value.Trim();
         if (!System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#[0-9a-fA-F]{6}$"))
         {
-            throw new ValidationException("Brand colour must be a colour code like #A11A1A.");
+            throw new ValidationException($"{label} must be a colour code like #A11A1A.");
         }
         return trimmed.ToUpperInvariant();
     }
@@ -363,6 +394,8 @@ public partial class BusinessProfileService : IBusinessProfileService
         b.CreatedAt,
         b.UpdatedAt,
         b.Tagline,
-        b.BrandColor
+        b.BrandColor,
+        b.AppColor,
+        b.SidebarColor
     );
 }

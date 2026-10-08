@@ -1572,6 +1572,52 @@ describe('Business Profile & Settings API Client', () => {
     expect(result.businessName).toBe('E6 Car Spa Prime');
   });
 
+  it('sends an emptied tagline and terms as empty strings so the server clears them', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1' }),
+    });
+
+    await api.updateBusinessProfile({
+      businessName: 'Sunrise',
+      addressLine1: '12 Park Road',
+      city: 'Pune',
+      state: 'Maharashtra',
+      postalCode: '411001',
+      phone: '9123456789',
+      email: 'hello@sunrise.example',
+      tagline: '',
+      termsAndConditions: '',
+    });
+
+    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body.tagline).toBe('');
+    expect(body.termsAndConditions).toBe('');
+  });
+
+  it('saves company colours through the appearance endpoint and applies them', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ id: 'biz-1', businessName: 'Sunrise', appColor: '#0F766E', sidebarColor: null, brandColor: '#A11A1A' }),
+    });
+
+    const result = await api.updateAppearance({ appColor: '#0f766e', sidebarColor: '', brandColor: '#a11a1a' });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/settings/business/appearance'),
+      expect.objectContaining({ method: 'PUT' })
+    );
+    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(body).toEqual({ appColor: '#0f766e', sidebarColor: '', brandColor: '#a11a1a' });
+    expect(result.appColor).toBe('#0F766E');
+    expect(document.documentElement.style.getPropertyValue('--app-600')).toBe('#0F766E');
+    expect(api.getCachedBusinessProfile()?.appColor).toBe('#0F766E');
+  });
+
   it('calls uploadBusinessLogo with FormData and removeBusinessLogo with DELETE', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,

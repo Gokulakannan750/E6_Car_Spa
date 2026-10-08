@@ -90,7 +90,7 @@ export function Header({ pageTitle, breadcrumbs, actions, user, searchQuery = ''
 							onError={() => setImgError(true)}
 						/>
 					) : (
-						<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 text-white border border-white/20 flex items-center justify-center font-black text-xs shadow-sm shadow-red-950/30 flex-shrink-0">
+						<div className="h-8 w-8 rounded-lg bg-gradient-to-br from-side-600 to-side-900 text-white border border-white/20 flex items-center justify-center font-black text-xs shadow-sm shadow-side-950/30 flex-shrink-0">
 							E6
 						</div>
 					)}

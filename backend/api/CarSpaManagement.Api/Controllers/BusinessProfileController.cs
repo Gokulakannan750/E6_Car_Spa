@@ -53,6 +53,28 @@ public class BusinessProfileController : ControllerBase
     }
 
     /// <summary>
+    /// Updates the company's colours (app accent, sidebar and login, documents).
+    /// </summary>
+    [HttpPut("appearance")]
+    [RequirePermission("settings.business")]
+    public async Task<IActionResult> UpdateAppearance([FromBody] UpdateAppearanceRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            return Ok(await _profileService.UpdateAppearanceAsync(request, ct));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Uploads a new business logo (PNG, JPEG, WebP up to 5MB).
     /// </summary>
     [HttpPost("logo")]

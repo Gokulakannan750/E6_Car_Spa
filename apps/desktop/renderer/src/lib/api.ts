@@ -3,6 +3,8 @@
  * Centralized HTTP client for communicating with the ASP.NET Core backend.
  */
 
+import { applyTheme } from './theme';
+
 const API_BASE = (() => {
  if (typeof import.meta !== 'undefined' && import.meta.env.VITE_API_URL) {
  return import.meta.env.VITE_API_URL;
@@ -2959,7 +2961,12 @@ export interface BusinessProfileDto {
 	invoicePrefix: string;
 	termsAndConditions?: string | null;
 	tagline?: string | null;
+	/** Colour of invoice and job card documents (#RRGGBB). */
 	brandColor?: string | null;
+	/** Accent colour of the app itself (#RRGGBB). */
+	appColor?: string | null;
+	/** Colour of the sidebar and login page (#RRGGBB). */
+	sidebarColor?: string | null;
 	createdAt: string;
 	updatedAt: string | null;
 }
@@ -3033,10 +3040,13 @@ export interface PublicBusinessProfileDto {
 	businessName: string;
 	logoPath: string | null;
 	updatedAt: string | null;
+	appColor?: string | null;
+	sidebarColor?: string | null;
 }
 
 export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileDto> {
 	const res = await request<PublicBusinessProfileDto>('/api/public/business-profile', {}, 'view public branding');
+	applyTheme({ appColor: res.appColor, sidebarColor: res.sidebarColor });
 	const existing = getCachedBusinessProfile();
 	if (existing) {
 		setCachedBusinessProfile({
@@ -3044,6 +3054,8 @@ export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileD
 			businessName: res.businessName,
 			logoPath: res.logoPath,
 			updatedAt: res.updatedAt,
+			appColor: res.appColor,
+			sidebarColor: res.sidebarColor,
 		});
 	} else {
 		setCachedBusinessProfile({
@@ -3097,15 +3109,35 @@ export async function updateInvoiceSeries(data: { gstPrefix: string; nonGstPrefi
 
 export async function getBusinessProfile() {
 	const res = await request<BusinessProfileDto>('/api/settings/business', {}, 'view business profile');
+	applyTheme({ appColor: res.appColor, sidebarColor: res.sidebarColor });
 	setCachedBusinessProfile(res);
 	return res;
 }
 
 export async function updateBusinessProfile(data: UpdateBusinessProfileInput) {
+	// Sent as-is: cleanPayload would turn an empty tagline / terms into null, which the server reads as "unchanged".
 	return request<BusinessProfileDto>('/api/settings/business', {
 		method: 'PUT',
-		body: JSON.stringify(cleanPayload(data)),
+		body: JSON.stringify(data),
 	}, 'change business settings');
+}
+
+export interface UpdateAppearanceInput {
+	/** #RRGGBB. Omit to leave unchanged; an empty string goes back to the default. */
+	appColor?: string | null;
+	sidebarColor?: string | null;
+	brandColor?: string | null;
+}
+
+/** Saves the company's colours and applies them straight away. */
+export async function updateAppearance(data: UpdateAppearanceInput) {
+	const res = await request<BusinessProfileDto>('/api/settings/business/appearance', {
+		method: 'PUT',
+		body: JSON.stringify(data),
+	}, 'change the company colours');
+	applyTheme({ appColor: res.appColor, sidebarColor: res.sidebarColor });
+	setCachedBusinessProfile(res);
+	return res;
 }
 
 export async function uploadBusinessLogo(file: File) {

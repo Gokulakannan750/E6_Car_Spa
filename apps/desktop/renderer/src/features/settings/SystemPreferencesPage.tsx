@@ -14,6 +14,7 @@ import {
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../auth';
+import { AppearanceCard } from './AppearanceCard';
 import {
 	getSystemPreferences,
 	updateSystemPreferences,
@@ -70,7 +71,7 @@ export function saveStoredPreferences(prefs: SystemPreferences): void {
 export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);
 	const queryClient = useQueryClient();
-	const { isAuthenticated, token, hasPermission } = useAuth();
+	const { user, isAuthenticated, token, hasPermission } = useAuth();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
 	const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -410,6 +411,9 @@ export function SystemPreferencesPage() {
 
 				{/* Right Sidebar Column */}
 				<div className="space-y-6">
+					{/* Company colours: app, sidebar & login, documents */}
+					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
+
 					{/* System Environment Card */}
 					<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
 						<div className="flex items-center gap-2 pb-3 border-b border-slate-100">

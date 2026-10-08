@@ -59,6 +59,14 @@ public class BusinessProfile : BaseEntity
     [MaxLength(7)]
     public string? BrandColor { get; set; }
 
+    /// <summary>Accent colour of the app itself (buttons, links, highlights) as #RRGGBB. Optional; a neutral blue is used when empty.</summary>
+    [MaxLength(7)]
+    public string? AppColor { get; set; }
+
+    /// <summary>Colour of the sidebar menu and the login page as #RRGGBB. Optional; a neutral dark slate is used when empty.</summary>
+    [MaxLength(7)]
+    public string? SidebarColor { get; set; }
+
     [MaxLength(2000)]
     public string? TermsAndConditions { get; set; }
 

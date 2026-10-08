@@ -8,6 +8,7 @@ public interface IBusinessProfileService
     Task<BusinessProfileDto> GetProfileAsync(CancellationToken ct = default);
     Task<PublicBusinessProfileDto> GetPublicProfileAsync(CancellationToken ct = default);
     Task<BusinessProfileDto> UpdateProfileAsync(UpdateBusinessProfileRequest request, CancellationToken ct = default);
+    Task<BusinessProfileDto> UpdateAppearanceAsync(UpdateAppearanceRequest request, CancellationToken ct = default);
     Task<LogoUploadResponse> UploadLogoAsync(IFormFile file, CancellationToken ct = default);
     Task<BusinessProfileDto> RemoveLogoAsync(CancellationToken ct = default);
 }
