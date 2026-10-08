@@ -3058,6 +3058,83 @@ export function resolveLogoUrl(logoPath?: string | null, updatedAt?: string | nu
 	return fullUrl.includes('?') ? fullUrl : `${fullUrl}${versionParam}`;
 }
 
+// ============================================================================
+// Franchise network
+// ============================================================================
+
+export type FranchiseLinkStatus = 'Pending' | 'Active' | 'Declined' | 'Cancelled' | 'Expired' | 'Ended';
+export type FranchiseScopeStatus = 'Requested' | 'Granted' | 'Denied';
+
+export interface FranchiseScopeDto {
+	scope: string;
+	label: string;
+	status: FranchiseScopeStatus;
+}
+
+export interface FranchiseLinkDto {
+	id: string;
+	/** The viewer's own role in the link. */
+	role: 'Franchisor' | 'Franchisee';
+	partnerCode: string;
+	partnerName: string;
+	status: FranchiseLinkStatus;
+	invitedAt: string;
+	expiresAt: string;
+	respondedAt: string | null;
+	endedAt: string | null;
+	scopes: FranchiseScopeDto[];
+}
+
+export interface FranchiseNetworkDto {
+	franchiseEnabled: boolean;
+	/** Links where this company is the franchisor (the companies it franchises). */
+	franchisees: FranchiseLinkDto[];
+	/** Links where this company is the franchisee (the companies that franchise it). */
+	franchisors: FranchiseLinkDto[];
+	pendingInvitations: number;
+}
+
+export async function getFranchiseNetwork() {
+	return request<FranchiseNetworkDto>('/api/franchise', {}, 'view the franchise network');
+}
+
+export async function sendFranchiseInvite(data: { franchiseeCode: string; scopes?: string[] }) {
+	return request<{ message: string }>('/api/franchise/invites', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'send a franchise invitation');
+}
+
+export async function cancelFranchiseInvite(linkId: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/cancel`, { method: 'POST' }, 'withdraw the invitation');
+}
+
+export async function respondToFranchiseInvite(linkId: string, data: { accept: boolean; grantedScopes?: string[] }) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/respond`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'answer the invitation');
+}
+
+export async function endFranchiseLink(linkId: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/end`, { method: 'POST' }, 'end the franchise link');
+}
+
+export async function requestFranchiseScopes(linkId: string, scopes: string[]) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/scopes`, {
+		method: 'POST',
+		body: JSON.stringify({ scopes }),
+	}, 'ask to see more');
+}
+
+export async function decideFranchiseScope(linkId: string, scope: string, grant: boolean) {
+	return request<FranchiseLinkDto>(
+		`/api/franchise/links/${encodeURIComponent(linkId)}/scopes/${encodeURIComponent(scope)}`,
+		{ method: 'PUT', body: JSON.stringify({ grant }) },
+		'change what is shared',
+	);
+}
+
 export interface PublicBusinessProfileDto {
 	businessName: string;
 	logoPath: string | null;

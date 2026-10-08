@@ -21,6 +21,9 @@ import {
 	ArrowRight,
 	FileSpreadsheet,
 	Truck,
+	Network,
+	Link2,
+	Eye,
 } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { useAppStore } from '../../stores/app';
@@ -94,6 +97,10 @@ export function DashboardPage() {
 				case '5':
 					e.preventDefault();
 					navigate('/settings');
+					break;
+				case '6':
+					e.preventDefault();
+					navigate('/franchise');
 					break;
 			}
 		};
@@ -212,6 +219,27 @@ export function DashboardPage() {
 			route: '/settings',
 			shortcutKey: 'Alt + 5',
 			buttonLabel: 'Open Settings',
+		},
+		{
+			id: 'franchise',
+			name: 'Franchise',
+			description: 'Link with franchise companies and share figures by consent',
+			accent: '#0D9488',
+			iconBg: 'bg-teal-50',
+			iconColor: 'text-[#0D9488]',
+			buttonBg: 'bg-teal-50',
+			buttonHoverBg: 'hover:bg-teal-100',
+			buttonText: 'text-[#0D9488]',
+			hoverClass: 'launcher-card-franchise',
+			icon: <Network className="w-6 h-6" />,
+			features: [
+				{ label: 'Franchise Network', icon: <Network className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Invitations', icon: <Link2 className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Shared Figures', icon: <Eye className="w-4 h-4 text-slate-400 shrink-0" /> },
+			],
+			route: '/franchise',
+			shortcutKey: 'Alt + 6',
+			buttonLabel: 'Open Franchise',
 		},
 	];
 
@@ -374,9 +402,9 @@ export function DashboardPage() {
 					))}
 				</div>
 
-				{/* Row 2: 2 Wider Columns (Reports, Settings) */}
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-					{suiteApplications.slice(3, 5).map((app) => (
+				{/* Row 2: 3 Columns (Reports, Settings, Franchise) */}
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+					{suiteApplications.slice(3, 6).map((app) => (
 						<article
 							key={app.id}
 							role="button"

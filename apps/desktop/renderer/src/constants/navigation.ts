@@ -25,6 +25,7 @@ import {
 	Building2,
 	MessageSquare,
 	Truck,
+	Network,
 } from 'lucide-react';
 
 import type { NavigationItem } from '../types/app';
@@ -35,6 +36,7 @@ export type Workspace =
 	| 'staff'
 	| 'showroom'
 	| 'reports'
+	| 'franchise'
 	| 'settings';
 
 export const WORKSPACE_TITLES: Record<Workspace, string> = {
@@ -43,6 +45,7 @@ export const WORKSPACE_TITLES: Record<Workspace, string> = {
 	staff: 'Staff Suite',
 	showroom: 'Showroom Suite',
 	reports: 'Reports Suite',
+	franchise: 'Franchise Suite',
 	settings: 'Settings Suite',
 };
 
@@ -99,6 +102,11 @@ export function getWorkspaceFromPath(pathname: string): Workspace {
 	// REPORTS: /reports
 	if (path === '/reports' || path.startsWith('/reports/')) {
 		return 'reports';
+	}
+
+	// FRANCHISE: /franchise
+	if (path === '/franchise' || path.startsWith('/franchise/')) {
+		return 'franchise';
 	}
 
 	// SETTINGS: /settings, /audit
@@ -281,6 +289,19 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/reports/custom',
 			icon: 'SlidersHorizontal',
 			requiresPermission: 'reports.view',
+		},
+	],
+	franchise: [
+		{
+			label: 'Suite Home',
+			path: '/dashboard',
+			icon: 'Home',
+		},
+		{
+			label: 'Franchise Network',
+			path: '/franchise',
+			icon: 'Network',
+			requiresPermission: 'franchise.view',
 		},
 	],
 	settings: [
@@ -539,4 +560,5 @@ export const ICON_MAP: Record<
 	Building2,
 	MessageSquare,
 	Truck,
+	Network,
 };
