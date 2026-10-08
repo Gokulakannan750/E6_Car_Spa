@@ -29,7 +29,7 @@ public class InvoiceNumberAllocationConfiguration : IEntityTypeConfiguration<Inv
             .IsRequired();
 
         // The permanent reservation: a number can be issued only once, ever (case-insensitive).
-        builder.HasIndex(a => a.NormalizedNumber)
+        builder.HasIndex(a => new { a.OrganizationId, a.NormalizedNumber })
             .IsUnique()
             .HasDatabaseName("UX_InvoiceNumberAllocations_NormalizedNumber");
 

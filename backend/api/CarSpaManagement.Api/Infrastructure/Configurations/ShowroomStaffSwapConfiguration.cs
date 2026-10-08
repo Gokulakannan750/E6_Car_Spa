@@ -66,7 +66,7 @@ public class ShowroomStaffSwapConfiguration : IEntityTypeConfiguration<ShowroomS
             .HasForeignKey(s => s.PerformedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasIndex(s => s.SwapId)
+        builder.HasIndex(s => new { s.OrganizationId, s.SwapId })
             .IsUnique();
 
         builder.HasIndex(s => new { s.ShowroomAId, s.Date });

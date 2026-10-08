@@ -17,7 +17,7 @@ public class StaffConfiguration : IEntityTypeConfiguration<Staff>
             .IsRequired()
             .HasMaxLength(6);
 
-        builder.HasIndex(s => s.StaffMasterId)
+        builder.HasIndex(s => new { s.OrganizationId, s.StaffMasterId })
             .IsUnique();
 
         builder.Property(s => s.Name)

@@ -17,7 +17,7 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 			.HasDefaultValue(1)
 			.IsRequired();
 
-		builder.HasIndex(c => c.SingletonKey)
+		builder.HasIndex(c => new { c.OrganizationId, c.SingletonKey })
 			.IsUnique()
 			.HasDatabaseName("UX_WhatsAppConfigurations_Singleton");
 

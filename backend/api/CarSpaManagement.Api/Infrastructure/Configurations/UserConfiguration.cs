@@ -41,13 +41,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Unique username for active records
-        builder.HasIndex(u => u.Username)
+        builder.HasIndex(u => new { u.OrganizationId, u.Username })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false")
             .HasDatabaseName("IX_Users_Username");
 
-        // Single Owner invariant at the database level: exactly one Owner where IsDeleted is false
-        builder.HasIndex(u => u.Role)
+        // Single Owner invariant at the database level: exactly one Owner per company where IsDeleted is false
+        builder.HasIndex(u => new { u.OrganizationId, u.Role })
             .IsUnique()
             .HasFilter("\"Role\" = 1 AND \"IsDeleted\" = false")
             .HasDatabaseName("IX_Users_SingleOwner");

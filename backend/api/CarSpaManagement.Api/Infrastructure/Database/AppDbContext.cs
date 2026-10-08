@@ -33,6 +33,7 @@ public class AppDbContext : DbContext
     public Guid CurrentOrganizationId => _tenant.OrganizationId ?? Guid.Empty;
 
     public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationCounter> OrganizationCounters => Set<OrganizationCounter>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Service> Services => Set<Service>();
@@ -74,7 +75,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Showroom>()
-            .HasIndex(s => s.MasterId)
+            .HasIndex(s => new { s.OrganizationId, s.MasterId })
             .IsUnique();
 
         modelBuilder.Entity<ShowroomStaffAssignment>()

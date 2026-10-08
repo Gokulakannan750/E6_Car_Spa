@@ -38,7 +38,7 @@ public class ShowroomWorkTypeConfiguration : IEntityTypeConfiguration<ShowroomWo
         // Names are unique case-insensitively among non-deleted rows via the expression index
         // UX_ShowroomWorkTypes_Name, created in SQL by migration AddShowroomTypeNameUniqueAndIsOther.
 
-        builder.HasIndex(w => w.Code)
+        builder.HasIndex(w => new { w.OrganizationId, w.Code })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");
     }
