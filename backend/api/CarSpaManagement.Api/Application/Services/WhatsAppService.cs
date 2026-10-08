@@ -775,10 +775,10 @@ public class WhatsAppService : IWhatsAppService
 
 		var customerIds = rows.Select(r => r.CustomerId).Distinct().ToList();
 		var invoiceIds = rows.Select(r => r.InvoiceId).Distinct().ToList();
-		var customerNames = await _db.Customers.IgnoreQueryFilters().AsNoTracking()
+		var customerNames = await _db.Customers.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking()
 			.Where(c => customerIds.Contains(c.Id)).Select(c => new { c.Id, c.Name })
 			.ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
-		var invoiceNumbers = await _db.Invoices.IgnoreQueryFilters().AsNoTracking()
+		var invoiceNumbers = await _db.Invoices.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking()
 			.Where(i => invoiceIds.Contains(i.Id)).Select(i => new { i.Id, i.InvoiceNumber })
 			.ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken);
 

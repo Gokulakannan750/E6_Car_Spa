@@ -1,11 +1,38 @@
 using CarSpaManagement.Api.Domain.Common;
 using CarSpaManagement.Api.Domain.Entities;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Infrastructure.Database;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    /// <summary>Name of the filter that hides soft-deleted rows.</summary>
+    public const string SoftDeleteFilter = "SoftDelete";
+
+    /// <summary>Name of the filter that limits every query to the current company.</summary>
+    public const string TenantFilter = "Tenant";
+
+    private readonly ITenantContext _tenant;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext tenant) : base(options)
+    {
+        _tenant = tenant;
+    }
+
+    /// <summary>
+    /// For callers that run for the single default company (older tools and tests). Production code gets the
+    /// request's company through dependency injection instead.
+    /// </summary>
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : this(options, new FixedTenantContext(DefaultOrganization.Id))
+    {
+    }
+
+    /// <summary>The company this context works for. With none, the filter matches nothing (fail closed).</summary>
+    public Guid CurrentOrganizationId => _tenant.OrganizationId ?? Guid.Empty;
+
+    public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Service> Services => Set<Service>();
@@ -59,28 +86,59 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // Apply all IEntityTypeConfiguration implementations from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        // Global query filter for soft delete
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes()
-            .Where(e => typeof(BaseEntity).IsAssignableFrom(e.ClrType)))
+        // Two named query filters. They are separate so that code which needs to see deleted rows (for example to
+        // check that a number was never used) can switch off only the soft-delete filter and still stay inside its
+        // own company. Use IgnoreQueryFilters([SoftDeleteFilter]), never IgnoreQueryFilters(), for that.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes().ToList())
         {
-            var method = typeof(AppDbContext).GetMethod(nameof(ApplySoftDeleteFilter),
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-                ?.MakeGenericMethod(entityType.ClrType);
-
-            if (method != null)
+            if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
             {
-                method.Invoke(this, [modelBuilder]);
+                typeof(AppDbContext).GetMethod(nameof(ApplySoftDeleteFilter),
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(entityType.ClrType)
+                    .Invoke(this, [modelBuilder]);
+            }
+
+            if (typeof(IOrganizationOwned).IsAssignableFrom(entityType.ClrType))
+            {
+                typeof(AppDbContext).GetMethod(nameof(ApplyTenantFilter),
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                    .MakeGenericMethod(entityType.ClrType)
+                    .Invoke(this, [modelBuilder]);
             }
         }
     }
 
     private void ApplySoftDeleteFilter<T>(ModelBuilder builder) where T : BaseEntity
     {
-        builder.Entity<T>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<T>().HasQueryFilter(SoftDeleteFilter, e => !e.IsDeleted);
     }
 
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    private void ApplyTenantFilter<T>(ModelBuilder builder) where T : class, IOrganizationOwned
     {
+        var entity = builder.Entity<T>();
+        entity.HasQueryFilter(TenantFilter, e => e.OrganizationId == CurrentOrganizationId);
+        entity.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasIndex(e => e.OrganizationId);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        PrepareForSave();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        PrepareForSave();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>Runs on every save path (sync and async): company checks first, then the audit timestamps.</summary>
+    private void PrepareForSave()
+    {
+        EnforceOrganizationOwnership();
+
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
@@ -96,7 +154,51 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                     break;
             }
         }
+    }
 
-        return base.SaveChangesAsync(cancellationToken);
+    /// <summary>
+    /// New company-owned rows get the current company stamped on them; rows can never be written to, moved to or
+    /// deleted from a different company. Platform operations that create a new company's first rows must set
+    /// <c>OrganizationId</c> explicitly while no company is current.
+    /// </summary>
+    private void EnforceOrganizationOwnership()
+    {
+        var current = _tenant.OrganizationId;
+
+        foreach (var entry in ChangeTracker.Entries<IOrganizationOwned>())
+        {
+            var entity = entry.Entity;
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    if (entity.OrganizationId == Guid.Empty)
+                    {
+                        entity.OrganizationId = current
+                            ?? throw new TenantViolationException(
+                                $"Cannot save {entry.Metadata.ClrType.Name}: no company is set for this request.");
+                    }
+                    else if (current is { } c && entity.OrganizationId != c)
+                    {
+                        throw new TenantViolationException(
+                            $"Cannot save {entry.Metadata.ClrType.Name} for a different company.");
+                    }
+                    break;
+
+                case EntityState.Modified:
+                case EntityState.Deleted:
+                    var property = entry.Property(nameof(IOrganizationOwned.OrganizationId));
+                    if (property.IsModified && !Equals(property.OriginalValue, property.CurrentValue))
+                    {
+                        throw new TenantViolationException(
+                            $"{entry.Metadata.ClrType.Name} cannot be moved to a different company.");
+                    }
+                    if (current is { } cur && entity.OrganizationId != cur)
+                    {
+                        throw new TenantViolationException(
+                            $"Cannot change {entry.Metadata.ClrType.Name} that belongs to a different company.");
+                    }
+                    break;
+            }
+        }
     }
 }

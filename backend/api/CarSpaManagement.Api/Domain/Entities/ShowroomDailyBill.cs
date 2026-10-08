@@ -4,8 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class ShowroomDailyBill : BaseEntity
+public class ShowroomDailyBill : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     [Required]
     public Guid ShowroomId { get; set; }
 

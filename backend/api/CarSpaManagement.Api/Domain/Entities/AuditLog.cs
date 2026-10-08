@@ -2,8 +2,11 @@ using CarSpaManagement.Api.Domain.Common;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class AuditLog : BaseEntity
+public class AuditLog : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     public DateTime TimestampUtc { get; set; } = DateTime.UtcNow;
 
     public Guid? UserId { get; set; }

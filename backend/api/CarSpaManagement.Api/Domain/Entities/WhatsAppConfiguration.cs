@@ -4,8 +4,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class WhatsAppConfiguration : BaseEntity
+public class WhatsAppConfiguration : BaseEntity, IOrganizationOwned
 {
+	/// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+	public Guid OrganizationId { get; set; }
+
 	public int SingletonKey { get; set; } = 1;
 
 	public bool IsEnabled { get; set; } = false;

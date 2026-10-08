@@ -31,6 +31,13 @@ public class LoginRequest
 
     [Required]
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The company's code (for example "01-0001"). Optional only while the server has a single company; once there
+    /// are several, the code is how sign-in knows which company's users to check.
+    /// </summary>
+    [StringLength(20)]
+    public string? CompanyCode { get; set; }
 }
 
 public class AuthUserDto
@@ -48,4 +55,7 @@ public class LoginResponse
 {
     public string Token { get; set; } = string.Empty;
     public AuthUserDto User { get; set; } = null!;
+
+    /// <summary>The company the user signed in to, so the apps can remember the code.</summary>
+    public string CompanyCode { get; set; } = string.Empty;
 }

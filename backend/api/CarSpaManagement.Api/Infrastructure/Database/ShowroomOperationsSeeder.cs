@@ -30,7 +30,7 @@ public static class ShowroomOperationsSeeder
     {
         // 1. Seed Vehicle Types Idempotently
         var existingVehicleCodes = await db.ShowroomVehicleTypes
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .Select(t => t.Code)
             .ToHashSetAsync();
 
@@ -56,7 +56,7 @@ public static class ShowroomOperationsSeeder
 
         // 2. Seed Work Types Idempotently
         var existingWorkCodes = await db.ShowroomWorkTypes
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .Select(w => w.Code)
             .ToHashSetAsync();
 

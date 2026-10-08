@@ -5,8 +5,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class ShowroomStaffWorkSession : BaseEntity
+public class ShowroomStaffWorkSession : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     [Required]
     public Guid StaffId { get; set; }
 

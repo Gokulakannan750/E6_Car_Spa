@@ -3,8 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class SystemPreference : BaseEntity
+public class SystemPreference : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     /// <summary>
     /// Database singleton key ensuring only ONE active system preferences record exists in the system.
     /// </summary>

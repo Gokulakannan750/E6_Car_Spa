@@ -406,6 +406,7 @@ else
 }
 
 app.UseAuthentication();
+app.UseMiddleware<CarSpaManagement.Api.Infrastructure.Tenancy.TenantResolutionMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 

@@ -3,8 +3,11 @@ using CarSpaManagement.Api.Domain.Common;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class Vendor : BaseEntity
+public class Vendor : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     [Required]
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;

@@ -5,6 +5,7 @@ using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -15,12 +16,50 @@ public class AuthService(
     IPasswordHasherService passwordHasher,
     IJwtTokenService jwtTokenService,
     IAuditLogService auditLogService,
-    IAccountLockoutService accountLockoutService) : IAuthService
+    IAccountLockoutService accountLockoutService,
+    TenantContext? tenantContext = null) : IAuthService
 {
     public async Task<AuthStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        var hasUsers = await db.Users.AnyAsync(cancellationToken);
-        return new AuthStatusDto { Initialized = hasUsers };
+        // "Initialized" means the server already has a company; the company list itself is not company-owned data.
+        var initialized = await db.Organizations.AnyAsync(cancellationToken) || await db.Users.AnyAsync(cancellationToken);
+        return new AuthStatusDto { Initialized = initialized };
+    }
+
+    /// <summary>
+    /// Finds the company a sign-in is for. A code is always accepted; with no code, sign-in works only while the
+    /// server has exactly one company. Unknown or inactive companies get the same answer as a wrong password, so
+    /// codes can't be probed.
+    /// </summary>
+    private async Task<Organization?> ResolveOrganizationAsync(string? companyCode, CancellationToken cancellationToken)
+    {
+        if (tenantContext is null)
+        {
+            return null; // single-company callers (older tools and tests) run in the default company
+        }
+
+        var code = companyCode?.Trim().ToUpperInvariant();
+        Organization? organization;
+        if (!string.IsNullOrEmpty(code))
+        {
+            organization = await db.Organizations.FirstOrDefaultAsync(o => o.Code == code && o.IsActive, cancellationToken);
+        }
+        else
+        {
+            var all = await db.Organizations.Where(o => o.IsActive).Take(2).ToListAsync(cancellationToken);
+            organization = all.Count == 1 ? all[0] : null;
+        }
+
+        if (organization is null)
+        {
+            Log.Warning("Login rejected: company code '{CompanyCode}' is missing, unknown or inactive", companyCode);
+            throw new UnauthorizedException(string.IsNullOrEmpty(code)
+                ? "Company code is required."
+                : "Invalid company code, username or password.");
+        }
+
+        tenantContext.Set(organization.Id);
+        return organization;
     }
 
     public async Task<AuthUserDto> BootstrapOwnerAsync(BootstrapOwnerRequest request, CancellationToken cancellationToken = default)
@@ -29,7 +68,7 @@ public class AuthService(
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         try
         {
-            var alreadyInitialized = await db.Users.AnyAsync(cancellationToken);
+            var alreadyInitialized = await db.Organizations.AnyAsync(cancellationToken) || await db.Users.AnyAsync(cancellationToken);
             if (alreadyInitialized)
             {
                 throw new ConflictException("Application is already initialized with an Owner.");
@@ -53,9 +92,23 @@ public class AuthService(
 
             var normalizedUsername = request.Username.Trim().ToLowerInvariant();
 
+            // First-time setup creates the first company and its Owner. The first company always has the well-known
+            // default id (and code "01-0001"); later companies are created by the platform, not by this endpoint.
+            var organization = new Organization
+            {
+                Id = DefaultOrganization.Id,
+                Code = DefaultOrganization.Code,
+                BusinessType = BusinessType.CarSpa,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Organizations.Add(organization);
+            tenantContext?.Set(organization.Id);
+
             var owner = new User
             {
                 Id = Guid.NewGuid(),
+                OrganizationId = organization.Id,
                 FullName = request.FullName.Trim(),
                 Username = normalizedUsername,
                 Role = UserRole.Owner,
@@ -96,6 +149,9 @@ public class AuthService(
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        var organization = await ResolveOrganizationAsync(request.CompanyCode, cancellationToken);
+        var companyCode = organization?.Code ?? DefaultOrganization.Code;
+
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
         {
             await auditLogService.RecordAsync(
@@ -110,8 +166,11 @@ public class AuthService(
 
         var normalizedUsername = request.Username.Trim().ToLowerInvariant();
 
+        // Failed attempts are counted per company, so one company's lockouts never affect another's users.
+        var lockoutKey = AccountLockoutKey.For(companyCode, normalizedUsername);
+
         // 1. Account Lockout Check
-        var (isLocked, remainingSeconds) = accountLockoutService.CheckLockout(normalizedUsername);
+        var (isLocked, remainingSeconds) = accountLockoutService.CheckLockout(lockoutKey);
         if (isLocked)
         {
             Log.Warning("Login rejected for username '{Username}' (account temporarily locked, {RemainingSeconds}s remaining)", request.Username, remainingSeconds);
@@ -143,7 +202,7 @@ public class AuthService(
                 outcome: "Failure",
                 cancellationToken: cancellationToken);
 
-            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(normalizedUsername);
+            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(lockoutKey);
             if (newlyLocked)
             {
                 throw new AccountLockedException("Too many failed login attempts. Please try again later.", lockRemaining);
@@ -164,7 +223,7 @@ public class AuthService(
                 outcome: "Failure",
                 cancellationToken: cancellationToken);
 
-            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(normalizedUsername);
+            var (newlyLocked, lockRemaining) = accountLockoutService.RecordFailedAttempt(lockoutKey);
             if (newlyLocked)
             {
                 throw new AccountLockedException("Too many failed login attempts. Please try again later.", lockRemaining);
@@ -174,7 +233,7 @@ public class AuthService(
         }
 
         // Reset failed attempts upon successful login
-        accountLockoutService.RecordSuccessfulLogin(normalizedUsername);
+        accountLockoutService.RecordSuccessfulLogin(lockoutKey);
 
         user.LastLoginAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
@@ -202,7 +261,8 @@ public class AuthService(
         return new LoginResponse
         {
             Token = token,
-            User = MapToAuthUserDto(user, permissions)
+            User = MapToAuthUserDto(user, permissions),
+            CompanyCode = companyCode
         };
     }
 

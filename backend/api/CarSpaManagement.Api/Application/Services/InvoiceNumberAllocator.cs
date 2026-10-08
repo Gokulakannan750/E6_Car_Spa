@@ -70,7 +70,7 @@ public class InvoiceNumberAllocator(AppDbContext db)
 			cancellationToken);
 		if (reserved) return true;
 
-		return await db.Invoices.IgnoreQueryFilters().AnyAsync(
+		return await db.Invoices.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AnyAsync(
 			i => i.InvoiceNumber != null && i.InvoiceNumber.ToUpper() == key && (exceptInvoiceId == null || i.Id != exceptInvoiceId),
 			cancellationToken);
 	}

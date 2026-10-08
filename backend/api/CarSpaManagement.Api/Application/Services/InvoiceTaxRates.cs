@@ -27,7 +27,7 @@ public static class InvoiceTaxRates
 			.GroupBy(l => l.ServiceId)
 			.ToDictionary(g => g.Key, g => g.First().TaxPercentage);
 
-		var catalogueRates = await db.Services.IgnoreQueryFilters().AsNoTracking()
+		var catalogueRates = await db.Services.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking()
 			.Where(s => serviceIds.Contains(s.Id))
 			.ToDictionaryAsync(s => s.Id, s => s.TaxPercentage, cancellationToken);
 

@@ -4,8 +4,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class ShowroomStaffSwap : BaseEntity
+public class ShowroomStaffSwap : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     [Required, MaxLength(50)]
     public string SwapId { get; set; } = string.Empty; // e.g. "SWP-20260927-0001"
 

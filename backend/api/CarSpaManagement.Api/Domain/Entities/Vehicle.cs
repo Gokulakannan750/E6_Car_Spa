@@ -3,8 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class Vehicle : BaseEntity
+public class Vehicle : BaseEntity, IOrganizationOwned
 {
+	/// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+	public Guid OrganizationId { get; set; }
+
  [MaxLength(20)]
  public string RegistrationNumber { get; set; } = string.Empty;
 
