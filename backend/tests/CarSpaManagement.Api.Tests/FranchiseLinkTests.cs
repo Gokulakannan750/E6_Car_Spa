@@ -32,6 +32,19 @@ public class FranchiseLinkTests
             throw new NotImplementedException();
     }
 
+    private sealed class FakeFigures : IFranchiseFigures
+    {
+        public Dictionary<Guid, FranchiseFinancialTotalsDto> Totals { get; } = new();
+        public List<Guid> Asked { get; } = [];
+
+        public Task<FranchiseFinancialTotalsDto> GetFinancialTotalsAsync(Guid franchiseeOrganizationId, DateOnly from, DateOnly to,
+            CancellationToken cancellationToken = default)
+        {
+            Asked.Add(franchiseeOrganizationId);
+            return Task.FromResult(Totals[franchiseeOrganizationId]);
+        }
+    }
+
     private sealed class Entitlement(bool enabled) : IFranchiseEntitlement
     {
         public Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default) => Task.FromResult(enabled);
@@ -60,10 +73,10 @@ public class FranchiseLinkTests
             return new AppDbContext(options, company is { } c ? new FixedTenantContext(c) : NoTenantContext.Instance);
         }
 
-        public (FranchiseService Service, AppDbContext Db) As(Guid company, bool addOn = true)
+        public (FranchiseService Service, AppDbContext Db) As(Guid company, bool addOn = true, IFranchiseFigures? figures = null)
         {
             var db = Db(company);
-            return (new FranchiseService(db, new NoAudit(), new Entitlement(addOn), new HttpContextAccessor()), db);
+            return (new FranchiseService(db, new NoAudit(), new Entitlement(addOn), new HttpContextAccessor(), figures ?? new FakeFigures()), db);
         }
     }
 
@@ -326,6 +339,79 @@ public class FranchiseLinkTests
         var (alpha, _) = world.As(Org1);
         await alpha.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = "0002" });
         Assert.Equal(2, (await alpha.GetNetworkAsync()).Franchisees.Count);
+    }
+
+    // ── The franchisor's dashboard ──────────────────────────────────────────────────────────────────────────
+
+    private static FranchiseFinancialTotalsDto Totals(int invoices, decimal invoiced, decimal collected, decimal outstanding, int jobs,
+        params (string date, decimal invoiced, decimal collected)[] daily) =>
+        new(invoices, invoiced, collected, outstanding, jobs, daily.Select(d => new FranchiseDailyPointDto(d.date, d.invoiced, d.collected)).ToList());
+
+    [Fact]
+    public async Task TheDashboard_ShowsOnlyActiveFranchisees_AndOnlyWhatIsAllowed_AndAddsUpTheNetwork()
+    {
+        var world = new World();
+        var figures = new FakeFigures();
+        figures.Totals[Org2] = Totals(3, 1000m, 600m, 400m, 4, ("2026-10-01", 600m, 300m), ("2026-10-02", 400m, 300m));
+        figures.Totals[Org3] = Totals(1, 250m, 250m, 0m, 1, ("2026-10-02", 250m, 250m));
+
+        // Beta accepts and shares the totals; Gamma accepts but shares something else only.
+        var toBeta = await InviteAsync(world, Org1, "0002");
+        await world.As(Org2).Service.RespondAsync(toBeta.Id, Accept("financial_totals"));
+        var toGamma = await InviteAsync(world, Org1, "0003", ["financial_totals", "staff"]);
+        await world.As(Org3).Service.RespondAsync(toGamma.Id, Accept("staff"));
+
+        var (alpha, _) = world.As(Org1, figures: figures);
+        var dashboard = await alpha.GetDashboardAsync(new DateOnly(2026, 10, 1), new DateOnly(2026, 10, 7));
+
+        Assert.Equal(2, dashboard.Franchisees.Count);
+        var beta = dashboard.Franchisees.Single(f => f.PartnerName == "Beta Detailing");
+        Assert.True(beta.FinancialTotalsAllowed);
+        Assert.Equal(1000m, beta.Totals!.InvoicedAmount);
+        var gamma = dashboard.Franchisees.Single(f => f.PartnerName == "Gamma Wash");
+        Assert.False(gamma.FinancialTotalsAllowed);
+        Assert.Null(gamma.Totals);
+        Assert.Equal([Org2], figures.Asked);                 // nothing was even requested for Gamma
+
+        Assert.Equal(3, dashboard.Network.InvoiceCount);
+        Assert.Equal(1000m, dashboard.Network.InvoicedAmount);
+        Assert.Equal(["2026-10-01", "2026-10-02"], dashboard.Network.Daily.Select(d => d.Date));
+        Assert.Equal(400m, dashboard.Network.Daily.Single(d => d.Date == "2026-10-02").Invoiced);
+        Assert.Equal("2026-10-01", dashboard.From);
+        Assert.Equal("2026-10-07", dashboard.To);
+    }
+
+    [Fact]
+    public async Task APendingOrEndedLink_ShowsNothingOnTheDashboard_AndTheFranchiseeSeesNoOneElsesFigures()
+    {
+        var world = new World();
+        var figures = new FakeFigures();
+        figures.Totals[Org2] = Totals(1, 10m, 10m, 0m, 1);
+
+        var link = await InviteAsync(world, Org1, "0002");
+        var (alpha, _) = world.As(Org1, figures: figures);
+        Assert.Empty((await alpha.GetDashboardAsync(null, null)).Franchisees);   // still pending
+
+        await world.As(Org2).Service.RespondAsync(link.Id, Accept("financial_totals"));
+        Assert.Single((await world.As(Org1, figures: figures).Service.GetDashboardAsync(null, null)).Franchisees);
+
+        // The franchisee has no franchisees of its own, so its dashboard is empty.
+        Assert.Empty((await world.As(Org2, figures: figures).Service.GetDashboardAsync(null, null)).Franchisees);
+
+        await world.As(Org2).Service.EndLinkAsync(link.Id);
+        Assert.Empty((await world.As(Org1, figures: figures).Service.GetDashboardAsync(null, null)).Franchisees);
+    }
+
+    [Fact]
+    public async Task TheDashboardPeriod_IsValidated_AndNeedsTheAddOn()
+    {
+        var world = new World();
+        var (alpha, _) = world.As(Org1);
+        await Assert.ThrowsAsync<ValidationException>(() => alpha.GetDashboardAsync(new DateOnly(2026, 10, 9), new DateOnly(2026, 10, 1)));
+        await Assert.ThrowsAsync<ValidationException>(() => alpha.GetDashboardAsync(new DateOnly(2024, 1, 1), new DateOnly(2026, 10, 1)));
+
+        var (noAddOn, _) = world.As(Org1, addOn: false);
+        await Assert.ThrowsAsync<ForbiddenException>(() => noAddOn.GetDashboardAsync(null, null));
     }
 
     // ── The write guard ─────────────────────────────────────────────────────────────────────────────────────

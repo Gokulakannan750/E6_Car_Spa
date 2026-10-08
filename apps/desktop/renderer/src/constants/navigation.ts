@@ -303,6 +303,12 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			icon: 'Network',
 			requiresPermission: 'franchise.view',
 		},
+		{
+			label: 'Franchise Dashboard',
+			path: '/franchise/dashboard',
+			icon: 'BarChart3',
+			requiresPermission: 'franchise.view',
+		},
 	],
 	settings: [
 		{

@@ -29,6 +29,15 @@ public sealed class PostgresFactAttribute : FactAttribute
     }
 }
 
+public sealed class PostgresTheoryAttribute : TheoryAttribute
+{
+    public PostgresTheoryAttribute()
+    {
+        if (PostgresTestEnvironment.AdminConnectionString is null)
+            Skip = $"Real PostgreSQL test: set {PostgresTestEnvironment.ConnectionVariable} to run.";
+    }
+}
+
 public sealed class PostgresTestDatabase : IAsyncLifetime
 {
     private readonly string _databaseName = $"carspa_test_{Guid.NewGuid():N}";

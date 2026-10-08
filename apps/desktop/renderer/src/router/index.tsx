@@ -29,6 +29,7 @@ const loadShowroomConfiguration = () => import('../features/showroom/ShowroomCon
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
 const loadFranchise = () => import('../features/franchise/FranchisePage');
+const loadFranchiseDashboard = () => import('../features/franchise/FranchiseDashboardPage');
 const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
 
 export const router = createBrowserRouter([
@@ -416,6 +417,19 @@ export const router = createBrowserRouter([
 						Component: () => (
 							<RouteGuard requiredPermission="showroom.view">
 								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/franchise/dashboard',
+				lazy: async () => {
+					const m = await loadFranchiseDashboard();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="franchise.view">
+								<m.FranchiseDashboardPage />
 							</RouteGuard>
 						),
 					};

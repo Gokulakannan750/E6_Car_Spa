@@ -11,8 +11,18 @@ public interface IFranchiseEntitlement
     Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>Reads a franchisee's approved financial figures. The database function behind it checks the link itself.</summary>
+public interface IFranchiseFigures
+{
+    Task<FranchiseFinancialTotalsDto> GetFinancialTotalsAsync(Guid franchiseeOrganizationId, DateOnly from, DateOnly to,
+        CancellationToken cancellationToken = default);
+}
+
 public interface IFranchiseService
 {
+    /// <summary>The franchisor's dashboard: the approved financial totals of every active franchisee, and the network total.</summary>
+    Task<FranchiseDashboardDto> GetDashboardAsync(DateOnly? from, DateOnly? to, CancellationToken cancellationToken = default);
+
     Task<FranchiseNetworkDto> GetNetworkAsync(CancellationToken cancellationToken = default);
 
     /// <summary>The franchisor invites another company, by its code.</summary>

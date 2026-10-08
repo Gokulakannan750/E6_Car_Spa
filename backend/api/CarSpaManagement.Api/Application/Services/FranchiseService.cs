@@ -11,6 +11,43 @@ using Serilog;
 namespace CarSpaManagement.Api.Application.Services;
 
 /// <summary>Always on, until the subscription add-ons exist and decide this per company.</summary>
+/// <summary>Reads the figures through the database function that enforces the franchise link itself.</summary>
+public sealed class PostgresFranchiseFigures(AppDbContext db) : IFranchiseFigures
+{
+    private sealed class Payload
+    {
+        public int InvoiceCount { get; set; }
+        public decimal InvoicedAmount { get; set; }
+        public decimal CollectedAmount { get; set; }
+        public decimal OutstandingAmount { get; set; }
+        public int JobCardCount { get; set; }
+        public List<DailyPayload> Daily { get; set; } = [];
+    }
+
+    private sealed class DailyPayload
+    {
+        public string Date { get; set; } = string.Empty;
+        public decimal Invoiced { get; set; }
+        public decimal Collected { get; set; }
+    }
+
+    public async Task<FranchiseFinancialTotalsDto> GetFinancialTotalsAsync(Guid franchiseeOrganizationId, DateOnly from, DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        var json = await db.Database
+            .SqlQuery<string>($"SELECT franchise_financial_totals({franchiseeOrganizationId}, {from}, {to})::text AS \"Value\"")
+            .SingleAsync(cancellationToken);
+
+        var payload = System.Text.Json.JsonSerializer.Deserialize<Payload>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new InvalidOperationException("The franchise figures were empty.");
+
+        return new FranchiseFinancialTotalsDto(
+            payload.InvoiceCount, payload.InvoicedAmount, payload.CollectedAmount, payload.OutstandingAmount, payload.JobCardCount,
+            payload.Daily.Select(d => new FranchiseDailyPointDto(d.Date, d.Invoiced, d.Collected)).ToList());
+    }
+}
+
 public sealed class AlwaysOnFranchiseEntitlement : IFranchiseEntitlement
 {
     public Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
@@ -25,7 +62,8 @@ public class FranchiseService(
     AppDbContext db,
     IAuditLogService auditLogService,
     IFranchiseEntitlement entitlement,
-    IHttpContextAccessor httpContextAccessor) : IFranchiseService
+    IHttpContextAccessor httpContextAccessor,
+    IFranchiseFigures figures) : IFranchiseService
 {
     public static readonly TimeSpan InviteLifetime = TimeSpan.FromDays(7);
     public const int MaxInvitesPerDay = 20;
@@ -128,6 +166,63 @@ public class FranchiseService(
 
     private async Task<FranchiseLinkDto> DtoAsync(FranchiseLink link, CancellationToken cancellationToken) =>
         (await ToDtosAsync([link], CurrentCompany, cancellationToken))[0];
+
+    // ── The franchisor's dashboard ──────────────────────────────────────────────────────────────────────────
+
+    public async Task<FranchiseDashboardDto> GetDashboardAsync(DateOnly? from, DateOnly? to, CancellationToken cancellationToken = default)
+    {
+        var me = CurrentCompany;
+        await RequireFranchiseAddOnAsync(cancellationToken);
+
+        var toDate = to ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var fromDate = from ?? toDate.AddDays(-29);
+        if (fromDate > toDate)
+        {
+            throw new ValidationException("The start date must not be after the end date.");
+        }
+        if (toDate.DayNumber - fromDate.DayNumber > 366)
+        {
+            throw new ValidationException("Choose a period of at most one year.");
+        }
+
+        var links = await db.FranchiseLinks.Include(l => l.Scopes)
+            .Where(l => l.FranchisorOrganizationId == me && l.Status == FranchiseLinkStatus.Active)
+            .OrderBy(l => l.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var named = await ToDtosAsync(links, me, cancellationToken);
+
+        var franchisees = new List<FranchiseeFinancialsDto>();
+        foreach (var (link, dto) in links.Zip(named))
+        {
+            var allowed = link.Scopes.Any(s => s.Scope == FranchiseScopes.FinancialTotals && s.Status == FranchiseScopeStatus.Granted);
+            var totals = allowed
+                ? await figures.GetFinancialTotalsAsync(link.FranchiseeOrganizationId, fromDate, toDate, cancellationToken)
+                : null;
+            franchisees.Add(new FranchiseeFinancialsDto(link.Id, dto.PartnerCodeHint, dto.PartnerName, allowed, totals));
+        }
+
+        var shared = franchisees.Where(f => f.Totals is not null).Select(f => f.Totals!).ToList();
+        var network = new FranchiseFinancialTotalsDto(
+            shared.Sum(t => t.InvoiceCount),
+            shared.Sum(t => t.InvoicedAmount),
+            shared.Sum(t => t.CollectedAmount),
+            shared.Sum(t => t.OutstandingAmount),
+            shared.Sum(t => t.JobCardCount),
+            shared.SelectMany(t => t.Daily)
+                .GroupBy(d => d.Date)
+                .OrderBy(g => g.Key)
+                .Select(g => new FranchiseDailyPointDto(g.Key, g.Sum(d => d.Invoiced), g.Sum(d => d.Collected)))
+                .ToList());
+
+        await auditLogService.RecordAsync(
+            action: "franchise.dashboard_viewed",
+            module: AuditModules.Franchise,
+            description: $"Viewed franchise figures for {shared.Count} company(ies), {fromDate:yyyy-MM-dd} to {toDate:yyyy-MM-dd}.",
+            entityType: nameof(FranchiseLink),
+            cancellationToken: cancellationToken);
+
+        return new FranchiseDashboardDto(fromDate.ToString("yyyy-MM-dd"), toDate.ToString("yyyy-MM-dd"), network, franchisees);
+    }
 
     // ── Inviting ────────────────────────────────────────────────────────────────────────────────────────────
 

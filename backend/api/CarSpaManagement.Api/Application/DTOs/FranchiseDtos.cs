@@ -57,3 +57,28 @@ public class DecideFranchiseScopeRequest
 {
     public bool Grant { get; set; }
 }
+
+public record FranchiseDailyPointDto(string Date, decimal Invoiced, decimal Collected);
+
+/// <summary>A franchisee's approved financial figures for a period: totals and a daily series, never individual records.</summary>
+public record FranchiseFinancialTotalsDto(
+    int InvoiceCount,
+    decimal InvoicedAmount,
+    decimal CollectedAmount,
+    decimal OutstandingAmount,
+    int JobCardCount,
+    IReadOnlyList<FranchiseDailyPointDto> Daily);
+
+/// <summary>One franchisee on the dashboard. <c>Totals</c> is null when the franchisee has not allowed the financial totals.</summary>
+public record FranchiseeFinancialsDto(
+    Guid LinkId,
+    string PartnerCodeHint,
+    string PartnerName,
+    bool FinancialTotalsAllowed,
+    FranchiseFinancialTotalsDto? Totals);
+
+public record FranchiseDashboardDto(
+    string From,
+    string To,
+    FranchiseFinancialTotalsDto Network,
+    IReadOnlyList<FranchiseeFinancialsDto> Franchisees);

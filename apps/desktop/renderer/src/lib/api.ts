@@ -3095,6 +3095,44 @@ export interface FranchiseNetworkDto {
 	pendingInvitations: number;
 }
 
+export interface FranchiseDailyPointDto {
+	date: string;
+	invoiced: number;
+	collected: number;
+}
+
+export interface FranchiseFinancialTotalsDto {
+	invoiceCount: number;
+	invoicedAmount: number;
+	collectedAmount: number;
+	outstandingAmount: number;
+	jobCardCount: number;
+	daily: FranchiseDailyPointDto[];
+}
+
+export interface FranchiseeFinancialsDto {
+	linkId: string;
+	partnerCodeHint: string;
+	partnerName: string;
+	financialTotalsAllowed: boolean;
+	totals: FranchiseFinancialTotalsDto | null;
+}
+
+export interface FranchiseDashboardDto {
+	from: string;
+	to: string;
+	network: FranchiseFinancialTotalsDto;
+	franchisees: FranchiseeFinancialsDto[];
+}
+
+export async function getFranchiseDashboard(from: string, to: string) {
+	return request<FranchiseDashboardDto>(
+		`/api/franchise/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+		{},
+		'view the franchise figures',
+	);
+}
+
 export async function getFranchiseNetwork() {
 	return request<FranchiseNetworkDto>('/api/franchise', {}, 'view the franchise network');
 }

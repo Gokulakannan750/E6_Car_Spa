@@ -15,6 +15,11 @@ public class FranchiseController(IFranchiseService franchiseService) : Controlle
     public async Task<IActionResult> GetNetwork(CancellationToken ct) =>
         Ok(await franchiseService.GetNetworkAsync(ct));
 
+    [HttpGet("dashboard")]
+    [RequirePermission("franchise.view")]
+    public async Task<IActionResult> GetDashboard([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct) =>
+        Ok(await franchiseService.GetDashboardAsync(from, to, ct));
+
     [HttpPost("invites")]
     [RequirePermission("franchise.manage")]
     public async Task<IActionResult> SendInvite([FromBody] SendFranchiseInviteRequest request, CancellationToken ct)

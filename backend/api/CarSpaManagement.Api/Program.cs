@@ -108,6 +108,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
 builder.Services.AddScoped<IFranchiseEntitlement, AlwaysOnFranchiseEntitlement>();
+builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();
 builder.Services.AddScoped<IOutsideJobService, OutsideJobService>();
 builder.Services.AddScoped<ISystemPreferenceService, SystemPreferenceService>();
