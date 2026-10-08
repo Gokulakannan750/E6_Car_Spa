@@ -54,19 +54,6 @@ describe('AppearanceCard', () => {
 		expect(await screen.findByText(/colours saved/i)).toBeInTheDocument();
 	});
 
-	it('a ready-made theme sets all three colours and previews them', async () => {
-		renderWithProviders(<AppearanceCard canEdit />);
-		await waitFor(() => expect((screen.getByLabelText('App colour code') as HTMLInputElement).value).toBe('#0F766E'));
-
-		fireEvent.click(screen.getByRole('button', { name: 'Ocean' }));
-
-		expect((screen.getByLabelText('App colour code') as HTMLInputElement).value).toBe('#0284C7');
-		expect((screen.getByLabelText('Sidebar and login page code') as HTMLInputElement).value).toBe('#0C4A6E');
-		expect((screen.getByLabelText('Invoices and job cards code') as HTMLInputElement).value).toBe('#0369A1');
-		expect(document.documentElement.style.getPropertyValue('--app-600')).toBe('#0284C7');
-		expect(document.documentElement.style.getPropertyValue('--side-600')).toBe('#0C4A6E');
-	});
-
 	it('does not allow saving an invalid colour code', async () => {
 		renderWithProviders(<AppearanceCard canEdit />);
 		const side = (await screen.findByLabelText('Sidebar and login page code')) as HTMLInputElement;

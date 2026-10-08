@@ -59,20 +59,6 @@ export const COLOR_PRESETS: { name: string; hex: string }[] = [
 	{ name: 'Black', hex: '#111111' },
 ];
 
-/** Ready-made looks that set the app, sidebar/login and document colours together. */
-export const COLOR_THEMES: { name: string; app: string; sidebar: string; document: string }[] = [
-	{ name: 'Midnight', app: '#2563EB', sidebar: '#1E293B', document: '#1E293B' },
-	{ name: 'Ocean', app: '#0284C7', sidebar: '#0C4A6E', document: '#0369A1' },
-	{ name: 'Teal', app: '#0F766E', sidebar: '#134E4A', document: '#0F766E' },
-	{ name: 'Forest', app: '#15803D', sidebar: '#14532D', document: '#166534' },
-	{ name: 'Royal', app: '#7C3AED', sidebar: '#4C1D95', document: '#6D28D9' },
-	{ name: 'Berry', app: '#BE185D', sidebar: '#831843', document: '#9D174D' },
-	{ name: 'Crimson', app: '#B91C1C', sidebar: '#A11A1A', document: '#A11A1A' },
-	{ name: 'Sunset', app: '#C2410C', sidebar: '#7C2D12', document: '#C2410C' },
-	{ name: 'Gold', app: '#B45309', sidebar: '#451A03', document: '#92400E' },
-	{ name: 'Graphite', app: '#374151', sidebar: '#111111', document: '#111111' },
-];
-
 export function isValidColor(value?: string | null): value is string {
 	return typeof value === 'string' && HEX.test(value.trim());
 }
