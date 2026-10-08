@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth-context';
-import { User, Lock, ArrowRight, Clock } from 'lucide-react';
+import { User, Lock, ArrowRight, Clock, Building2 } from 'lucide-react';
+import { getRememberedCompanyCode } from '../../lib/api';
 
 export default function LoginForm() {
 	const { login, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth();
+	const [companyCode, setCompanyCode] = useState(() => getRememberedCompanyCode());
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState(() => sessionExpiredMessage || '');
@@ -45,15 +47,15 @@ export default function LoginForm() {
 
 		setError('');
 
-		if (!username.trim() || !password) {
-			setError('Please enter both username and password.');
+		if (!companyCode.trim() || !username.trim() || !password) {
+			setError('Please enter your company code, username and password.');
 			return;
 		}
 
 		setIsSubmitting(true);
 
 		try {
-			await login(username.trim(), password);
+			await login(username.trim(), password, companyCode.trim());
 			navigate(from, { replace: true });
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && ('code' in err || 'status' in err)) {
@@ -73,7 +75,7 @@ export default function LoginForm() {
 					return;
 				}
 				if (apiErr.code === 'UNAUTHORIZED' || apiErr.status === 401) {
-					setError('Invalid username or password.');
+					setError('Invalid company code, username or password.');
 					return;
 				}
 			}
@@ -102,6 +104,30 @@ export default function LoginForm() {
 					</div>
 				</div>
 			)}
+
+			<div>
+				<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+					Company code
+				</label>
+				<div className="relative">
+					<Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+					<input
+						type="text"
+						value={companyCode}
+						onChange={(e) => {
+							setCompanyCode(e.target.value);
+							if (!isLocked && error) setError('');
+						}}
+						disabled={isSubmitting || isLocked}
+						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-side-500 focus:border-side-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+						placeholder="Enter your company code"
+						required
+						maxLength={20}
+						autoComplete="organization"
+						autoFocus={!companyCode}
+					/>
+				</div>
+			</div>
 
 			<div>
 				<label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">

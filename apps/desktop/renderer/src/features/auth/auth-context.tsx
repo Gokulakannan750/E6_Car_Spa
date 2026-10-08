@@ -6,6 +6,7 @@ import {
 	setAuthToken,
 	initAuthToken,
 	USER_STORAGE_KEY,
+	rememberCompanyCode,
 	type AuthUserResponse
 } from '../../lib/api';
 
@@ -22,7 +23,7 @@ export interface AuthContextValue {
 	isLoading: boolean;
 	sessionExpiredMessage: string | null;
 	hasPermission: (permissionCode?: string) => boolean;
-	login: (username: string, password: string) => Promise<AuthUser>;
+	login: (username: string, password: string, companyCode?: string) => Promise<AuthUser>;
 	logout: () => void;
 	clearSessionExpiredMessage: () => void;
 	refreshAuth: () => Promise<void>;
@@ -246,9 +247,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setSessionExpiredMessage(null);
 	}, []);
 
-	const login = useCallback(async (username: string, password: string) => {
+	const login = useCallback(async (username: string, password: string, companyCode?: string) => {
 		setSessionExpiredMessage(null);
-		const res = await loginApi({ username, password });
+		const res = await loginApi({ username, password, companyCode: companyCode?.trim() || undefined });
+		rememberCompanyCode(res.companyCode || companyCode?.trim() || '');
 		setAuthToken(res.token);
 		setTokenState(res.token);
 		setUser(res.user);

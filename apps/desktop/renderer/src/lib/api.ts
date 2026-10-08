@@ -14,6 +14,25 @@ const API_BASE = (() => {
 
 export const TOKEN_STORAGE_KEY = 'car_spa_token';
 export const USER_STORAGE_KEY = 'car_spa_user';
+export const COMPANY_CODE_STORAGE_KEY = 'car_spa_company_code';
+
+/** The company code this device last signed in to (asked once, then remembered). */
+export function getRememberedCompanyCode(): string {
+	try {
+		return localStorage.getItem(COMPANY_CODE_STORAGE_KEY) ?? '';
+	} catch {
+		return '';
+	}
+}
+
+export function rememberCompanyCode(code: string): void {
+	try {
+		if (code) localStorage.setItem(COMPANY_CODE_STORAGE_KEY, code);
+		else localStorage.removeItem(COMPANY_CODE_STORAGE_KEY);
+	} catch {
+		// storage unavailable: the user just types the code next time
+	}
+}
 
 let _inMemoryToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null);
 
@@ -2828,6 +2847,7 @@ export interface BootstrapOwnerInput {
 export interface LoginInput {
 	username: string;
 	password: string;
+	companyCode?: string;
 }
 
 export interface AuthUserResponse {
@@ -2843,6 +2863,7 @@ export interface AuthUserResponse {
 export interface LoginResponse {
 	token: string;
 	user: AuthUserResponse;
+	companyCode?: string;
 }
 
 export interface UserItemDto {
@@ -3046,8 +3067,10 @@ export interface PublicBusinessProfileDto {
 	loginImagePath?: string | null;
 }
 
-export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileDto> {
-	const res = await request<PublicBusinessProfileDto>('/api/public/business-profile', {}, 'view public branding');
+export async function getPublicBusinessProfile(companyCode?: string): Promise<PublicBusinessProfileDto> {
+	const code = (companyCode ?? getRememberedCompanyCode()).trim();
+	const query = code ? `?companyCode=${encodeURIComponent(code)}` : '';
+	const res = await request<PublicBusinessProfileDto>(`/api/public/business-profile${query}`, {}, 'view public branding');
 	applyTheme({ appColor: res.appColor, sidebarColor: res.sidebarColor });
 	const existing = getCachedBusinessProfile();
 	if (existing) {
