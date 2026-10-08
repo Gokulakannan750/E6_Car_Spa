@@ -154,7 +154,7 @@ public class InvoiceNumberAllocator(AppDbContext db)
 		if (isRelational)
 		{
 			await db.Database.ExecuteSqlInterpolatedAsync(
-				$"SELECT 1 FROM \"InvoiceNumberSeries\" WHERE \"SeriesKind\" = {kind.ToString()} AND NOT \"IsDeleted\" FOR UPDATE",
+				$"SELECT 1 FROM \"InvoiceNumberSeries\" WHERE \"OrganizationId\" = {db.CurrentOrganizationId} AND \"SeriesKind\" = {kind.ToString()} AND NOT \"IsDeleted\" FOR UPDATE",
 				cancellationToken);
 		}
 

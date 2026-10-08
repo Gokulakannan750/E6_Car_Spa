@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
@@ -26,7 +27,7 @@ internal static class SeriesTestHelpers
     {
         var http = new DefaultHttpContext();
         if (userId is not null)
-            http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString())], "Test"));
+            http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString())], "Test"));
         return new InvoiceService(db, new RecordingAuditLogService(), new ConfigurationBuilder().Build(),
             new HttpContextAccessor { HttpContext = http }, new NoopWhatsAppService(),
             new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>());
@@ -516,9 +517,14 @@ public class InvoiceNumberMigrationTests
             var before = await SnapshotInvoicesAsync(cs);
 
             await using (var db = Context(cs))
+            {
                 await db.GetService<IMigrator>().MigrateAsync(SeriesMigration);
+                Assert.Equal(before, await SnapshotInvoicesAsync(cs)); // no invoice row changed
+                // Carry on to the latest version so the current model (which knows each row's company) can read the data.
+                await db.Database.MigrateAsync();
+            }
 
-            Assert.Equal(before, await SnapshotInvoicesAsync(cs)); // no invoice row changed
+            Assert.Equal(before, await SnapshotInvoicesAsync(cs)); // ... and still none after the company migration
 
             await using var read = Context(cs);
             var series = await read.InvoiceNumberSeries.AsNoTracking().ToDictionaryAsync(s => s.SeriesKind);
@@ -555,7 +561,10 @@ public class InvoiceNumberMigrationTests
             await SeedLegacyAsync(cs, [new("INV-2025-000041", Gst: true, InvoiceStatus.Paid), new("INV-2026-000042", Gst: true, InvoiceStatus.Paid)]);
 
             await using (var db = Context(cs))
+            {
                 await db.GetService<IMigrator>().MigrateAsync(SeriesMigration);
+                await db.Database.MigrateAsync(); // latest, so the current model can read the data
+            }
 
             await using var read = Context(cs);
             var series = await read.InvoiceNumberSeries.AsNoTracking().ToDictionaryAsync(s => s.SeriesKind);

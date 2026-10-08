@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -52,7 +54,7 @@ public sealed class RbacPhase2dHost : IAsyncLifetime
         });
         Client = _factory.CreateClient();
 
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
         var permissions = await db.Permissions.ToDictionaryAsync(p => p.Code);
@@ -83,7 +85,7 @@ public sealed class RbacPhase2dHost : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };
@@ -103,7 +105,7 @@ public sealed class RbacPhase2dHost : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };
@@ -172,7 +174,7 @@ public class RbacPhase2dSecurityTests : IClassFixture<RbacPhase2dHost>
     [PostgresFact]
     public async Task AuthorizationService_InvoicesPriceOverride_StaffWithoutPermission_IsDenied()
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var authService = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
 
         var principal = _api.CreateUserPrincipal("invoices.draft.editor");
@@ -184,7 +186,7 @@ public class RbacPhase2dSecurityTests : IClassFixture<RbacPhase2dHost>
     [PostgresFact]
     public async Task AuthorizationService_InvoicesPriceOverride_StaffWithPermission_IsAllowed()
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var authService = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
 
         var principal = _api.CreateUserPrincipal("invoices.price.overrider");
@@ -196,7 +198,7 @@ public class RbacPhase2dSecurityTests : IClassFixture<RbacPhase2dHost>
     [PostgresFact]
     public async Task AuthorizationService_InvoicesPriceOverride_Owner_IsAllowed()
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var authService = scope.ServiceProvider.GetRequiredService<IAuthorizationService>();
 
         var principal = _api.CreateUserPrincipal("owner");

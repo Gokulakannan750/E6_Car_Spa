@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -54,7 +56,7 @@ public sealed class RbacPhase1Host : IAsyncLifetime
         });
         Client = _factory.CreateClient();
 
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
         var permissions = await db.Permissions.ToDictionaryAsync(p => p.Code);
@@ -84,7 +86,7 @@ public sealed class RbacPhase1Host : IAsyncLifetime
     /// <summary>Seeds a job card with one returned outside job at ₹1,000, optionally with a draft invoice billing it.</summary>
     public async Task<(Guid JobCardId, Guid OutsideJobId, Guid VendorId, Guid? InvoiceId)> SeedOutsideJobAsync(bool withDraftInvoice)
     {
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         var customer = new Customer { Name = "Http Customer", PhoneNumber = "9000000300" };
@@ -108,7 +110,7 @@ public sealed class RbacPhase1Host : IAsyncLifetime
 
     public async Task<T> QueryAsync<T>(Func<AppDbContext, Task<T>> query)
     {
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         return await query(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     }
 
@@ -119,7 +121,7 @@ public sealed class RbacPhase1Host : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };

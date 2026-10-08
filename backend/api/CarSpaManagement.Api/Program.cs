@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Text;
 using System.Threading.RateLimiting;
 using CarSpaManagement.Api.Application.Common;
@@ -131,6 +132,7 @@ builder.Services.Configure<WhatsAppOptions>(options =>
 builder.Services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
 builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<IWhatsAppTemplateProvisioningService, WhatsAppTemplateProvisioningService>();
+builder.Services.AddScoped<OrganizationProvisioner>();
 builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
 
 // Security & Authentication Services
@@ -448,111 +450,27 @@ using (var scope = app.Services.CreateScope())
 			WHERE ""Reason"" IS NULL OR ""Reason"" = '';
 		");
 		await PermissionSeeder.SeedAsync(db);
-		await ShowroomOperationsSeeder.SeedAsync(db);
 
-		// ── Seed Default Business Profile (Singleton) ────────────────────────
+		// ── Per-company starting data ─────────────────────────────────────────
 		var webRoot = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-		var logosDir = Path.Combine(webRoot, "uploads", "logos");
-		if (!Directory.Exists(logosDir))
+		foreach (var uploadFolder in new[] { "logos", "login" })
 		{
-			Directory.CreateDirectory(logosDir);
+			var folder = Path.Combine(webRoot, "uploads", uploadFolder);
+			if (!Directory.Exists(folder))
+			{
+				Directory.CreateDirectory(folder);
+			}
 		}
 
-		var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-
-		if (!await db.BusinessProfiles.AnyAsync())
+		// A database with no company yet (a brand-new install) is set up by first-time setup, which creates the
+		// first company and its starting data. Every existing company is topped up here on each start.
+		var scopeFactory = scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>();
+		var organizationIds = await db.Organizations.Where(o => o.IsActive).Select(o => o.Id).ToListAsync();
+		foreach (var organizationId in organizationIds)
 		{
-			var defaultProfileSection = config.GetSection("DefaultBusinessProfile");
-			var profile = new BusinessProfile
-			{
-				Id = Guid.NewGuid(),
-				SingletonKey = 1,
-				// Nothing company-specific is built in: a new database starts empty (or with the deployment's own
-				// DefaultBusinessProfile configuration) and the company fills in Company Settings.
-				BusinessName = defaultProfileSection["BusinessName"] ?? string.Empty,
-				AddressLine1 = defaultProfileSection["AddressLine1"] ?? string.Empty,
-				AddressLine2 = defaultProfileSection["AddressLine2"],
-				City = defaultProfileSection["City"] ?? string.Empty,
-				State = defaultProfileSection["State"] ?? string.Empty,
-				PostalCode = defaultProfileSection["PostalCode"] ?? string.Empty,
-				Phone = defaultProfileSection["Phone"] ?? string.Empty,
-				Email = defaultProfileSection["Email"] ?? string.Empty,
-				Gstin = defaultProfileSection["Gstin"],
-				LogoPath = defaultProfileSection["LogoPath"],
-				Tagline = defaultProfileSection["Tagline"],
-				InvoicePrefix = defaultProfileSection["InvoicePrefix"] ?? "INV",
-				CreatedAt = DateTime.UtcNow
-			};
-			db.BusinessProfiles.Add(profile);
-			await db.SaveChangesAsync();
-			Log.Information("Seeded default business profile from configuration ({BusinessName})", profile.BusinessName);
-		}
-
-		if (!await db.SystemPreferences.AnyAsync())
-		{
-			var prefs = new SystemPreference
-			{
-				Id = Guid.NewGuid(),
-				SingletonKey = 1,
-				DateFormat = "DD/MM/YYYY",
-				TimeFormat = "12h",
-				CurrencySymbol = "₹",
-				DecimalPrecision = 2,
-				DefaultPrintCopies = 1,
-				AutoPrintReceipt = true,
-				RefreshInterval = 30,
-				CreatedAt = DateTime.UtcNow
-			};
-			db.SystemPreferences.Add(prefs);
-			await db.SaveChangesAsync();
-			Log.Information("Seeded canonical default System Preferences");
-		}
-
-		// Development-only demo data: these vendors are fictitious and must never be created in production.
-		if (env.IsDevelopment() && !await db.Vendors.AnyAsync())
-		{
-			var defaultVendors = new List<Vendor>
-			{
-				new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Name = "Sri Lakshmi Auto Works",
-					Phone = "9842712345",
-					ContactPerson = "Ramesh Kumar",
-					Address = "Perundurai Road, Erode",
-					ServiceSpecialty = "Denting & Painting",
-					IsActive = true,
-					CreatedAt = DateTime.UtcNow,
-					UpdatedAt = DateTime.UtcNow
-				},
-				new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Name = "Sri Krishna Wheel Alignment & Tyres",
-					Phone = "9443356789",
-					ContactPerson = "Senthil Nathan",
-					Address = "Bhavani Main Road, Erode",
-					ServiceSpecialty = "Wheel Alignment & Balancing",
-					IsActive = true,
-					CreatedAt = DateTime.UtcNow,
-					UpdatedAt = DateTime.UtcNow
-				},
-				new Vendor
-				{
-					Id = Guid.NewGuid(),
-					Name = "Erode Auto Electricians & AC",
-					Phone = "9842498765",
-					ContactPerson = "Murugan",
-					Address = "Sathy Road, Erode",
-					ServiceSpecialty = "Electrical & AC Work",
-					IsActive = true,
-					CreatedAt = DateTime.UtcNow,
-					UpdatedAt = DateTime.UtcNow
-				}
-			};
-			db.Vendors.AddRange(defaultVendors);
-			await db.SaveChangesAsync();
-			Log.Information("Seeded DEVELOPMENT demo vendors (not created outside Development)");
+			using var organizationScope = scopeFactory.CreateTenantScope(organizationId);
+			var provisioner = organizationScope.ServiceProvider.GetRequiredService<OrganizationProvisioner>();
+			await provisioner.SeedDefaultsAsync(env.IsDevelopment());
 		}
 	}
  catch (Exception ex)

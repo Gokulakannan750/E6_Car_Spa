@@ -62,6 +62,21 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
 
         await using var db = CreateContext();
         await db.Database.MigrateAsync();
+        await EnsureDefaultCompanyAsync(db);
+        // Like a real company, the default company starts with its two invoice numbering series.
+        await new Application.Services.InvoiceNumberAllocator(db).GetOrCreateSeriesAsync();
+    }
+
+    /// <summary>
+    /// The default company the test contexts work for. A brand-new database has no company (first-time setup
+    /// creates it), so tests that save company-owned rows need this row for the foreign key.
+    /// </summary>
+    public static async Task EnsureDefaultCompanyAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO ""Organizations"" (""Id"", ""Code"", ""Name"", ""IsActive"", ""CreatedAt"", ""IsDeleted"")
+            VALUES ({Infrastructure.Tenancy.DefaultOrganization.Id}, {Infrastructure.Tenancy.DefaultOrganization.Code}, 'Test company', TRUE, NOW(), FALSE)
+            ON CONFLICT DO NOTHING");
     }
 
     public async Task DisposeAsync()

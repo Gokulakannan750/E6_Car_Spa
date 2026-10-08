@@ -759,19 +759,21 @@ public class JobCardService : IJobCardService
 
 			while (true)
 			{
-				cmd.CommandText = "SELECT nextval('job_card_number_seq')";
-				long nextNumber;
-				try
-				{
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
-				catch
-				{
-					cmd.CommandText = "CREATE SEQUENCE IF NOT EXISTS job_card_number_seq START 1 INCREMENT 1 MINVALUE 1 OWNED BY NONE; SELECT nextval('job_card_number_seq');";
-					var result = await cmd.ExecuteScalarAsync(cancellationToken);
-					nextNumber = Convert.ToInt64(result);
-				}
+				// Each company numbers its job cards from 1 on its own counter (created on first use, incremented
+				// atomically in the database).
+				cmd.CommandText = "INSERT INTO \"OrganizationCounters\" (\"OrganizationId\", \"Name\", \"Value\") VALUES (@org, @name, 1) " +
+					"ON CONFLICT (\"OrganizationId\", \"Name\") DO UPDATE SET \"Value\" = \"OrganizationCounters\".\"Value\" + 1 RETURNING \"Value\"";
+				cmd.Parameters.Clear();
+				var orgParameter = cmd.CreateParameter();
+				orgParameter.ParameterName = "org";
+				orgParameter.Value = _db.CurrentOrganizationId;
+				cmd.Parameters.Add(orgParameter);
+				var nameParameter = cmd.CreateParameter();
+				nameParameter.ParameterName = "name";
+				nameParameter.Value = OrganizationCounter.JobCard;
+				cmd.Parameters.Add(nameParameter);
+				var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
+				var nextNumber = Convert.ToInt64(scalar);
 
 				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
 				var exists = await _db.JobCards.AnyAsync(j => j.JobCardNumber == candidate, cancellationToken);

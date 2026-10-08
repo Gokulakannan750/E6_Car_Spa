@@ -17,7 +17,8 @@ public class AuthService(
     IJwtTokenService jwtTokenService,
     IAuditLogService auditLogService,
     IAccountLockoutService accountLockoutService,
-    TenantContext? tenantContext = null) : IAuthService
+    TenantContext? tenantContext = null,
+    OrganizationProvisioner? provisioner = null) : IAuthService
 {
     public async Task<AuthStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
     {
@@ -39,16 +40,7 @@ public class AuthService(
         }
 
         var code = companyCode?.Trim().ToUpperInvariant();
-        Organization? organization;
-        if (!string.IsNullOrEmpty(code))
-        {
-            organization = await db.Organizations.FirstOrDefaultAsync(o => o.Code == code && o.IsActive, cancellationToken);
-        }
-        else
-        {
-            var all = await db.Organizations.Where(o => o.IsActive).Take(2).ToListAsync(cancellationToken);
-            organization = all.Count == 1 ? all[0] : null;
-        }
+        var organization = await OrganizationLookup.FindActiveAsync(db, companyCode, cancellationToken);
 
         if (organization is null)
         {
@@ -119,6 +111,12 @@ public class AuthService(
 
             await db.Users.AddAsync(owner, cancellationToken);
             await db.SaveChangesAsync(cancellationToken);
+
+            // A new company starts with its business profile, preferences and standard lists in place.
+            if (provisioner is not null)
+            {
+                await provisioner.SeedDefaultsAsync(includeDevelopmentDemoData: false, cancellationToken);
+            }
 
             await auditLogService.RecordAsync(
                 action: Domain.Constants.AuditActions.UserCreated,

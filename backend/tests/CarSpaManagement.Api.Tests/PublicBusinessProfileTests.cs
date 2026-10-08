@@ -157,7 +157,7 @@ public class PublicBusinessProfileTests
     {
         var fakeService = new FakeBusinessProfileService();
         var controller = new PublicBusinessProfileController(fakeService);
-        var result = await controller.GetPublicProfile(default);
+        var result = await controller.GetPublicProfile(null, default);
 
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var dto = Assert.IsType<PublicBusinessProfileDto>(okResult.Value);

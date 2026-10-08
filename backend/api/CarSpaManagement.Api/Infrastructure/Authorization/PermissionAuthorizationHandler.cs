@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.Security.Claims;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
@@ -26,7 +28,15 @@ public class PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
             return;
         }
 
-        using var scope = scopeFactory.CreateScope();
+        // The user is looked up inside their own company, taken from the signed token. A token with no company
+        // (for example one issued before companies existed) is refused, so the user signs in again.
+        if (!Guid.TryParse(context.User.FindFirstValue(JwtTokenService.OrganizationClaim), out var organizationId)
+            || organizationId == Guid.Empty)
+        {
+            return;
+        }
+
+        using var scope = scopeFactory.CreateTenantScope(organizationId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);

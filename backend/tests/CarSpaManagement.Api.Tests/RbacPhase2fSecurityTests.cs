@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
@@ -93,7 +94,7 @@ public class RbacPhase2fSecurityTests
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new("sub", userId.ToString()),
             new(ClaimTypes.Role, role),
             new("role", role),

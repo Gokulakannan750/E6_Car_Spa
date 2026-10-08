@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -59,7 +61,7 @@ public sealed class ApiTestHost : IAsyncLifetime
 
     private async Task SeedAsync()
     {
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
         var permissions = await db.Permissions.ToDictionaryAsync(p => p.Code);
@@ -109,7 +111,7 @@ public sealed class ApiTestHost : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };
@@ -131,7 +133,7 @@ public sealed class ApiTestHost : IAsyncLifetime
 
     public async Task<string> PasswordHashOf(string username)
     {
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         return (await db.Users.AsNoTracking().SingleAsync(u => u.Id == Users[username].Id)).PasswordHash;
     }
@@ -300,7 +302,7 @@ public class ApiSecurityHttpTests : IClassFixture<ApiTestHost>
     [PostgresFact]
     public async Task NonDevelopmentStartup_SeedsBootstrapData_ButNoDemoVendors()
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         Assert.Empty(await db.Vendors.IgnoreQueryFilters().ToListAsync());

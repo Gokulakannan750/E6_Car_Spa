@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -379,7 +381,7 @@ public class StaffAadhaarValidationAndSecurityTests
         var controller = new StaffAdvancesController(service, new CarSpaManagement.Api.Tests.TestSupport.AllowAllAuthorizationService());
         var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+            new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim("permissions", "staff.view_sensitive")
         }, "TestAuth"));
 

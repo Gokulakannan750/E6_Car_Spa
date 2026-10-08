@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using CarSpaManagement.Api.Application.Common;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -24,6 +25,7 @@ public class InvoiceService : IInvoiceService
 	private readonly IHttpContextAccessor _httpContextAccessor;
 	private readonly IWhatsAppService _whatsAppService;
 	private readonly IServiceScopeFactory _scopeFactory;
+	private readonly TenantContext? _tenantContext;
 
 	public InvoiceService(
 		AppDbContext db,
@@ -31,8 +33,10 @@ public class InvoiceService : IInvoiceService
 		IConfiguration configuration,
 		IHttpContextAccessor httpContextAccessor,
 		IWhatsAppService whatsAppService,
-		IServiceScopeFactory scopeFactory)
+		IServiceScopeFactory scopeFactory,
+		TenantContext? tenantContext = null)
 	{
+		_tenantContext = tenantContext;
 		_db = db;
 		_numberAllocator = new InvoiceNumberAllocator(db);
 		_auditLogService = auditLogService;
@@ -599,11 +603,12 @@ public class InvoiceService : IInvoiceService
 			if (msg != null && msg.Status == WhatsAppMessageStatus.Pending)
 			{
 				var messageId = msg.Id;
+				var organizationId = _db.CurrentOrganizationId;
 				_ = Task.Run(async () =>
 				{
 					try
 					{
-						using var scope = _scopeFactory.CreateScope();
+						using var scope = _scopeFactory.CreateTenantScope(organizationId);
 						var svc = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
 						await svc.ProcessMessageAsync(messageId, CancellationToken.None);
 					}
@@ -907,11 +912,12 @@ public class InvoiceService : IInvoiceService
 				if (msg != null && msg.Status == WhatsAppMessageStatus.Pending)
 				{
 					var messageId = msg.Id;
+				var organizationId = _db.CurrentOrganizationId;
 					_ = Task.Run(async () =>
 					{
 						try
 						{
-							using var scope = _scopeFactory.CreateScope();
+							using var scope = _scopeFactory.CreateTenantScope(organizationId);
 							var svc = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
 							await svc.ProcessMessageAsync(messageId, CancellationToken.None);
 						}
@@ -1260,6 +1266,21 @@ public class InvoiceService : IInvoiceService
 			return null;
 
 		var tokenHash = ComputeSha256Hash(token.ToLowerInvariant());
+
+		// A customer opens this link with nothing but the token, so the company is found from the link itself.
+		// This is the one place that looks across companies, and it reads only which company the token belongs to.
+		if (_tenantContext is not null && _tenantContext.OrganizationId is null)
+		{
+			var owner = await _db.InvoicePublicLinks
+				.IgnoreQueryFilters([AppDbContext.TenantFilter])
+				.Where(l => l.TokenHash == tokenHash && !l.IsDeleted)
+				.Select(l => (Guid?)l.OrganizationId)
+				.FirstOrDefaultAsync(cancellationToken);
+			if (owner is null)
+				return null;
+
+			_tenantContext.Set(owner.Value);
+		}
 
 		var link = await _db.InvoicePublicLinks
 			.Include(l => l.Invoice)
