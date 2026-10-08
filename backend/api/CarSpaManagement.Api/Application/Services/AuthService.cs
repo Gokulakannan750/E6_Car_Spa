@@ -93,12 +93,11 @@ public class AuthService(
             var normalizedUsername = request.Username.Trim().ToLowerInvariant();
 
             // First-time setup creates the first company and its Owner. The first company always has the well-known
-            // default id (and code "01-0001"); later companies are created by the platform, not by this endpoint.
+            // default id (and code "0001"); later companies are created by the platform, not by this endpoint.
             var organization = new Organization
             {
                 Id = DefaultOrganization.Id,
                 Code = DefaultOrganization.Code,
-                BusinessType = BusinessType.CarSpa,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             };

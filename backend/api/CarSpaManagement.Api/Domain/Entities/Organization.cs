@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using CarSpaManagement.Api.Domain.Common;
-using CarSpaManagement.Api.Domain.Enums;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
@@ -11,13 +10,11 @@ namespace CarSpaManagement.Api.Domain.Entities;
 public class Organization : BaseEntity
 {
     /// <summary>
-    /// The code people type at sign-in, for example "01-0001": the business type (two digits), a dash, and a
-    /// running number for that type. Unique across the platform.
+    /// The code people type at sign-in, for example "0001": a running number, unique across the platform.
+    /// It identifies the company; it is not a secret (the username and password protect the account).
     /// </summary>
     [Required, MaxLength(20)]
     public string Code { get; set; } = string.Empty;
-
-    public BusinessType BusinessType { get; set; } = BusinessType.CarSpa;
 
     /// <summary>The company's name as known to the platform (the full details live in its business profile).</summary>
     [MaxLength(150)]
@@ -26,6 +23,6 @@ public class Organization : BaseEntity
     /// <summary>An inactive organization cannot sign in.</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Builds a company code from a business type and that type's running number.</summary>
-    public static string FormatCode(BusinessType type, int number) => $"{(int)type:00}-{number:0000}";
+    /// <summary>Builds a company code from its running number: 1 becomes "0001", 42 becomes "0042".</summary>
+    public static string FormatCode(int number) => number.ToString("0000");
 }

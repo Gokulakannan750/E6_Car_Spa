@@ -361,10 +361,10 @@ public class TenantIsolationTests
             }));
             Auth = new AuthService(Db, hasher, jwt, new NoAudit(), Lockout, Tenant);
 
-            var companyDefinitions = new[] { (OrgA, "01-0001", "Alice"), (OrgB, "01-0002", "Bob") }.Take(companies);
+            var companyDefinitions = new[] { (OrgA, "0001", "Alice"), (OrgB, "0002", "Bob") }.Take(companies);
             foreach (var (id, code, owner) in companyDefinitions)
             {
-                Db.Organizations.Add(new Organization { Id = id, Code = code, BusinessType = BusinessType.CarSpa, IsActive = true });
+                Db.Organizations.Add(new Organization { Id = id, Code = code, IsActive = true });
                 // A user with the same username and password in every company.
                 var user = new User { Id = Guid.NewGuid(), OrganizationId = id, FullName = $"{owner} Owner", Username = "admin", Role = UserRole.Owner, IsActive = true };
                 user.PasswordHash = hasher.HashPassword(user, "CorrectPassword123!");
@@ -382,9 +382,9 @@ public class TenantIsolationTests
     {
         var h = new SignInHarness();
 
-        var asA = await h.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "01-0001" });
+        var asA = await h.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "0001" });
 
-        Assert.Equal("01-0001", asA.CompanyCode);
+        Assert.Equal("0001", asA.CompanyCode);
         Assert.Equal("Alice Owner", asA.User.FullName);
         Assert.Equal(OrgA.ToString(), OrganizationOf(asA.Token));
         Assert.Equal(OrgA, h.Tenant.OrganizationId);
@@ -396,8 +396,8 @@ public class TenantIsolationTests
         var a = new SignInHarness();
         var b = new SignInHarness();
 
-        var asB = await b.Auth.LoginAsync(new LoginRequest { Username = "ADMIN", Password = "CorrectPassword123!", CompanyCode = " 01-0002 " });
-        var asA = await a.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "01-0001" });
+        var asB = await b.Auth.LoginAsync(new LoginRequest { Username = "ADMIN", Password = "CorrectPassword123!", CompanyCode = " 0002 " });
+        var asA = await a.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "0001" });
 
         Assert.Equal("Bob Owner", asB.User.FullName);
         Assert.Equal("Alice Owner", asA.User.FullName);
@@ -435,7 +435,7 @@ public class TenantIsolationTests
 
         var response = await h.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!" });
 
-        Assert.Equal("01-0001", response.CompanyCode);
+        Assert.Equal("0001", response.CompanyCode);
         Assert.Equal(OrgA.ToString(), OrganizationOf(response.Token));
     }
 
@@ -447,7 +447,7 @@ public class TenantIsolationTests
         await h.Db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<UnauthorizedException>(() =>
-            h.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "01-0001" }));
+            h.Auth.LoginAsync(new LoginRequest { Username = "admin", Password = "CorrectPassword123!", CompanyCode = "0001" }));
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public class TenantIsolationTests
         {
             try
             {
-                await new SignInHarnessLogin(a).Attempt("01-0001", $"Wrong{i}!");
+                await new SignInHarnessLogin(a).Attempt("0001", $"Wrong{i}!");
             }
             catch (Exception)
             {
@@ -467,8 +467,8 @@ public class TenantIsolationTests
             }
         }
 
-        Assert.True(a.Lockout.CheckLockout(AccountLockoutKey.For("01-0001", "admin")).IsLocked);
-        Assert.False(a.Lockout.CheckLockout(AccountLockoutKey.For("01-0002", "admin")).IsLocked);
+        Assert.True(a.Lockout.CheckLockout(AccountLockoutKey.For("0001", "admin")).IsLocked);
+        Assert.False(a.Lockout.CheckLockout(AccountLockoutKey.For("0002", "admin")).IsLocked);
     }
 
     private sealed class SignInHarnessLogin(SignInHarness harness)
@@ -506,8 +506,7 @@ public class TenantIsolationTests
         });
 
         var company = await db.Organizations.SingleAsync();
-        Assert.Equal("01-0001", company.Code);
-        Assert.Equal(BusinessType.CarSpa, company.BusinessType);
+        Assert.Equal("0001", company.Code);
         Assert.Equal(company.Id, tenant.OrganizationId);
         Assert.Equal("owner1", owner.Username);
         Assert.Equal(company.Id, (await db.Users.SingleAsync()).OrganizationId);
@@ -520,11 +519,12 @@ public class TenantIsolationTests
     }
 
     [Theory]
-    [InlineData(BusinessType.CarSpa, 1, "01-0001")]
-    [InlineData(BusinessType.CarSpa, 42, "01-0042")]
-    public void CompanyCodes_AreTheBusinessTypeThenARunningNumber(BusinessType type, int number, string expected)
+    [InlineData(1, "0001")]
+    [InlineData(42, "0042")]
+    [InlineData(12345, "12345")]
+    public void CompanyCodes_AreAZeroPaddedRunningNumber(int number, string expected)
     {
-        Assert.Equal(expected, Organization.FormatCode(type, number));
-        Assert.Equal(DefaultOrganization.Code, Organization.FormatCode(BusinessType.CarSpa, 1));
+        Assert.Equal(expected, Organization.FormatCode(number));
+        Assert.Equal(DefaultOrganization.Code, Organization.FormatCode(1));
     }
 }

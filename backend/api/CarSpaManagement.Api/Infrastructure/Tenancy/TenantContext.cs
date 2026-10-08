@@ -49,5 +49,5 @@ public sealed class TenantViolationException(string message) : InvalidOperationE
 public static class DefaultOrganization
 {
     public static readonly Guid Id = new("0f3c7a52-6b1e-4d8a-9c25-5e1d2a7b9001");
-    public const string Code = "01-0001";
+    public const string Code = "0001";
 }

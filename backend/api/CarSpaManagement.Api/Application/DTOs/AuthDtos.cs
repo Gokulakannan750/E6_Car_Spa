@@ -33,7 +33,7 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 
     /// <summary>
-    /// The company's code (for example "01-0001"). Optional only while the server has a single company; once there
+    /// The company's code (for example "0001"). Optional only while the server has a single company; once there
     /// are several, the code is how sign-in knows which company's users to check.
     /// </summary>
     [StringLength(20)]
