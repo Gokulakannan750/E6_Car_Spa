@@ -89,7 +89,7 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.print_outlined, color: AppColors.primary),
+            icon: Icon(Icons.print_outlined, color: AppColors.primary),
             tooltip: 'Print Invoice',
             onPressed: () async {
               final logoBytes = await _loadLogoBytes(

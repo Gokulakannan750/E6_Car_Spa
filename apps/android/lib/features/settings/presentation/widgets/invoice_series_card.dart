@@ -16,7 +16,8 @@ class InvoiceSeriesCard extends ConsumerStatefulWidget {
 
   /// Mirrors backend InvoiceNumberRules.NormalizePrefix (provisional).
   static final RegExp prefixPattern = RegExp(r'^[A-Za-z0-9/-]{1,10}$');
-  static const String prefixRule = "1–10 characters: letters, digits, '-' and '/'";
+  static const String prefixRule =
+      "1–10 characters: letters, digits, '-' and '/'";
 
   @override
   ConsumerState<InvoiceSeriesCard> createState() => _InvoiceSeriesCardState();
@@ -51,7 +52,9 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
       _apply(data);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loadError = _message(e, 'Failed to load invoice numbering.'));
+      setState(
+        () => _loadError = _message(e, 'Failed to load invoice numbering.'),
+      );
     }
   }
 
@@ -74,10 +77,11 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
 
   String? _formatError(String value) =>
       value.isNotEmpty && !InvoiceSeriesCard.prefixPattern.hasMatch(value)
-          ? 'Invalid prefix. Use ${InvoiceSeriesCard.prefixRule}.'
-          : null;
+      ? 'Invalid prefix. Use ${InvoiceSeriesCard.prefixRule}.'
+      : null;
 
-  String? get _sameError => _gst.isNotEmpty && _gst.toUpperCase() == _nonGst.toUpperCase()
+  String? get _sameError =>
+      _gst.isNotEmpty && _gst.toUpperCase() == _nonGst.toUpperCase()
       ? 'GST and non-GST prefixes must be different.'
       : null;
 
@@ -85,8 +89,12 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
     final data = _data;
     if (!widget.isOwner || data == null || _saving) return false;
     if (_gst.isEmpty || _nonGst.isEmpty) return false;
-    if (_formatError(_gst) != null || _formatError(_nonGst) != null || _sameError != null) return false;
-    return _gst.toUpperCase() != data.gst.prefix || _nonGst.toUpperCase() != data.nonGst.prefix;
+    if (_formatError(_gst) != null ||
+        _formatError(_nonGst) != null ||
+        _sameError != null)
+      return false;
+    return _gst.toUpperCase() != data.gst.prefix ||
+        _nonGst.toUpperCase() != data.nonGst.prefix;
   }
 
   Future<void> _save() async {
@@ -97,7 +105,9 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
       _saved = false;
     });
     try {
-      final data = await ref.read(settingsApiProvider).updateInvoiceSeries(
+      final data = await ref
+          .read(settingsApiProvider)
+          .updateInvoiceSeries(
             gstPrefix: _gst.toUpperCase(),
             nonGstPrefix: _nonGst.toUpperCase(),
           );
@@ -124,7 +134,9 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
     String? extraError,
   }) {
     final prefix = controller.text.trim().toUpperCase();
-    final example = InvoiceSeriesCard.prefixPattern.hasMatch(prefix) ? '$prefix${series.nextNumberDisplay}' : '—';
+    final example = InvoiceSeriesCard.prefixPattern.hasMatch(prefix)
+        ? '$prefix${series.nextNumberDisplay}'
+        : '—';
     return Container(
       key: Key('${keyPrefix}_series_block'),
       padding: const EdgeInsets.all(12),
@@ -136,7 +148,14 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 10),
           AppTextField(
             key: Key('${keyPrefix}_prefix_field'),
@@ -156,23 +175,42 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Text('Next Number: ', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const Text(
+                'Next Number: ',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
               Text(
                 series.nextNumberDisplay,
                 key: Key('${keyPrefix}_next_number'),
-                style: const TextStyle(fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              const Text('  (read-only)', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              const Text(
+                '  (read-only)',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              ),
             ],
           ),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Text('Example: ', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const Text(
+                'Example: ',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
               Text(
                 example,
                 key: Key('${keyPrefix}_example'),
-                style: const TextStyle(fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
           ),
@@ -198,50 +236,98 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: AppColors.accentPill, borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.pin_outlined, color: AppColors.primary, size: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.accentPill,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.pin_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 10),
               const Text(
                 'Invoice Numbering',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
           if (_loadError != null)
-            Text(_loadError!, key: const Key('invoice_series_load_error'), style: const TextStyle(color: AppColors.error, fontSize: 12)),
+            Text(
+              _loadError!,
+              key: const Key('invoice_series_load_error'),
+              style: const TextStyle(color: AppColors.error, fontSize: 12),
+            ),
           if (data == null && _loadError == null)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('Loading invoice numbering…', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              child: Text(
+                'Loading invoice numbering…',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
             ),
           if (data != null) ...[
-            _seriesBlock(title: 'GST Invoice Series', series: data.gst, controller: _gstController, keyPrefix: 'gst', extraError: _sameError),
+            _seriesBlock(
+              title: 'GST Invoice Series',
+              series: data.gst,
+              controller: _gstController,
+              keyPrefix: 'gst',
+              extraError: _sameError,
+            ),
             const SizedBox(height: 12),
-            _seriesBlock(title: 'Non-GST Invoice Series', series: data.nonGst, controller: _nonGstController, keyPrefix: 'non_gst'),
+            _seriesBlock(
+              title: 'Non-GST Invoice Series',
+              series: data.nonGst,
+              controller: _nonGstController,
+              keyPrefix: 'non_gst',
+            ),
             const SizedBox(height: 12),
-            const Text('GST and non-GST documents use separate numbering sequences.',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-            const Text('Invoice numbers are automatically assigned when an invoice is finalized.',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-            const Text('GST invoice numbers can be changed by the Owner after the invoice is fully paid.',
-                style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+            const Text(
+              'GST and non-GST documents use separate numbering sequences.',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            const Text(
+              'Invoice numbers are automatically assigned when an invoice is finalized.',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+            const Text(
+              'GST invoice numbers can be changed by the Owner after the invoice is fully paid.',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
             if (!widget.isOwner)
               const Padding(
                 padding: EdgeInsets.only(top: 4),
-                child: Text('Only the Owner can change prefixes.',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                child: Text(
+                  'Only the Owner can change prefixes.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ),
             if (_saveError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(_saveError!, key: const Key('invoice_series_save_error'), style: const TextStyle(color: AppColors.error, fontSize: 12)),
+                child: Text(
+                  _saveError!,
+                  key: const Key('invoice_series_save_error'),
+                  style: const TextStyle(color: AppColors.error, fontSize: 12),
+                ),
               ),
             if (_saved)
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('Invoice number prefixes saved.', style: TextStyle(color: AppColors.success, fontSize: 12)),
+                child: Text(
+                  'Invoice number prefixes saved.',
+                  style: TextStyle(color: AppColors.success, fontSize: 12),
+                ),
               ),
             if (widget.isOwner) ...[
               const SizedBox(height: 12),

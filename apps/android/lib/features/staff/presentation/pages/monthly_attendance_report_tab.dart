@@ -75,7 +75,7 @@ class MonthlyAttendanceReportTab extends ConsumerWidget {
                     ),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.calendar_month_rounded,
                           size: 18,
                           color: AppColors.primary,
@@ -335,7 +335,7 @@ class _MonthlyStaffCardState extends State<_MonthlyStaffCard> {
                     item.name.isNotEmpty
                         ? item.name.substring(0, 1).toUpperCase()
                         : 'S',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
                     ),

@@ -10,7 +10,8 @@ import 'package:e6_car_spa/features/customers/models/customer_model.dart';
 import 'package:e6_car_spa/features/jobcards/data/job_card_api.dart';
 import 'package:e6_car_spa/features/jobcards/data/job_card_repository.dart';
 import 'package:e6_car_spa/features/jobcards/models/job_card_model.dart';
-import 'package:e6_car_spa/features/invoices/models/invoice_model.dart' show TaxBreakdown;
+import 'package:e6_car_spa/features/invoices/models/invoice_model.dart'
+    show TaxBreakdown;
 import 'package:e6_car_spa/features/jobcards/providers/job_card_providers.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_api.dart';
 import 'package:e6_car_spa/features/vehicles/data/vehicle_repository.dart';
@@ -20,7 +21,8 @@ import 'package:e6_car_spa/features/vehicles/models/vehicle_model.dart';
 class _FakeJobCardRepo extends JobCardRepository {
   _FakeJobCardRepo() : super(JobCardApi(Dio()));
 
-  final List<({List<JobCardServiceItemRequest> services, bool isGstEnabled})> calls = [];
+  final List<({List<JobCardServiceItemRequest> services, bool isGstEnabled})>
+  calls = [];
   JobCardEstimate Function(List<JobCardServiceItemRequest>, bool) respond =
       (services, gst) => JobCardEstimate(
         subtotal: 0,
@@ -138,7 +140,8 @@ void main() {
         _fakeJobCardRepo.respond = (services, gst) {
           final taxable = services.fold<double>(
             0,
-            (sum, s) => sum + (s.serviceId == 's1' ? 500.0 : 1000.0) * s.quantity,
+            (sum, s) =>
+                sum + (s.serviceId == 's1' ? 500.0 : 1000.0) * s.quantity,
           );
           final tax = gst ? taxable * 0.05 : 0.0;
           return JobCardEstimate(

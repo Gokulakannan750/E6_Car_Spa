@@ -567,7 +567,7 @@ class _SwapDetailsModalSheetState extends ConsumerState<SwapDetailsModalSheet> {
                 ),
                 child: Text(
                   badge,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,

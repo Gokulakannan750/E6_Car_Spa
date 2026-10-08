@@ -82,7 +82,10 @@ class InvoiceApi {
 
   /// Finalizes a draft. [expectedTotalAmount] is the total the user confirmed: the server refuses
   /// (409) to issue any other amount.
-  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
+  Future<Invoice> generateInvoice(
+    String id, {
+    double? expectedTotalAmount,
+  }) async {
     final response = await _dio.post(
       '/invoices/$id/generate',
       data: expectedTotalAmount == null

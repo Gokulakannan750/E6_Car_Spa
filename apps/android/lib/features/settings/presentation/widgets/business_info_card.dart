@@ -39,7 +39,7 @@ class BusinessInfoCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.business_outlined,
                   color: AppColors.primary,
                   size: 20,

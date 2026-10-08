@@ -74,7 +74,7 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
+            colorScheme: ColorScheme.light(
               primary: AppColors.primary,
               onPrimary: Colors.white,
               onSurface: AppColors.textPrimary,
@@ -297,7 +297,7 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(
+                            borderSide: BorderSide(
                               color: AppColors.primary,
                               width: 1.5,
                             ),
@@ -377,7 +377,7 @@ class _CreateAdvanceBottomSheetState extends State<CreateAdvanceBottomSheet> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.calendar_today_outlined,
                               size: 18,
                               color: AppColors.primary,

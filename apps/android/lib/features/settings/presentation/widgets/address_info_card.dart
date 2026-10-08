@@ -40,7 +40,7 @@ class AddressInfoCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.location_on_outlined,
                   color: AppColors.primary,
                   size: 20,

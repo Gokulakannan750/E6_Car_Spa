@@ -201,33 +201,36 @@ void main() {
       );
     });
 
-    testWidgets('Legacy invoice prefix field is replaced by the invoice numbering card', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Legacy invoice prefix field is replaced by the invoice numbering card',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockRepo = MockSettingsRepository()
-        ..profileToReturn = initialProfile;
+        final mockRepo = MockSettingsRepository()
+          ..profileToReturn = initialProfile;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsRepositoryProvider.overrideWithValue(mockRepo),
-            authNotifierProvider.overrideWith(
-              (ref) => FakeAuthNotifier(managerUser),
-            ),
-          ],
-          child: const MaterialApp(home: CompanySettingsScreen()),
-        ),
-      );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsRepositoryProvider.overrideWithValue(mockRepo),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(managerUser),
+              ),
+            ],
+            child: const MaterialApp(home: CompanySettingsScreen()),
+          ),
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      // The deprecated BusinessProfile.InvoicePrefix ('INV') no longer controls numbering and is not editable here;
-      // GST / non-GST prefixes are validated in InvoiceSeriesCard (see invoice_series_card_test.dart).
-      expect(find.widgetWithText(TextFormField, 'INV'), findsNothing);
-      expect(find.byType(InvoiceSeriesCard), findsOneWidget);
-    });
+        // The deprecated BusinessProfile.InvoicePrefix ('INV') no longer controls numbering and is not editable here;
+        // GST / non-GST prefixes are validated in InvoiceSeriesCard (see invoice_series_card_test.dart).
+        expect(find.widgetWithText(TextFormField, 'INV'), findsNothing);
+        expect(find.byType(InvoiceSeriesCard), findsOneWidget);
+      },
+    );
   });
 
   group('Business Profile Save & Preservation', () {

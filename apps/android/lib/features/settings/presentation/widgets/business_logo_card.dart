@@ -100,7 +100,7 @@ class BusinessLogoCard extends StatelessWidget {
                   color: AppColors.accentPill,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.image_outlined,
                   color: AppColors.primary,
                   size: 20,
@@ -156,7 +156,7 @@ class BusinessLogoCard extends StatelessWidget {
                                 ),
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
-                              return const Center(
+                              return Center(
                                 child: SizedBox(
                                   width: 24,
                                   height: 24,

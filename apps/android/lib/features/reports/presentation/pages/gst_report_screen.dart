@@ -172,7 +172,7 @@ class GstReportScreen extends ConsumerWidget {
                                     children: [
                                       Text(
                                         inv.invoiceNumber ?? 'Invoice',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primary,
@@ -243,7 +243,7 @@ class GstReportScreen extends ConsumerWidget {
                                       ),
                                       Text(
                                         'GST: ${_formatCurrency(inv.gstAmount)}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.primary,

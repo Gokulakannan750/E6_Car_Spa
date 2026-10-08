@@ -317,7 +317,6 @@ class NewJobCardState {
     );
   }
 
-
   NewJobCardState copyWith({
     int? step,
     Customer? customer,
@@ -629,7 +628,9 @@ class NewJobCardNotifier extends StateNotifier<NewJobCardState> {
       state = state.copyWith(estimate: estimate);
     } catch (_) {
       if (!mounted || request != _estimateRequest) return;
-      state = state.copyWith(estimateError: 'Unable to calculate the estimate.');
+      state = state.copyWith(
+        estimateError: 'Unable to calculate the estimate.',
+      );
     }
   }
 

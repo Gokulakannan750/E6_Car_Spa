@@ -28,10 +28,8 @@ class EditInvoiceNumberDialog extends StatefulWidget {
   }) {
     return showDialog<bool>(
       context: context,
-      builder: (_) => EditInvoiceNumberDialog(
-        currentNumber: currentNumber,
-        onSave: onSave,
-      ),
+      builder: (_) =>
+          EditInvoiceNumberDialog(currentNumber: currentNumber, onSave: onSave),
     );
   }
 
@@ -59,8 +57,7 @@ class _EditInvoiceNumberDialogState extends State<EditInvoiceNumberDialog> {
 
   String get _trimmed => _controller.text.trim();
   bool get _isValid => EditInvoiceNumberDialog.allowedFormat.hasMatch(_trimmed);
-  bool get _canSave =>
-      _isValid && _trimmed != widget.currentNumber && !_saving;
+  bool get _canSave => _isValid && _trimmed != widget.currentNumber && !_saving;
 
   Future<void> _save() async {
     if (!_canSave) return;
@@ -95,7 +92,10 @@ class _EditInvoiceNumberDialogState extends State<EditInvoiceNumberDialog> {
         children: [
           Text(
             'Current number: ${widget.currentNumber}',
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 12),
           TextField(

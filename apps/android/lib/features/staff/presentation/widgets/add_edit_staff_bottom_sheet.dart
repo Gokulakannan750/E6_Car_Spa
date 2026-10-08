@@ -323,7 +323,7 @@ class _AddEditStaffBottomSheetState extends State<AddEditStaffBottomSheet> {
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: _emailController,
-                      hintText: 'e.g. ramesh@e6carspa.com',
+                      hintText: 'e.g. ramesh@yourcompany.com',
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: const Icon(
                         Icons.email_outlined,

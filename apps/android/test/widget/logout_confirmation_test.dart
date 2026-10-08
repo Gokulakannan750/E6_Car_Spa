@@ -95,7 +95,7 @@ void main() {
 
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(
-        find.text('Are you sure you want to sign out of E6 Car Spa?'),
+        find.text('Are you sure you want to sign out?'),
         findsOneWidget,
       );
     });

@@ -36,10 +36,30 @@ class SettingsApi {
     return BusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
   }
 
+  /// Saves the company's colours. An empty string clears a colour (back to the neutral default);
+  /// a null value leaves it unchanged.
+  Future<BusinessProfileModel> updateAppearance({
+    String? appColor,
+    String? sidebarColor,
+    String? brandColor,
+  }) async {
+    final response = await _dio.put(
+      '/settings/business/appearance',
+      data: {
+        'appColor': appColor,
+        'sidebarColor': sidebarColor,
+        'brandColor': brandColor,
+      },
+    );
+    return BusinessProfileModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
   /// GST and non-GST invoice numbering series (prefixes + read-only next numbers).
   Future<InvoiceSeriesSettingsModel> getInvoiceSeries() async {
     final response = await _dio.get('/settings/invoice-series');
-    return InvoiceSeriesSettingsModel.fromJson(response.data as Map<String, dynamic>);
+    return InvoiceSeriesSettingsModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Owner only: changes the two prefixes. Counters cannot be changed.
@@ -51,7 +71,9 @@ class SettingsApi {
       '/settings/invoice-series',
       data: {'gstPrefix': gstPrefix, 'nonGstPrefix': nonGstPrefix},
     );
-    return InvoiceSeriesSettingsModel.fromJson(response.data as Map<String, dynamic>);
+    return InvoiceSeriesSettingsModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Uploads a new business logo file

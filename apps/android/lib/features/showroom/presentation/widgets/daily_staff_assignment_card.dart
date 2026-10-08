@@ -340,7 +340,7 @@ class DailyStaffAssignmentCard extends StatelessWidget {
                   ),
                   child: Text(
                     assignment.displayHours,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,

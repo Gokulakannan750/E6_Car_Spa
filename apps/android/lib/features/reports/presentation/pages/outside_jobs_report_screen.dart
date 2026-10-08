@@ -94,17 +94,15 @@ class _OutsideJobsReportScreenState
                       data: (report) {
                         final totalMovements =
                             report.totalOutsideCount + report.history.length;
-                        final completedCount =
-                            report.history
-                                .where(
-                                  (h) =>
-                                      h.status == 2 ||
-                                      h.statusName.toLowerCase() == 'returned',
-                                )
-                                .length;
+                        final completedCount = report.history
+                            .where(
+                              (h) =>
+                                  h.status == 2 ||
+                                  h.statusName.toLowerCase() == 'returned',
+                            )
+                            .length;
                         final totalCost =
-                            report.totalActiveCost +
-                            report.totalHistoricalCost;
+                            report.totalActiveCost + report.totalHistoricalCost;
 
                         return Column(
                           children: [
@@ -165,7 +163,7 @@ class _OutsideJobsReportScreenState
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Row(
+                                  Row(
                                     children: [
                                       Icon(
                                         Icons.payments_outlined,
@@ -231,9 +229,8 @@ class _OutsideJobsReportScreenState
           ];
         },
         body: reportAsync.when(
-          loading: () => const AppLoadingState(
-            message: 'Loading outside jobs reports...',
-          ),
+          loading: () =>
+              const AppLoadingState(message: 'Loading outside jobs reports...'),
           error: (error, _) => AppErrorState(
             message: error.toString(),
             onRetry: () => ref.invalidate(outsideJobsReportProvider),
@@ -300,10 +297,7 @@ class _OutsideJobsReportScreenState
           ),
           Text(
             subtitle,
-            style: const TextStyle(
-              fontSize: 10,
-              color: AppColors.textTertiary,
-            ),
+            style: const TextStyle(fontSize: 10, color: AppColors.textTertiary),
           ),
         ],
       ),
@@ -343,7 +337,7 @@ class _OutsideJobsReportScreenState
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.directions_car,
                         size: 16,
                         color: AppColors.primary,
@@ -365,16 +359,14 @@ class _OutsideJobsReportScreenState
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                          job.isOverdue
-                              ? AppColors.error.withValues(alpha: 0.1)
-                              : AppColors.warning.withValues(alpha: 0.1),
+                      color: job.isOverdue
+                          ? AppColors.error.withValues(alpha: 0.1)
+                          : AppColors.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color:
-                            job.isOverdue
-                                ? AppColors.error
-                                : AppColors.warning,
+                        color: job.isOverdue
+                            ? AppColors.error
+                            : AppColors.warning,
                       ),
                     ),
                     child: Text(
@@ -382,10 +374,9 @@ class _OutsideJobsReportScreenState
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color:
-                            job.isOverdue
-                                ? AppColors.error
-                                : AppColors.warning,
+                        color: job.isOverdue
+                            ? AppColors.error
+                            : AppColors.warning,
                       ),
                     ),
                   ),
@@ -476,10 +467,9 @@ class _OutsideJobsReportScreenState
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color:
-                            job.isOverdue
-                                ? AppColors.error
-                                : AppColors.textPrimary,
+                        color: job.isOverdue
+                            ? AppColors.error
+                            : AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -557,10 +547,9 @@ class _OutsideJobsReportScreenState
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                          isReturned
-                              ? AppColors.success.withValues(alpha: 0.1)
-                              : AppColors.textSecondary.withValues(alpha: 0.1),
+                      color: isReturned
+                          ? AppColors.success.withValues(alpha: 0.1)
+                          : AppColors.textSecondary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -568,10 +557,9 @@ class _OutsideJobsReportScreenState
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color:
-                            isReturned
-                                ? AppColors.success
-                                : AppColors.textSecondary,
+                        color: isReturned
+                            ? AppColors.success
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ),
@@ -665,7 +653,7 @@ class _OutsideJobsReportScreenState
                   ),
                   Text(
                     _formatCurrency(v.totalVendorCost),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
                       color: AppColors.primary,
@@ -679,10 +667,26 @@ class _OutsideJobsReportScreenState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildVendorStat('Total', '${v.totalJobs}', AppColors.textPrimary),
-                  _buildVendorStat('Active', '${v.currentlyOutside}', AppColors.warning),
-                  _buildVendorStat('Overdue', '${v.overdueJobs}', AppColors.error),
-                  _buildVendorStat('Done', '${v.completedJobs}', AppColors.success),
+                  _buildVendorStat(
+                    'Total',
+                    '${v.totalJobs}',
+                    AppColors.textPrimary,
+                  ),
+                  _buildVendorStat(
+                    'Active',
+                    '${v.currentlyOutside}',
+                    AppColors.warning,
+                  ),
+                  _buildVendorStat(
+                    'Overdue',
+                    '${v.overdueJobs}',
+                    AppColors.error,
+                  ),
+                  _buildVendorStat(
+                    'Done',
+                    '${v.completedJobs}',
+                    AppColors.success,
+                  ),
                 ],
               ),
             ],

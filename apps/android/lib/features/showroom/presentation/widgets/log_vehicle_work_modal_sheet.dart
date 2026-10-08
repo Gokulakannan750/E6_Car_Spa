@@ -136,8 +136,9 @@ class _LogVehicleWorkModalSheetState
           final newNoteControllers = <String, TextEditingController>{};
           if (_configs.isNotEmpty) {
             for (final entry in _configs.last.workTypeNoteControllers.entries) {
-              newNoteControllers[entry.key] =
-                  TextEditingController(text: entry.value.text);
+              newNoteControllers[entry.key] = TextEditingController(
+                text: entry.value.text,
+              );
             }
           }
           _configs.add(
@@ -287,15 +288,13 @@ class _LogVehicleWorkModalSheetState
             staffId: staffId,
             vehicleTypeId: single.vehicleTypeId!,
             date: widget.selectedDate,
-            serviceItems: single.selectedWorkTypeIds
-                .map((id) {
-                  final note = single.workTypeNoteControllers[id]?.text.trim();
-                  return CreateShowroomVehicleWorkItemRequest(
-                    workTypeId: id,
-                    notes: (note != null && note.isNotEmpty) ? note : null,
-                  );
-                })
-                .toList(),
+            serviceItems: single.selectedWorkTypeIds.map((id) {
+              final note = single.workTypeNoteControllers[id]?.text.trim();
+              return CreateShowroomVehicleWorkItemRequest(
+                workTypeId: id,
+                notes: (note != null && note.isNotEmpty) ? note : null,
+              );
+            }).toList(),
             notes: single.notesController.text.trim().isEmpty
                 ? null
                 : single.notesController.text.trim(),
@@ -663,7 +662,7 @@ class _LogVehicleWorkModalSheetState
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.directions_car_filled_outlined,
                     size: 16,
                     color: AppColors.primary,

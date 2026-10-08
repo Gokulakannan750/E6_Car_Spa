@@ -168,7 +168,7 @@ void main() {
         await tester.pumpAndSettle();
 
         await tester.enterText(
-          find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+          find.widgetWithText(TextFormField, 'e.g. Main Showroom - Anna Nagar'),
           'New Hub',
         );
         await tester.enterText(
@@ -212,7 +212,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+        find.widgetWithText(TextFormField, 'e.g. Main Showroom - Anna Nagar'),
         'New Hub',
       );
       await tester.enterText(
@@ -253,7 +253,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'e.g. E6 Car Spa - Anna Nagar'),
+        find.widgetWithText(TextFormField, 'e.g. Main Showroom - Anna Nagar'),
         'New Hub',
       );
       await tester.enterText(

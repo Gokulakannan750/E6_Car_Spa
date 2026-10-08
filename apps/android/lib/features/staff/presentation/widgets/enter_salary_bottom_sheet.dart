@@ -308,7 +308,7 @@ class _EnterSalaryBottomSheetState
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: const BorderSide(color: AppColors.primary),
+                        side: BorderSide(color: AppColors.primary),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -322,7 +322,7 @@ class _EnterSalaryBottomSheetState
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text(
+                          : Text(
                               'Save Salary',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,

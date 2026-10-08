@@ -189,7 +189,7 @@ class _ShowroomFormSheetState extends State<ShowroomFormSheet> {
                     AppTextField(
                       controller: _nameController,
                       label: 'Showroom Name *',
-                      hintText: 'e.g. E6 Car Spa - Anna Nagar',
+                      hintText: 'e.g. Main Showroom - Anna Nagar',
                       prefixIcon: const Icon(Icons.storefront_outlined),
                       validator: (val) {
                         if (val == null || val.trim().isEmpty) {

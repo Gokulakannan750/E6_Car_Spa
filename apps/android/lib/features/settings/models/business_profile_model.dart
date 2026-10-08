@@ -1,3 +1,5 @@
+const Object _keep = Object();
+
 class BusinessProfileModel {
   final String id;
   final String businessName;
@@ -14,6 +16,12 @@ class BusinessProfileModel {
   final String? termsAndConditions;
   final String? tagline;
   final String? brandColor;
+
+  /// Accent colour of the app itself (#RRGGBB); null means the neutral default.
+  final String? appColor;
+
+  /// Colour of the login page and dark surfaces (#RRGGBB); null means the neutral default.
+  final String? sidebarColor;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -33,6 +41,8 @@ class BusinessProfileModel {
     this.termsAndConditions,
     this.tagline,
     this.brandColor,
+    this.appColor,
+    this.sidebarColor,
     this.createdAt,
     this.updatedAt,
   });
@@ -54,6 +64,8 @@ class BusinessProfileModel {
       termsAndConditions: json['termsAndConditions'] as String?,
       tagline: json['tagline'] as String?,
       brandColor: json['brandColor'] as String?,
+      appColor: json['appColor'] as String?,
+      sidebarColor: json['sidebarColor'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString())
           : null,
@@ -80,6 +92,8 @@ class BusinessProfileModel {
       'termsAndConditions': termsAndConditions,
       'tagline': tagline,
       'brandColor': brandColor,
+      'appColor': appColor,
+      'sidebarColor': sidebarColor,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -110,6 +124,9 @@ class BusinessProfileModel {
     String? termsAndConditions,
     String? tagline,
     String? brandColor,
+    // Pass null to clear a colour (the company went back to the default); omit to keep the current one.
+    Object? appColor = _keep,
+    Object? sidebarColor = _keep,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -129,6 +146,12 @@ class BusinessProfileModel {
       termsAndConditions: termsAndConditions ?? this.termsAndConditions,
       tagline: tagline ?? this.tagline,
       brandColor: brandColor ?? this.brandColor,
+      appColor: identical(appColor, _keep)
+          ? this.appColor
+          : appColor as String?,
+      sidebarColor: identical(sidebarColor, _keep)
+          ? this.sidebarColor
+          : sidebarColor as String?,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

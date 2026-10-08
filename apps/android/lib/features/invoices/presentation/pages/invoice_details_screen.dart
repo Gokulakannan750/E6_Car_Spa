@@ -61,7 +61,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
     final isOwner =
         user != null && (user.isOwner || user.role.toLowerCase() == 'owner');
     final invoiceForEdit = state.invoice;
-    final canEditInvoiceNumber = isOwner &&
+    final canEditInvoiceNumber =
+        isOwner &&
         invoiceForEdit != null &&
         invoiceForEdit.isGstEnabled &&
         invoiceForEdit.status == InvoiceStatus.paid &&
@@ -218,7 +219,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                           const TextSpan(text: 'Job Card: '),
                           TextSpan(
                             text: invoice.jobCardNumber,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
@@ -241,7 +242,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text(
+                    child: Text(
                       'View JC',
                       style: TextStyle(
                         fontSize: 12,
@@ -295,7 +296,8 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              invoice.isGstEnabled && item.taxRatePercent != null
+                              invoice.isGstEnabled &&
+                                      item.taxRatePercent != null
                                   ? '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity} · GST ${formatGstRate(item.taxRatePercent!)}'
                                   : '₹${item.unitPrice.toStringAsFixed(2)} × ${item.quantity}',
                               style: AppTextStyles.bodySmall.copyWith(
@@ -616,16 +618,12 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.lock_outline,
-                size: 20,
-                color: AppColors.primary,
-              ),
+              Icon(Icons.lock_outline, size: 20, color: AppColors.primary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Invoice Finalized: Locked against edits. Official #${invoice.invoiceNumber ?? ""} issued.',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -849,18 +847,18 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
                     size: 18,
                     color: AppColors.primary,
                   ),
-                  label: const Text(
+                  label: Text(
                     'Edit Draft',
                     style: TextStyle(color: AppColors.primary),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
+                    side: BorderSide(color: AppColors.primary),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -918,18 +916,18 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
             children: [
               OutlinedButton.icon(
                 key: const Key('print_invoice_bottom_button'),
-                icon: const Icon(
+                icon: Icon(
                   Icons.print_outlined,
                   size: 18,
                   color: AppColors.primary,
                 ),
-                label: const Text(
+                label: Text(
                   'Print',
                   style: TextStyle(color: AppColors.primary),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
+                  side: BorderSide(color: AppColors.primary),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -1029,7 +1027,10 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                   ? gstRatesSummary(invoice.taxBreakdown)
                   : 'No GST (non-GST bill)',
               key: const Key('confirm_gst_mode'),
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 6),
             Container(
@@ -1051,7 +1052,7 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                   ),
                   Text(
                     '₹${invoice.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontFamily: 'monospace',
                       color: AppColors.primary,

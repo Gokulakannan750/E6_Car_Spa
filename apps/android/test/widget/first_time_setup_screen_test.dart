@@ -104,7 +104,7 @@ void main() {
       await tester.pumpWidget(createSetupTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('WELCOME TO E6 CAR SPA'), findsOneWidget);
+      expect(find.text('WELCOME TO CAR SPA MANAGEMENT'), findsOneWidget);
       expect(
         find.text('First-Time Setup — Create Owner Account'),
         findsOneWidget,

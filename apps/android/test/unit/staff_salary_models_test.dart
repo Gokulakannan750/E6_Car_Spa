@@ -60,32 +60,40 @@ void main() {
       expect(item.isNotEntered, false);
     });
 
-    test('StaffSalaryItem with status Ready and non-null settlementId is NOT settled (CRITICAL BUG FIX)', () {
-      final json = {
-        'staffId': 'staff-hari',
-        'staffName': 'Hari',
-        'staffPhoneNumber': '9876543210',
-        'periodFrom': '2026-10-01',
-        'periodTo': '2026-10-31',
-        'enteredSalary': 5000.0,
-        'outstandingAdvance': 1500.0,
-        'advanceDeduction': 1500.0,
-        'finalSalary': 3500.0,
-        'remainingAdvance': 0.0,
-        'status': 'Ready',
-        'settlementId': '7c0b0ad2-1111-2222-3333-abcdef123456',
-        'settledAt': null,
-        'settledByName': null,
-      };
+    test(
+      'StaffSalaryItem with status Ready and non-null settlementId is NOT settled (CRITICAL BUG FIX)',
+      () {
+        final json = {
+          'staffId': 'staff-hari',
+          'staffName': 'Hari',
+          'staffPhoneNumber': '9876543210',
+          'periodFrom': '2026-10-01',
+          'periodTo': '2026-10-31',
+          'enteredSalary': 5000.0,
+          'outstandingAdvance': 1500.0,
+          'advanceDeduction': 1500.0,
+          'finalSalary': 3500.0,
+          'remainingAdvance': 0.0,
+          'status': 'Ready',
+          'settlementId': '7c0b0ad2-1111-2222-3333-abcdef123456',
+          'settledAt': null,
+          'settledByName': null,
+        };
 
-      final item = StaffSalaryItem.fromJson(json);
+        final item = StaffSalaryItem.fromJson(json);
 
-      expect(item.isReady, isTrue);
-      expect(item.isSettled, isFalse, reason: 'Ready status with settlementId must NOT evaluate to isSettled=true');
-      expect(item.isNotEntered, isFalse);
-      expect(item.settledAt, isNull);
-      expect(item.settlementId, isNotNull);
-    });
+        expect(item.isReady, isTrue);
+        expect(
+          item.isSettled,
+          isFalse,
+          reason:
+              'Ready status with settlementId must NOT evaluate to isSettled=true',
+        );
+        expect(item.isNotEntered, isFalse);
+        expect(item.settledAt, isNull);
+        expect(item.settlementId, isNotNull);
+      },
+    );
 
     test('StaffSalaryItem settled status flag', () {
       final json = {

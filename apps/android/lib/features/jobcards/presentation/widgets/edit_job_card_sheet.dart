@@ -120,7 +120,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
         .toList();
     _estimateTimer = Timer(const Duration(milliseconds: 250), () async {
       try {
-        final estimate = await ref.read(jobCardRepositoryProvider).previewJobCard(services);
+        final estimate = await ref
+            .read(jobCardRepositoryProvider)
+            .previewJobCard(services);
         if (!mounted || request != _estimateRequest) return;
         setState(() => _estimate = estimate);
       } catch (_) {
@@ -137,8 +139,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
     if (_servicesSignature != before) _scheduleEstimate();
   }
 
-  String get _servicesSignature =>
-      _services.map((s) => '${s.serviceId}:${s.quantity}:${s.discountAmount}').join('|');
+  String get _servicesSignature => _services
+      .map((s) => '${s.serviceId}:${s.quantity}:${s.discountAmount}')
+      .join('|');
 
   Future<void> _loadAvailableServices() async {
     setState(() => _isLoadingCatalogue = true);
@@ -158,7 +161,6 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
       }
     }
   }
-
 
   void _addService(Service svc) {
     final existingIndex = _services.indexWhere((s) => s.serviceId == svc.id);
@@ -599,7 +601,9 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                 ),
                               ),
                               Text(
-                                _estimate == null ? '—' : '₹${_estimate!.subtotal.toStringAsFixed(2)}',
+                                _estimate == null
+                                    ? '—'
+                                    : '₹${_estimate!.subtotal.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -612,14 +616,18 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                _estimate == null ? 'GST' : gstRatesSummary(_estimate!.taxBreakdown),
+                                _estimate == null
+                                    ? 'GST'
+                                    : gstRatesSummary(_estimate!.taxBreakdown),
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
                               Text(
-                                _estimate == null ? '—' : '₹${_estimate!.taxAmount.toStringAsFixed(2)}',
+                                _estimate == null
+                                    ? '—'
+                                    : '₹${_estimate!.taxAmount.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -642,7 +650,7 @@ class _EditJobCardSheetState extends ConsumerState<EditJobCardSheet> {
                                 _estimate == null
                                     ? (_estimateError ?? 'Calculating…')
                                     : '₹${_estimate!.totalAmount.toStringAsFixed(2)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primary,

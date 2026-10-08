@@ -288,7 +288,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                       color: AppColors.accentPill,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.build_circle_outlined,
                       color: AppColors.primary,
                       size: 20,
@@ -328,7 +328,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                     children: [
                       Text(
                         '₹${svc.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 16,
                           color: AppColors.primary,
@@ -368,7 +368,7 @@ class _CatalogueScreenState extends ConsumerState<CatalogueScreen>
                                 color: const Color(0xFFBFDBFE),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(

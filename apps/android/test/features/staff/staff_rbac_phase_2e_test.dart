@@ -81,7 +81,9 @@ void main() {
     settlementId: 'db-ready-101',
   );
 
-  DailyAttendanceResponse createAttendanceResponse({required bool isConfirmed}) {
+  DailyAttendanceResponse createAttendanceResponse({
+    required bool isConfirmed,
+  }) {
     return DailyAttendanceResponse(
       date: '2026-10-07',
       isAttendanceConfirmed: isConfirmed,
@@ -108,70 +110,72 @@ void main() {
   }
 
   group('Phase 2E-03: SalaryStaffCard Permission Elimination', () {
-    testWidgets('staff.edit does NOT grant salary enter/edit or settle actions', (
-      tester,
-    ) async {
-      const user = AuthUser(
-        id: 'u-1',
-        username: 'staff_editor',
-        fullName: 'Staff Editor',
-        role: 'Editor',
-        isOwner: false,
-        permissions: ['staff.edit'],
-      );
+    testWidgets(
+      'staff.edit does NOT grant salary enter/edit or settle actions',
+      (tester) async {
+        const user = AuthUser(
+          id: 'u-1',
+          username: 'staff_editor',
+          fullName: 'Staff Editor',
+          role: 'Editor',
+          isOwner: false,
+          permissions: ['staff.edit'],
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(user),
-            authNotifierProvider.overrideWith(
-              (ref) => FakeAuthNotifier(Authenticated(user)),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentUserProvider.overrideWithValue(user),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(Authenticated(user)),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: SalaryStaffCard(item: readySalaryItem)),
             ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: SalaryStaffCard(item: readySalaryItem)),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Edit Salary'), findsNothing);
-      expect(find.text('Enter Salary'), findsNothing);
-      expect(find.text('Settle'), findsNothing);
-      expect(find.byIcon(Icons.visibility_outlined), findsWidgets);
-    });
+        expect(find.text('Edit Salary'), findsNothing);
+        expect(find.text('Enter Salary'), findsNothing);
+        expect(find.text('Settle'), findsNothing);
+        expect(find.byIcon(Icons.visibility_outlined), findsWidgets);
+      },
+    );
 
-    testWidgets('staff.manage does NOT grant salary enter/edit or settle actions', (
-      tester,
-    ) async {
-      const user = AuthUser(
-        id: 'u-2',
-        username: 'staff_manager',
-        fullName: 'Staff Manager',
-        role: 'Manager',
-        isOwner: false,
-        permissions: ['staff.manage'],
-      );
+    testWidgets(
+      'staff.manage does NOT grant salary enter/edit or settle actions',
+      (tester) async {
+        const user = AuthUser(
+          id: 'u-2',
+          username: 'staff_manager',
+          fullName: 'Staff Manager',
+          role: 'Manager',
+          isOwner: false,
+          permissions: ['staff.manage'],
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            currentUserProvider.overrideWithValue(user),
-            authNotifierProvider.overrideWith(
-              (ref) => FakeAuthNotifier(Authenticated(user)),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentUserProvider.overrideWithValue(user),
+              authNotifierProvider.overrideWith(
+                (ref) => FakeAuthNotifier(Authenticated(user)),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: SalaryStaffCard(item: readySalaryItem)),
             ),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(body: SalaryStaffCard(item: readySalaryItem)),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Edit Salary'), findsNothing);
-      expect(find.text('Enter Salary'), findsNothing);
-      expect(find.text('Settle'), findsNothing);
-    });
+        expect(find.text('Edit Salary'), findsNothing);
+        expect(find.text('Enter Salary'), findsNothing);
+        expect(find.text('Settle'), findsNothing);
+      },
+    );
 
     testWidgets(
       'staff_salary.manage grants Edit Salary but does NOT grant Settle',
@@ -237,7 +241,9 @@ void main() {
       },
     );
 
-    testWidgets('Owner user grants both Edit Salary and Settle', (tester) async {
+    testWidgets('Owner user grants both Edit Salary and Settle', (
+      tester,
+    ) async {
       const user = AuthUser(
         id: 'u-owner',
         username: 'owner',
@@ -369,7 +375,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('E6 Showroom'), findsNothing);
+      expect(find.text('Showroom'), findsNothing);
     });
 
     testWidgets('canonical showroom.view DOES unlock Showroom app launcher', (
@@ -397,7 +403,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('E6 Showroom'), findsOneWidget);
+      expect(find.text('Showroom'), findsOneWidget);
     });
   });
 
@@ -434,8 +440,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final initialAdvancesLoads =
-            trackingAdvancesNotifier.loadAdvancesCount;
+        final initialAdvancesLoads = trackingAdvancesNotifier.loadAdvancesCount;
         final initialStaffLoads = trackingStaffNotifier.loadStaffCount;
 
         // Tap Refresh button
@@ -488,8 +493,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final initialAdvancesLoads =
-            trackingAdvancesNotifier.loadAdvancesCount;
+        final initialAdvancesLoads = trackingAdvancesNotifier.loadAdvancesCount;
         final initialStaffLoads = trackingStaffNotifier.loadStaffCount;
 
         // Tap Refresh button
@@ -503,10 +507,7 @@ void main() {
           trackingAdvancesNotifier.loadAdvancesCount,
           greaterThan(initialAdvancesLoads),
         );
-        expect(
-          trackingStaffNotifier.loadStaffCount,
-          equals(initialStaffLoads),
-        );
+        expect(trackingStaffNotifier.loadStaffCount, equals(initialStaffLoads));
       },
     );
   });

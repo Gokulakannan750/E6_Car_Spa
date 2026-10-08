@@ -267,7 +267,7 @@ class StaffCard extends StatelessWidget {
                               color: AppColors.primary.withAlpha(20),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Doc',
                               style: TextStyle(
                                 fontSize: 9,
@@ -387,7 +387,7 @@ class StaffCard extends StatelessWidget {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.primary,
-                            side: const BorderSide(
+                            side: BorderSide(
                               color: AppColors.primary,
                               width: 1,
                             ),
@@ -406,7 +406,7 @@ class StaffCard extends StatelessWidget {
                       if (canEdit)
                         IconButton(
                           onPressed: onEdit,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.edit_outlined,
                             size: 15,
                             color: AppColors.primary,

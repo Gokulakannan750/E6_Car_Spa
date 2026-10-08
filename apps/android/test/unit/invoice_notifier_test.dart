@@ -87,7 +87,10 @@ class FakeInvoiceApiForNotifier extends InvoiceApi {
   }
 
   @override
-  Future<Invoice> generateInvoice(String id, {double? expectedTotalAmount}) async {
+  Future<Invoice> generateInvoice(
+    String id, {
+    double? expectedTotalAmount,
+  }) async {
     if (mockInvoice != null) {
       return Invoice(
         id: mockInvoice!.id,

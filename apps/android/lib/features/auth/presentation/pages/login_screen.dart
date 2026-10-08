@@ -107,7 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final businessProfile = ref.watch(businessProfileProvider);
     final businessName = businessProfile?.businessName.trim().isNotEmpty == true
         ? businessProfile!.businessName
-        : 'E6 Car Spa';
+        : 'Car Spa Management';
     final isLoading = authState is Authenticating;
     final isLocked = _remainingLockoutSeconds > 0 || authState is AccountLocked;
     final isInputEnabled = !isLoading && !isLocked;
@@ -141,7 +141,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -199,7 +199,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Management Suite',
                         style: AppTextStyles.bodyMedium.copyWith(
-                          color: const Color(0xFFFECACA).withValues(alpha: 0.8),
+                          color: AppColors.loginTextSecondary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -266,7 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         shadowColor: Colors.black.withValues(alpha: 0.6),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
-                          side: const BorderSide(
+                          side: BorderSide(
                             color: AppColors.loginCardBorder,
                             width: 1.2,
                           ),
@@ -379,14 +379,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'Authorized staff and management only',
                         style: AppTextStyles.labelSmall.copyWith(
-                          color: const Color(0xFFFECACA).withValues(alpha: 0.6),
+                          color: AppColors.loginTextMuted,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       PoweredByTrovo(
                         style: AppTextStyles.labelSmall.copyWith(
-                          color: const Color(0xFFFECACA).withValues(alpha: 0.6),
+                          color: AppColors.loginTextMuted,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.2,
                         ),

@@ -179,7 +179,7 @@ class _CloseWorkSessionModalSheetState
                       children: [
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.person_outline_rounded,
                               size: 16,
                               color: AppColors.primary,
@@ -239,7 +239,7 @@ class _CloseWorkSessionModalSheetState
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.access_time_rounded,
                             size: 18,
                             color: AppColors.primary,

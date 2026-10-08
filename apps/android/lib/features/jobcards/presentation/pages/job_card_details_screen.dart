@@ -123,7 +123,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
                   ),
                   Text(
                     '₹${jc.totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontFamily: 'monospace',
                       color: AppColors.primary,

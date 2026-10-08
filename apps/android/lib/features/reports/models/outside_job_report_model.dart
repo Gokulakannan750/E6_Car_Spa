@@ -212,14 +212,13 @@ class OutsideJobHistoryReportModel {
             json['sentAt']?.toString() ?? json['SentAt']?.toString() ?? '',
           ) ??
           DateTime.now(),
-      returnedAt:
-          json['returnedAt'] != null || json['ReturnedAt'] != null
-              ? DateTime.tryParse(
-                json['returnedAt']?.toString() ??
-                    json['ReturnedAt']?.toString() ??
-                    '',
-              )
-              : null,
+      returnedAt: json['returnedAt'] != null || json['ReturnedAt'] != null
+          ? DateTime.tryParse(
+              json['returnedAt']?.toString() ??
+                  json['ReturnedAt']?.toString() ??
+                  '',
+            )
+          : null,
       expectedReturnAt:
           DateTime.tryParse(
             json['expectedReturnAt']?.toString() ??
@@ -321,14 +320,16 @@ class OutsideJobReportResponseModel {
       currentlyOutside:
           (json['currentlyOutside'] as List<dynamic>?)
               ?.map(
-                (e) =>
-                    CurrentlyOutsideJobModel.fromJson(e as Map<String, dynamic>),
+                (e) => CurrentlyOutsideJobModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
               )
               .toList() ??
           (json['CurrentlyOutside'] as List<dynamic>?)
               ?.map(
-                (e) =>
-                    CurrentlyOutsideJobModel.fromJson(e as Map<String, dynamic>),
+                (e) => CurrentlyOutsideJobModel.fromJson(
+                  e as Map<String, dynamic>,
+                ),
               )
               .toList() ??
           [],

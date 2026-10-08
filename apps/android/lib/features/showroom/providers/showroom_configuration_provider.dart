@@ -43,7 +43,7 @@ class ShowroomConfigurationNotifier
   final ShowroomRepository _repository;
 
   ShowroomConfigurationNotifier(this._repository)
-      : super(const ShowroomConfigurationState()) {
+    : super(const ShowroomConfigurationState()) {
     loadConfiguration();
   }
 
@@ -221,8 +221,11 @@ class ShowroomConfigurationNotifier
   }
 }
 
-final showroomConfigurationProvider = StateNotifierProvider<
-    ShowroomConfigurationNotifier, ShowroomConfigurationState>((ref) {
-  final repository = ref.watch(showroomRepositoryProvider);
-  return ShowroomConfigurationNotifier(repository);
-});
+final showroomConfigurationProvider =
+    StateNotifierProvider<
+      ShowroomConfigurationNotifier,
+      ShowroomConfigurationState
+    >((ref) {
+      final repository = ref.watch(showroomRepositoryProvider);
+      return ShowroomConfigurationNotifier(repository);
+    });

@@ -67,22 +67,43 @@ void main() {
     });
 
     test('isOtherType follows the server isOther flag, not the name', () {
-      ShowroomWorkType parse(Map<String, dynamic> extra) => ShowroomWorkType.fromJson({
-        'id': 'wt-x',
-        'code': 'X',
-        'name': 'X',
-        'createdAt': '2026-09-27T10:00:00.000Z',
-        ...extra,
-      });
+      ShowroomWorkType parse(Map<String, dynamic> extra) =>
+          ShowroomWorkType.fromJson({
+            'id': 'wt-x',
+            'code': 'X',
+            'name': 'X',
+            'createdAt': '2026-09-27T10:00:00.000Z',
+            ...extra,
+          });
 
       // Renamed "Other" keeps its flag.
-      expect(parse({'name': 'Miscellaneous', 'code': 'MISC', 'isOther': true}).isOtherType, isTrue);
+      expect(
+        parse({
+          'name': 'Miscellaneous',
+          'code': 'MISC',
+          'isOther': true,
+        }).isOtherType,
+        isTrue,
+      );
       // A work type merely named like "Other" is ordinary.
-      expect(parse({'name': 'Other Polish', 'code': 'OTHER_POLISH', 'isOther': false}).isOtherType, isFalse);
-      expect(parse({'name': 'Other', 'code': 'OTHER', 'isOther': false}).isOtherType, isFalse);
+      expect(
+        parse({
+          'name': 'Other Polish',
+          'code': 'OTHER_POLISH',
+          'isOther': false,
+        }).isOtherType,
+        isFalse,
+      );
+      expect(
+        parse({'name': 'Other', 'code': 'OTHER', 'isOther': false}).isOtherType,
+        isFalse,
+      );
       // Older API without the flag: fall back to the seeded code only.
       expect(parse({'name': 'Other', 'code': 'OTHER'}).isOtherType, isTrue);
-      expect(parse({'name': 'Other things', 'code': 'OTHERS'}).isOtherType, isFalse);
+      expect(
+        parse({'name': 'Other things', 'code': 'OTHERS'}).isOtherType,
+        isFalse,
+      );
       expect(parse({'isOther': true}).toJson()['isOther'], isTrue);
     });
   });

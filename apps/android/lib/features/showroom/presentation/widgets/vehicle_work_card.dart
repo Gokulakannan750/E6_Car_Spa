@@ -148,7 +148,7 @@ class VehicleWorkCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.directions_car_filled_outlined,
                         size: 13,
                         color: AppColors.primary,
@@ -156,7 +156,7 @@ class VehicleWorkCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         work.vehicleTypeName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,

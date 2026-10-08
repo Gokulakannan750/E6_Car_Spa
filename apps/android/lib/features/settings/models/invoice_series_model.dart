@@ -16,7 +16,8 @@ class InvoiceSeriesModel {
     required this.nextInvoiceNumber,
   });
 
-  factory InvoiceSeriesModel.fromJson(Map<String, dynamic> json) => InvoiceSeriesModel(
+  factory InvoiceSeriesModel.fromJson(Map<String, dynamic> json) =>
+      InvoiceSeriesModel(
         seriesKind: json['seriesKind'] as String? ?? '',
         prefix: json['prefix'] as String? ?? '',
         minDigits: (json['minDigits'] as num?)?.toInt() ?? 4,
@@ -32,8 +33,11 @@ class InvoiceSeriesSettingsModel {
 
   const InvoiceSeriesSettingsModel({required this.gst, required this.nonGst});
 
-  factory InvoiceSeriesSettingsModel.fromJson(Map<String, dynamic> json) => InvoiceSeriesSettingsModel(
+  factory InvoiceSeriesSettingsModel.fromJson(Map<String, dynamic> json) =>
+      InvoiceSeriesSettingsModel(
         gst: InvoiceSeriesModel.fromJson(json['gst'] as Map<String, dynamic>),
-        nonGst: InvoiceSeriesModel.fromJson(json['nonGst'] as Map<String, dynamic>),
+        nonGst: InvoiceSeriesModel.fromJson(
+          json['nonGst'] as Map<String, dynamic>,
+        ),
       );
 }

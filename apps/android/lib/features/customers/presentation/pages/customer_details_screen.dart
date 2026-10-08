@@ -248,7 +248,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.phone,
                                     size: 15,
                                     color: AppColors.accent,
@@ -337,7 +337,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                       children: [
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.account_balance_wallet_outlined,
                               size: 20,
                               color: AppColors.primary,
@@ -480,7 +480,7 @@ class _CustomerDetailsScreenState extends ConsumerState<CustomerDetailsScreen>
                   return VehicleCard(
                     vehicle: vehicle,
                     trailing: IconButton(
-                      icon: const Icon(Icons.add_task, color: AppColors.accent),
+                      icon: Icon(Icons.add_task, color: AppColors.accent),
                       tooltip: 'New Job Card for this vehicle',
                       onPressed: () {
                         ref

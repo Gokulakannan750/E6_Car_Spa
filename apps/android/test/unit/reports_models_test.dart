@@ -110,66 +110,69 @@ void main() {
       expect(model.recentActivity.first.title, 'Payment received (UPI)');
     });
 
-    test('DashboardSummaryModel deserializes redacted null sections gracefully (Phase 2C)', () {
-      final json = {
-        'dateRange': {
-          'fromDate': '2026-08-01T00:00:00Z',
-          'toDate': '2026-08-26T23:59:59Z',
-        },
-        'jobCardKpis': {
-          'totalJobCards': 10,
-          'newJobCards': 1,
-          'inProgressJobCards': 2,
-          'completedJobCards': 7,
-          'cancelledJobCards': 0,
-          'invoicedJobCards': 5,
-        },
-        'vehicleActivity': {
-          'vehiclesServiced': 7,
-          'totalServicesCompleted': 14,
-          'uniqueVehiclesServiced': 6,
-        },
-        'invoiceKpis': {
-          'draftCount': 0,
-          'generatedCount': 0,
-          'partiallyPaidCount': 0,
-          'paidCount': 0,
-          'cancelledCount': 0,
-          'totalInvoicedAmount': 0.0,
-          'totalPaidAmount': 0.0,
-          'totalOutstandingAmount': 0.0,
-        },
-        'sales': null,
-        'paymentCollection': null,
-        'showroom': null,
-        'staffAdvances': null,
-        'outstanding': {
-          'invoiceOutstanding': 0.0,
-          'showroomOutstanding': 0.0,
-          'totalOutstandingCombined': 0.0,
-          'unpaidInvoiceCount': 0,
-          'overdueCount': 0,
-          'topDebtors': [],
-          'totalOutstanding': null,
-          'aging': null,
-        },
-        'revenueTimeline': [],
-        'topServices': [],
-        'recentAdvances': [],
-        'recentActivity': [],
-      };
+    test(
+      'DashboardSummaryModel deserializes redacted null sections gracefully (Phase 2C)',
+      () {
+        final json = {
+          'dateRange': {
+            'fromDate': '2026-08-01T00:00:00Z',
+            'toDate': '2026-08-26T23:59:59Z',
+          },
+          'jobCardKpis': {
+            'totalJobCards': 10,
+            'newJobCards': 1,
+            'inProgressJobCards': 2,
+            'completedJobCards': 7,
+            'cancelledJobCards': 0,
+            'invoicedJobCards': 5,
+          },
+          'vehicleActivity': {
+            'vehiclesServiced': 7,
+            'totalServicesCompleted': 14,
+            'uniqueVehiclesServiced': 6,
+          },
+          'invoiceKpis': {
+            'draftCount': 0,
+            'generatedCount': 0,
+            'partiallyPaidCount': 0,
+            'paidCount': 0,
+            'cancelledCount': 0,
+            'totalInvoicedAmount': 0.0,
+            'totalPaidAmount': 0.0,
+            'totalOutstandingAmount': 0.0,
+          },
+          'sales': null,
+          'paymentCollection': null,
+          'showroom': null,
+          'staffAdvances': null,
+          'outstanding': {
+            'invoiceOutstanding': 0.0,
+            'showroomOutstanding': 0.0,
+            'totalOutstandingCombined': 0.0,
+            'unpaidInvoiceCount': 0,
+            'overdueCount': 0,
+            'topDebtors': [],
+            'totalOutstanding': null,
+            'aging': null,
+          },
+          'revenueTimeline': [],
+          'topServices': [],
+          'recentAdvances': [],
+          'recentActivity': [],
+        };
 
-      final model = DashboardSummaryModel.fromJson(json);
+        final model = DashboardSummaryModel.fromJson(json);
 
-      expect(model.jobCardKpis.totalJobCards, 10);
-      expect(model.vehicleActivity.vehiclesServiced, 7);
-      expect(model.sales, isNull);
-      expect(model.paymentCollection, isNull);
-      expect(model.showroom, isNull);
-      expect(model.staffAdvances, isNull);
-      expect(model.outstanding, isNotNull);
-      expect(model.recentActivity, isEmpty);
-    });
+        expect(model.jobCardKpis.totalJobCards, 10);
+        expect(model.vehicleActivity.vehiclesServiced, 7);
+        expect(model.sales, isNull);
+        expect(model.paymentCollection, isNull);
+        expect(model.showroom, isNull);
+        expect(model.staffAdvances, isNull);
+        expect(model.outstanding, isNotNull);
+        expect(model.recentActivity, isEmpty);
+      },
+    );
 
     test(
       'SalesReportResponseModel deserializes rows and summary correctly',

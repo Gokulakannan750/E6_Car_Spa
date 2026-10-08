@@ -80,7 +80,7 @@ class SettingsScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'E6 Settings',
+                'Settings',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 16,

@@ -87,7 +87,7 @@ class _StaffProductivityScreenState
                     // Showroom Dropdown
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.storefront_outlined,
                           size: 16,
                           color: AppColors.primary,
@@ -649,7 +649,7 @@ class _StaffProductivityScreenState
                           children: [
                             Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.directions_car_outlined,
                                   size: 14,
                                   color: AppColors.primary,
@@ -730,7 +730,7 @@ class _StaffProductivityScreenState
                                 const SizedBox(width: 10),
                                 Text(
                                   '${srv.hours.toStringAsFixed(1)}h',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.primary,
@@ -842,7 +842,7 @@ class _StaffProductivityScreenState
                 children: [
                   Text(
                     '${r.vehicleQuantity} vehicle • ${r.serviceQuantity} service',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primary,

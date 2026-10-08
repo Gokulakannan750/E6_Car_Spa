@@ -116,7 +116,7 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                       color: AppColors.primary.withAlpha(25),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.receipt_long_rounded,
                       color: AppColors.primary,
                       size: 22,
@@ -211,7 +211,7 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: AppColors.primary,
                       width: 1.5,
                     ),
@@ -253,7 +253,7 @@ class _SetDailyBillModalSheetState extends State<SetDailyBillModalSheet> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
+                    borderSide: BorderSide(
                       color: AppColors.primary,
                       width: 1.5,
                     ),

@@ -63,7 +63,7 @@ class StaffAttendanceTab extends ConsumerWidget {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppColors.primary),
+            colorScheme: ColorScheme.light(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -180,7 +180,7 @@ class StaffAttendanceTab extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_rounded,
                             size: 16,
                             color: AppColors.primary,
@@ -203,7 +203,7 @@ class StaffAttendanceTab extends ConsumerWidget {
                                 color: AppColors.accentPill,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'TODAY',
                                 style: TextStyle(
                                   fontSize: 9,

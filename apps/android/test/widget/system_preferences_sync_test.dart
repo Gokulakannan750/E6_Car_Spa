@@ -125,7 +125,11 @@ void main() {
       await tester.scrollUntilVisible(
         saveButton,
         500,
-        scrollable: find.byType(Scrollable),
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
       );
       await tester.pumpAndSettle();
       await tester.tap(saveButton);
@@ -172,7 +176,11 @@ void main() {
       await tester.scrollUntilVisible(
         resetButton,
         500,
-        scrollable: find.byType(Scrollable),
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
       );
       await tester.pumpAndSettle();
       await tester.tap(resetButton);

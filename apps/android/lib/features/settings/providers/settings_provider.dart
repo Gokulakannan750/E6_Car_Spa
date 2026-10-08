@@ -58,6 +58,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
             businessName: publicBranding.businessName,
             logoPath: publicBranding.logoPath,
             updatedAt: publicBranding.updatedAt,
+            appColor: publicBranding.appColor,
+            sidebarColor: publicBranding.sidebarColor,
           ),
         );
       } catch (_) {}
@@ -75,6 +77,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
             businessName: publicBranding.businessName,
             logoPath: publicBranding.logoPath,
             updatedAt: publicBranding.updatedAt,
+            appColor: publicBranding.appColor,
+            sidebarColor: publicBranding.sidebarColor,
           ),
         );
       } catch (_) {}
@@ -123,6 +127,8 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
                   businessName: publicBranding.businessName,
                   logoPath: publicBranding.logoPath,
                   updatedAt: publicBranding.updatedAt,
+                  appColor: publicBranding.appColor,
+                  sidebarColor: publicBranding.sidebarColor,
                 ),
       );
     } catch (_) {
@@ -153,6 +159,42 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final message = e is ApiException
           ? e.message
           : 'Failed to save settings.';
+      state = currentState.copyWith(isSaving: false, errorMessage: message);
+      return false;
+    }
+  }
+
+  /// Saves the company's colours and applies them to the whole app straight away.
+  /// An empty string clears a colour; null leaves it unchanged.
+  Future<bool> updateAppearance({
+    String? appColor,
+    String? sidebarColor,
+    String? brandColor,
+  }) async {
+    final currentState = state;
+    if (currentState is! SettingsLoaded) return false;
+
+    state = currentState.copyWith(
+      isSaving: true,
+      clearSuccess: true,
+      clearError: true,
+    );
+
+    try {
+      final updated = await _repository.updateAppearance(
+        appColor: appColor,
+        sidebarColor: sidebarColor,
+        brandColor: brandColor,
+      );
+      state = SettingsLoaded(
+        profile: updated,
+        isSaving: false,
+        successMessage:
+            'Colours saved. They now apply to everyone using this company.',
+      );
+      return true;
+    } catch (e) {
+      final message = e is ApiException ? e.message : 'Failed to save colours.';
       state = currentState.copyWith(isSaving: false, errorMessage: message);
       return false;
     }

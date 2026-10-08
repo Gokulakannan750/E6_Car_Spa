@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../theme/brand_palette.dart';
+
 class AppColors {
-  // E6 Brand & Theme
-  static const Color primary = Color(0xFF0453CD); // E6 Blue
-  static const Color primaryContainer = Color(0xFF0B1228); // Dark Navy
-  static const Color primaryLight = Color(0xFF356EE7);
-  static const Color primaryDark = Color(0xFF02368A);
+  // Company theme (app colour = blue scale, sidebar/login colour = side scale; see BrandPalette)
+  static Color get primary => BrandPalette.app(700);
+  static Color get primaryContainer => BrandPalette.side(950);
+  static Color get primaryLight => BrandPalette.app(500);
+  static Color get primaryDark => BrandPalette.app(800);
 
   // E6 Dark Navy (matching Desktop Sidebar)
-  static const Color navy = Color(0xFF0B1228);
-  static const Color navyLight = Color(0xFF1E293B);
+  static Color get navy => BrandPalette.side(950);
+  static Color get navyLight => BrandPalette.side(800);
 
   // Accent & Highlights
-  static const Color accent = Color(0xFF0453CD);
-  static const Color accentLight = Color(0xFF356EE7);
-  static const Color accentDark = Color(0xFF02368A);
-  static const Color accentPill = Color(0xFFEFF6FF); // Blue-50
+  static Color get accent => BrandPalette.app(700);
+  static Color get accentLight => BrandPalette.app(500);
+  static Color get accentDark => BrandPalette.app(800);
+  static Color get accentPill => BrandPalette.app(50);
 
   // Background & Surfaces
   static const Color background = Color(0xFFF8FAFC); // Slate-50
@@ -88,42 +90,40 @@ class AppColors {
   // Shadows
   static const Color shadow = Color(0x0D000000);
   static const Color shadowMedium = Color(0x1A000000);
-  static const Color overlay = Color(0x660B1228);
+  static Color get overlay => BrandPalette.side(950).withValues(alpha: 0.4);
 
   // Navigation
   static const Color bottomNavBg = Color(0xFFFFFFFF);
   static const Color bottomNavBorder = Color(0xFFE2E8F0);
-  static const Color bottomNavActive = Color(0xFF0453CD);
+  static Color get bottomNavActive => BrandPalette.app(700);
   static const Color bottomNavInactive = Color(0xFF64748B);
 
-  // Login Branding (Red & Black gradient matching desktop)
-  static const Color loginGradientStart = Color(0xFF7F1D1D); // Red-900
+  // Login branding (company sidebar colour through black, matching desktop)
+  static Color get loginGradientStart => BrandPalette.side(900);
   static const Color loginGradientMiddle = Color(0xFF000000); // Black
-  static const Color loginGradientEnd = Color(0xFF450A0A); // Red-950
-  static const Color loginAccent = Color(0xFFDC2626); // Red-600
-  static const Color loginCardBg = Color(0xF2140606); // Deep obsidian wine
-  static const Color loginCardBorder = Color(
-    0x4DDC2626,
-  ); // Subtle red border glow
-  static const Color loginInputFill = Color(
-    0xCC220B0B,
-  ); // Dark crimson input fill
-  static const Color loginInputBorder = Color(0x737F1D1D); // Muted red border
-  static const Color loginTextSecondary = Color(
-    0xCCFECACA,
-  ); // Muted red-tinted white (80%)
-  static const Color loginTextMuted = Color(
-    0x80FECACA,
-  ); // Subdued red-tinted white (50%)
+  static Color get loginGradientEnd => BrandPalette.side(950);
+  static Color get loginAccent => BrandPalette.side(600);
+  static Color get loginCardBg =>
+      BrandPalette.side(950).withValues(alpha: 0.95);
+  static Color get loginCardBorder =>
+      BrandPalette.side(600).withValues(alpha: 0.3);
+  static Color get loginInputFill =>
+      BrandPalette.side(900).withValues(alpha: 0.8);
+  static Color get loginInputBorder =>
+      BrandPalette.side(800).withValues(alpha: 0.45);
+  static Color get loginTextSecondary =>
+      BrandPalette.side(100).withValues(alpha: 0.8);
+  static Color get loginTextMuted =>
+      BrandPalette.side(100).withValues(alpha: 0.5);
 
   // Brand Gradients (matching the login and desktop aesthetic)
-  static const LinearGradient brandGradient = LinearGradient(
+  static LinearGradient get brandGradient => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFFDC2626), // Vibrant red accent highlight
-      Color(0xFF7F1D1D), // Deep wine red-900
-      Color(0xFF1E0303), // Deep obsidian black
+      BrandPalette.side(600), // Company colour highlight
+      BrandPalette.side(900), // Deep shade
+      BrandPalette.side(950), // Darkest shade
     ],
   );
 }

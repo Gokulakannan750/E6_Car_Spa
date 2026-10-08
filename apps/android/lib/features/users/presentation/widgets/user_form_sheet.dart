@@ -360,7 +360,7 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                     AppTextField(
                       controller: _emailController,
                       label: 'Email Address (Optional)',
-                      hintText: 'user@e6carspa.com',
+                      hintText: 'user@yourcompany.com',
                       keyboardType: TextInputType.emailAddress,
                       prefixIcon: const Icon(Icons.email_outlined, size: 20),
                       validator: (val) {

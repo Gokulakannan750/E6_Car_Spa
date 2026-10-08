@@ -9,18 +9,20 @@ class ReportKpiCard extends StatelessWidget {
   final String? stringValue;
   final String? subtitle;
   final IconData icon;
-  final Color accentColor;
+
+  /// Defaults to the company's app colour when not given.
+  final Color? accentColor;
   final Color? backgroundColor;
   final VoidCallback? onTap;
 
-  const ReportKpiCard({
+  ReportKpiCard({
     super.key,
     required this.title,
     this.amountValue,
     this.stringValue,
     this.subtitle,
     required this.icon,
-    this.accentColor = AppColors.primary,
+    this.accentColor,
     this.backgroundColor,
     this.onTap,
   });
@@ -36,6 +38,7 @@ class ReportKpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = accentColor ?? AppColors.primary;
     final displayValue =
         stringValue ??
         (amountValue != null ? _formatCurrency(amountValue!) : '₹0.00');
@@ -67,7 +70,7 @@ class ReportKpiCard extends StatelessWidget {
               width: 3.5,
               child: Container(
                 decoration: BoxDecoration(
-                  color: accentColor,
+                  color: accent,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -98,12 +101,12 @@ class ReportKpiCard extends StatelessWidget {
                         width: 28,
                         height: 28,
                         decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
+                          color: accent.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusSM,
                           ),
                         ),
-                        child: Icon(icon, size: 16, color: accentColor),
+                        child: Icon(icon, size: 16, color: accent),
                       ),
                     ],
                   ),
@@ -116,9 +119,9 @@ class ReportKpiCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: accentColor == AppColors.primary
+                        color: accent == AppColors.primary
                             ? AppColors.textPrimary
-                            : accentColor,
+                            : accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
