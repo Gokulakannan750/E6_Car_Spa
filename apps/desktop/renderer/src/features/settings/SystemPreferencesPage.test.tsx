@@ -234,4 +234,32 @@ describe('SystemPreferencesPage Component', () => {
 		const dateSelect = screen.getByLabelText('Date Display Format') as HTMLSelectElement;
 		expect(dateSelect.value).toBe('MM/DD/YYYY');
 	});
+
+	it('keeps the colour settings on their own Colours tab', async () => {
+		renderWithProviders(<SystemPreferencesPage />, {
+			initialEntries: ['/settings/system'],
+			authUser: {
+				id: 'usr-1',
+				fullName: 'Admin User',
+				username: 'admin',
+				role: 'Owner',
+				isOwner: true,
+				permissions: ['settings.view'],
+			},
+		});
+
+		// General tab: formatting controls, no colour card
+		expect(screen.getByRole('tab', { name: 'General' })).toHaveAttribute('aria-selected', 'true');
+		expect(screen.queryByLabelText('App colour code')).toBeNull();
+		expect(screen.getByRole('button', { name: /save preferences/i })).toBeVisible();
+
+		fireEvent.click(screen.getByRole('tab', { name: 'Colours' }));
+
+		expect(screen.getByRole('tab', { name: 'Colours' })).toHaveAttribute('aria-selected', 'true');
+		expect(await screen.findByLabelText('App colour code')).toBeInTheDocument();
+		expect(screen.getByLabelText('Sidebar and login page code')).toBeInTheDocument();
+		expect(screen.getByLabelText('Invoices and job cards code')).toBeInTheDocument();
+		// The general-preferences Save button is hidden on this tab; the colours have their own Save.
+		expect(screen.queryByRole('button', { name: /save preferences/i })).toBeNull();
+	});
 });

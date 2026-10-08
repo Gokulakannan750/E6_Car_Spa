@@ -74,6 +74,7 @@ export function SystemPreferencesPage() {
 	const { user, isAuthenticated, token, hasPermission } = useAuth();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
+	const [tab, setTab] = useState<'general' | 'colours'>('general');
 	const [savedMsg, setSavedMsg] = useState<string | null>(null);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -167,6 +168,7 @@ export function SystemPreferencesPage() {
 					</p>
 				</div>
 
+				{tab === 'general' && (
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
@@ -186,6 +188,30 @@ export function SystemPreferencesPage() {
 						{saveMutation.isPending ? 'Saving...' : 'Save Preferences'}
 					</button>
 				</div>
+				)}
+			</div>
+
+			{/* Tabs */}
+			<div role="tablist" aria-label="System preferences sections" className="flex gap-1 border-b border-slate-200">
+				{([
+					['general', 'General'],
+					['colours', 'Colours'],
+				] as const).map(([id, label]) => (
+					<button
+						key={id}
+						type="button"
+						role="tab"
+						aria-selected={tab === id}
+						onClick={() => setTab(id)}
+						className={`px-4 py-2 text-xs font-semibold border-b-2 -mb-px transition-colors cursor-pointer ${
+							tab === id
+								? 'border-blue-600 text-blue-700'
+								: 'border-transparent text-slate-500 hover:text-slate-800'
+						}`}
+					>
+						{label}
+					</button>
+				))}
 			</div>
 
 			{/* Loading banner */}
@@ -220,6 +246,13 @@ export function SystemPreferencesPage() {
 				</div>
 			)}
 
+			{tab === 'colours' && (
+				<div className="max-w-2xl animate-in fade-in duration-150">
+					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
+				</div>
+			)}
+
+			{tab === 'general' && (
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-150">
 				{/* Main Preferences Form */}
 				<form
@@ -411,9 +444,6 @@ export function SystemPreferencesPage() {
 
 				{/* Right Sidebar Column */}
 				<div className="space-y-6">
-					{/* Company colours: app, sidebar & login, documents */}
-					<AppearanceCard canEdit={Boolean(user?.isOwner || hasPermission('settings.business'))} />
-
 					{/* System Environment Card */}
 					<div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
 						<div className="flex items-center gap-2 pb-3 border-b border-slate-100">
@@ -486,6 +516,7 @@ export function SystemPreferencesPage() {
 					</div>
 				</div>
 			</div>
+			)}
 		</div>
 	);
 }
