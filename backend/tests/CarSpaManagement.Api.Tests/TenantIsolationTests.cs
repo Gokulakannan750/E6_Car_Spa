@@ -216,6 +216,61 @@ public class TenantIsolationTests
         await Assert.ThrowsAsync<TenantViolationException>(() => a.SaveChangesAsync());
     }
 
+    private static async Task<Guid> SaveCustomerFor(SharedDatabase shared, Guid organization)
+    {
+        await using var db = shared.As(organization);
+        var customer = NewCustomer("Customer of " + organization);
+        db.Customers.Add(customer);
+        await db.SaveChangesAsync();
+        return customer.Id;
+    }
+
+    [Fact]
+    public async Task ARow_CannotPointAtAnotherCompanysRow()
+    {
+        var shared = new SharedDatabase();
+        var theirs = await SaveCustomerFor(shared, OrgB);
+
+        await using var a = shared.As(OrgA);
+        a.Vehicles.Add(new Vehicle { CustomerId = theirs, RegistrationNumber = "TN01AB1234" });
+        await Assert.ThrowsAsync<TenantViolationException>(() => a.SaveChangesAsync());
+
+        await using var syncDb = shared.As(OrgA);
+        syncDb.Vehicles.Add(new Vehicle { CustomerId = theirs, RegistrationNumber = "TN01AB1234" });
+        Assert.Throws<TenantViolationException>(() => syncDb.SaveChanges());
+    }
+
+    [Fact]
+    public async Task AnExistingRow_CannotBeRepointedAtAnotherCompanysRow()
+    {
+        var shared = new SharedDatabase();
+        var theirs = await SaveCustomerFor(shared, OrgB);
+        var mine = await SaveCustomerFor(shared, OrgA);
+
+        await using var a = shared.As(OrgA);
+        var vehicle = new Vehicle { CustomerId = mine, RegistrationNumber = "TN01AB1234" };
+        a.Vehicles.Add(vehicle);
+        await a.SaveChangesAsync();
+
+        vehicle.CustomerId = theirs;
+        await Assert.ThrowsAsync<TenantViolationException>(() => a.SaveChangesAsync());
+    }
+
+    [Fact]
+    public async Task Rows_CanPointAtTheirOwnCompanysRows_ExistingOrSavedTogether()
+    {
+        var shared = new SharedDatabase();
+        var mine = await SaveCustomerFor(shared, OrgA);
+
+        await using var a = shared.As(OrgA);
+        a.Vehicles.Add(new Vehicle { CustomerId = mine, RegistrationNumber = "TN01AB1234" });
+        var newCustomer = NewCustomer("Brand new", "9000000002");
+        a.Customers.Add(newCustomer);
+        a.Vehicles.Add(new Vehicle { CustomerId = newCustomer.Id, RegistrationNumber = "TN01AB9999" });
+
+        Assert.Equal(3, await a.SaveChangesAsync());
+    }
+
     [Fact]
     public async Task AnotherCompanysRow_CannotBeChangedOrDeleted_EvenIfCodeGetsHoldOfIt()
     {

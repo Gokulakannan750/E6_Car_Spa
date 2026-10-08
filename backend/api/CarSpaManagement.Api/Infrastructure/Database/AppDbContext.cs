@@ -126,13 +126,23 @@ public class AppDbContext : DbContext
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         PrepareForSave();
+        var references = CollectForeignReferences();
+        if (references.Count > 0)
+        {
+            EnsureReferencesStayInCompany(references);
+        }
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         PrepareForSave();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var references = CollectForeignReferences();
+        if (references.Count > 0)
+        {
+            await EnsureReferencesStayInCompanyAsync(references, cancellationToken);
+        }
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     /// <summary>Runs on every save path (sync and async): company checks first, then the audit timestamps.</summary>
@@ -199,6 +209,125 @@ public class AppDbContext : DbContext
                             $"Cannot change {entry.Metadata.ClrType.Name} that belongs to a different company.");
                     }
                     break;
+            }
+        }
+    }
+
+    private sealed record ForeignReference(Type PrincipalType, string KeyName, Guid Key, Guid Organization, string Dependent);
+
+    /// <summary>
+    /// The links a save is about to create or change from company-owned rows to other company-owned rows. A link to
+    /// a row that is itself part of this save is checked on the spot; the rest are checked against the database.
+    /// </summary>
+    private List<ForeignReference> CollectForeignReferences()
+    {
+        var found = new List<ForeignReference>();
+        var tracked = new Dictionary<(Type, Guid), Guid>();
+        var candidates = new List<Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry>();
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.Entity is not IOrganizationOwned owned)
+            {
+                continue;
+            }
+
+            if (entry.Metadata.FindPrimaryKey() is { Properties.Count: 1 } key
+                && entry.Property(key.Properties[0].Name).CurrentValue is Guid id)
+            {
+                tracked[(entry.Metadata.ClrType, id)] = owned.OrganizationId;
+            }
+
+            if (entry.State is EntityState.Added or EntityState.Modified)
+            {
+                candidates.Add(entry);
+            }
+        }
+
+        foreach (var entry in candidates)
+        {
+            var organization = ((IOrganizationOwned)entry.Entity).OrganizationId;
+            foreach (var foreignKey in entry.Metadata.GetForeignKeys())
+            {
+                var principalType = foreignKey.PrincipalEntityType.ClrType;
+                if (!typeof(IOrganizationOwned).IsAssignableFrom(principalType)
+                    || foreignKey.Properties.Count != 1
+                    || foreignKey.PrincipalKey.Properties.Count != 1)
+                {
+                    continue;
+                }
+
+                var property = foreignKey.Properties[0];
+                if (entry.State == EntityState.Modified && !entry.Property(property.Name).IsModified)
+                {
+                    continue;
+                }
+
+                if (entry.CurrentValues[property] is not Guid value || value == Guid.Empty)
+                {
+                    continue;
+                }
+
+                if (tracked.TryGetValue((principalType, value), out var principalOrganization))
+                {
+                    if (principalOrganization != organization)
+                    {
+                        throw ForeignCompany(entry.Metadata.ClrType.Name, principalType.Name);
+                    }
+                    continue;
+                }
+
+                found.Add(new ForeignReference(principalType, foreignKey.PrincipalKey.Properties[0].Name, value,
+                    organization, entry.Metadata.ClrType.Name));
+            }
+        }
+
+        return found;
+    }
+
+    private static TenantViolationException ForeignCompany(string dependent, string principal) =>
+        new($"{dependent} refers to a {principal} from a different company.");
+
+    private static readonly System.Reflection.MethodInfo ForeignOwnedQueryMethod =
+        typeof(AppDbContext).GetMethod(nameof(ForeignOwnedQuery), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+
+    /// <summary>Of these keys, the ones that exist but belong to some other company (deleted rows included).</summary>
+    private IQueryable<Guid> ForeignOwnedQuery<T>(string keyName, List<Guid> keys, Guid organization)
+        where T : class, IOrganizationOwned =>
+        Set<T>().IgnoreQueryFilters()
+            .Where(e => keys.Contains(EF.Property<Guid>(e, keyName)) && e.OrganizationId != organization)
+            .Select(e => EF.Property<Guid>(e, keyName));
+
+    private IEnumerable<(IQueryable<Guid> Query, string Dependent, string Principal)> ForeignReferenceQueries(
+        List<ForeignReference> references)
+    {
+        foreach (var group in references.GroupBy(r => (r.PrincipalType, r.KeyName, r.Organization)))
+        {
+            var keys = group.Select(r => r.Key).Distinct().ToList();
+            var query = (IQueryable<Guid>)ForeignOwnedQueryMethod.MakeGenericMethod(group.Key.PrincipalType)
+                .Invoke(this, [group.Key.KeyName, keys, group.Key.Organization])!;
+            yield return (query, group.First().Dependent, group.Key.PrincipalType.Name);
+        }
+    }
+
+    private void EnsureReferencesStayInCompany(List<ForeignReference> references)
+    {
+        foreach (var (query, dependent, principal) in ForeignReferenceQueries(references))
+        {
+            if (query.Any())
+            {
+                throw ForeignCompany(dependent, principal);
+            }
+        }
+    }
+
+    private async Task EnsureReferencesStayInCompanyAsync(List<ForeignReference> references, CancellationToken cancellationToken)
+    {
+        foreach (var (query, dependent, principal) in ForeignReferenceQueries(references))
+        {
+            if (await query.AnyAsync(cancellationToken))
+            {
+                throw ForeignCompany(dependent, principal);
             }
         }
     }
