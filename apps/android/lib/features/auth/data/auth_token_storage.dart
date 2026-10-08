@@ -45,6 +45,19 @@ class AuthTokenStorage {
     }
   }
 
+  /// The company code stays after sign-out: it is asked once per device.
+  Future<void> saveCompanyCode(String code) async {
+    await _storage.write(key: AppConstants.keyCompanyCode, value: code);
+  }
+
+  Future<String> getCompanyCode() async {
+    try {
+      return await _storage.read(key: AppConstants.keyCompanyCode) ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
   Future<void> clearSession() async {
     await _storage.delete(key: AppConstants.keyAccessToken);
     await _storage.delete(key: _userKey);

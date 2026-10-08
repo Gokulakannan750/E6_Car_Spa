@@ -13,6 +13,9 @@ class AppConstants {
 
   // Storage keys
   static const String keyAccessToken = 'access_token';
+
+  /// The company code this device last signed in to (asked once, then remembered).
+  static const String keyCompanyCode = 'company_code';
   static const String keyRefreshToken = 'refresh_token';
   static const String keyUser = 'user';
   static const String keyApiBaseUrl = 'api_base_url';

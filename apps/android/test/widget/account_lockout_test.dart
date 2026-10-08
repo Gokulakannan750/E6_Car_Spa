@@ -92,7 +92,11 @@ class MockLockedAuthNotifier extends StateNotifier<AuthState>
   }
 
   @override
-  Future<bool> login(String username, String password) async => false;
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async => false;
 
   @override
   Future<void> logout() async {

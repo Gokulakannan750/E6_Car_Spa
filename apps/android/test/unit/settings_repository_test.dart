@@ -19,7 +19,9 @@ class MockSettingsApi extends SettingsApi {
   Exception? exceptionToThrow;
 
   @override
-  Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
+  Future<PublicBusinessProfileModel> getPublicBusinessProfile({
+    String? companyCode,
+  }) async {
     if (dioExceptionToThrow != null) throw dioExceptionToThrow!;
     if (exceptionToThrow != null) throw exceptionToThrow!;
     return publicProfileToReturn ??

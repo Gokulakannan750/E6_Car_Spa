@@ -215,7 +215,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Attempts login against POST /api/auth/login
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async {
     if (username.trim().isEmpty || password.isEmpty) {
       state = const AuthFailure('Username and password are required.');
       return false;
@@ -223,7 +227,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     state = const Authenticating();
     try {
-      final user = await _repository.login(username, password);
+      final user = await _repository.login(
+        username,
+        password,
+        companyCode: companyCode,
+      );
       state = Authenticated(user);
       return true;
     } on AccountLockedException catch (e) {

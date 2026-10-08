@@ -12,8 +12,14 @@ class SettingsApi {
   SettingsApi(this._dio);
 
   /// Retrieves the anonymous public branding profile (businessName, logoPath, updatedAt)
-  Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
-    final response = await _dio.get('/public/business-profile');
+  Future<PublicBusinessProfileModel> getPublicBusinessProfile({
+    String? companyCode,
+  }) async {
+    final code = companyCode?.trim() ?? '';
+    final response = await _dio.get(
+      '/public/business-profile',
+      queryParameters: code.isEmpty ? null : {'companyCode': code},
+    );
     return PublicBusinessProfileModel.fromJson(
       response.data as Map<String, dynamic>,
     );

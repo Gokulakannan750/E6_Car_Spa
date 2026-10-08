@@ -179,7 +179,11 @@ class _TestAuthNotifier extends StateNotifier<AuthState>
   _TestAuthNotifier(super.initialState);
 
   @override
-  Future<bool> login(String username, String password) async => true;
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async => true;
   @override
   Future<void> logout() async => state = const Unauthenticated();
   @override

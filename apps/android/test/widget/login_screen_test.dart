@@ -23,7 +23,11 @@ class StubAuthRepo extends AuthRepository {
   Future<AuthUser?> restoreSession() async => null;
 
   @override
-  Future<AuthUser> login(String username, String password) async {
+  Future<AuthUser> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async {
     if (!shouldSucceed) {
       throw Exception(errorMessage ?? 'Invalid credentials.');
     }
@@ -79,6 +83,7 @@ void main() {
 
         expect(find.text('Car Spa Management'), findsOneWidget);
         expect(find.text('Management Suite'), findsOneWidget);
+        expect(find.text('Company code'), findsOneWidget);
         expect(find.text('Username'), findsOneWidget);
         expect(find.text('Password'), findsOneWidget);
         expect(find.widgetWithText(AppButton, 'Sign In'), findsOneWidget);
@@ -94,6 +99,19 @@ void main() {
       await tester.tap(find.widgetWithText(AppButton, 'Sign In'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Please enter your company code.'), findsOneWidget);
+    });
+
+    testWidgets('asks for the username once the company code is entered', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createLoginTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, '0001');
+      await tester.tap(find.widgetWithText(AppButton, 'Sign In'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Please enter your username.'), findsOneWidget);
     });
 
@@ -103,7 +121,8 @@ void main() {
         await tester.pumpWidget(createLoginTestWidget());
         await tester.pumpAndSettle();
 
-        await tester.enterText(find.byType(TextField).first, 'testuser');
+        await tester.enterText(find.byType(TextField).at(0), '0001');
+        await tester.enterText(find.byType(TextField).at(1), 'testuser');
         await tester.tap(find.widgetWithText(AppButton, 'Sign In'));
         await tester.pumpAndSettle();
 

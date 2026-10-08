@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_business_logo.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/powered_by_trovo.dart';
 import '../../../settings/providers/settings_provider.dart';
+import '../../data/auth_repository.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/auth_state.dart';
 
@@ -20,6 +21,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _companyCodeController;
   late final TextEditingController _usernameController;
   late final TextEditingController _passwordController;
   bool _obscurePassword = true;
@@ -30,9 +32,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _companyCodeController = TextEditingController();
     _usernameController = TextEditingController();
     _passwordController = TextEditingController();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // The company code is asked once per device, then remembered.
+      try {
+        final saved = await ref
+            .read(authRepositoryProvider)
+            .getRememberedCompanyCode();
+        if (mounted &&
+            saved.isNotEmpty &&
+            _companyCodeController.text.isEmpty) {
+          _companyCodeController.text = saved;
+        }
+      } catch (_) {}
+      if (!mounted) return;
       ref.read(settingsNotifierProvider.notifier).loadPublicProfile();
     });
   }
@@ -40,6 +55,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void dispose() {
     _lockoutTimer?.cancel();
+    _companyCodeController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -77,9 +93,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _localError = null);
     ref.read(authNotifierProvider.notifier).clearError();
 
+    final companyCode = _companyCodeController.text.trim();
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
 
+    if (companyCode.isEmpty) {
+      setState(() => _localError = 'Please enter your company code.');
+      return;
+    }
     if (username.isEmpty) {
       setState(() => _localError = 'Please enter your username.');
       return;
@@ -92,7 +113,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
 
-    await ref.read(authNotifierProvider.notifier).login(username, password);
+    await ref
+        .read(authNotifierProvider.notifier)
+        .login(username, password, companyCode: companyCode);
   }
 
   @override
@@ -311,6 +334,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 20),
+
+                                  // Company Code Input
+                                  AppTextField(
+                                    label: 'Company code',
+                                    hintText: 'Enter company code',
+                                    controller: _companyCodeController,
+                                    isEnabled: isInputEnabled,
+                                    keyboardType: TextInputType.text,
+                                    maxLength: 20,
+                                    buildCounter:
+                                        (
+                                          context, {
+                                          required currentLength,
+                                          required isFocused,
+                                          maxLength,
+                                        }) => null,
+                                    textColor: Colors.white,
+                                    labelColor: AppColors.loginTextSecondary,
+                                    hintColor: AppColors.loginTextMuted,
+                                    fillColor: AppColors.loginInputFill,
+                                    borderColor: AppColors.loginInputBorder,
+                                    focusedBorderColor: AppColors.loginAccent,
+                                    onChanged: (_) {
+                                      if (!isLocked &&
+                                          (_localError != null ||
+                                              authState is AuthFailure)) {
+                                        setState(() => _localError = null);
+                                        ref
+                                            .read(authNotifierProvider.notifier)
+                                            .clearError();
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
 
                                   // Username Input
                                   AppTextField(
