@@ -74,6 +74,11 @@ public class WhatsAppService : IWhatsAppService
 
 		config.IsEnabled = request.IsEnabled;
 		config.PhoneNumberId = (request.PhoneNumberId ?? string.Empty).Trim();
+		if (config.PhoneNumberId.Length > 0 && await _db.WhatsAppConfigurations.IgnoreQueryFilters()
+				.AnyAsync(c => c.PhoneNumberId == config.PhoneNumberId && c.OrganizationId != config.OrganizationId, cancellationToken))
+		{
+			throw new ConflictException("This WhatsApp number is already connected to another company.");
+		}
 		config.BusinessAccountId = (request.BusinessAccountId ?? string.Empty).Trim();
 		config.GraphApiVersion = string.IsNullOrWhiteSpace(request.GraphApiVersion) ? "v25.0" : request.GraphApiVersion.Trim();
 		config.InvoiceNotificationsEnabled = request.InvoiceNotificationsEnabled;

@@ -12,6 +12,7 @@ using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using Xunit;
@@ -329,6 +330,38 @@ public class TenantIsolationTests
 
         await using var asA = shared.As(OrgA);
         Assert.Single(await asA.Customers.ToListAsync());
+    }
+
+    [Fact]
+    public async Task AWhatsAppNumber_CanBeConnectedToOnlyOneCompany()
+    {
+        var shared = new SharedDatabase();
+        var settings = new Dictionary<string, string?> { ["WhatsApp:EncryptionKey"] = "12345678901234567890123456789012" };
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+
+        WhatsAppService ServiceFor(AppDbContext db) => new(
+            db, new HttpClient(), new CarSpaManagement.Api.Infrastructure.Security.AesEncryptionService(configuration),
+            new NoAudit(), configuration, new InvoicePdfGenerator(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<WhatsAppService>.Instance);
+
+        var request = new CarSpaManagement.Api.Application.DTOs.WhatsApp.UpdateWhatsAppConfigRequest
+        {
+            IsEnabled = true, PhoneNumberId = "109876543210", BusinessAccountId = "555"
+        };
+
+        await using (var a = shared.As(OrgA))
+        {
+            await ServiceFor(a).UpdateConfigurationAsync(request);
+        }
+
+        await using (var b = shared.As(OrgB))
+        {
+            await Assert.ThrowsAsync<ConflictException>(() => ServiceFor(b).UpdateConfigurationAsync(request));
+        }
+
+        // The first company can keep saving its own number.
+        await using var again = shared.As(OrgA);
+        await ServiceFor(again).UpdateConfigurationAsync(request);
     }
 
     // ── The tenant context itself ───────────────────────────────────────────────────────────────────────────
