@@ -139,7 +139,7 @@ export default function FirstTimeSetup() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-side-950 via-black to-side-950 flex items-center justify-center p-6">
+		<div className="min-h-screen bg-gradient-to-br from-side-800 via-side-900 to-side-950 flex items-center justify-center p-6">
 			<div className="w-full max-w-md">
 				{/* Brand / Logo */}
 				<div className="text-center mb-8">

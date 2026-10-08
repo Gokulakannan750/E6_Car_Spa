@@ -59,7 +59,7 @@ export default function LoginPage() {
 
 	if (isLoading) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-side-900 via-black to-side-950 flex items-center justify-center">
+			<div className="min-h-screen bg-gradient-to-br from-side-800 via-side-900 to-side-950 flex items-center justify-center">
 				<div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-400 border-t-transparent" />
 			</div>
 		);
@@ -74,7 +74,7 @@ export default function LoginPage() {
 	}
 
 	return (
-		<div className="min-h-screen w-full flex bg-side-950 overflow-hidden">
+		<div className="min-h-screen w-full flex bg-side-900 overflow-hidden">
 			{/* Left Hero Banner (Desktop / Widescreen) */}
 			<div className="hidden lg:flex lg:w-1/2 xl:w-7/12 relative overflow-hidden flex-col justify-between p-10 xl:p-14 select-none">
 				{/* Background Image with Dark Vignette & Red Ambient Overlays */}
@@ -83,8 +83,8 @@ export default function LoginPage() {
 					alt=""
 					className="absolute inset-0 w-full h-full object-cover object-center scale-105"
 				/>
-				<div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-side-950/70" />
-				<div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-side-950" />
+				<div className="absolute inset-0 bg-gradient-to-t from-side-950 via-side-950/60 to-side-800/60" />
+				<div className="absolute inset-0 bg-gradient-to-r from-side-950/50 via-transparent to-side-800" />
 
 				{/* Top Branding Pill */}
 				<div className="relative z-10 flex justify-center w-full">
@@ -130,7 +130,7 @@ export default function LoginPage() {
 			</div>
 
 			{/* Right Login Section */}
-			<div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen bg-gradient-to-br from-side-950 via-black to-side-950 flex items-center justify-center p-6 md:p-12 relative z-10">
+			<div className="w-full lg:w-1/2 xl:w-5/12 min-h-screen bg-gradient-to-br from-side-800 via-side-900 to-side-950 flex items-center justify-center p-6 md:p-12 relative z-10">
 				<div className="w-full max-w-md">
 					{/* Brand / Logo */}
 					<div className="text-center mb-8">
