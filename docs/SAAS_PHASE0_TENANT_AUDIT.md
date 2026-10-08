@@ -25,7 +25,19 @@
 
 | 11 | Company code and business types | **Code = a plain zero-padded running number:** `0001` (the existing E6 company), `0002`, `0003`... It only identifies the company. **No business types:** this software is for automobile detailing only, so there is no business type field and no supermarket or other-industry modules. (8 Oct 2026; supersedes an earlier idea of `01-0001` with a type prefix.) |
 
-**Build status:** Phase 1 slice 1 is on branch `feature/saas-tenant-foundation` (organization, company filter, stamping, company-code sign-in; 26 isolation tests). Database columns, the E6 data migration and per-company unique indexes are the next slice.
+**Build status:** Phase 1 is complete on branch `feature/saas-tenant-foundation` (not merged to `main`). It contains:
+
+- the `Organization` table and a company id on all 36 business tables, with E6's data migrated to company `0001` (checked on a copy of E6's real data, including rollback);
+- the company filter on every query, automatic stamping, and refusal to write, move or delete another company's rows;
+- refusal to save a record that links to another company's record (same-company checks on every link);
+- the company id taken from the signed sign-in token on every request; per-company startup seeding, background work, job-card and invoice numbering, public pages and sign-in lockouts;
+- company-code sign-in and first-time setup (the first user becomes the company Owner and is told the company code) on the API, Windows and Android;
+- unique rules made per company, and a WhatsApp number that can be connected to only one company platform-wide;
+- PostgreSQL row-level security on all 37 company tables as a second lock behind the filters (the API tells the connection which company it works for; with none set, no row is visible or writable).
+
+**Deployment rule:** row-level security is bypassed by PostgreSQL superusers, so a production install must connect as an ordinary (non-superuser) role. The dev database uses the `postgres` superuser, so the lock is not active there; the tests and an end-to-end run connect as an ordinary role to prove it. Future migrations that must touch every company's rows set `app.bypass_rls = 'on'` for that session.
+
+**Still open (later phases):** seat limits and plans, sign-up and onboarding, random company codes, multi-company WhatsApp (Embedded Signup, webhooks), platform admin.
 
 Still open: the product name (not needed until the first installer or Play Store release; "Car Spa Management" is the placeholder).
 
