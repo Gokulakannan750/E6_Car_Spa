@@ -3115,6 +3115,8 @@ export interface FranchiseeFinancialsDto {
 	partnerCodeHint: string;
 	partnerName: string;
 	financialTotalsAllowed: boolean;
+	/** The items the franchisee has allowed, e.g. financial_totals, invoice_list. */
+	allowedItems: string[];
 	totals: FranchiseFinancialTotalsDto | null;
 }
 
@@ -3130,6 +3132,15 @@ export async function getFranchiseDashboard(from: string, to: string) {
 		`/api/franchise/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
 		{},
 		'view the franchise figures',
+	);
+}
+
+/** A franchisee's monthly billing report (the same one the franchisee sees); needs the invoice list to be allowed. */
+export async function getFranchiseBillingReport(linkId: string, year: number, month: number) {
+	return request<MonthlyBillingReportResponse>(
+		`/api/franchise/links/${encodeURIComponent(linkId)}/billing-report?year=${year}&month=${month}`,
+		{},
+		'download the franchisee billing report',
 	);
 }
 

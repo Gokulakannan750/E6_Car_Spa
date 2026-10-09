@@ -67,20 +67,24 @@ export function fileNamePart(name?: string | null, fallback = 'Report'): string 
 // Reports are named after the company that exports them, read from the cached Company Settings. With no company
 // name saved yet they carry no company prefix at all.
 
-/** The saved company name for report titles, or an empty string. */
-export function reportCompanyName(): string {
+/**
+ * The company name for report titles, or an empty string. A report about another company (a franchisee's report
+ * downloaded by its franchisor) passes that company's name; otherwise the signed-in company's saved name is used.
+ */
+export function reportCompanyName(companyName?: string): string {
+	if (companyName !== undefined) return companyName.trim();
 	return getCachedBusinessProfile()?.businessName?.trim() ?? '';
 }
 
 /** "SUNRISE DETAILING — MONTHLY BILLING REPORT", or just the title when no company name is saved. */
-export function reportTitle(title: string): string {
-	const name = reportCompanyName();
+export function reportTitle(title: string, companyName?: string): string {
+	const name = reportCompanyName(companyName);
 	return name ? `${name.toUpperCase()} — ${title}` : title;
 }
 
 /** "Sunrise_Detailing_" to put in front of an exported file name, or an empty string. */
-export function reportFilePrefix(): string {
-	const name = reportCompanyName();
+export function reportFilePrefix(companyName?: string): string {
+	const name = reportCompanyName(companyName);
 	return name ? `${fileNamePart(name)}_` : '';
 }
 

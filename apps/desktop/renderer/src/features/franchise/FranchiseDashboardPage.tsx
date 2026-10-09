@@ -5,7 +5,14 @@ import { BarChart, Bar, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { PageHeader } from '../../components/PageHeader';
 import { ChartCard } from '../../components/charts/ChartCard';
 import { formatCurrency } from '../../lib/format';
-import { getFranchiseDashboard, type FranchiseFinancialTotalsDto } from '../../lib/api';
+import {
+	getFranchiseBillingReport,
+	getFranchiseDashboard,
+	type FranchiseeFinancialsDto,
+	type FranchiseFinancialTotalsDto,
+} from '../../lib/api';
+import { generateAndDownloadMonthlyBillingReport } from '../reports/excelMonthlyBillingGenerator';
+import { downloadCompanyTotals, downloadNetworkSummary } from './excelFranchiseGenerator';
 
 function isoDate(date: Date) {
 	const y = date.getFullYear();
@@ -47,9 +54,39 @@ function Totals({ totals }: { totals: FranchiseFinancialTotalsDto }) {
 	);
 }
 
+function currentMonth() {
+	return isoDate(new Date()).slice(0, 7);
+}
+
 export function FranchiseDashboardPage() {
 	const [from, setFrom] = useState(daysAgo(29));
 	const [to, setTo] = useState(daysAgo(0));
+	const [month, setMonth] = useState(currentMonth());
+	const [exporting, setExporting] = useState<string | null>(null);
+	const [exportError, setExportError] = useState<string | null>(null);
+
+	const runExport = async (key: string, action: () => Promise<unknown>) => {
+		setExportError(null);
+		setExporting(key);
+		try {
+			await action();
+		} catch (err) {
+			setExportError(err instanceof Error ? err.message : 'The Excel file could not be created.');
+		} finally {
+			setExporting(null);
+		}
+	};
+
+	const exportCompany = (f: FranchiseeFinancialsDto, dashboardFrom: string, dashboardTo: string) => {
+		if (f.allowedItems.includes('invoice_list')) {
+			const [year, monthNumber] = month.split('-').map(Number);
+			return runExport(f.linkId, async () => {
+				const report = await getFranchiseBillingReport(f.linkId, year, monthNumber);
+				await generateAndDownloadMonthlyBillingReport(report, f.partnerName);
+			});
+		}
+		return runExport(f.linkId, () => downloadCompanyTotals(f, dashboardFrom, dashboardTo));
+	};
 	const validPeriod = from !== '' && to !== '' && from <= to;
 
 	const dashboard = useQuery({
@@ -112,6 +149,11 @@ export function FranchiseDashboardPage() {
 			</div>
 
 			{!validPeriod && <p className="text-sm text-red-600">The start date must not be after the end date.</p>}
+			{exportError && (
+				<p role="alert" className="text-sm text-red-600">
+					{exportError}
+				</p>
+			)}
 			{dashboard.isLoading && <p className="text-sm text-slate-500">Loading…</p>}
 			{dashboard.isError && (
 				<p className="text-sm text-red-600">
@@ -136,6 +178,14 @@ export function FranchiseDashboardPage() {
 							Network total ({sharing.length} {sharing.length === 1 ? 'company' : 'companies'})
 						</h2>
 						<Totals totals={data.network} />
+						<button
+							type="button"
+							disabled={exporting === 'network'}
+							onClick={() => runExport('network', () => downloadNetworkSummary(data))}
+							className="rounded-md border border-teal-600 bg-white px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50"
+						>
+							{exporting === 'network' ? 'Preparing…' : 'Download network summary (Excel)'}
+						</button>
 					</section>
 
 					<ChartCard title="Invoiced and collected" subtitle={`${data.from} to ${data.to}, all companies together`}>
@@ -157,7 +207,19 @@ export function FranchiseDashboardPage() {
 					</ChartCard>
 
 					<section aria-label="By company" className="space-y-3">
-						<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">By company</h2>
+						<div className="flex flex-wrap items-end justify-between gap-3">
+							<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">By company</h2>
+							<label className="text-xs font-medium text-slate-600">
+								Billing report month
+								<input
+									type="month"
+									value={month}
+									max={currentMonth()}
+									onChange={(e) => e.target.value && setMonth(e.target.value)}
+									className="ml-2 rounded-md border border-slate-300 px-2 py-1 text-sm"
+								/>
+							</label>
+						</div>
 						<div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
 							<table className="w-full text-sm">
 								<thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
@@ -168,6 +230,7 @@ export function FranchiseDashboardPage() {
 										<th className="px-4 py-2 text-right">Outstanding</th>
 										<th className="px-4 py-2 text-right">Invoices</th>
 										<th className="px-4 py-2 text-right">Job cards</th>
+										<th className="px-4 py-2 text-right">Excel</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -182,6 +245,25 @@ export function FranchiseDashboardPage() {
 											<td className="px-4 py-2 text-right">{formatCurrency(f.totals!.outstandingAmount)}</td>
 											<td className="px-4 py-2 text-right">{f.totals!.invoiceCount}</td>
 											<td className="px-4 py-2 text-right">{f.totals!.jobCardCount}</td>
+											<td className="px-4 py-2 text-right">
+												<button
+													type="button"
+													disabled={exporting === f.linkId}
+													onClick={() => exportCompany(f, data.from, data.to)}
+													className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+													title={
+														f.allowedItems.includes('invoice_list')
+															? 'The full monthly billing report, with a sheet for every day'
+															: 'Totals and daily totals. Ask for the invoice list to get the full billing report.'
+													}
+												>
+													{exporting === f.linkId
+														? 'Preparing…'
+														: f.allowedItems.includes('invoice_list')
+															? 'Billing report'
+															: 'Totals'}
+												</button>
+											</td>
 										</tr>
 									))}
 								</tbody>

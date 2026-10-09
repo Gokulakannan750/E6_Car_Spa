@@ -3,11 +3,22 @@ import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { FranchiseDashboardPage } from './FranchiseDashboardPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
+import * as franchiseExcel from './excelFranchiseGenerator';
+import * as billingExcel from '../reports/excelMonthlyBillingGenerator';
 
 vi.mock('../../lib/api', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('../../lib/api')>();
-	return { ...actual, getFranchiseDashboard: vi.fn() };
+	return { ...actual, getFranchiseDashboard: vi.fn(), getFranchiseBillingReport: vi.fn() };
 });
+
+vi.mock('./excelFranchiseGenerator', () => ({
+	downloadNetworkSummary: vi.fn().mockResolvedValue('network.xlsx'),
+	downloadCompanyTotals: vi.fn().mockResolvedValue('totals.xlsx'),
+}));
+
+vi.mock('../reports/excelMonthlyBillingGenerator', () => ({
+	generateAndDownloadMonthlyBillingReport: vi.fn().mockResolvedValue('billing.xlsx'),
+}));
 
 // The chart needs a real layout engine; the figures are what matter here.
 vi.mock('recharts', async (importOriginal) => {
@@ -40,7 +51,7 @@ describe('FranchiseDashboardPage', () => {
 		vi.mocked(api.getFranchiseDashboard).mockResolvedValue(
 			dashboard({
 				franchisees: [
-					{ linkId: 'l1', partnerCodeHint: '0••2', partnerName: 'Beta Detailing', financialTotalsAllowed: true, totals: totals() },
+					{ linkId: 'l1', partnerCodeHint: '0••2', partnerName: 'Beta Detailing', financialTotalsAllowed: true, allowedItems: ['financial_totals'], totals: totals() },
 				],
 			}),
 		);
@@ -61,8 +72,8 @@ describe('FranchiseDashboardPage', () => {
 		vi.mocked(api.getFranchiseDashboard).mockResolvedValue(
 			dashboard({
 				franchisees: [
-					{ linkId: 'l1', partnerCodeHint: '0••2', partnerName: 'Beta Detailing', financialTotalsAllowed: true, totals: totals() },
-					{ linkId: 'l2', partnerCodeHint: '0••3', partnerName: 'Gamma Wash', financialTotalsAllowed: false, totals: null },
+					{ linkId: 'l1', partnerCodeHint: '0••2', partnerName: 'Beta Detailing', financialTotalsAllowed: true, allowedItems: ['financial_totals'], totals: totals() },
+					{ linkId: 'l2', partnerCodeHint: '0••3', partnerName: 'Gamma Wash', financialTotalsAllowed: false, allowedItems: [], totals: null },
 				],
 			}),
 		);
@@ -100,5 +111,70 @@ describe('FranchiseDashboardPage', () => {
 		fireEvent.change(screen.getByLabelText('From'), { target: { value: '2999-01-01' } });
 		expect(await screen.findByText(/start date must not be after the end date/i)).toBeInTheDocument();
 		expect(vi.mocked(api.getFranchiseDashboard).mock.calls.length).toBe(calls);
+	});
+
+	describe('Excel downloads', () => {
+		const withInvoiceList: api.FranchiseeFinancialsDto = {
+			linkId: 'l1',
+			partnerCodeHint: '0••2',
+			partnerName: 'Beta Detailing',
+			financialTotalsAllowed: true,
+			allowedItems: ['financial_totals', 'invoice_list'],
+			totals: totals(),
+		};
+		const totalsOnly: api.FranchiseeFinancialsDto = {
+			linkId: 'l3',
+			partnerCodeHint: '0••4',
+			partnerName: 'Delta Spa',
+			financialTotalsAllowed: true,
+			allowedItems: ['financial_totals'],
+			totals: totals(),
+		};
+
+		it('downloads the full billing report for a company that allowed the invoice list', async () => {
+			vi.mocked(api.getFranchiseDashboard).mockResolvedValue(dashboard({ franchisees: [withInvoiceList] }));
+			const report = { year: 2026, month: 10 } as api.MonthlyBillingReportResponse;
+			vi.mocked(api.getFranchiseBillingReport).mockResolvedValue(report);
+
+			renderWithProviders(<FranchiseDashboardPage />, { authUser: owner });
+			fireEvent.change(await screen.findByLabelText('Billing report month'), { target: { value: '2026-09' } });
+			fireEvent.click(await screen.findByRole('button', { name: 'Billing report' }));
+
+			await waitFor(() => expect(api.getFranchiseBillingReport).toHaveBeenCalledWith('l1', 2026, 9));
+			await waitFor(() => expect(billingExcel.generateAndDownloadMonthlyBillingReport).toHaveBeenCalledWith(report, 'Beta Detailing'));
+			expect(franchiseExcel.downloadCompanyTotals).not.toHaveBeenCalled();
+		});
+
+		it('downloads only the totals for a company that has not allowed the invoice list, without asking the server for invoices', async () => {
+			vi.mocked(api.getFranchiseDashboard).mockResolvedValue(dashboard({ franchisees: [totalsOnly] }));
+
+			renderWithProviders(<FranchiseDashboardPage />, { authUser: owner });
+			fireEvent.click(await screen.findByRole('button', { name: 'Totals' }));
+
+			await waitFor(() => expect(franchiseExcel.downloadCompanyTotals).toHaveBeenCalledWith(totalsOnly, '2026-09-09', '2026-10-08'));
+			expect(api.getFranchiseBillingReport).not.toHaveBeenCalled();
+			expect(billingExcel.generateAndDownloadMonthlyBillingReport).not.toHaveBeenCalled();
+		});
+
+		it('downloads the network summary', async () => {
+			const data = dashboard({ franchisees: [withInvoiceList] });
+			vi.mocked(api.getFranchiseDashboard).mockResolvedValue(data);
+
+			renderWithProviders(<FranchiseDashboardPage />, { authUser: owner });
+			fireEvent.click(await screen.findByRole('button', { name: /download network summary/i }));
+
+			await waitFor(() => expect(franchiseExcel.downloadNetworkSummary).toHaveBeenCalledWith(data));
+		});
+
+		it('shows the reason when the server refuses the billing report', async () => {
+			vi.mocked(api.getFranchiseDashboard).mockResolvedValue(dashboard({ franchisees: [withInvoiceList] }));
+			vi.mocked(api.getFranchiseBillingReport).mockRejectedValue(new Error('This company has not allowed you to see its invoice list.'));
+
+			renderWithProviders(<FranchiseDashboardPage />, { authUser: owner });
+			fireEvent.click(await screen.findByRole('button', { name: 'Billing report' }));
+
+			expect(await screen.findByRole('alert')).toHaveTextContent('has not allowed you to see its invoice list');
+			expect(billingExcel.generateAndDownloadMonthlyBillingReport).not.toHaveBeenCalled();
+		});
 	});
 });
