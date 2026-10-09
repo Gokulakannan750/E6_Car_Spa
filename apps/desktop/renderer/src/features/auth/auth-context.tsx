@@ -7,12 +7,27 @@ import {
 	initAuthToken,
 	USER_STORAGE_KEY,
 	rememberCompanyCode,
+	getRememberedCompanyCode,
+	setCachedBusinessProfile,
 	type AuthUserResponse
 } from '../../lib/api';
 
 import { useAppStore } from '../../stores/app';
 
 export type AuthUser = AuthUserResponse;
+
+/** Raised whenever the signed-in person (and so possibly the company) changes or the session ends. */
+export const SESSION_CHANGED_EVENT = 'auth:session-changed';
+
+/**
+ * Tells the app to forget everything it has loaded. Without this, someone who signs out and in as another company in
+ * the same window could briefly see the previous company's data (lists, figures, what the company may do).
+ */
+function announceSessionChange() {
+	if (typeof window !== 'undefined') {
+		window.dispatchEvent(new Event(SESSION_CHANGED_EVENT));
+	}
+}
 
 export interface AuthContextValue {
 	user: AuthUser | null;
@@ -124,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}, [syncAppStoreUser]);
 
 	const logout = useCallback(async () => {
+		announceSessionChange();
 		setAuthToken(null);
 		setTokenState(null);
 		setUser(null);
@@ -216,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		const handleUnauthorized = async () => {
 			if (!isMounted) return;
 			setSessionExpiredMessage('Session expired. Please log in again.');
+			announceSessionChange();
 			setAuthToken(null);
 			setTokenState(null);
 			setUser(null);
@@ -249,8 +266,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const login = useCallback(async (username: string, password: string, companyCode?: string) => {
 		setSessionExpiredMessage(null);
+		const previousCompany = getRememberedCompanyCode();
 		const res = await loginApi({ username, password, companyCode: companyCode?.trim() || undefined });
-		rememberCompanyCode(res.companyCode || companyCode?.trim() || '');
+		const signedInTo = res.companyCode || companyCode?.trim() || '';
+		// A different company: nothing the previous one loaded (lists, profile, what it may do) may carry over.
+		announceSessionChange();
+		if (previousCompany && signedInTo && previousCompany.toUpperCase() !== signedInTo.toUpperCase()) {
+			setCachedBusinessProfile(null);
+		}
+		rememberCompanyCode(signedInTo);
 		setAuthToken(res.token);
 		setTokenState(res.token);
 		setUser(res.user);

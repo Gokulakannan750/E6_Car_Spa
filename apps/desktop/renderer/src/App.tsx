@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { queryClient } from './lib/query-client';
 import { AuthProvider, useAuth } from './features/auth';
+import { SessionCacheReset } from './features/auth/SessionCacheReset';
 import { getSystemPreferences } from './lib/api';
 import { saveStoredPreferences, type SystemPreferences } from './features/settings/SystemPreferencesPage';
 
@@ -39,6 +40,7 @@ export default function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<AuthProvider>
+				<SessionCacheReset />
 				<PreferencesSync />
 				<RouterProvider router={router} future={{ v7_startTransition: true }} />
 			</AuthProvider>
