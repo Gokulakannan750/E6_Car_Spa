@@ -18,6 +18,7 @@ import { useAppStore } from '../../stores/app';
 import { useAuth } from '../../features/auth/auth-context';
 import { useBusinessProfile } from '../../features/settings/hooks/useBusinessProfile';
 import { BrandMark, displayName } from '../shared/BrandMark';
+import { useFranchiseAccess } from '../../features/franchise/useFranchiseAccess';
 
 export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	const storeCollapsed = useAppStore((s) => s.sidebarCollapsed);
@@ -25,6 +26,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	const isCollapsed = collapsed !== undefined ? collapsed : storeCollapsed;
 
 	const { user: authUser, hasPermission } = useAuth();
+	const franchiseAccess = useFranchiseAccess();
 	const { profile, logoUrl, hasCustomLogo } = useBusinessProfile();
 	const [imgError, setImgError] = useState(false);
 	const location = useLocation();
@@ -58,6 +60,12 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	};
 
 	const renderNavItem = (item: NavigationItem) => {
+		if (item.requiresFranchisor && !franchiseAccess.canActAsFranchisor) {
+			return null;
+		}
+		if (item.requiresFranchisee && !franchiseAccess.isFranchisee) {
+			return null;
+		}
 		if (item.requiresPermission) {
 			const hasPerm = Array.isArray(item.requiresPermission)
 				? item.requiresPermission.some((p) => hasPermission(p))

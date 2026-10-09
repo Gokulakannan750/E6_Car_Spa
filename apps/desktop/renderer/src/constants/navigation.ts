@@ -302,12 +302,14 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/franchise',
 			icon: 'Network',
 			requiresPermission: 'franchise.view',
+			requiresFranchisor: true,
 		},
 		{
 			label: 'Franchise Dashboard',
 			path: '/franchise/dashboard',
 			icon: 'BarChart3',
 			requiresPermission: 'franchise.view',
+			requiresFranchisor: true,
 		},
 	],
 	settings: [
@@ -339,6 +341,13 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/settings/system',
 			icon: 'SlidersHorizontal',
 			requiresPermission: 'settings.view',
+		},
+		{
+			label: 'Franchise Sharing',
+			path: '/settings/franchise-sharing',
+			icon: 'Network',
+			requiresPermission: 'franchise.view',
+			requiresFranchisee: true,
 		},
 	],
 };
@@ -395,6 +404,10 @@ export function isItemActive(
 
 	if (item.path === '/settings/system') {
 		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
+	}
+
+	if (item.path === '/settings/franchise-sharing') {
+		return normPath === '/settings/franchise-sharing';
 	}
 
 	if (item.path === '/settings/users') {

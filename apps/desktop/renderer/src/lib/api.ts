@@ -3148,8 +3148,42 @@ export async function getFranchiseNetwork() {
 	return request<FranchiseNetworkDto>('/api/franchise', {}, 'view the franchise network');
 }
 
+export interface FranchiseAccessDto {
+	/** The company has the Franchise add-on, so it can invite companies and see their approved figures. */
+	canActAsFranchisor: boolean;
+	/** The company has an active link to a franchisor. */
+	isFranchisee: boolean;
+}
+
+/** A link for the franchisee to answer through, shown once to the franchisor to pass on. */
+export interface FranchiseLinkAccessDto {
+	link: FranchiseLinkDto;
+	accessLink: string | null;
+	accessLinkExpiresAt: string | null;
+}
+
+export async function getFranchiseAccess() {
+	return request<FranchiseAccessDto>('/api/franchise/access', {}, 'check franchise access');
+}
+
+export async function createFranchiseLink(linkId: string) {
+	return request<FranchiseLinkAccessDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/new-link`, { method: 'POST' }, 'make a new link');
+}
+
+/** The invited company's Owner opens the link they were sent. */
+export async function getFranchiseInviteByToken(token: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/invites/${encodeURIComponent(token)}`, {}, 'open the franchise invitation');
+}
+
+export async function respondToFranchiseInviteByToken(token: string, data: { accept: boolean; grantedScopes?: string[] }) {
+	return request<FranchiseLinkDto>(`/api/franchise/invites/${encodeURIComponent(token)}/respond`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'answer the franchise invitation');
+}
+
 export async function sendFranchiseInvite(data: { franchiseeCode: string; scopes?: string[] }) {
-	return request<{ message: string }>('/api/franchise/invites', {
+	return request<{ message: string; inviteLink: string }>('/api/franchise/invites', {
 		method: 'POST',
 		body: JSON.stringify(data),
 	}, 'send a franchise invitation');
@@ -3171,7 +3205,7 @@ export async function endFranchiseLink(linkId: string) {
 }
 
 export async function requestFranchiseScopes(linkId: string, scopes: string[]) {
-	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/scopes`, {
+	return request<FranchiseLinkAccessDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/scopes`, {
 		method: 'POST',
 		body: JSON.stringify({ scopes }),
 	}, 'ask to see more');

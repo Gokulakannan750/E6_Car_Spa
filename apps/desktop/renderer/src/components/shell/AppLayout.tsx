@@ -27,6 +27,7 @@ export const ROUTE_TITLES: Record<string, string> = {
 	'/settings/whatsapp': 'WhatsApp Settings',
 	'/settings/system': 'System Preferences',
 	'/settings/users': 'Users & Access',
+	'/settings/franchise-sharing': 'Franchise Sharing',
 	'/settings': 'Company Settings',
 };
 
@@ -41,6 +42,7 @@ export function getPageTitle(pathname: string): string {
 	if (pathname.startsWith('/settings/whatsapp')) return 'WhatsApp Settings';
 	if (pathname.startsWith('/settings/system')) return 'System Preferences';
 	if (pathname.startsWith('/settings/users')) return 'Users & Access';
+	if (pathname.startsWith('/settings/franchise-sharing')) return 'Franchise Sharing';
 	if (pathname.startsWith('/settings')) return 'Company Settings';
 	if (pathname.startsWith('/reports')) return 'Reports';
 	if (pathname.startsWith('/showroom')) return 'Showroom';

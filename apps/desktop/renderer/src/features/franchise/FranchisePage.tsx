@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Network, Send, Check, X, Link2Off, Plus } from 'lucide-react';
+import { Network, Send, X, Link2Off, Plus, Copy, Check, Link2 } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
-import { Button, Checkbox, Input, Switch } from '../../components/ui';
+import { Button, Checkbox, Input } from '../../components/ui';
 import { useAuth } from '../auth/auth-context';
 import {
 	cancelFranchiseInvite,
-	decideFranchiseScope,
+	createFranchiseLink,
 	endFranchiseLink,
 	getFranchiseNetwork,
 	requestFranchiseScopes,
-	respondToFranchiseInvite,
 	sendFranchiseInvite,
 	type FranchiseLinkDto,
 	type FranchiseLinkStatus,
@@ -26,7 +25,7 @@ export const FRANCHISE_SCOPE_OPTIONS = [
 	{ scope: 'customers', label: 'Customers' },
 ] as const;
 
-const STATUS_STYLE: Record<FranchiseLinkStatus, string> = {
+export const STATUS_STYLE: Record<FranchiseLinkStatus, string> = {
 	Pending: 'bg-amber-50 text-amber-700 border-amber-200',
 	Active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 	Declined: 'bg-slate-100 text-slate-600 border-slate-200',
@@ -35,7 +34,7 @@ const STATUS_STYLE: Record<FranchiseLinkStatus, string> = {
 	Ended: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
-function StatusPill({ status }: { status: FranchiseLinkStatus }) {
+export function StatusPill({ status }: { status: FranchiseLinkStatus }) {
 	return (
 		<span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE[status]}`}>
 			{status}
@@ -43,12 +42,54 @@ function StatusPill({ status }: { status: FranchiseLinkStatus }) {
 	);
 }
 
-function formatDate(value: string | null) {
+export function formatDate(value: string | null) {
 	return value ? new Date(value).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' }) : '';
 }
 
-function errorText(err: unknown) {
+export function errorText(err: unknown) {
 	return err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+}
+
+export function Card({ children }: { children: React.ReactNode }) {
+	return <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">{children}</div>;
+}
+
+/** The link to pass on to the franchisee, with a copy button. Shown once, right after it is made. */
+function LinkBox({ link, expiresAt, intro }: { link: string; expiresAt?: string | null; intro: string }) {
+	const [copied, setCopied] = useState(false);
+	return (
+		<div role="status" className="space-y-2 rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+			<p>{intro}</p>
+			<div className="flex flex-wrap items-center gap-2">
+				<input
+					readOnly
+					aria-label="Invitation link"
+					value={link}
+					onFocus={(e) => e.currentTarget.select()}
+					className="min-w-0 flex-1 rounded-md border border-teal-300 bg-white px-2 py-1.5 font-mono text-xs text-slate-800"
+				/>
+				<Button
+					size="sm"
+					variant="secondary"
+					icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+					onClick={async () => {
+						try {
+							await navigator.clipboard.writeText(link);
+							setCopied(true);
+						} catch {
+							// The link is selectable above, so it can still be copied by hand.
+						}
+					}}
+				>
+					{copied ? 'Copied' : 'Copy link'}
+				</Button>
+			</div>
+			<p className="text-xs text-teal-800">
+				Send it to the company. Only the Owner of the invited company can use it, after signing in, and it works once
+				{expiresAt ? `, until ${formatDate(expiresAt)}` : ''}. This link is not shown again; you can make a new one if it is lost.
+			</p>
+		</div>
+	);
 }
 
 export function FranchisePage() {
@@ -56,6 +97,8 @@ export function FranchisePage() {
 	const canManage = hasPermission('franchise.manage');
 	const queryClient = useQueryClient();
 	const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
+	/** Links shown once after they were made, by the link they belong to ("invite" for the form above the list). */
+	const [links, setLinks] = useState<Record<string, { link: string; expiresAt?: string | null; intro: string }>>({});
 
 	const network = useQuery({
 		queryKey: FRANCHISE_QUERY_KEY,
@@ -77,15 +120,13 @@ export function FranchisePage() {
 	};
 
 	const data = network.data;
-	const invitations = (data?.franchisors ?? []).filter((l) => l.status === 'Pending');
-	const myFranchisors = (data?.franchisors ?? []).filter((l) => l.status !== 'Pending');
 	const myFranchisees = data?.franchisees ?? [];
 
 	return (
 		<div className="space-y-6 max-w-5xl mx-auto">
 			<PageHeader
 				title="Franchise Network"
-				description="Connect with the companies you franchise, or the company that franchises you. Nothing is shared until the invited company agrees."
+				description="Invite the companies you franchise. They answer through a link you send, and nothing is shared until they agree."
 			/>
 
 			{notice && (
@@ -103,88 +144,82 @@ export function FranchisePage() {
 			{network.isError && <p className="text-sm text-red-600">{errorText(network.error)}</p>}
 
 			{data && (
-				<>
-					{invitations.length > 0 && (
-						<section aria-label="Invitations for you" className="space-y-3">
-							<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Invitations for you</h2>
-							{invitations.map((link) => (
-								<InvitationCard
-									key={link.id}
-									link={link}
-									canManage={canManage}
-									onAccept={(scopes) =>
-										run(() => respondToFranchiseInvite(link.id, { accept: true, grantedScopes: scopes }), 'Invitation accepted.')
+				<section aria-label="Companies you franchise" className="space-y-3">
+					<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Companies you franchise</h2>
+
+					{canManage && (
+						<InviteForm
+							onSend={async (code, scopes) => {
+								setNotice(null);
+								try {
+									const res = await sendFranchiseInvite({ franchiseeCode: code, scopes });
+									await refresh();
+									setNotice({ kind: 'ok', text: res.message });
+									setLinks((current) => ({
+										...current,
+										invite: {
+											link: res.inviteLink,
+											intro: 'Send this link to the company you invited, for example on WhatsApp or by email.',
+										},
+									}));
+									return true;
+								} catch (err) {
+									setNotice({ kind: 'error', text: errorText(err) });
+									return false;
+								}
+							}}
+						/>
+					)}
+
+					{links.invite && <LinkBox {...links.invite} />}
+
+					{myFranchisees.length === 0 ? (
+						<p className="text-sm text-slate-500">You have not invited any company yet.</p>
+					) : (
+						myFranchisees.map((link) => (
+							<FranchiseeCard
+								key={link.id}
+								link={link}
+								canManage={canManage}
+								shownLink={links[link.id]}
+								onCancel={() => run(() => cancelFranchiseInvite(link.id), 'Invitation withdrawn.')}
+								onNewLink={() =>
+									run(async () => {
+										const res = await createFranchiseLink(link.id);
+										setLinks((current) => ({
+											...current,
+											[link.id]: {
+												link: res.accessLink ?? '',
+												expiresAt: res.accessLinkExpiresAt,
+												intro: 'A new link was made. The earlier link no longer works.',
+											},
+										}));
+									})
+								}
+								onEnd={() => {
+									if (confirm(`End the franchise link with ${link.partnerName}? You will stop seeing their figures at once.`)) {
+										return run(() => endFranchiseLink(link.id), 'Franchise link ended.');
 									}
-									onDecline={() => run(() => respondToFranchiseInvite(link.id, { accept: false }), 'Invitation declined.')}
-								/>
-							))}
-						</section>
+								}}
+								onAskMore={(scopes) =>
+									run(async () => {
+										const res = await requestFranchiseScopes(link.id, scopes);
+										if (res.accessLink) {
+											setLinks((current) => ({
+												...current,
+												[link.id]: {
+													link: res.accessLink!,
+													expiresAt: res.accessLinkExpiresAt,
+													intro: 'Send this link to the company so they can answer your request.',
+												},
+											}));
+										}
+									}, 'Your request was made.')
+								}
+							/>
+						))
 					)}
-
-					<section aria-label="Companies you franchise" className="space-y-3">
-						<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Companies you franchise</h2>
-						{data.franchiseEnabled ? (
-							canManage && (
-								<InviteForm
-									onSend={async (code, scopes) => {
-										setNotice(null);
-										try {
-											const res = await sendFranchiseInvite({ franchiseeCode: code, scopes });
-											await refresh();
-											setNotice({ kind: 'ok', text: res.message });
-											return true;
-										} catch (err) {
-											setNotice({ kind: 'error', text: errorText(err) });
-											return false;
-										}
-									}}
-								/>
-							)
-						) : (
-							<p className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-								The Franchise add-on is not active for your company, so you cannot invite other companies. You can still answer an invitation.
-							</p>
-						)}
-
-						{myFranchisees.length === 0 ? (
-							<p className="text-sm text-slate-500">You have not invited any company yet.</p>
-						) : (
-							myFranchisees.map((link) => (
-								<FranchiseeCard
-									key={link.id}
-									link={link}
-									canManage={canManage && data.franchiseEnabled}
-									onCancel={() => run(() => cancelFranchiseInvite(link.id), 'Invitation withdrawn.')}
-									onEnd={() => {
-										if (confirm(`End the franchise link with ${link.partnerName}? You will stop seeing their figures at once.`)) {
-											return run(() => endFranchiseLink(link.id), 'Franchise link ended.');
-										}
-									}}
-									onAskMore={(scopes) => run(() => requestFranchiseScopes(link.id, scopes), 'Your request was sent.')}
-								/>
-							))
-						)}
-					</section>
-
-					{myFranchisors.length > 0 && (
-						<section aria-label="Companies that franchise you" className="space-y-3">
-							<h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Companies that franchise you</h2>
-							{myFranchisors.map((link) => (
-								<FranchisorCard
-									key={link.id}
-									link={link}
-									canManage={canManage}
-									onToggle={(scope, grant) => run(() => decideFranchiseScope(link.id, scope, grant))}
-									onEnd={() => {
-										if (confirm(`End the franchise link with ${link.partnerName}? They will stop seeing your figures at once.`)) {
-											return run(() => endFranchiseLink(link.id), 'Franchise link ended.');
-										}
-									}}
-								/>
-							))}
-						</section>
-					)}
-				</>
+				</section>
 			)}
 		</div>
 	);
@@ -192,11 +227,7 @@ export function FranchisePage() {
 
 // ── Pieces ──────────────────────────────────────────────────────────────────────────────────────────────
 
-function Card({ children }: { children: React.ReactNode }) {
-	return <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">{children}</div>;
-}
-
-function PartnerHeader({ link }: { link: FranchiseLinkDto }) {
+export function PartnerHeader({ link }: { link: FranchiseLinkDto }) {
 	return (
 		<div className="flex flex-wrap items-center justify-between gap-2">
 			<div className="flex items-center gap-3 min-w-0">
@@ -260,62 +291,20 @@ function InviteForm({ onSend }: { onSend: (code: string, scopes: string[]) => Pr
 	);
 }
 
-function InvitationCard({
-	link,
-	canManage,
-	onAccept,
-	onDecline,
-}: {
-	link: FranchiseLinkDto;
-	canManage: boolean;
-	onAccept: (scopes: string[]) => void;
-	onDecline: () => void;
-}) {
-	const [allowed, setAllowed] = useState<string[]>(link.scopes.map((s) => s.scope));
-	const toggle = (scope: string) =>
-		setAllowed((current) => (current.includes(scope) ? current.filter((s) => s !== scope) : [...current, scope]));
-
-	return (
-		<Card>
-			<PartnerHeader link={link} />
-			<p className="text-sm text-slate-700">
-				<strong>{link.partnerName}</strong> invites you to join their franchise network. If you accept, they can see only what you allow
-				below. You can switch any of it off later. The invitation expires on {formatDate(link.expiresAt)}.
-			</p>
-			<fieldset className="space-y-1.5">
-				<legend className="text-xs font-semibold text-slate-600 mb-1">They are asking to see:</legend>
-				{link.scopes.map((s) => (
-					<div key={s.scope}>
-						<Checkbox label={s.label} checked={allowed.includes(s.scope)} onChange={() => toggle(s.scope)} disabled={!canManage} />
-					</div>
-				))}
-			</fieldset>
-			{canManage ? (
-				<div className="flex flex-wrap gap-2">
-					<Button icon={<Check className="h-4 w-4" />} disabled={allowed.length === 0} onClick={() => onAccept(allowed)}>
-						Accept
-					</Button>
-					<Button variant="secondary" icon={<X className="h-4 w-4" />} onClick={onDecline}>
-						Decline
-					</Button>
-				</div>
-			) : (
-				<p className="text-xs text-slate-500">Only a user who can manage the franchise network can answer this invitation.</p>
-			)}
-		</Card>
-	);
-}
-
 function FranchiseeCard({
 	link,
 	canManage,
+	shownLink,
 	onCancel,
+	onNewLink,
 	onEnd,
 	onAskMore,
 }: {
 	link: FranchiseLinkDto;
 	canManage: boolean;
+	shownLink?: { link: string; expiresAt?: string | null; intro: string };
 	onCancel: () => void;
+	onNewLink: () => void;
 	onEnd: () => void;
 	onAskMore: (scopes: string[]) => void;
 }) {
@@ -325,6 +314,7 @@ function FranchiseeCard({
 		const existing = link.scopes.find((s) => s.scope === o.scope);
 		return !existing || existing.status === 'Denied';
 	});
+	const waiting = link.scopes.some((s) => s.status === 'Requested');
 
 	return (
 		<Card>
@@ -344,10 +334,18 @@ function FranchiseeCard({
 				))}
 			</ul>
 			{link.status === 'Pending' && <p className="text-xs text-slate-500">Waiting for their answer. Expires on {formatDate(link.expiresAt)}.</p>}
-			{canManage && link.status === 'Pending' && (
-				<Button variant="secondary" size="sm" icon={<X className="h-4 w-4" />} onClick={onCancel}>
-					Withdraw invitation
-				</Button>
+			{shownLink && shownLink.link && <LinkBox {...shownLink} />}
+			{canManage && (link.status === 'Pending' || (link.status === 'Active' && waiting)) && (
+				<div className="flex flex-wrap gap-2">
+					<Button variant="secondary" size="sm" icon={<Link2 className="h-4 w-4" />} onClick={onNewLink}>
+						Make a new link
+					</Button>
+					{link.status === 'Pending' && (
+						<Button variant="secondary" size="sm" icon={<X className="h-4 w-4" />} onClick={onCancel}>
+							Withdraw invitation
+						</Button>
+					)}
+				</div>
 			)}
 			{canManage && link.status === 'Active' && (
 				<div className="space-y-2">
@@ -388,55 +386,6 @@ function FranchiseeCard({
 						</div>
 					)}
 				</div>
-			)}
-		</Card>
-	);
-}
-
-function FranchisorCard({
-	link,
-	canManage,
-	onToggle,
-	onEnd,
-}: {
-	link: FranchiseLinkDto;
-	canManage: boolean;
-	onToggle: (scope: string, grant: boolean) => void;
-	onEnd: () => void;
-}) {
-	const active = link.status === 'Active';
-	return (
-		<Card>
-			<PartnerHeader link={link} />
-			{active ? (
-				<>
-					<p className="text-sm text-slate-600">What {link.partnerName} can see about your company:</p>
-					<ul className="space-y-2">
-						{link.scopes.map((s) => (
-							<li key={s.scope} className="flex items-center justify-between gap-3 text-sm">
-								<span className="text-slate-700">
-									{s.label}
-									{s.status === 'Requested' && <em className="ml-2 text-xs not-italic font-semibold text-amber-700">New request</em>}
-								</span>
-								<Switch
-									aria-label={s.label}
-									checked={s.status === 'Granted'}
-									disabled={!canManage}
-									onChange={(e) => onToggle(s.scope, e.target.checked)}
-								/>
-							</li>
-						))}
-					</ul>
-					{canManage && (
-						<Button variant="ghost" size="sm" icon={<Link2Off className="h-4 w-4" />} onClick={onEnd}>
-							End link
-						</Button>
-					)}
-				</>
-			) : (
-				<p className="text-xs text-slate-500">
-					{link.status === 'Ended' ? `Ended on ${formatDate(link.endedAt)}.` : `${link.status}.`}
-				</p>
 			)}
 		</Card>
 	);
