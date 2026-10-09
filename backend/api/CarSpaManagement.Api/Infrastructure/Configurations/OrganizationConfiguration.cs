@@ -9,6 +9,8 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
     public void Configure(EntityTypeBuilder<Organization> builder)
     {
         builder.ToTable("Organizations");
+
+        builder.Property(o => o.FranchiseAddOnEnabled).HasDefaultValue(false).IsRequired();
         builder.Property(o => o.Code).HasMaxLength(20).IsRequired();
         builder.Property(o => o.Name).HasMaxLength(150).IsRequired();
 

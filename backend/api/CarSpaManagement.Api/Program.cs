@@ -107,7 +107,7 @@ builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
-builder.Services.AddScoped<IFranchiseEntitlement, AlwaysOnFranchiseEntitlement>();
+builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
 builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
 builder.Services.AddScoped<IFranchiseReports, FranchiseReportService>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();

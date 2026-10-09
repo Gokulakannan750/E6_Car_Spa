@@ -10,6 +10,12 @@ namespace CarSpaManagement.Api.Controllers;
 [Route("api/franchise")]
 public class FranchiseController(IFranchiseService franchiseService, IFranchiseReports franchiseReports) : ControllerBase
 {
+    /// <summary>What the signed-in company can do here; the apps use it to decide whether to show the Franchise section.</summary>
+    [HttpGet("access")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> GetAccess(CancellationToken ct) =>
+        Ok(await franchiseService.GetAccessAsync(ct));
+
     [HttpGet]
     [RequirePermission("franchise.view")]
     public async Task<IActionResult> GetNetwork(CancellationToken ct) =>
@@ -34,6 +40,26 @@ public class FranchiseController(IFranchiseService franchiseService, IFranchiseR
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
         return Ok(await franchiseService.SendInviteAsync(request, ct));
     }
+
+    /// <summary>A fresh link for the franchisee to answer through (the earlier one stops working).</summary>
+    [HttpPost("links/{id:guid}/new-link")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> CreateLink(Guid id, CancellationToken ct) =>
+        Ok(await franchiseService.CreateLinkAsync(id, ct));
+
+    /// <summary>The invited company's Owner opens the link they were sent.</summary>
+    [HttpGet("invites/{token}")]
+    [RequirePermission("franchise.manage")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> GetByToken(string token, CancellationToken ct) =>
+        Ok(await franchiseService.GetByTokenAsync(token, ct));
+
+    /// <summary>The invited company's Owner answers through the link.</summary>
+    [HttpPost("invites/{token}/respond")]
+    [RequirePermission("franchise.manage")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> RespondByToken(string token, [FromBody] RespondToFranchiseInviteRequest request, CancellationToken ct) =>
+        Ok(await franchiseService.RespondByTokenAsync(token, request, ct));
 
     [HttpPost("links/{id:guid}/cancel")]
     [RequirePermission("franchise.manage")]

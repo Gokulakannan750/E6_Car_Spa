@@ -35,9 +35,21 @@ public class SendFranchiseInviteRequest
 
 public class SendFranchiseInviteResponse
 {
+    /// <summary>
+    /// The link to give the invited company, so its Owner can answer. Always present (a believable one is returned
+    /// even when no invitation was created) so the answer reveals nothing about which codes exist.
+    /// </summary>
+    public string InviteLink { get; set; } = string.Empty;
+
     /// <summary>The same answer whether or not the code belongs to a company, so codes cannot be probed.</summary>
     public string Message { get; set; } = string.Empty;
 }
+
+/// <summary>A link for the franchisee to answer through, shown once to the franchisor to pass on.</summary>
+public record FranchiseLinkAccessDto(FranchiseLinkDto Link, string? AccessLink, DateTime? AccessLinkExpiresAt);
+
+/// <summary>What the signed-in company can do in the franchise network. Drives what the apps show.</summary>
+public record FranchiseAccessDto(bool CanActAsFranchisor, bool IsFranchisee);
 
 public class RespondToFranchiseInviteRequest
 {

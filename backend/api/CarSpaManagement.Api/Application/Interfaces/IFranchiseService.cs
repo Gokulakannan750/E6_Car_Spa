@@ -33,6 +33,18 @@ public interface IFranchiseService
 
     Task<FranchiseNetworkDto> GetNetworkAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>What this company can do in the franchise network (act as a franchisor, or be a franchisee).</summary>
+    Task<FranchiseAccessDto> GetAccessAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The franchisor makes a fresh link for the franchisee to answer through (the old one stops working).</summary>
+    Task<FranchiseLinkAccessDto> CreateLinkAsync(Guid linkId, CancellationToken cancellationToken = default);
+
+    /// <summary>The invited company's Owner opens the link: what is being asked. Works only for that company.</summary>
+    Task<FranchiseLinkDto> GetByTokenAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>The invited company's Owner answers through the link; the link is then used up.</summary>
+    Task<FranchiseLinkDto> RespondByTokenAsync(string token, RespondToFranchiseInviteRequest request, CancellationToken cancellationToken = default);
+
     /// <summary>The franchisor invites another company, by its code.</summary>
     Task<SendFranchiseInviteResponse> SendInviteAsync(SendFranchiseInviteRequest request, CancellationToken cancellationToken = default);
 
@@ -46,7 +58,7 @@ public interface IFranchiseService
     Task<FranchiseLinkDto> EndLinkAsync(Guid linkId, CancellationToken cancellationToken = default);
 
     /// <summary>The franchisor asks to see more.</summary>
-    Task<FranchiseLinkDto> RequestScopesAsync(Guid linkId, RequestFranchiseScopesRequest request, CancellationToken cancellationToken = default);
+    Task<FranchiseLinkAccessDto> RequestScopesAsync(Guid linkId, RequestFranchiseScopesRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>The franchisee allows or switches off one item.</summary>
     Task<FranchiseLinkDto> DecideScopeAsync(Guid linkId, string scope, DecideFranchiseScopeRequest request, CancellationToken cancellationToken = default);

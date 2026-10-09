@@ -20,6 +20,12 @@ public class Organization : BaseEntity
     [MaxLength(150)]
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether this company has the Franchise add-on, which lets it act as a franchisor (invite companies, see their
+    /// approved figures). Switched on by the platform until subscriptions exist. A franchisee never needs it.
+    /// </summary>
+    public bool FranchiseAddOnEnabled { get; set; }
+
     /// <summary>An inactive organization cannot sign in.</summary>
     public bool IsActive { get; set; } = true;
 

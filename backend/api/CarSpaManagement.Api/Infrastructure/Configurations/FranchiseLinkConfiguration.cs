@@ -24,6 +24,10 @@ public class FranchiseLinkConfiguration : IEntityTypeConfiguration<FranchiseLink
             .HasFilter("\"Status\" IN ('Pending', 'Active')")
             .HasDatabaseName("UX_FranchiseLinks_OpenLink");
 
+        builder.Property(l => l.InviteTokenHash).HasMaxLength(64);
+        builder.HasIndex(l => l.InviteTokenHash).IsUnique().HasFilter("\"InviteTokenHash\" IS NOT NULL")
+            .HasDatabaseName("UX_FranchiseLinks_InviteTokenHash");
+
         builder.HasIndex(l => l.FranchiseeOrganizationId);
         builder.HasCheckConstraint("CK_FranchiseLinks_DifferentCompanies", "\"FranchisorOrganizationId\" <> \"FranchiseeOrganizationId\"");
     }

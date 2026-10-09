@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Franchise;
 using CarSpaManagement.Api.Application.Interfaces;
@@ -6,6 +8,7 @@ using CarSpaManagement.Api.Domain.Constants;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Serilog;
 
 namespace CarSpaManagement.Api.Application.Services;
@@ -48,6 +51,16 @@ public sealed class PostgresFranchiseFigures(AppDbContext db) : IFranchiseFigure
     }
 }
 
+/// <summary>The Franchise add-on, as switched on for the signed-in company (until subscriptions exist to decide it).</summary>
+public sealed class OrganizationFranchiseEntitlement(AppDbContext db) : IFranchiseEntitlement
+{
+    public Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default) =>
+        db.CurrentOrganizationId == Guid.Empty
+            ? Task.FromResult(false)
+            : db.Organizations.AsNoTracking().AnyAsync(o => o.Id == db.CurrentOrganizationId && o.FranchiseAddOnEnabled, cancellationToken);
+}
+
+/// <summary>Always on. For tests and tools that do not exercise the add-on.</summary>
 public sealed class AlwaysOnFranchiseEntitlement : IFranchiseEntitlement
 {
     public Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
@@ -63,10 +76,120 @@ public class FranchiseService(
     IAuditLogService auditLogService,
     IFranchiseEntitlement entitlement,
     IHttpContextAccessor httpContextAccessor,
-    IFranchiseFigures figures) : IFranchiseService
+    IFranchiseFigures figures,
+    IConfiguration configuration) : IFranchiseService
 {
     public static readonly TimeSpan InviteLifetime = TimeSpan.FromDays(7);
     public const int MaxInvitesPerDay = 20;
+
+    // ── Links for the franchisee ────────────────────────────────────────────────────────────────────────────
+
+    private static string NewToken() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+
+    private static string HashToken(string token) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
+
+    /// <summary>The address the franchisee opens. It is a page of the app; the Owner must sign in before it shows anything.</summary>
+    private string LinkFor(string token) => $"{PublicLinks.BaseUrl(configuration)}/franchise-invite/{token}";
+
+    private static void IssueToken(FranchiseLink link, string token, DateTime expiresAt)
+    {
+        link.InviteTokenHash = HashToken(token);
+        link.InviteTokenExpiresAt = expiresAt;
+    }
+
+    private static void ClearToken(FranchiseLink link)
+    {
+        link.InviteTokenHash = null;
+        link.InviteTokenExpiresAt = null;
+    }
+
+    public async Task<FranchiseAccessDto> GetAccessAsync(CancellationToken cancellationToken = default)
+    {
+        var me = CurrentCompany;
+        var isFranchisee = await db.FranchiseLinks.AnyAsync(
+            l => l.FranchiseeOrganizationId == me && l.Status == FranchiseLinkStatus.Active, cancellationToken);
+        return new FranchiseAccessDto(await entitlement.IsEnabledAsync(cancellationToken), isFranchisee);
+    }
+
+    public async Task<FranchiseLinkAccessDto> CreateLinkAsync(Guid linkId, CancellationToken cancellationToken = default)
+    {
+        var me = CurrentCompany;
+        await RequireFranchiseAddOnAsync(cancellationToken);
+        var link = await LoadAsync(linkId, cancellationToken);
+        if (link.FranchisorOrganizationId != me)
+        {
+            throw new ForbiddenException("Only the franchisor can make a new link.");
+        }
+
+        var hasOpenRequest = link.Status == FranchiseLinkStatus.Active && link.Scopes.Any(s => s.Status == FranchiseScopeStatus.Requested);
+        if (link.Status != FranchiseLinkStatus.Pending && !hasOpenRequest)
+        {
+            throw new ConflictException("There is nothing waiting for an answer on this franchise link.");
+        }
+
+        var token = NewToken();
+        var expires = link.Status == FranchiseLinkStatus.Pending ? link.ExpiresAt : DateTime.UtcNow + InviteLifetime;
+        IssueToken(link, token, expires);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await AuditAsync("franchise.link_created", "A new link was made for the franchisee to answer through.", link, cancellationToken);
+        return new FranchiseLinkAccessDto(await DtoAsync(link, cancellationToken), LinkFor(token), expires);
+    }
+
+    private async Task<FranchiseLink> LoadByTokenAsync(string token, CancellationToken cancellationToken)
+    {
+        var me = CurrentCompany;
+        await ExpireStaleInvitesAsync(cancellationToken);
+        var hash = HashToken((token ?? string.Empty).Trim().ToLowerInvariant());
+        var link = await db.FranchiseLinks.Include(l => l.Scopes)
+            .FirstOrDefaultAsync(l => l.InviteTokenHash == hash && l.FranchiseeOrganizationId == me, cancellationToken);
+
+        var open = link is not null
+            && link.InviteTokenExpiresAt > DateTime.UtcNow
+            && (link.Status == FranchiseLinkStatus.Pending
+                || (link.Status == FranchiseLinkStatus.Active && link.Scopes.Any(s => s.Status == FranchiseScopeStatus.Requested)));
+
+        // The same answer whether the link is unknown, belongs to another company, expired or was used.
+        return open
+            ? link!
+            : throw new NotFoundException("This link is not valid for your company. It may have expired or been used already.");
+    }
+
+    public async Task<FranchiseLinkDto> GetByTokenAsync(string token, CancellationToken cancellationToken = default) =>
+        await DtoAsync(await LoadByTokenAsync(token, cancellationToken), cancellationToken);
+
+    public async Task<FranchiseLinkDto> RespondByTokenAsync(string token, RespondToFranchiseInviteRequest request, CancellationToken cancellationToken = default)
+    {
+        var link = await LoadByTokenAsync(token, cancellationToken);
+
+        if (link.Status == FranchiseLinkStatus.Pending)
+        {
+            ClearToken(link);
+            return await RespondAsync(link.Id, request, cancellationToken);
+        }
+
+        // An active link with new requests: allow the ticked items, refuse the other requested ones.
+        var granted = (request.GrantedScopes ?? []).Select(s => (s ?? string.Empty).Trim().ToLowerInvariant()).ToHashSet();
+        var requested = link.Scopes.Where(s => s.Status == FranchiseScopeStatus.Requested).ToList();
+        if (granted.Any(g => requested.All(r => r.Scope != g)))
+        {
+            throw new ValidationException("You can only allow items that were asked for.");
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var scope in requested)
+        {
+            scope.Status = request.Accept && granted.Contains(scope.Scope) ? FranchiseScopeStatus.Granted : FranchiseScopeStatus.Denied;
+            scope.DecidedAt = now;
+        }
+        ClearToken(link);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await AuditAsync("franchise.request_answered",
+            $"Answered a request for more; allowed: {(granted.Count == 0 || !request.Accept ? "none" : string.Join(", ", granted))}.", link, cancellationToken);
+        return await DtoAsync(link, cancellationToken);
+    }
 
     private Guid CurrentCompany =>
         db.CurrentOrganizationId != Guid.Empty
@@ -240,9 +363,12 @@ public class FranchiseService(
             throw new ConflictException("Too many invitations sent today. Please try again tomorrow.");
         }
 
-        // The answer is the same whether or not the code belongs to a company, so codes cannot be probed.
+        // The answer is the same whether or not the code belongs to a company, so codes cannot be probed. The link in
+        // the answer is only real when an invitation was created.
+        var token = NewToken();
         var response = new SendFranchiseInviteResponse
         {
+            InviteLink = LinkFor(token),
             Message = "If that code belongs to an active company, your invitation has been sent. " +
                       "They must accept it before you can see anything."
         };
@@ -272,6 +398,7 @@ public class FranchiseService(
             InvitedByUserId = CurrentUserId(),
             ExpiresAt = now + InviteLifetime
         };
+        IssueToken(link, token, link.ExpiresAt);
         foreach (var scope in scopes)
         {
             link.Scopes.Add(NewScope(link, scope));
@@ -297,6 +424,7 @@ public class FranchiseService(
         }
 
         link.Status = FranchiseLinkStatus.Cancelled;
+        ClearToken(link);
         link.EndedAt = DateTime.UtcNow;
         link.EndedByOrganizationId = me;
         await db.SaveChangesAsync(cancellationToken);
@@ -329,6 +457,7 @@ public class FranchiseService(
         if (!request.Accept)
         {
             link.Status = FranchiseLinkStatus.Declined;
+            ClearToken(link);
             link.EndedAt = now;
             link.EndedByOrganizationId = me;
             foreach (var scope in link.Scopes)
@@ -349,6 +478,7 @@ public class FranchiseService(
         }
 
         link.Status = FranchiseLinkStatus.Active;
+        ClearToken(link);
         foreach (var scope in link.Scopes)
         {
             scope.Status = granted.Contains(scope.Scope) ? FranchiseScopeStatus.Granted : FranchiseScopeStatus.Denied;
@@ -371,6 +501,7 @@ public class FranchiseService(
         }
 
         link.Status = FranchiseLinkStatus.Ended;
+        ClearToken(link);
         link.EndedAt = DateTime.UtcNow;
         link.EndedByOrganizationId = me;
         await db.SaveChangesAsync(cancellationToken);
@@ -381,7 +512,7 @@ public class FranchiseService(
 
     // ── Permissions ─────────────────────────────────────────────────────────────────────────────────────────
 
-    public async Task<FranchiseLinkDto> RequestScopesAsync(Guid linkId, RequestFranchiseScopesRequest request, CancellationToken cancellationToken = default)
+    public async Task<FranchiseLinkAccessDto> RequestScopesAsync(Guid linkId, RequestFranchiseScopesRequest request, CancellationToken cancellationToken = default)
     {
         var me = CurrentCompany;
         await RequireFranchiseAddOnAsync(cancellationToken);
@@ -414,12 +545,19 @@ public class FranchiseService(
             }
         }
 
+        string? accessLink = null;
+        DateTime? accessExpires = null;
         if (asked.Count > 0)
         {
+            var token = NewToken();
+            accessExpires = DateTime.UtcNow + InviteLifetime;
+            IssueToken(link, token, accessExpires.Value);
+            accessLink = LinkFor(token);
+
             await db.SaveChangesAsync(cancellationToken);
             await AuditAsync("franchise.scopes_requested", $"Asked to see: {string.Join(", ", asked)}.", link, cancellationToken);
         }
-        return await DtoAsync(link, cancellationToken);
+        return new FranchiseLinkAccessDto(await DtoAsync(link, cancellationToken), accessLink, accessExpires);
     }
 
     public async Task<FranchiseLinkDto> DecideScopeAsync(Guid linkId, string scope, DecideFranchiseScopeRequest request, CancellationToken cancellationToken = default)

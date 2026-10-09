@@ -60,6 +60,16 @@ public class FranchiseLink : BaseEntity
     /// <summary>The company that ended or declined the link.</summary>
     public Guid? EndedByOrganizationId { get; set; }
 
+    /// <summary>
+    /// SHA-256 of the secret in the link sent to the franchisee, or null when there is no open link. The link is for
+    /// answering the invitation or a request for more; it is single-use and is useless without the invited company's
+    /// Owner signing in.
+    /// </summary>
+    [MaxLength(64)]
+    public string? InviteTokenHash { get; set; }
+
+    public DateTime? InviteTokenExpiresAt { get; set; }
+
     public List<FranchiseLinkScope> Scopes { get; set; } = [];
 }
 

@@ -76,7 +76,8 @@ public class FranchiseLinkTests
         public (FranchiseService Service, AppDbContext Db) As(Guid company, bool addOn = true, IFranchiseFigures? figures = null)
         {
             var db = Db(company);
-            return (new FranchiseService(db, new NoAudit(), new Entitlement(addOn), new HttpContextAccessor(), figures ?? new FakeFigures()), db);
+            return (new FranchiseService(db, new NoAudit(), new Entitlement(addOn), new HttpContextAccessor(), figures ?? new FakeFigures(),
+                new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()), db);
         }
     }
 
@@ -290,7 +291,7 @@ public class FranchiseLinkTests
         await beta.RespondAsync(link.Id, Accept("financial_totals"));
 
         var (alpha, _) = world.As(Org1);
-        var asked = await alpha.RequestScopesAsync(link.Id, new RequestFranchiseScopesRequest { Scopes = ["invoice_list"] });
+        var asked = (await alpha.RequestScopesAsync(link.Id, new RequestFranchiseScopesRequest { Scopes = ["invoice_list"] })).Link;
         Assert.Equal("Requested", asked.Scopes.Single(s => s.Scope == "invoice_list").Status);
 
         await Assert.ThrowsAsync<ForbiddenException>(() =>
@@ -304,7 +305,7 @@ public class FranchiseLinkTests
 
         // The franchisor can ask again for something that was switched off.
         var (alphaLater, _) = world.As(Org1);
-        var again = await alphaLater.RequestScopesAsync(link.Id, new RequestFranchiseScopesRequest { Scopes = ["financial_totals"] });
+        var again = (await alphaLater.RequestScopesAsync(link.Id, new RequestFranchiseScopesRequest { Scopes = ["financial_totals"] })).Link;
         Assert.Equal("Requested", again.Scopes.Single(s => s.Scope == "financial_totals").Status);
     }
 
@@ -339,6 +340,175 @@ public class FranchiseLinkTests
         var (alpha, _) = world.As(Org1);
         await alpha.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = "0002" });
         Assert.Equal(2, (await alpha.GetNetworkAsync()).Franchisees.Count);
+    }
+
+    // ── The link the franchisee answers through ─────────────────────────────────────────────────────────────
+
+    private static string TokenOf(string link) => link[(link.LastIndexOf('/') + 1)..];
+
+    private static async Task<(FranchiseLinkDto Link, string Token)> InviteWithLinkAsync(World world, Guid from, string code, List<string>? scopes = null)
+    {
+        var (franchisor, _) = world.As(from);
+        var response = await franchisor.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = code, Scopes = scopes });
+        var network = await world.As(from).Service.GetNetworkAsync();
+        return (network.Franchisees.First(l => l.PartnerCodeHint == FranchiseService.MaskCode(code) && l.Status == "Pending"), TokenOf(response.InviteLink));
+    }
+
+    [Fact]
+    public async Task AnInvitation_ComesWithALinkToPassOn_AndAnUnknownCodeGetsAnIdenticalLookingOne()
+    {
+        var world = new World();
+        var (alpha, _) = world.As(Org1);
+
+        var real = await alpha.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = "0002" });
+        var fake = await alpha.SendInviteAsync(new SendFranchiseInviteRequest { FranchiseeCode = "9999" });
+
+        Assert.Matches("^http://localhost:5173/franchise-invite/[0-9a-f]{64}$", real.InviteLink);
+        Assert.Matches("^http://localhost:5173/franchise-invite/[0-9a-f]{64}$", fake.InviteLink);
+        Assert.Equal(real.Message, fake.Message);
+        Assert.Single((await alpha.GetNetworkAsync()).Franchisees);
+
+        // The made-up link opens nothing for anybody.
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(TokenOf(fake.InviteLink)));
+    }
+
+    [Fact]
+    public async Task OnlyTheInvitedCompany_CanOpenTheLink()
+    {
+        var world = new World();
+        var (_, token) = await InviteWithLinkAsync(world, Org1, "0002", ["financial_totals", "staff"]);
+
+        var opened = await world.As(Org2).Service.GetByTokenAsync(token);
+        Assert.Equal("Franchisee", opened.Role);
+        Assert.Equal("Alpha Car Spa", opened.PartnerName);
+        Assert.Equal(2, opened.Scopes.Count);
+
+        // Anybody else holding the link gets the same answer as for a link that does not exist.
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org3).Service.GetByTokenAsync(token));
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org1).Service.GetByTokenAsync(token));
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(new string('a', 64)));
+    }
+
+    [Fact]
+    public async Task AnsweringThroughTheLink_ActivatesTheLink_AndUsesTheLinkUp()
+    {
+        var world = new World();
+        var (link, token) = await InviteWithLinkAsync(world, Org1, "0002", ["financial_totals", "staff"]);
+
+        var accepted = await world.As(Org2).Service.RespondByTokenAsync(token, Accept("financial_totals"));
+        Assert.Equal("Active", accepted.Status);
+        Assert.Equal("Granted", accepted.Scopes.Single(s => s.Scope == "financial_totals").Status);
+        Assert.Equal("Denied", accepted.Scopes.Single(s => s.Scope == "staff").Status);
+
+        // It cannot be used twice, and the franchisor sees the link as active.
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(token));
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.RespondByTokenAsync(token, Accept("financial_totals")));
+        Assert.Equal("Active", (await world.As(Org1).Service.GetNetworkAsync()).Franchisees.Single(l => l.Id == link.Id).Status);
+    }
+
+    [Fact]
+    public async Task DecliningThroughTheLink_EndsTheInvitation()
+    {
+        var world = new World();
+        var (_, token) = await InviteWithLinkAsync(world, Org1, "0002");
+
+        var declined = await world.As(Org2).Service.RespondByTokenAsync(token, new RespondToFranchiseInviteRequest { Accept = false });
+        Assert.Equal("Declined", declined.Status);
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(token));
+    }
+
+    [Fact]
+    public async Task ALinkThatExpired_OrWasWithdrawn_OpensNothing()
+    {
+        var world = new World();
+        var (link, token) = await InviteWithLinkAsync(world, Org1, "0002");
+        await using (var db = world.Db(Org1))
+        {
+            var row = await db.FranchiseLinks.SingleAsync();
+            row.InviteTokenExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+            await db.SaveChangesAsync();
+        }
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(token));
+
+        var second = new World();
+        var (withdrawn, token2) = await InviteWithLinkAsync(second, Org1, "0002");
+        await second.As(Org1).Service.CancelInviteAsync(withdrawn.Id);
+        await Assert.ThrowsAsync<NotFoundException>(() => second.As(Org2).Service.GetByTokenAsync(token2));
+        Assert.NotEqual(link.Id, withdrawn.Id);
+    }
+
+    [Fact]
+    public async Task ANewLink_ReplacesTheOldOne_AndOnlyTheFranchisorCanMakeIt()
+    {
+        var world = new World();
+        var (link, oldToken) = await InviteWithLinkAsync(world, Org1, "0002");
+
+        await Assert.ThrowsAsync<ForbiddenException>(() => world.As(Org2).Service.CreateLinkAsync(link.Id));
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org3).Service.CreateLinkAsync(link.Id));
+
+        var fresh = await world.As(Org1).Service.CreateLinkAsync(link.Id);
+        var newToken = TokenOf(fresh.AccessLink!);
+        Assert.NotEqual(oldToken, newToken);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(oldToken));
+        Assert.Equal("Pending", (await world.As(Org2).Service.GetByTokenAsync(newToken)).Status);
+    }
+
+    [Fact]
+    public async Task AskingForMore_ComesWithALink_AndTheFranchiseeAllowsSomeOfIt()
+    {
+        var world = new World();
+        var (link, token) = await InviteWithLinkAsync(world, Org1, "0002");
+        await world.As(Org2).Service.RespondByTokenAsync(token, Accept("financial_totals"));
+
+        // A link is only made when something is asked, and there is nothing waiting yet.
+        await Assert.ThrowsAsync<ConflictException>(() => world.As(Org1).Service.CreateLinkAsync(link.Id));
+
+        var asked = await world.As(Org1).Service.RequestScopesAsync(link.Id, new RequestFranchiseScopesRequest { Scopes = ["invoice_list", "staff"] });
+        var requestToken = TokenOf(asked.AccessLink!);
+        Assert.NotNull(asked.AccessLinkExpiresAt);
+
+        var opened = await world.As(Org2).Service.GetByTokenAsync(requestToken);
+        Assert.Equal("Active", opened.Status);
+        Assert.Equal(2, opened.Scopes.Count(s => s.Status == "Requested"));
+
+        var answered = await world.As(Org2).Service.RespondByTokenAsync(requestToken, Accept("invoice_list"));
+        Assert.Equal("Granted", answered.Scopes.Single(s => s.Scope == "invoice_list").Status);
+        Assert.Equal("Denied", answered.Scopes.Single(s => s.Scope == "staff").Status);
+        Assert.Equal("Granted", answered.Scopes.Single(s => s.Scope == "financial_totals").Status);
+        await Assert.ThrowsAsync<NotFoundException>(() => world.As(Org2).Service.GetByTokenAsync(requestToken));
+    }
+
+    [Fact]
+    public async Task TheFranchiseSectionIsOnlyForCompaniesWithTheAddOn_ButAFranchiseeNeedsNone()
+    {
+        var world = new World();
+        await using (var db = world.Db(null))
+        {
+            (await db.Organizations.SingleAsync(o => o.Id == Org1)).FranchiseAddOnEnabled = true;
+            await db.SaveChangesAsync();
+        }
+
+        FranchiseAccessDto Access(Guid company) => AccessOf(world, company).GetAwaiter().GetResult();
+
+        Assert.True(Access(Org1).CanActAsFranchisor);
+        Assert.False(Access(Org2).CanActAsFranchisor);
+        Assert.False(Access(Org2).IsFranchisee);
+
+        var (_, token) = await InviteWithLinkAsync(world, Org1, "0002");
+        await world.As(Org2).Service.RespondByTokenAsync(token, Accept("financial_totals"));
+
+        Assert.True(Access(Org2).IsFranchisee);
+        Assert.False(Access(Org2).CanActAsFranchisor);   // answering and managing sharing needs no add-on
+        Assert.False(Access(Org1).IsFranchisee);
+    }
+
+    private static async Task<FranchiseAccessDto> AccessOf(World world, Guid company)
+    {
+        await using var db = world.Db(company);
+        var service = new FranchiseService(db, new NoAudit(), new OrganizationFranchiseEntitlement(db), new HttpContextAccessor(),
+            new FakeFigures(), new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        return await service.GetAccessAsync();
     }
 
     // ── The franchisor's dashboard ──────────────────────────────────────────────────────────────────────────
