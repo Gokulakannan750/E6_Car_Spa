@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import LoginForm from './LoginForm';
 import {
@@ -14,6 +14,10 @@ import { BrandMark, displayName } from '../../components/shared/BrandMark';
 
 export default function LoginPage() {
 	const { isAuthenticated, isInitialized, isLoading, checkInitialization } = useAuth();
+	const location = useLocation();
+	// Where the person was heading before being asked to sign in (for example a link they were sent).
+	const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from;
+	const afterSignIn = from?.pathname && from.pathname !== '/login' ? `${from.pathname}${from.search ?? ''}` : '/dashboard';
 	const cachedProfile = getCachedBusinessProfile();
 	const [publicProfile, setPublicProfile] = useState<PublicBusinessProfileDto | null>(() => {
 		if (cachedProfile) {
@@ -73,7 +77,7 @@ export default function LoginPage() {
 	}
 
 	if (isAuthenticated) {
-		return <Navigate to="/dashboard" replace />;
+		return <Navigate to={afterSignIn} replace />;
 	}
 
 	return (
