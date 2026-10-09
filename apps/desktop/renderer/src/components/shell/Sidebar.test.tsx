@@ -351,6 +351,17 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 			expect(isItemActive(jobCardsItem, '/customers')).toBe(false);
 		});
 
+		it('27b. Only one Franchise item is highlighted at a time', () => {
+			const network = WORKSPACE_NAVIGATION.franchise.find((i) => i.path === '/franchise')!;
+			const dashboard = WORKSPACE_NAVIGATION.franchise.find((i) => i.path === '/franchise/dashboard')!;
+
+			expect(isItemActive(network, '/franchise')).toBe(true);
+			expect(isItemActive(dashboard, '/franchise')).toBe(false);
+
+			expect(isItemActive(network, '/franchise/dashboard')).toBe(false);
+			expect(isItemActive(dashboard, '/franchise/dashboard')).toBe(true);
+		});
+
 		it('28. Canonical routes and query parameters correctly activate Settings items', () => {
 			const companyItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings')!;
 			const whatsappItem = WORKSPACE_NAVIGATION.settings.find((i) => i.path === '/settings/whatsapp')!;

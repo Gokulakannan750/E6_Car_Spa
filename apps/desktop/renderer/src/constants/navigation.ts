@@ -401,6 +401,15 @@ export function isItemActive(
 		return normPath === '/settings/users' || normPath.startsWith('/settings/users/');
 	}
 
+	// Franchise Network is active everywhere in the Franchise suite except its dashboard, which has its own item.
+	if (item.path === '/franchise') {
+		return normPath === '/franchise' || (normPath.startsWith('/franchise/') && !normPath.startsWith('/franchise/dashboard'));
+	}
+
+	if (item.path === '/franchise/dashboard') {
+		return normPath === '/franchise/dashboard' || normPath.startsWith('/franchise/dashboard/');
+	}
+
 	if (item.path === '/staff') {
 		return normPath === '/staff' || normPath.startsWith('/staff/');
 	}
