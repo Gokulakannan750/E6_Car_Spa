@@ -18,6 +18,14 @@ public interface IFranchiseFigures
         CancellationToken cancellationToken = default);
 }
 
+/// <summary>The reports a franchisor may download about a franchisee, within what the franchisee has allowed.</summary>
+public interface IFranchiseReports
+{
+    /// <summary>The franchisee's monthly billing report (the same one the franchisee sees). Needs the "invoice list" to be allowed.</summary>
+    Task<CarSpaManagement.Api.Application.DTOs.Reports.MonthlyBillingReportResponse> GetMonthlyBillingReportAsync(
+        Guid linkId, int year, int month, CancellationToken cancellationToken = default);
+}
+
 public interface IFranchiseService
 {
     /// <summary>The franchisor's dashboard: the approved financial totals of every active franchisee, and the network total.</summary>

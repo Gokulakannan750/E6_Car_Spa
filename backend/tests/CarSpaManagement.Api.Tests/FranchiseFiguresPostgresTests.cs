@@ -52,23 +52,24 @@ public class FranchiseFiguresPostgresTests : IClassFixture<PostgresTestDatabase>
         return new AppDbContext(options, new FixedTenantContext(company));
     }
 
-    private AppDbContext AsTester(Guid company)
+    private DbContextOptions<AppDbContext> TesterOptions()
     {
         var connection = new NpgsqlConnectionStringBuilder(_pg.ConnectionString)
         {
             Username = RoleName, Password = RolePassword, Pooling = false
         }.ConnectionString;
-        var options = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(connection)
+        return new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(connection)
             .AddInterceptors(new TenantSessionInterceptor())
             .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)).Options;
-        return new AppDbContext(options, new FixedTenantContext(company));
     }
+
+    private AppDbContext AsTester(Guid company) => new(TesterOptions(), new FixedTenantContext(company));
 
     private sealed record World(Guid Franchisor, Guid Franchisee, Guid Outsider);
 
     /// <summary>Three new companies; the franchisor has an ACTIVE link to the franchisee with the financial totals granted.</summary>
     private async Task<World> NewWorldAsync(FranchiseLinkStatus status = FranchiseLinkStatus.Active,
-        FranchiseScopeStatus scope = FranchiseScopeStatus.Granted)
+        FranchiseScopeStatus scope = FranchiseScopeStatus.Granted, FranchiseScopeStatus? invoiceList = null)
     {
         var world = new World(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
         await using (var db = AsSuperuser(world.Franchisor))
@@ -89,6 +90,14 @@ public class FranchiseFiguresPostgresTests : IClassFixture<PostgresTestDatabase>
                 Id = Guid.NewGuid(), FranchiseLinkId = link.Id, FranchisorOrganizationId = world.Franchisor,
                 FranchiseeOrganizationId = world.Franchisee, Scope = "financial_totals", Status = scope
             });
+            if (invoiceList is { } list)
+            {
+                link.Scopes.Add(new FranchiseLinkScope
+                {
+                    Id = Guid.NewGuid(), FranchiseLinkId = link.Id, FranchisorOrganizationId = world.Franchisor,
+                    FranchiseeOrganizationId = world.Franchisee, Scope = "invoice_list", Status = list
+                });
+            }
             db.FranchiseLinks.Add(link);
             await db.SaveChangesAsync();
         }
@@ -196,5 +205,103 @@ public class FranchiseFiguresPostgresTests : IClassFixture<PostgresTestDatabase>
         var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
             new PostgresFranchiseFigures(db).GetFinancialTotalsAsync(world.Franchisee, Today.AddDays(-7), Today));
         Assert.Equal("42501", Assert.IsType<PostgresException>(ex.InnerException ?? ex).SqlState);
+    }
+
+    // ── The franchisee's own billing report, for the franchisor ────────────────────────────────────────────
+
+    private FranchiseReportService ReportsFor(AppDbContext franchisorDb) =>
+        new(franchisorDb, TesterOptions(), new AlwaysOnFranchiseEntitlement(), new NoopAudit());
+
+    private sealed class NoopAudit : CarSpaManagement.Api.Application.Interfaces.IAuditLogService
+    {
+        public Task RecordAsync(string action, string module, string description, Guid? userId = null, string? userName = null,
+            string? userRole = null, string? entityType = null, Guid? entityId = null, string? entityReference = null,
+            string? oldValues = null, string? newValues = null, string? metadata = null, string outcome = "Success",
+            CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<CarSpaManagement.Api.Application.DTOs.Audit.PagedResult<CarSpaManagement.Api.Application.DTOs.Audit.AuditLogDto>> GetLogsAsync(
+            CarSpaManagement.Api.Application.DTOs.Audit.AuditLogQueryParameters query, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+    }
+
+    private static async Task<Guid> LinkIdAsync(AppDbContext db) => (await db.FranchiseLinks.SingleAsync()).Id;
+
+    [PostgresFact]
+    public async Task WithTheInvoiceListAllowed_TheFranchisorGetsTheFranchiseesBillingReport()
+    {
+        var world = await NewWorldAsync(invoiceList: FranchiseScopeStatus.Granted);
+
+        await using var db = AsTester(world.Franchisor);
+        var linkId = await LinkIdAsync(db);
+        var report = await ReportsFor(db).GetMonthlyBillingReportAsync(linkId, DateTime.UtcNow.Year, DateTime.UtcNow.Month);
+
+        Assert.Equal(DateTime.UtcNow.Month, report.Month);
+        Assert.Equal(1, report.Summary.TotalInvoicesPaid);       // the franchisee's own report logic, on the franchisee's data
+        Assert.Equal(1, report.Summary.TotalInvoicesDraft);
+        Assert.Equal(1, report.Summary.TotalInvoicesCancelled);
+        Assert.Equal(report.DaysInMonth, report.DailySheets.Count);
+
+        // And the lock is back on for the franchisor's own connection afterwards.
+        Assert.Equal(0, await db.Invoices.IgnoreQueryFilters().CountAsync(i => i.OrganizationId == world.Franchisee));
+    }
+
+    [PostgresFact]
+    public async Task WithOnlyTheTotalsAllowed_TheBillingReportIsRefused()
+    {
+        var world = await NewWorldAsync(); // financial totals granted, invoice list never asked for
+
+        await using var db = AsTester(world.Franchisor);
+        var linkId = await LinkIdAsync(db);
+        await Assert.ThrowsAsync<CarSpaManagement.Api.Application.Common.ForbiddenException>(() =>
+            ReportsFor(db).GetMonthlyBillingReportAsync(linkId, DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+
+        var switchedOff = await NewWorldAsync(invoiceList: FranchiseScopeStatus.Denied);
+        await using var db2 = AsTester(switchedOff.Franchisor);
+        await Assert.ThrowsAsync<CarSpaManagement.Api.Application.Common.ForbiddenException>(async () =>
+            await ReportsFor(db2).GetMonthlyBillingReportAsync(await LinkIdAsync(db2), DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+    }
+
+    [PostgresFact]
+    public async Task ACompanyThatIsNotTheFranchisor_CannotUseSomeoneElsesLink()
+    {
+        var world = await NewWorldAsync(invoiceList: FranchiseScopeStatus.Granted);
+        Guid linkId;
+        await using (var franchisor = AsTester(world.Franchisor)) linkId = await LinkIdAsync(franchisor);
+
+        foreach (var other in new[] { world.Outsider, world.Franchisee })
+        {
+            await using var db = AsTester(other);
+            await Assert.ThrowsAsync<CarSpaManagement.Api.Application.Common.NotFoundException>(() =>
+                ReportsFor(db).GetMonthlyBillingReportAsync(linkId, DateTime.UtcNow.Year, DateTime.UtcNow.Month));
+        }
+    }
+
+    [PostgresFact]
+    public async Task TheDatabaseCheck_AnswersFromItsOwnLinkRecords()
+    {
+        var world = await NewWorldAsync(invoiceList: FranchiseScopeStatus.Granted);
+
+        async Task<bool> Has(Guid company, Guid franchisee, string scope)
+        {
+            await using var db = AsTester(company);
+            return await db.Database.SqlQuery<bool>($"SELECT franchise_has_scope({franchisee}, {scope}) AS \"Value\"").SingleAsync();
+        }
+
+        Assert.True(await Has(world.Franchisor, world.Franchisee, "invoice_list"));
+        Assert.True(await Has(world.Franchisor, world.Franchisee, "financial_totals"));
+        Assert.False(await Has(world.Franchisor, world.Franchisee, "customers"));      // never granted
+        Assert.False(await Has(world.Outsider, world.Franchisee, "invoice_list"));     // no link
+        Assert.False(await Has(world.Franchisee, world.Franchisor, "invoice_list"));   // the link does not work in reverse
+    }
+
+    [PostgresFact]
+    public async Task TheViewOfAnotherCompany_CannotBeUsedToChangeAnything()
+    {
+        var world = await NewWorldAsync(invoiceList: FranchiseScopeStatus.Granted);
+
+        await using var view = AppDbContext.ForReadOnly(TesterOptions(), new FixedTenantContext(world.Franchisee));
+        Assert.True(await view.Invoices.AnyAsync());      // it can read
+        view.Customers.Add(new Customer { Name = "Planted", PhoneNumber = "9000000999" });
+        await Assert.ThrowsAsync<TenantViolationException>(() => view.SaveChangesAsync());
     }
 }

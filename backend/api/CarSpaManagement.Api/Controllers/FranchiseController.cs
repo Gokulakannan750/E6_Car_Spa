@@ -8,7 +8,7 @@ namespace CarSpaManagement.Api.Controllers;
 /// <summary>The franchise network: links between this company and the companies it franchises, or that franchise it.</summary>
 [ApiController]
 [Route("api/franchise")]
-public class FranchiseController(IFranchiseService franchiseService) : ControllerBase
+public class FranchiseController(IFranchiseService franchiseService, IFranchiseReports franchiseReports) : ControllerBase
 {
     [HttpGet]
     [RequirePermission("franchise.view")]
@@ -19,6 +19,13 @@ public class FranchiseController(IFranchiseService franchiseService) : Controlle
     [RequirePermission("franchise.view")]
     public async Task<IActionResult> GetDashboard([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct) =>
         Ok(await franchiseService.GetDashboardAsync(from, to, ct));
+
+    /// <summary>A franchisee's monthly billing report, for the franchisor, when the franchisee allowed the invoice list.</summary>
+    [HttpGet("links/{id:guid}/billing-report")]
+    [RequirePermission("franchise.view")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("reports-heavy")]
+    public async Task<IActionResult> GetBillingReport(Guid id, [FromQuery] int year, [FromQuery] int month, CancellationToken ct) =>
+        Ok(await franchiseReports.GetMonthlyBillingReportAsync(id, year, month, ct));
 
     [HttpPost("invites")]
     [RequirePermission("franchise.manage")]

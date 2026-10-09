@@ -198,7 +198,8 @@ public class FranchiseService(
             var totals = allowed
                 ? await figures.GetFinancialTotalsAsync(link.FranchiseeOrganizationId, fromDate, toDate, cancellationToken)
                 : null;
-            franchisees.Add(new FranchiseeFinancialsDto(link.Id, dto.PartnerCodeHint, dto.PartnerName, allowed, totals));
+            var allowedItems = link.Scopes.Where(s => s.Status == FranchiseScopeStatus.Granted).Select(s => s.Scope).OrderBy(s => s).ToList();
+            franchisees.Add(new FranchiseeFinancialsDto(link.Id, dto.PartnerCodeHint, dto.PartnerName, allowed, allowedItems, totals));
         }
 
         var shared = franchisees.Where(f => f.Totals is not null).Select(f => f.Totals!).ToList();

@@ -75,6 +75,7 @@ public record FranchiseeFinancialsDto(
     string PartnerCodeHint,
     string PartnerName,
     bool FinancialTotalsAllowed,
+    IReadOnlyList<string> AllowedItems,
     FranchiseFinancialTotalsDto? Totals);
 
 public record FranchiseDashboardDto(

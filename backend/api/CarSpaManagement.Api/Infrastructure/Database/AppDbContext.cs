@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public const string TenantFilter = "Tenant";
 
     private readonly ITenantContext _tenant;
+    private bool _readOnly;
 
     public AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext tenant) : base(options)
     {
@@ -136,6 +137,13 @@ public class AppDbContext : DbContext
         entity.HasIndex(e => e.OrganizationId);
     }
 
+    /// <summary>
+    /// A context that can only read, for showing one company's data to another that has been approved to see it
+    /// (the franchise reports). Saving anything through it is refused.
+    /// </summary>
+    public static AppDbContext ForReadOnly(DbContextOptions<AppDbContext> options, ITenantContext tenant) =>
+        new(options, tenant) { _readOnly = true };
+
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         PrepareForSave();
@@ -161,6 +169,11 @@ public class AppDbContext : DbContext
     /// <summary>Runs on every save path (sync and async): company checks first, then the audit timestamps.</summary>
     private void PrepareForSave()
     {
+        if (_readOnly && ChangeTracker.HasChanges())
+        {
+            throw new TenantViolationException("This view of another company's data is read-only.");
+        }
+
         EnforceOrganizationOwnership();
         EnforceFranchiseParties();
 
