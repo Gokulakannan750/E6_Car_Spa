@@ -650,7 +650,6 @@ class InvoicePdfGenerator {
   }
 }
 
-
 /// Neutral dark slate, used until the company picks its own accent colour.
 const String defaultDocumentAccent = '#1E293B';
 
