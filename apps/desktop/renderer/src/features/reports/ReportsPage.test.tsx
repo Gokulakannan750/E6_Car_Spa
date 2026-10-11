@@ -14,6 +14,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getMonthlyShowroomReport: vi.fn(),
 		getOutsideJobsReport: vi.fn(),
 		getMonthlyBillingReport: vi.fn(),
+		getSalesReport: vi.fn(),
 	};
 });
 
@@ -332,6 +333,45 @@ describe('ReportsPage Component', () => {
 			expect(screen.getByText(/Failed to load financial report data/i)).toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
 		});
+	});
+
+	it('has a Financial Reports tab that opens the sales, collections, outstanding, GST and job card reports', async () => {
+		vi.mocked(api.getSalesReport).mockResolvedValue({
+			items: [
+				{
+					invoiceId: 'i1',
+					invoiceNumber: 'INV-501',
+					invoiceDate: '2026-10-05T10:00:00Z',
+					customerName: 'Priya Sharma',
+					customerPhone: '9840123456',
+					registrationNumber: 'TN01AB1234',
+					subtotal: 1000,
+					discount: 0,
+					gst: 180,
+					totalAmount: 1180,
+					paidAmount: 1180,
+					balanceAmount: 0,
+					status: 2,
+				},
+			],
+			totalCount: 1,
+			page: 1,
+			pageSize: 25,
+			summary: { totalSubtotal: 1000, totalDiscount: 0, totalGst: 180, totalAmount: 1180, totalPaid: 1180, totalBalance: 0, invoiceCount: 1 },
+		});
+
+		renderWithProviders(
+			<Routes>
+				<Route path="/reports/*" element={<ReportsPage />} />
+			</Routes>,
+			{ initialEntries: ['/reports?type=financial'] }
+		);
+
+		expect(screen.getByRole('button', { name: /financial reports/i })).toBeInTheDocument();
+		expect(await screen.findByText('INV-501')).toBeInTheDocument();
+		for (const name of ['Sales', 'Collections', 'Outstanding', 'GST Summary', 'Job Cards']) {
+			expect(screen.getByRole('tab', { name })).toBeInTheDocument();
+		}
 	});
 
 	it('renders Outside Jobs Reports view when navigating to ?type=outside-jobs', async () => {
