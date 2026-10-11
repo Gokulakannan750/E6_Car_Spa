@@ -28,6 +28,8 @@ final dioProvider = Provider<Dio>((ref) {
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) async {
+        // The server can be changed on the sign-in screen, so the address is read for every call.
+        options.baseUrl = AppEnvironment.apiBaseUrl;
         final token = await storage.getToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';

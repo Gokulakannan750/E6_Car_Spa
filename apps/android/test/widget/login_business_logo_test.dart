@@ -15,6 +15,7 @@ import 'package:e6_car_spa/features/settings/providers/settings_provider.dart';
 import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/settings/providers/settings_state.dart';
 import 'package:e6_car_spa/shared/widgets/app_business_logo.dart';
+import 'package:e6_car_spa/features/auth/presentation/widgets/server_settings_dialog.dart';
 
 class StubAuthRepo extends AuthRepository {
   StubAuthRepo() : super(AuthApi(Dio()), const AuthTokenStorage());
@@ -127,6 +128,25 @@ void main() {
       child: MaterialApp(theme: AppTheme.light, home: const LoginScreen()),
     );
   }
+
+  group('LoginScreen server settings', () {
+    testWidgets('offers Server settings before anyone has signed in', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(createLoginTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('server_settings_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('server_settings_button')));
+      await tester.pumpAndSettle();
+      expect(find.byType(ServerSettingsDialog), findsOneWidget);
+    });
+  });
 
   group('LoginScreen Business Logo Tests', () {
     testWidgets(

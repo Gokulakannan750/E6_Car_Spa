@@ -422,6 +422,29 @@ class InvoiceDetailsNotifier extends StateNotifier<InvoiceDetailsState> {
     }
   }
 
+  /// Voids the invoice. Returns null on success, otherwise the message to show.
+  Future<String?> cancelInvoice({String? reason}) async {
+    if (!mounted) return 'Screen is no longer active.';
+    try {
+      final updated = await _repository.cancelInvoice(
+        _invoiceId,
+        reason: reason,
+      );
+      if (!mounted) return null;
+      state = state.copyWith(
+        invoice: updated,
+        actionSuccessMessage: 'Invoice cancelled.',
+        clearError: true,
+      );
+      _ref.read(invoiceListProvider.notifier).loadInvoices();
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Failed to cancel the invoice.';
+    }
+  }
+
   /// Server-calculated draft for unsaved discount / GST values (nothing is saved).
   Future<Invoice> previewDraft({
     required double discount,

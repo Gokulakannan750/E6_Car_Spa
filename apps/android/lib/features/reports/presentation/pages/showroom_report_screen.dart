@@ -1,3 +1,5 @@
+import '../../export/showroom_excel.dart';
+import '../widgets/report_export_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -54,6 +56,12 @@ class _ShowroomReportScreenState extends ConsumerState<ShowroomReportScreen>
     return AppScreenScaffold(
       title: 'Showroom Comprehensive Reports',
       actions: [
+        ReportExportButton(
+          build: (ref, companyName) async {
+            final report = await ref.read(monthlyShowroomReportProvider.future);
+            return ShowroomExcel.build(report, companyName: companyName);
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
           tooltip: 'Refresh Report',

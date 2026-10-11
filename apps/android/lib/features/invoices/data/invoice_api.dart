@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/invoice_model.dart';
+import '../models/invoice_public_link.dart';
 import '../models/invoice_request_models.dart';
 
 class InvoiceApi {
@@ -65,6 +66,37 @@ class InvoiceApi {
       data: {'invoiceNumber': invoiceNumber},
     );
     return Invoice.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Voids a finalized invoice (needs the invoices.cancel permission on the server).
+  Future<Invoice> cancelInvoice(String id, {String? reason}) async {
+    final response = await _dio.post(
+      '/invoices/$id/cancel',
+      data: {if (reason != null && reason.isNotEmpty) 'reason': reason},
+    );
+    return Invoice.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<InvoicePublicLinkStatus> getPublicLinkStatus(String id) async {
+    final response = await _dio.get('/invoices/$id/public-link/status');
+    return InvoicePublicLinkStatus.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+
+  Future<InvoicePublicLink> createPublicLink(String id) async {
+    final response = await _dio.post('/invoices/$id/public-link');
+    return InvoicePublicLink.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// Replaces the link: the earlier one stops working at once.
+  Future<InvoicePublicLink> rotatePublicLink(String id) async {
+    final response = await _dio.post('/invoices/$id/public-link/rotate');
+    return InvoicePublicLink.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> revokePublicLink(String id) async {
+    await _dio.delete('/invoices/$id/public-link');
   }
 
   /// Draft totals for unsaved discount / GST values, calculated by the server (nothing is saved).
