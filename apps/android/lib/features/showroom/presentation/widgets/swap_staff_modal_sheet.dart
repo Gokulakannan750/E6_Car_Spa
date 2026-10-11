@@ -370,7 +370,7 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                     ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<DailyStaffAssignment>(
-                      value: _selectedStaffA,
+                      initialValue: _selectedStaffA,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
@@ -410,7 +410,7 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                     ),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
-                      value: _selectedTargetShowroomId,
+                      initialValue: _selectedTargetShowroomId,
                       isExpanded: true,
                       hint: const Text('Select destination showroom'),
                       decoration: const InputDecoration(
@@ -466,7 +466,10 @@ class _SwapStaffModalSheetState extends ConsumerState<SwapStaffModalSheet> {
                         )
                       else
                         DropdownButtonFormField<DailyStaffAssignment>(
-                          value: _selectedStaffB,
+                          // initialValue only applies when the field is created, but this selection is also reset in
+                          // code (when the destination showroom changes); the key recreates the field when it changes.
+                          key: ValueKey(_selectedStaffB?.staffId),
+                          initialValue: _selectedStaffB,
                           isExpanded: true,
                           hint: const Text('Select staff member to swap with'),
                           decoration: const InputDecoration(

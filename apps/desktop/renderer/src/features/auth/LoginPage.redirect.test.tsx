@@ -22,6 +22,8 @@ function renderLogin(state?: unknown) {
 		isInitialized: true,
 		isLoading: false,
 		sessionExpiredMessage: null,
+		secureStorageWarning: null,
+		clearSecureStorageWarning: () => {},
 		hasPermission: () => true,
 		login: async () => user,
 		logout: () => {},

@@ -69,6 +69,8 @@ export function renderWithProviders(
 		logout: () => {},
 		sessionExpiredMessage: null,
 		clearSessionExpiredMessage: () => {},
+		secureStorageWarning: null,
+		clearSecureStorageWarning: () => {},
 		refreshAuth: async () => {},
 		checkInitialization: async () => true,
 		...authContextValue,

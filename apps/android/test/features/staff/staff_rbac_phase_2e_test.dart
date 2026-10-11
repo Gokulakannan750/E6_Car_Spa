@@ -2,19 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:e6_car_spa/config/routes.dart';
 import 'package:e6_car_spa/features/auth/models/auth_user.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 import 'package:e6_car_spa/features/auth/providers/auth_state.dart';
 import 'package:e6_car_spa/features/dashboard/presentation/pages/dashboard_screen.dart';
 import 'package:e6_car_spa/features/staff/models/staff_attendance_models.dart';
-import 'package:e6_car_spa/features/staff/models/staff_model.dart';
 import 'package:e6_car_spa/features/staff/models/staff_salary_models.dart';
 import 'package:e6_car_spa/features/staff/presentation/pages/staff_attendance_tab.dart';
 import 'package:e6_car_spa/features/staff/presentation/widgets/salary_staff_card.dart';
 import 'package:e6_car_spa/features/staff/providers/staff_attendance_providers.dart';
 import 'package:e6_car_spa/features/staff/providers/staff_provider.dart';
-import 'package:e6_car_spa/features/staffadvances/models/staff_advance_model.dart';
 import 'package:e6_car_spa/features/staffadvances/presentation/pages/staff_advances_screen.dart';
 import 'package:e6_car_spa/features/staffadvances/providers/staff_advances_provider.dart';
 

@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('backend/**/*.csproj', 'backend/**/*.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore backend/CarSpaManagement.slnx
+
+      - name: Build backend
+        run: dotnet build backend/CarSpaManagement.slnx --no-restore --configuration Release
+
+      - name: Run backend tests
+        run: dotnet test backend/tests/CarSpaManagement.Api.Tests/CarSpaManagement.Api.Tests.csproj --no-build --configuration Release --logger "trx;LogFileName=test_results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/tests/CarSpaManagement.Api.Tests/TestResults/*.trx
+          if-no-files-found: ignore
+
+  desktop:
+    name: Desktop (Node / Electron)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Renderer type-check
+        run: pnpm --dir apps/desktop/renderer type-check
+
+      - name: Desktop and Electron tests
+        run: pnpm --dir apps/desktop test
+
+      - name: Build renderer
+        run: pnpm --dir apps/desktop/renderer build
+
+      - name: Build desktop application
+        run: pnpm --dir apps/desktop build
+
+  android:
+    name: Android (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Analyze Flutter code
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Verify release build fails without release credentials
+        run: |
+          chmod +x android/gradlew
+          set +e
+          OUTPUT=$(env -u STORE_FILE -u KEY_ALIAS -u STORE_PASSWORD -u KEY_PASSWORD ./android/gradlew -p android -P e6.ignoreReleaseSigningCredentials=true assembleRelease 2>&1)
+          EXIT_CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "ERROR: assembleRelease succeeded without release signing credentials!"
+            exit 1
+          fi
+          if ! echo "$OUTPUT" | tr '\n' ' ' | grep -Fq "Release build failed: Missing required release signing credentials: storeFile (key.properties: storeFile or STORE_FILE), keyAlias (key.properties: keyAlias or KEY_ALIAS), storePassword (key.properties: storePassword or STORE_PASSWORD), keyPassword (key.properties: keyPassword or KEY_PASSWORD)."; then
+            echo "ERROR: assembleRelease failed but did not contain the expected missing-credentials message!"
+            exit 1
+          fi
+          echo "Verified: assembleRelease failed as expected with all missing credential fields identified."
+
+      - name: Build release APK with temporary throwaway keystore
+        run: |
+          chmod +x android/gradlew
+          RANDOM_PASS=$(openssl rand -base64 16)
+          THROW_KEYSTORE="${RUNNER_TEMP}/throwaway.jks"
+          trap 'rm -f "$THROW_KEYSTORE"' EXIT
+          keytool -genkeypair -v -keystore "$THROW_KEYSTORE" \
+            -alias releaseKey -keyalg RSA -keysize 2048 -validity 1 \
+            -storepass "$RANDOM_PASS" -keypass "$RANDOM_PASS" \
+            -dname "CN=CI Throwaway, OU=CI, O=CarSpa, L=City, S=State, C=IN"
+          
+          STORE_FILE="$THROW_KEYSTORE" \
+          KEY_ALIAS="releaseKey" \
+          STORE_PASSWORD="$RANDOM_PASS" \
+          KEY_PASSWORD="$RANDOM_PASS" \
+          ./android/gradlew -p android assembleRelease

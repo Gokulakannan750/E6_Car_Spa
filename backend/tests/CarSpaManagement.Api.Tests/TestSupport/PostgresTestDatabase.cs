@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
 using Xunit;
 
@@ -16,8 +17,14 @@ public static class PostgresTestEnvironment
 {
     public const string ConnectionVariable = "CARSPA_TEST_PG_CONNECTION";
 
+    /// <summary>
+    /// The server connection used to create and drop the throwaway databases. Creating a database makes the server
+    /// write a checkpoint, and many tests do it at once, so each can wait well past the 30 second default.
+    /// </summary>
     public static string? AdminConnectionString =>
-        Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } cs ? cs : null;
+        Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } cs
+            ? new NpgsqlConnectionStringBuilder(cs) { CommandTimeout = 180 }.ConnectionString
+            : null;
 }
 
 public sealed class PostgresFactAttribute : FactAttribute
@@ -54,7 +61,9 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
         return new AppDbContext(options);
     }
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync() => InitializeAsync(null);
+
+    public async Task InitializeAsync(string? targetMigration)
     {
         _adminConnectionString = PostgresTestEnvironment.AdminConnectionString;
         if (_adminConnectionString is null) return;
@@ -67,13 +76,21 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
             await cmd.ExecuteNonQueryAsync();
         }
 
-        ConnectionString = new NpgsqlConnectionStringBuilder(_adminConnectionString) { Database = _databaseName }.ConnectionString;
+        // Building a whole schema, many times at once on a busy machine, can take longer than the 30 second default.
+        ConnectionString = new NpgsqlConnectionStringBuilder(_adminConnectionString) { Database = _databaseName, CommandTimeout = 180 }.ConnectionString;
 
         await using var db = CreateContext();
-        await db.Database.MigrateAsync();
-        await EnsureDefaultCompanyAsync(db);
-        // Like a real company, the default company starts with its two invoice numbering series.
-        await new Application.Services.InvoiceNumberAllocator(db).GetOrCreateSeriesAsync();
+        await db.Database.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
+            .MigrateAsync(targetMigration);
+
+        // A partly migrated database (a migration test stopping at an earlier step) is left exactly as that step
+        // made it; the test seeds whatever it needs. A fully migrated one gets the default company and its series.
+        if (targetMigration is null)
+        {
+            await EnsureDefaultCompanyAsync(db);
+            // Like a real company, the default company starts with its two invoice numbering series.
+            await new Application.Services.InvoiceNumberAllocator(db).GetOrCreateSeriesAsync();
+        }
     }
 
     /// <summary>

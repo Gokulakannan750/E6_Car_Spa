@@ -34,18 +34,29 @@ export function rememberCompanyCode(code: string): void {
 	}
 }
 
-let _inMemoryToken: string | null = (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null);
+let _inMemoryToken: string | null = typeof window !== 'undefined' && window.electronAPI
+	? null
+	: (typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null);
 
 export function getAuthToken(): string | null {
 	return _inMemoryToken;
 }
 
-export function setAuthToken(token: string | null) {
+export async function setAuthToken(token: string | null): Promise<{ success: boolean; error?: string } | void> {
 	_inMemoryToken = token;
 	if (typeof window !== 'undefined' && window.electronAPI?.setAuthToken) {
-		window.electronAPI.setAuthToken(token).catch(console.error);
-		if (typeof localStorage !== 'undefined') {
-			localStorage.removeItem(TOKEN_STORAGE_KEY);
+		try {
+			const res = await window.electronAPI.setAuthToken(token);
+			if (typeof localStorage !== 'undefined') {
+				localStorage.removeItem(TOKEN_STORAGE_KEY);
+			}
+			return res ?? { success: true };
+		} catch (err) {
+			if (typeof localStorage !== 'undefined') {
+				localStorage.removeItem(TOKEN_STORAGE_KEY);
+			}
+			console.error('Failed to set auth token:', err);
+			return { success: false, error: 'Secure storage is unavailable; the session will not persist after restart.' };
 		}
 	} else if (typeof localStorage !== 'undefined') {
 		if (token) {
@@ -59,7 +70,11 @@ export function setAuthToken(token: string | null) {
 export async function initAuthToken(): Promise<string | null> {
 	if (typeof window !== 'undefined' && window.electronAPI?.getAuthToken) {
 		try {
-			const safeToken = await window.electronAPI.getAuthToken();
+			const res = await window.electronAPI.getAuthToken();
+			const safeToken = typeof res === 'string' ? res : res?.token;
+			if (res && typeof res === 'object' && res.error) {
+				console.warn('Secure storage notice:', res.error);
+			}
 			if (safeToken) {
 				_inMemoryToken = safeToken;
 				if (typeof localStorage !== 'undefined') {
@@ -71,18 +86,11 @@ export async function initAuthToken(): Promise<string | null> {
 			console.warn('Failed to read token from safeStorage:', err);
 		}
 
-		// Migrate legacy unencrypted token if present
+		// Clean up any remaining legacy unencrypted localStorage token
 		if (typeof localStorage !== 'undefined') {
-			const legacyToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-			if (legacyToken) {
-				_inMemoryToken = legacyToken;
-				if (window.electronAPI.setAuthToken) {
-					await window.electronAPI.setAuthToken(legacyToken);
-				}
-				localStorage.removeItem(TOKEN_STORAGE_KEY);
-				return legacyToken;
-			}
+			localStorage.removeItem(TOKEN_STORAGE_KEY);
 		}
+		_inMemoryToken = null;
 	} else if (typeof localStorage !== 'undefined') {
 		_inMemoryToken = localStorage.getItem(TOKEN_STORAGE_KEY);
 	}
@@ -522,6 +530,7 @@ export interface MarkOutsideJobReturnedRequest {
 
 export interface CancelOutsideJobRequest {
  reason: string;
+ vehicleConfirmedAtShowroom: boolean;
 }
 
 export interface UpdateOutsideJobRequest {

@@ -177,10 +177,12 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                       hint: 'e.g. Premium Foam Wash',
                       prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Service name is required';
-                        if (val.trim().length > 100)
+                        }
+                        if (val.trim().length > 100) {
                           return 'Name cannot exceed 100 characters';
+                        }
                         return null;
                       },
                     ),
@@ -230,8 +232,9 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                         });
                       },
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Category is required';
+                        }
                         return null;
                       },
                     ),
@@ -247,8 +250,9 @@ class _AddServiceBottomSheetState extends ConsumerState<AddServiceBottomSheet> {
                       ),
                       prefixIcon: const Icon(Icons.currency_rupee),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Price is required';
+                        }
                         final num = double.tryParse(val.trim());
                         if (num == null || num < 0) return 'Enter valid amount';
                         return null;

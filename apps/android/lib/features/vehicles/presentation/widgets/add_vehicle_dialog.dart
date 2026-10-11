@@ -522,8 +522,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                       inputFormatters: const [UpperCaseTextFormatter()],
                       prefixIcon: const Icon(Icons.directions_car_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Registration number is required';
+                        }
                         return null;
                       },
                     ),
@@ -539,8 +540,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                               Icons.branding_watermark_outlined,
                             ),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty)
+                              if (val == null || val.trim().isEmpty) {
                                 return 'Make is required';
+                              }
                               return null;
                             },
                           ),
@@ -553,8 +555,9 @@ class _AddVehicleDialogState extends ConsumerState<AddVehicleDialog> {
                             hint: 'e.g. Creta',
                             prefixIcon: const Icon(Icons.car_repair_outlined),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty)
+                              if (val == null || val.trim().isEmpty) {
                                 return 'Model is required';
+                              }
                               return null;
                             },
                           ),

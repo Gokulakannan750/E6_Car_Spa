@@ -25,6 +25,10 @@ public class OutsideJobsController : ControllerBase
     private async Task<bool> CanEditDraftInvoicesAsync() =>
         (await _authorizationService.AuthorizeAsync(User, "Permission:invoices.edit_draft")).Succeeded;
 
+    /// <summary>Whether the caller may cancel an active dispatched outside job.</summary>
+    private async Task<bool> CanCancelDispatchedOutsideJobsAsync() =>
+        (await _authorizationService.AuthorizeAsync(User, "Permission:outsidejobs.cancel_dispatched")).Succeeded;
+
     /// <summary>
     /// Gets all outside jobs for a specific job card.
     /// </summary>
@@ -166,14 +170,23 @@ public class OutsideJobsController : ControllerBase
 
         try
         {
-            var dto = await _service.CancelAsync(id, request, userId, userName, ct);
+            var canCancelDispatched = await CanCancelDispatchedOutsideJobsAsync();
+            var dto = await _service.CancelAsync(id, request, userId, userName, ct, canCancelDispatched);
             return Ok(dto);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = ex.Message });
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { error = ex.Message });
         }
         catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { error = ex.Message });
         }
