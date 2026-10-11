@@ -340,14 +340,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: AppRoutes.franchise,
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: FranchiseScreen()),
-          ),
-          GoRoute(
             path: AppRoutes.audit,
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: AuditLogScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.franchise,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: FranchiseScreen()),
           ),
           GoRoute(
             path: AppRoutes.franchiseInvite,

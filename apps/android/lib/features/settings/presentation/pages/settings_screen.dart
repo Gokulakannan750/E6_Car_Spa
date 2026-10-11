@@ -25,8 +25,8 @@ class SettingsScreen extends ConsumerWidget {
     final authUser = ref.watch(currentUserProvider);
     final canViewSettings = authUser?.hasPermission('settings.view') ?? false;
     final canViewUsers = authUser?.hasPermission('users.view') ?? false;
-    // Only a company that a franchisor franchises reviews what it shares here.
     final canViewAudit = authUser?.hasPermission('audit.view') ?? false;
+    // Only a company that a franchisor franchises reviews what it shares here.
     final canViewSharing =
         (ref.watch(franchiseAccessProvider).valueOrNull?.isFranchisee ??
             false) &&
