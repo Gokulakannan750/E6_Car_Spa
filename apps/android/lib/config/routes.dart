@@ -85,4 +85,10 @@ class AppRoutes {
 
   // Legacy preferences alias retained for backward compatibility
   static const String legacySystemPreferences = '/settings/preferences';
+
+  // Matches Windows Desktop (/audit)
+  static const String audit = '/audit';
+
+  // Matches Windows Desktop (/settings/whatsapp)
+  static const String whatsAppSettings = '/settings/whatsapp';
 }

@@ -3664,6 +3664,188 @@ export async function getDashboardSummary(params?: { fromDate?: string; toDate?:
 	return request<DashboardSummaryDto>('/api/reports/dashboard' + suffix, {}, 'view reports');
 }
 
+// ── Financial reports: sales, collections, outstanding, GST, job cards ───────
+
+export interface PagedReport<TRow, TSummary> {
+	items: TRow[];
+	totalCount: number;
+	page: number;
+	pageSize: number;
+	summary: TSummary;
+}
+
+export interface SalesReportRowDto {
+	invoiceId: string;
+	invoiceNumber?: string | null;
+	invoiceDate: string;
+	customerName: string;
+	customerPhone: string;
+	registrationNumber: string;
+	subtotal: number;
+	discount: number;
+	gst: number;
+	totalAmount: number;
+	paidAmount: number;
+	balanceAmount: number;
+	status: InvoiceStatus;
+}
+
+export interface SalesReportSummaryDto {
+	totalSubtotal: number;
+	totalDiscount: number;
+	totalGst: number;
+	totalAmount: number;
+	totalPaid: number;
+	totalBalance: number;
+	invoiceCount: number;
+}
+
+export interface PaymentReportRowDto {
+	paymentId: string;
+	invoiceId: string;
+	invoiceNumber?: string | null;
+	customerName: string;
+	paymentDate: string;
+	paymentMethod: string;
+	reference?: string | null;
+	amount: number;
+	isVoided: boolean;
+	voidedAt?: string | null;
+}
+
+export interface PaymentReportSummaryDto {
+	totalCollected: number;
+	transactionCount: number;
+	cashAmount: number;
+	upiAmount: number;
+	cardAmount: number;
+	bankTransferAmount: number;
+	voidedTransactionCount: number;
+	voidedAmount: number;
+}
+
+export interface OutstandingInvoiceRowDto {
+	invoiceId: string;
+	invoiceNumber?: string | null;
+	invoiceDate: string;
+	customerName: string;
+	customerPhone: string;
+	vehicleRegistration: string;
+	totalAmount: number;
+	paidAmount: number;
+	balanceAmount: number;
+	status: InvoiceStatus;
+	ageInDays: number;
+}
+
+export interface OutstandingInvoiceSummaryDto {
+	totalOutstandingAmount: number;
+	totalInvoiceAmount: number;
+	totalPaidAmount: number;
+	invoiceCount: number;
+}
+
+export interface GstReportRowDto {
+	invoiceId: string;
+	invoiceNumber?: string | null;
+	invoiceDate: string;
+	customerName: string;
+	registrationNumber: string;
+	isGstEnabled: boolean;
+	taxableAmount: number;
+	gstAmount: number;
+	totalAmount: number;
+}
+
+export interface GstReportDto {
+	invoiceCount: number;
+	grossSubtotal: number;
+	totalDiscount: number;
+	taxableBase: number;
+	cgstAmount: number;
+	sgstAmount: number;
+	totalGstAmount: number;
+	totalAmount: number;
+	invoices: GstReportRowDto[];
+}
+
+export interface JobCardReportRowDto {
+	jobCardId: string;
+	jobCardNumber: string;
+	date: string;
+	customerName: string;
+	customerPhone: string;
+	vehicleRegistration: string;
+	vehicleDetails: string;
+	status: number | string;
+	totalAmount: number;
+	invoiceId?: string | null;
+	invoiceNumber?: string | null;
+	invoiceStatus?: InvoiceStatus | null;
+}
+
+export interface JobCardReportSummaryDto {
+	totalCount: number;
+	draftCount: number;
+	inProgressCount: number;
+	completedCount: number;
+	cancelledCount: number;
+	invoicedCount: number;
+	totalRevenue: number;
+}
+
+export type SalesReportResponse = PagedReport<SalesReportRowDto, SalesReportSummaryDto>;
+export type PaymentReportResponse = PagedReport<PaymentReportRowDto, PaymentReportSummaryDto>;
+export type OutstandingInvoiceReportResponse = PagedReport<OutstandingInvoiceRowDto, OutstandingInvoiceSummaryDto>;
+export type JobCardReportResponse = PagedReport<JobCardReportRowDto, JobCardReportSummaryDto>;
+
+export interface FinancialReportParams {
+	fromDate?: string;
+	toDate?: string;
+	page?: number;
+	pageSize?: number;
+}
+
+function financialReportQuery(params: FinancialReportParams): string {
+	const qs = new URLSearchParams();
+	if (params.fromDate) qs.set('fromDate', params.fromDate);
+	if (params.toDate) qs.set('toDate', params.toDate);
+	if (params.page) qs.set('page', String(params.page));
+	if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+	const text = qs.toString();
+	return text ? `?${text}` : '';
+}
+
+export async function getSalesReport(params: FinancialReportParams = {}) {
+	return request<SalesReportResponse>('/api/reports/sales' + financialReportQuery(params), {}, 'view the sales report');
+}
+
+export async function getPaymentCollectionReport(params: FinancialReportParams & { includeVoided?: boolean } = {}) {
+	const extra = params.includeVoided ? (financialReportQuery(params) ? '&' : '?') + 'includeVoided=true' : '';
+	return request<PaymentReportResponse>(
+		'/api/reports/payments' + financialReportQuery(params) + extra,
+		{},
+		'view the collections report',
+	);
+}
+
+export async function getOutstandingInvoicesReport(params: FinancialReportParams = {}) {
+	return request<OutstandingInvoiceReportResponse>(
+		'/api/reports/invoices/outstanding' + financialReportQuery(params),
+		{},
+		'view the outstanding invoices report',
+	);
+}
+
+export async function getGstReport(params: Pick<FinancialReportParams, 'fromDate' | 'toDate'> = {}) {
+	return request<GstReportDto>('/api/reports/gst' + financialReportQuery(params), {}, 'view the GST report');
+}
+
+export async function getJobCardReport(params: FinancialReportParams & { status?: number } = {}) {
+	const extra = params.status !== undefined ? (financialReportQuery(params) ? '&' : '?') + `status=${params.status}` : '';
+	return request<JobCardReportResponse>('/api/reports/job-cards' + financialReportQuery(params) + extra, {}, 'view the job card report');
+}
+
 // ── Staff Productivity Report ───────────────────────────────────────────────
 
 export interface StaffProductivityServiceItemDto {

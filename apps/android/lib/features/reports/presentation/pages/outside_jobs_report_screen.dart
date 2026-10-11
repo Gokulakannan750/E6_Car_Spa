@@ -1,3 +1,5 @@
+import '../../export/outside_jobs_excel.dart';
+import '../widgets/report_export_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,6 +70,19 @@ class _OutsideJobsReportScreenState
     return AppScreenScaffold(
       title: 'Outside Jobs & Movements',
       actions: [
+        ReportExportButton(
+          build: (ref, companyName) async {
+            final report = await ref.read(outsideJobsReportProvider.future);
+            final filter = ref.read(reportDateFilterProvider);
+            return [
+              OutsideJobsExcel.build(
+                report,
+                scopeLabel: filter.label,
+                companyName: companyName,
+              ),
+            ];
+          },
+        ),
         IconButton(
           icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
           tooltip: 'Refresh Report',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/app_router.dart';
 import 'features/auth/providers/auth_provider.dart';
@@ -10,6 +11,7 @@ import 'features/settings/providers/system_preferences_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.loadServerOverride();
   await SettingsRepository.applyCachedBrandColours();
   runApp(const ProviderScope(child: E6CarSpaApp()));
 }

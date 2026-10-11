@@ -187,7 +187,7 @@ void main() {
 
   group('Settings Level-2 Workspace Tests', () {
     testWidgets(
-      '1-7: Workspace opens, displays headers, cards, and NO WhatsApp',
+      '1-7: Workspace opens, displays headers, cards, WhatsApp and Audit Trail',
       (tester) async {
         await tester.pumpWidget(createTestApp(user: ownerUser));
         await tester.pumpAndSettle();
@@ -213,9 +213,10 @@ void main() {
         expect(find.text('System Preferences'), findsOneWidget);
         expect(find.text('Display & application settings'), findsOneWidget);
 
-        // 7. WhatsApp Settings does NOT exist
-        expect(find.textContaining('WhatsApp'), findsNothing);
-        expect(find.textContaining('whatsapp'), findsNothing);
+        // 7. WhatsApp and Audit Trail are there for someone allowed to see them
+        expect(find.text('WhatsApp'), findsOneWidget);
+        expect(find.text('Messages, templates & delivery'), findsOneWidget);
+        expect(find.text('Audit Trail'), findsOneWidget);
 
         // Verify no bottom navigation bar
         expect(find.byType(BottomNavigationBar), findsNothing);

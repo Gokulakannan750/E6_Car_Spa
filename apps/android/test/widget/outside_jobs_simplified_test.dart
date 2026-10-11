@@ -814,10 +814,7 @@ void main() {
           mockRepo.lastCancelRequest!.reason,
           'Wrong vendor entered in error',
         );
-        expect(
-          mockRepo.lastCancelRequest!.vehicleConfirmedAtShowroom,
-          isTrue,
-        );
+        expect(mockRepo.lastCancelRequest!.vehicleConfirmedAtShowroom, isTrue);
       },
     );
   });

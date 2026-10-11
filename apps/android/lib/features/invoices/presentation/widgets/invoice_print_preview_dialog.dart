@@ -34,7 +34,8 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
     );
   }
 
-  static Future<Uint8List?> _loadLogoBytes(
+  /// The company logo as bytes for a PDF, or null when it has none or cannot be fetched.
+  static Future<Uint8List?> loadLogoBytes(
     String? logoPath,
     DateTime? updatedAt,
   ) async {
@@ -92,7 +93,7 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
             icon: Icon(Icons.print_outlined, color: AppColors.primary),
             tooltip: 'Print Invoice',
             onPressed: () async {
-              final logoBytes = await _loadLogoBytes(
+              final logoBytes = await loadLogoBytes(
                 profile?.logoPath,
                 profile?.updatedAt,
               );
@@ -117,7 +118,7 @@ class InvoicePrintPreviewDialog extends ConsumerWidget {
         dynamicLayout: false,
         pdfFileName: 'Invoice_${invoice.invoiceNumber ?? invoice.id}.pdf',
         build: (format) async {
-          final logoBytes = await _loadLogoBytes(
+          final logoBytes = await loadLogoBytes(
             profile?.logoPath,
             profile?.updatedAt,
           );
