@@ -17,6 +17,7 @@ import '../../../invoices/providers/invoice_providers.dart';
 import '../../models/job_card_model.dart';
 import '../../providers/job_card_providers.dart';
 import '../widgets/edit_job_card_sheet.dart';
+import '../widgets/job_card_print_preview_dialog.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
 import '../widgets/outside_jobs_section.dart';
@@ -265,6 +266,15 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
         ),
         actions: [
           if (state.jobCard != null) ...[
+            IconButton(
+              key: const Key('print_job_card_button'),
+              icon: const Icon(Icons.print_outlined),
+              tooltip: 'Print job card',
+              onPressed: () => JobCardPrintPreviewDialog.show(
+                context,
+                jobCard: state.jobCard!,
+              ),
+            ),
             if (canEdit && !state.jobCard!.isLocked)
               IconButton(
                 key: const Key('edit_job_card_button'),

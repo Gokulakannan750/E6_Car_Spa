@@ -16,6 +16,8 @@ import '../widgets/edit_draft_bottom_sheet.dart';
 import '../widgets/edit_invoice_number_dialog.dart';
 import '../widgets/invoice_print_preview_dialog.dart';
 import '../widgets/record_payment_bottom_sheet.dart';
+import '../widgets/share_invoice_sheet.dart';
+import '../../../../shared/widgets/app_confirm_dialog.dart';
 
 class InvoiceDetailsScreen extends ConsumerStatefulWidget {
   final String invoiceId;
@@ -67,6 +69,16 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         invoiceForEdit.isGstEnabled &&
         invoiceForEdit.status == InvoiceStatus.paid &&
         (invoiceForEdit.invoiceNumber?.trim().isNotEmpty ?? false);
+
+    // The server checks these permissions again; the menu just hides what would be refused.
+    final canShare =
+        invoiceForEdit != null &&
+        invoiceForEdit.isFinalized &&
+        (user?.hasPermission('invoices.generate') ?? false);
+    final canCancel =
+        invoiceForEdit != null &&
+        invoiceForEdit.isFinalized &&
+        (user?.hasPermission('invoices.cancel') ?? false);
 
     // Listen for feedback messages
     ref.listen<InvoiceDetailsState>(invoiceDetailsProvider(widget.invoiceId), (
@@ -126,6 +138,40 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
                   currentNumber: state.invoice!.invoiceNumber!,
                   onSave: notifier.updateInvoiceNumber,
                 ),
+              ),
+            if (canShare || canCancel)
+              PopupMenuButton<String>(
+                key: const Key('invoice_more_menu'),
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert, color: AppColors.textPrimary),
+                onSelected: (value) {
+                  if (value == 'share') {
+                    ShareInvoiceSheet.show(
+                      context,
+                      invoiceId: state.invoice!.id,
+                      invoiceNumber: state.invoice!.invoiceNumber,
+                    );
+                  } else if (value == 'cancel') {
+                    _confirmCancel(context, state.invoice!, notifier);
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (canShare)
+                    const PopupMenuItem(
+                      key: Key('invoice_share_item'),
+                      value: 'share',
+                      child: Text('Share invoice'),
+                    ),
+                  if (canCancel)
+                    const PopupMenuItem(
+                      key: Key('invoice_cancel_item'),
+                      value: 'cancel',
+                      child: Text(
+                        'Cancel invoice',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                ],
               ),
             IconButton(
               key: const Key('print_invoice_appbar_button'),
@@ -827,6 +873,35 @@ class _InvoiceDetailsScreenState extends ConsumerState<InvoiceDetailsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmCancel(
+    BuildContext context,
+    Invoice invoice,
+    InvoiceDetailsNotifier notifier,
+  ) async {
+    final ok = await AppConfirmDialog.show(
+      context: context,
+      title: 'Cancel this invoice?',
+      message:
+          'Invoice ${invoice.invoiceNumber ?? ''} will be marked as void. This cannot be undone.',
+      confirmLabel: 'Cancel invoice',
+      cancelLabel: 'Keep invoice',
+      isDestructive: true,
+    );
+    if (ok != true || !mounted) return;
+    final error = await notifier.cancelInvoice(
+      reason: 'Invoice cancelled by user',
+    );
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildBottomActions(

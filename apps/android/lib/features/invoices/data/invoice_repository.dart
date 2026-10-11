@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../models/invoice_model.dart';
+import '../models/invoice_public_link.dart';
 import '../models/invoice_request_models.dart';
 import 'invoice_api.dart';
 
@@ -78,6 +79,46 @@ class InvoiceRepository {
   Future<Invoice> updateInvoiceNumber(String id, String invoiceNumber) async {
     try {
       return await _api.updateInvoiceNumber(id, invoiceNumber);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<Invoice> cancelInvoice(String id, {String? reason}) async {
+    try {
+      return await _api.cancelInvoice(id, reason: reason);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<InvoicePublicLinkStatus> getPublicLinkStatus(String id) async {
+    try {
+      return await _api.getPublicLinkStatus(id);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<InvoicePublicLink> createPublicLink(String id) async {
+    try {
+      return await _api.createPublicLink(id);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<InvoicePublicLink> rotatePublicLink(String id) async {
+    try {
+      return await _api.rotatePublicLink(id);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> revokePublicLink(String id) async {
+    try {
+      await _api.revokePublicLink(id);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

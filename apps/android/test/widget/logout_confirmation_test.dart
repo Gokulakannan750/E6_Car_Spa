@@ -94,10 +94,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AlertDialog), findsOneWidget);
-      expect(
-        find.text('Are you sure you want to sign out?'),
-        findsOneWidget,
-      );
+      expect(find.text('Are you sure you want to sign out?'), findsOneWidget);
     });
 
     testWidgets('tapping Cancel dismisses dialog without calling logout', (
