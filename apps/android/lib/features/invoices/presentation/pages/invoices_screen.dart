@@ -237,7 +237,7 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
           return InvoiceCard(
             item: item,
             onTap: () {
-              context.go('/quotations-invoices/${item.id}');
+              context.go('${AppRoutes.invoices}/${item.id}');
             },
           );
         },

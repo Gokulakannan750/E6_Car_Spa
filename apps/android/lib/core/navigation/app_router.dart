@@ -132,7 +132,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 path: 'invoices',
-                redirect: (context, state) => AppRoutes.quotationsInvoices,
+                redirect: (context, state) => AppRoutes.invoices,
               ),
               GoRoute(
                 path: 'catalogue',
@@ -189,7 +189,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: AppRoutes.quotationsInvoices,
+            path: AppRoutes.invoices,
             pageBuilder: (context, state) => const NoTransitionPage(
               child: BillingScreen(initialTabIndex: 2),
             ),
@@ -201,6 +201,19 @@ final routerProvider = Provider<GoRouter>((ref) {
                   return NoTransitionPage(
                     child: InvoiceDetailsScreen(invoiceId: id),
                   );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: AppRoutes.quotationsInvoices,
+            redirect: (context, state) => AppRoutes.invoices,
+            routes: [
+              GoRoute(
+                path: ':id',
+                redirect: (context, state) {
+                  final id = state.pathParameters['id'] ?? '';
+                  return '${AppRoutes.invoices}/$id';
                 },
               ),
             ],
@@ -353,9 +366,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     const NoTransitionPage(child: UsersScreen()),
               ),
               GoRoute(
-                path: 'preferences',
+                path: 'system',
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: SystemPreferencesScreen()),
+              ),
+              GoRoute(
+                path: 'preferences',
+                redirect: (context, state) => AppRoutes.system,
               ),
               GoRoute(
                 path: 'franchise-sharing',
