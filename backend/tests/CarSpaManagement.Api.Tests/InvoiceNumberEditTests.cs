@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
@@ -37,7 +38,7 @@ public class InvoiceNumberEditTests
             var http = new DefaultHttpContext();
             if (user is not null)
                 http.User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(ClaimTypes.Role, user.Role.ToString())], "Test"));
+                    [new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()), new Claim(ClaimTypes.Role, user.Role.ToString())], "Test"));
             return new InvoiceService(Db, Audit, new ConfigurationBuilder().Build(),
                 new HttpContextAccessor { HttpContext = http }, new NoopWhatsAppService(),
                 new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>());

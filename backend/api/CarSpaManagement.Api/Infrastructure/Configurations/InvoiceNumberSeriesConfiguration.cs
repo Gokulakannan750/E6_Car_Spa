@@ -40,7 +40,7 @@ public class InvoiceNumberSeriesConfiguration : IEntityTypeConfiguration<Invoice
 
         // Exactly one active series per kind. (Case-insensitive prefix uniqueness is an expression index
         // created in the migration: UX_InvoiceNumberSeries_Prefix on upper("Prefix").)
-        builder.HasIndex(s => s.SeriesKind)
+        builder.HasIndex(s => new { s.OrganizationId, s.SeriesKind })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false")
             .HasDatabaseName("UX_InvoiceNumberSeries_SeriesKind");

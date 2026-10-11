@@ -29,20 +29,14 @@ class MockAuthRepo extends AuthRepository {
   Future<bool> checkInitialization() async => false;
 
   @override
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+  Future<String> bootstrapOwner(BootstrapOwnerRequest request) async {
     capturedRequest = request;
     if (!bootstrapShouldSucceed) {
       throw Exception(
         bootstrapErrorMessage ?? 'System has already been initialized.',
       );
     }
-    return AuthUser(
-      id: 'owner-1',
-      fullName: request.fullName,
-      username: request.username,
-      role: 'Owner',
-      isOwner: true,
-    );
+    return '0001';
   }
 }
 

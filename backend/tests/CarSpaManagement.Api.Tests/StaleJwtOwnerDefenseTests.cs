@@ -1,3 +1,6 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.Security.Claims;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
@@ -17,6 +20,9 @@ public class StaleJwtOwnerDefenseTests
     {
         var dbName = Guid.NewGuid().ToString();
         var services = new ServiceCollection();
+        // Each request works for one company, taken from the token (as in the real app).
+        services.AddScoped<TenantContext>();
+        services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(dbName)
@@ -29,6 +35,8 @@ public class StaleJwtOwnerDefenseTests
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         var provider = services.BuildServiceProvider();
+        // The test seeds data as the default company; the permission check sets its own from the token.
+        provider.GetRequiredService<TenantContext>().Set(DefaultOrganization.Id);
         var db = provider.GetRequiredService<AppDbContext>();
         var authService = provider.GetRequiredService<IAuthorizationService>();
 
@@ -39,7 +47,7 @@ public class StaleJwtOwnerDefenseTests
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new("sub", userId.ToString()),
             new(ClaimTypes.Role, "Owner"),
             new("role", "Owner"),

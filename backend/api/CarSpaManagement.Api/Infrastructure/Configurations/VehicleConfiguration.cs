@@ -38,7 +38,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
  .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
  // Indexes
- builder.HasIndex(v => v.RegistrationNumber)
+ builder.HasIndex(v => new { v.OrganizationId, v.RegistrationNumber })
  .IsUnique()
  .HasFilter("\"IsDeleted\" = false")
  .HasDatabaseName("UX_Vehicles_RegistrationNumber");

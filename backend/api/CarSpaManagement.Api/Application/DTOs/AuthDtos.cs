@@ -31,6 +31,13 @@ public class LoginRequest
 
     [Required]
     public string Password { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The company's code (for example "0001"). Optional only while the server has a single company; once there
+    /// are several, the code is how sign-in knows which company's users to check.
+    /// </summary>
+    [StringLength(20)]
+    public string? CompanyCode { get; set; }
 }
 
 public class AuthUserDto
@@ -44,8 +51,17 @@ public class AuthUserDto
     public List<string> Permissions { get; set; } = [];
 }
 
+/// <summary>The new Owner plus the code of the company that was just created, which they sign in with.</summary>
+public class BootstrapOwnerResponse : AuthUserDto
+{
+    public string CompanyCode { get; set; } = string.Empty;
+}
+
 public class LoginResponse
 {
     public string Token { get; set; } = string.Empty;
     public AuthUserDto User { get; set; } = null!;
+
+    /// <summary>The company the user signed in to, so the apps can remember the code.</summary>
+    public string CompanyCode { get; set; } = string.Empty;
 }

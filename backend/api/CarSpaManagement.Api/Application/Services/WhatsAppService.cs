@@ -74,6 +74,11 @@ public class WhatsAppService : IWhatsAppService
 
 		config.IsEnabled = request.IsEnabled;
 		config.PhoneNumberId = (request.PhoneNumberId ?? string.Empty).Trim();
+		if (config.PhoneNumberId.Length > 0 && await _db.WhatsAppConfigurations.IgnoreQueryFilters()
+				.AnyAsync(c => c.PhoneNumberId == config.PhoneNumberId && c.OrganizationId != config.OrganizationId, cancellationToken))
+		{
+			throw new ConflictException("This WhatsApp number is already connected to another company.");
+		}
 		config.BusinessAccountId = (request.BusinessAccountId ?? string.Empty).Trim();
 		config.GraphApiVersion = string.IsNullOrWhiteSpace(request.GraphApiVersion) ? "v25.0" : request.GraphApiVersion.Trim();
 		config.InvoiceNotificationsEnabled = request.InvoiceNotificationsEnabled;
@@ -775,10 +780,10 @@ public class WhatsAppService : IWhatsAppService
 
 		var customerIds = rows.Select(r => r.CustomerId).Distinct().ToList();
 		var invoiceIds = rows.Select(r => r.InvoiceId).Distinct().ToList();
-		var customerNames = await _db.Customers.IgnoreQueryFilters().AsNoTracking()
+		var customerNames = await _db.Customers.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking()
 			.Where(c => customerIds.Contains(c.Id)).Select(c => new { c.Id, c.Name })
 			.ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
-		var invoiceNumbers = await _db.Invoices.IgnoreQueryFilters().AsNoTracking()
+		var invoiceNumbers = await _db.Invoices.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking()
 			.Where(i => invoiceIds.Contains(i.Id)).Select(i => new { i.Id, i.InvoiceNumber })
 			.ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken);
 

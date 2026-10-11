@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Domain.Common;
 using CarSpaManagement.Api.Domain.Enums;
 
 namespace CarSpaManagement.Api.Domain.Entities;
@@ -8,8 +9,11 @@ namespace CarSpaManagement.Api.Domain.Entities;
 /// regardless of later renames or prefix changes. Deliberately not a BaseEntity: rows are never
 /// soft-deleted, updated or removed, so no query filter can hide a reservation.
 /// </summary>
-public class InvoiceNumberAllocation
+public class InvoiceNumberAllocation : IOrganizationOwned
 {
+	/// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+	public Guid OrganizationId { get; set; }
+
 	public Guid Id { get; set; } = Guid.NewGuid();
 
 	public Guid InvoiceId { get; set; }

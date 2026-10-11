@@ -1,3 +1,6 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Application.Services;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
 using CarSpaManagement.Api.Application.DTOs.JobCards;
@@ -257,7 +260,7 @@ public class FinalHardeningSecurityTests
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                     {
-                        new Claim(ClaimTypes.NameIdentifier, ownerId.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, ownerId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
                         new Claim(ClaimTypes.Role, "Owner"),
                         new Claim("isOwner", "true")
                     }, "TestAuth"))
@@ -294,7 +297,7 @@ public class FinalHardeningSecurityTests
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                     {
-                        new Claim(ClaimTypes.NameIdentifier, inactiveOwnerId.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, inactiveOwnerId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
                         new Claim(ClaimTypes.Role, "Owner"),
                         new Claim("isOwner", "true") // Unexpired JWT claim
                     }, "TestAuth"))
@@ -331,7 +334,7 @@ public class FinalHardeningSecurityTests
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                     {
-                        new Claim(ClaimTypes.NameIdentifier, managerId.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, managerId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
                         new Claim(ClaimTypes.Role, "Manager"),
                         new Claim("isOwner", "false")
                     }, "TestAuth"))
@@ -368,7 +371,7 @@ public class FinalHardeningSecurityTests
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                     {
-                        new Claim(ClaimTypes.NameIdentifier, staffId.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, staffId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
                         new Claim(ClaimTypes.Role, "Staff"),
                         new Claim("isOwner", "false")
                     }, "TestAuth"))
@@ -405,7 +408,7 @@ public class FinalHardeningSecurityTests
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                     {
-                        new Claim(ClaimTypes.NameIdentifier, staffId.ToString()),
+                        new Claim(ClaimTypes.NameIdentifier, staffId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
                         new Claim(ClaimTypes.Role, "Owner"), // Forged claim
                         new Claim("isOwner", "true")        // Forged claim
                     }, "TestAuth"))

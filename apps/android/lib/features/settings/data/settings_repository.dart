@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/brand_palette.dart';
@@ -96,7 +97,13 @@ class SettingsRepository {
   /// Strictly saves only to the public branding cache and NEVER overwrites the protected profile cache.
   Future<PublicBusinessProfileModel> getPublicBusinessProfile() async {
     try {
-      final publicProfile = await _api.getPublicBusinessProfile();
+      String? companyCode;
+      try {
+        companyCode = await _storage.read(key: AppConstants.keyCompanyCode);
+      } catch (_) {}
+      final publicProfile = await _api.getPublicBusinessProfile(
+        companyCode: companyCode,
+      );
       await _saveCachedPublicBranding(publicProfile);
       return publicProfile;
     } on DioException catch (e) {

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/shell/AppLayout';
 import { RouteGuard } from '../components/auth/RouteGuard';
+import { FranchisorGuard } from '../features/franchise/FranchisorGuard';
 import { LoginPage, FirstTimeSetup } from '../features/auth';
 
 // Import wrappers
@@ -28,6 +29,10 @@ const loadSystemPreferences = () => import('../features/settings/SystemPreferenc
 const loadShowroomConfiguration = () => import('../features/showroom/ShowroomConfigurationPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
+const loadFranchise = () => import('../features/franchise/FranchisePage');
+const loadFranchiseDashboard = () => import('../features/franchise/FranchiseDashboardPage');
+const loadFranchiseInvite = () => import('../features/franchise/FranchiseInvitePage');
+const loadFranchiseSharing = () => import('../features/franchise/FranchiseSharingPage');
 const loadPublicInvoice = () => import('../features/invoices/PublicInvoicePage');
 
 export const router = createBrowserRouter([
@@ -38,6 +43,21 @@ export const router = createBrowserRouter([
 	{
 		path: '/setup',
 		element: <FirstTimeSetup />,
+	},
+	{
+		// The link a franchisor sends: the invited company's Owner signs in, then answers. It sits outside the app
+		// shell on purpose; the franchisee does not get the Franchise section just for answering.
+		path: '/franchise-invite/:token',
+		lazy: async () => {
+			const m = await loadFranchiseInvite();
+			return {
+				Component: () => (
+					<RouteGuard requiredPermission="franchise.manage">
+						<m.FranchiseInvitePage />
+					</RouteGuard>
+				),
+			};
+		},
 	},
 	{
 		path: '/i/:token',
@@ -440,6 +460,49 @@ export const router = createBrowserRouter([
 						Component: () => (
 							<RouteGuard requiredPermission="showroom.view">
 								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/franchise/dashboard',
+				lazy: async () => {
+					const m = await loadFranchiseDashboard();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="franchise.view">
+								<FranchisorGuard>
+									<m.FranchiseDashboardPage />
+								</FranchisorGuard>
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/franchise',
+				lazy: async () => {
+					const m = await loadFranchise();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="franchise.view">
+								<FranchisorGuard>
+									<m.FranchisePage />
+								</FranchisorGuard>
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/franchise-sharing',
+				lazy: async () => {
+					const m = await loadFranchiseSharing();
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="franchise.view">
+								<m.FranchiseSharingPage />
 							</RouteGuard>
 						),
 					};

@@ -76,6 +76,13 @@ public partial class BusinessProfileService : IBusinessProfileService
         }
 
         profile.BusinessName = request.BusinessName.Trim();
+
+        // The platform's own record of the company (shown to a company that is invited into a franchise link).
+        var organization = await _db.Organizations.FirstOrDefaultAsync(o => o.Id == _db.CurrentOrganizationId, ct);
+        if (organization is not null)
+        {
+            organization.Name = profile.BusinessName.Length > 150 ? profile.BusinessName[..150] : profile.BusinessName;
+        }
         profile.AddressLine1 = request.AddressLine1.Trim();
         profile.AddressLine2 = string.IsNullOrWhiteSpace(request.AddressLine2) ? null : request.AddressLine2.Trim();
         profile.City = request.City.Trim();

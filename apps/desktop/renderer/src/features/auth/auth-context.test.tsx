@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { AuthProvider, useAuth } from './auth-context';
+import { AuthProvider, useAuth, SESSION_CHANGED_EVENT } from './auth-context';
 import * as api from '../../lib/api';
 
 vi.mock('../../lib/api', () => ({
@@ -10,10 +10,13 @@ vi.mock('../../lib/api', () => ({
 	setAuthToken: vi.fn(),
 	initAuthToken: vi.fn().mockResolvedValue(null),
 	USER_STORAGE_KEY: 'test_user_key',
+	rememberCompanyCode: vi.fn(),
+	getRememberedCompanyCode: vi.fn(),
+	setCachedBusinessProfile: vi.fn(),
 }));
 
 function TestConsumer() {
-	const { isAuthenticated, isInitialized, isLoading, sessionExpiredMessage, logout, checkInitialization } = useAuth();
+	const { isAuthenticated, isInitialized, isLoading, sessionExpiredMessage, logout, checkInitialization, login } = useAuth();
 	return (
 		<div>
 			<span data-testid="is-loading">{isLoading ? 'loading' : 'ready'}</span>
@@ -21,6 +24,7 @@ function TestConsumer() {
 			<span data-testid="is-init">{isInitialized === null ? 'null' : isInitialized ? 'initialized' : 'uninitialized'}</span>
 			<span data-testid="session-msg">{sessionExpiredMessage || 'no-message'}</span>
 			<button onClick={() => logout()} data-testid="btn-logout">Logout</button>
+			<button onClick={() => login('owner', 'pw', '0002').catch(() => {})} data-testid="btn-login">Login</button>
 			<button onClick={() => checkInitialization(false, true)} data-testid="btn-check">Check</button>
 		</div>
 	);
@@ -181,5 +185,76 @@ describe('AuthProvider Lifecycle & State Revalidation', () => {
 		const res2 = await p2!;
 		expect(res1).toBe(true);
 		expect(res2).toBe(true);
+	});
+
+	describe('forgetting the previous session', () => {
+		const user: api.AuthUserResponse = { id: 'u1', fullName: 'Owner', username: 'owner', role: 'Owner', isOwner: true, permissions: [] };
+
+		async function mountAndSettle() {
+			vi.mocked(api.getAuthStatus).mockResolvedValue({ initialized: true });
+			render(
+				<AuthProvider>
+					<TestConsumer />
+				</AuthProvider>
+			);
+			await act(async () => {
+				await Promise.resolve();
+			});
+		}
+
+		it('announces a session change when someone signs out, so loaded data is dropped', async () => {
+			await mountAndSettle();
+			const changed = vi.fn();
+			window.addEventListener(SESSION_CHANGED_EVENT, changed);
+
+			await act(async () => {
+				screen.getByTestId('btn-logout').click();
+			});
+
+			expect(changed).toHaveBeenCalled();
+			window.removeEventListener(SESSION_CHANGED_EVENT, changed);
+		});
+
+		it('announces a session change when a session expires', async () => {
+			await mountAndSettle();
+			const changed = vi.fn();
+			window.addEventListener(SESSION_CHANGED_EVENT, changed);
+
+			await act(async () => {
+				window.dispatchEvent(new Event('auth:unauthorized'));
+			});
+
+			expect(changed).toHaveBeenCalled();
+			window.removeEventListener(SESSION_CHANGED_EVENT, changed);
+		});
+
+		it('announces a session change on sign-in, and drops the cached company profile when it is a different company', async () => {
+			await mountAndSettle();
+			vi.mocked(api.getRememberedCompanyCode).mockReturnValue('0001');
+			vi.mocked(api.loginApi).mockResolvedValue({ token: 't', user, companyCode: '0002' });
+			const changed = vi.fn();
+			window.addEventListener(SESSION_CHANGED_EVENT, changed);
+
+			await act(async () => {
+				screen.getByTestId('btn-login').click();
+			});
+
+			expect(changed).toHaveBeenCalled();
+			expect(api.setCachedBusinessProfile).toHaveBeenCalledWith(null);
+			expect(api.rememberCompanyCode).toHaveBeenCalledWith('0002');
+			window.removeEventListener(SESSION_CHANGED_EVENT, changed);
+		});
+
+		it('keeps the cached company profile when the same company signs in again', async () => {
+			await mountAndSettle();
+			vi.mocked(api.getRememberedCompanyCode).mockReturnValue('0002');
+			vi.mocked(api.loginApi).mockResolvedValue({ token: 't', user, companyCode: '0002' });
+
+			await act(async () => {
+				screen.getByTestId('btn-login').click();
+			});
+
+			expect(api.setCachedBusinessProfile).not.toHaveBeenCalled();
+		});
 	});
 });

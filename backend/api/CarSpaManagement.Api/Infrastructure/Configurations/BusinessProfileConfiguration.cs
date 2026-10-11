@@ -17,7 +17,7 @@ public class BusinessProfileConfiguration : IEntityTypeConfiguration<BusinessPro
             .HasDefaultValue(1)
             .IsRequired();
 
-        builder.HasIndex(b => b.SingletonKey)
+        builder.HasIndex(b => new { b.OrganizationId, b.SingletonKey })
             .IsUnique()
             .HasDatabaseName("UX_BusinessProfiles_Singleton");
 

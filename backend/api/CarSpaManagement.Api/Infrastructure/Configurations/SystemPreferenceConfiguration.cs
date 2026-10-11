@@ -17,7 +17,7 @@ public class SystemPreferenceConfiguration : IEntityTypeConfiguration<SystemPref
             .HasDefaultValue(1)
             .IsRequired();
 
-        builder.HasIndex(s => s.SingletonKey)
+        builder.HasIndex(s => new { s.OrganizationId, s.SingletonKey })
             .IsUnique()
             .HasDatabaseName("UX_SystemPreferences_Singleton");
 

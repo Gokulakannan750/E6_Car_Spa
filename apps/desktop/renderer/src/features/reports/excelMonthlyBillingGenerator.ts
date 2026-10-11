@@ -147,7 +147,8 @@ export function buildMonthlySummarySheet(
 	workbook: ExcelJS.Workbook,
 	summary: MonthlyBillingSummaryDto,
 	monthName: string,
-	daysInMonth: number
+	daysInMonth: number,
+	companyName?: string
 ): ExcelJS.Worksheet {
 	const ws = workbook.addWorksheet('Monthly Summary', {
 		views: [{ showGridLines: true }],
@@ -175,7 +176,7 @@ export function buildMonthlySummarySheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = 34;
 	ws.mergeCells(`A${r}:D${r}`);
-	titleRow.getCell(1).value = reportTitle('MONTHLY BILLING REPORT');
+	titleRow.getCell(1).value = reportTitle('MONTHLY BILLING REPORT', companyName);
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -527,7 +528,8 @@ export function buildMonthlySummarySheet(
 export function buildDailySheet(
 	workbook: ExcelJS.Workbook,
 	sheet: DailyBillingSheetDto,
-	monthName: string
+	monthName: string,
+	companyName?: string
 ): ExcelJS.Worksheet {
 	const ws = workbook.addWorksheet(sheet.sheetName, {
 		views: [{ state: 'frozen', ySplit: 4, showGridLines: true }],
@@ -559,7 +561,7 @@ export function buildDailySheet(
 	const titleRow = ws.getRow(r);
 	titleRow.height = 34;
 	ws.mergeCells(`A${r}:I${r}`);
-	titleRow.getCell(1).value = reportTitle(`BILLING ACTIVITY FOR ${sheet.dateFormatted.toUpperCase()}`);
+	titleRow.getCell(1).value = reportTitle(`BILLING ACTIVITY FOR ${sheet.dateFormatted.toUpperCase()}`, companyName);
 	styleCell(titleRow.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
 		fontColor: ARGB.WHITE,
@@ -1174,7 +1176,8 @@ export function buildDailySheet(
 // 3. WORKBOOK BUILDER & EXPORT DISPATCHER
 // ────────────────────────────────────────────────────────────────────────────
 export function createMonthlyBillingWorkbook(
-	report: MonthlyBillingReportResponse
+	report: MonthlyBillingReportResponse,
+	companyName?: string
 ): ExcelJS.Workbook {
 	const workbook = new ExcelJS.Workbook();
 	workbook.creator = reportCreator();
@@ -1187,23 +1190,25 @@ export function createMonthlyBillingWorkbook(
 		workbook,
 		report.summary,
 		report.monthName,
-		report.daysInMonth
+		report.daysInMonth,
+		companyName
 	);
 
 	// Sheets 2..N: Daily sheets for each calendar day in the month
 	for (const daySheet of report.dailySheets) {
-		buildDailySheet(workbook, daySheet, report.monthName);
+		buildDailySheet(workbook, daySheet, report.monthName, companyName);
 	}
 
 	return workbook;
 }
 
 export async function generateAndDownloadMonthlyBillingReport(
-	report: MonthlyBillingReportResponse
+	report: MonthlyBillingReportResponse,
+	companyName?: string
 ): Promise<string> {
-	const workbook = createMonthlyBillingWorkbook(report);
+	const workbook = createMonthlyBillingWorkbook(report, companyName);
 	const sanitizedMonth = (report.monthName || `${report.year}_${report.month}`).replace(/\s+/g, '_');
-	const fileName = `${reportFilePrefix()}Billing_Report_${sanitizedMonth}.xlsx`;
+	const fileName = `${reportFilePrefix(companyName)}Billing_Report_${sanitizedMonth}.xlsx`;
 
 	const buffer = await workbook.xlsx.writeBuffer();
 	const blob = new Blob([buffer], {

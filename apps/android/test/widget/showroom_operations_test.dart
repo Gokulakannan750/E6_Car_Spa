@@ -27,7 +27,11 @@ class _FakeShowroomAuthNotifier extends StateNotifier<AuthState>
   Future<void> restoreSession() async {}
 
   @override
-  Future<bool> login(String username, String password) async => true;
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async => true;
 
   @override
   Future<void> logout() async {}

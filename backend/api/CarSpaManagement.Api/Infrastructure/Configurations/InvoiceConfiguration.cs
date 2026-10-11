@@ -67,7 +67,7 @@ public class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
 		builder.Property(i => i.CreatedAt)
 			.HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-		builder.HasIndex(i => i.InvoiceNumber)
+		builder.HasIndex(i => new { i.OrganizationId, i.InvoiceNumber })
 			.IsUnique()
 			.HasDatabaseName("UX_Invoices_InvoiceNumber");
 

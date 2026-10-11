@@ -14,6 +14,25 @@ const API_BASE = (() => {
 
 export const TOKEN_STORAGE_KEY = 'car_spa_token';
 export const USER_STORAGE_KEY = 'car_spa_user';
+export const COMPANY_CODE_STORAGE_KEY = 'car_spa_company_code';
+
+/** The company code this device last signed in to (asked once, then remembered). */
+export function getRememberedCompanyCode(): string {
+	try {
+		return localStorage.getItem(COMPANY_CODE_STORAGE_KEY) ?? '';
+	} catch {
+		return '';
+	}
+}
+
+export function rememberCompanyCode(code: string): void {
+	try {
+		if (code) localStorage.setItem(COMPANY_CODE_STORAGE_KEY, code);
+		else localStorage.removeItem(COMPANY_CODE_STORAGE_KEY);
+	} catch {
+		// storage unavailable: the user just types the code next time
+	}
+}
 
 let _inMemoryToken: string | null = typeof window !== 'undefined' && window.electronAPI
 	? null
@@ -2837,6 +2856,7 @@ export interface BootstrapOwnerInput {
 export interface LoginInput {
 	username: string;
 	password: string;
+	companyCode?: string;
 }
 
 export interface AuthUserResponse {
@@ -2852,6 +2872,7 @@ export interface AuthUserResponse {
 export interface LoginResponse {
 	token: string;
 	user: AuthUserResponse;
+	companyCode?: string;
 }
 
 export interface UserItemDto {
@@ -2903,7 +2924,7 @@ export async function getAuthStatus() {
 }
 
 export async function bootstrapOwner(data: BootstrapOwnerInput) {
-	return request<AuthUserResponse>('/api/auth/bootstrap', {
+	return request<AuthUserResponse & { companyCode?: string }>('/api/auth/bootstrap', {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'initialize owner account');
@@ -3046,6 +3067,167 @@ export function resolveLogoUrl(logoPath?: string | null, updatedAt?: string | nu
 	return fullUrl.includes('?') ? fullUrl : `${fullUrl}${versionParam}`;
 }
 
+// ============================================================================
+// Franchise network
+// ============================================================================
+
+export type FranchiseLinkStatus = 'Pending' | 'Active' | 'Declined' | 'Cancelled' | 'Expired' | 'Ended';
+export type FranchiseScopeStatus = 'Requested' | 'Granted' | 'Denied';
+
+export interface FranchiseScopeDto {
+	scope: string;
+	label: string;
+	status: FranchiseScopeStatus;
+}
+
+export interface FranchiseLinkDto {
+	id: string;
+	/** The viewer's own role in the link. */
+	role: 'Franchisor' | 'Franchisee';
+	/** The other company's code with the middle hidden, for example "0••1". The full code is never sent. */
+	partnerCodeHint: string;
+	partnerName: string;
+	status: FranchiseLinkStatus;
+	invitedAt: string;
+	expiresAt: string;
+	respondedAt: string | null;
+	endedAt: string | null;
+	scopes: FranchiseScopeDto[];
+}
+
+export interface FranchiseNetworkDto {
+	franchiseEnabled: boolean;
+	/** Links where this company is the franchisor (the companies it franchises). */
+	franchisees: FranchiseLinkDto[];
+	/** Links where this company is the franchisee (the companies that franchise it). */
+	franchisors: FranchiseLinkDto[];
+	pendingInvitations: number;
+}
+
+export interface FranchiseDailyPointDto {
+	date: string;
+	invoiced: number;
+	collected: number;
+}
+
+export interface FranchiseFinancialTotalsDto {
+	invoiceCount: number;
+	invoicedAmount: number;
+	collectedAmount: number;
+	outstandingAmount: number;
+	jobCardCount: number;
+	daily: FranchiseDailyPointDto[];
+}
+
+export interface FranchiseeFinancialsDto {
+	linkId: string;
+	partnerCodeHint: string;
+	partnerName: string;
+	financialTotalsAllowed: boolean;
+	/** The items the franchisee has allowed, e.g. financial_totals, invoice_list. */
+	allowedItems: string[];
+	totals: FranchiseFinancialTotalsDto | null;
+}
+
+export interface FranchiseDashboardDto {
+	from: string;
+	to: string;
+	network: FranchiseFinancialTotalsDto;
+	franchisees: FranchiseeFinancialsDto[];
+}
+
+export async function getFranchiseDashboard(from: string, to: string) {
+	return request<FranchiseDashboardDto>(
+		`/api/franchise/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+		{},
+		'view the franchise figures',
+	);
+}
+
+/** A franchisee's monthly billing report (the same one the franchisee sees); needs the invoice list to be allowed. */
+export async function getFranchiseBillingReport(linkId: string, year: number, month: number) {
+	return request<MonthlyBillingReportResponse>(
+		`/api/franchise/links/${encodeURIComponent(linkId)}/billing-report?year=${year}&month=${month}`,
+		{},
+		'download the franchisee billing report',
+	);
+}
+
+export async function getFranchiseNetwork() {
+	return request<FranchiseNetworkDto>('/api/franchise', {}, 'view the franchise network');
+}
+
+export interface FranchiseAccessDto {
+	/** The company has the Franchise add-on, so it can invite companies and see their approved figures. */
+	canActAsFranchisor: boolean;
+	/** The company has an active link to a franchisor. */
+	isFranchisee: boolean;
+}
+
+/** A link for the franchisee to answer through, shown once to the franchisor to pass on. */
+export interface FranchiseLinkAccessDto {
+	link: FranchiseLinkDto;
+	accessLink: string | null;
+	accessLinkExpiresAt: string | null;
+}
+
+export async function getFranchiseAccess() {
+	return request<FranchiseAccessDto>('/api/franchise/access', {}, 'check franchise access');
+}
+
+export async function createFranchiseLink(linkId: string) {
+	return request<FranchiseLinkAccessDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/new-link`, { method: 'POST' }, 'make a new link');
+}
+
+/** The invited company's Owner opens the link they were sent. */
+export async function getFranchiseInviteByToken(token: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/invites/${encodeURIComponent(token)}`, {}, 'open the franchise invitation');
+}
+
+export async function respondToFranchiseInviteByToken(token: string, data: { accept: boolean; grantedScopes?: string[] }) {
+	return request<FranchiseLinkDto>(`/api/franchise/invites/${encodeURIComponent(token)}/respond`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'answer the franchise invitation');
+}
+
+export async function sendFranchiseInvite(data: { franchiseeCode: string; scopes?: string[] }) {
+	return request<{ message: string; inviteLink: string }>('/api/franchise/invites', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'send a franchise invitation');
+}
+
+export async function cancelFranchiseInvite(linkId: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/cancel`, { method: 'POST' }, 'withdraw the invitation');
+}
+
+export async function respondToFranchiseInvite(linkId: string, data: { accept: boolean; grantedScopes?: string[] }) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/respond`, {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'answer the invitation');
+}
+
+export async function endFranchiseLink(linkId: string) {
+	return request<FranchiseLinkDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/end`, { method: 'POST' }, 'end the franchise link');
+}
+
+export async function requestFranchiseScopes(linkId: string, scopes: string[]) {
+	return request<FranchiseLinkAccessDto>(`/api/franchise/links/${encodeURIComponent(linkId)}/scopes`, {
+		method: 'POST',
+		body: JSON.stringify({ scopes }),
+	}, 'ask to see more');
+}
+
+export async function decideFranchiseScope(linkId: string, scope: string, grant: boolean) {
+	return request<FranchiseLinkDto>(
+		`/api/franchise/links/${encodeURIComponent(linkId)}/scopes/${encodeURIComponent(scope)}`,
+		{ method: 'PUT', body: JSON.stringify({ grant }) },
+		'change what is shared',
+	);
+}
+
 export interface PublicBusinessProfileDto {
 	businessName: string;
 	logoPath: string | null;
@@ -3055,8 +3237,10 @@ export interface PublicBusinessProfileDto {
 	loginImagePath?: string | null;
 }
 
-export async function getPublicBusinessProfile(): Promise<PublicBusinessProfileDto> {
-	const res = await request<PublicBusinessProfileDto>('/api/public/business-profile', {}, 'view public branding');
+export async function getPublicBusinessProfile(companyCode?: string): Promise<PublicBusinessProfileDto> {
+	const code = (companyCode ?? getRememberedCompanyCode()).trim();
+	const query = code ? `?companyCode=${encodeURIComponent(code)}` : '';
+	const res = await request<PublicBusinessProfileDto>(`/api/public/business-profile${query}`, {}, 'view public branding');
 	applyTheme({ appColor: res.appColor, sidebarColor: res.sidebarColor });
 	const existing = getCachedBusinessProfile();
 	if (existing) {

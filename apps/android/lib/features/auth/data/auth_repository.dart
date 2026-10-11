@@ -25,20 +25,41 @@ class AuthRepository {
   }
 
   /// Bootstraps initial Owner account against POST /api/auth/bootstrap
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
-    return await _api.bootstrapOwner(request);
+  /// Returns the new company's code, which is also remembered on this device.
+  Future<String> bootstrapOwner(BootstrapOwnerRequest request) async {
+    final result = await _api.bootstrapOwner(request);
+    if (result.companyCode.isNotEmpty) {
+      await _storage.saveCompanyCode(result.companyCode);
+    }
+    return result.companyCode;
   }
 
   /// Performs login, stores token and user in secure storage, and returns AuthUser
-  Future<AuthUser> login(String username, String password) async {
+  Future<AuthUser> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async {
+    final code = companyCode?.trim() ?? '';
     final response = await _api.login(
-      LoginRequest(username: username.trim(), password: password),
+      LoginRequest(
+        username: username.trim(),
+        password: password,
+        companyCode: code,
+      ),
     );
 
+    final signedInTo = response.companyCode.isNotEmpty
+        ? response.companyCode
+        : code;
+    if (signedInTo.isNotEmpty) await _storage.saveCompanyCode(signedInTo);
     await _storage.saveToken(response.token);
     await _storage.saveUser(response.user);
     return response.user;
   }
+
+  /// The company code remembered on this device (empty until the first sign-in).
+  Future<String> getRememberedCompanyCode() => _storage.getCompanyCode();
 
   /// Restores session on application startup by validating the existing token with GET /api/auth/me
   Future<AuthUser?> restoreSession() async {

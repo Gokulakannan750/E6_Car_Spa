@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs;
 using CarSpaManagement.Api.Application.DTOs.Audit;
@@ -243,7 +244,7 @@ public class AccountLockoutSecurityTests
         }));
 
         // Reset lockout
-        lockoutService.Reset("lockoutuser");
+        lockoutService.Reset(AccountLockoutKey.For(DefaultOrganization.Code, "lockoutuser"));
 
         // Now login should succeed
         var response = await authService.LoginAsync(new LoginRequest

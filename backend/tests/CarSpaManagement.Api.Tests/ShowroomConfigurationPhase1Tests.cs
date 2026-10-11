@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -66,7 +68,7 @@ public class ShowroomConfigurationPhase1Tests
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new("sub", userId.ToString()),
             new(ClaimTypes.Name, "test_user"),
             new(ClaimTypes.Role, role),

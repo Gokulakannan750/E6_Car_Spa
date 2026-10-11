@@ -57,7 +57,7 @@ public class ShowroomService : IShowroomService
     private async Task<string> FindNextMasterIdCandidateAsync(string prefix, HashSet<string> attemptedCandidates, CancellationToken ct)
     {
         var existing = await _db.Showrooms
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .Where(s => s.MasterId.StartsWith(prefix))
             .Select(s => s.MasterId)
             .ToListAsync(ct);
@@ -608,7 +608,7 @@ public class ShowroomService : IShowroomService
         }
 
         var attendance = await _db.ShowroomDailyAttendances
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.Date == targetDate, ct);
 
         var isCorrection = attendance != null && attendance.AttendanceConfirmedAt.HasValue;
@@ -756,7 +756,7 @@ public class ShowroomService : IShowroomService
 
         // Sync legacy ShowroomStaffAssignments
         var existingAssignment = await _db.ShowroomStaffAssignments
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .FirstOrDefaultAsync(a => a.ShowroomId == showroomId && a.StaffId == request.StaffId && a.Date == targetDate, ct);
 
         if (existingAssignment == null)
@@ -1082,8 +1082,8 @@ public class ShowroomService : IShowroomService
     /// <summary>Staff and showroom names for audit descriptions (soft-deleted records still resolve).</summary>
     private async Task<(string? StaffName, string? ShowroomName)> AuditNamesAsync(Guid staffId, Guid showroomId, CancellationToken ct)
     {
-        var staffName = await _db.Staff.IgnoreQueryFilters().AsNoTracking().Where(s => s.Id == staffId).Select(s => s.Name).FirstOrDefaultAsync(ct);
-        var showroomName = await _db.Showrooms.IgnoreQueryFilters().AsNoTracking().Where(s => s.Id == showroomId).Select(s => s.Name).FirstOrDefaultAsync(ct);
+        var staffName = await _db.Staff.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking().Where(s => s.Id == staffId).Select(s => s.Name).FirstOrDefaultAsync(ct);
+        var showroomName = await _db.Showrooms.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AsNoTracking().Where(s => s.Id == showroomId).Select(s => s.Name).FirstOrDefaultAsync(ct);
         return (staffName, showroomName);
     }
 
@@ -1212,7 +1212,7 @@ public class ShowroomService : IShowroomService
 
         var bill = await _db.ShowroomDailyBills
             .Include(b => b.Payments)
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .FirstOrDefaultAsync(b => b.ShowroomId == showroomId && b.Date == targetDate, ct);
 
         // Previous amount for the audit trail (no active bill = no previous amount).
@@ -1626,11 +1626,11 @@ public class ShowroomService : IShowroomService
         // 6. Generate SwapId e.g. "SWP-20260927-0001"
         var datePrefix = $"SWP-{targetDate:yyyyMMdd}-";
         var existingSwapsCount = await _db.ShowroomStaffSwaps
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .CountAsync(s => s.SwapId.StartsWith(datePrefix), ct);
         var swapId = $"{datePrefix}{(existingSwapsCount + 1):D4}";
 
-        while (await _db.ShowroomStaffSwaps.IgnoreQueryFilters().AnyAsync(s => s.SwapId == swapId, ct))
+        while (await _db.ShowroomStaffSwaps.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AnyAsync(s => s.SwapId == swapId, ct))
         {
             existingSwapsCount++;
             swapId = $"{datePrefix}{(existingSwapsCount + 1):D4}";

@@ -1,0 +1,91 @@
+using CarSpaManagement.Api.Application.DTOs.Franchise;
+using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace CarSpaManagement.Api.Controllers;
+
+/// <summary>The franchise network: links between this company and the companies it franchises, or that franchise it.</summary>
+[ApiController]
+[Route("api/franchise")]
+public class FranchiseController(IFranchiseService franchiseService, IFranchiseReports franchiseReports) : ControllerBase
+{
+    /// <summary>What the signed-in company can do here; the apps use it to decide whether to show the Franchise section.</summary>
+    [HttpGet("access")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> GetAccess(CancellationToken ct) =>
+        Ok(await franchiseService.GetAccessAsync(ct));
+
+    [HttpGet]
+    [RequirePermission("franchise.view")]
+    public async Task<IActionResult> GetNetwork(CancellationToken ct) =>
+        Ok(await franchiseService.GetNetworkAsync(ct));
+
+    [HttpGet("dashboard")]
+    [RequirePermission("franchise.view")]
+    public async Task<IActionResult> GetDashboard([FromQuery] DateOnly? from, [FromQuery] DateOnly? to, CancellationToken ct) =>
+        Ok(await franchiseService.GetDashboardAsync(from, to, ct));
+
+    /// <summary>A franchisee's monthly billing report, for the franchisor, when the franchisee allowed the invoice list.</summary>
+    [HttpGet("links/{id:guid}/billing-report")]
+    [RequirePermission("franchise.view")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("reports-heavy")]
+    public async Task<IActionResult> GetBillingReport(Guid id, [FromQuery] int year, [FromQuery] int month, CancellationToken ct) =>
+        Ok(await franchiseReports.GetMonthlyBillingReportAsync(id, year, month, ct));
+
+    [HttpPost("invites")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> SendInvite([FromBody] SendFranchiseInviteRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return Ok(await franchiseService.SendInviteAsync(request, ct));
+    }
+
+    /// <summary>A fresh link for the franchisee to answer through (the earlier one stops working).</summary>
+    [HttpPost("links/{id:guid}/new-link")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> CreateLink(Guid id, CancellationToken ct) =>
+        Ok(await franchiseService.CreateLinkAsync(id, ct));
+
+    /// <summary>The invited company's Owner opens the link they were sent.</summary>
+    [HttpGet("invites/{token}")]
+    [RequirePermission("franchise.manage")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> GetByToken(string token, CancellationToken ct) =>
+        Ok(await franchiseService.GetByTokenAsync(token, ct));
+
+    /// <summary>The invited company's Owner answers through the link.</summary>
+    [HttpPost("invites/{token}/respond")]
+    [RequirePermission("franchise.manage")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-login")]
+    public async Task<IActionResult> RespondByToken(string token, [FromBody] RespondToFranchiseInviteRequest request, CancellationToken ct) =>
+        Ok(await franchiseService.RespondByTokenAsync(token, request, ct));
+
+    [HttpPost("links/{id:guid}/cancel")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken ct) =>
+        Ok(await franchiseService.CancelInviteAsync(id, ct));
+
+    [HttpPost("links/{id:guid}/respond")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> Respond(Guid id, [FromBody] RespondToFranchiseInviteRequest request, CancellationToken ct) =>
+        Ok(await franchiseService.RespondAsync(id, request, ct));
+
+    [HttpPost("links/{id:guid}/end")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> End(Guid id, CancellationToken ct) =>
+        Ok(await franchiseService.EndLinkAsync(id, ct));
+
+    [HttpPost("links/{id:guid}/scopes")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> RequestScopes(Guid id, [FromBody] RequestFranchiseScopesRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return Ok(await franchiseService.RequestScopesAsync(id, request, ct));
+    }
+
+    [HttpPut("links/{id:guid}/scopes/{scope}")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> DecideScope(Guid id, string scope, [FromBody] DecideFranchiseScopeRequest request, CancellationToken ct) =>
+        Ok(await franchiseService.DecideScopeAsync(id, scope, request, ct));
+}

@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Audit;
@@ -63,8 +65,13 @@ public class CustomerUpdateEndpointTests
     {
         var db = CreateInMemoryDb();
         var services = new ServiceCollection();
+        // Each request works for one company, taken from the token (as in the real app).
+        services.AddScoped<TenantContext>();
+        services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped(_ => db);
         var provider = services.BuildServiceProvider();
+        // The test seeds data as the default company; the permission check sets its own from the token.
+        provider.GetRequiredService<TenantContext>().Set(DefaultOrganization.Id);
         var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         return (db, scopeFactory);
     }
@@ -73,7 +80,7 @@ public class CustomerUpdateEndpointTests
     {
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, userId.ToString()),
+            new(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new("sub", userId.ToString()),
             new(ClaimTypes.Name, "test_user"),
             new(ClaimTypes.Role, role),

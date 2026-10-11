@@ -72,6 +72,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("OldValues")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Outcome")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -103,6 +106,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("Module")
                         .HasDatabaseName("IX_AuditLogs_Module");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("TimestampUtc")
                         .HasDatabaseName("IX_AuditLogs_TimestampUtc");
@@ -182,6 +187,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -219,7 +227,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SingletonKey")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "SingletonKey")
                         .IsUnique()
                         .HasDatabaseName("UX_BusinessProfiles_Singleton");
 
@@ -254,6 +264,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -264,10 +277,130 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("PhoneNumber")
                         .HasDatabaseName("IX_Customers_PhoneNumber");
 
                     b.ToTable("Customers", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EndedByOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FranchiseeOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchisorOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("InviteTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InviteTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("InvitedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RespondedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FranchiseeOrganizationId");
+
+                    b.HasIndex("InviteTokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FranchiseLinks_InviteTokenHash")
+                        .HasFilter("\"InviteTokenHash\" IS NOT NULL");
+
+                    b.HasIndex("FranchisorOrganizationId", "FranchiseeOrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FranchiseLinks_OpenLink")
+                        .HasFilter("\"Status\" IN ('Pending', 'Active')");
+
+                    b.ToTable("FranchiseLinks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FranchiseLinks_DifferentCompanies", "\"FranchisorOrganizationId\" <> \"FranchiseeOrganizationId\"");
+                        });
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLinkScope", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FranchiseLinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchiseeOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchisorOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FranchiseeOrganizationId");
+
+                    b.HasIndex("FranchisorOrganizationId");
+
+                    b.HasIndex("FranchiseLinkId", "Scope")
+                        .IsUnique();
+
+                    b.ToTable("FranchiseLinkScopes", (string)null);
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
@@ -319,6 +452,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("PaidAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -348,13 +484,15 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Invoices_InvoiceNumber");
-
                     b.HasIndex("JobCardId")
                         .IsUnique()
                         .HasDatabaseName("UX_Invoices_JobCardId");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "InvoiceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Invoices_InvoiceNumber");
 
                     b.HasIndex("Status", "InvoiceDate")
                         .HasDatabaseName("IX_Invoices_Status_InvoiceDate");
@@ -395,6 +533,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("OutsideJobId")
                         .HasColumnType("uuid");
 
@@ -431,6 +572,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("InvoiceId")
                         .HasDatabaseName("IX_InvoiceItems_InvoiceId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("OutsideJobId")
                         .HasDatabaseName("IX_InvoiceItems_OutsideJobId");
@@ -476,6 +619,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SeriesKind")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -486,7 +632,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasIndex("InvoiceId")
                         .HasDatabaseName("IX_InvoiceNumberAllocations_InvoiceId");
 
-                    b.HasIndex("NormalizedNumber")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "NormalizedNumber")
                         .IsUnique()
                         .HasDatabaseName("UX_InvoiceNumberAllocations_NormalizedNumber");
 
@@ -523,6 +671,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("bigint")
                         .HasDefaultValue(1L);
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Prefix")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -538,7 +689,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SeriesKind")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "SeriesKind")
                         .IsUnique()
                         .HasDatabaseName("UX_InvoiceNumberSeries_SeriesKind")
                         .HasFilter("\"IsDeleted\" = false");
@@ -593,6 +746,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<DateTime?>("LastAccessedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("RevokedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -614,6 +770,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("IsRevoked")
                         .HasDatabaseName("IX_InvoicePublicLinks_IsRevoked");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -651,6 +809,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -673,7 +834,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("JobCardNumber")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "JobCardNumber")
                         .IsUnique()
                         .HasDatabaseName("UX_JobCards_JobCardNumber");
 
@@ -713,6 +876,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<decimal>("LineTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
@@ -738,12 +904,75 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasIndex("JobCardId")
                         .HasDatabaseName("IX_JobCardServices_JobCardId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("ServiceId");
 
                     b.HasIndex("JobCardId", "ServiceId")
                         .HasDatabaseName("IX_JobCardServices_JobCardId_ServiceId");
 
                     b.ToTable("JobCardServices", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Organization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("FranchiseAddOnEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Organizations_Code");
+
+                    b.ToTable("Organizations", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OrganizationCounter", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("OrganizationId", "Name");
+
+                    b.HasIndex("OrganizationId");
+
+                    b.ToTable("OrganizationCounters", (string)null);
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OutsideJob", b =>
@@ -777,6 +1006,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ReturnNotes")
                         .HasMaxLength(1000)
@@ -833,6 +1065,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("CustomerId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("SentAt")
                         .HasDatabaseName("IX_OutsideJobs_SentAt");
 
@@ -875,6 +1109,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -892,6 +1129,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("InvoiceId")
                         .HasDatabaseName("IX_Payments_InvoiceId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("PaymentDate")
                         .HasDatabaseName("IX_Payments_PaymentDate");
@@ -976,6 +1215,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -986,6 +1228,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("Category", "IsDeleted")
                         .HasDatabaseName("IX_Services_Category");
@@ -1033,6 +1277,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -1042,7 +1289,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MasterId")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "MasterId")
                         .IsUnique();
 
                     b.ToTable("Showrooms");
@@ -1074,6 +1323,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ShowroomId")
                         .HasColumnType("uuid");
 
@@ -1083,6 +1335,8 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttendanceConfirmedByUserId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ShowroomId", "Date")
                         .IsUnique()
@@ -1113,6 +1367,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ShowroomId")
                         .HasColumnType("uuid");
 
@@ -1120,6 +1377,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ShowroomId", "Date");
 
@@ -1145,6 +1404,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -1162,6 +1424,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ShowroomDailyBillId");
 
@@ -1183,6 +1447,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ShowroomId")
                         .HasColumnType("uuid");
 
@@ -1196,6 +1463,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("StaffId");
 
@@ -1234,6 +1503,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PerformedByName")
                         .HasMaxLength(150)
@@ -1279,9 +1551,11 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("PerformedByUserId");
 
-                    b.HasIndex("SwapId")
+                    b.HasIndex("OrganizationId", "SwapId")
                         .IsUnique();
 
                     b.HasIndex("ShowroomAId", "Date");
@@ -1324,6 +1598,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("OriginalShowroomId")
                         .HasColumnType("uuid");
 
@@ -1360,6 +1637,8 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("HomeShowroomId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("OriginalShowroomId");
 
@@ -1406,12 +1685,17 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "Code")
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
 
@@ -1436,6 +1720,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ShowroomId")
                         .HasColumnType("uuid");
@@ -1462,6 +1749,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("ShowroomStaffWorkSessionId");
 
@@ -1490,6 +1779,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Quantity")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -1505,6 +1797,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("WorkTypeId");
 
@@ -1554,12 +1848,17 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "Code")
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
 
@@ -1617,6 +1916,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasMaxLength(15)
@@ -1638,10 +1940,12 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("DefaultShowroomId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("PhoneNumber")
                         .HasDatabaseName("IX_Staff_PhoneNumber");
 
-                    b.HasIndex("StaffMasterId")
+                    b.HasIndex("OrganizationId", "StaffMasterId")
                         .IsUnique();
 
                     b.ToTable("Staff", (string)null);
@@ -1687,6 +1991,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("ObsoletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("PaymentMethod")
@@ -1735,6 +2042,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("ObsoletedByUserId");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("SettledByUserId");
 
                     b.HasIndex("StaffId")
@@ -1777,6 +2086,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("StaffId")
                         .HasColumnType("uuid");
 
@@ -1799,6 +2111,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasDatabaseName("IX_StaffAttendances_AttendanceDate");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("StaffId")
                         .HasDatabaseName("IX_StaffAttendances_StaffId");
@@ -1839,6 +2153,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1846,7 +2163,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("AttendanceConfirmedByUserId");
 
-                    b.HasIndex("Date")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "Date")
                         .IsUnique()
                         .HasDatabaseName("IX_StaffDailyAttendanceConfirmations_Date")
                         .HasFilter("\"IsDeleted\" = false");
@@ -1877,6 +2196,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("OutstandingAdvanceBeforeSettlement")
                         .HasColumnType("decimal(18,2)");
@@ -1910,6 +2232,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("PeriodFrom")
                         .HasDatabaseName("IX_StaffSalarySettlements_PeriodFrom");
@@ -1970,6 +2294,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("RefreshInterval")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -1992,7 +2319,9 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SingletonKey")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "SingletonKey")
                         .IsUnique()
                         .HasDatabaseName("UX_SystemPreferences_Singleton");
 
@@ -2031,6 +2360,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -2051,12 +2383,14 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasIndex("IsActive")
                         .HasDatabaseName("IX_Users_IsActive");
 
-                    b.HasIndex("Role")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("OrganizationId", "Role")
                         .IsUnique()
                         .HasDatabaseName("IX_Users_SingleOwner")
                         .HasFilter("\"Role\" = 1 AND \"IsDeleted\" = false");
 
-                    b.HasIndex("Username")
+                    b.HasIndex("OrganizationId", "Username")
                         .IsUnique()
                         .HasDatabaseName("IX_Users_Username")
                         .HasFilter("\"IsDeleted\" = false");
@@ -2079,6 +2413,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PermissionId")
                         .HasColumnType("uuid");
 
@@ -2089,6 +2426,8 @@ namespace CarSpaManagement.Api.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("PermissionId");
 
@@ -2132,6 +2471,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RegistrationNumber")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -2146,16 +2488,18 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RegistrationNumber")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Vehicles_RegistrationNumber")
-                        .HasFilter("\"IsDeleted\" = false");
+                    b.HasIndex("OrganizationId");
 
                     b.HasIndex("CustomerId", "IsDeleted")
                         .HasDatabaseName("IX_Vehicles_CustomerId_IsDeleted");
 
                     b.HasIndex("CustomerId", "RegistrationNumber")
                         .HasDatabaseName("IX_Vehicles_CustomerId_RegistrationNumber");
+
+                    b.HasIndex("OrganizationId", "RegistrationNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Vehicles_RegistrationNumber")
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("Vehicles", (string)null);
                 });
@@ -2193,6 +2537,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
@@ -2211,6 +2558,8 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasIndex("Name")
                         .HasDatabaseName("IX_Vendors_Name");
+
+                    b.HasIndex("OrganizationId");
 
                     b.ToTable("Vendors", (string)null);
                 });
@@ -2289,6 +2638,9 @@ namespace CarSpaManagement.Api.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("PaymentCompletedNotificationsEnabled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -2323,7 +2675,14 @@ namespace CarSpaManagement.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SingletonKey")
+                    b.HasIndex("OrganizationId");
+
+                    b.HasIndex("PhoneNumberId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WhatsAppConfigurations_PhoneNumberId")
+                        .HasFilter("\"PhoneNumberId\" <> ''");
+
+                    b.HasIndex("OrganizationId", "SingletonKey")
                         .IsUnique()
                         .HasDatabaseName("UX_WhatsAppConfigurations_Singleton");
 
@@ -2376,6 +2735,9 @@ namespace CarSpaManagement.Api.Migrations
                     b.Property<DateTime?>("NextAttemptAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RecipientPhone")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -2401,6 +2763,8 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasIndex("NextAttemptAtUtc")
                         .HasDatabaseName("IX_WhatsAppMessages_NextAttemptAtUtc");
 
+                    b.HasIndex("OrganizationId");
+
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_WhatsAppMessages_Status");
 
@@ -2410,6 +2774,71 @@ namespace CarSpaManagement.Api.Migrations
                         .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("WhatsAppMessages", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.AuditLog", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.BusinessProfile", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Customer", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("FranchiseeOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("FranchisorOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLinkScope", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.FranchiseLink", "FranchiseLink")
+                        .WithMany("Scopes")
+                        .HasForeignKey("FranchiseLinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("FranchiseeOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("FranchisorOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FranchiseLink");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>
@@ -2423,6 +2852,12 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.JobCard", "JobCard")
                         .WithMany()
                         .HasForeignKey("JobCardId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2445,6 +2880,12 @@ namespace CarSpaManagement.Api.Migrations
                         .WithMany("InvoiceItems")
                         .HasForeignKey("InvoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.OutsideJob", "OutsideJob")
@@ -2472,7 +2913,22 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoiceNumberSeries", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.InvoicePublicLink", b =>
@@ -2483,6 +2939,12 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Invoice");
                 });
 
@@ -2491,6 +2953,12 @@ namespace CarSpaManagement.Api.Migrations
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Customer", "Customer")
                         .WithMany("JobCards")
                         .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2513,6 +2981,12 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Service", "Service")
                         .WithMany("JobCardServices")
                         .HasForeignKey("ServiceId")
@@ -2522,6 +2996,15 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("JobCard");
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OrganizationCounter", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.OutsideJob", b =>
@@ -2536,6 +3019,12 @@ namespace CarSpaManagement.Api.Migrations
                         .WithMany("OutsideJobs")
                         .HasForeignKey("JobCardId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Service", "Service")
@@ -2574,7 +3063,31 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Service", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Showroom", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomDailyAttendance", b =>
@@ -2583,6 +3096,12 @@ namespace CarSpaManagement.Api.Migrations
                         .WithMany()
                         .HasForeignKey("AttendanceConfirmedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
                         .WithMany()
@@ -2597,6 +3116,12 @@ namespace CarSpaManagement.Api.Migrations
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
                         .WithMany("DailyBills")
                         .HasForeignKey("ShowroomId")
@@ -2608,6 +3133,12 @@ namespace CarSpaManagement.Api.Migrations
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomPayment", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomDailyBill", "ShowroomDailyBill")
                         .WithMany("Payments")
                         .HasForeignKey("ShowroomDailyBillId")
@@ -2619,6 +3150,12 @@ namespace CarSpaManagement.Api.Migrations
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffAssignment", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
                         .WithMany("StaffAssignments")
                         .HasForeignKey("ShowroomId")
@@ -2638,6 +3175,12 @@ namespace CarSpaManagement.Api.Migrations
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomStaffSwap", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.User", "PerformedByUser")
                         .WithMany()
                         .HasForeignKey("PerformedByUserId")
@@ -2686,6 +3229,12 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "OriginalShowroom")
                         .WithMany()
                         .HasForeignKey("OriginalShowroomId");
@@ -2723,8 +3272,23 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("WorkingShowroom");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleType", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "Showroom")
                         .WithMany()
                         .HasForeignKey("ShowroomId")
@@ -2759,6 +3323,12 @@ namespace CarSpaManagement.Api.Migrations
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWorkItem", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.ShowroomVehicleWork", "ShowroomVehicleWork")
                         .WithMany("ServiceItems")
                         .HasForeignKey("ShowroomVehicleWorkId")
@@ -2776,12 +3346,27 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("WorkType");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.ShowroomWorkType", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Staff", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Showroom", "DefaultShowroom")
                         .WithMany()
                         .HasForeignKey("DefaultShowroomId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("DefaultShowroom");
                 });
@@ -2792,6 +3377,12 @@ namespace CarSpaManagement.Api.Migrations
                         .WithMany()
                         .HasForeignKey("ObsoletedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.User", "SettledByUser")
                         .WithMany()
@@ -2825,6 +3416,12 @@ namespace CarSpaManagement.Api.Migrations
                         .HasForeignKey("CreatedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Staff", "Staff")
                         .WithMany("Attendances")
                         .HasForeignKey("StaffId")
@@ -2850,11 +3447,23 @@ namespace CarSpaManagement.Api.Migrations
                         .HasForeignKey("AttendanceConfirmedByUserId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("AttendanceConfirmedByUser");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.StaffSalarySettlement", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.User", "SettledByUser")
                         .WithMany()
                         .HasForeignKey("SettledByUserId")
@@ -2871,8 +3480,32 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.SystemPreference", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.User", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.UserPermission", b =>
                 {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CarSpaManagement.Api.Domain.Entities.Permission", "Permission")
                         .WithMany("UserPermissions")
                         .HasForeignKey("PermissionId")
@@ -2898,7 +3531,31 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Vendor", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppConfiguration", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.WhatsAppMessage", b =>
@@ -2915,6 +3572,12 @@ namespace CarSpaManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Customer");
 
                     b.Navigation("Invoice");
@@ -2925,6 +3588,11 @@ namespace CarSpaManagement.Api.Migrations
                     b.Navigation("JobCards");
 
                     b.Navigation("Vehicles");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.Navigation("Scopes");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.Invoice", b =>

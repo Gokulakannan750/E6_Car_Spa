@@ -5,8 +5,11 @@ using CarSpaManagement.Api.Domain.Enums;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class OutsideJob : BaseEntity
+public class OutsideJob : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     public Guid JobCardId { get; set; }
     public JobCard JobCard { get; set; } = null!;
 

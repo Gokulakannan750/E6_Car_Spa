@@ -11,7 +11,10 @@ class ReportExportButton extends ConsumerStatefulWidget {
   final Future<List<ReportFile>> Function(WidgetRef ref, String? companyName)
   build;
 
-  const ReportExportButton({super.key, required this.build});
+  /// When set, shows a labelled button instead of an icon (for use inside a screen rather than the top bar).
+  final String? label;
+
+  const ReportExportButton({super.key, required this.build, this.label});
 
   @override
   ConsumerState<ReportExportButton> createState() => _ReportExportButtonState();
@@ -44,6 +47,21 @@ class _ReportExportButtonState extends ConsumerState<ReportExportButton> {
 
   @override
   Widget build(BuildContext context) {
+    final label = widget.label;
+    if (label != null) {
+      return OutlinedButton.icon(
+        key: const Key('report_export_button'),
+        onPressed: _busy ? null : _export,
+        icon: _busy
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.file_download_outlined, size: 18),
+        label: Text(_busy ? 'Preparing…' : label),
+      );
+    }
     if (_busy) {
       return const Padding(
         padding: EdgeInsets.all(14),

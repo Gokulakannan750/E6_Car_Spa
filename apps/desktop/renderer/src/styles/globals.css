@@ -253,6 +253,7 @@
 	.launcher-card-showroom:hover { border-color: rgba(217, 119, 6, 0.45); }
 	.launcher-card-reports:hover { border-color: rgba(124, 58, 237, 0.45); }
 	.launcher-card-settings:hover { border-color: rgba(71, 85, 105, 0.45); }
+	.launcher-card-franchise:hover { border-color: rgba(13, 148, 136, 0.45); }
 }
 
 @layer utilities {

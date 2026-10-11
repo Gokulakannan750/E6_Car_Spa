@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -563,7 +564,7 @@ public sealed class RbacPhase2bHost : IAsyncLifetime
         });
         Client = _factory.CreateClient();
 
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
         var permissions = await db.Permissions.ToDictionaryAsync(p => p.Code);
@@ -589,7 +590,7 @@ public sealed class RbacPhase2bHost : IAsyncLifetime
     public async Task<(Guid JobCardId, string JobCardNumber, Guid OutsideJobId, Guid? InvoiceId, decimal InvoiceTotal)>
         SeedScenarioAsync(bool jobReturned, bool withDraft)
     {
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var suffix = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
         var customer = new Customer { Name = $"Cust {suffix}", PhoneNumber = "9111111111" };
@@ -653,7 +654,7 @@ public sealed class RbacPhase2bHost : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };
@@ -738,7 +739,7 @@ public class RbacPhase2bHttpTests : IClassFixture<RbacPhase2bHost>
         var (cardId, _, jobId, invoiceId, originalTotal) = await _api.SeedScenarioAsync(jobReturned: false, withDraft: true);
 
         // Return the outside job so the draft now requires modification
-        using (var scope = _api.Services.CreateScope())
+        using (var scope = _api.Services.CreateTestScope())
         {
             var ojService = scope.ServiceProvider.GetRequiredService<IOutsideJobService>();
             await ojService.MarkReturnedAsync(jobId, new MarkOutsideJobReturnedRequest(
@@ -752,7 +753,7 @@ public class RbacPhase2bHttpTests : IClassFixture<RbacPhase2bHost>
 
         // 2. Caller WITH invoices.edit_draft -> previews updated total and generates successfully (200)
         decimal updatedTotal;
-        using (var scope = _api.Services.CreateScope())
+        using (var scope = _api.Services.CreateTestScope())
         {
             var invService = scope.ServiceProvider.GetRequiredService<IInvoiceService>();
             var preview = await invService.PreviewAsync(invoiceId!.Value, new PreviewInvoiceRequest());

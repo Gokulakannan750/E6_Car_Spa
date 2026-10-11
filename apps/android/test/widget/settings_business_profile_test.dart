@@ -72,7 +72,11 @@ class FakeAuthNotifier extends StateNotifier<AuthState>
   FakeAuthNotifier(AuthUser user) : super(Authenticated(user));
 
   @override
-  Future<bool> login(String username, String password) async => true;
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async => true;
   @override
   Future<void> logout() async {
     state = const Unauthenticated();

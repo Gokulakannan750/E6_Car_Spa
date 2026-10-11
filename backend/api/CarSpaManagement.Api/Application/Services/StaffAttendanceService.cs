@@ -598,7 +598,7 @@ public class StaffAttendanceService : IStaffAttendanceService
         }
 
         var confirmation = await _db.StaffDailyAttendanceConfirmations
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .FirstOrDefaultAsync(a => a.Date == targetDate, ct);
 
         var isCorrection = confirmation != null && confirmation.AttendanceConfirmedAt.HasValue;

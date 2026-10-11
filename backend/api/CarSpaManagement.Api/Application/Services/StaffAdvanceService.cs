@@ -888,7 +888,7 @@ public class StaffAdvanceService : IStaffAdvanceService
 
         // Query existing IDs that match this prefix+suffix pattern
         var existing = await _db.Staff
-            .IgnoreQueryFilters()
+            .IgnoreQueryFilters([AppDbContext.SoftDeleteFilter])
             .Where(s => s.StaffMasterId.StartsWith(prefix) && s.StaffMasterId.EndsWith(suffix) && s.StaffMasterId.Length == 6)
             .Select(s => s.StaffMasterId)
             .ToListAsync(ct);

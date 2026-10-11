@@ -10,15 +10,20 @@ void main() {
   tearDown(() => BrandPalette.apply());
 
   group('BrandPalette', () {
-    test('builds a 50-950 scale whose 600 is the chosen colour, light to dark', () {
-      final scale = BrandPalette.buildScale(const Color(0xFF0F766E));
-      expect(scale[600], const Color(0xFF0F766E));
-      expect(scale.length, 11);
-      double brightness(Color c) => c.r + c.g + c.b;
-      final ordered = BrandPalette.shades.map((s) => brightness(scale[s]!)).toList();
-      final sorted = [...ordered]..sort((a, b) => b.compareTo(a));
-      expect(ordered, sorted);
-    });
+    test(
+      'builds a 50-950 scale whose 600 is the chosen colour, light to dark',
+      () {
+        final scale = BrandPalette.buildScale(const Color(0xFF0F766E));
+        expect(scale[600], const Color(0xFF0F766E));
+        expect(scale.length, 11);
+        double brightness(Color c) => c.r + c.g + c.b;
+        final ordered = BrandPalette.shades
+            .map((s) => brightness(scale[s]!))
+            .toList();
+        final sorted = [...ordered]..sort((a, b) => b.compareTo(a));
+        expect(ordered, sorted);
+      },
+    );
 
     test('parses #RRGGBB and rejects anything else', () {
       expect(BrandPalette.parse('#0f766e'), const Color(0xFF0F766E));
@@ -40,20 +45,35 @@ void main() {
       expect(AppColors.accentPill, BrandPalette.app(50));
       expect(AppColors.loginGradientStart, BrandPalette.side(900));
       expect(AppColors.loginAccent, const Color(0xFFA11A1A));
-      expect(BrandPalette.apply(appHex: '#7C3AED', sidebarHex: '#A11A1A'), isFalse);
+      expect(
+        BrandPalette.apply(appHex: '#7C3AED', sidebarHex: '#A11A1A'),
+        isFalse,
+      );
     });
 
-    test('falls back to the neutral defaults for missing or invalid colours', () {
-      BrandPalette.apply(appHex: '#7C3AED', sidebarHex: '#A11A1A');
-      BrandPalette.apply(appHex: 'nope', sidebarHex: null);
-      expect(BrandPalette.app(600), BrandPalette.defaultApp);
-      expect(BrandPalette.side(600), BrandPalette.defaultSidebar);
-    });
+    test(
+      'falls back to the neutral defaults for missing or invalid colours',
+      () {
+        BrandPalette.apply(appHex: '#7C3AED', sidebarHex: '#A11A1A');
+        BrandPalette.apply(appHex: 'nope', sidebarHex: null);
+        expect(BrandPalette.app(600), BrandPalette.defaultApp);
+        expect(BrandPalette.side(600), BrandPalette.defaultSidebar);
+      },
+    );
 
     test('flags colours that white text cannot be read on', () {
-      expect(BrandPalette.contrastWithWhite(const Color(0xFFFFF9C4)), lessThan(3));
-      expect(BrandPalette.contrastWithWhite(const Color(0xFF1E293B)), greaterThan(10));
-      expect(BrandPalette.contrastWithWhite(BrandPalette.defaultApp), greaterThan(4.5));
+      expect(
+        BrandPalette.contrastWithWhite(const Color(0xFFFFF9C4)),
+        lessThan(3),
+      );
+      expect(
+        BrandPalette.contrastWithWhite(const Color(0xFF1E293B)),
+        greaterThan(10),
+      );
+      expect(
+        BrandPalette.contrastWithWhite(BrandPalette.defaultApp),
+        greaterThan(4.5),
+      );
     });
   });
 

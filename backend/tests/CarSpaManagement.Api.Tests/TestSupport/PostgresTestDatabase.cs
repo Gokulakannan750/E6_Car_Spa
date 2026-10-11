@@ -17,13 +17,28 @@ public static class PostgresTestEnvironment
 {
     public const string ConnectionVariable = "CARSPA_TEST_PG_CONNECTION";
 
+    /// <summary>
+    /// The server connection used to create and drop the throwaway databases. Creating a database makes the server
+    /// write a checkpoint, and many tests do it at once, so each can wait well past the 30 second default.
+    /// </summary>
     public static string? AdminConnectionString =>
-        Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } cs ? cs : null;
+        Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } cs
+            ? new NpgsqlConnectionStringBuilder(cs) { CommandTimeout = 180 }.ConnectionString
+            : null;
 }
 
 public sealed class PostgresFactAttribute : FactAttribute
 {
     public PostgresFactAttribute()
+    {
+        if (PostgresTestEnvironment.AdminConnectionString is null)
+            Skip = $"Real PostgreSQL test: set {PostgresTestEnvironment.ConnectionVariable} to run.";
+    }
+}
+
+public sealed class PostgresTheoryAttribute : TheoryAttribute
+{
+    public PostgresTheoryAttribute()
     {
         if (PostgresTestEnvironment.AdminConnectionString is null)
             Skip = $"Real PostgreSQL test: set {PostgresTestEnvironment.ConnectionVariable} to run.";
@@ -61,11 +76,33 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
             await cmd.ExecuteNonQueryAsync();
         }
 
-        ConnectionString = new NpgsqlConnectionStringBuilder(_adminConnectionString) { Database = _databaseName }.ConnectionString;
+        // Building a whole schema, many times at once on a busy machine, can take longer than the 30 second default.
+        ConnectionString = new NpgsqlConnectionStringBuilder(_adminConnectionString) { Database = _databaseName, CommandTimeout = 180 }.ConnectionString;
 
         await using var db = CreateContext();
         await db.Database.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
             .MigrateAsync(targetMigration);
+
+        // A partly migrated database (a migration test stopping at an earlier step) is left exactly as that step
+        // made it; the test seeds whatever it needs. A fully migrated one gets the default company and its series.
+        if (targetMigration is null)
+        {
+            await EnsureDefaultCompanyAsync(db);
+            // Like a real company, the default company starts with its two invoice numbering series.
+            await new Application.Services.InvoiceNumberAllocator(db).GetOrCreateSeriesAsync();
+        }
+    }
+
+    /// <summary>
+    /// The default company the test contexts work for. A brand-new database has no company (first-time setup
+    /// creates it), so tests that save company-owned rows need this row for the foreign key.
+    /// </summary>
+    public static async Task EnsureDefaultCompanyAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO ""Organizations"" (""Id"", ""Code"", ""Name"", ""IsActive"", ""CreatedAt"", ""IsDeleted"")
+            VALUES ({Infrastructure.Tenancy.DefaultOrganization.Id}, {Infrastructure.Tenancy.DefaultOrganization.Code}, 'Test company', TRUE, NOW(), FALSE)
+            ON CONFLICT DO NOTHING");
     }
 
     public async Task DisposeAsync()

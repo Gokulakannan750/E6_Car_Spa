@@ -6,6 +6,7 @@ import { renderWithProviders } from '../../test/test-utils';
 describe('LoginForm Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		localStorage.setItem('car_spa_company_code', '0001');
 	});
 
 	it('renders login form with username, password, and sign in button', () => {
@@ -44,24 +45,26 @@ describe('LoginForm Component', () => {
 			authContextValue: { login: mockLogin },
 		});
 
+		const codeInput = screen.getByPlaceholderText(/enter your company code/i);
 		const usernameInput = screen.getByPlaceholderText(/enter your username/i);
 		const passwordInput = screen.getByPlaceholderText(/enter your password/i);
 		const submitButton = screen.getByRole('button', { name: /sign in/i });
 
+		fireEvent.change(codeInput, { target: { value: '0001' } });
 		fireEvent.change(usernameInput, { target: { value: 'admin' } });
 		fireEvent.change(passwordInput, { target: { value: 'SecretPassword123' } });
 		fireEvent.click(submitButton);
 
 		await waitFor(() => {
-			expect(mockLogin).toHaveBeenCalledWith('admin', 'SecretPassword123');
+			expect(mockLogin).toHaveBeenCalledWith('admin', 'SecretPassword123', '0001');
 		});
 	});
 
-	it('displays "Invalid username or password." on failed login (HTTP 401) and keeps form mounted and username populated', async () => {
+	it('displays "Invalid company code, username or password." on failed login (HTTP 401) and keeps form mounted and username populated', async () => {
 		const authError = {
 			status: 401,
 			code: 'UNAUTHORIZED',
-			message: 'Invalid username or password.',
+			message: 'Invalid company code, username or password.',
 		};
 		const mockLogin = vi.fn().mockRejectedValue(authError);
 
@@ -78,7 +81,7 @@ describe('LoginForm Component', () => {
 		fireEvent.click(submitButton);
 
 		await waitFor(() => {
-			expect(screen.getByText('Invalid username or password.')).toBeInTheDocument();
+			expect(screen.getByText('Invalid company code, username or password.')).toBeInTheDocument();
 		});
 
 		// Form remains mounted and username remains intact
@@ -181,7 +184,7 @@ describe('LoginForm Component', () => {
 		expect(clearMock).toHaveBeenCalled();
 	});
 
-	it('does not map arbitrary unexpected errors to "Invalid username or password."', async () => {
+	it('does not map arbitrary unexpected errors to "Invalid company code, username or password."', async () => {
 		const mockLogin = vi.fn().mockRejectedValue(new Error('Unexpected runtime crash'));
 
 		renderWithProviders(<LoginForm />, {
@@ -198,7 +201,7 @@ describe('LoginForm Component', () => {
 
 		await waitFor(() => {
 			expect(screen.getByText('Something went wrong. Please try again.')).toBeInTheDocument();
-			expect(screen.queryByText('Invalid username or password.')).not.toBeInTheDocument();
+			expect(screen.queryByText('Invalid company code, username or password.')).not.toBeInTheDocument();
 		});
 	});
 

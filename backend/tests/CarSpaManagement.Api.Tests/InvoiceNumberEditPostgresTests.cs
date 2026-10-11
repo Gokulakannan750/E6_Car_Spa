@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -28,7 +29,7 @@ public class InvoiceNumberEditPostgresTests : IClassFixture<PostgresTestDatabase
     {
         var http = new DefaultHttpContext();
         if (userId is not null)
-            http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString())], "Test"));
+            http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString())], "Test"));
         return new InvoiceService(db, new RecordingAuditLogService(), new ConfigurationBuilder().Build(),
             new HttpContextAccessor { HttpContext = http }, new NoopWhatsAppService(),
             new ServiceCollection().BuildServiceProvider().GetRequiredService<IServiceScopeFactory>());
@@ -178,7 +179,7 @@ public class InvoiceNumberEditHttpTests : IClassFixture<ApiTestHost>
 
     private async Task<Guid> SeedInvoiceAsync(string number, InvoiceStatus status = InvoiceStatus.Paid, bool gst = true)
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
         var customer = new Customer { Name = "HTTP Numbering", PhoneNumber = "9000000005" };

@@ -17,7 +17,7 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 			.HasDefaultValue(1)
 			.IsRequired();
 
-		builder.HasIndex(c => c.SingletonKey)
+		builder.HasIndex(c => new { c.OrganizationId, c.SingletonKey })
 			.IsUnique()
 			.HasDatabaseName("UX_WhatsAppConfigurations_Singleton");
 
@@ -28,6 +28,13 @@ public class WhatsAppConfigurationConfiguration : IEntityTypeConfiguration<Whats
 		builder.Property(c => c.PhoneNumberId)
 			.HasMaxLength(50)
 			.IsRequired();
+
+		// A WhatsApp number can be connected to only one company on the platform: Meta's incoming-message events
+		// name the number, and the number is how they are routed to the right company. Unconfigured rows are empty.
+		builder.HasIndex(c => c.PhoneNumberId)
+			.IsUnique()
+			.HasFilter("\"PhoneNumberId\" <> ''")
+			.HasDatabaseName("UX_WhatsAppConfigurations_PhoneNumberId");
 
 		builder.Property(c => c.BusinessAccountId)
 			.HasMaxLength(50)

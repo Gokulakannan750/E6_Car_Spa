@@ -192,6 +192,7 @@ public class AuthServiceSecurityTests
         Assert.NotNull(result);
         Assert.Equal("owner", result.Username);
         Assert.True(result.IsOwner);
+        Assert.Equal("0001", result.CompanyCode);
 
         var statusAfter = await authService.GetStatusAsync();
         Assert.True(statusAfter.Initialized);

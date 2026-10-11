@@ -25,6 +25,7 @@ import {
 	Building2,
 	MessageSquare,
 	Truck,
+	Network,
 } from 'lucide-react';
 
 import type { NavigationItem } from '../types/app';
@@ -35,6 +36,7 @@ export type Workspace =
 	| 'staff'
 	| 'showroom'
 	| 'reports'
+	| 'franchise'
 	| 'settings';
 
 export const WORKSPACE_TITLES: Record<Workspace, string> = {
@@ -43,6 +45,7 @@ export const WORKSPACE_TITLES: Record<Workspace, string> = {
 	staff: 'Staff Suite',
 	showroom: 'Showroom Suite',
 	reports: 'Reports Suite',
+	franchise: 'Franchise Suite',
 	settings: 'Settings Suite',
 };
 
@@ -99,6 +102,11 @@ export function getWorkspaceFromPath(pathname: string): Workspace {
 	// REPORTS: /reports
 	if (path === '/reports' || path.startsWith('/reports/')) {
 		return 'reports';
+	}
+
+	// FRANCHISE: /franchise
+	if (path === '/franchise' || path.startsWith('/franchise/')) {
+		return 'franchise';
 	}
 
 	// SETTINGS: /settings, /audit
@@ -295,6 +303,27 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'reports.view',
 		},
 	],
+	franchise: [
+		{
+			label: 'Suite Home',
+			path: '/dashboard',
+			icon: 'Home',
+		},
+		{
+			label: 'Franchise Network',
+			path: '/franchise',
+			icon: 'Network',
+			requiresPermission: 'franchise.view',
+			requiresFranchisor: true,
+		},
+		{
+			label: 'Franchise Dashboard',
+			path: '/franchise/dashboard',
+			icon: 'BarChart3',
+			requiresPermission: 'franchise.view',
+			requiresFranchisor: true,
+		},
+	],
 	settings: [
 		{
 			label: 'Suite Home',
@@ -324,6 +353,13 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/settings/system',
 			icon: 'SlidersHorizontal',
 			requiresPermission: 'settings.view',
+		},
+		{
+			label: 'Franchise Sharing',
+			path: '/settings/franchise-sharing',
+			icon: 'Network',
+			requiresPermission: 'franchise.view',
+			requiresFranchisee: true,
 		},
 	],
 };
@@ -382,8 +418,21 @@ export function isItemActive(
 		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
 	}
 
+	if (item.path === '/settings/franchise-sharing') {
+		return normPath === '/settings/franchise-sharing';
+	}
+
 	if (item.path === '/settings/users') {
 		return normPath === '/settings/users' || normPath.startsWith('/settings/users/');
+	}
+
+	// Franchise Network is active everywhere in the Franchise suite except its dashboard, which has its own item.
+	if (item.path === '/franchise') {
+		return normPath === '/franchise' || (normPath.startsWith('/franchise/') && !normPath.startsWith('/franchise/dashboard'));
+	}
+
+	if (item.path === '/franchise/dashboard') {
+		return normPath === '/franchise/dashboard' || normPath.startsWith('/franchise/dashboard/');
 	}
 
 	if (item.path === '/staff') {
@@ -551,4 +600,5 @@ export const ICON_MAP: Record<
 	Building2,
 	MessageSquare,
 	Truck,
+	Network,
 };

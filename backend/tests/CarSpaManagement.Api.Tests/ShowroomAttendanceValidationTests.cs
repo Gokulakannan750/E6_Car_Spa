@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -270,7 +272,7 @@ public class ShowroomAttendanceValidationTests
         var httpContext = new DefaultHttpContext();
         httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, "Owner")
         }, "TestAuth"));
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };

@@ -40,10 +40,14 @@ class MockAuthApi extends AuthApi {
   }
 
   @override
-  Future<AuthUser> bootstrapOwner(BootstrapOwnerRequest request) async {
+  Future<({AuthUser user, String companyCode})> bootstrapOwner(
+    BootstrapOwnerRequest request,
+  ) async {
     if (bootstrapError != null) throw bootstrapError!;
-    if (bootstrapResponse != null) return bootstrapResponse!;
-    return testUser;
+    if (bootstrapResponse != null) {
+      return (user: bootstrapResponse!, companyCode: '0001');
+    }
+    return (user: testUser, companyCode: '0001');
   }
 
   @override
@@ -62,6 +66,14 @@ class MockAuthApi extends AuthApi {
 }
 
 class MockStorage extends AuthTokenStorage {
+  String companyCode = '';
+
+  @override
+  Future<void> saveCompanyCode(String code) async => companyCode = code;
+
+  @override
+  Future<String> getCompanyCode() async => companyCode;
+
   String? token;
   AuthUser? user;
 
@@ -181,7 +193,9 @@ void main() {
         expect(notifier.state, isA<Unauthenticated>());
         final unauth = notifier.state as Unauthenticated;
         expect(unauth.isSuccess, true);
-        expect(unauth.message, contains('Owner account created successfully'));
+        // The message now also tells the new Owner their company code, which they sign in with.
+        expect(unauth.message, contains('Owner account created'));
+        expect(unauth.message, contains('company code is 0001'));
       },
     );
 

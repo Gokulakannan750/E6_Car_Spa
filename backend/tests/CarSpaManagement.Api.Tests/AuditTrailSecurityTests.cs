@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Tests.TestSupport;
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.DTOs.Audit;
 using CarSpaManagement.Api.Application.DTOs.Customers;
@@ -50,6 +52,7 @@ public class AuditTrailSecurityTests
             if (userId.HasValue)
             {
                 claims.Add(new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString()));
+                claims.Add(new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()));
                 claims.Add(new Claim("sub", userId.Value.ToString()));
             }
             if (!string.IsNullOrEmpty(username))

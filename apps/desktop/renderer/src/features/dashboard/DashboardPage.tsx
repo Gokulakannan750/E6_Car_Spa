@@ -21,11 +21,15 @@ import {
 	ArrowRight,
 	FileSpreadsheet,
 	Truck,
+	Network,
+	Link2,
+	Eye,
 } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { useAppStore } from '../../stores/app';
 import { displayName } from '../../components/shared/BrandMark';
 import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
+import { useFranchiseAccess } from '../franchise/useFranchiseAccess';
 
 interface SuiteAppConfig {
 	id: string;
@@ -47,7 +51,9 @@ interface SuiteAppConfig {
 
 export function DashboardPage() {
 	const navigate = useNavigate();
-	const { user: authUser } = useAuth();
+	const { user: authUser, hasPermission } = useAuth();
+	const franchiseAccess = useFranchiseAccess();
+	const showFranchise = franchiseAccess.canActAsFranchisor && hasPermission('franchise.view');
 	const { profile } = useBusinessProfile();
 	const storeUser = useAppStore((s) => s.currentUser);
 	const user = authUser || storeUser;
@@ -95,14 +101,19 @@ export function DashboardPage() {
 					e.preventDefault();
 					navigate('/settings');
 					break;
+				case '6':
+					if (!showFranchise) break;
+					e.preventDefault();
+					navigate('/franchise');
+					break;
 			}
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [navigate]);
+	}, [navigate, showFranchise]);
 
-	const suiteApplications: SuiteAppConfig[] = [
+	const allSuiteApplications: SuiteAppConfig[] = [
 		{
 			id: 'billing',
 			name: 'Billing',
@@ -213,7 +224,30 @@ export function DashboardPage() {
 			shortcutKey: 'Alt + 5',
 			buttonLabel: 'Open Settings',
 		},
+		{
+			id: 'franchise',
+			name: 'Franchise',
+			description: 'Link with franchise companies and share figures by consent',
+			accent: '#0D9488',
+			iconBg: 'bg-teal-50',
+			iconColor: 'text-[#0D9488]',
+			buttonBg: 'bg-teal-50',
+			buttonHoverBg: 'hover:bg-teal-100',
+			buttonText: 'text-[#0D9488]',
+			hoverClass: 'launcher-card-franchise',
+			icon: <Network className="w-6 h-6" />,
+			features: [
+				{ label: 'Franchise Network', icon: <Network className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Invitations', icon: <Link2 className="w-4 h-4 text-slate-400 shrink-0" /> },
+				{ label: 'Shared Figures', icon: <Eye className="w-4 h-4 text-slate-400 shrink-0" /> },
+			],
+			route: '/franchise',
+			shortcutKey: 'Alt + 6',
+			buttonLabel: 'Open Franchise',
+		},
 	];
+	// A franchisee, or any company without the add-on, never sees the Franchise card.
+	const suiteApplications = allSuiteApplications.filter((app) => app.id !== 'franchise' || showFranchise);
 
 	return (
 		<div className="space-y-6 max-w-7xl mx-auto animate-fade-in select-none">
@@ -374,9 +408,9 @@ export function DashboardPage() {
 					))}
 				</div>
 
-				{/* Row 2: 2 Wider Columns (Reports, Settings) */}
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-					{suiteApplications.slice(3, 5).map((app) => (
+				{/* Row 2: Reports and Settings, plus Franchise for a company that has the add-on */}
+				<div className={`grid grid-cols-1 gap-5 pt-1 ${showFranchise ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+					{suiteApplications.slice(3, 6).map((app) => (
 						<article
 							key={app.id}
 							role="button"

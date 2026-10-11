@@ -3,8 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class InvoicePublicLink : BaseEntity
+public class InvoicePublicLink : BaseEntity, IOrganizationOwned
 {
+    /// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+    public Guid OrganizationId { get; set; }
+
     public Guid InvoiceId { get; set; }
     public Invoice Invoice { get; set; } = null!;
 

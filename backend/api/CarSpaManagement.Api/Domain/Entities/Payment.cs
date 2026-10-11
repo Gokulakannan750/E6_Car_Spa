@@ -5,8 +5,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CarSpaManagement.Api.Domain.Entities;
 
-public class Payment : BaseEntity
+public class Payment : BaseEntity, IOrganizationOwned
 {
+	/// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+	public Guid OrganizationId { get; set; }
+
 	public Guid InvoiceId { get; set; }
 	public Invoice Invoice { get; set; } = null!;
 

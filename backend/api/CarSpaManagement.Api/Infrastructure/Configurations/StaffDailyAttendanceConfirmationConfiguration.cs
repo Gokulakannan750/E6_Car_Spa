@@ -17,7 +17,7 @@ public class StaffDailyAttendanceConfirmationConfiguration : IEntityTypeConfigur
             .HasColumnType("date")
             .IsRequired();
 
-        builder.HasIndex(c => c.Date)
+        builder.HasIndex(c => new { c.OrganizationId, c.Date })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false")
             .HasDatabaseName("IX_StaffDailyAttendanceConfirmations_Date");

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Audit;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
@@ -303,7 +304,11 @@ public class ShowroomTypeIntegrityMigrationTests
                 """);
 
             await using (var db = Context(cs))
+            {
                 await db.GetService<IMigrator>().MigrateAsync(IntegrityMigration);
+                // Carry on to the latest version so the current model (which knows each row's company) can read the data.
+                await db.Database.MigrateAsync();
+            }
 
             await using (var read = Context(cs))
             {
@@ -319,15 +324,15 @@ public class ShowroomTypeIntegrityMigrationTests
 
             // The database itself rejects a case-insensitive duplicate among non-deleted rows...
             var ex = await Assert.ThrowsAsync<PostgresException>(() => ExecAsync(cs, $"""
-                INSERT INTO "ShowroomWorkTypes" ("Id","Code","Name","DisplayOrder","IsActive","CreatedAt","IsDeleted")
-                VALUES ('{Guid.NewGuid()}','BW2',' BODY WASH',9,true,now(),false);
+                INSERT INTO "ShowroomWorkTypes" ("Id","Code","Name","DisplayOrder","IsActive","CreatedAt","IsDeleted","OrganizationId")
+                VALUES ('{Guid.NewGuid()}','BW2',' BODY WASH',9,true,now(),false,'{DefaultOrganization.Id}');
                 """));
             Assert.Equal(PostgresErrorCodes.UniqueViolation, ex.SqlState);
 
             // ...but a soft-deleted row does not block the name.
             await ExecAsync(cs, $"""
-                INSERT INTO "ShowroomWorkTypes" ("Id","Code","Name","DisplayOrder","IsActive","CreatedAt","IsDeleted")
-                VALUES ('{Guid.NewGuid()}','BW3','Body Wash',9,true,now(),true);
+                INSERT INTO "ShowroomWorkTypes" ("Id","Code","Name","DisplayOrder","IsActive","CreatedAt","IsDeleted","OrganizationId")
+                VALUES ('{Guid.NewGuid()}','BW3','Body Wash',9,true,now(),true,'{DefaultOrganization.Id}');
                 """);
 
             await using (var db = Context(cs))

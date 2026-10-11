@@ -197,9 +197,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> bootstrapOwner(BootstrapOwnerRequest request) async {
     state = const Authenticating();
     try {
-      await _repository.bootstrapOwner(request);
-      state = const Unauthenticated(
-        'Owner account created successfully. Please sign in.',
+      final companyCode = await _repository.bootstrapOwner(request);
+      state = Unauthenticated(
+        companyCode.isEmpty
+            ? 'Owner account created successfully. Please sign in.'
+            : 'Owner account created. Your company code is $companyCode. Please sign in.',
         true,
       );
       return true;
@@ -215,7 +217,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Attempts login against POST /api/auth/login
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(
+    String username,
+    String password, {
+    String? companyCode,
+  }) async {
     if (username.trim().isEmpty || password.isEmpty) {
       state = const AuthFailure('Username and password are required.');
       return false;
@@ -223,7 +229,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     state = const Authenticating();
     try {
-      final user = await _repository.login(username, password);
+      final user = await _repository.login(
+        username,
+        password,
+        companyCode: companyCode,
+      );
       state = Authenticated(user);
       return true;
     } on AccountLockedException catch (e) {

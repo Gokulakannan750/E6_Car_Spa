@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -427,7 +428,7 @@ public sealed class RbacPhase2cHost : IAsyncLifetime
         });
         Client = _factory.CreateClient();
 
-        using var scope = Services.CreateScope();
+        using var scope = Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasherService>();
         var permissions = await db.Permissions.ToDictionaryAsync(p => p.Code);
@@ -559,7 +560,7 @@ public sealed class RbacPhase2cHost : IAsyncLifetime
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString()),
             new Claim(ClaimTypes.Role, user.Role.ToString()),
             new Claim("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
         };

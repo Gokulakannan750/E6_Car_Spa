@@ -70,7 +70,7 @@ public class InvoiceNumberAllocator(AppDbContext db)
 			cancellationToken);
 		if (reserved) return true;
 
-		return await db.Invoices.IgnoreQueryFilters().AnyAsync(
+		return await db.Invoices.IgnoreQueryFilters([AppDbContext.SoftDeleteFilter]).AnyAsync(
 			i => i.InvoiceNumber != null && i.InvoiceNumber.ToUpper() == key && (exceptInvoiceId == null || i.Id != exceptInvoiceId),
 			cancellationToken);
 	}
@@ -154,7 +154,7 @@ public class InvoiceNumberAllocator(AppDbContext db)
 		if (isRelational)
 		{
 			await db.Database.ExecuteSqlInterpolatedAsync(
-				$"SELECT 1 FROM \"InvoiceNumberSeries\" WHERE \"SeriesKind\" = {kind.ToString()} AND NOT \"IsDeleted\" FOR UPDATE",
+				$"SELECT 1 FROM \"InvoiceNumberSeries\" WHERE \"OrganizationId\" = {db.CurrentOrganizationId} AND \"SeriesKind\" = {kind.ToString()} AND NOT \"IsDeleted\" FOR UPDATE",
 				cancellationToken);
 		}
 

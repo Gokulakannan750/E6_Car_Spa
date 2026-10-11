@@ -86,6 +86,10 @@ class AppRoutes {
   // Legacy preferences alias retained for backward compatibility
   static const String legacySystemPreferences = '/settings/preferences';
 
+  static const String franchise = '/franchise';
+  static const String franchiseSharing = '/settings/franchise-sharing';
+  static const String franchiseInvite = '/franchise-invite/:token';
+
   // Matches Windows Desktop (/audit)
   static const String audit = '/audit';
 

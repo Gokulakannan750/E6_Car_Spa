@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Infrastructure.Tenancy;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -27,7 +28,7 @@ public class InvoiceSeriesSettingsTests
         {
             var http = new DefaultHttpContext();
             if (user is not null)
-                http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())], "Test"));
+                http.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), new Claim(JwtTokenService.OrganizationClaim, DefaultOrganization.Id.ToString())], "Test"));
             return new InvoiceSeriesService(Db, Audit, new HttpContextAccessor { HttpContext = http });
         }
     }
@@ -158,7 +159,7 @@ public class InvoiceSeriesSettingsHttpTests : IClassFixture<ApiTestHost>
 
     private async Task<string> AddUserWithSettingsViewAsync()
     {
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var name = $"settings.viewer.{Guid.NewGuid():N}"[..24];
         var permission = await db.Permissions.SingleAsync(p => p.Code == "settings.view");
@@ -210,7 +211,7 @@ public class InvoiceSeriesSettingsHttpTests : IClassFixture<ApiTestHost>
         var res = await Put("owner", "AUD/", "AUDB/");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
 
-        using var scope = _api.Services.CreateScope();
+        using var scope = _api.Services.CreateTestScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.True(await db.AuditLogs.AnyAsync(a => a.Action == AuditActions.InvoiceSeriesPrefixChanged && a.NewValues!.Contains("AUD/")));
         Assert.Equal("AUD/", (await db.InvoiceNumberSeries.AsNoTracking().SingleAsync(s => s.SeriesKind == InvoiceSeriesKind.Gst)).Prefix);

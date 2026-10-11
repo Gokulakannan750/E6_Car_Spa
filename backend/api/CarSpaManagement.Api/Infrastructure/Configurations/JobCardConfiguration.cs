@@ -45,7 +45,7 @@ public class JobCardConfiguration : IEntityTypeConfiguration<JobCard>
  .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
  // Unique constraint on JobCardNumber
- builder.HasIndex(j => j.JobCardNumber)
+ builder.HasIndex(j => new { j.OrganizationId, j.JobCardNumber })
  .IsUnique()
  .HasDatabaseName("UX_JobCards_JobCardNumber");
 

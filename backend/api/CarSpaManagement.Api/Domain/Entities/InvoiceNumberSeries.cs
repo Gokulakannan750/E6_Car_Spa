@@ -8,8 +8,11 @@ namespace CarSpaManagement.Api.Domain.Entities;
 /// Numbers are formatted as Prefix + NextNumber zero-padded to MinDigits, e.g. "GST/0001".
 /// Future extension points: FinancialYear and BranchId columns (unique per kind + year + branch).
 /// </summary>
-public class InvoiceNumberSeries : BaseEntity
+public class InvoiceNumberSeries : BaseEntity, IOrganizationOwned
 {
+	/// <summary>The company this row belongs to. Stamped automatically on save; never changes.</summary>
+	public Guid OrganizationId { get; set; }
+
 	public InvoiceSeriesKind SeriesKind { get; set; }
 
 	public string Prefix { get; set; } = string.Empty;

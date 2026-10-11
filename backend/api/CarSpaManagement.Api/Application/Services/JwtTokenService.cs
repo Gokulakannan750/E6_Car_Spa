@@ -12,6 +12,9 @@ namespace CarSpaManagement.Api.Application.Services;
 
 public class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtTokenService
 {
+    /// <summary>Name of the token claim that carries the user's company.</summary>
+    public const string OrganizationClaim = "org";
+
     private readonly JwtOptions _options = jwtOptions.Value;
 
     public string GenerateToken(User user)
@@ -31,7 +34,9 @@ public class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtTokenService
             new(ClaimTypes.Name, user.FullName),
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant())
+            new("isOwner", (user.Role == UserRole.Owner).ToString().ToLowerInvariant()),
+            // The company is taken from this signed claim on every request; clients never send it themselves.
+            new(OrganizationClaim, user.OrganizationId.ToString())
         };
 
         var token = new JwtSecurityToken(
