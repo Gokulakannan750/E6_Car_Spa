@@ -15,7 +15,7 @@ class ReportKpiCard extends StatelessWidget {
   final Color? backgroundColor;
   final VoidCallback? onTap;
 
-  ReportKpiCard({
+  const ReportKpiCard({
     super.key,
     required this.title,
     this.amountValue,

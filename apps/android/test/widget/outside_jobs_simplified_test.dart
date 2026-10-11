@@ -12,6 +12,8 @@ import 'package:dio/dio.dart';
 
 import 'package:e6_car_spa/features/staff/data/staff_repository.dart';
 import 'package:e6_car_spa/features/staff/data/staff_api.dart';
+import 'package:e6_car_spa/features/auth/models/auth_user.dart';
+import 'package:e6_car_spa/features/auth/providers/auth_provider.dart';
 
 class _FakeStaffRepo extends StaffRepository {
   final List<Staff> staff;
@@ -24,6 +26,8 @@ class _FakeStaffRepo extends StaffRepository {
 class _MockOutsideJobRepo extends OutsideJobRepository {
   CreateOutsideJobRequest? lastCreatedRequest;
   UpdateOutsideJobCostRequest? lastUpdateCostRequest;
+  CancelOutsideJobRequest? lastCancelRequest;
+  String? lastCancelledJobId;
   String? lastDeletedId;
   CreateVendorRequest? lastCreatedVendorRequest;
   List<OutsideJob> mockJobs = [];
@@ -155,6 +159,50 @@ class _MockOutsideJobRepo extends OutsideJobRepository {
   }
 
   @override
+  Future<OutsideJob> cancel(
+    String outsideJobId,
+    CancelOutsideJobRequest request,
+  ) async {
+    lastCancelledJobId = outsideJobId;
+    lastCancelRequest = request;
+    final index = mockJobs.indexWhere((j) => j.id == outsideJobId);
+    if (index >= 0) {
+      final old = mockJobs[index];
+      final updated = OutsideJob(
+        id: old.id,
+        jobCardId: old.jobCardId,
+        jobCardNumber: old.jobCardNumber,
+        vehicleId: old.vehicleId,
+        vehicleRegistrationNumber: old.vehicleRegistrationNumber,
+        vehicleMake: old.vehicleMake,
+        vehicleModel: old.vehicleModel,
+        customerId: old.customerId,
+        customerName: old.customerName,
+        customerPhone: old.customerPhone,
+        vendorId: old.vendorId,
+        vendorName: old.vendorName,
+        vendorPhone: old.vendorPhone,
+        serviceId: old.serviceId,
+        serviceName: old.serviceName,
+        status: OutsideJobStatus.cancelled,
+        statusName: 'Cancelled',
+        sentAt: old.sentAt,
+        expectedReturnAt: old.expectedReturnAt,
+        returnedAt: null,
+        isOverdue: false,
+        sentByUserId: old.sentByUserId,
+        sentByUserName: old.sentByUserName,
+        cancellationReason: request.reason,
+        createdAt: old.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      mockJobs[index] = updated;
+      return updated;
+    }
+    throw Exception('Job not found');
+  }
+
+  @override
   Future<void> deleteOutsideJob(String outsideJobId) async {
     lastDeletedId = outsideJobId;
     mockJobs.removeWhere((j) => j.id == outsideJobId);
@@ -164,6 +212,25 @@ class _MockOutsideJobRepo extends OutsideJobRepository {
 void main() {
   setUpAll(() {
     GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
+  group('Outside job cancellation request', () {
+    test('serializes showroom confirmation explicitly', () {
+      const confirmed = CancelOutsideJobRequest(
+        reason: 'Entered in error',
+        vehicleConfirmedAtShowroom: true,
+      );
+      expect(confirmed.toJson(), {
+        'reason': 'Entered in error',
+        'vehicleConfirmedAtShowroom': true,
+      });
+
+      const unconfirmed = CancelOutsideJobRequest(
+        reason: 'Entered in error',
+        vehicleConfirmedAtShowroom: false,
+      );
+      expect(unconfirmed.toJson()['vehicleConfirmedAtShowroom'], false);
+    });
   });
 
   const mockStaff = [
@@ -565,5 +632,193 @@ void main() {
       expect(mockRepo.lastCreatedVendorRequest!.name, 'Apex Detailing Works');
       expect(mockRepo.lastCreatedVendorRequest!.phone, '9876543210');
     });
+
+    testWidgets(
+      'OutsideJobsSection hides Cancel button when user lacks outsidejobs.cancel_dispatched permission',
+      (tester) async {
+        final mockRepo = _MockOutsideJobRepo();
+        final mockStaffRepo = _FakeStaffRepo(mockStaff);
+
+        final activeJob = OutsideJob(
+          id: 'job-active-1',
+          jobCardId: 'jc-cancel-1',
+          jobCardNumber: 'JC-003',
+          vehicleId: 'veh-1',
+          vehicleRegistrationNumber: 'TN33711E',
+          vehicleMake: 'BMW',
+          vehicleModel: 'M340i',
+          customerId: 'cust-1',
+          customerName: 'Gokul',
+          customerPhone: '9876543210',
+          vendorId: 'vendor-1',
+          vendorName: 'Auto Paint Pro',
+          serviceName: 'Denting',
+          status: OutsideJobStatus.outside,
+          statusName: 'Outside',
+          sentAt: DateTime.now(),
+          expectedReturnAt: DateTime.now().add(const Duration(days: 1)),
+          isOverdue: false,
+          createdAt: DateTime.now(),
+        );
+        mockRepo.mockJobs = [activeJob];
+
+        const regularStaff = AuthUser(
+          id: 'u-1',
+          fullName: 'Staff Member',
+          username: 'staff',
+          role: 'Staff',
+          isOwner: false,
+          permissions: ['outsidejobs.view'],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outsideJobRepositoryProvider.overrideWithValue(mockRepo),
+              staffRepositoryProvider.overrideWithValue(mockStaffRepo),
+              currentUserProvider.overrideWithValue(regularStaff),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(
+                body: SingleChildScrollView(
+                  child: OutsideJobsSection(
+                    jobCardId: 'jc-cancel-1',
+                    vehicleRegistration: 'TN33711E',
+                    vehicleModel: 'M340i',
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('btn_mark_returned')), findsOneWidget);
+        expect(find.byKey(const Key('btn_cancel_outside')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'OutsideJobsSection allows cancelling outside job when user has outsidejobs.cancel_dispatched permission and confirms showroom return',
+      (tester) async {
+        final mockRepo = _MockOutsideJobRepo();
+        final mockStaffRepo = _FakeStaffRepo(mockStaff);
+
+        final activeJob = OutsideJob(
+          id: 'job-active-2',
+          jobCardId: 'jc-cancel-2',
+          jobCardNumber: 'JC-004',
+          vehicleId: 'veh-1',
+          vehicleRegistrationNumber: 'TN33711E',
+          vehicleMake: 'BMW',
+          vehicleModel: 'M340i',
+          customerId: 'cust-1',
+          customerName: 'Gokul',
+          customerPhone: '9876543210',
+          vendorId: 'vendor-1',
+          vendorName: 'Auto Paint Pro',
+          serviceName: 'Denting',
+          status: OutsideJobStatus.outside,
+          statusName: 'Outside',
+          sentAt: DateTime.now(),
+          expectedReturnAt: DateTime.now().add(const Duration(days: 1)),
+          isOverdue: false,
+          createdAt: DateTime.now(),
+        );
+        mockRepo.mockJobs = [activeJob];
+
+        const privilegedAdmin = AuthUser(
+          id: 'u-admin',
+          fullName: 'Admin User',
+          username: 'admin',
+          role: 'Admin',
+          isOwner: false,
+          permissions: ['outsidejobs.cancel_dispatched'],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              outsideJobRepositoryProvider.overrideWithValue(mockRepo),
+              staffRepositoryProvider.overrideWithValue(mockStaffRepo),
+              currentUserProvider.overrideWithValue(privilegedAdmin),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(
+                body: SingleChildScrollView(
+                  child: OutsideJobsSection(
+                    jobCardId: 'jc-cancel-2',
+                    vehicleRegistration: 'TN33711E',
+                    vehicleModel: 'M340i',
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        final cancelBtn = find.byKey(const Key('btn_cancel_outside'));
+        expect(cancelBtn, findsOneWidget);
+        expect(find.text('Cancel (entered in error)'), findsOneWidget);
+
+        // Open dialog
+        await tester.tap(cancelBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Cancel Outside Job'), findsOneWidget);
+        final confirmBtn = find.byKey(const Key('btn_confirm_cancel_outside'));
+        expect(confirmBtn, findsOneWidget);
+
+        // Button disabled initially
+        FilledButton submitWidget = tester.widget<FilledButton>(confirmBtn);
+        expect(submitWidget.onPressed, isNull);
+
+        // A short reason remains disabled.
+        await tester.enterText(
+          find.byKey(const Key('input_cancel_reason')),
+          'x',
+        );
+        await tester.pumpAndSettle();
+        submitWidget = tester.widget<FilledButton>(confirmBtn);
+        expect(submitWidget.onPressed, isNull);
+
+        // A valid reason without the confirmation checkbox remains disabled.
+        await tester.enterText(
+          find.byKey(const Key('input_cancel_reason')),
+          'Wrong vendor entered in error',
+        );
+        await tester.pumpAndSettle();
+
+        submitWidget = tester.widget<FilledButton>(confirmBtn);
+        expect(submitWidget.onPressed, isNull);
+
+        // Check the showroom confirmation checkbox
+        await tester.tap(find.byKey(const Key('chk_confirm_showroom')));
+        await tester.pumpAndSettle();
+
+        submitWidget = tester.widget<FilledButton>(confirmBtn);
+        expect(submitWidget.onPressed, isNotNull);
+
+        // Submit cancel
+        await tester.tap(confirmBtn);
+        await tester.pumpAndSettle();
+
+        expect(mockRepo.lastCancelledJobId, 'job-active-2');
+        expect(mockRepo.lastCancelRequest, isNotNull);
+        expect(
+          mockRepo.lastCancelRequest!.reason,
+          'Wrong vendor entered in error',
+        );
+        expect(
+          mockRepo.lastCancelRequest!.vehicleConfirmedAtShowroom,
+          isTrue,
+        );
+      },
+    );
   });
 }

@@ -64,6 +64,14 @@ class FakeAuthApi extends AuthApi {
 }
 
 class FakeAuthTokenStorage extends AuthTokenStorage {
+  String companyCode = '';
+
+  @override
+  Future<void> saveCompanyCode(String code) async => companyCode = code;
+
+  @override
+  Future<String> getCompanyCode() async => companyCode;
+
   String? storedToken;
   AuthUser? storedUser;
 
@@ -172,6 +180,8 @@ void main() {
         final created = await repository.bootstrapOwner(request);
 
         expect(created, '0001');
+        // The new company's code is remembered on this device, so the sign-in screen is already filled in.
+        expect(fakeStorage.companyCode, '0001');
         expect(fakeApi.lastBootstrapRequest?.username, 'founder');
         expect(fakeApi.lastBootstrapRequest?.fullName, 'E6 Founder');
       },

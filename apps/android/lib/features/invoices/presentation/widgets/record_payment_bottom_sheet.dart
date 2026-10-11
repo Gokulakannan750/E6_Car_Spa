@@ -215,8 +215,9 @@ class _RecordPaymentBottomSheetState extends State<RecordPaymentBottomSheet> {
                         ),
                         selected: isSelected,
                         onSelected: (selected) {
-                          if (selected)
+                          if (selected) {
                             setState(() => _selectedMethod = method);
+                          }
                         },
                         labelStyle: TextStyle(
                           color: isSelected

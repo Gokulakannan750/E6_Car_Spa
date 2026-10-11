@@ -156,8 +156,9 @@ class _AddCustomerDialogState extends ConsumerState<AddCustomerDialog> {
                       hint: 'e.g. Ramesh Kumar',
                       prefixIcon: const Icon(Icons.person_outline),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Customer name is required';
+                        }
                         return null;
                       },
                     ),

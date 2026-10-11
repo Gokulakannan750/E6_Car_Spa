@@ -441,14 +441,6 @@ using (var scope = app.Services.CreateScope())
 					pendingMigrations.Count, string.Join(", ", pendingMigrations));
 			}
 		}
-		await db.Database.ExecuteSqlRawAsync(@"
-			UPDATE ""StaffAdvances"" 
-			SET ""Status"" = 'Outstanding' 
-			WHERE ""Status"" = 'Pending' OR ""Status"" IS NULL;
-			UPDATE ""StaffAdvances""
-			SET ""Reason"" = COALESCE(NULLIF(""Description"", ''), NULLIF(""AdvanceType"", ''), 'Staff Advance')
-			WHERE ""Reason"" IS NULL OR ""Reason"" = '';
-		");
 		await PermissionSeeder.SeedAsync(db);
 
 		// ── Per-company starting data ─────────────────────────────────────────

@@ -8,9 +8,12 @@ using CarSpaManagement.Api.Application.Services;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
+using CarSpaManagement.Api.Tests.TestSupport;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -21,6 +24,57 @@ namespace CarSpaManagement.Api.Tests;
 
 public class OutsideJobsTests
 {
+    [PostgresFact]
+    public async Task StaffAdvanceLegacyDataMigration_BackfillsStatusAndReasonIdempotently()
+    {
+        const string previousMigration = "20261008072438_AddBusinessProfileLoginImage";
+        await using var database = new PostgresTestDatabase();
+        await database.InitializeAsync(previousMigration);
+
+        await using (var db = database.CreateContext())
+        {
+            var staffId = Guid.NewGuid();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "Staff" ("Id", "Name", "PhoneNumber", "StaffMasterId", "IsActive", "CreatedAt", "IsDeleted")
+                VALUES ({staffId}, 'Migration Test Staff', '9000000000', 'MT001S', TRUE, CURRENT_TIMESTAMP, FALSE);
+                """);
+
+            await db.Database.ExecuteSqlRawAsync("ALTER TABLE \"StaffAdvances\" ALTER COLUMN \"Status\" DROP NOT NULL;");
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "StaffAdvances" ("Id", "StaffId", "StaffName", "Amount", "AdvanceDate", "Reason", "Status", "AdvanceType", "Description", "CreatedAt", "IsDeleted")
+                VALUES
+                  ({Guid.NewGuid()}, {staffId}, 'Migration Test Staff', 100, CURRENT_DATE, '', 'Pending', 'Travel', 'Bus fare', CURRENT_TIMESTAMP, FALSE),
+                  ({Guid.NewGuid()}, {staffId}, 'Migration Test Staff', 200, CURRENT_DATE, 'Existing reason', 'Settled', 'Other', 'Ignored', CURRENT_TIMESTAMP, FALSE),
+                  ({Guid.NewGuid()}, {staffId}, 'Migration Test Staff', 300, CURRENT_DATE, '', NULL, '', '', CURRENT_TIMESTAMP, FALSE);
+                """);
+        }
+
+        await using (var migrate = database.CreateContext())
+        {
+            await migrate.Database.GetService<IMigrator>()
+                .MigrateAsync("20261011055523_BackfillStaffAdvanceLegacyData");
+        }
+
+        await using (var verify = database.CreateContext())
+        {
+            var rows = await verify.StaffAdvances.AsNoTracking()
+                .OrderBy(a => a.Amount)
+                .Select(a => new { a.Amount, a.Status, a.Reason })
+                .ToListAsync();
+
+            Assert.Equal(StaffAdvanceStatus.Outstanding, rows[0].Status);
+            Assert.Equal("Bus fare", rows[0].Reason);
+            Assert.Equal(StaffAdvanceStatus.Settled, rows[1].Status);
+            Assert.Equal("Existing reason", rows[1].Reason);
+            Assert.Equal(StaffAdvanceStatus.Outstanding, rows[2].Status);
+            Assert.Equal("Staff Advance", rows[2].Reason);
+
+            var migrator = verify.Database.GetService<IMigrator>();
+            await migrator.MigrateAsync();
+            Assert.Equal(3, await verify.StaffAdvances.CountAsync());
+        }
+    }
+
     private class TestAuditLogService : IAuditLogService
     {
         public List<(string action, string description, string? entityType, Guid? entityId)> RecordedLogs { get; } = new();
@@ -356,7 +410,113 @@ public class OutsideJobsTests
     }
 
     [Fact]
-    public async Task CancelOutsideJob_Success_And_CannotCancelReturnedJob()
+    public async Task CancelOutsideJob_PendingStatus_SucceedsWithStandardAudit()
+    {
+        var (db, service, _, _, _, audit) = CreateTestServices();
+        var (customer, vehicle, vendor, jobCard) = await SeedDataAsync(db);
+
+        var pendingJob = new OutsideJob
+        {
+            Id = Guid.NewGuid(),
+            JobCardId = jobCard.Id,
+            VehicleId = vehicle.Id,
+            CustomerId = customer.Id,
+            VendorId = vendor.Id,
+            ServiceName = "Pre-booking Glass Polish",
+            Status = OutsideJobStatus.Pending,
+            SentAt = DateTime.UtcNow,
+            ExpectedReturnAt = DateTime.UtcNow.AddDays(1),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.OutsideJobs.Add(pendingJob);
+        await db.SaveChangesAsync();
+
+        var cancelled = await service.CancelAsync(pendingJob.Id, new CancelOutsideJobRequest("Booking cancelled before dispatch", VehicleConfirmedAtShowroom: false));
+
+        Assert.Equal(OutsideJobStatus.Cancelled, cancelled.Status);
+        Assert.Null(cancelled.ReturnedAt);
+        Assert.Contains(audit.RecordedLogs, l => l.action == "outsidejobs.cancel" && l.entityId == pendingJob.Id);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_PendingStatus_RejectsDispatchedConfirmationFlag()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (customer, vehicle, vendor, jobCard) = await SeedDataAsync(db);
+        var pendingJob = new OutsideJob
+        {
+            Id = Guid.NewGuid(),
+            JobCardId = jobCard.Id,
+            VehicleId = vehicle.Id,
+            CustomerId = customer.Id,
+            VendorId = vendor.Id,
+            ServiceName = "Pre-booking Glass Polish",
+            Status = OutsideJobStatus.Pending,
+            SentAt = DateTime.UtcNow,
+            ExpectedReturnAt = DateTime.UtcNow.AddDays(1),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.OutsideJobs.Add(pendingJob);
+        await db.SaveChangesAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(
+            pendingJob.Id,
+            new CancelOutsideJobRequest("Booking cancelled before dispatch", VehicleConfirmedAtShowroom: true)));
+
+        Assert.Contains("Showroom confirmation is only valid", ex.Message);
+        Assert.Equal(OutsideJobStatus.Pending, await db.OutsideJobs.Where(x => x.Id == pendingJob.Id).Select(x => x.Status).SingleAsync());
+
+        var omittedFlag = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(
+            pendingJob.Id,
+            new CancelOutsideJobRequest("Booking cancelled before dispatch", VehicleConfirmedAtShowroom: null)));
+        Assert.Contains("must be explicitly provided", omittedFlag.Message);
+
+        var cancelled = await service.CancelAsync(
+            pendingJob.Id,
+            new CancelOutsideJobRequest("Booking cancelled before dispatch", VehicleConfirmedAtShowroom: false));
+        Assert.Equal(OutsideJobStatus.Cancelled, cancelled.Status);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_RequiresConfirmationFieldToBePresent()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "Pre-booking repair",
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1)));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(
+            job.Id,
+            new CancelOutsideJobRequest("Entered in error", VehicleConfirmedAtShowroom: null),
+            canCancelDispatched: true));
+
+        Assert.Contains("must be explicitly provided", ex.Message);
+        Assert.Equal(OutsideJobStatus.Outside, await db.OutsideJobs.Where(x => x.Id == job.Id).Select(x => x.Status).SingleAsync());
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_RejectsReasonLongerThanFiveHundredCharacters()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "Pre-booking repair",
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1)));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CancelAsync(
+            job.Id,
+            new CancelOutsideJobRequest(new string('x', 501), VehicleConfirmedAtShowroom: false)));
+
+        Assert.Contains("cannot exceed 500 characters", ex.Message);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_OutsideStatus_WithPrivilegedPermissionAndConfirmation_Succeeds()
     {
         var (db, service, _, _, _, audit) = CreateTestServices();
         var (_, _, vendor, jobCard) = await SeedDataAsync(db);
@@ -370,14 +530,105 @@ public class OutsideJobsTests
             VendorCost: 1500m,
             Notes: null));
 
-        var cancelled = await service.CancelAsync(job.Id, new CancelOutsideJobRequest("Vendor shop is closed today"));
+        var cancelled = await service.CancelAsync(
+            job.Id,
+            new CancelOutsideJobRequest("Vendor shop is closed today", VehicleConfirmedAtShowroom: true),
+            canCancelDispatched: true);
 
         Assert.Equal(OutsideJobStatus.Cancelled, cancelled.Status);
         Assert.Equal("Vendor shop is closed today", cancelled.CancellationReason);
-        Assert.Contains(audit.RecordedLogs, l => l.action == "outsidejobs.cancel" && l.entityId == job.Id);
+        Assert.Null(cancelled.ReturnedAt);
+        Assert.Null(cancelled.ReturnedByUserId);
 
-        // Test cannot cancel a returned job
-        var job2 = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+        // Distinguishable audit log for dispatched cancellation
+        var auditEntry = Assert.Single(audit.RecordedLogs, l => l.action == "outsidejobs.cancel_dispatched" && l.entityId == job.Id);
+        Assert.Contains("Outside", auditEntry.description);
+        Assert.Contains("Showroom custody confirmed: True", auditEntry.description);
+
+        // Vehicle location is back at showroom
+        var location = await service.GetVehicleLocationByJobCardIdAsync(jobCard.Id);
+        Assert.False(location.IsOutside);
+        Assert.Equal("At Showroom", location.Location);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_OutsideStatus_WithoutPrivilegedPermission_ThrowsForbiddenException()
+    {
+        var (db, service, _, _, _, audit) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "AC Gas Top-up",
+            ServiceId: null,
+            SentAt: DateTime.UtcNow,
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1),
+            VendorCost: 1500m,
+            Notes: null));
+
+        var ex = await Assert.ThrowsAsync<ForbiddenException>(() =>
+            service.CancelAsync(
+                job.Id,
+                new CancelOutsideJobRequest("Vendor shop closed", VehicleConfirmedAtShowroom: true),
+                canCancelDispatched: false));
+
+        Assert.Contains("outsidejobs.cancel_dispatched", ex.Message);
+        Assert.Contains(audit.RecordedLogs, l => l.action == "outsidejobs.cancel_dispatched_denied" && l.entityId == job.Id);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_OutsideStatus_WithoutConfirmation_ThrowsInvalidOperationException()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "Dent repair",
+            ServiceId: null,
+            SentAt: DateTime.UtcNow,
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1),
+            VendorCost: 1000m,
+            Notes: null));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CancelAsync(
+                job.Id,
+                new CancelOutsideJobRequest("Vendor shop closed", VehicleConfirmedAtShowroom: false),
+                canCancelDispatched: true));
+
+        Assert.Contains("requires confirmation that the vehicle is physically back", ex.Message);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_BlankReason_ThrowsInvalidOperationException()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "Dent repair",
+            ServiceId: null,
+            SentAt: DateTime.UtcNow,
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1),
+            VendorCost: 1000m,
+            Notes: null));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CancelAsync(
+                job.Id,
+                new CancelOutsideJobRequest("  ", VehicleConfirmedAtShowroom: true),
+                canCancelDispatched: true));
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_CannotCancelReturnedJob_Or_RepeatCancel()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+
+        var job = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
             VendorId: vendor.Id,
             ServiceName: "Wheel Alignment",
             ServiceId: null,
@@ -386,10 +637,70 @@ public class OutsideJobsTests
             VendorCost: 800m,
             Notes: null));
 
-        await service.MarkReturnedAsync(job2.Id, new MarkOutsideJobReturnedRequest(null, null, null));
+        // 1. Cannot cancel returned job
+        await service.MarkReturnedAsync(job.Id, new MarkOutsideJobReturnedRequest(null, null, null));
+        var ex1 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CancelAsync(job.Id, new CancelOutsideJobRequest("Trying to cancel returned job", true), canCancelDispatched: true));
+        Assert.Contains("already been marked returned", ex1.Message);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.CancelAsync(job2.Id, new CancelOutsideJobRequest("Trying to cancel returned job")));
+        // 2. Cannot repeat cancel
+        var job2 = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "Upholstery",
+            ServiceId: null,
+            SentAt: DateTime.UtcNow,
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1),
+            VendorCost: 500m,
+            Notes: null));
+
+        await service.CancelAsync(job2.Id, new CancelOutsideJobRequest("Cancelled once", true), canCancelDispatched: true);
+
+        var ex2 = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CancelAsync(job2.Id, new CancelOutsideJobRequest("Cancelling again", true), canCancelDispatched: true));
+        Assert.Contains("already been cancelled", ex2.Message);
+    }
+
+    [Fact]
+    public async Task CancelOutsideJob_AnotherActiveOutsideJob_KeepsVehicleOutside()
+    {
+        var (db, service, _, _, _, _) = CreateTestServices();
+        var (_, _, vendor, jobCard) = await SeedDataAsync(db);
+
+        var job1 = await service.CreateOutsideJobAsync(jobCard.Id, new CreateOutsideJobRequest(
+            VendorId: vendor.Id,
+            ServiceName: "First Job",
+            ServiceId: null,
+            SentAt: DateTime.UtcNow.AddHours(-2),
+            ExpectedReturnAt: DateTime.UtcNow.AddDays(1),
+            VendorCost: 500m,
+            Notes: null));
+
+        // Create second outside job manually for testing multiple outside movements
+        var job2 = new OutsideJob
+        {
+            Id = Guid.NewGuid(),
+            JobCardId = jobCard.Id,
+            VehicleId = jobCard.VehicleId,
+            CustomerId = jobCard.CustomerId,
+            VendorId = vendor.Id,
+            ServiceName = "Second Active Job",
+            Status = OutsideJobStatus.Outside,
+            SentAt = DateTime.UtcNow.AddHours(-1),
+            ExpectedReturnAt = DateTime.UtcNow.AddDays(2),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.OutsideJobs.Add(job2);
+        await db.SaveChangesAsync();
+
+        // Cancel job1
+        await service.CancelAsync(job1.Id, new CancelOutsideJobRequest("Cancel job1", true), canCancelDispatched: true);
+
+        // Vehicle should STILL be outside because job2 is active
+        var loc = await service.GetVehicleLocationByVehicleIdAsync(jobCard.VehicleId);
+        Assert.True(loc.IsOutside);
+        Assert.Equal("At Outside Shop", loc.Location);
+        Assert.Equal(job2.Id, loc.ActiveOutsideJobId);
     }
 
     [Fact]

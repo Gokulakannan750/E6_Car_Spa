@@ -303,7 +303,8 @@ public class OutsideJobService : IOutsideJobService
         CancelOutsideJobRequest request,
         Guid? userId = null,
         string? userName = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool canCancelDispatched = false)
     {
         var job = await _db.OutsideJobs
             .Include(o => o.JobCard)
@@ -318,6 +319,55 @@ public class OutsideJobService : IOutsideJobService
         if (job.Status == OutsideJobStatus.Returned)
             throw new InvalidOperationException("Cannot cancel an outside job that has already been marked returned.");
 
+        if (job.Status == OutsideJobStatus.Cancelled)
+            throw new InvalidOperationException("Cannot cancel an outside job that has already been cancelled.");
+
+        if (job.Status is not (OutsideJobStatus.Pending or OutsideJobStatus.Outside))
+            throw new InvalidOperationException($"Outside job is in status '{job.Status}' and cannot be cancelled.");
+
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length < 3)
+            throw new InvalidOperationException("A cancellation reason of at least 3 characters is required.");
+
+        if (request.Reason.Trim().Length > 500)
+            throw new InvalidOperationException("Cancellation reason cannot exceed 500 characters.");
+
+        if (!request.VehicleConfirmedAtShowroom.HasValue)
+            throw new InvalidOperationException("VehicleConfirmedAtShowroom must be explicitly provided.");
+
+        var previousStatus = job.Status;
+        var vehicleConfirmedAtShowroom = request.VehicleConfirmedAtShowroom.Value;
+        if (previousStatus == OutsideJobStatus.Pending && vehicleConfirmedAtShowroom)
+            throw new InvalidOperationException("Showroom confirmation is only valid when correcting an outside job after dispatch.");
+
+        if (previousStatus == OutsideJobStatus.Outside)
+        {
+            if (!canCancelDispatched)
+            {
+                await _auditLogService.RecordAsync(
+                    action: "outsidejobs.cancel_dispatched_denied",
+                    module: "OutsideJobs",
+                    description: $"Denied: attempted to cancel dispatched outside job for vehicle '{job.Vehicle.RegistrationNumber}' at '{job.Vendor.Name}' without privileged permission (outsidejobs.cancel_dispatched).",
+                    userId: userId,
+                    userName: userName,
+                    entityType: "OutsideJob",
+                    entityId: job.Id,
+                    entityReference: job.JobCard.JobCardNumber,
+                    outcome: "Denied",
+                    cancellationToken: cancellationToken);
+
+                throw new ForbiddenException("Cancelling a dispatched outside job requires privileged permission (outsidejobs.cancel_dispatched).");
+            }
+
+            if (!vehicleConfirmedAtShowroom)
+            {
+                throw new InvalidOperationException("Cancelling a dispatched outside job requires confirmation that the vehicle is physically back at the showroom or the job was entered in error.");
+            }
+        }
+        else if (vehicleConfirmedAtShowroom)
+        {
+            throw new InvalidOperationException("Pending cancellation requires VehicleConfirmedAtShowroom to be explicitly false.");
+        }
+
         var now = DateTime.UtcNow;
         job.Status = OutsideJobStatus.Cancelled;
         job.CancellationReason = request.Reason.Trim();
@@ -325,10 +375,18 @@ public class OutsideJobService : IOutsideJobService
 
         await _db.SaveChangesAsync(cancellationToken);
 
+        var auditAction = previousStatus == OutsideJobStatus.Outside
+            ? "outsidejobs.cancel_dispatched"
+            : "outsidejobs.cancel";
+
+        var auditDescription = previousStatus == OutsideJobStatus.Outside
+            ? $"Dispatched outside job for vehicle '{job.Vehicle.RegistrationNumber}' at '{job.Vendor.Name}' cancelled (previous status: {previousStatus}). Showroom custody confirmed: {vehicleConfirmedAtShowroom}. Reason: {request.Reason.Trim()}."
+            : $"Pending outside job for vehicle '{job.Vehicle.RegistrationNumber}' at '{job.Vendor.Name}' cancelled (previous status: {previousStatus}). Reason: {request.Reason.Trim()}.";
+
         await _auditLogService.RecordAsync(
-            action: "outsidejobs.cancel",
+            action: auditAction,
             module: "OutsideJobs",
-            description: $"Outside job for vehicle '{job.Vehicle.RegistrationNumber}' at '{job.Vendor.Name}' cancelled. Reason: {request.Reason}.",
+            description: auditDescription,
             userId: userId,
             userName: userName,
             entityType: "OutsideJob",
@@ -588,7 +646,9 @@ public class OutsideJobService : IOutsideJobService
     {
         var activeJob = await _db.OutsideJobs
             .Include(o => o.Vendor)
-            .FirstOrDefaultAsync(o => o.JobCardId == jobCardId && o.Status == OutsideJobStatus.Outside && !o.IsDeleted, cancellationToken);
+            .Where(o => o.JobCardId == jobCardId && o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+            .OrderByDescending(o => o.SentAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
         return BuildVehicleLocationDto(activeJob);
     }
@@ -597,7 +657,9 @@ public class OutsideJobService : IOutsideJobService
     {
         var activeJob = await _db.OutsideJobs
             .Include(o => o.Vendor)
-            .FirstOrDefaultAsync(o => o.VehicleId == vehicleId && o.Status == OutsideJobStatus.Outside && !o.IsDeleted, cancellationToken);
+            .Where(o => o.VehicleId == vehicleId && o.Status == OutsideJobStatus.Outside && !o.IsDeleted)
+            .OrderByDescending(o => o.SentAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
         return BuildVehicleLocationDto(activeJob);
     }

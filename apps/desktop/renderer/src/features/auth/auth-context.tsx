@@ -22,10 +22,12 @@ export interface AuthContextValue {
 	isInitialized: boolean | null;
 	isLoading: boolean;
 	sessionExpiredMessage: string | null;
+	secureStorageWarning: string | null;
 	hasPermission: (permissionCode?: string) => boolean;
 	login: (username: string, password: string, companyCode?: string) => Promise<AuthUser>;
 	logout: () => void;
 	clearSessionExpiredMessage: () => void;
+	clearSecureStorageWarning: () => void;
 	refreshAuth: () => Promise<void>;
 	checkInitialization: (isInitialStartup?: boolean, force?: boolean) => Promise<boolean>;
 }
@@ -38,10 +40,12 @@ export const AuthContext = createContext<AuthContextValue>({
 	isInitialized: null,
 	isLoading: true,
 	sessionExpiredMessage: null,
+	secureStorageWarning: null,
 	hasPermission: () => false,
 	login: async () => { throw new Error('AuthContext not initialized'); },
 	logout: () => {},
 	clearSessionExpiredMessage: () => {},
+	clearSecureStorageWarning: () => {},
 	refreshAuth: async () => {},
 	checkInitialization: async () => false,
 });
@@ -52,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isInitialized, setIsInitialized] = useState<boolean | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
+	const [secureStorageWarning, setSecureStorageWarning] = useState<string | null>(null);
 	const setCurrentUser = useAppStore((s) => s.setCurrentUser);
 
 	const isInitializedRef = useRef<boolean | null>(isInitialized);
@@ -124,9 +129,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}, [syncAppStoreUser]);
 
 	const logout = useCallback(async () => {
-		setAuthToken(null);
+		await setAuthToken(null);
 		setTokenState(null);
 		setUser(null);
+		setSecureStorageWarning(null);
 		syncAppStoreUser(null);
 		if (typeof localStorage !== 'undefined') {
 			localStorage.removeItem(USER_STORAGE_KEY);
@@ -168,6 +174,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			try {
 				const initialized = await checkInitialization(true, true);
 				if (initialized) {
+					if (typeof window !== 'undefined' && window.electronAPI?.getAuthToken) {
+						try {
+							const tokenRes = await window.electronAPI.getAuthToken();
+							if (tokenRes && typeof tokenRes === 'object' && tokenRes.error) {
+								setSecureStorageWarning(
+									'Secure storage unavailable, cannot keep you signed in across application restarts.'
+								);
+							}
+						} catch {
+							// ignore
+						}
+					}
 					const existingToken = await initAuthToken();
 					if (existingToken) {
 						setTokenState(existingToken);
@@ -247,16 +265,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setSessionExpiredMessage(null);
 	}, []);
 
+	const clearSecureStorageWarning = useCallback(() => {
+		setSecureStorageWarning(null);
+	}, []);
+
 	const login = useCallback(async (username: string, password: string, companyCode?: string) => {
 		setSessionExpiredMessage(null);
 		const res = await loginApi({ username, password, companyCode: companyCode?.trim() || undefined });
 		rememberCompanyCode(res.companyCode || companyCode?.trim() || '');
-		setAuthToken(res.token);
+		const setResult = await setAuthToken(res.token);
 		setTokenState(res.token);
 		setUser(res.user);
 		localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(res.user));
 		syncAppStoreUser(res.user);
 		setIsInitialized(true);
+
+		if (setResult && typeof setResult === 'object' && !setResult.success) {
+			setSecureStorageWarning(
+				'Secure storage unavailable, cannot keep you signed in across application restarts.'
+			);
+		} else {
+			setSecureStorageWarning(null);
+		}
 		return res.user;
 	}, [syncAppStoreUser]);
 
@@ -285,10 +315,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				isInitialized,
 				isLoading,
 				sessionExpiredMessage,
+				secureStorageWarning,
 				hasPermission,
 				login,
 				logout,
 				clearSessionExpiredMessage,
+				clearSecureStorageWarning,
 				refreshAuth,
 				checkInitialization,
 			}}
