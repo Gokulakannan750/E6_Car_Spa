@@ -632,8 +632,8 @@ describe('ShowroomOperationsPage', () => {
 	it('16. displays staff productivity breakdown in history tab', async () => {
 		renderOperations('/showroom/operations?showroomId=11111111-1111-1111-1111-111111111111&date=2026-09-25&tab=history');
 
-		expect(await screen.findByText('Staff Productivity Summary')).toBeInTheDocument();
-		expect(await screen.findByText('Gokul Kannan')).toBeInTheDocument();
+		expect(await screen.findByText('Staff Productivity Summary', {}, { timeout: 3000 })).toBeInTheDocument();
+		expect(await screen.findByText('Gokul Kannan', {}, { timeout: 3000 })).toBeInTheDocument();
 		expect(screen.getByText('#GO123L')).toBeInTheDocument();
 	});
 

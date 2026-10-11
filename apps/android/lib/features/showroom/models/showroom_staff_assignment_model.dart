@@ -26,8 +26,9 @@ double? calculateSessionHours(String startTime, String endTime) {
   if (startParts[0] == null ||
       startParts[1] == null ||
       endParts[0] == null ||
-      endParts[1] == null)
+      endParts[1] == null) {
     return null;
+  }
 
   final startMins = startParts[0]! * 60 + startParts[1]!;
   final endMins = endParts[0]! * 60 + endParts[1]!;

@@ -31,6 +31,7 @@ public static class PermissionSeeder
         ("jobcards.print", "Print Job Cards", "Job Cards", "Allows printing job cards"),
         ("outsidejobs.view", "View Outside Jobs", "Job Cards", "Allows viewing outside jobs and external vehicle movement"),
         ("outsidejobs.manage", "Manage Outside Jobs", "Job Cards", "Allows sending vehicles outside, recording returns, and managing outside jobs"),
+        ("outsidejobs.cancel_dispatched", "Cancel Dispatched Outside Jobs", "Job Cards", "Allows cancelling external vendor jobs after vehicle has been dispatched outside"),
         ("vendors.view", "View Vendors", "Vendors", "Allows viewing external service providers and vendors"),
         ("vendors.manage", "Manage Vendors", "Vendors", "Allows creating and managing external vendors"),
 

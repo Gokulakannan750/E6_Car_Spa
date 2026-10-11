@@ -14,7 +14,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./src/test/setup.ts'],
-		include: ['src/**/*.{test,spec}.{ts,tsx}'],
+		include: ['src/**/*.{test,spec}.{ts,tsx}', '../electron/**/*.{test,spec}.{ts,tsx}'],
 		testTimeout: 30000,
 		hookTimeout: 30000,
 	},

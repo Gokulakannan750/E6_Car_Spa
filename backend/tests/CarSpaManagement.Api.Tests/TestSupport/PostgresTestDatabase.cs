@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Npgsql;
 using Xunit;
 
@@ -45,7 +46,9 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
         return new AppDbContext(options);
     }
 
-    public async Task InitializeAsync()
+    public Task InitializeAsync() => InitializeAsync(null);
+
+    public async Task InitializeAsync(string? targetMigration)
     {
         _adminConnectionString = PostgresTestEnvironment.AdminConnectionString;
         if (_adminConnectionString is null) return;
@@ -61,7 +64,8 @@ public sealed class PostgresTestDatabase : IAsyncLifetime
         ConnectionString = new NpgsqlConnectionStringBuilder(_adminConnectionString) { Database = _databaseName }.ConnectionString;
 
         await using var db = CreateContext();
-        await db.Database.MigrateAsync();
+        await db.Database.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>()
+            .MigrateAsync(targetMigration);
     }
 
     public async Task DisposeAsync()

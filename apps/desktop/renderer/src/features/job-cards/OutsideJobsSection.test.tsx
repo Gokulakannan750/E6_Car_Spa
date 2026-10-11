@@ -546,4 +546,139 @@ describe('OutsideJobsSection Component', () => {
 			expect(api.deleteOutsideJob).toHaveBeenCalledWith('oj-hist-del-1');
 		});
 	});
+
+	it('hides Cancel button on active outside job when user lacks outsidejobs.cancel_dispatched permission', async () => {
+		const activeJob: api.OutsideJobDto = {
+			id: 'oj-active-cancel-1',
+			jobCardId: 'jc-test-cancel-1',
+			jobCardNumber: 'JC-2026-0111',
+			vehicleId: 'veh-1',
+			vehicleRegistrationNumber: 'KA01MJ9999',
+			vehicleMake: 'Honda',
+			vehicleModel: 'City',
+			customerId: 'cust-1',
+			customerName: 'Rahul Sharma',
+			customerPhone: '9876543210',
+			vendorId: 'ven-1',
+			vendorName: 'Sri Lakshmi Auto Works',
+			serviceName: 'Denting',
+			status: 1, // Outside
+			statusName: 'Outside',
+			sentAt: '2026-09-29T10:00:00Z',
+			expectedReturnAt: '2026-09-30T17:00:00Z',
+			isOverdue: false,
+			createdAt: '2026-09-29T10:00:00Z',
+		};
+
+		vi.mocked(api.getOutsideJobsByJobCardId).mockResolvedValue([activeJob]);
+
+		renderWithProviders(
+			<OutsideJobsSection
+				jobCardId="jc-test-cancel-1"
+				vehicleRegistration="KA01MJ9999"
+				vehicleModel="Honda City"
+			/>,
+			{
+				authUser: {
+					id: 'user-staff',
+					username: 'staff',
+					role: 'Staff',
+					isOwner: false,
+					permissions: ['outsidejobs.view'],
+				} as any,
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('active-outside-job-card')).toBeInTheDocument();
+		});
+
+		expect(screen.queryByTestId('btn-cancel-outside-job')).not.toBeInTheDocument();
+	});
+
+	it('shows Cancel button when user has outsidejobs.cancel_dispatched permission and requires confirmation', async () => {
+		const activeJob: api.OutsideJobDto = {
+			id: 'oj-active-cancel-2',
+			jobCardId: 'jc-test-cancel-2',
+			jobCardNumber: 'JC-2026-0112',
+			vehicleId: 'veh-1',
+			vehicleRegistrationNumber: 'KA01MJ9999',
+			vehicleMake: 'Honda',
+			vehicleModel: 'City',
+			customerId: 'cust-1',
+			customerName: 'Rahul Sharma',
+			customerPhone: '9876543210',
+			vendorId: 'ven-1',
+			vendorName: 'Sri Lakshmi Auto Works',
+			serviceName: 'Denting',
+			status: 1, // Outside
+			statusName: 'Outside',
+			sentAt: '2026-09-29T10:00:00Z',
+			expectedReturnAt: '2026-09-30T17:00:00Z',
+			isOverdue: false,
+			createdAt: '2026-09-29T10:00:00Z',
+		};
+
+		vi.mocked(api.getOutsideJobsByJobCardId).mockResolvedValue([activeJob]);
+		vi.mocked(api.cancelOutsideJob).mockResolvedValue({
+			...activeJob,
+			status: 3,
+			statusName: 'Cancelled',
+		});
+
+		renderWithProviders(
+			<OutsideJobsSection
+				jobCardId="jc-test-cancel-2"
+				vehicleRegistration="KA01MJ9999"
+				vehicleModel="Honda City"
+			/>,
+			{
+				authUser: {
+					id: 'user-admin',
+					username: 'admin',
+					role: 'Admin',
+					isOwner: false,
+					permissions: ['outsidejobs.cancel_dispatched'],
+				} as any,
+			}
+		);
+
+		await waitFor(() => {
+			expect(screen.getByTestId('btn-cancel-outside-job')).toBeInTheDocument();
+		});
+
+		expect(screen.getByTestId('btn-cancel-outside-job')).toHaveTextContent(/Cancel \(entered in error\)/i);
+
+		// Click to open cancel modal
+		fireEvent.click(screen.getByTestId('btn-cancel-outside-job'));
+
+		expect(screen.getByTestId('modal-cancel-outside')).toBeInTheDocument();
+		const submitBtn = screen.getByTestId('btn-confirm-cancel-outside');
+		expect(submitBtn).toBeDisabled();
+
+		const reasonInput = screen.getByTestId('input-cancel-reason');
+		const confirmCheckbox = screen.getByTestId('chk-confirm-showroom');
+
+		// Enter reason only (no checkbox) -> submit remains disabled
+		fireEvent.change(reasonInput, { target: { value: 'x' } });
+		expect(submitBtn).toBeDisabled();
+		fireEvent.change(reasonInput, { target: { value: 'x'.repeat(501) } });
+		expect(submitBtn).toBeDisabled();
+		fireEvent.change(reasonInput, { target: { value: 'Entered wrong vendor by mistake' } });
+		expect(submitBtn).toBeDisabled();
+
+		// Check the checkbox -> submit should now be enabled
+		fireEvent.click(confirmCheckbox);
+		expect(submitBtn).not.toBeDisabled();
+
+		// Submit the cancellation
+		fireEvent.click(submitBtn);
+
+		await waitFor(() => {
+			expect(api.cancelOutsideJob).toHaveBeenCalledWith('oj-active-cancel-2', {
+				reason: 'Entered wrong vendor by mistake',
+				vehicleConfirmedAtShowroom: true,
+			});
+		});
+	});
 });

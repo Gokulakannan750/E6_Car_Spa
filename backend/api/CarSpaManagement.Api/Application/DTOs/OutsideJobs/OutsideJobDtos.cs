@@ -73,8 +73,11 @@ public record MarkOutsideJobReturnedRequest(
 
 public record CancelOutsideJobRequest(
     [Required]
+    [MinLength(3, ErrorMessage = "Cancellation reason must be at least 3 characters.")]
     [MaxLength(500)]
-    string Reason);
+    string Reason,
+    [Required]
+    bool? VehicleConfirmedAtShowroom);
 
 public record UpdateOutsideJobRequest(
     [Required]

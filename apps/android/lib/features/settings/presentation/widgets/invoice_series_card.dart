@@ -91,8 +91,9 @@ class _InvoiceSeriesCardState extends ConsumerState<InvoiceSeriesCard> {
     if (_gst.isEmpty || _nonGst.isEmpty) return false;
     if (_formatError(_gst) != null ||
         _formatError(_nonGst) != null ||
-        _sameError != null)
+        _sameError != null) {
       return false;
+    }
     return _gst.toUpperCase() != data.gst.prefix ||
         _nonGst.toUpperCase() != data.nonGst.prefix;
   }

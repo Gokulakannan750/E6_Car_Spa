@@ -7,6 +7,7 @@ import '../../models/outside_job_model.dart';
 import '../../providers/outside_job_providers.dart';
 import '../../providers/job_card_providers.dart';
 import '../../../staff/providers/staff_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 /// Collapsible section inside the Job Card Details screen that shows
 /// outside job lifecycle: send outside → track → mark returned / cancel.
@@ -572,6 +573,9 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
 
   Widget _buildActiveJobCard(OutsideJob job) {
     final isOverdue = job.isOverdue;
+    final currentUser = ref.watch(currentUserProvider);
+    final canCancelDispatched =
+        currentUser?.hasPermission('outsidejobs.cancel_dispatched') ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -707,28 +711,30 @@ class _OutsideJobsSectionState extends ConsumerState<OutsideJobsSection> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                key: const Key('btn_cancel_outside'),
-                onPressed: () => _showCancelDialog(job),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: BorderSide(
-                    color: AppColors.error.withValues(alpha: 0.4),
+              if (canCancelDispatched) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  key: const Key('btn_cancel_outside'),
+                  onPressed: () => _showCancelDialog(job),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(
+                      color: AppColors.error.withValues(alpha: 0.4),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  child: const Text(
+                    'Cancel (entered in error)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                ),
-              ),
+              ],
               if (!widget.isLocked) ...[
                 const SizedBox(width: 8),
                 IconButton(
@@ -1926,8 +1932,17 @@ class _CancelOutsideJobDialog extends ConsumerStatefulWidget {
 class _CancelOutsideJobDialogState
     extends ConsumerState<_CancelOutsideJobDialog> {
   final _reasonCtrl = TextEditingController();
+  bool _confirmAtShowroom = false;
   bool _isSubmitting = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _reasonCtrl.addListener(() {
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -1936,8 +1951,13 @@ class _CancelOutsideJobDialogState
   }
 
   Future<void> _handleCancel() async {
-    if (_reasonCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Please specify a reason.');
+    final reason = _reasonCtrl.text.trim();
+    if (reason.length < 3) {
+      setState(() => _error = 'Please enter a reason of at least 3 characters.');
+      return;
+    }
+    if (!_confirmAtShowroom) {
+      setState(() => _error = 'Please confirm the vehicle location before cancelling.');
       return;
     }
 
@@ -1950,7 +1970,10 @@ class _CancelOutsideJobDialogState
         .read(outsideJobsProvider(widget.jobCardId).notifier)
         .cancelJob(
           widget.outsideJob.id,
-          CancelOutsideJobRequest(reason: _reasonCtrl.text.trim()),
+          CancelOutsideJobRequest(
+            reason: reason,
+            vehicleConfirmedAtShowroom: true,
+          ),
         );
 
     if (!mounted) return;
@@ -1966,6 +1989,11 @@ class _CancelOutsideJobDialogState
 
   @override
   Widget build(BuildContext context) {
+    final bool canSubmit =
+        !_isSubmitting &&
+        _reasonCtrl.text.trim().length >= 3 &&
+        _confirmAtShowroom;
+
     return AlertDialog(
       title: Row(
         children: [
@@ -1985,38 +2013,79 @@ class _CancelOutsideJobDialogState
           ),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Cancel "${widget.outsideJob.serviceName}" at ${widget.outsideJob.vendorName}?',
-            style: AppTextStyles.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                _error!,
-                style: AppTextStyles.caption.copyWith(color: AppColors.error),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cancel "${widget.outsideJob.serviceName}" at ${widget.outsideJob.vendorName}?',
+              style: AppTextStyles.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Warning: Cancelling does not record vehicle return or completed work. Use this only to correct data-entry mistakes or if the car is already confirmed physically back at the showroom.',
+                      style: AppTextStyles.caption.copyWith(color: Colors.black87),
+                    ),
+                  ),
+                ],
               ),
             ),
-          TextFormField(
-            controller: _reasonCtrl,
-            maxLines: 2,
-            decoration: InputDecoration(
-              labelText: 'Cancellation Reason *',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+            const SizedBox(height: 12),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _error!,
+                  style: AppTextStyles.caption.copyWith(color: AppColors.error),
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
+            TextFormField(
+              key: const Key('input_cancel_reason'),
+              controller: _reasonCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: 'Cancellation Reason *',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              key: const Key('chk_confirm_showroom'),
+              contentPadding: EdgeInsets.zero,
+              value: _confirmAtShowroom,
+              onChanged: (val) {
+                setState(() {
+                  _confirmAtShowroom = val ?? false;
+                });
+              },
+              controlAffinity: ListTileControlAffinity.leading,
+              title: Text(
+                'I confirm the vehicle is physically back at the showroom, or this job was entered in error.',
+                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -2024,7 +2093,8 @@ class _CancelOutsideJobDialogState
           child: const Text('Dismiss'),
         ),
         FilledButton(
-          onPressed: _isSubmitting ? null : _handleCancel,
+          key: const Key('btn_confirm_cancel_outside'),
+          onPressed: canSubmit ? _handleCancel : null,
           style: FilledButton.styleFrom(backgroundColor: AppColors.error),
           child: Text(_isSubmitting ? 'Cancelling…' : 'Cancel Job'),
         ),

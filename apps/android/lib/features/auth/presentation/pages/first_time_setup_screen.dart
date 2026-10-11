@@ -309,8 +309,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               ),
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null)
+                                if (_localError != null) {
                                   setState(() => _localError = null);
+                                }
                               },
                             ),
                             const SizedBox(height: 16),
@@ -326,8 +327,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               ),
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null)
+                                if (_localError != null) {
                                   setState(() => _localError = null);
+                                }
                               },
                             ),
                             const SizedBox(height: 16),
@@ -344,8 +346,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               isPassword: _obscurePassword,
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null)
+                                if (_localError != null) {
                                   setState(() => _localError = null);
+                                }
                               },
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -376,8 +379,9 @@ class _FirstTimeSetupScreenState extends ConsumerState<FirstTimeSetupScreen>
                               isPassword: _obscureConfirmPassword,
                               isEnabled: !isLoading,
                               onChanged: (_) {
-                                if (_localError != null)
+                                if (_localError != null) {
                                   setState(() => _localError = null);
+                                }
                               },
                               suffixIcon: IconButton(
                                 icon: Icon(

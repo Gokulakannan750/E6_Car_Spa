@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, net, protocol, safeStorage, shell 
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { TokenStorage } from './tokenStorage';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -185,39 +186,20 @@ function getAuthTokenFilePath(): string {
 	return path.join(app.getPath('userData'), 'session.enc');
 }
 
-ipcMain.handle('auth:getToken', async () => {
-	try {
-		const filePath = getAuthTokenFilePath();
-		if (!fs.existsSync(filePath)) return null;
-		const buffer = fs.readFileSync(filePath);
-		if (safeStorage.isEncryptionAvailable()) {
-			return safeStorage.decryptString(buffer);
-		}
-		return buffer.toString('utf8');
-	} catch (err) {
-		console.error('Failed to read encrypted auth token:', err);
-		return null;
+let tokenStorage: TokenStorage | null = null;
+function getTokenStorage(): TokenStorage {
+	if (!tokenStorage) {
+		tokenStorage = new TokenStorage(safeStorage, fs, getAuthTokenFilePath());
 	}
+	return tokenStorage;
+}
+
+ipcMain.handle('auth:getToken', async () => {
+	return getTokenStorage().getToken();
 });
 
 ipcMain.handle('auth:setToken', async (_event, token: string | null) => {
-	try {
-		const filePath = getAuthTokenFilePath();
-		if (!token) {
-			if (fs.existsSync(filePath)) {
-				fs.unlinkSync(filePath);
-			}
-			return;
-		}
-		if (safeStorage.isEncryptionAvailable()) {
-			const encrypted = safeStorage.encryptString(token);
-			fs.writeFileSync(filePath, encrypted);
-		} else {
-			fs.writeFileSync(filePath, Buffer.from(token, 'utf8'));
-		}
-	} catch (err) {
-		console.error('Failed to write encrypted auth token:', err);
-	}
+	return getTokenStorage().setToken(token);
 });
 
 app.whenReady().then(() => {
