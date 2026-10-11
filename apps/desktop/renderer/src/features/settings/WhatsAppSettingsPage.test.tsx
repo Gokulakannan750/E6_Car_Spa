@@ -71,16 +71,15 @@ describe('WhatsAppSettingsPage Component', () => {
 			expect(
 				screen.getByText('Configure Meta WhatsApp Cloud API credentials, utility notification templates, and automated delivery')
 			).toBeInTheDocument();
+			// Verify Cloud API Architecture card
+			expect(screen.getByText('Cloud API Architecture')).toBeInTheDocument();
+			expect(screen.getByText('Meta Graph API v25.0')).toBeInTheDocument();
+			expect(screen.getByText('Production Triggers')).toBeInTheDocument();
+			expect(screen.getByText('Durable Fault Isolation')).toBeInTheDocument();
+
+			// Verify WhatsApp integration section
+			expect(screen.getByText('WhatsApp Business Integration')).toBeInTheDocument();
 		});
-
-		// Verify Cloud API Architecture card
-		expect(screen.getByText('Cloud API Architecture')).toBeInTheDocument();
-		expect(screen.getByText('Meta Graph API v25.0')).toBeInTheDocument();
-		expect(screen.getByText('Production Triggers')).toBeInTheDocument();
-		expect(screen.getByText('Durable Fault Isolation')).toBeInTheDocument();
-
-		// Verify WhatsApp integration section
-		expect(screen.getByText('WhatsApp Business Integration')).toBeInTheDocument();
 	});
 
 	const ownerUser = {

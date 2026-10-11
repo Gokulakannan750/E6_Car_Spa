@@ -136,8 +136,9 @@ class ShowroomApi {
     final queryParameters = <String, dynamic>{};
     if (showroomId != null) queryParameters['showroomId'] = showroomId;
     if (staffId != null) queryParameters['staffId'] = staffId;
-    if (date != null)
+    if (date != null) {
       queryParameters['date'] = date.toIso8601String().split('T').first;
+    }
 
     final response = await _dio.get(
       '/showrooms/swaps',
@@ -154,8 +155,9 @@ class ShowroomApi {
     DateTime? date,
   }) async {
     final queryParameters = <String, dynamic>{};
-    if (date != null)
+    if (date != null) {
       queryParameters['date'] = date.toIso8601String().split('T').first;
+    }
 
     final response = await _dio.get(
       '/showrooms/$showroomId/swap-history',
@@ -311,10 +313,12 @@ class ShowroomApi {
     String? vehicleTypeId,
   }) async {
     final queryParameters = <String, dynamic>{};
-    if (date != null)
+    if (date != null) {
       queryParameters['date'] = date.toIso8601String().split('T').first;
-    if (staffId != null && staffId.isNotEmpty)
+    }
+    if (staffId != null && staffId.isNotEmpty) {
       queryParameters['staffId'] = staffId;
+    }
     if (vehicleTypeId != null && vehicleTypeId.isNotEmpty) {
       queryParameters['vehicleTypeId'] = vehicleTypeId;
     }

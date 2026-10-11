@@ -86,7 +86,7 @@ void main() {
                   BillingScreen(initialTabIndex: 0, tabs: testTabs),
             ),
             GoRoute(
-              path: AppRoutes.quotationsInvoices,
+              path: AppRoutes.invoices,
               builder: (context, state) =>
                   BillingScreen(initialTabIndex: 2, tabs: testTabs),
             ),

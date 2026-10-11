@@ -27,6 +27,7 @@ import {
 	type CreateOutsideJobRequest,
 	type MarkOutsideJobReturnedRequest,
 } from '../../lib/api';
+import { useAuth } from '../auth/auth-context';
 
 export interface OutsideJobsSectionHandle {
 	openSendModal: () => void;
@@ -47,11 +48,14 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 		ref
 	) {
 	const queryClient = useQueryClient();
+	const { isOwner, hasPermission } = useAuth();
+	const canCancelDispatched = Boolean(isOwner || hasPermission('outsidejobs.cancel_dispatched'));
 
 	const [showAddModal, setShowAddModal] = useState(false);
 	const [showReturnModal, setShowReturnModal] = useState<OutsideJobDto | null>(null);
 	const [showCancelModal, setShowCancelModal] = useState<OutsideJobDto | null>(null);
 	const [showNewVendorModal, setShowNewVendorModal] = useState(false);
+	const [confirmVehicleAtShowroom, setConfirmVehicleAtShowroom] = useState(false);
 
 	// Add Form State
 	const [selectedVendorId, setSelectedVendorId] = useState('');
@@ -240,22 +244,31 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 	const handleConfirmCancel = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!showCancelModal) return;
-		if (!cancelReason.trim()) {
-			setCancelError('Please specify a cancellation reason.');
+		if (cancelReason.trim().length < 3 || cancelReason.trim().length > 500) {
+			setCancelError('Please enter a reason between 3 and 500 characters.');
+			return;
+		}
+		if (!confirmVehicleAtShowroom) {
+			setCancelError('Please confirm the vehicle is physically back at the showroom, or this job was entered in error.');
 			return;
 		}
 
 		setIsSubmitting(true);
 		setCancelError(null);
 		try {
-			await cancelOutsideJob(showCancelModal.id, { reason: cancelReason.trim() });
+			await cancelOutsideJob(showCancelModal.id, {
+				reason: cancelReason.trim(),
+				vehicleConfirmedAtShowroom: true,
+			});
 			setShowCancelModal(null);
 			setCancelReason('');
+			setConfirmVehicleAtShowroom(false);
 			refetch();
 			queryClient.invalidateQueries({ queryKey: ['jobCard', jobCardId] });
 			queryClient.invalidateQueries({ queryKey: ['job-card', jobCardId] });
 			queryClient.invalidateQueries({ queryKey: ['jobCards'] });
 			queryClient.invalidateQueries({ queryKey: ['job-cards'] });
+			queryClient.invalidateQueries({ queryKey: ['vehicleLocation'] });
 			onUpdated?.();
 		} catch (err: unknown) {
 			const msg = err instanceof Error ? err.message : 'Failed to cancel outside job.';
@@ -508,16 +521,20 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 									<CheckCircle2 className="w-4 h-4" />
 									Mark Vehicle Returned
 								</button>
-								<button
-									onClick={() => {
-										setShowCancelModal(activeJob);
-										setCancelError(null);
-									}}
-									className="border border-outline-variant text-on-surface-variant hover:text-error hover:border-error/40 text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
-									data-testid="btn-cancel-outside-job"
-								>
-									Cancel Job
-								</button>
+								{canCancelDispatched && (
+									<button
+										onClick={() => {
+											setShowCancelModal(activeJob);
+											setCancelReason('');
+											setConfirmVehicleAtShowroom(false);
+											setCancelError(null);
+										}}
+										className="border border-outline-variant text-on-surface-variant hover:text-error hover:border-error/40 text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+										data-testid="btn-cancel-outside-job"
+									>
+										Cancel (entered in error)
+									</button>
+								)}
 							</div>
 						</div>
 
@@ -986,6 +1003,10 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 								</div>
 							)}
 
+							<div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300">
+								<strong>Warning:</strong> Cancelling does not record vehicle return or completed work. Use this only to correct data-entry mistakes or if the car is already confirmed physically back at the showroom.
+							</div>
+
 							<div>
 								<label className="block text-xs font-semibold text-on-surface mb-1">
 									Cancellation Reason <span className="text-red-500">*</span>
@@ -997,21 +1018,39 @@ export const OutsideJobsSection = forwardRef<OutsideJobsSectionHandle, OutsideJo
 									onChange={(e) => setCancelReason(e.target.value)}
 									placeholder="Reason for cancelling this outside job record…"
 									className="w-full border border-outline-variant rounded-lg p-2.5 text-sm focus:border-secondary focus:ring-1 focus:ring-secondary"
+									data-testid="input-cancel-reason"
 								/>
+							</div>
+
+							<div className="pt-1">
+								<label className="flex items-start gap-2.5 cursor-pointer text-xs text-on-surface select-none">
+									<input
+										type="checkbox"
+										checked={confirmVehicleAtShowroom}
+										onChange={(e) => setConfirmVehicleAtShowroom(e.target.checked)}
+										className="mt-0.5 rounded border-outline-variant text-secondary focus:ring-secondary"
+										data-testid="chk-confirm-showroom"
+									/>
+									<span>I confirm the vehicle is physically back at the showroom, or this job was entered in error.</span>
+								</label>
 							</div>
 
 							<div className="pt-2 flex justify-end gap-2 border-t border-outline-variant">
 								<button
 									type="button"
-									onClick={() => setShowCancelModal(null)}
+									onClick={() => {
+										setShowCancelModal(null);
+										setConfirmVehicleAtShowroom(false);
+									}}
 									className="px-4 py-2 border border-outline-variant rounded-lg text-sm text-on-surface hover:bg-surface-variant transition-colors"
 								>
 									Dismiss
 								</button>
 								<button
 									type="submit"
-									disabled={isSubmitting}
+									disabled={isSubmitting || cancelReason.trim().length < 3 || cancelReason.trim().length > 500 || !confirmVehicleAtShowroom}
 									className="bg-error text-white px-5 py-2 rounded-lg text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+									data-testid="btn-confirm-cancel-outside"
 								>
 									{isSubmitting ? 'Cancelling…' : 'Confirm Cancel'}
 								</button>

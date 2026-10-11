@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Invoices;
+using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
@@ -73,6 +74,7 @@ public sealed class RbacPhase1Host : IAsyncLifetime
         Add("jobcards.only", UserRole.Staff, "jobcards.view", "jobcards.edit");
         Add("outside.viewer", UserRole.Staff, "outsidejobs.view");
         Add("outside.manager", UserRole.Staff, "outsidejobs.view", "outsidejobs.manage");
+        Add("outside.dispatched.cancel", UserRole.Staff, "outsidejobs.view", "outsidejobs.manage", "outsidejobs.cancel_dispatched");
         Add("outside.manager.drafts", UserRole.Staff, "outsidejobs.view", "outsidejobs.manage", "invoices.edit_draft");
         Add("vendor.viewer", UserRole.Staff, "vendors.view");
         Add("vendor.manager", UserRole.Staff, "vendors.view", "vendors.manage");
@@ -195,6 +197,58 @@ public class RbacPhase1HttpTests : IClassFixture<RbacPhase1Host>
     }
 
     // ── P1-2: vendor cost and the draft invoice ─────────────────────────────
+
+    [PostgresFact]
+    public async Task DispatchedOutsideJobCancellation_RequiresDedicatedPermissionAndConfirmation()
+    {
+        var (jobCardId, jobId, _, _) = await _api.SeedOutsideJobAsync(withDraftInvoice: false);
+        await _api.QueryAsync(async db =>
+        {
+            var job = await db.OutsideJobs.SingleAsync(x => x.Id == jobId);
+            job.Status = OutsideJobStatus.Outside;
+            job.ReturnedAt = null;
+            await db.SaveChangesAsync();
+            return true;
+        });
+
+        var omittedConfirmation = await _api.SendAsync(
+            HttpMethod.Post,
+            $"/api/outside-jobs/{jobId}/cancel",
+            "outside.dispatched.cancel",
+            new { reason = "Entered for wrong vehicle" });
+        Assert.Equal(HttpStatusCode.BadRequest, omittedConfirmation.StatusCode);
+        Assert.Equal(OutsideJobStatus.Outside, await _api.QueryAsync(db => db.OutsideJobs.Where(x => x.Id == jobId).Select(x => x.Status).SingleAsync()));
+
+        var ordinaryManager = await _api.SendAsync(
+            HttpMethod.Post,
+            $"/api/outside-jobs/{jobId}/cancel",
+            "outside.manager",
+            new { reason = "Entered for wrong vehicle", vehicleConfirmedAtShowroom = true });
+        Assert.Equal(HttpStatusCode.Forbidden, ordinaryManager.StatusCode);
+        Assert.Equal(OutsideJobStatus.Outside, await _api.QueryAsync(db => db.OutsideJobs.Where(x => x.Id == jobId).Select(x => x.Status).SingleAsync()));
+
+        var missingConfirmation = await _api.SendAsync(
+            HttpMethod.Post,
+            $"/api/outside-jobs/{jobId}/cancel",
+            "outside.dispatched.cancel",
+            new { reason = "Entered for wrong vehicle", vehicleConfirmedAtShowroom = false });
+        Assert.Equal(HttpStatusCode.BadRequest, missingConfirmation.StatusCode);
+        Assert.Equal(OutsideJobStatus.Outside, await _api.QueryAsync(db => db.OutsideJobs.Where(x => x.Id == jobId).Select(x => x.Status).SingleAsync()));
+
+        var privilegedCorrection = await _api.SendAsync(
+            HttpMethod.Post,
+            $"/api/outside-jobs/{jobId}/cancel",
+            "outside.dispatched.cancel",
+            new { reason = "Entered for wrong vehicle", vehicleConfirmedAtShowroom = true });
+        Assert.Equal(HttpStatusCode.OK, privilegedCorrection.StatusCode);
+        Assert.Equal(OutsideJobStatus.Cancelled, await _api.QueryAsync(db => db.OutsideJobs.Where(x => x.Id == jobId).Select(x => x.Status).SingleAsync()));
+        Assert.Null(await _api.QueryAsync(db => db.OutsideJobs.Where(x => x.Id == jobId).Select(x => x.ReturnedAt).SingleAsync()));
+        Assert.True(await _api.QueryAsync(db => db.AuditLogs.AnyAsync(a => a.Action == "outsidejobs.cancel_dispatched" && a.EntityId == jobId && a.Outcome == "Success")));
+
+        var location = await _api.SendAsync(HttpMethod.Get, $"/api/job-cards/{jobCardId}/location", "outside.manager");
+        Assert.Equal(HttpStatusCode.OK, location.StatusCode);
+        Assert.Equal("At Showroom", (await location.Content.ReadFromJsonAsync<VehicleLocationDto>())?.Location);
+    }
 
     [PostgresFact]
     public async Task VendorCost_WithoutDraftInvoice_OutsideJobsManageIsEnough()

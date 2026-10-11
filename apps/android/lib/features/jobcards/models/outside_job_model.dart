@@ -352,10 +352,17 @@ class MarkOutsideJobReturnedRequest {
 @immutable
 class CancelOutsideJobRequest {
   final String reason;
+  final bool vehicleConfirmedAtShowroom;
 
-  const CancelOutsideJobRequest({required this.reason});
+  const CancelOutsideJobRequest({
+    required this.reason,
+    required this.vehicleConfirmedAtShowroom,
+  });
 
-  Map<String, dynamic> toJson() => {'reason': reason.trim()};
+  Map<String, dynamic> toJson() => {
+    'reason': reason.trim(),
+    'vehicleConfirmedAtShowroom': vehicleConfirmedAtShowroom,
+  };
 }
 
 @immutable

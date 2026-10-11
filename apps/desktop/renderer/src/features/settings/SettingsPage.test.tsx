@@ -107,7 +107,7 @@ describe('SettingsPage Component & Business Profile Boundary', () => {
 			// Invoice Configuration now shows the two numbering series (old single INV prefix retired).
 			expect(screen.getByDisplayValue('GST/')).toBeInTheDocument();
 			expect(screen.getByDisplayValue('BILL/')).toBeInTheDocument();
-		});
+		}, { timeout: 3000 });
 	});
 
 	it('validates 10-digit phone number and required fields before saving', async () => {

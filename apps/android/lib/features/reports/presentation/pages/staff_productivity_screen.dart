@@ -333,11 +333,13 @@ class _StaffProductivityScreenState
                       if (!matchStaff && !matchVeh && !matchSrv) return false;
                     }
                     if (_selectedAssignmentType == 'Swapped' &&
-                        r.assignmentType != 'Swapped')
+                        r.assignmentType != 'Swapped') {
                       return false;
+                    }
                     if (_selectedAssignmentType == 'Regular' &&
-                        r.assignmentType != 'Regular')
+                        r.assignmentType != 'Regular') {
                       return false;
+                    }
                     return true;
                   }).toList();
 

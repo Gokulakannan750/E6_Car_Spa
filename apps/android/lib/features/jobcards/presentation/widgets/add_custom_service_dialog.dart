@@ -171,8 +171,9 @@ class _AddCustomServiceDialogState
                       hint: 'e.g. Custom Scratch Removal & Polish',
                       prefixIcon: const Icon(Icons.build_circle_outlined),
                       validator: (val) {
-                        if (val == null || val.trim().isEmpty)
+                        if (val == null || val.trim().isEmpty) {
                           return 'Service name is required';
+                        }
                         return null;
                       },
                     ),
@@ -190,11 +191,13 @@ class _AddCustomServiceDialogState
                             ),
                             prefixIcon: const Icon(Icons.currency_rupee),
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty)
+                              if (val == null || val.trim().isEmpty) {
                                 return 'Price is required';
+                              }
                               final parsed = double.tryParse(val.trim());
-                              if (parsed == null || parsed < 0)
+                              if (parsed == null || parsed < 0) {
                                 return 'Enter valid amount';
+                              }
                               return null;
                             },
                           ),
@@ -256,8 +259,9 @@ class _AddCustomServiceDialogState
                               });
                             },
                             validator: (val) {
-                              if (val == null || val.trim().isEmpty)
+                              if (val == null || val.trim().isEmpty) {
                                 return 'Category is required';
+                              }
                               return null;
                             },
                           ),
