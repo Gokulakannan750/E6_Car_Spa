@@ -12,6 +12,7 @@ import {
 	AlertCircle,
 	Truck,
 	History,
+	Receipt,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../auth/auth-context';
@@ -21,8 +22,10 @@ import { StaffReportsView } from './StaffReportsView';
 import { ShowroomReportsView } from './ShowroomReportsView';
 import { CustomReportsView } from './CustomReportsView';
 import { OutsideJobsReportsView } from './OutsideJobsReportsView';
+import { FinancialReportsView } from './FinancialReportsView';
+import { FINANCIAL_REPORT_PERMISSIONS } from './financialReports';
 
-export type ReportType = 'billing' | 'staff' | 'showroom' | 'outside-jobs' | 'custom' | 'audit';
+export type ReportType = 'billing' | 'financial' | 'staff' | 'showroom' | 'outside-jobs' | 'custom' | 'audit';
 export type DatePreset = 'today' | '7d' | '30d' | 'month' | 'year' | 'custom';
 
 function formatINR(val?: number | null): string {
@@ -91,6 +94,7 @@ export function ReportsPage() {
 	const checkPerm = (perm: string) => (!user ? true : hasPermission(perm));
 
 	const canBilling = checkPerm('reports.invoices');
+	const canFinancial = FINANCIAL_REPORT_PERMISSIONS.some(checkPerm);
 	const canStaff = checkPerm('reports.staff_advances') || checkPerm('reports.staff_productivity');
 	const canShowroom = checkPerm('reports.showrooms');
 	const canOutsideJobs = checkPerm('outsidejobs.view');
@@ -105,20 +109,23 @@ export function ReportsPage() {
 		if (param === 'outside-jobs' && canOutsideJobs) return 'outside-jobs';
 		if (param === 'custom' && canCustom) return 'custom';
 		if (param === 'billing' && canBilling) return 'billing';
+		if (param === 'financial' && canFinancial) return 'financial';
 
 		if (location.pathname.endsWith('/staff') && canStaff) return 'staff';
 		if (location.pathname.endsWith('/showroom') && canShowroom) return 'showroom';
 		if (location.pathname.endsWith('/outside-jobs') && canOutsideJobs) return 'outside-jobs';
 		if (location.pathname.endsWith('/custom') && canCustom) return 'custom';
 		if (location.pathname.endsWith('/billing') && canBilling) return 'billing';
+		if (location.pathname.endsWith('/financial') && canFinancial) return 'financial';
 
 		if (canBilling) return 'billing';
+		if (canFinancial) return 'financial';
 		if (canStaff) return 'staff';
 		if (canShowroom) return 'showroom';
 		if (canOutsideJobs) return 'outside-jobs';
 		if (canCustom) return 'custom';
 		return 'billing';
-	}, [searchParams, location.pathname, canBilling, canStaff, canShowroom, canOutsideJobs, canCustom]);
+	}, [searchParams, location.pathname, canBilling, canFinancial, canStaff, canShowroom, canOutsideJobs, canCustom]);
 
 	// ── Date Filter State ─────────────────────────────────────────────────────
 	const [preset, setPreset] = useState<DatePreset>('30d');
@@ -234,6 +241,21 @@ export function ReportsPage() {
 					</button>
 				)}
 
+				{canFinancial && (
+					<button
+						type="button"
+						onClick={() => handleTabSelect('financial')}
+						className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+							activeType === 'financial'
+								? 'border-secondary text-secondary bg-secondary/5 rounded-t-lg'
+								: 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline-variant'
+						}`}
+					>
+						<Receipt className="w-4 h-4" />
+						<span>Financial Reports</span>
+					</button>
+				)}
+
 				{canStaff && (
 					<button
 						type="button"
@@ -330,6 +352,8 @@ export function ReportsPage() {
 					formatINR={formatINR}
 				/>
 			)}
+
+			{activeType === 'financial' && <FinancialReportsView bounds={bounds} formatINR={formatINR} />}
 
 			{activeType === 'staff' && (
 				<StaffReportsView

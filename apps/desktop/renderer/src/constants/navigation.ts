@@ -267,6 +267,18 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'reports.invoices',
 		},
 		{
+			label: 'Financial Reports',
+			path: '/reports/financial',
+			icon: 'Receipt',
+			requiresPermission: [
+				'reports.sales',
+				'reports.payments',
+				'reports.invoices',
+				'reports.gst',
+				'reports.job_cards',
+			],
+		},
+		{
 			label: 'Staff Reports',
 			path: '/reports/staff',
 			icon: 'Users',

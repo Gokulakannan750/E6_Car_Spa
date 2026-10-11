@@ -216,6 +216,7 @@ describe('Workspace Navigation & Sidebar Architecture', () => {
 
 			expect(screen.getByText('Suite Home')).toBeInTheDocument();
 			expect(screen.getByText('Billing Reports')).toBeInTheDocument();
+			expect(screen.getByText('Financial Reports')).toBeInTheDocument();
 			expect(screen.getByText('Staff Reports')).toBeInTheDocument();
 			expect(screen.getByText('Showroom Reports')).toBeInTheDocument();
 			expect(screen.getByText('Outside Jobs')).toBeInTheDocument();
