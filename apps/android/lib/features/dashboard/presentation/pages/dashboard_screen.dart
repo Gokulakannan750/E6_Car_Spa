@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/e6_brand_badge.dart';
 import '../../../../core/theme/brand_palette.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../franchise/providers/franchise_providers.dart';
 import '../../../settings/providers/settings_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -272,6 +273,11 @@ class DashboardScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final isOwner = user?.isOwner ?? false;
     final permissions = user?.permissions ?? [];
+    // Only a company that gives franchises to others has the Franchise tile; a franchisee reviews what it shares
+    // under Settings. Nothing shows while this is loading or if it cannot be loaded.
+    final showFranchise =
+        ref.watch(franchiseAccessProvider).valueOrNull?.canActAsFranchisor ??
+        false;
 
     bool isAuthorized(List<String> requiredPermissions) {
       if (isOwner) return true;
@@ -279,8 +285,8 @@ class DashboardScreen extends ConsumerWidget {
       return requiredPermissions.any((p) => permissions.contains(p));
     }
 
-    const allApps = [
-      _SuiteAppItem(
+    final allApps = [
+      const _SuiteAppItem(
         title: 'Billing',
         description: 'Customers, job cards, invoices and payments',
         icon: Icons.directions_car_rounded,
@@ -294,7 +300,7 @@ class DashboardScreen extends ConsumerWidget {
           'catalogue.view',
         ],
       ),
-      _SuiteAppItem(
+      const _SuiteAppItem(
         title: 'Staff',
         description: 'Staff, attendance and salary management',
         icon: Icons.people_alt_rounded,
@@ -308,7 +314,7 @@ class DashboardScreen extends ConsumerWidget {
           'staff_salary.view',
         ],
       ),
-      _SuiteAppItem(
+      const _SuiteAppItem(
         title: 'Showroom',
         description: 'Showrooms, staff work and showroom billing',
         icon: Icons.storefront_rounded,
@@ -317,7 +323,7 @@ class DashboardScreen extends ConsumerWidget {
         route: AppRoutes.showroom,
         requiredPermissions: ['showroom.view'],
       ),
-      _SuiteAppItem(
+      const _SuiteAppItem(
         title: 'Reports',
         description: 'Business, billing, staff and showroom reports',
         icon: Icons.bar_chart_rounded,
@@ -326,7 +332,18 @@ class DashboardScreen extends ConsumerWidget {
         route: AppRoutes.reports,
         requiredPermissions: ['reports.view'],
       ),
-      _SuiteAppItem(
+      if (showFranchise)
+        const _SuiteAppItem(
+          title: 'Franchise',
+          description:
+              'Invite franchise companies and see their shared figures',
+          icon: Icons.hub_rounded,
+          iconColor: Color(0xFF0D9488),
+          bgColor: Color(0xFFF0FDFA),
+          route: AppRoutes.franchise,
+          requiredPermissions: ['franchise.view'],
+        ),
+      const _SuiteAppItem(
         title: 'Settings',
         description: 'Business configuration and system settings',
         icon: Icons.settings_rounded,

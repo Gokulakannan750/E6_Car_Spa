@@ -7,6 +7,7 @@ import '../../../../shared/widgets/app_empty_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/powered_by_trovo.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../franchise/providers/franchise_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -24,6 +25,11 @@ class SettingsScreen extends ConsumerWidget {
     final authUser = ref.watch(currentUserProvider);
     final canViewSettings = authUser?.hasPermission('settings.view') ?? false;
     final canViewUsers = authUser?.hasPermission('users.view') ?? false;
+    // Only a company that a franchisor franchises reviews what it shares here.
+    final canViewSharing =
+        (ref.watch(franchiseAccessProvider).valueOrNull?.isFranchisee ??
+            false) &&
+        (authUser?.hasPermission('franchise.view') ?? false);
 
     final sections = [
       _SettingsWorkspaceItem(
@@ -52,6 +58,15 @@ class SettingsScreen extends ConsumerWidget {
         bgColor: const Color(0xFFEEF2FF),
         route: AppRoutes.systemPreferences,
         isVisible: canViewSettings,
+      ),
+      _SettingsWorkspaceItem(
+        title: 'Franchise Sharing',
+        description: 'What the company that franchises you can see',
+        icon: Icons.hub_rounded,
+        iconColor: const Color(0xFF0D9488),
+        bgColor: const Color(0xFFF0FDFA),
+        route: AppRoutes.franchiseSharing,
+        isVisible: canViewSharing,
       ),
     ];
 

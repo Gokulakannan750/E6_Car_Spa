@@ -9,6 +9,9 @@ import '../../features/auth/providers/auth_state.dart';
 import '../../features/billing/presentation/pages/billing_screen.dart';
 import '../../features/customers/presentation/pages/customer_details_screen.dart';
 import '../../features/dashboard/presentation/pages/dashboard_screen.dart';
+import '../../features/franchise/presentation/pages/franchise_invite_screen.dart';
+import '../../features/franchise/presentation/pages/franchise_screen.dart';
+import '../../features/franchise/presentation/pages/franchise_sharing_screen.dart';
 import '../../features/invoices/presentation/pages/invoice_details_screen.dart';
 import '../../features/jobcards/presentation/pages/job_card_details_screen.dart';
 import '../../features/jobcards/presentation/pages/new_job_card_screen.dart';
@@ -322,6 +325,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: AppRoutes.franchise,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: FranchiseScreen()),
+          ),
+          GoRoute(
+            path: AppRoutes.franchiseInvite,
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: FranchiseInviteScreen(
+                token: state.pathParameters['token'] ?? '',
+              ),
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.settings,
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: SettingsScreen()),
@@ -340,6 +356,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'preferences',
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: SystemPreferencesScreen()),
+              ),
+              GoRoute(
+                path: 'franchise-sharing',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: FranchiseSharingScreen()),
               ),
               GoRoute(
                 path: 'showroom',

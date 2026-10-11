@@ -72,4 +72,7 @@ class AppRoutes {
   static const String users = '/settings/users';
   static const String showroomConfiguration = '/showroom/configuration';
   static const String systemPreferences = '/settings/preferences';
+  static const String franchise = '/franchise';
+  static const String franchiseSharing = '/settings/franchise-sharing';
+  static const String franchiseInvite = '/franchise-invite/:token';
 }
