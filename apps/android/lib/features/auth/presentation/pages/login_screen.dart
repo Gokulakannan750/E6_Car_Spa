@@ -10,6 +10,7 @@ import '../../../../shared/widgets/powered_by_trovo.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/auth_state.dart';
+import '../widgets/server_settings_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -404,7 +405,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
+                          TextButton.icon(
+                            key: const Key('server_settings_button'),
+                            onPressed: () => ServerSettingsDialog.show(context),
+                            icon: Icon(
+                              Icons.dns_outlined,
+                              size: 14,
+                              color: AppColors.loginTextMuted,
+                            ),
+                            label: Text(
+                              'Server settings',
+                              style: AppTextStyles.labelSmall.copyWith(
+                                color: AppColors.loginTextMuted,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           PoweredByTrovo(
                             style: AppTextStyles.labelSmall.copyWith(
                               color: AppColors.loginTextMuted,

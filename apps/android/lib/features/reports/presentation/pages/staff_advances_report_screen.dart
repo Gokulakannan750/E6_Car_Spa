@@ -1,3 +1,7 @@
+import '../../export/staff_advances_excel.dart';
+import '../../models/staff_advances_report_model.dart';
+import '../../data/reports_repository.dart';
+import '../widgets/report_export_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -28,6 +32,38 @@ class StaffAdvancesReportScreen extends ConsumerWidget {
 
     return AppScreenScaffold(
       title: 'Staff Advances & Recovery Report',
+      actions: [
+        ReportExportButton(
+          build: (ref, companyName) async {
+            // The screen shows the first page; the workbook needs every advance in the period.
+            final filter = ref.read(reportDateFilterProvider);
+            final repository = ref.read(reportsRepositoryProvider);
+            final all = <StaffAdvanceReportRowModel>[];
+            var page = 1;
+            while (true) {
+              final result = await repository.getStaffAdvancesReport(
+                fromDate: filter.startDate,
+                toDate: filter.endDate,
+                page: page,
+                pageSize: 100,
+              );
+              all.addAll(result.items);
+              if (result.items.isEmpty || all.length >= result.totalCount) {
+                break;
+              }
+              page++;
+            }
+            return [
+              StaffAdvancesExcel.build(
+                all,
+                from: filter.startDate,
+                to: filter.endDate,
+                companyName: companyName,
+              ),
+            ];
+          },
+        ),
+      ],
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(staffAdvancesReportProvider);

@@ -93,14 +93,8 @@ void main() {
       expect(AppRoutes.billingRouteFor('/job-cards/456'), AppRoutes.jobCards);
       expect(AppRoutes.billingRouteFor('/customers'), AppRoutes.customers);
       expect(AppRoutes.billingRouteFor('/customers/123'), AppRoutes.customers);
-      expect(
-        AppRoutes.billingRouteFor('/invoices'),
-        AppRoutes.invoices,
-      );
-      expect(
-        AppRoutes.billingRouteFor('/invoices/12'),
-        AppRoutes.invoices,
-      );
+      expect(AppRoutes.billingRouteFor('/invoices'), AppRoutes.invoices);
+      expect(AppRoutes.billingRouteFor('/invoices/12'), AppRoutes.invoices);
       expect(
         AppRoutes.billingRouteFor('/quotations-invoices'),
         AppRoutes.invoices,

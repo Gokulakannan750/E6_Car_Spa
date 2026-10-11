@@ -27,6 +27,8 @@ import '../../features/showroom/presentation/pages/showroom_list_screen.dart';
 import '../../features/staff/presentation/pages/monthly_attendance_report_screen.dart';
 import '../../features/staff/presentation/pages/staff_screen.dart';
 import '../../features/settings/presentation/pages/settings_screen.dart';
+import '../../features/audit/presentation/pages/audit_log_screen.dart';
+import '../../features/whatsapp/presentation/pages/whatsapp_settings_screen.dart';
 import '../../features/settings/presentation/pages/company_settings_screen.dart';
 import '../../features/settings/presentation/pages/system_preferences_screen.dart';
 import '../../features/showroom/presentation/pages/showroom_configuration_screen.dart';
@@ -335,6 +337,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: AppRoutes.audit,
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AuditLogScreen()),
+          ),
+          GoRoute(
             path: AppRoutes.settings,
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: SettingsScreen()),
@@ -357,6 +364,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'preferences',
                 redirect: (context, state) => AppRoutes.system,
+              ),
+              GoRoute(
+                path: 'whatsapp',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: WhatsAppSettingsScreen()),
               ),
               GoRoute(
                 path: 'showroom',

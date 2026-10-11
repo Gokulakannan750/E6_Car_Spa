@@ -6,7 +6,19 @@ class AppEnvironment {
 
   static bool get isDevelopment => !isProduction;
 
+  /// The server address chosen on this device (Server settings on the sign-in screen). Null means the build's own
+  /// address. Set when the app starts and whenever it is changed.
+  static String? serverOverride;
+
+  /// The server the app calls: the address chosen on this device, otherwise the one the app was built for.
   static String get apiBaseUrl {
+    final chosen = serverOverride?.trim();
+    if (chosen != null && chosen.isNotEmpty) return chosen;
+    return builtInApiBaseUrl;
+  }
+
+  /// The address the app was built for.
+  static String get builtInApiBaseUrl {
     const fromEnv = String.fromEnvironment('E6_API_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
 
