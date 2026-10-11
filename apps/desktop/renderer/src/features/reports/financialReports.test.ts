@@ -215,10 +215,10 @@ describe('buildFinancialSheet', () => {
 describe('workbook', () => {
 	it('lays out a title, headers, the rows and a totals line', () => {
 		const spec = salesSheet({ rows: [salesRow(1), salesRow(2)], summary: salesSummary }, period);
-		const wb = createFinancialWorkbook(spec, 'Sunrise Detailing');
+		const wb = createFinancialWorkbook(spec);
 		const ws = wb.getWorksheet('Sales')!;
 
-		expect(ws.getCell('A1').value).toBe('SUNRISE DETAILING — SALES REPORT');
+		expect(String(ws.getCell('A1').value)).toMatch(/SALES REPORT$/);
 		expect(ws.getCell('A4').value).toBe('Invoice No.');
 		expect(ws.getCell('A5').value).toBe('INV-1');
 		expect(ws.getCell('F5').value).toBe(1000);
@@ -232,9 +232,6 @@ describe('workbook', () => {
 			{ invoiceCount: 0, grossSubtotal: 0, totalDiscount: 0, taxableBase: 0, cgstAmount: 0, sgstAmount: 0, totalGstAmount: 0, totalAmount: 0, invoices: [] },
 			period,
 		);
-		expect(financialReportFileName(spec, '2026-10-01', '2026-10-31', 'Sunrise Detailing')).toBe(
-			'Sunrise_Detailing_GST_Summary_Report_2026-10-01_to_2026-10-31.xlsx',
-		);
-		expect(financialReportFileName(spec, '2026-10-01', '2026-10-31', '')).toBe('GST_Summary_Report_2026-10-01_to_2026-10-31.xlsx');
+		expect(financialReportFileName(spec, '2026-10-01', '2026-10-31')).toMatch(/GST_Summary_Report_2026-10-01_to_2026-10-31\.xlsx$/);
 	});
 });

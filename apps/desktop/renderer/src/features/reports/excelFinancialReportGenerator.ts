@@ -8,7 +8,8 @@ const TOTAL_FILL = 'FFEAF2FF';
 const MONEY = '"₹"#,##0.00;[Red]-"₹"#,##0.00;"₹"0.00';
 
 /** A one-sheet workbook for a financial report, styled like the other report workbooks. */
-export function createFinancialWorkbook(spec: SheetSpec, companyName?: string): ExcelJS.Workbook {
+/** Titles and file names carry the signed-in company's name, taken from its saved business profile. */
+export function createFinancialWorkbook(spec: SheetSpec): ExcelJS.Workbook {
 	const wb = new ExcelJS.Workbook();
 	wb.creator = reportCreator();
 	wb.lastModifiedBy = reportCreator();
@@ -24,7 +25,7 @@ export function createFinancialWorkbook(spec: SheetSpec, companyName?: string): 
 
 	const title = ws.getRow(1);
 	ws.mergeCells(1, 1, 1, columns);
-	title.getCell(1).value = reportTitle(spec.title, companyName);
+	title.getCell(1).value = reportTitle(spec.title);
 	title.getCell(1).font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
 	title.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: TITLE_FILL } };
 	title.height = 30;
@@ -75,9 +76,9 @@ export function createFinancialWorkbook(spec: SheetSpec, companyName?: string): 
 	return wb;
 }
 
-export function financialReportFileName(spec: SheetSpec, fromDate: string, toDate: string, companyName?: string): string {
+export function financialReportFileName(spec: SheetSpec, fromDate: string, toDate: string): string {
 	const base = spec.sheetName.replace(/\s+/g, '_');
-	return `${reportFilePrefix(companyName)}${base}_Report_${fromDate}_to_${toDate}.xlsx`;
+	return `${reportFilePrefix()}${base}_Report_${fromDate}_to_${toDate}.xlsx`;
 }
 
 /** Builds the workbook and hands it to the browser as a download. */
@@ -85,10 +86,9 @@ export async function downloadFinancialReport(
 	spec: SheetSpec,
 	fromDate: string,
 	toDate: string,
-	companyName?: string,
 ): Promise<string> {
-	const wb = createFinancialWorkbook(spec, companyName);
-	const fileName = financialReportFileName(spec, fromDate, toDate, companyName);
+	const wb = createFinancialWorkbook(spec);
+	const fileName = financialReportFileName(spec, fromDate, toDate);
 	const buffer = await wb.xlsx.writeBuffer();
 	const blob = new Blob([buffer], {
 		type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
