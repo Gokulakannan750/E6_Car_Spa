@@ -190,6 +190,10 @@ export const router = createBrowserRouter([
 				element: <Navigate to="/invoices" replace />,
 			},
 			{
+				path: '/quotations-invoices',
+				element: <Navigate to="/invoices" replace />,
+			},
+			{
 				path: '/catalogue',
 				lazy: async () => {
 					const m = await loadCatalogue();
@@ -555,6 +559,10 @@ export const router = createBrowserRouter([
 						),
 					};
 				},
+			},
+			{
+				path: '/settings/preferences',
+				element: <Navigate to="/settings/system" replace />,
 			},
 			{
 				path: '*',

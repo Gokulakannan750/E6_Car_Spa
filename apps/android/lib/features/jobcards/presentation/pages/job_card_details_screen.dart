@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../config/routes.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -165,7 +166,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
       ref.read(jobCardDetailsProvider(widget.jobCardId).notifier).loadDetails();
       ref.read(jobCardListProvider.notifier).loadJobCards();
 
-      context.go('/quotations-invoices/${invoice.id}');
+      context.go('${AppRoutes.invoices}/${invoice.id}');
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -316,7 +317,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
                 : 'View Draft Invoice',
             icon: Icons.receipt_long_rounded,
             onPressed: () {
-              context.go('/quotations-invoices/${jc.invoiceId}');
+              context.go('${AppRoutes.invoices}/${jc.invoiceId}');
             },
           ),
         ),

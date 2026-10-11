@@ -15,7 +15,7 @@ class AppRoutes {
   static const List<String> billingRoutes = [
     customers,
     jobCards,
-    quotationsInvoices,
+    invoices,
     catalogue,
   ];
 
@@ -27,10 +27,10 @@ class AppRoutes {
     if (location.startsWith(jobCards) || location.startsWith(billingJobCards)) {
       return jobCards;
     }
-    if (location.startsWith(quotationsInvoices) ||
-        location.startsWith(billingInvoices) ||
-        location.startsWith('/invoices')) {
-      return quotationsInvoices;
+    if (location.startsWith(invoices) ||
+        location.startsWith(quotationsInvoices) ||
+        location.startsWith(billingInvoices)) {
+      return invoices;
     }
     if (location.startsWith(catalogue) ||
         location.startsWith(billingCatalogue) ||
@@ -44,8 +44,15 @@ class AppRoutes {
   static const String jobCards = '/job-cards';
   static const String newJobCard = '/job-cards/new';
   static const String jobCardDetail = '/job-cards/:id';
+
+  // Canonical route matching Windows Desktop (/invoices)
+  static const String invoices = '/invoices';
+  static const String invoiceDetail = '/invoices/:id';
+
+  // Legacy route aliases retained for backward compatibility
   static const String quotationsInvoices = '/quotations-invoices';
-  static const String invoiceDetail = '/quotations-invoices/:id';
+  static const String quotationsInvoiceDetail = '/quotations-invoices/:id';
+
   static const String catalogue = '/catalogue';
   static const String staff = '/staff';
   static const String staffAttendance = '/staff/attendance';
@@ -71,7 +78,14 @@ class AppRoutes {
   static const String companySettings = '/settings/company';
   static const String users = '/settings/users';
   static const String showroomConfiguration = '/showroom/configuration';
-  static const String systemPreferences = '/settings/preferences';
+
+  // Canonical route matching Windows Desktop (/settings/system)
+  static const String system = '/settings/system';
+  static const String systemPreferences = '/settings/system';
+
+  // Legacy preferences alias retained for backward compatibility
+  static const String legacySystemPreferences = '/settings/preferences';
+
   static const String franchise = '/franchise';
   static const String franchiseSharing = '/settings/franchise-sharing';
   static const String franchiseInvite = '/franchise-invite/:token';
