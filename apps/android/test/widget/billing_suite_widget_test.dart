@@ -154,7 +154,7 @@ void main() {
                   BillingScreen(initialTabIndex: 1, tabs: effectiveTabs),
             ),
             GoRoute(
-              path: AppRoutes.quotationsInvoices,
+              path: AppRoutes.invoices,
               builder: (context, state) =>
                   BillingScreen(initialTabIndex: 2, tabs: effectiveTabs),
             ),

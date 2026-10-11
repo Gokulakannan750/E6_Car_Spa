@@ -7,7 +7,7 @@ void main() {
       expect(AppRoutes.billingRoutes, [
         AppRoutes.customers,
         AppRoutes.jobCards,
-        AppRoutes.quotationsInvoices,
+        AppRoutes.invoices,
         AppRoutes.catalogue,
       ]);
       expect(AppRoutes.billingRouteFor('/audit'), isNull);

@@ -135,6 +135,10 @@ void main() {
               builder: (context, state) => const UsersScreen(),
             ),
             GoRoute(
+              path: 'system',
+              builder: (context, state) => const SystemPreferencesScreen(),
+            ),
+            GoRoute(
               path: 'preferences',
               builder: (context, state) => const SystemPreferencesScreen(),
             ),

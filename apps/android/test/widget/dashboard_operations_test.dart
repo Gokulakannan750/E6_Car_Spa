@@ -109,7 +109,7 @@ Widget _buildTestApp({
                     const Scaffold(body: Text('Customers Destination')),
               ),
               GoRoute(
-                path: AppRoutes.quotationsInvoices,
+                path: AppRoutes.invoices,
                 builder: (context, state) =>
                     const Scaffold(body: Text('Invoices Destination')),
               ),
