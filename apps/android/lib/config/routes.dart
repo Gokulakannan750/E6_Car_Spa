@@ -89,4 +89,10 @@ class AppRoutes {
   static const String franchise = '/franchise';
   static const String franchiseSharing = '/settings/franchise-sharing';
   static const String franchiseInvite = '/franchise-invite/:token';
+
+  // Matches Windows Desktop (/audit)
+  static const String audit = '/audit';
+
+  // Matches Windows Desktop (/settings/whatsapp)
+  static const String whatsAppSettings = '/settings/whatsapp';
 }

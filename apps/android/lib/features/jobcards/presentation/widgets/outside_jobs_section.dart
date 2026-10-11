@@ -1953,11 +1953,15 @@ class _CancelOutsideJobDialogState
   Future<void> _handleCancel() async {
     final reason = _reasonCtrl.text.trim();
     if (reason.length < 3) {
-      setState(() => _error = 'Please enter a reason of at least 3 characters.');
+      setState(
+        () => _error = 'Please enter a reason of at least 3 characters.',
+      );
       return;
     }
     if (!_confirmAtShowroom) {
-      setState(() => _error = 'Please confirm the vehicle location before cancelling.');
+      setState(
+        () => _error = 'Please confirm the vehicle location before cancelling.',
+      );
       return;
     }
 
@@ -2038,7 +2042,9 @@ class _CancelOutsideJobDialogState
                   Expanded(
                     child: Text(
                       'Warning: Cancelling does not record vehicle return or completed work. Use this only to correct data-entry mistakes or if the car is already confirmed physically back at the showroom.',
-                      style: AppTextStyles.caption.copyWith(color: Colors.black87),
+                      style: AppTextStyles.caption.copyWith(
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ],
@@ -2081,7 +2087,9 @@ class _CancelOutsideJobDialogState
               controlAffinity: ListTileControlAffinity.leading,
               title: Text(
                 'I confirm the vehicle is physically back at the showroom, or this job was entered in error.',
-                style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w500),
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],

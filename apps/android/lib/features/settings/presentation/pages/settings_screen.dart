@@ -25,6 +25,7 @@ class SettingsScreen extends ConsumerWidget {
     final authUser = ref.watch(currentUserProvider);
     final canViewSettings = authUser?.hasPermission('settings.view') ?? false;
     final canViewUsers = authUser?.hasPermission('users.view') ?? false;
+    final canViewAudit = authUser?.hasPermission('audit.view') ?? false;
     // Only a company that a franchisor franchises reviews what it shares here.
     final canViewSharing =
         (ref.watch(franchiseAccessProvider).valueOrNull?.isFranchisee ??
@@ -58,6 +59,24 @@ class SettingsScreen extends ConsumerWidget {
         bgColor: const Color(0xFFEEF2FF),
         route: AppRoutes.systemPreferences,
         isVisible: canViewSettings,
+      ),
+      _SettingsWorkspaceItem(
+        title: 'WhatsApp',
+        description: 'Messages, templates & delivery',
+        icon: Icons.chat_rounded,
+        iconColor: const Color(0xFF16A34A),
+        bgColor: const Color(0xFFF0FDF4),
+        route: AppRoutes.whatsAppSettings,
+        isVisible: canViewSettings,
+      ),
+      _SettingsWorkspaceItem(
+        title: 'Audit Trail',
+        description: 'Who did what, and when',
+        icon: Icons.history_rounded,
+        iconColor: const Color(0xFF7C3AED),
+        bgColor: const Color(0xFFF5F3FF),
+        route: AppRoutes.audit,
+        isVisible: canViewAudit,
       ),
       _SettingsWorkspaceItem(
         title: 'Franchise Sharing',

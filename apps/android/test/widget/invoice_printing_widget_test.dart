@@ -134,7 +134,7 @@ void main() {
     );
 
     testWidgets(
-      'JobCardDetailsScreen does NOT display a Print button (Task 3C requirement)',
+      'JobCardDetailsScreen has a Print button for the workshop work order',
       (tester) async {
         final fakeRepo = _FakeJobCardRepo(jobCard: sampleJobCard);
 
@@ -154,9 +154,9 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        // Job card details MUST NOT have a print action button
+        // The work order can be printed (it is a separate document from the invoice).
+        expect(find.byKey(const Key('print_job_card_button')), findsOneWidget);
         expect(find.byKey(const Key('job_card_preview_button')), findsNothing);
-        expect(find.byIcon(Icons.print_outlined), findsNothing);
       },
     );
 

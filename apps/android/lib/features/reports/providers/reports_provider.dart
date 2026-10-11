@@ -353,4 +353,3 @@ final outsideJobsReportProvider =
         status: status,
       );
     });
-
