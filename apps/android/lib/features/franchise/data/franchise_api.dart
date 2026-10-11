@@ -83,6 +83,18 @@ class FranchiseApi {
     ),
   );
 
+  /// The full monthly billing report of one franchisee, only when it shared its invoice list.
+  Future<Map<String, dynamic>> getBillingReport(
+    String linkId,
+    int year,
+    int month,
+  ) async => _map(
+    await _dio.get(
+      '/franchise/links/$linkId/billing-report',
+      queryParameters: {'year': year, 'month': month},
+    ),
+  );
+
   Future<FranchiseDashboard> getDashboard(String from, String to) async =>
       FranchiseDashboard.fromJson(
         _map(

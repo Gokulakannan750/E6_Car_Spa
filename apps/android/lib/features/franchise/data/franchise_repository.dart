@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/network/dio_client.dart';
+import '../../reports/models/monthly_billing_report_model.dart';
 import '../models/franchise_models.dart';
 import 'franchise_api.dart';
 
@@ -61,6 +62,16 @@ class FranchiseRepository {
     bool accept,
     List<String> grantedScopes,
   ) => _guard(() => _api.respondToInvite(token, accept, grantedScopes));
+
+  Future<MonthlyBillingReportResponseModel> getBillingReport(
+    String linkId,
+    int year,
+    int month,
+  ) => _guard(
+    () async => MonthlyBillingReportResponseModel.fromJson(
+      await _api.getBillingReport(linkId, year, month),
+    ),
+  );
 
   Future<FranchiseDashboard> getDashboard(String from, String to) =>
       _guard(() => _api.getDashboard(from, to));

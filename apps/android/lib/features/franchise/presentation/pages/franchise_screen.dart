@@ -13,7 +13,10 @@ import '../../../../shared/widgets/app_loading_state.dart';
 import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/app_screen_scaffold.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../reports/export/billing_excel.dart';
+import '../../../reports/presentation/widgets/report_export_button.dart';
 import '../../data/franchise_repository.dart';
+import '../../export/franchise_excel.dart';
 import '../../models/franchise_models.dart';
 import '../../providers/franchise_providers.dart';
 import '../widgets/franchise_widgets.dart';
@@ -675,6 +678,16 @@ class _DashboardBody extends StatelessWidget {
               ],
             ),
           ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ReportExportButton(
+              label: 'Download network summary (Excel)',
+              build: (ref, companyName) async => [
+                FranchiseExcel.networkSummary(data, companyName: companyName),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             'By company',
             style: AppTextStyles.labelLarge.copyWith(
@@ -708,6 +721,8 @@ class _DashboardBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   _TotalsGrid(totals: f.totals!, compact: true),
+                  const SizedBox(height: 8),
+                  _CompanyExport(company: f, data: data),
                 ],
               ),
             ),
@@ -733,6 +748,70 @@ class _DashboardBody extends StatelessWidget {
               ),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// One company's Excel file: the full monthly billing workbook when it shared its invoice list (for the month the period
+/// ends in), otherwise its totals for the period.
+class _CompanyExport extends StatelessWidget {
+  final FranchiseeFinancials company;
+  final FranchiseDashboard data;
+
+  const _CompanyExport({required this.company, required this.data});
+
+  static const _months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final fullBilling = company.allowedItems.contains('invoice_list');
+    final end = DateTime.tryParse(data.to) ?? DateTime.now();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ReportExportButton(
+          label: fullBilling
+              ? 'Full billing report (Excel)'
+              : 'Download totals (Excel)',
+          build: (ref, companyName) async {
+            if (fullBilling) {
+              final report = await ref
+                  .read(franchiseRepositoryProvider)
+                  .getBillingReport(company.linkId, end.year, end.month);
+              return [
+                BillingExcel.build(report, companyName: company.partnerName),
+              ];
+            }
+            return [FranchiseExcel.companyTotals(company, data.from, data.to)];
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            fullBilling
+                ? 'Every day of ${_months[end.month - 1]} ${end.year}, with job cards, invoices and services.'
+                : 'Totals and daily totals. Ask for the invoice list to get the full billing report.',
+            key: Key('franchise_export_hint_${company.linkId}'),
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
       ],
     );
   }

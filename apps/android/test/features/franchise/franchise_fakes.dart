@@ -6,6 +6,8 @@ import 'package:e6_car_spa/features/auth/providers/auth_state.dart';
 import 'package:e6_car_spa/features/franchise/data/franchise_api.dart';
 import 'package:e6_car_spa/features/franchise/data/franchise_repository.dart';
 import 'package:e6_car_spa/features/franchise/models/franchise_models.dart';
+import 'package:e6_car_spa/features/reports/export/report_file_service.dart';
+import 'package:e6_car_spa/features/reports/models/monthly_billing_report_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,6 +127,7 @@ class FakeFranchiseRepository extends FranchiseRepository {
 
   final List<String> calls = [];
   final List<FranchisePeriod> dashboardPeriods = [];
+  final List<({String linkId, int year, int month})> billingAsked = [];
 
   void _record(String call) {
     calls.add(call);
@@ -216,6 +219,26 @@ class FakeFranchiseRepository extends FranchiseRepository {
   }
 
   @override
+  Future<MonthlyBillingReportResponseModel> getBillingReport(
+    String linkId,
+    int year,
+    int month,
+  ) async {
+    _record('billing:$linkId:$year:$month');
+    billingAsked.add((linkId: linkId, year: year, month: month));
+    return MonthlyBillingReportResponseModel.fromJson({
+      'year': year,
+      'month': month,
+      'monthName': 'October 2026',
+      'fromDate': '2026-10-01',
+      'toDate': '2026-10-31',
+      'daysInMonth': 31,
+      'summary': {'monthName': 'October 2026', 'totalInvoices': 3},
+      'dailySheets': <dynamic>[],
+    });
+  }
+
+  @override
   Future<FranchiseDashboard> getDashboard(String from, String to) async {
     dashboardPeriods.add((from: from, to: to));
     if (failWith != null) {
@@ -243,10 +266,21 @@ void disableFontDownloads() {
   GoogleFonts.config.allowRuntimeFetching = false;
 }
 
+/// Remembers the files that would have gone to the phone's share sheet.
+class RecordingFileService extends ReportFileService {
+  final List<List<ReportFile>> shared = [];
+
+  @override
+  Future<void> share(List<ReportFile> files, {String? subject}) async {
+    shared.add(files);
+  }
+}
+
 Widget franchiseApp({
   required Widget home,
   required FakeFranchiseRepository repo,
   AuthUser user = owner,
+  ReportFileService? files,
 }) {
   return ProviderScope(
     overrides: [
@@ -254,6 +288,7 @@ Widget franchiseApp({
         (ref) => TestAuthNotifier(Authenticated(user)),
       ),
       franchiseRepositoryProvider.overrideWithValue(repo),
+      if (files != null) reportFileServiceProvider.overrideWithValue(files),
     ],
     child: MaterialApp(home: home),
   );
