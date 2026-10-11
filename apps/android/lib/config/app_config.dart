@@ -18,6 +18,26 @@ class AppConfig {
 
   static Future<void> setApiBaseUrl(String url) async {
     await _storage.write(key: AppConstants.keyApiBaseUrl, value: url);
+    AppEnvironment.serverOverride = url;
+  }
+
+  /// Goes back to the server the app was built for.
+  static Future<void> clearApiBaseUrl() async {
+    await _storage.delete(key: AppConstants.keyApiBaseUrl);
+    AppEnvironment.serverOverride = null;
+  }
+
+  /// Reads the server chosen on this device, once, when the app starts. If storage cannot be read the app simply uses
+  /// its built-in server.
+  static Future<void> loadServerOverride() async {
+    try {
+      final saved = await _storage.read(key: AppConstants.keyApiBaseUrl);
+      AppEnvironment.serverOverride = (saved == null || saved.trim().isEmpty)
+          ? null
+          : saved.trim();
+    } catch (_) {
+      AppEnvironment.serverOverride = null;
+    }
   }
 
   static Future<String?> getAccessToken() async {
