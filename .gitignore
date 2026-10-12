@@ -69,3 +69,7 @@ key.properties
 *.jks
 
 .commandcode/
+
+# Playwright output
+apps/platform-admin/test-results/
+apps/platform-admin/playwright-report/

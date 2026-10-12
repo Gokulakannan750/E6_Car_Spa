@@ -110,6 +110,19 @@ jobs:
       - name: Build
         run: pnpm --dir apps/platform-admin build
 
+      - name: Install Playwright Chromium
+        run: pnpm --dir apps/platform-admin exec playwright install --with-deps chromium
+
+      - name: End-to-end tests (mocked API)
+        run: pnpm --dir apps/platform-admin test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: platform-admin-playwright-report
+          path: apps/platform-admin/playwright-report
+
   android:
     name: Android (Flutter)
     runs-on: ubuntu-latest
