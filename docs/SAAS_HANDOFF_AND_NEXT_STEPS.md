@@ -61,12 +61,12 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 | 2.1 | Database + login per company, registration codes, Windows + Android registration screens | ✅ merged to `main` (a642e41f) |
 | 2.2 | Plans, subscriptions, entitlements, seat limits, lifecycle job, read-only/suspended enforcement, platform admin API with 2-step sign-in and roles, manual invoices and payments | ✅ merged to `main` |
 | 2.3 | Franchise across separate databases | ✅ merged to `main` |
-| 2.4 | **Admin portal web app** + API additions + E2E tests | ✅ **built** on branch `feature/saas-admin-portal` (worktree `C:\r2e\p24`). **Not merged, not pushed.** |
+| 2.4 | **Admin portal web app** + API additions + E2E tests | ✅ merged to `main` and pushed (12 Oct) |
 | 2.5 | Payment gateway | ⏳ next (needs the owner's gateway choice) |
 | 2.6 | Self sign-up and email | ⏳ |
 | 2.7 | Full end-to-end validation, backups, E6 rehearsal, hosting and rollout | ⏳ |
 
-### Phase 2.4 commits (branch `feature/saas-admin-portal`, based on `main` 3a2ebfed)
+### Phase 2.4 commits (merged from `feature/saas-admin-portal`, based on `main` 3a2ebfed)
 
 - `574aac75` API for the portal: admins list/create/update/reset, forced password change after a one-time password,
   invoice list/detail with seller details, CORS for `Platform:AdminPortalOrigin`.
@@ -197,7 +197,7 @@ CI (`.github/workflows/ci.yml`) runs backend, Windows, Android and the admin por
 
 ## 6. Next steps (in order)
 
-### Step A: Finish Phase 2.4 (owner review, then merge)
+### Step A: Finish Phase 2.4 (owner review, then merge) ✅ merged 12 Oct
 
 - [ ] Owner tests the portal by hand (sign-in with QR, create company, register it from Windows/Android with the codes,
       change plan, issue invoice, record payment, suspend/reactivate, exports, audit log, admins).
