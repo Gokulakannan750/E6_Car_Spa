@@ -12,8 +12,27 @@ namespace CarSpaManagement.Api.Application.Services;
 public class UserService(
     AppDbContext db,
     IPasswordHasherService passwordHasher,
-    IAuditLogService auditLogService) : IUserService
+    IAuditLogService auditLogService,
+    IEntitlementService? entitlements = null) : IUserService
 {
+    /// <summary>
+    /// The plan's user limit counts active users (Owner included); one person on Windows and Android is one user.
+    /// Checked by the server whenever a user would become active.
+    /// </summary>
+    private async Task EnsureSeatAvailableAsync(CancellationToken cancellationToken)
+    {
+        if (entitlements is null) return;
+        var current = await entitlements.GetCurrentAsync(cancellationToken);
+        if (current.SeatLimit is not { } limit) return;
+
+        var active = await db.Users.CountAsync(u => u.IsActive, cancellationToken);
+        if (active >= limit)
+        {
+            throw new ValidationException(
+                $"Your plan allows {limit} active users and all are in use. Deactivate a user or ask Trovo for a 5-user pack.");
+        }
+    }
+
     public async Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
     {
         var users = await db.Users
@@ -48,6 +67,8 @@ public class UserService(
         {
             throw new ValidationException("Invalid role. Only 'Manager' and 'Staff' accounts can be created.");
         }
+
+        await EnsureSeatAvailableAsync(cancellationToken);
 
         // 2. Hierarchy validation: Only Owner may assign permissions or create Manager accounts
         isOwner = isOwner && await IsActiveOwnerAsync(currentUserId, cancellationToken);
@@ -347,6 +368,11 @@ public class UserService(
         if (user.Id == currentUserId)
         {
             throw new ValidationException("You cannot deactivate your own account.");
+        }
+
+        if (!user.IsActive)
+        {
+            await EnsureSeatAvailableAsync(cancellationToken);
         }
 
         user.IsActive = !user.IsActive;

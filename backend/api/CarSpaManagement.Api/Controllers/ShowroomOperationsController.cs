@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
@@ -7,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.Showroom)]
 [ApiController]
 [Route("api/showrooms/{showroomId:guid}")]
 [Authorize]

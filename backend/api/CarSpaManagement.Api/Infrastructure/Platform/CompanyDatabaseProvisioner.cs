@@ -14,6 +14,12 @@ using Serilog;
 
 namespace CarSpaManagement.Api.Infrastructure.Platform;
 
+/// <summary>
+/// A paid plan to start a company on (instead of the free trial): plan, interval, add-on quantities and the date it
+/// is paid until.
+/// </summary>
+public sealed record CompanyPlan(string PlanCode, BillingInterval Interval, IReadOnlyDictionary<string, int> AddOns, DateTime PaidUntil);
+
 /// <summary>A newly created company and the registration code to give the customer (shown only once).</summary>
 public sealed record CreatedCompany(PlatformCompany Company, string RegistrationCode, DateTime RegistrationCodeExpiresAt);
 
@@ -25,7 +31,8 @@ public sealed partial class CompanyDatabaseProvisioner(
     PlatformDbContext catalog,
     IAesEncryptionService encryption,
     IConfiguration configuration,
-    IOptions<PlatformOptions> options)
+    IOptions<PlatformOptions> options,
+    SubscriptionService subscriptions)
 {
     private PlatformOptions Options => options.Value;
 
@@ -56,6 +63,7 @@ public sealed partial class CompanyDatabaseProvisioner(
             Log.Information("Platform catalog: added product {ProductKey}", product.Key);
         }
 
+        await PlatformCatalogSeeder.SeedAsync(catalog, product, cancellationToken);
         return product;
     }
 
@@ -77,10 +85,11 @@ public sealed partial class CompanyDatabaseProvisioner(
     // ── New company ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Creates a company: the next code, its own database and login, all migrations, starting data, and a one-time
-    /// registration code. If anything fails, the half-made database and login are removed again.
+    /// Creates a company: the next code, its own database and login, all migrations, starting data, its subscription
+    /// (the free trial, or <paramref name="plan"/> when Trovo was already paid) and a one-time registration code.
+    /// If anything fails, the half-made company, database and login are removed again.
     /// </summary>
-    public async Task<CreatedCompany> CreateCompanyAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<CreatedCompany> CreateCompanyAsync(string name, CompanyPlan? plan = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -125,17 +134,21 @@ public sealed partial class CompanyDatabaseProvisioner(
             }
 
             var (registrationCode, expiresAt) = await IssueRegistrationCodeAsync(company.Id, cancellationToken);
+            await StartSubscriptionAsync(company, plan, cancellationToken);
             Log.Information("Platform: created company {Code} ({Name}) with database {Database}", company.Code, company.Name, databaseName);
             return new CreatedCompany(company, registrationCode, expiresAt);
         }
         catch
         {
             Log.Error("Platform: creating company {Code} failed; removing its database and login", code);
-            if (catalog.Entry(company).State != EntityState.Detached)
+            catalog.ChangeTracker.Clear();
+            try
             {
-                catalog.Companies.Remove(company);
-                try { await catalog.SaveChangesAsync(CancellationToken.None); } catch { /* reported by the caller */ }
+                await catalog.Subscriptions.Where(s => s.CompanyId == company.Id).ExecuteDeleteAsync(CancellationToken.None);
+                await catalog.BillingAccounts.Where(b => b.CompanyId == company.Id).ExecuteDeleteAsync(CancellationToken.None);
+                await catalog.Companies.Where(c => c.Id == company.Id).ExecuteDeleteAsync(CancellationToken.None);
             }
+            catch { /* reported by the caller */ }
             if (createdDatabase)
             {
                 try { await ExecuteAdminAsync(null, $"DROP DATABASE IF EXISTS {Quote(databaseName)} WITH (FORCE)", CancellationToken.None); } catch { }
@@ -152,7 +165,7 @@ public sealed partial class CompanyDatabaseProvisioner(
     /// Brings an existing single-company database (for example E6's) onto the platform without copying or changing
     /// its data: the company keeps its id and code, and the database gets its own new login.
     /// </summary>
-    public async Task<PlatformCompany> AdoptDatabaseAsync(string databaseName, CancellationToken cancellationToken = default)
+    public async Task<PlatformCompany> AdoptDatabaseAsync(string databaseName, CompanyPlan plan, CancellationToken cancellationToken = default)
     {
         ValidateIdentifier(databaseName, allowExisting: true);
         var product = await EnsureCatalogAsync(cancellationToken);
@@ -208,6 +221,7 @@ public sealed partial class CompanyDatabaseProvisioner(
         await catalog.SaveChangesAsync(cancellationToken);
 
         await MigrateCompanyAsync(company, cancellationToken);
+        await StartSubscriptionAsync(company, plan, cancellationToken);
         Log.Information("Platform: adopted database {Database} as company {Code}", databaseName, company.Code);
         return company;
     }
@@ -227,7 +241,30 @@ public sealed partial class CompanyDatabaseProvisioner(
         {
             await MigrateCompanyAsync(company, cancellationToken);
         }
+
+        // A company created before subscriptions existed gets the free trial, so it is never left without one.
+        var withoutSubscription = await catalog.Companies
+            .Where(c => c.ProductId == product.Id && !catalog.Subscriptions.Any(s => s.CompanyId == c.Id && s.IsCurrent))
+            .ToListAsync(cancellationToken);
+        foreach (var company in withoutSubscription)
+        {
+            await subscriptions.StartTrialAsync(company, SubscriptionActor.System, cancellationToken);
+            Log.Warning("Platform: company {Code} had no subscription; started the free trial", company.Code);
+        }
         return companies;
+    }
+
+    private async Task StartSubscriptionAsync(PlatformCompany company, CompanyPlan? plan, CancellationToken cancellationToken)
+    {
+        if (plan is null)
+        {
+            await subscriptions.StartTrialAsync(company, SubscriptionActor.System, cancellationToken);
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        await subscriptions.StartPaidAsync(company, plan.PlanCode, plan.Interval, plan.AddOns, now, plan.PaidUntil,
+            SubscriptionActor.System, cancellationToken);
     }
 
     /// <summary>

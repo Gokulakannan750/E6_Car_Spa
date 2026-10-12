@@ -60,6 +60,13 @@ public sealed class OrganizationFranchiseEntitlement(AppDbContext db) : IFranchi
             : db.Organizations.AsNoTracking().AnyAsync(o => o.Id == db.CurrentOrganizationId && o.FranchiseAddOnEnabled, cancellationToken);
 }
 
+/// <summary>Trovo's platform: the company's own subscription must include the Franchise network add-on.</summary>
+public sealed class SubscriptionFranchiseEntitlement(IEntitlementService entitlements) : IFranchiseEntitlement
+{
+    public async Task<bool> IsEnabledAsync(CancellationToken cancellationToken = default) =>
+        (await entitlements.GetCurrentAsync(cancellationToken)).Has(Domain.Platform.FeatureKeys.FranchiseNetwork);
+}
+
 /// <summary>Always on. For tests and tools that do not exercise the add-on.</summary>
 public sealed class AlwaysOnFranchiseEntitlement : IFranchiseEntitlement
 {

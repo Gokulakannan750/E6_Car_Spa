@@ -22,7 +22,8 @@ public class AuthService(
     TenantContext? tenantContext = null,
     OrganizationProvisioner? provisioner = null,
     ICompanyDirectory? companyDirectory = null,
-    IOptions<PlatformOptions>? platformOptions = null) : IAuthService
+    IOptions<PlatformOptions>? platformOptions = null,
+    IEntitlementService? entitlements = null) : IAuthService
 {
     private bool PlatformEnabled => platformOptions?.Value.Enabled == true;
 
@@ -64,6 +65,14 @@ public class AuthService(
             throw new UnauthorizedException(string.IsNullOrEmpty(code)
                 ? "Company code is required."
                 : "Invalid company code, username or password.");
+        }
+
+        // A company Trovo has switched off (or that never paid) cannot sign in. Read-only companies can.
+        if (entitlements is not null &&
+            (await entitlements.GetForCompanyAsync(organization.Id, cancellationToken)).Access == CompanyAccessLevel.None)
+        {
+            Log.Warning("Login rejected: company {CompanyCode} has no access under its subscription", organization.Code);
+            throw new UnauthorizedException("This company's access is switched off. Please contact Trovo.");
         }
 
         tenantContext.Set(organization.Id);

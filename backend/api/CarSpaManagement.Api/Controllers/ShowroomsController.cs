@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
@@ -10,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.Showroom)]
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

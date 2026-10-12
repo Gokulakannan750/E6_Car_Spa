@@ -75,6 +75,12 @@ foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>
 {
+}).ConfigureApplicationPartManager(manager =>
+{
+	// Without the platform, the /api/platform controllers are not part of the API at all.
+	var standard = manager.FeatureProviders.OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerFeatureProvider>().ToList();
+	foreach (var provider in standard) manager.FeatureProviders.Remove(provider);
+	manager.FeatureProviders.Add(new CarSpaManagement.Api.Infrastructure.Platform.PlatformControllerFeatureProvider(platformEnabled));
 });
 builder.Services.AddOpenApi();
 
@@ -112,7 +118,11 @@ builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
-builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
+// On Trovo's platform the Franchise network comes from the company's subscription; otherwise from the company flag.
+if (platformEnabled)
+	builder.Services.AddScoped<IFranchiseEntitlement, SubscriptionFranchiseEntitlement>();
+else
+	builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
 builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
 builder.Services.AddScoped<IFranchiseReports, FranchiseReportService>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();
@@ -143,6 +153,10 @@ builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<IWhatsAppTemplateProvisioningService, WhatsAppTemplateProvisioningService>();
 builder.Services.AddScoped<OrganizationProvisioner>();
 builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
+if (platformEnabled)
+{
+	builder.Services.AddHostedService<CarSpaManagement.Api.Infrastructure.Platform.SubscriptionLifecycleWorker>();
+}
 
 // Security & Authentication Services
 builder.Services.AddSingleton<IAccountLockoutService, AccountLockoutService>();
@@ -194,10 +208,36 @@ builder.Services.AddAuthentication(options =>
  };
 });
 
+// Trovo's platform administrators sign in with their own scheme (own key, issuer and audience, 2-step code).
+if (platformEnabled)
+{
+	builder.Services.AddAuthentication()
+		.AddJwtBearer(CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.Scheme, options =>
+		{
+			options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+			options.MapInboundClaims = false;
+			options.TokenValidationParameters = CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.AccessValidation(builder.Configuration);
+		});
+	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService>();
+	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformAuditService>();
+}
+
 // Dynamic Permission Authorization
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+	static void PlatformPolicy(AuthorizationOptions o, string name, params string[] roles) =>
+		o.AddPolicy(name, policy => policy
+			.AddAuthenticationSchemes(CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.Scheme)
+			.RequireAuthenticatedUser()
+			.RequireRole(roles));
+
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Any, "Owner", "Billing", "Support", "ReadOnly");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Support, "Owner", "Support");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Billing, "Owner", "Billing");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Owner, "Owner");
+});
 
 // Rate Limiting on Authentication Endpoints
 builder.Services.AddRateLimiter(rateLimiterOptions =>
@@ -428,6 +468,8 @@ else
 
 app.UseAuthentication();
 app.UseMiddleware<CarSpaManagement.Api.Infrastructure.Tenancy.TenantResolutionMiddleware>();
+// The company's subscription: read-only or no access is enforced here for every company request.
+app.UseMiddleware<CarSpaManagement.Api.Infrastructure.Platform.SubscriptionAccessMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Platform;
 using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +29,10 @@ public static class DependencyInjection
   services.AddScoped<ICompanyDirectory, PlatformCompanyDirectory>();
   services.AddScoped<CompanyDatabaseProvisioner>();
   services.AddScoped<CompanyRegistrationService>();
+  services.AddScoped<BillingInvoiceService>();
+  services.AddScoped<SubscriptionService>();
+  services.AddScoped<PlatformAdminService>();
+  services.AddScoped<IEntitlementService, PlatformEntitlementService>();
 
   services.AddDbContext<AppDbContext>((sp, options) =>
   {
@@ -54,6 +59,7 @@ public static class DependencyInjection
  ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
  services.AddScoped<ICompanyDirectory, SingleDatabaseCompanyDirectory>();
+ services.AddScoped<IEntitlementService, UnmanagedEntitlementService>();
 
  services.AddDbContext<AppDbContext>(options =>
  {

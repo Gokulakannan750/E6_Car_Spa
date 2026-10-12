@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.DTOs.Vendors;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.OutsideJobs)]
 [ApiController]
 [Route("api/vendors")]
 public class VendorsController : ControllerBase

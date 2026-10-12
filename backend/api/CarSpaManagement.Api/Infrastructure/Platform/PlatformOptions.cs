@@ -38,4 +38,46 @@ public class PlatformOptions
 
     /// <summary>How long company lookups are cached (seconds), so a suspension takes effect quickly.</summary>
     public int DirectoryCacheSeconds { get; set; } = 30;
+
+    // ── Subscriptions ────────────────────────────────────────────────────────────
+
+    /// <summary>Length of the free trial (full Professional).</summary>
+    public int TrialDays { get; set; } = 7;
+
+    /// <summary>Days of full access after a renewal fails or a paid period ends unpaid, before read-only.</summary>
+    public int GraceDays { get; set; } = 7;
+
+    /// <summary>Days a canceled company keeps read-only access to its data (then deleted on request).</summary>
+    public int CanceledRetentionDays { get; set; } = 90;
+
+    /// <summary>How many days before a period ends its renewal invoice is issued.</summary>
+    public int RenewalInvoiceDaysBefore { get; set; } = 7;
+
+    // ── Trovo's invoices ─────────────────────────────────────────────────────────
+
+    /// <summary>Invoice number prefix: TROVO/2026-27/0001.</summary>
+    public string InvoicePrefix { get; set; } = "TROVO";
+
+    /// <summary>
+    /// Trovo's GSTIN. Empty while Trovo is not registered: invoices then carry no GST and are titled "Invoice".
+    /// Once set, new invoices charge <see cref="GstRatePercent"/>; issued invoices never change.
+    /// </summary>
+    public string? Gstin { get; set; }
+
+    public decimal GstRatePercent { get; set; } = 18m;
+
+    /// <summary>Whether Trovo charges GST on new invoices.</summary>
+    public bool ChargesGst => !string.IsNullOrWhiteSpace(Gstin);
+}
+
+/// <summary>
+/// Leaves Trovo's platform controllers out entirely when the platform is not enabled, so a single-company server has
+/// no /api/platform endpoints at all.
+/// </summary>
+public sealed class PlatformControllerFeatureProvider(bool platformEnabled)
+    : Microsoft.AspNetCore.Mvc.Controllers.ControllerFeatureProvider
+{
+    protected override bool IsController(System.Reflection.TypeInfo typeInfo) =>
+        base.IsController(typeInfo) &&
+        (platformEnabled || typeInfo.Namespace != "CarSpaManagement.Api.Controllers.Platform");
 }

@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.DTOs.Showrooms;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
@@ -8,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.Showroom)]
 [ApiController]
 [Route("api/showroom-staff-assignments")]
 public class ShowroomStaffAssignmentsController : ControllerBase

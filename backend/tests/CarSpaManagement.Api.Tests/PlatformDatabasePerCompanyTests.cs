@@ -44,7 +44,9 @@ public class PlatformDatabasePerCompanyTests : IAsyncLifetime
             ["Platform:DirectoryCacheSeconds"] = "1",
             ["ConnectionStrings:Platform"] = new NpgsqlConnectionStringBuilder(admin) { Database = _catalogDatabase }.ConnectionString,
             ["ConnectionStrings:PlatformAdmin"] = new NpgsqlConnectionStringBuilder(admin) { Database = "postgres" }.ConnectionString,
-            ["Security:EncryptionKey"] = "platform-test-encryption-key-32-chars!!"
+            ["Security:EncryptionKey"] = "platform-test-encryption-key-32-chars!!",
+            ["Jwt:Key"] = "company-test-signing-key-at-least-32-characters",
+            ["Platform:Jwt:Key"] = "platform-test-signing-key-at-least-32-characters"
         }).Build();
 
         var services = new ServiceCollection();
@@ -298,7 +300,8 @@ public class PlatformDatabasePerCompanyTests : IAsyncLifetime
         PlatformCompany adopted;
         await using (var scope = _services!.CreateAsyncScope())
         {
-            adopted = await scope.ServiceProvider.GetRequiredService<CompanyDatabaseProvisioner>().AdoptDatabaseAsync(existingName);
+            adopted = await scope.ServiceProvider.GetRequiredService<CompanyDatabaseProvisioner>().AdoptDatabaseAsync(existingName,
+                new CompanyPlan("professional", BillingInterval.Year, new Dictionary<string, int>(), DateTime.UtcNow.AddYears(1)));
         }
 
         try

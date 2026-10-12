@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using System.Globalization;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
@@ -9,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.StaffAdvances)]
 [ApiController]
 [Route("api/staff-salary")]
 [Authorize]
