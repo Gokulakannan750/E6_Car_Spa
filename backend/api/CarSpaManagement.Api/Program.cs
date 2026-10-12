@@ -54,7 +54,12 @@ builder.Host.UseSerilog();
 
 // ── Production configuration guard ─────────────────────────────────────────
 // Refuse to start Production with placeholder credentials; warn about risky settings.
-var configuredConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var platformEnabled = builder.Configuration.GetValue<bool>("Platform:Enabled");
+// On Trovo's platform the server's own credentials are the catalog and the privileged admin login; each company's
+// database login is generated and kept encrypted in the catalog.
+var configuredConnectionString = platformEnabled
+	? builder.Configuration.GetConnectionString("PlatformAdmin")
+	: builder.Configuration.GetConnectionString("DefaultConnection");
 StartupConfigurationGuard.ValidateConnectionString(configuredConnectionString, builder.Environment.IsProduction());
 StartupConfigurationGuard.ValidatePublicInvoiceBaseUrl(builder.Configuration["PublicInvoiceBaseUrl"], builder.Environment.IsProduction());
 foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
@@ -70,6 +75,14 @@ foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>
 {
+	// Endpoints whose permission belongs to a module outside the company's plan are refused (Trovo's platform).
+	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlanFeatureFilter>();
+}).ConfigureApplicationPartManager(manager =>
+{
+	// Without the platform, the /api/platform controllers are not part of the API at all.
+	var standard = manager.FeatureProviders.OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerFeatureProvider>().ToList();
+	foreach (var provider in standard) manager.FeatureProviders.Remove(provider);
+	manager.FeatureProviders.Add(new CarSpaManagement.Api.Infrastructure.Platform.PlatformControllerFeatureProvider(platformEnabled));
 });
 builder.Services.AddOpenApi();
 
@@ -107,8 +120,23 @@ builder.Services.AddScoped<IShowroomOperationsService, ShowroomOperationsService
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBusinessProfileService, BusinessProfileService>();
 builder.Services.AddScoped<IVendorService, VendorService>();
-builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
-builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
+// On Trovo's platform the Franchise network comes from the company's subscription; otherwise from the company flag.
+if (platformEnabled)
+	builder.Services.AddScoped<IFranchiseEntitlement, SubscriptionFranchiseEntitlement>();
+else
+	builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
+// Franchise links: in the company database on a single-company server, in Trovo's catalog on the platform, where
+// the franchisor's figures are read from the franchisee's own database (read-only, through its own login).
+if (platformEnabled)
+{
+	builder.Services.AddScoped<IFranchiseLinkStore, CarSpaManagement.Api.Infrastructure.Platform.CatalogFranchiseLinkStore>();
+	builder.Services.AddScoped<IFranchiseFigures, CarSpaManagement.Api.Infrastructure.Platform.CrossDatabaseFranchiseFigures>();
+}
+else
+{
+	builder.Services.AddScoped<IFranchiseLinkStore, CarSpaManagement.Api.Infrastructure.Platform.CompanyDatabaseFranchiseLinkStore>();
+	builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
+}
 builder.Services.AddScoped<IFranchiseReports, FranchiseReportService>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();
 builder.Services.AddScoped<IOutsideJobService, OutsideJobService>();
@@ -138,6 +166,10 @@ builder.Services.AddHttpClient<IWhatsAppService, WhatsAppService>();
 builder.Services.AddHttpClient<IWhatsAppTemplateProvisioningService, WhatsAppTemplateProvisioningService>();
 builder.Services.AddScoped<OrganizationProvisioner>();
 builder.Services.AddHostedService<WhatsAppBackgroundWorker>();
+if (platformEnabled)
+{
+	builder.Services.AddHostedService<CarSpaManagement.Api.Infrastructure.Platform.SubscriptionLifecycleWorker>();
+}
 
 // Security & Authentication Services
 builder.Services.AddSingleton<IAccountLockoutService, AccountLockoutService>();
@@ -189,10 +221,36 @@ builder.Services.AddAuthentication(options =>
  };
 });
 
+// Trovo's platform administrators sign in with their own scheme (own key, issuer and audience, 2-step code).
+if (platformEnabled)
+{
+	builder.Services.AddAuthentication()
+		.AddJwtBearer(CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.Scheme, options =>
+		{
+			options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
+			options.MapInboundClaims = false;
+			options.TokenValidationParameters = CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.AccessValidation(builder.Configuration);
+		});
+	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService>();
+	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformAuditService>();
+}
+
 // Dynamic Permission Authorization
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+	static void PlatformPolicy(AuthorizationOptions o, string name, params string[] roles) =>
+		o.AddPolicy(name, policy => policy
+			.AddAuthenticationSchemes(CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.Scheme)
+			.RequireAuthenticatedUser()
+			.RequireRole(roles));
+
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Any, "Owner", "Billing", "Support", "ReadOnly");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Support, "Owner", "Support");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Billing, "Owner", "Billing");
+	PlatformPolicy(options, CarSpaManagement.Api.Infrastructure.Platform.PlatformPolicies.Owner, "Owner");
+});
 
 // Rate Limiting on Authentication Endpoints
 builder.Services.AddRateLimiter(rateLimiterOptions =>
@@ -321,7 +379,9 @@ builder.Services.AddCors(options =>
 // Health checks
 builder.Services.AddHealthChecks()
  .AddNpgSql(
- connectionString: builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty,
+ connectionString: (platformEnabled
+	? builder.Configuration.GetConnectionString("Platform")
+	: builder.Configuration.GetConnectionString("DefaultConnection")) ?? string.Empty,
  name: "postgres",
  tags: new[] { "db", "postgres" });
 
@@ -333,6 +393,14 @@ if (!Directory.Exists(webRootPath))
 builder.Environment.WebRootPath = webRootPath;
 
 var app = builder.Build();
+
+// ── Platform maintenance commands (e.g. "platform create-company") ─────────
+if (args.Length > 0 && args[0] == "platform")
+{
+	Environment.ExitCode = await CarSpaManagement.Api.Infrastructure.Platform.PlatformCommandLine.RunAsync(app.Services, args[1..]);
+	Log.CloseAndFlush();
+	return;
+}
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.UseForwardedHeaders();
@@ -413,6 +481,8 @@ else
 
 app.UseAuthentication();
 app.UseMiddleware<CarSpaManagement.Api.Infrastructure.Tenancy.TenantResolutionMiddleware>();
+// The company's subscription: read-only or no access is enforced here for every company request.
+app.UseMiddleware<CarSpaManagement.Api.Infrastructure.Platform.SubscriptionAccessMiddleware>();
 app.UseAuthorization();
 app.UseRateLimiter();
 
@@ -424,6 +494,34 @@ Log.Information("Starting Car Spa Management API");
 
 // Apply migrations and production bootstrap data (permissions, reference lists, business profile, preferences).
 // Demo data (sample vendors) is seeded only in Development.
+if (platformEnabled)
+{
+	// Trovo's platform: migrate the catalog and then every company database, one at a time. Each company is
+	// migrated, given its starting data and its login's rights by the platform provisioner.
+	using var platformScope = app.Services.CreateScope();
+	try
+	{
+		var platformProvisioner = platformScope.ServiceProvider.GetRequiredService<CarSpaManagement.Api.Infrastructure.Platform.CompanyDatabaseProvisioner>();
+		if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
+		{
+			var companies = await platformProvisioner.MigrateAllAsync();
+			foreach (var failed in companies.Where(c => c.MigrationError is not null))
+			{
+				Log.Error("Company {Code} is paused: its database could not be migrated ({Error})", failed.Code, failed.MigrationError);
+			}
+			Log.Information("Platform: {Count} company databases checked", companies.Count);
+		}
+		else
+		{
+			await platformProvisioner.EnsureCatalogAsync();
+		}
+	}
+	catch (Exception ex)
+	{
+		Log.Error(ex, "Platform start-up failed: {Message}", ex.Message);
+	}
+}
+else
 using (var scope = app.Services.CreateScope())
 {
  try

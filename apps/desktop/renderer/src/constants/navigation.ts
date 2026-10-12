@@ -265,6 +265,7 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/reports/billing',
 			icon: 'FileSpreadsheet',
 			requiresPermission: 'reports.invoices',
+			requiresFeature: 'reports.advanced',
 		},
 		{
 			label: 'Financial Reports',
@@ -341,6 +342,7 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			path: '/settings/whatsapp',
 			icon: 'MessageSquare',
 			requiresPermission: 'settings.view',
+			requiresFeature: 'whatsapp_automation.enabled',
 		},
 		{
 			label: 'Users & Access',

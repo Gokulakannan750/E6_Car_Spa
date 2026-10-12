@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth-context';
 import LoginForm from './LoginForm';
 import {
+	getAuthStatus,
 	getCachedBusinessProfile,
 	getPublicBusinessProfile,
 	resolveLogoUrl,
@@ -33,10 +34,21 @@ export default function LoginPage() {
 	const [imgError, setImgError] = useState(false);
 	const [bannerError, setBannerError] = useState(false);
 
+	// On Trovo's platform a new company registers with its codes, so offer the way there.
+	const [companyRegistration, setCompanyRegistration] = useState(false);
+
 	useEffect(() => {
 		// Revalidate auth initialization state upon navigating to login
 		checkInitialization(false, true);
 	}, [checkInitialization]);
+
+	useEffect(() => {
+		let active = true;
+		getAuthStatus()
+			.then((status) => { if (active) setCompanyRegistration(status.companyRegistration === true); })
+			.catch(() => { /* the sign-in form still works without it */ });
+		return () => { active = false; };
+	}, []);
 
 	useEffect(() => {
 		let isMounted = true;
@@ -170,6 +182,14 @@ export default function LoginPage() {
 					<div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20">
 						<LoginForm />
 					</div>
+
+					{companyRegistration && (
+						<p className="text-center text-sm mt-5">
+							<Link to="/register" className="text-side-200 hover:text-white font-medium">
+								New company? Register with the codes from Trovo
+							</Link>
+						</p>
+					)}
 
 					<div className="text-center mt-6 space-y-1.5">
 						<p className="text-side-200/60 text-xs">

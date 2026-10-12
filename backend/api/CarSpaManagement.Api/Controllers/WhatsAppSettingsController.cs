@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.DTOs.WhatsApp;
 using CarSpaManagement.Api.Application.Interfaces;
@@ -8,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace CarSpaManagement.Api.Controllers;
 
+[RequiresFeature(FeatureKeys.WhatsAppAutomation)]
 [ApiController]
 [Route("api/settings/whatsapp")]
 public class WhatsAppSettingsController : ControllerBase

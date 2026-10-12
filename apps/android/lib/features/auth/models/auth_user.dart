@@ -1,3 +1,5 @@
+import '../../subscription/plan_features.dart';
+
 class AuthUser {
   final String id;
   final String fullName;
@@ -46,6 +48,8 @@ class AuthUser {
   }
 
   bool hasPermission(String permissionCode) {
+    // A module outside the company's plan is hidden for everyone, the Owner too.
+    if (!PlanFeatures.allowsPermission(permissionCode)) return false;
     if (isOwner || role.toLowerCase() == 'owner') return true;
     return permissions.contains(permissionCode);
   }

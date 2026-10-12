@@ -51,7 +51,8 @@ interface SuiteAppConfig {
 
 export function DashboardPage() {
 	const navigate = useNavigate();
-	const { user: authUser, hasPermission } = useAuth();
+	const { user: authUser, hasPermission, hasFeature } = useAuth();
+	const showShowroom = hasFeature ? hasFeature('showroom.enabled') : true;
 	const franchiseAccess = useFranchiseAccess();
 	const showFranchise = franchiseAccess.canActAsFranchisor && hasPermission('franchise.view');
 	const { profile } = useBusinessProfile();
@@ -90,6 +91,7 @@ export function DashboardPage() {
 					navigate('/staff-advances');
 					break;
 				case '3':
+					if (!showShowroom) break;
 					e.preventDefault();
 					navigate('/showroom');
 					break;
@@ -111,7 +113,7 @@ export function DashboardPage() {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [navigate, showFranchise]);
+	}, [navigate, showFranchise, showShowroom]);
 
 	const allSuiteApplications: SuiteAppConfig[] = [
 		{
@@ -247,7 +249,10 @@ export function DashboardPage() {
 		},
 	];
 	// A franchisee, or any company without the add-on, never sees the Franchise card.
-	const suiteApplications = allSuiteApplications.filter((app) => app.id !== 'franchise' || showFranchise);
+	// Franchise only for a franchisor; Showroom only when the company's plan includes it.
+	const suiteApplications = allSuiteApplications.filter(
+		(app) => (app.id !== 'franchise' || showFranchise) && (app.id !== 'showroom' || showShowroom),
+	);
 
 	return (
 		<div className="space-y-6 max-w-7xl mx-auto animate-fade-in select-none">

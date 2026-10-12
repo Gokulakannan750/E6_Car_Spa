@@ -164,7 +164,8 @@ export async function request<T>(
 	const isAuthEndpoint =
 		normalizedPath.includes('/auth/login') ||
 		normalizedPath.includes('/auth/status') ||
-		normalizedPath.includes('/auth/bootstrap');
+		normalizedPath.includes('/auth/bootstrap') ||
+		normalizedPath.includes('/auth/register');
 
 	if (res.status === 401 && !isAuthEndpoint) {
 		setAuthToken(null);
@@ -221,8 +222,10 @@ export async function request<T>(
 		switch (res.status) {
 			case 401:
 				code = 'UNAUTHORIZED';
+				// At sign-in the server's own message is shown (e.g. "This company's access is switched off");
+				// its wrong-credentials answer is already generic.
 				friendlyMessage = isAuthEndpoint
-					? 'Invalid username or password.'
+					? (rawDetail && !isTechnicalError(rawDetail) ? rawDetail : 'Invalid username or password.')
 					: 'Session expired. Please log in again.';
 				break;
 			case 403:
@@ -2844,6 +2847,14 @@ export function getJobCardStatusLabel(status: number | string): string {
 
 export interface AuthStatusResponse {
 	initialized: boolean;
+	/** True on Trovo's platform: new companies register with the codes Trovo gives them. */
+	companyRegistration?: boolean;
+}
+
+/** First registration of a company Trovo created: its company code, the one-time registration code and the Owner account. */
+export interface RegisterCompanyInput extends BootstrapOwnerInput {
+	companyCode: string;
+	registrationCode: string;
 }
 
 export interface BootstrapOwnerInput {
@@ -2928,6 +2939,34 @@ export async function bootstrapOwner(data: BootstrapOwnerInput) {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'initialize owner account');
+}
+
+/** What the signed-in company's subscription allows (Trovo's platform). On a single-company server `managed` is false. */
+export interface SubscriptionStatusDto {
+	managed: boolean;
+	access: 'Full' | 'ReadOnly' | 'None';
+	status?: string | null;
+	planCode?: string | null;
+	planName?: string | null;
+	interval?: string | null;
+	features: Record<string, string>;
+	seatLimit?: number | null;
+	seatsUsed: number;
+	trialEndsAt?: string | null;
+	graceEndsAt?: string | null;
+	currentPeriodEnd?: string | null;
+	banner?: { level: 'info' | 'warning' | 'error'; message: string } | null;
+}
+
+export async function getSubscriptionStatus() {
+	return request<SubscriptionStatusDto>('/api/subscription/status', {}, 'check the subscription');
+}
+
+export async function registerCompany(data: RegisterCompanyInput) {
+	return request<AuthUserResponse & { companyCode: string }>('/api/auth/register', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'register company');
 }
 
 export async function loginApi(data: LoginInput) {

@@ -16,6 +16,7 @@ import 'staff_advances_tab.dart';
 import 'staff_attendance_tab.dart';
 import 'staff_directory_tab.dart';
 import 'staff_salary_tab.dart';
+import '../../../subscription/plan_features.dart';
 
 class _StaffTabConfig {
   final int canonicalIndex;
@@ -112,6 +113,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     final user = authState is Authenticated ? authState.user : null;
     final isOwner = user?.isOwner == true;
     return _allStaffTabs.where((t) {
+      if (!PlanFeatures.allowsPermission(t.permission)) return false;
       if (isOwner) return true;
       return user?.permissions.contains(t.permission) == true;
     }).toList();
@@ -184,6 +186,7 @@ class _StaffScreenState extends ConsumerState<StaffScreen>
     final isOwner = user?.isOwner == true;
 
     final authorizedTabs = _allStaffTabs.where((t) {
+      if (!PlanFeatures.allowsPermission(t.permission)) return false;
       if (isOwner) return true;
       return user?.permissions.contains(t.permission) == true;
     }).toList();

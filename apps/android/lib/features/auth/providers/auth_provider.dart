@@ -5,7 +5,9 @@ import '../../../core/network/auth_session_events.dart';
 import '../data/auth_repository.dart';
 import '../models/auth_user.dart';
 import '../models/bootstrap_owner_request.dart';
+import '../models/register_company_request.dart';
 import 'auth_state.dart';
+import '../../subscription/subscription_provider.dart';
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
@@ -15,7 +17,16 @@ final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
 });
 
 /// Convenience provider for accessing the current authenticated user (null if unauthenticated)
+/// Whether the server offers company registration with Trovo's codes (Trovo's
+/// platform), from the status check the app already makes; no extra request.
+final companyRegistrationAvailableProvider = Provider<bool>((ref) {
+  ref.watch(authNotifierProvider); // read again after every status check
+  return ref.watch(authRepositoryProvider).companyRegistration;
+});
+
 final currentUserProvider = Provider<AuthUser?>((ref) {
+  // Read again when the company's plan arrives: permission checks consult it.
+  ref.watch(subscriptionStatusProvider);
   final authState = ref.watch(authNotifierProvider);
   if (authState is Authenticated) {
     return authState.user;
@@ -213,6 +224,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'Failed to create Owner account. Please try again.',
       );
       return false;
+    }
+  }
+
+  /// Registers a company with the codes from Trovo. On success the sign-in
+  /// screen shows a confirmation (the company code is already remembered).
+  /// Errors are returned to the registration screen, which shows them itself.
+  Future<String?> registerCompany(RegisterCompanyRequest request) async {
+    try {
+      final companyCode = await _repository.registerCompany(request);
+      state = Unauthenticated(
+        'Company $companyCode is registered. Please sign in.',
+        true,
+      );
+      return null;
+    } on ApiException catch (e) {
+      return e.message;
+    } catch (_) {
+      return 'Registration failed. Please try again.';
     }
   }
 

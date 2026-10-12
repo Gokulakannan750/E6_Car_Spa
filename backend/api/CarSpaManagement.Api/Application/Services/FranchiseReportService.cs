@@ -19,8 +19,11 @@ public class FranchiseReportService(
     AppDbContext db,
     DbContextOptions<AppDbContext> options,
     IFranchiseEntitlement entitlement,
-    IAuditLogService auditLogService) : IFranchiseReports
+    IAuditLogService auditLogService,
+    IFranchiseLinkStore? linkStore = null) : IFranchiseReports
 {
+    private readonly IFranchiseLinkStore _store = linkStore ?? new CarSpaManagement.Api.Infrastructure.Platform.CompanyDatabaseFranchiseLinkStore(db);
+
     public async Task<MonthlyBillingReportResponse> GetMonthlyBillingReportAsync(
         Guid linkId, int year, int month, CancellationToken cancellationToken = default)
     {
@@ -34,7 +37,7 @@ public class FranchiseReportService(
         }
 
         var me = db.CurrentOrganizationId;
-        var link = await db.FranchiseLinks.Include(l => l.Scopes)
+        var link = await _store.Links.Include(l => l.Scopes)
             .FirstOrDefaultAsync(l => l.Id == linkId && l.FranchisorOrganizationId == me, cancellationToken)
             ?? throw new NotFoundException("Franchise link not found.");
 
@@ -47,16 +50,26 @@ public class FranchiseReportService(
             throw new ForbiddenException("This company has not allowed you to see its invoice list.");
         }
 
-        var approvedByDatabase = await db.Database
-            .SqlQuery<bool>($"SELECT franchise_has_scope({link.FranchiseeOrganizationId}, {FranchiseScopes.InvoiceList}) AS \"Value\"")
-            .SingleAsync(cancellationToken);
-        if (!approvedByDatabase)
+        // Checked a second time by the database that holds the link: on a single-company server its own function; on
+        // Trovo's platform the catalog, read again straight from the store.
+        var approvedTwice = _store.InCompanyDatabase
+            ? await db.Database
+                .SqlQuery<bool>($"SELECT franchise_has_scope({link.FranchiseeOrganizationId}, {FranchiseScopes.InvoiceList}) AS \"Value\"")
+                .SingleAsync(cancellationToken)
+            : await _store.Links.AsNoTracking().AnyAsync(l => l.Id == link.Id && l.FranchisorOrganizationId == me
+                && l.Status == FranchiseLinkStatus.Active
+                && l.Scopes.Any(s => s.Scope == FranchiseScopes.InvoiceList && s.Status == FranchiseScopeStatus.Granted), cancellationToken);
+        if (!approvedTwice)
         {
             throw new ForbiddenException("This company has not allowed you to see its invoice list.");
         }
 
+        // A read-only view of the franchisee's data (on the platform: its own database, through its own login).
         await using var view = AppDbContext.ForReadOnly(options, new FixedTenantContext(link.FranchiseeOrganizationId));
-        var report = await new ReportService(view).GetMonthlyBillingReportAsync(year, month, null, null, cancellationToken);
+        var report = _store.InCompanyDatabase
+            ? await new ReportService(view).GetMonthlyBillingReportAsync(year, month, null, null, cancellationToken)
+            : await CarSpaManagement.Api.Infrastructure.Platform.CompanyViews.ReadOnlyTransactionAsync(view,
+                () => new ReportService(view).GetMonthlyBillingReportAsync(year, month, null, null, cancellationToken), cancellationToken);
 
         await auditLogService.RecordAsync(
             action: "franchise.billing_report_viewed",

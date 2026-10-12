@@ -6,7 +6,9 @@ using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Infrastructure.Tenancy;
+using CarSpaManagement.Api.Infrastructure.Platform;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 namespace CarSpaManagement.Api.Application.Services;
@@ -18,10 +20,21 @@ public class AuthService(
     IAuditLogService auditLogService,
     IAccountLockoutService accountLockoutService,
     TenantContext? tenantContext = null,
-    OrganizationProvisioner? provisioner = null) : IAuthService
+    OrganizationProvisioner? provisioner = null,
+    ICompanyDirectory? companyDirectory = null,
+    IOptions<PlatformOptions>? platformOptions = null,
+    IEntitlementService? entitlements = null) : IAuthService
 {
+    private bool PlatformEnabled => platformOptions?.Value.Enabled == true;
+
     public async Task<AuthStatusDto> GetStatusAsync(CancellationToken cancellationToken = default)
     {
+        // On the platform, companies are created by Trovo and registered with their codes; there is no first-time setup.
+        if (PlatformEnabled)
+        {
+            return new AuthStatusDto { Initialized = true, CompanyRegistration = true };
+        }
+
         // "Initialized" means the server already has a company; the company list itself is not company-owned data.
         var initialized = await db.Organizations.AnyAsync(cancellationToken) || await db.Users.AnyAsync(cancellationToken);
         return new AuthStatusDto { Initialized = initialized };
@@ -32,7 +45,7 @@ public class AuthService(
     /// server has exactly one company. Unknown or inactive companies get the same answer as a wrong password, so
     /// codes can't be probed.
     /// </summary>
-    private async Task<Organization?> ResolveOrganizationAsync(string? companyCode, CancellationToken cancellationToken)
+    private async Task<CompanyRoute?> ResolveOrganizationAsync(string? companyCode, CancellationToken cancellationToken)
     {
         if (tenantContext is null)
         {
@@ -40,7 +53,11 @@ public class AuthService(
         }
 
         var code = companyCode?.Trim().ToUpperInvariant();
-        var organization = await OrganizationLookup.FindActiveAsync(db, companyCode, cancellationToken);
+        var organization = companyDirectory is not null
+            ? await companyDirectory.FindActiveByCodeAsync(companyCode, cancellationToken)
+            : await OrganizationLookup.FindActiveAsync(db, companyCode, cancellationToken) is { } found
+                ? new CompanyRoute(found.Id, found.Code, found.Name, null)
+                : null;
 
         if (organization is null)
         {
@@ -50,12 +67,25 @@ public class AuthService(
                 : "Invalid company code, username or password.");
         }
 
+        // A company Trovo has switched off (or that never paid) cannot sign in. Read-only companies can.
+        if (entitlements is not null &&
+            (await entitlements.GetForCompanyAsync(organization.Id, cancellationToken)).Access == CompanyAccessLevel.None)
+        {
+            Log.Warning("Login rejected: company {CompanyCode} has no access under its subscription", organization.Code);
+            throw new UnauthorizedException("This company's access is switched off. Please contact Trovo.");
+        }
+
         tenantContext.Set(organization.Id);
         return organization;
     }
 
     public async Task<BootstrapOwnerResponse> BootstrapOwnerAsync(BootstrapOwnerRequest request, CancellationToken cancellationToken = default)
     {
+        if (PlatformEnabled)
+        {
+            throw new ConflictException("Companies on this server are registered with the codes Trovo provides.");
+        }
+
         // Concurrency-safe owner bootstrap using database transaction with Serializable isolation
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         try

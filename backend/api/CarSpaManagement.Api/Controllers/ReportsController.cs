@@ -1,3 +1,5 @@
+using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Infrastructure.Authorization;
@@ -108,6 +110,7 @@ public class ReportsController : ControllerBase
     /// Tax and GST summary report detailing taxable base, CGST, SGST, and total GST.
     /// </summary>
     [HttpGet("gst")]
+    [RequiresFeature(FeatureKeys.AdvancedReports)]
     [RequirePermission("reports.gst")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetGstReport(
@@ -123,6 +126,7 @@ public class ReportsController : ControllerBase
     /// Job card operational report with status, customer, vehicle, and converted invoice details.
     /// </summary>
     [HttpGet("job-cards")]
+    [RequiresFeature(FeatureKeys.AdvancedReports)]
     [RequirePermission("reports.job_cards")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetJobCardReport(
@@ -142,6 +146,7 @@ public class ReportsController : ControllerBase
     /// Showroom daily report combining billing, payments, staff count, vehicle attendance, and status.
     /// </summary>
     [HttpGet("showrooms")]
+    [RequiresFeature(FeatureKeys.Showroom)]
     [RequirePermission("reports.showrooms")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetShowroomReport(
@@ -160,6 +165,7 @@ public class ReportsController : ControllerBase
     /// Staff productivity report detailing days assigned, vehicles attended, and daily averages.
     /// </summary>
     [HttpGet("staff-productivity")]
+    [RequiresFeature(FeatureKeys.AdvancedReports)]
     [RequirePermission("reports.staff_productivity")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetStaffProductivityReport(
@@ -180,6 +186,7 @@ public class ReportsController : ControllerBase
     /// Staff advances report with status, recovery history, and obsolete exclusion.
     /// </summary>
     [HttpGet("staff-advances")]
+    [RequiresFeature(FeatureKeys.StaffAdvances)]
     [RequirePermission("reports.staff_advances")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetStaffAdvancesReport(
@@ -199,6 +206,7 @@ public class ReportsController : ControllerBase
     /// Detailed monthly / date-range showroom operational, staff activity, and financial report.
     /// </summary>
     [HttpGet("showroom/monthly")]
+    [RequiresFeature(FeatureKeys.Showroom)]
     [RequirePermission("reports.showrooms")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetMonthlyShowroomReport(
@@ -226,6 +234,7 @@ public class ReportsController : ControllerBase
     /// Outside Jobs and External Vehicle Movement operational and vendor summary report.
     /// </summary>
     [HttpGet("outside-jobs")]
+    [RequiresFeature(FeatureKeys.OutsideJobs)]
     [RequirePermission("outsidejobs.view")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetOutsideJobsReport(
@@ -244,6 +253,7 @@ public class ReportsController : ControllerBase
     /// Comprehensive monthly billing report with Daily Sheets and Monthly Summary.
     /// </summary>
     [HttpGet("billing/monthly")]
+    [RequiresFeature(FeatureKeys.AdvancedReports)]
     [RequirePermission("reports.invoices")]
     [EnableRateLimiting("reports-heavy")]
     public async Task<IActionResult> GetMonthlyBillingReport(

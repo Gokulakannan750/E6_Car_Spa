@@ -2,6 +2,7 @@ using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Infrastructure.Platform;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -28,6 +29,36 @@ public class AuthController(IAuthService authService) : ControllerBase
         try
         {
             var owner = await authService.BootstrapOwnerAsync(request, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, owner);
+        }
+        catch (ConflictException ex)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new { error = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// First registration of a company created by Trovo, with the company code and one-time registration code.
+    /// Available only when the server runs as Trovo's platform.
+    /// </summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-bootstrap")]
+    public async Task<ActionResult<BootstrapOwnerResponse>> RegisterCompany([FromBody] RegisterCompanyRequest request, CancellationToken cancellationToken)
+    {
+        var registration = HttpContext.RequestServices.GetService<CompanyRegistrationService>();
+        if (registration is null)
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            var owner = await registration.RegisterAsync(request, cancellationToken);
             return StatusCode(StatusCodes.Status201Created, owner);
         }
         catch (ConflictException ex)

@@ -73,6 +73,8 @@ export function renderWithProviders(
 		clearSecureStorageWarning: () => {},
 		refreshAuth: async () => {},
 		checkInitialization: async () => true,
+		subscription: null,
+		hasFeature: () => true,
 		...authContextValue,
 	};
 

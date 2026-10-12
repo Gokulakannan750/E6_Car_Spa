@@ -1,4 +1,5 @@
 import { useState, useCallback, useContext, createContext, useEffect, useRef, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
 	getAuthStatus,
 	getMe,
@@ -9,8 +10,13 @@ import {
 	rememberCompanyCode,
 	getRememberedCompanyCode,
 	setCachedBusinessProfile,
-	type AuthUserResponse
+	getSubscriptionStatus,
+	type AuthUserResponse,
+	type SubscriptionStatusDto
 } from '../../lib/api';
+import { featureForPermission, isFeatureOn } from '../subscription/subscriptionFeatures';
+
+export const SUBSCRIPTION_QUERY_KEY = ['subscription-status'] as const;
 
 import { useAppStore } from '../../stores/app';
 
@@ -39,6 +45,10 @@ export interface AuthContextValue {
 	sessionExpiredMessage: string | null;
 	secureStorageWarning: string | null;
 	hasPermission: (permissionCode?: string) => boolean;
+	/** The company's subscription on Trovo's platform (null until loaded, or on a single-company server). */
+	subscription?: SubscriptionStatusDto | null;
+	/** Whether the company's plan includes a feature. Everything is included until known / when not on the platform. */
+	hasFeature?: (featureKey: string) => boolean;
 	login: (username: string, password: string, companyCode?: string) => Promise<AuthUser>;
 	logout: () => void;
 	clearSessionExpiredMessage: () => void;
@@ -57,6 +67,8 @@ export const AuthContext = createContext<AuthContextValue>({
 	sessionExpiredMessage: null,
 	secureStorageWarning: null,
 	hasPermission: () => false,
+	subscription: null,
+	hasFeature: () => true,
 	login: async () => { throw new Error('AuthContext not initialized'); },
 	logout: () => {},
 	clearSessionExpiredMessage: () => {},
@@ -314,8 +326,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		return res.user;
 	}, [syncAppStoreUser]);
 
+	// The company's subscription (Trovo's platform). Refreshed every few minutes so a renewal or a read-only change
+	// shows up without signing in again.
+	const subscriptionQuery = useQuery({
+		queryKey: SUBSCRIPTION_QUERY_KEY,
+		queryFn: getSubscriptionStatus,
+		enabled: !!(user && token),
+		staleTime: 60 * 1000,
+		refetchInterval: 5 * 60 * 1000,
+		retry: false,
+	});
+	const subscription = user && token ? subscriptionQuery.data ?? null : null;
+
+	const hasFeature = useCallback(
+		(featureKey: string): boolean => isFeatureOn(subscription?.features, subscription?.managed, featureKey),
+		[subscription],
+	);
+
 	const hasPermission = useCallback((permissionCode?: string): boolean => {
 		if (!user) return false;
+		// A module outside the company's plan is hidden for everyone, the Owner included.
+		const feature = permissionCode ? featureForPermission(permissionCode) : null;
+		if (feature && !hasFeature(feature)) {
+			return false;
+		}
 		// OWNER RULE: Owner has unrestricted access to all current and future permissions!
 		if (user.isOwner || user.role === 'Owner') {
 			return true;
@@ -324,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			return true;
 		}
 		return user.permissions?.includes(permissionCode) ?? false;
-	}, [user]);
+	}, [user, hasFeature]);
 
 	const isOwner = !!(user && (user.isOwner || user.role === 'Owner'));
 	const isAuthenticated = !!(user && token);
@@ -341,6 +375,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				sessionExpiredMessage,
 				secureStorageWarning,
 				hasPermission,
+				subscription,
+				hasFeature,
 				login,
 				logout,
 				clearSessionExpiredMessage,

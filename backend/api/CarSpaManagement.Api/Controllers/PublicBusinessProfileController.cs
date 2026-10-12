@@ -19,7 +19,7 @@ namespace CarSpaManagement.Api.Controllers;
 public class PublicBusinessProfileController(
     IBusinessProfileService profileService,
     TenantContext? tenant = null,
-    AppDbContext? db = null) : ControllerBase
+    ICompanyDirectory? directory = null) : ControllerBase
 {
     /// <summary>
     /// The company's public branding for the sign-in page. The company comes from <c>companyCode</c>; with no code it
@@ -29,9 +29,9 @@ public class PublicBusinessProfileController(
     [HttpGet]
     public async Task<ActionResult<PublicBusinessProfileDto>> GetPublicProfile([FromQuery] string? companyCode, CancellationToken ct)
     {
-        if (tenant is not null && db is not null)
+        if (tenant is not null && directory is not null)
         {
-            var organization = await OrganizationLookup.FindActiveAsync(db, companyCode, ct);
+            var organization = await directory.FindActiveByCodeAsync(companyCode, ct);
             if (organization is null)
             {
                 return Ok(new PublicBusinessProfileDto(string.Empty, null, null));

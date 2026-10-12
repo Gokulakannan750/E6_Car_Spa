@@ -5,6 +5,24 @@ namespace CarSpaManagement.Api.Application.DTOs;
 public class AuthStatusDto
 {
     public bool Initialized { get; set; }
+
+    /// <summary>
+    /// True on Trovo's platform: a new company is registered with the company code and one-time registration code
+    /// Trovo gave the customer (POST /api/auth/register), not with first-time setup.
+    /// </summary>
+    public bool CompanyRegistration { get; set; }
+}
+
+/// <summary>First registration of a company Trovo has created: the codes Trovo gave the customer, plus the Owner account.</summary>
+public class RegisterCompanyRequest : BootstrapOwnerRequest
+{
+    [Required]
+    [StringLength(20)]
+    public string CompanyCode { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(30)]
+    public string RegistrationCode { get; set; } = string.Empty;
 }
 
 public class BootstrapOwnerRequest

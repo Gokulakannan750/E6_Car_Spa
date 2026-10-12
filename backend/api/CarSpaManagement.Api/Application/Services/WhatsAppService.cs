@@ -31,6 +31,12 @@ public class WhatsAppService : IWhatsAppService
 	private readonly IConfiguration _configuration;
 	private readonly IInvoicePdfGenerator _invoicePdfGenerator;
 	private readonly ILogger<WhatsAppService> _logger;
+	private readonly IEntitlementService? _entitlements;
+
+	/// <summary>False when the company's plan does not include WhatsApp automation (then nothing is queued).</summary>
+	private async Task<bool> PlanIncludesWhatsAppAsync(CancellationToken cancellationToken) =>
+		_entitlements is null ||
+		(await _entitlements.GetCurrentAsync(cancellationToken)).Has(Domain.Platform.FeatureKeys.WhatsAppAutomation);
 
 	public WhatsAppService(
 		AppDbContext db,
@@ -51,8 +57,10 @@ public class WhatsAppService : IWhatsAppService
 		IAuditLogService auditLogService,
 		IConfiguration configuration,
 		IInvoicePdfGenerator invoicePdfGenerator,
-		ILogger<WhatsAppService> logger)
+		ILogger<WhatsAppService> logger,
+		IEntitlementService? entitlements = null)
 	{
+		_entitlements = entitlements;
 		_db = db;
 		_httpClient = httpClient;
 		_encryptionService = encryptionService;
@@ -538,6 +546,11 @@ public class WhatsAppService : IWhatsAppService
 
 	public async Task<WhatsAppMessage?> QueueInvoiceFinalizedNotificationAsync(Guid invoiceId, CancellationToken cancellationToken = default)
 	{
+		if (!await PlanIncludesWhatsAppAsync(cancellationToken))
+		{
+			return null;
+		}
+
 		// Idempotency: Check if an active message already exists for this invoice and type
 		var existing = await _db.WhatsAppMessages
 			.FirstOrDefaultAsync(m => m.InvoiceId == invoiceId && m.MessageType == WhatsAppMessageType.InvoiceFinalized, cancellationToken);
@@ -614,6 +627,11 @@ public class WhatsAppService : IWhatsAppService
 
 	public async Task<WhatsAppMessage?> QueuePaymentCompletedNotificationAsync(Guid invoiceId, decimal paymentReceived, string? publicInvoiceUrl = null, CancellationToken cancellationToken = default)
 	{
+		if (!await PlanIncludesWhatsAppAsync(cancellationToken))
+		{
+			return null;
+		}
+
 		// Idempotency: Check if an active message already exists for this invoice and type
 		var existing = await _db.WhatsAppMessages
 			.FirstOrDefaultAsync(m => m.InvoiceId == invoiceId && m.MessageType == WhatsAppMessageType.PaymentCompleted, cancellationToken);
