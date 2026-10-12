@@ -1,5 +1,3 @@
-using CarSpaManagement.Api.Infrastructure.Platform;
-using CarSpaManagement.Api.Domain.Platform;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.StaffAdvances;
@@ -10,7 +8,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
-[RequiresFeature(FeatureKeys.StaffAdvances)]
 [ApiController]
 [Route("api/staff-advances")]
 public class StaffAdvancesController : ControllerBase

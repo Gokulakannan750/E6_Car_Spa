@@ -1,5 +1,3 @@
-using CarSpaManagement.Api.Infrastructure.Platform;
-using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Authorization;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
-[RequiresFeature(FeatureKeys.Showroom)]
 [ApiController]
 [Route("api/showroom-payments")]
 [Authorize]

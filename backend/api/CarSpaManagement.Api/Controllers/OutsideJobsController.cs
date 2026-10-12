@@ -1,5 +1,3 @@
-using CarSpaManagement.Api.Infrastructure.Platform;
-using CarSpaManagement.Api.Domain.Platform;
 using System.Security.Claims;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.DTOs.OutsideJobs;
@@ -11,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarSpaManagement.Api.Controllers;
 
-[RequiresFeature(FeatureKeys.OutsideJobs)]
 [ApiController]
 public class OutsideJobsController : ControllerBase
 {

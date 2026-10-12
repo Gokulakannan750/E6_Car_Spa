@@ -75,6 +75,8 @@ foreach (var configurationWarning in StartupConfigurationGuard.GetWarnings(
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>
 {
+	// Endpoints whose permission belongs to a module outside the company's plan are refused (Trovo's platform).
+	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlanFeatureFilter>();
 }).ConfigureApplicationPartManager(manager =>
 {
 	// Without the platform, the /api/platform controllers are not part of the API at all.

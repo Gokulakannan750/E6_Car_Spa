@@ -104,6 +104,25 @@ public class SubscriptionRulesTests
         Assert.Null(SubscriptionController.BannerFor(unmanaged, Now));
     }
 
+    [Theory]
+    [InlineData("showroom.view", FeatureKeys.Showroom)]
+    [InlineData("reports.showrooms", FeatureKeys.Showroom)]
+    [InlineData("staff_advances.create", FeatureKeys.StaffAdvances)]
+    [InlineData("staff_salary.view", FeatureKeys.StaffAdvances)]
+    [InlineData("outsidejobs.manage", FeatureKeys.OutsideJobs)]
+    [InlineData("vendors.view", FeatureKeys.OutsideJobs)]
+    [InlineData("audit.view", FeatureKeys.AuditTrail)]
+    [InlineData("reports.gst", FeatureKeys.AdvancedReports)]
+    [InlineData("staff.view", null)]
+    [InlineData("invoices.view", null)]
+    [InlineData("reports.invoices", null)]
+    [InlineData("settings.view", null)]
+    public void EachPermission_BelongsToTheSamePlanFeatureAsInTheApps(string permission, string? feature)
+    {
+        // Mirrors featureForPermission in the Windows app and PlanFeatures.featureForPermission in Android.
+        Assert.Equal(feature, PlanFeatureMap.ForPermission(permission));
+    }
+
     [Fact]
     public void WithoutAGstin_AnInvoiceCarriesNoTax()
     {

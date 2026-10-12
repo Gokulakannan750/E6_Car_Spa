@@ -223,6 +223,11 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
         }
         Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Get, "/api/customers", token)).StatusCode);
 
+        // Decided per endpoint by its own permission: the staff list lives in the staff-advances controller but is
+        // part of every plan; the advances themselves are not.
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Get, "/api/staff-advances/staff", token)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Get, "/api/staff-advances", token)).StatusCode);
+
         var status = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/status", token));
         Assert.Equal("starter", status.GetProperty("planCode").GetString());
         Assert.Equal(3, status.GetProperty("seatLimit").GetInt32());
