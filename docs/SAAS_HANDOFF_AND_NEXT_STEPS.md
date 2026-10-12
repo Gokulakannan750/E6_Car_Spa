@@ -73,7 +73,7 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 - `4bc71bfb` Stitch design export (`design/stitch-admin-portal/`), the visual reference.
 - `d86c2806` The portal app; API now ends a platform session immediately when its admin is switched off, changes role
   or is reset; CI job.
-- (next commit) Playwright E2E: mocked suite (CI) + live suite against the real API; this handoff document.
+- `32f32635` Playwright E2E: mocked suite (CI) + live suite against the real API; this handoff document.
 
 Test counts at the end of 2.4: backend **1268/1268** (with PostgreSQL), portal Vitest **18/18**, portal Playwright
 mocked **4/4**, portal live E2E **8/8**. Windows (734) and Android (1062) were not changed in 2.4.
