@@ -444,7 +444,9 @@ public sealed class SubscriptionService(
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new ValidationException($"Add-on '{code}' is not available.");
 
-            subscription.Items.Add(new SubscriptionItem
+            // Added to the table explicitly: on an existing subscription EF would otherwise take a new item with its
+            // id already set for an existing row.
+            catalog.SubscriptionItems.Add(new SubscriptionItem
             {
                 Id = Guid.NewGuid(),
                 SubscriptionId = subscription.Id,
