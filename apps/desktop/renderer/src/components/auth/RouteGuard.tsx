@@ -6,10 +6,12 @@ import { AccessDenied } from './AccessDenied';
 interface RouteGuardProps {
 	children: ReactNode;
 	requiredPermission?: string | string[];
+	/** A plan feature the page needs (on Trovo's platform). */
+	requiredFeature?: string;
 }
 
-export function RouteGuard({ children, requiredPermission }: RouteGuardProps) {
-	const { isAuthenticated, isInitialized, isLoading, hasPermission } = useAuth();
+export function RouteGuard({ children, requiredPermission, requiredFeature }: RouteGuardProps) {
+	const { isAuthenticated, isInitialized, isLoading, hasPermission, hasFeature } = useAuth();
 	const location = useLocation();
 
 	if (isLoading) {
@@ -29,6 +31,19 @@ export function RouteGuard({ children, requiredPermission }: RouteGuardProps) {
 
 	if (!isAuthenticated) {
 		return <Navigate to="/login" state={{ from: location }} replace />;
+	}
+
+	if (requiredFeature && hasFeature && !hasFeature(requiredFeature)) {
+		return (
+			<div className="flex h-full items-center justify-center p-10">
+				<div className="max-w-md rounded-2xl border border-outline-variant bg-surface p-8 text-center shadow-sm">
+					<h2 className="text-lg font-bold text-on-surface">Not included in your plan</h2>
+					<p className="mt-2 text-sm text-on-surface-variant">
+						This part of the software is not part of your current plan. Contact Trovo to add it.
+					</p>
+				</div>
+			</div>
+		);
 	}
 
 	if (requiredPermission) {

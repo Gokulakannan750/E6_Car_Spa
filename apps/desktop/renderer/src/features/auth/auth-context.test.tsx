@@ -1,7 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render as rtlRender, screen, act } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth, SESSION_CHANGED_EVENT } from './auth-context';
 import * as api from '../../lib/api';
+
+// The app wraps AuthProvider in a QueryClientProvider (it loads the company's subscription); so do the tests.
+function render(ui: ReactElement) {
+	const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+	return rtlRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 vi.mock('../../lib/api', () => ({
 	getAuthStatus: vi.fn(),
@@ -13,6 +21,7 @@ vi.mock('../../lib/api', () => ({
 	rememberCompanyCode: vi.fn(),
 	getRememberedCompanyCode: vi.fn(),
 	setCachedBusinessProfile: vi.fn(),
+	getSubscriptionStatus: vi.fn().mockResolvedValue({ managed: false, access: 'Full', features: {}, seatsUsed: 1 }),
 }));
 
 function TestConsumer() {

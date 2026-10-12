@@ -2939,6 +2939,27 @@ export async function bootstrapOwner(data: BootstrapOwnerInput) {
 	}, 'initialize owner account');
 }
 
+/** What the signed-in company's subscription allows (Trovo's platform). On a single-company server `managed` is false. */
+export interface SubscriptionStatusDto {
+	managed: boolean;
+	access: 'Full' | 'ReadOnly' | 'None';
+	status?: string | null;
+	planCode?: string | null;
+	planName?: string | null;
+	interval?: string | null;
+	features: Record<string, string>;
+	seatLimit?: number | null;
+	seatsUsed: number;
+	trialEndsAt?: string | null;
+	graceEndsAt?: string | null;
+	currentPeriodEnd?: string | null;
+	banner?: { level: 'info' | 'warning' | 'error'; message: string } | null;
+}
+
+export async function getSubscriptionStatus() {
+	return request<SubscriptionStatusDto>('/api/subscription/status', {}, 'check the subscription');
+}
+
 export async function registerCompany(data: RegisterCompanyInput) {
 	return request<AuthUserResponse & { companyCode: string }>('/api/auth/register', {
 		method: 'POST',

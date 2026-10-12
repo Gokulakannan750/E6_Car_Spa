@@ -90,6 +90,8 @@ export interface NavigationItem {
 	children?: NavigationItem[];
 	badge?: string | number;
 	requiresPermission?: string | string[];
+	/** Shown only when the company's plan includes this feature (e.g. 'reports.advanced'). */
+	requiresFeature?: string;
 	/** Shown only to a company that has the Franchise add-on (it gives franchises to others). */
 	requiresFranchisor?: boolean;
 	/** Shown only to a company that is linked to a franchisor (it can review what it shares). */

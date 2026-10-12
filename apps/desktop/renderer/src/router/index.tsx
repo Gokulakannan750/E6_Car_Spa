@@ -337,7 +337,7 @@ export const router = createBrowserRouter([
 					const m = await loadReports();
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="reports.invoices">
+							<RouteGuard requiredPermission="reports.invoices" requiredFeature="reports.advanced">
 								<m.ReportsPage />
 							</RouteGuard>
 						),
@@ -561,7 +561,7 @@ export const router = createBrowserRouter([
 					const Comp = m.default;
 					return {
 						Component: () => (
-							<RouteGuard requiredPermission="settings.view">
+							<RouteGuard requiredPermission="settings.view" requiredFeature="whatsapp_automation.enabled">
 								<Comp />
 							</RouteGuard>
 						),
