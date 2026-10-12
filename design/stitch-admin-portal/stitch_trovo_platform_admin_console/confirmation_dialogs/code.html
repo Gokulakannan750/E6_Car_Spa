@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Action Confirmation Dialogs - Trovo Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: {
+              DEFAULT: '#131315',
+              dim: '#131315',
+              bright: '#39393b',
+              lowest: '#0e0e10',
+              low: '#1c1b1d',
+              mid: '#232225',
+              high: '#2c2b2e',
+              highest: '#353438'
+            },
+            trovo: {
+              blue: '#3b82f6',
+              red: '#ef4444',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0b0d;
+      color: #e4e4e7;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0b0b0d] text-zinc-200 antialiased font-sans p-6 md:p-10 relative selection:bg-blue-600/30 selection:text-blue-200">
+
+  <!-- Background decorative subtle ambient glow -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-600/10 blur-[120px]"></div>
+    <div class="absolute top-1/2 -right-32 w-96 h-96 rounded-full bg-red-600/10 blur-[130px]"></div>
+    <div class="absolute -bottom-32 left-1/3 w-96 h-96 rounded-full bg-emerald-600/10 blur-[120px]"></div>
+  </div>
+
+  <div class="relative z-10 max-w-7xl mx-auto space-y-8">
+    <!-- Header with context banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-zinc-800/80 gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+            0002 · Sunrise Detailing
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-emerald-950/40 text-emerald-400 border border-emerald-800/50">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Active
+          </span>
+          <span class="text-xs text-zinc-500 font-mono">Operations Audit Trail</span>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+          Trovo Action Confirmation Dialogs
+        </h1>
+        <p class="text-sm text-zinc-400 mt-1">
+          Standardized modal patterns for company state overrides and subscription terminations.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="bg-surface-low px-3 py-2 rounded-lg border border-zinc-800/80 text-xs text-zinc-400 flex items-center gap-2">
+          <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>All operational actions log IP, Staff ID & mandatory reason</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Dialogs Grid Display -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+      <!-- ============================================== -->
+      <!-- DIALOG 1: SUSPEND SUNRISE DETAILING -->
+      <!-- ============================================== -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold uppercase tracking-wider text-red-400">Modal 01</span>
+            <span class="text-xs text-zinc-500 font-medium">· Emergency / Restriction</span>
+          </div>
+          <span class="text-xs bg-red-950/60 text-red-300 border border-red-800/50 px-2 py-0.5 rounded font-mono text-[11px]">Destructive</span>
+        </div>
+
+        <!-- The Modal Card Container (Simulating dialog in viewport) -->
+        <div class="bg-surface-low/95 backdrop-blur-md rounded-2xl border border-red-500/30 shadow-2xl shadow-red-950/20 overflow-hidden ring-1 ring-white/5 relative">
+          <!-- Subtle top highlight line -->
+          <div class="h-1 w-full bg-gradient-to-r from-red-600 via-rose-500 to-red-700"></div>
+
+          <div class="p-6 space-y-5">
+            <!-- Modal Header with Warning Icon -->
+            <div class="flex items-start gap-4">
+              <div class="w-11 h-11 rounded-xl bg-red-950/80 border border-red-800/70 flex items-center justify-center text-red-400 shrink-0 shadow-inner">
+                <!-- Red warning triangle icon -->
+                <svg class="w-6 h-6 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+
+              <div class="space-y-1 pr-4">
+                <h2 class="text-lg font-bold text-white tracking-tight leading-snug">
+                  Suspend Sunrise Detailing?
+                </h2>
+                <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                  <span>Tenant ID: <span class="text-zinc-200">0002</span></span>
+                  <span>•</span>
+                  <span>Plan: Professional</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Descriptive Guidance Alert -->
+            <div class="p-3.5 rounded-xl bg-surface-mid/80 border border-zinc-800/90 text-sm text-zinc-300 space-y-2">
+              <p class="leading-relaxed text-zinc-300">
+                Nobody at this company can sign in until you reactivate it. <span class="text-white font-medium">No data is deleted.</span>
+              </p>
+              <div class="flex items-center gap-2 pt-1 border-t border-zinc-800/60 text-xs text-zinc-400">
+                <svg class="w-3.5 h-3.5 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Active sessions terminated immediately</span>
+              </div>
+            </div>
+
+            <!-- Mandatory Reason Field -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="suspend-reason" class="text-xs font-semibold text-zinc-300 tracking-wide flex items-center gap-1.5">
+                  Reason for suspension <span class="text-red-400">*</span>
+                </label>
+                <span class="text-[11px] font-mono text-zinc-500">Recorded in audit log</span>
+              </div>
+              <textarea
+                id="suspend-reason"
+                rows="3"
+                placeholder="e.g. Non-payment after repeated reminders, or customer dispute requested by owner..."
+                class="w-full px-3.5 py-2.5 rounded-xl bg-surface-lowest border border-zinc-700/80 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition resize-none leading-relaxed"
+              ></textarea>
+            </div>
+
+            <!-- Quick Template tags (Ops shortcut) -->
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Quick reasons</div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Payment overdue (14d)
+                </button>
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Customer request
+                </button>
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Security flag
+                </button>
+              </div>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="pt-4 border-t border-zinc-800/80 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                class="px-4 py-2.5 rounded-xl border border-zinc-700/80 bg-surface-mid hover:bg-surface-high text-sm font-medium text-zinc-200 transition focus:outline-none focus:ring-2 focus:ring-zinc-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-red-950/60 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-surface-low"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <span>Suspend</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ============================================== -->
+      <!-- DIALOG 2: REACTIVATE SUNRISE DETAILING -->
+      <!-- ============================================== -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold uppercase tracking-wider text-emerald-400">Modal 02</span>
+            <span class="text-xs text-zinc-500 font-medium">· Restoration / Recovery</span>
+          </div>
+          <span class="text-xs bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 px-2 py-0.5 rounded font-mono text-[11px]">Constructive</span>
+        </div>
+
+        <!-- The Modal Card Container -->
+        <div class="bg-surface-low/95 backdrop-blur-md rounded-2xl border border-emerald-500/30 shadow-2xl shadow-emerald-950/20 overflow-hidden ring-1 ring-white/5 relative">
+          <!-- Subtle top highlight line -->
+          <div class="h-1 w-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-700"></div>
+
+          <div class="p-6 space-y-5">
+            <!-- Modal Header with Reactivation / Power Icon -->
+            <div class="flex items-start gap-4">
+              <div class="w-11 h-11 rounded-xl bg-emerald-950/80 border border-emerald-800/70 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+                <!-- Check / Arrow restore icon -->
+                <svg class="w-6 h-6 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </div>
+
+              <div class="space-y-1 pr-4">
+                <h2 class="text-lg font-bold text-white tracking-tight leading-snug">
+                  Reactivate Sunrise Detailing?
+                </h2>
+                <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                  <span>Current: <span class="text-red-400 font-medium">Suspended</span></span>
+                  <span>→</span>
+                  <span class="text-emerald-400 font-medium">Active</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Descriptive Guidance Alert -->
+            <div class="p-3.5 rounded-xl bg-surface-mid/80 border border-zinc-800/90 text-sm text-zinc-300 space-y-2">
+              <p class="leading-relaxed text-zinc-300">
+                The company returns to its previous state (<span class="text-emerald-400 font-semibold">Active</span>).
+              </p>
+              <div class="pt-2 border-t border-zinc-800/60 grid grid-cols-2 gap-2 text-xs text-zinc-400 font-mono">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>4 staff logins unlocked</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>Automations resumed</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mandatory Reason Field -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label for="reactivate-reason" class="text-xs font-semibold text-zinc-300 tracking-wide flex items-center gap-1.5">
+                  Reason for reactivation <span class="text-emerald-400">*</span>
+                </label>
+                <span class="text-[11px] font-mono text-zinc-500">Recorded in audit log</span>
+              </div>
+              <textarea
+                id="reactivate-reason"
+                rows="3"
+                placeholder="e.g. Invoice TROVO/2026-27/0014 settled via UPI ref 892317..."
+                class="w-full px-3.5 py-2.5 rounded-xl bg-surface-lowest border border-zinc-700/80 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition resize-none leading-relaxed"
+              ></textarea>
+            </div>
+
+            <!-- Quick Template tags -->
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Quick reasons</div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Payment settled
+                </button>
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Account dispute resolved
+                </button>
+                <button type="button" class="text-xs px-2.5 py-1 rounded-md bg-surface-mid hover:bg-surface-high border border-zinc-700/60 text-zinc-300 transition">
+                  Owner confirmed
+                </button>
+              </div>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="pt-4 border-t border-zinc-800/80 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                class="px-4 py-2.5 rounded-xl border border-zinc-700/80 bg-surface-mid hover:bg-surface-high text-sm font-medium text-zinc-200 transition focus:outline-none focus:ring-2 focus:ring-zinc-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-semibold shadow-lg shadow-blue-950/60 flex items-center gap-2 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-surface-low"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Reactivate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ============================================== -->
+      <!-- DIALOG 3: CANCEL SUBSCRIPTION -->
+      <!-- ============================================== -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold uppercase tracking-wider text-rose-400">Modal 03</span>
+            <span class="text-xs text-zinc-500 font-medium">· Plan Termination</span>
+          </div>
+          <span class="text-xs bg-rose-950/60 text-rose-300 border border-rose-800/50 px-2 py-0.5 rounded font-mono text-[11px]">Termination</span>
+        </div>
+
+        <!-- The Modal Card Container -->
+        <div class="bg-surface-low/95 backdrop-blur-md rounded-2xl border border-zinc-800 shadow-2xl shadow-black/60 overflow-hidden ring-1 ring-white/5 relative">
+          <!-- Subtle top highlight line -->
+          <div class="h-1 w-full bg-gradient-to-r from-zinc-600 via-rose-500 to-red-600"></div>
+
+          <div class="p-6 space-y-4">
+            <!-- Modal Header -->
+            <div class="flex items-start gap-4">
+              <div class="w-11 h-11 rounded-xl bg-rose-950/60 border border-rose-800/60 flex items-center justify-center text-rose-400 shrink-0 shadow-inner">
+                <!-- File cancel / Subscription stop icon -->
+                <svg class="w-6 h-6 stroke-[2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+
+              <div class="space-y-1 pr-4">
+                <h2 class="text-lg font-bold text-white tracking-tight leading-snug">
+                  Cancel subscription
+                </h2>
+                <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                  <span>Sunrise Detailing</span>
+                  <span>•</span>
+                  <span>₹19,990/year</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Radio Options for Timing -->
+            <div class="space-y-2.5 pt-1">
+              <label class="text-xs font-semibold text-zinc-300 tracking-wide uppercase font-mono">Effective cancellation timing</label>
+
+              <!-- Option 1: At end of paid period (Default & Recommended) -->
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-surface-mid/70 border border-blue-500/40 hover:border-blue-500/70 cursor-pointer transition relative group">
+                <div class="pt-0.5">
+                  <input
+                    type="radio"
+                    name="cancel_timing"
+                    value="end_of_period"
+                    checked
+                    class="w-4 h-4 text-blue-600 bg-surface-lowest border-zinc-600 focus:ring-blue-500 focus:ring-offset-surface-mid"
+                  >
+                </div>
+                <div class="flex-1 text-sm">
+                  <div class="font-medium text-white flex items-center justify-between">
+                    <span>At the end of the paid period</span>
+                    <span class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-blue-950/60 text-blue-300 border border-blue-800/40">12 Oct 2027</span>
+                  </div>
+                  <p class="text-xs text-zinc-400 mt-0.5">Recommended. Company continues using full services until the end of their paid cycle.</p>
+                </div>
+              </label>
+
+              <!-- Option 2: Immediate termination -->
+              <label class="flex items-start gap-3 p-3 rounded-xl bg-surface-mid/40 border border-zinc-800 hover:border-zinc-700 cursor-pointer transition relative group">
+                <div class="pt-0.5">
+                  <input
+                    type="radio"
+                    name="cancel_timing"
+                    value="now"
+                    class="w-4 h-4 text-blue-600 bg-surface-lowest border-zinc-600 focus:ring-blue-500 focus:ring-offset-surface-mid"
+                  >
+                </div>
+                <div class="flex-1 text-sm">
+                  <div class="font-medium text-zinc-200 flex items-center justify-between">
+                    <span>Now</span>
+                    <span class="text-[11px] font-mono text-zinc-400">Immediate</span>
+                  </div>
+                  <p class="text-xs text-zinc-400 mt-0.5">Switches company status immediately to Canceled. No pro-rata refund automatically processed.</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Informational Note regarding 90 days read-only data retention -->
+            <div class="flex items-start gap-2.5 p-3 rounded-xl bg-surface-lowest border border-zinc-800 text-xs text-zinc-300">
+              <svg class="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div class="leading-relaxed">
+                <span class="text-zinc-200 font-medium">Data retention policy:</span>
+                The company keeps read-only access to its data for <span class="text-amber-300 font-mono font-medium">90 days</span>.
+              </div>
+            </div>
+
+            <!-- Mandatory Reason Field -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label for="cancel-reason" class="text-xs font-semibold text-zinc-300 tracking-wide flex items-center gap-1.5">
+                  Reason <span class="text-red-400">*</span>
+                </label>
+                <span class="text-[11px] font-mono text-zinc-500">Recorded in audit log</span>
+              </div>
+              <textarea
+                id="cancel-reason"
+                rows="2"
+                placeholder="Required. Provide business reason or customer feedback..."
+                class="w-full px-3.5 py-2 rounded-xl bg-surface-lowest border border-zinc-700/80 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 transition resize-none leading-relaxed"
+              ></textarea>
+            </div>
+
+            <!-- Actions Footer -->
+            <div class="pt-3 border-t border-zinc-800/80 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                class="px-3.5 py-2.5 rounded-xl border border-zinc-700/80 bg-surface-mid hover:bg-surface-high text-sm font-medium text-zinc-200 transition focus:outline-none focus:ring-2 focus:ring-zinc-600"
+              >
+                Keep subscription
+              </button>
+              <button
+                type="button"
+                class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-sm font-semibold shadow-lg shadow-red-950/60 flex items-center gap-1.5 transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-surface-low"
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Cancel subscription</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Interactive / Implementation Notes Footer -->
+    <div class="mt-8 bg-surface-low rounded-xl border border-zinc-800/80 p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs text-zinc-400">
+      <div class="flex items-center gap-3">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+        <span class="font-mono text-zinc-300">Design Specifications:</span>
+        <span>Consistent 420–460px card widths, high-contrast dark surface palette (<code class="text-zinc-200 font-mono">#131315</code> / <code class="text-zinc-200 font-mono">#1c1b1d</code>), autofocus on reason textarea, Esc/Backdrop dismiss handling.</span>
+      </div>
+      <div class="flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+        <span>Component Set: Trovo Confirmations v1.2</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

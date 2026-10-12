@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"tertiary-container":"#00a572","on-surface-variant":"#c2c6d6","inverse-surface":"#e5e1e4","surface-alt":"#111113","tertiary-fixed":"#6ffbbe","text-muted":"#71717A","status-readonly-bg":"rgba(249, 115, 22, 0.15)","error-container":"#93000a","surface-container-low":"#1c1b1d","text-secondary":"#A1A1AA","on-secondary-fixed":"#410006","status-pastdue-bg":"rgba(245, 158, 11, 0.15)","outline-variant":"#424754","surface":"#131315","tertiary-fixed-dim":"#4edea3","on-error-container":"#ffdad6","on-error":"#690005","surface-tint":"#adc6ff","primary-hover":"#2563EB","inverse-primary":"#005ac2","status-suspended-text":"#F87171","on-primary-fixed-variant":"#004395","surface-variant":"#353437","primary":"#adc6ff","status-registration-bg":"rgba(139, 92, 246, 0.15)","outline":"#8c909f","inverse-on-surface":"#313032","tertiary":"#4edea3","border-subtle":"#27272A","status-readonly-text":"#FB923C","surface-bright":"#39393b","secondary-fixed-dim":"#ffb3b0","on-primary-fixed":"#001a42","on-tertiary-fixed":"#002113","status-canceled-bg":"rgba(113, 113, 122, 0.15)","on-background":"#e5e1e4","primary-container":"#4d8eff","surface-container-highest":"#353437","text-heading":"#FFFFFF","primary-fixed":"#d8e2ff","surface-container":"#201f22","status-canceled-text":"#A1A1AA","secondary-fixed":"#ffdad8","surface-card":"#18181B","background":"#131315","status-registration-text":"#A78BFA","secondary":"#ffb3b0","status-suspended-bg":"rgba(239, 68, 68, 0.15)","border-hairline":"rgba(255, 255, 255, 0.08)","on-tertiary":"#003824","on-surface":"#e5e1e4","surface-container-lowest":"#0e0e10","primary-fixed-dim":"#adc6ff","status-trial-bg":"rgba(59, 130, 246, 0.15)","status-pastdue-text":"#FBBF24","on-secondary-fixed-variant":"#881d24","text-primary":"#E4E4E7","on-secondary":"#670211","status-active-bg":"rgba(16, 185, 129, 0.15)","error":"#ffb4ab","surface-container-high":"#2a2a2c","on-primary":"#002e6a","on-tertiary-container":"#00311f","status-active-text":"#34D399","on-tertiary-fixed-variant":"#005236","surface-dim":"#131315","on-secondary-container":"#ff9996","on-primary-container":"#00285d","secondary-container":"#881d24","status-trial-text":"#60A5FA"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-2xl":"2rem","space-xl":"1.5rem","gutter":"1rem","space-xs":"0.375rem","space-2xs":"0.25rem","margin":"1.5rem","space-lg":"1rem","space-md":"0.75rem","gutter-mobile":"0.75rem","margin-mobile":"1rem","space-sm":"0.5rem"},"fontFamily":{"headline-lg":["Inter"],"table-header":["Inter"],"label-sm":["Inter"],"title-sm":["Inter"],"caption-micro":["Inter"],"headline-lg-mobile":["Inter"],"headline-md":["Inter"],"body-medium":["Inter"],"table-data":["Inter"],"display":["Inter"],"body-default":["Inter"]},"fontSize":{"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"600"}],"table-header":["12px",{"lineHeight":"16px","letterSpacing":"0.04em","fontWeight":"600"}],"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"title-sm":["16px",{"lineHeight":"22px","letterSpacing":"-0.01em","fontWeight":"600"}],"caption-micro":["11px",{"lineHeight":"14px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-lg-mobile":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-medium":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}],"table-data":["13px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"display":["30px",{"lineHeight":"38px","letterSpacing":"-0.025em","fontWeight":"700"}],"body-default":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}]}}}};</script></head><body class="bg-surface-alt font-body-default text-text-primary min-h-screen"><aside class="fixed left-0 top-0 h-screen w-60 bg-surface-container-lowest border-r border-border-hairline z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-space-sm border-b border-border-hairline"><img alt="Trovo Logo Mark" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X3XzizDYgmVqEBr7W8587k4LQXbtKYn4UYAGL0xJYc0weiopbmlmSkL7z2uNYECn6oCGpTpJ6nAPOrIfdYwtcRY4CcvzCZuzrWh5-d_QaSmZJCi_jZAmiihKef-9e17MW302ch3lVx_P2Zs4IlRbniOYogfiO0P1LBx3T5ReJ_pSFdaPV0UlMaNQLv213pkTZdEDPgYWBShTbR0Yexk2uPxXNPExnHcTGV_wsaNJUuKA3pz0P8eXUKMNg"/><div class="flex flex-col min-w-0 leading-tight"><span class="font-title-sm text-title-sm text-text-heading tracking-tight truncate">Trovo Platform</span><span class="font-caption-micro text-caption-micro text-text-muted uppercase tracking-wider">Admin Ops</span></div></div><nav class="px-space-sm py-space-md flex flex-col gap-1" data-active-classes="bg-surface-card text-text-heading relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-[#2563EB] before:to-[#EF4444]"><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors font-body-medium bg-surface-card text-text-heading relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-[#2563EB] before:to-[#EF4444]" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[18px]">grid_view</span><span>Dashboard</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="companies" href="#"><span class="material-symbols-outlined text-[18px]">domain</span><span>Companies</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="invoices" href="#"><span class="material-symbols-outlined text-[18px]">receipt_long</span><span>Invoices</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="plans-prices" href="#"><span class="material-symbols-outlined text-[18px]">sell</span><span>Plans & Prices</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="audit-log" href="#"><span class="material-symbols-outlined text-[18px]">history_toggle_off</span><span>Audit Log</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="admins" href="#"><span class="material-symbols-outlined text-[18px]">admin_panel_settings</span><span>Admins</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="system" href="#"><span class="material-symbols-outlined text-[18px]">settings</span><span>System</span></a></nav></div><div class="p-space-sm border-t border-border-hairline flex flex-col gap-1"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="my-account" href="#"><span class="material-symbols-outlined text-[18px]">manage_accounts</span><span>My account</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-status-suspended-text hover:bg-status-suspended-bg transition-colors font-body-medium text-body-medium" data-path="sign-in" href="#"><span class="material-symbols-outlined text-[18px]">logout</span><span>Sign out</span></a></div></aside><div class="pl-60 min-h-screen flex flex-col"><header class="fixed top-0 left-60 right-0 h-16 bg-surface-alt/90 backdrop-blur-md border-b border-border-hairline z-40 px-space-xl flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="font-label-sm text-label-sm text-text-muted">Trovo Ops</span><span class="font-label-sm text-label-sm text-text-muted">/</span><span class="font-body-medium text-body-medium text-text-heading font-medium">Operations Console</span></div><div class="flex items-center gap-space-lg"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-2.5 text-text-muted text-[16px]">search</span><input class="h-9 w-72 bg-surface-container-lowest border border-border-subtle rounded-lg pl-8 pr-10 text-body-default font-body-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary" placeholder="Search company code or name..." type="text"/><kbd class="absolute right-2 px-1.5 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-subtle select-none">⌘K</kbd></div><div class="h-4 w-px bg-border-hairline"></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-active-bg"><span class="w-1.5 h-1.5 rounded-full bg-status-active-text animate-pulse"></span><span class="font-caption-micro text-caption-micro text-status-active-text uppercase tracking-wide">Operational</span></div><button class="relative p-1.5 rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary-container"></span></button><div class="h-4 w-px bg-border-hairline"></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col leading-tight"><span class="font-body-medium text-body-medium text-text-heading font-medium">Vikram Malhotra</span><span class="font-caption-micro text-caption-micro text-text-muted">Owner</span></div><span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-caption-micro text-caption-micro font-medium border border-primary/30">Owner</span></div></div></header><main class="flex-1 w-full pt-16 bg-surface-alt px-space-xl py-space-xl"><div class="flex flex-col w-full gap-space-xl">
+<!-- 1. Header & Quick Controls -->
+<header class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex items-center gap-space-sm flex-wrap">
+<h1 class="font-headline-lg text-headline-lg text-text-heading">Operations Overview</h1>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container text-caption-micro font-caption-micro text-text-secondary border border-border-hairline">
+<span class="w-1.5 h-1.5 rounded-full bg-status-active-text animate-ping"></span>
+          Live Sync • Cloud Sync
+        </span>
+</div>
+<p class="font-body-default text-body-default text-text-secondary">
+        Real-time subscription metrics & tenant health across <span class="text-text-primary font-medium">418 registered car spa businesses</span>.
+      </p>
+</div>
+<!-- Quick Actions and Timeframe Filter -->
+<div class="flex flex-wrap items-center gap-space-md">
+<!-- Timeframe Capsule -->
+<div class="flex items-center bg-surface-container-lowest p-1 rounded-lg border border-border-hairline text-caption-micro font-caption-micro">
+<button class="px-2.5 py-1 rounded bg-surface-card text-text-heading shadow-sm font-medium">Last 30 Days</button>
+<button class="px-2.5 py-1 rounded text-text-secondary hover:text-text-heading transition-colors">QTD</button>
+<button class="px-2.5 py-1 rounded text-text-secondary hover:text-text-heading transition-colors">YTD</button>
+<button class="px-2.5 py-1 rounded text-text-secondary hover:text-text-heading transition-colors">All Time</button>
+<span class="mx-1 h-3.5 w-px bg-border-hairline"></span>
+<span class="px-2 text-text-muted flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px]">calendar_today</span>
+          01 Sep 2026 – 30 Sep 2026
+        </span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-surface-card hover:bg-surface-container text-text-primary border border-border-hairline transition-all text-body-medium font-body-medium active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-[16px] text-text-secondary">download</span>
+<span>Export Report</span>
+</button>
+<button class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#EF4444] hover:opacity-95 text-white transition-all text-body-medium font-body-medium font-semibold shadow-lg shadow-primary-hover/20 active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>Register Company</span>
+</button>
+</div>
+</div>
+</header>
+<!-- 2. High Density Metric KPI Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-lg">
+<!-- Card 1: MRR -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col justify-between relative overflow-hidden shadow-sm group hover:border-border-subtle transition-all">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-primary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-caption-micro text-caption-micro uppercase tracking-wider text-text-muted font-semibold">Monthly Recurring Revenue</span>
+<span class="font-headline-lg text-headline-lg text-text-heading mt-1 font-bold tracking-tight">₹42,85,400.00</span>
+</div>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-status-active-bg text-status-active-text font-caption-micro text-caption-micro font-medium">
+<span class="material-symbols-outlined text-[12px]">trending_up</span>
+          +8.4%
+        </span>
+</div>
+<!-- Trend Sparkline Graphic -->
+<div class="mt-4 pt-3 border-t border-border-hairline flex flex-col gap-2">
+<div class="flex items-center justify-between text-caption-micro font-caption-micro text-text-muted">
+<span>New: <span class="text-status-active-text font-medium">+₹3.40L</span></span>
+<span>Exp: <span class="text-primary font-medium">+₹85K</span></span>
+<span>Churn: <span class="text-status-suspended-text font-medium">-₹42.5K</span></span>
+</div>
+<!-- Micro sparkline bar segments -->
+<div class="w-full h-1.5 bg-surface-container-lowest rounded-full overflow-hidden flex">
+<div class="bg-status-active-text h-full" style="width: 76%"></div>
+<div class="bg-primary-container h-full" style="width: 18%"></div>
+<div class="bg-status-suspended-text h-full" style="width: 6%"></div>
+</div>
+</div>
+</div>
+<!-- Card 2: Active Subscriptions -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col justify-between relative overflow-hidden shadow-sm group hover:border-border-subtle transition-all">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-caption-micro text-caption-micro uppercase tracking-wider text-text-muted font-semibold">Active Subscriptions</span>
+<div class="flex items-baseline gap-1.5 mt-1">
+<span class="font-headline-lg text-headline-lg text-text-heading font-bold">384</span>
+<span class="font-body-default text-body-default text-text-muted">/ 418 Total</span>
+</div>
+</div>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-status-active-bg text-status-active-text font-caption-micro text-caption-micro font-medium">
+<span class="material-symbols-outlined text-[12px]">add</span>
+          12 Net New
+        </span>
+</div>
+<div class="mt-4 pt-3 border-t border-border-hairline flex items-center justify-between text-caption-micro font-caption-micro text-text-secondary">
+<span class="truncate">218 Multi-bay • 134 Single Bay • 32 Pro</span>
+<span class="text-text-muted font-mono">91.8%</span>
+</div>
+</div>
+<!-- Card 3: Action Required -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col justify-between relative overflow-hidden shadow-sm group hover:border-border-subtle transition-all">
+<div class="absolute -right-6 -bottom-6 w-24 h-24 bg-status-pastdue-bg rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-caption-micro text-caption-micro uppercase tracking-wider text-text-muted font-semibold">Action Required / Past Due</span>
+<span class="font-headline-lg text-headline-lg text-status-pastdue-text mt-1 font-bold">9 Accounts</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-pastdue-bg text-status-pastdue-text font-caption-micro text-caption-micro font-medium">
+<span class="material-symbols-outlined text-[12px]">warning</span>
+          Overdue
+        </span>
+</div>
+<div class="mt-4 pt-3 border-t border-border-hairline flex items-center justify-between text-caption-micro font-caption-micro">
+<span class="text-text-secondary">Overdue: <span class="text-text-primary font-semibold font-mono">₹1,48,250.00</span></span>
+<span class="text-status-readonly-text font-medium flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-status-readonly-text animate-pulse"></span>
+          3 In Read-only (48h)
+        </span>
+</div>
+</div>
+<!-- Card 4: Active Trials -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col justify-between relative overflow-hidden shadow-sm group hover:border-border-subtle transition-all">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<span class="font-caption-micro text-caption-micro uppercase tracking-wider text-text-muted font-semibold">Active Trials & Conversions</span>
+<div class="flex items-baseline gap-2 mt-1">
+<span class="font-headline-lg text-headline-lg text-text-heading font-bold">24 Trials</span>
+<span class="font-body-default text-body-default text-status-trial-text">68.2% conv.</span>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-trial-bg text-status-trial-text font-caption-micro text-caption-micro font-medium">
+<span class="material-symbols-outlined text-[12px]">bolt</span>
+          Healthy
+        </span>
+</div>
+<div class="mt-4 pt-3 border-t border-border-hairline flex items-center justify-between text-caption-micro font-caption-micro">
+<span class="text-text-secondary">5 Expiring < 7 Days</span>
+<span class="text-primary font-medium cursor-pointer hover:underline">View Pipeline →</span>
+</div>
+</div>
+</section>
+<!-- 3. Mid Section (8 cols / 4 cols layout) -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- Left Column (8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-space-lg">
+<!-- Revenue Flow & Bay Capacity Chart Card -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col gap-space-lg shadow-sm">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md pb-space-sm border-b border-border-hairline">
+<div>
+<h2 class="font-title-sm text-title-sm text-text-heading">Subscription Revenue & Bay Capacity</h2>
+<p class="font-caption-micro text-caption-micro text-text-muted mt-0.5">Aggregated gross platform billing trajectories across all 6 regions</p>
+</div>
+<div class="flex items-center bg-surface-container-lowest p-1 rounded-lg border border-border-hairline text-caption-micro font-caption-micro">
+<button class="px-2.5 py-1 rounded bg-surface-card text-text-primary font-medium">Revenue Flow (₹)</button>
+<button class="px-2.5 py-1 rounded text-text-muted hover:text-text-secondary transition-colors">Bay Licenses</button>
+<button class="px-2.5 py-1 rounded text-text-muted hover:text-text-secondary transition-colors">API Invocations</button>
+</div>
+</div>
+<!-- Legend indicators -->
+<div class="flex items-center flex-wrap gap-space-md text-caption-micro font-caption-micro">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-primary"></span>
+<span class="text-text-secondary">Base Platform Plan</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-tertiary"></span>
+<span class="text-text-secondary">Add-on Multi-Bay Stations</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-sm bg-secondary-fixed"></span>
+<span class="text-text-secondary">Trovo POS Integrations</span>
+</div>
+<div class="ml-auto flex items-center gap-1.5 text-text-muted font-mono">
+<span>Target Benchmark: ₹40.0L/mo</span>
+</div>
+</div>
+<!-- Chart Container (Visual SVG Bar & Target Layout) -->
+<div class="h-64 w-full relative flex flex-col justify-end">
+<!-- Background Target Gridlines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none text-[11px] font-mono text-text-muted">
+<div class="border-b border-border-hairline/60 w-full flex justify-between pr-2"><span>₹50.0L</span></div>
+<div class="border-b border-border-hairline/60 w-full flex justify-between pr-2"><span>₹40.0L</span><span class="text-status-active-text font-caption-micro">Target Threshold</span></div>
+<div class="border-b border-border-hairline/60 w-full flex justify-between pr-2"><span>₹30.0L</span></div>
+<div class="border-b border-border-hairline/60 w-full flex justify-between pr-2"><span>₹20.0L</span></div>
+<div class="border-b border-border-hairline w-full flex justify-between pr-2"><span>₹0.0L</span></div>
+</div>
+<!-- Target Line Overlay at ₹40.0L (approx 80% mark) -->
+<div class="absolute left-10 right-0 top-[20%] border-t-2 border-dashed border-status-active-text/40 pointer-events-none"></div>
+<!-- SVG Visual Stacked Bars -->
+<div class="relative z-10 grid grid-cols-6 gap-3 sm:gap-6 ml-12 h-52 items-end pb-2">
+<!-- Apr: 31.2L -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end">
+<div class="text-caption-micro font-mono text-text-muted group-hover:text-text-primary transition-colors">₹31.2L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[62%] group-hover:brightness-110 transition-all">
+<div class="w-full bg-secondary-fixed h-[12%]"></div>
+<div class="w-full bg-tertiary h-[26%]"></div>
+<div class="w-full bg-primary h-[62%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-muted">Apr 26</span>
+</div>
+<!-- May: 34.5L -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end">
+<div class="text-caption-micro font-mono text-text-muted group-hover:text-text-primary transition-colors">₹34.5L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[69%] group-hover:brightness-110 transition-all">
+<div class="w-full bg-secondary-fixed h-[14%]"></div>
+<div class="w-full bg-tertiary h-[28%]"></div>
+<div class="w-full bg-primary h-[58%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-muted">May 26</span>
+</div>
+<!-- Jun: 36.8L -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end">
+<div class="text-caption-micro font-mono text-text-muted group-hover:text-text-primary transition-colors">₹36.8L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[73.6%] group-hover:brightness-110 transition-all">
+<div class="w-full bg-secondary-fixed h-[15%]"></div>
+<div class="w-full bg-tertiary h-[29%]"></div>
+<div class="w-full bg-primary h-[56%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-muted">Jun 26</span>
+</div>
+<!-- Jul: 39.1L -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end">
+<div class="text-caption-micro font-mono text-text-muted group-hover:text-text-primary transition-colors">₹39.1L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[78.2%] group-hover:brightness-110 transition-all">
+<div class="w-full bg-secondary-fixed h-[16%]"></div>
+<div class="w-full bg-tertiary h-[30%]"></div>
+<div class="w-full bg-primary h-[54%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-muted">Jul 26</span>
+</div>
+<!-- Aug: 40.2L -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end">
+<div class="text-caption-micro font-mono text-text-muted group-hover:text-text-primary transition-colors">₹40.2L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[80.4%] group-hover:brightness-110 transition-all">
+<div class="w-full bg-secondary-fixed h-[18%]"></div>
+<div class="w-full bg-tertiary h-[31%]"></div>
+<div class="w-full bg-primary h-[51%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-muted">Aug 26</span>
+</div>
+<!-- Sep: 42.8L (Current) -->
+<div class="flex flex-col items-center gap-1.5 group cursor-pointer h-full justify-end relative">
+<div class="absolute -top-3 px-1.5 py-0.5 rounded bg-primary text-on-primary font-mono text-[10px] font-bold shadow-md">
+                +8.4%
+              </div>
+<div class="text-caption-micro font-mono text-primary font-semibold group-hover:text-text-heading transition-colors">₹42.8L</div>
+<div class="w-full max-w-[48px] bg-surface-container-lowest rounded-t flex flex-col justify-end overflow-hidden h-[85.6%] ring-2 ring-primary/40 shadow-lg shadow-primary/10">
+<div class="w-full bg-secondary-fixed h-[19%]"></div>
+<div class="w-full bg-tertiary h-[33%]"></div>
+<div class="w-full bg-primary h-[48%]"></div>
+</div>
+<span class="text-caption-micro font-caption-micro text-text-heading font-medium">Sep 26</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Urgent Attention & Escalations Mini Table -->
+<div class="bg-surface-card rounded-xl border border-border-hairline overflow-hidden shadow-sm flex flex-col">
+<div class="px-space-lg py-3 bg-surface-container-lowest/80 border-b border-border-hairline flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-status-pastdue-text text-[18px]">emergency_home</span>
+<h3 class="font-title-sm text-title-sm text-text-heading">Urgent Attention & Escalations</h3>
+<span class="px-1.5 py-0.2 rounded bg-status-pastdue-bg text-status-pastdue-text font-caption-micro text-caption-micro font-mono font-semibold">4 Critical</span>
+</div>
+<a class="font-caption-micro text-caption-micro text-primary hover:underline flex items-center gap-0.5" href="#">
+            View All Delinquent Tenants →
+          </a>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="h-9 bg-surface-alt border-b border-border-subtle font-table-header text-table-header text-text-secondary uppercase tracking-wider">
+<th class="px-space-md font-semibold">Company & Identifier</th>
+<th class="px-space-md font-semibold">Status</th>
+<th class="px-space-md font-semibold">Issue Diagnostic</th>
+<th class="px-space-md font-semibold">Overdue / Left</th>
+<th class="px-space-md font-semibold text-right">Outstanding</th>
+<th class="px-space-md font-semibold text-center">Triage Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-hairline font-table-data text-table-data text-text-primary">
+<!-- Row 1 -->
+<tr class="h-11 hover:bg-surface-container transition-colors">
+<td class="px-space-md">
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-text-heading truncate">SpeedyShine Autocare</span>
+<span class="text-[11px] font-mono text-text-muted">TRV-DEL-089</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-pastdue-bg text-status-pastdue-text font-caption-micro text-caption-micro font-medium whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-status-pastdue-text"></span>
+                    Past Due
+                  </span>
+</td>
+<td class="px-space-md text-text-secondary truncate max-w-[180px]">
+                  Invoice #INV-2026-904 failed 2x
+                </td>
+<td class="px-space-md font-mono text-status-pastdue-text">14 days</td>
+<td class="px-space-md font-mono text-right font-medium">₹18,500.00</td>
+<td class="px-space-md text-center">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-caption-micro text-text-primary border border-border-hairline transition-colors">Notice</button>
+<button class="px-2 py-1 rounded bg-primary-container/20 text-primary hover:bg-primary-container/30 text-caption-micro transition-colors">Manage</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="h-11 hover:bg-surface-container transition-colors">
+<td class="px-space-md">
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-text-heading truncate">Apex Detailing Studios</span>
+<span class="text-[11px] font-mono text-text-muted">TRV-BLR-041</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-readonly-bg text-status-readonly-text font-caption-micro text-caption-micro font-medium whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-status-readonly-text"></span>
+                    Read-Only
+                  </span>
+</td>
+<td class="px-space-md text-text-secondary truncate max-w-[180px]">
+                  Grace period expired yesterday
+                </td>
+<td class="px-space-md font-mono text-status-readonly-text">22 days</td>
+<td class="px-space-md font-mono text-right font-medium">₹34,900.00</td>
+<td class="px-space-md text-center">
+<div class="inline-flex items-center gap-1">
+<button class="px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-caption-micro text-text-primary border border-border-hairline transition-colors">Call POC</button>
+<button class="px-2 py-1 rounded bg-status-readonly-bg text-status-readonly-text hover:opacity-80 text-caption-micro transition-colors">Restore</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="h-11 hover:bg-surface-container transition-colors">
+<td class="px-space-md">
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-text-heading truncate">Torque Steam Wash Hub</span>
+<span class="text-[11px] font-mono text-text-muted">TRV-MUM-112</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-trial-bg text-status-trial-text font-caption-micro text-caption-micro font-medium whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-status-trial-text"></span>
+                    Trial
+                  </span>
+</td>
+<td class="px-space-md text-text-secondary truncate max-w-[180px]">
+                  Trial expiring in 48 hours
+                </td>
+<td class="px-space-md font-mono text-status-trial-text">2 days left</td>
+<td class="px-space-md font-mono text-right text-text-muted">₹0.00</td>
+<td class="px-space-md text-center">
+<button class="px-2.5 py-1 rounded bg-primary hover:bg-primary-hover text-on-primary font-medium text-caption-micro transition-colors">
+                    Convert to Plan
+                  </button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="h-11 hover:bg-surface-container transition-colors">
+<td class="px-space-md">
+<div class="flex flex-col min-w-0">
+<span class="font-medium text-text-heading truncate">Urban Gloss Car Spa</span>
+<span class="text-[11px] font-mono text-text-muted">TRV-HYD-077</span>
+</div>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-status-suspended-bg text-status-suspended-text font-caption-micro text-caption-micro font-medium whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-full bg-status-suspended-text"></span>
+                    Suspended
+                  </span>
+</td>
+<td class="px-space-md text-text-secondary truncate max-w-[180px]">
+                  Delinquent non-payment 45d
+                </td>
+<td class="px-space-md font-mono text-status-suspended-text">45 days</td>
+<td class="px-space-md font-mono text-right font-medium">₹52,000.00</td>
+<td class="px-space-md text-center">
+<button class="px-2.5 py-1 rounded bg-error-container/40 hover:bg-error-container text-error text-caption-micro border border-error/30 transition-colors">
+                    Review Termination
+                  </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Column (4 cols) -->
+<div class="lg:col-span-4 flex flex-col gap-space-lg">
+<!-- Company Status Breakdown Card -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col gap-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<h3 class="font-title-sm text-title-sm text-text-heading">Tenant Fleet Distribution</h3>
+<span class="font-caption-micro text-caption-micro text-text-muted">Total 418 Live Operations</span>
+</div>
+<span class="material-symbols-outlined text-text-muted text-[20px]">donut_large</span>
+</div>
+<!-- Proportional Segment Multi-bar -->
+<div class="flex flex-col gap-2 pt-2">
+<div class="w-full h-3 rounded-md bg-surface-container-lowest overflow-hidden flex shadow-inner">
+<div class="bg-status-active-text h-full" style="width: 91.8%" title="Active: 384"></div>
+<div class="bg-status-trial-text h-full" style="width: 5.7%" title="Trial: 24"></div>
+<div class="bg-status-pastdue-text h-full" style="width: 2.1%" title="Past Due: 9"></div>
+<div class="bg-status-readonly-text h-full" style="width: 0.7%" title="Read Only: 3"></div>
+<div class="bg-status-suspended-text h-full" style="width: 0.5%" title="Suspended: 2"></div>
+<div class="bg-status-registration-text h-full" style="width: 1.2%" title="Awaiting Registration: 5"></div>
+</div>
+</div>
+<!-- Status Breakdown List -->
+<div class="flex flex-col divide-y divide-border-hairline text-caption-micro font-caption-micro pt-1">
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-active-text"></span>
+<span class="text-text-primary">Active Subscriptions</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-text-heading">384</span>
+<span class="text-text-muted">(91.8%)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-trial-text"></span>
+<span class="text-text-primary">In Active Trial</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-text-heading">24</span>
+<span class="text-text-muted">(5.7%)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-pastdue-text"></span>
+<span class="text-text-primary">Past Due (Grace)</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-status-pastdue-text">9</span>
+<span class="text-text-muted">(2.1%)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-readonly-text"></span>
+<span class="text-text-primary">Restricted Read-Only</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-status-readonly-text">3</span>
+<span class="text-text-muted">(0.7%)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-suspended-text"></span>
+<span class="text-text-primary">Platform Suspended</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-status-suspended-text">2</span>
+<span class="text-text-muted">(0.5%)</span>
+</div>
+</div>
+<div class="py-2 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-status-registration-text"></span>
+<span class="text-text-primary">Awaiting Registration</span>
+</div>
+<div class="flex items-center gap-2 font-mono">
+<span class="font-semibold text-status-registration-text">5</span>
+<span class="text-text-muted">(1.2%)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent System & Platform Activity Feed -->
+<div class="bg-surface-card rounded-xl p-space-lg border border-border-hairline flex flex-col gap-space-md shadow-sm flex-1">
+<div class="flex items-center justify-between pb-space-xs border-b border-border-hairline">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-text-secondary">rss_feed</span>
+<h3 class="font-title-sm text-title-sm text-text-heading">Platform Audit Stream</h3>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted">Realtime</span>
+</div>
+<div class="flex flex-col gap-3.5 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-px before:bg-border-hairline">
+<!-- Item 1 -->
+<div class="flex items-start gap-3 relative pl-5">
+<span class="absolute left-1 top-1.5 w-2 h-2 rounded-full bg-status-active-text ring-4 ring-surface-card"></span>
+<div class="flex flex-col min-w-0 leading-tight">
+<p class="font-caption-micro text-caption-micro text-text-primary">
+<span class="font-semibold text-text-heading">Grand Auto Spa</span> upgraded from Single Bay to <span class="text-primary">Multi-Bay Pro</span> (₹24,900/mo).
+              </p>
+<span class="font-caption-micro text-caption-micro text-text-muted mt-1 font-mono">12 Oct 2026, 14:32</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-start gap-3 relative pl-5">
+<span class="absolute left-1 top-1.5 w-2 h-2 rounded-full bg-primary-container ring-4 ring-surface-card"></span>
+<div class="flex flex-col min-w-0 leading-tight">
+<p class="font-caption-micro text-caption-micro text-text-primary">
+                Admin <span class="font-medium text-text-heading">Priya Sharma</span> regenerated master API credential for <span class="text-text-heading">BlueWave Spa</span> (TRV-PUN-019).
+              </p>
+<span class="font-caption-micro text-caption-micro text-text-muted mt-1 font-mono">12 Oct 2026, 13:15</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-start gap-3 relative pl-5">
+<span class="absolute left-1 top-1.5 w-2 h-2 rounded-full bg-status-active-text ring-4 ring-surface-card"></span>
+<div class="flex flex-col min-w-0 leading-tight">
+<p class="font-caption-micro text-caption-micro text-text-primary">
+                Payment received <span class="text-status-active-text font-mono font-semibold">₹1,99,900.00</span> from Express Detailing Chain via NEFT.
+              </p>
+<span class="font-caption-micro text-caption-micro text-text-muted mt-1 font-mono">12 Oct 2026, 11:40</span>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="flex items-start gap-3 relative pl-5">
+<span class="absolute left-1 top-1.5 w-2 h-2 rounded-full bg-status-registration-text ring-4 ring-surface-card"></span>
+<div class="flex flex-col min-w-0 leading-tight">
+<p class="font-caption-micro text-caption-micro text-text-primary">
+                New tenant onboarded: <span class="font-semibold text-text-heading">Velocity Gloss Hub (Kolkata)</span> awaiting POS hardware setup.
+              </p>
+<span class="font-caption-micro text-caption-micro text-text-muted mt-1 font-mono">12 Oct 2026, 09:22</span>
+</div>
+</div>
+</div>
+<button class="mt-auto w-full py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-caption-micro text-text-secondary hover:text-text-primary border border-border-hairline transition-colors text-center font-medium">
+          View Complete System Log →
+        </button>
+</div>
+</div>
+</section>
+<!-- 4. Bottom Section: Main Comprehensive Data Table -->
+<section class="bg-surface-card rounded-xl border border-border-hairline overflow-hidden shadow-sm flex flex-col">
+<!-- Table Controls Toolbar -->
+<div class="p-space-lg bg-surface-card flex flex-col md:flex-row md:items-center justify-between gap-space-md border-b border-border-hairline">
+<div class="flex flex-col">
+<h2 class="font-title-sm text-title-sm text-text-heading">Company Subscriptions & License Status</h2>
+<span class="font-caption-micro text-caption-micro text-text-muted">Master tenant registry with real-time bay telemetry and billing state</span>
+</div>
+<!-- Filters & Search Toolbar -->
+<div class="flex flex-wrap items-center gap-space-sm">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2.5 text-text-muted text-[16px]">search</span>
+<input class="h-9 w-60 bg-surface-container-lowest border border-border-subtle rounded-lg pl-8 pr-3 text-body-default font-body-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary" placeholder="Filter company, code or city..." type="text"/>
+</div>
+<!-- Status Filter Dropdown -->
+<select class="h-9 bg-surface-container-lowest border border-border-subtle rounded-lg px-3 text-caption-micro font-caption-micro text-text-primary focus:outline-none focus:border-primary">
+<option value="all">All Statuses (418)</option>
+<option value="active">Active (384)</option>
+<option value="trial">Trial (24)</option>
+<option value="past_due">Past Due (9)</option>
+<option value="read_only">Read-Only (3)</option>
+<option value="suspended">Suspended (2)</option>
+</select>
+<!-- Plan Filter Dropdown -->
+<select class="h-9 bg-surface-container-lowest border border-border-subtle rounded-lg px-3 text-caption-micro font-caption-micro text-text-primary focus:outline-none focus:border-primary">
+<option value="all">All Plans</option>
+<option value="starter">Starter Spa</option>
+<option value="multi_bay">Multi-bay Pro</option>
+<option value="enterprise">Enterprise Chain</option>
+</select>
+<button class="h-9 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high border border-border-hairline text-text-secondary hover:text-text-primary flex items-center gap-1.5 text-caption-micro transition-colors">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Columns</span>
+</button>
+</div>
+</div>
+<!-- The Enterprise Table -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="h-10 bg-surface-container-lowest border-b border-border-subtle font-table-header text-table-header text-text-secondary uppercase tracking-wider">
+<th class="px-space-lg font-semibold">Company & Location</th>
+<th class="px-space-md font-semibold">Tier Plan</th>
+<th class="px-space-md font-semibold">Health Status</th>
+<th class="px-space-md font-semibold">Billing Frequency</th>
+<th class="px-space-md font-semibold">Cycle / Renewal</th>
+<th class="px-space-md font-semibold">Active Bays</th>
+<th class="px-space-lg font-semibold text-right">Quick Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-hairline font-table-data text-table-data text-text-primary">
+<!-- Row 1 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-primary-container/20 text-primary flex items-center justify-center font-bold text-caption-micro font-mono">
+                  AC
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">AutoClean Express</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">Mumbai, MH</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-MUM-001</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-heading border border-border-hairline">
+                Enterprise 12-Bay
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-active-bg text-status-active-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-active-text"></span>
+                Active
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-secondary">
+              Annual (₹2,49,000/yr)
+            </td>
+<td class="px-space-md font-mono text-text-secondary">
+              08 Oct 2026
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-heading font-medium">12 Bays</span>
+<span class="px-1.5 py-0.2 rounded bg-status-active-bg text-status-active-text text-[10px] font-mono">100% Active</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-tertiary/20 text-tertiary flex items-center justify-center font-bold text-caption-micro font-mono">
+                  PW
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">PureWash Detailing</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">Bengaluru, KA</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-BLR-104</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-heading border border-border-hairline">
+                Multi-bay Pro
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-active-bg text-status-active-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-active-text"></span>
+                Active
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-secondary">
+              Monthly (₹24,500/mo)
+            </td>
+<td class="px-space-md font-mono text-text-secondary">
+              11 Oct 2026
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-heading font-medium">4 Bays</span>
+<span class="px-1.5 py-0.2 rounded bg-status-active-bg text-status-active-text text-[10px] font-mono">Active</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-status-trial-bg text-status-trial-text flex items-center justify-center font-bold text-caption-micro font-mono">
+                  SW
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">Sparkle Wheels Spa</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">New Delhi, DL</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-DEL-215</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-secondary border border-border-hairline">
+                Starter Spa
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-trial-bg text-status-trial-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-trial-text"></span>
+                Trial (14d)
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-muted">
+              Trial (14 days)
+            </td>
+<td class="px-space-md font-mono text-status-trial-text font-medium">
+              16 Oct 2026
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-heading font-medium">2 Bays</span>
+<span class="px-1.5 py-0.2 rounded bg-status-trial-bg text-status-trial-text text-[10px] font-mono">Evaluating</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-status-pastdue-bg text-status-pastdue-text flex items-center justify-center font-bold text-caption-micro font-mono">
+                  RF
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">Royal Finish Auto Care</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">Hyderabad, TG</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-HYD-043</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-heading border border-border-hairline">
+                Multi-bay Pro
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-pastdue-bg text-status-pastdue-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-pastdue-text animate-pulse"></span>
+                Past Due
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-secondary">
+              Monthly (₹24,500/mo)
+            </td>
+<td class="px-space-md font-mono text-status-pastdue-text font-semibold">
+              28 Sep 2026
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-heading font-medium">6 Bays</span>
+<span class="px-1.5 py-0.2 rounded bg-status-pastdue-bg text-status-pastdue-text text-[10px] font-mono">Grace Mode</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-status-registration-bg text-status-registration-text flex items-center justify-center font-bold text-caption-micro font-mono">
+                  GC
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">GreenCar Eco Spa</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">Chennai, TN</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-CHE-088</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-secondary border border-border-hairline">
+                Starter Spa
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-registration-bg text-status-registration-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-registration-text"></span>
+                Awaiting Reg.
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-muted">
+              Pending KYC
+            </td>
+<td class="px-space-md font-mono text-text-muted">
+              —
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-muted">1 Bay</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-text-muted text-[10px] font-mono">Unverified</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="h-12 hover:bg-surface-container/60 transition-colors">
+<td class="px-space-lg">
+<div class="flex items-center gap-3">
+<div class="w-7 h-7 rounded bg-status-readonly-bg text-status-readonly-text flex items-center justify-center font-bold text-caption-micro font-mono">
+                  CG
+                </div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-semibold text-text-heading truncate">Crystal Gloss Studio</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-caption-micro font-caption-micro text-text-secondary">Pune, MH</span>
+</div>
+<span class="text-[11px] font-mono text-text-muted">TRV-PUN-062</span>
+</div>
+</div>
+</td>
+<td class="px-space-md">
+<span class="px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro font-medium text-text-heading border border-border-hairline">
+                Enterprise 8-Bay
+              </span>
+</td>
+<td class="px-space-md">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-readonly-bg text-status-readonly-text font-caption-micro text-caption-micro font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-status-readonly-text"></span>
+                Read-Only
+              </span>
+</td>
+<td class="px-space-md font-mono text-text-secondary">
+              Monthly (₹39,000/mo)
+            </td>
+<td class="px-space-md font-mono text-status-readonly-text font-semibold">
+              20 Sep 2026
+            </td>
+<td class="px-space-md">
+<div class="flex items-center gap-2">
+<span class="font-mono text-text-heading font-medium">8 Bays</span>
+<span class="px-1.5 py-0.2 rounded bg-status-readonly-bg text-status-readonly-text text-[10px] font-mono">Locked</span>
+</div>
+</td>
+<td class="px-space-lg text-right">
+<div class="inline-flex items-center gap-1">
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="View Profile">
+<span class="material-symbols-outlined text-[18px]">account_box</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-text-secondary hover:text-text-primary transition-colors" title="Generate Invoice">
+<span class="material-symbols-outlined text-[18px]">receipt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-primary hover:text-primary-hover transition-colors" title="Impersonate Portal">
+<span class="material-symbols-outlined text-[18px]">open_in_new</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination Footer -->
+<div class="px-space-lg py-3 bg-surface-container-lowest border-t border-border-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<span class="font-caption-micro text-caption-micro text-text-secondary font-mono">
+        Showing <span class="text-text-heading font-medium">1</span> to <span class="text-text-heading font-medium">6</span> of <span class="text-text-heading font-medium">418</span> companies
+      </span>
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg bg-surface-card hover:bg-surface-container disabled:opacity-30 border border-border-hairline flex items-center justify-center text-text-secondary transition-colors" disabled="">
+<span class="material-symbols-outlined text-[16px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-primary text-on-primary font-mono text-caption-micro font-bold shadow-sm">1</button>
+<button class="w-8 h-8 rounded-lg bg-surface-card hover:bg-surface-container border border-border-hairline font-mono text-caption-micro text-text-secondary hover:text-text-heading transition-colors">2</button>
+<button class="w-8 h-8 rounded-lg bg-surface-card hover:bg-surface-container border border-border-hairline font-mono text-caption-micro text-text-secondary hover:text-text-heading transition-colors">3</button>
+<span class="text-text-muted px-1 text-caption-micro font-mono">...</span>
+<button class="w-8 h-8 rounded-lg bg-surface-card hover:bg-surface-container border border-border-hairline font-mono text-caption-micro text-text-secondary hover:text-text-heading transition-colors">70</button>
+<button class="w-8 h-8 rounded-lg bg-surface-card hover:bg-surface-container border border-border-hairline flex items-center justify-center text-text-secondary hover:text-text-heading transition-colors">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 text-caption-micro text-text-muted">
+<span>Go to:</span>
+<input class="w-10 h-7 bg-surface-container-lowest border border-border-subtle rounded text-center text-text-primary font-mono text-caption-micro focus:outline-none focus:border-primary" type="text" value="1"/>
+</div>
+</div>
+</div>
+</section>
+</div></main></div></body></html>

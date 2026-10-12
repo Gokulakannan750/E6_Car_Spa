@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Companies — New Company Modal & Registration Flow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            canvas: '#09090B',
+            surface: {
+              DEFAULT: '#18181B',
+              alt: '#111113',
+              card: '#141416',
+              elevated: '#202024',
+              dim: '#131315',
+            },
+            trovo: {
+              blue: '#3B82F6',
+              'blue-hover': '#2563EB',
+              red: '#EF4444',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .brand-gradient {
+      background: linear-gradient(135deg, #2563EB 0%, #EF4444 100%);
+    }
+    .brand-gradient-text {
+      background: linear-gradient(135deg, #3B82F6 0%, #EF4444 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-gradient-border {
+      border-image: linear-gradient(135deg, #2563EB, #EF4444) 1;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0e0e10;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+  </style>
+</head>
+<body class="bg-[#09090B] text-[#E4E4E7] font-sans antialiased min-h-screen relative overflow-x-hidden">
+
+  <!-- ================= BACKGROUND BASE: COMPANIES CONSOLE SCREEN (UNDERLAY) ================= -->
+  <div class="flex h-screen w-full select-none opacity-40 pointer-events-none filter blur-[1.5px] scale-[0.998] transition-all">
+    <!-- Left Sidebar (240px) -->
+    <aside class="w-[240px] shrink-0 bg-[#0e0e10] border-r border-white/5 flex flex-col justify-between p-4">
+      <div class="space-y-6">
+        <!-- Logo -->
+        <div class="flex items-center gap-2.5 px-2 py-1.5">
+          <div class="w-7 h-7 rounded-lg brand-gradient flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold text-sm tracking-tighter">
+            T
+          </div>
+          <div>
+            <span class="text-sm font-semibold tracking-tight text-white block">Trovo Platform</span>
+            <span class="text-[10px] font-mono uppercase tracking-wider text-[#A1A1AA]">Admin Ops</span>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="space-y-1 text-[13px] font-medium">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+            Dashboard
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-white bg-[#1c1b1e] rounded-md relative font-semibold">
+            <div class="absolute left-0 top-1 bottom-1 w-[3px] rounded-r brand-gradient"></div>
+            <svg class="w-4 h-4 text-[#3B82F6]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            Companies
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z" /></svg>
+            Invoices
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+            Plans & Prices
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Audit Log
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            Admins
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA] hover:text-white rounded-md">
+            <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            System
+          </a>
+        </nav>
+      </div>
+
+      <div class="border-t border-white/5 pt-3 space-y-1 text-[13px]">
+        <div class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA]">
+          <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7 7z" /></svg>
+          My account
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2 text-[#A1A1AA]">
+          <svg class="w-4 h-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          Sign out
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Section -->
+    <div class="flex-1 flex flex-col bg-[#09090B]">
+      <!-- Topbar 64px -->
+      <header class="h-16 px-6 border-b border-white/5 flex items-center justify-between bg-[#111113]">
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-[#A1A1AA]">Trovo Ops</span>
+          <span class="text-xs text-white/30">/</span>
+          <span class="text-sm font-semibold text-white">Companies</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="w-64 h-9 bg-[#18181B] border border-white/10 rounded-lg px-3 flex items-center gap-2 text-xs text-[#A1A1AA]">
+            <svg class="w-4 h-4 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <span>Search company code or name...</span>
+            <kbd class="ml-auto text-[10px] bg-white/5 px-1 rounded">⌘K</kbd>
+          </div>
+          <div class="flex items-center gap-2.5 pl-3 border-l border-white/5">
+            <div class="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 font-semibold text-xs flex items-center justify-center">VM</div>
+            <span class="text-xs font-medium text-white">Vikram Malhotra</span>
+            <span class="text-[10px] bg-white/10 text-[#A1A1AA] px-1.5 py-0.5 rounded">Owner</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Companies Screen Mock Table Body -->
+      <main class="p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline gap-2">
+            <h1 class="text-xl font-bold text-white">Companies</h1>
+            <span class="text-xs text-[#A1A1AA]">42 companies</span>
+          </div>
+          <button class="px-4 py-2 brand-gradient text-white rounded-lg text-xs font-semibold shadow-lg shadow-blue-500/10">
+            + New company
+          </button>
+        </div>
+
+        <div class="flex gap-2 text-xs">
+          <span class="px-2.5 py-1 rounded bg-white/10 text-white font-medium">All 42</span>
+          <span class="px-2.5 py-1 rounded bg-[#18181B] text-[#A1A1AA]">Trial 6</span>
+          <span class="px-2.5 py-1 rounded bg-[#18181B] text-[#A1A1AA]">Active 28</span>
+          <span class="px-2.5 py-1 rounded bg-[#18181B] text-[#A1A1AA]">Past due 3</span>
+        </div>
+
+        <!-- Fake table -->
+        <div class="bg-[#18181B] border border-white/5 rounded-xl overflow-hidden text-xs">
+          <div class="grid grid-cols-8 px-4 py-3 bg-[#111113] font-medium text-[#A1A1AA] border-b border-white/5">
+            <span>Code</span><span>Company</span><span>Plan</span><span>Status</span><span>Users</span><span>Renews</span><span>DB</span><span>Actions</span>
+          </div>
+          <div class="divide-y divide-white/5 text-[13px]">
+            <div class="grid grid-cols-8 px-4 py-3 items-center">
+              <span class="font-mono text-[#A1A1AA]">0042</span>
+              <span class="font-medium text-white">SpeedyShine Autocare</span>
+              <span>Professional (M)</span>
+              <span><span class="px-2 py-0.5 text-[11px] rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span></span>
+              <span>12 / 15</span>
+              <span>18 Oct 2026</span>
+              <span class="text-emerald-400 font-mono text-[11px]">OK</span>
+              <span class="text-white/40">⋯</span>
+            </div>
+            <div class="grid grid-cols-8 px-4 py-3 items-center">
+              <span class="font-mono text-[#A1A1AA]">0041</span>
+              <span class="font-medium text-white">Apex Detailing Studios</span>
+              <span>Professional (Y)</span>
+              <span><span class="px-2 py-0.5 text-[11px] rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Trial</span></span>
+              <span>4 / 10</span>
+              <span>24 Oct 2026</span>
+              <span class="text-emerald-400 font-mono text-[11px]">OK</span>
+              <span class="text-white/40">⋯</span>
+            </div>
+            <div class="grid grid-cols-8 px-4 py-3 items-center">
+              <span class="font-mono text-[#A1A1AA]">0040</span>
+              <span class="font-medium text-white">Torque Steam Wash Hub</span>
+              <span>Starter (M)</span>
+              <span><span class="px-2 py-0.5 text-[11px] rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Past due</span></span>
+              <span>3 / 5</span>
+              <span>08 Oct 2026</span>
+              <span class="text-emerald-400 font-mono text-[11px]">OK</span>
+              <span class="text-white/40">⋯</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MODAL OVERLAY & WORKSPACE CONTAINER ================= -->
+  <!-- Dimmed Backdrop with contextual interaction indicator -->
+  <div class="fixed inset-0 bg-[#09090B]/80 backdrop-blur-md z-40 flex flex-col items-center justify-start overflow-y-auto p-4 sm:p-6 lg:p-10 space-y-8">
+    
+    <!-- Top Modal State Switcher / Showcase Header -->
+    <div class="w-full max-w-6xl flex flex-wrap items-center justify-between gap-4 py-2 px-1 text-xs">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full brand-gradient animate-pulse"></span>
+          <span class="font-semibold text-white tracking-wide uppercase text-[11px]">Trovo Tenant Onboarding Flow</span>
+        </div>
+        <span class="text-white/20">|</span>
+        <span class="text-[#A1A1AA]">Both required dialog states shown below in live high-fidelity presentation</span>
+      </div>
+
+      <!-- Quick Jump / State Links -->
+      <div class="flex items-center gap-2 bg-[#18181B] border border-white/10 p-1 rounded-lg">
+        <a href="#modal-new-company" class="px-3 py-1 bg-white/10 text-white rounded text-xs font-medium hover:bg-white/15 transition flex items-center gap-1.5">
+          <span>State 1: New Company Form</span>
+          <span class="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.2 rounded font-mono">Active Edit</span>
+        </a>
+        <a href="#modal-success-state" class="px-3 py-1 text-[#A1A1AA] hover:text-white rounded text-xs font-medium transition flex items-center gap-1.5">
+          <span>State 2: Success Dialog</span>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 rounded font-mono">Issued</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ================= STATE 1: "NEW COMPANY" CONFIGURATION MODAL ================= -->
+    <div id="modal-new-company" class="w-full max-w-5xl bg-[#18181B] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative">
+      
+      <!-- Modal Accent Top Stroke -->
+      <div class="h-1 w-full brand-gradient"></div>
+
+      <!-- Modal Header -->
+      <div class="px-6 py-5 border-b border-white/5 flex items-start justify-between bg-[#141416]">
+        <div>
+          <div class="flex items-center gap-2.5 mb-1">
+            <h2 class="text-lg font-bold text-white tracking-tight">Register New Company</h2>
+            <span class="text-[11px] font-mono uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-medium">Tenant 0043</span>
+          </div>
+          <p class="text-xs text-[#A1A1AA]">Provision a tenant database instance, assign license tiers, and generate an onboarding registration passkey.</p>
+        </div>
+        <button class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 text-[#A1A1AA] hover:text-white flex items-center justify-center transition border border-white/5" title="Close dialog">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Two-Column Layout: Form 65% | Sticky Summary 35%) -->
+      <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#18181B]">
+        
+        <!-- LEFT COLUMN: Form Elements (7 cols on lg) -->
+        <div class="lg:col-span-7 space-y-6">
+
+          <!-- 1. Company Name -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-white tracking-wide flex items-center gap-1.5">
+                Company Name <span class="text-red-400 text-sm leading-none">*</span>
+              </label>
+              <span class="text-[11px] text-[#A1A1AA] font-mono">Visible on car spa customer invoices</span>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/30">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+              </div>
+              <input type="text" value="Sunrise Detailing" class="w-full bg-[#111113] border border-blue-500/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/40 shadow-inner" placeholder="e.g. BlueWave Auto Spa">
+            </div>
+            <p class="mt-1.5 text-[11px] text-[#A1A1AA]">Legal entity name used for multi-bay hardware licensing and database isolation.</p>
+          </div>
+
+          <!-- 2. "How does it start?" Selection Cards -->
+          <div>
+            <label class="block text-xs font-semibold text-white tracking-wide mb-2.5">
+              How does it start? <span class="text-red-400">*</span>
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              
+              <!-- Option A: Free Trial -->
+              <div class="relative border border-white/10 hover:border-white/20 bg-[#111113] rounded-xl p-3.5 cursor-pointer transition flex flex-col justify-between group">
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-white group-hover:text-blue-400 transition">Free trial</span>
+                    <span class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center"></span>
+                  </div>
+                  <p class="text-xs font-medium text-[#A1A1AA]">7 days, full Professional</p>
+                  <p class="text-[11px] text-white/40 mt-1.5 leading-relaxed">Zero initial payment. Automatically locks to Read-Only mode after 7 days unless activated.</p>
+                </div>
+                <div class="mt-3 pt-2.5 border-t border-white/5 flex items-center gap-1.5 text-[10px] text-blue-400 font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> 10 Users • All Pro Features
+                </div>
+              </div>
+
+              <!-- Option B: Already Paid (SELECTED STATE) -->
+              <div class="relative border-2 border-blue-500 bg-[#141b2b]/50 rounded-xl p-3.5 cursor-pointer shadow-lg shadow-blue-500/10 flex flex-col justify-between">
+                <!-- Checkmark badge in corner -->
+                <div class="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs shadow-md">
+                  <svg class="w-3 h-3 stroke-[3]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                      Already paid
+                      <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-medium">Verified Offline</span>
+                    </span>
+                  </div>
+                  <p class="text-xs font-medium text-blue-300">Commercial subscription</p>
+                  <p class="text-[11px] text-[#A1A1AA] mt-1.5 leading-relaxed">Payment received via NEFT/UPI/Bank Wire. Configures production SLA & paid validity term.</p>
+                </div>
+
+                <div class="mt-3 pt-2.5 border-t border-blue-500/20 flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Instant Production Instance
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 3. Dynamic Section: Paid Configuration (Shown when "Already paid" is active) -->
+          <div class="bg-[#111113] border border-white/10 rounded-xl p-4 space-y-5">
+            <div class="flex items-center justify-between border-b border-white/5 pb-2.5">
+              <span class="text-xs font-semibold text-white tracking-wide flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                Paid Subscription Parameters
+              </span>
+              <span class="text-[10px] font-mono text-[#A1A1AA] bg-white/5 px-2 py-0.5 rounded">Commercial Billing v2</span>
+            </div>
+
+            <!-- Plan Segmented Control & Billing Cycle -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Plan (Starter / Professional) -->
+              <div>
+                <label class="block text-[11px] font-medium text-[#A1A1AA] uppercase tracking-wider mb-1.5">
+                  Subscription Plan
+                </label>
+                <div class="bg-[#09090B] p-1 rounded-lg border border-white/5 grid grid-cols-2 gap-1 text-xs font-medium">
+                  <button type="button" class="py-1.5 text-center text-[#A1A1AA] hover:text-white rounded transition">
+                    Starter
+                  </button>
+                  <button type="button" class="py-1.5 text-center text-white bg-blue-600 rounded shadow font-semibold flex items-center justify-center gap-1">
+                    <span>Professional</span>
+                    <svg class="w-3 h-3 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+                  </button>
+                </div>
+                <div class="flex justify-between items-center mt-1 text-[10px] text-[#A1A1AA]">
+                  <span>Professional base rate</span>
+                  <span class="font-mono text-white">₹3,999/mo</span>
+                </div>
+              </div>
+
+              <!-- Billing Interval (Monthly / Yearly) -->
+              <div>
+                <label class="block text-[11px] font-medium text-[#A1A1AA] uppercase tracking-wider mb-1.5">
+                  Billing Cycle
+                </label>
+                <div class="bg-[#09090B] p-1 rounded-lg border border-white/5 grid grid-cols-2 gap-1 text-xs font-medium">
+                  <button type="button" class="py-1.5 text-center text-white bg-[#202024] rounded shadow font-semibold">
+                    Monthly
+                  </button>
+                  <button type="button" class="py-1.5 text-center text-[#A1A1AA] hover:text-white rounded transition flex items-center justify-center gap-1">
+                    <span>Yearly</span>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-1 rounded font-mono">SAVE 15%</span>
+                  </button>
+                </div>
+                <div class="flex justify-between items-center mt-1 text-[10px] text-[#A1A1AA]">
+                  <span>Cycle frequency</span>
+                  <span class="font-mono text-white">Every 30 days</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- "Paid until" date input -->
+            <div>
+              <label class="block text-[11px] font-medium text-[#A1A1AA] uppercase tracking-wider mb-1.5">
+                Paid Until Date <span class="text-red-400">*</span>
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/30">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <input type="text" value="26 Oct 2026" class="w-full bg-[#09090B] border border-white/10 rounded-lg pl-9 pr-24 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-500">
+                <span class="absolute right-3 top-2 text-[10px] text-[#A1A1AA] font-sans bg-white/5 px-2 py-0.5 rounded">30 days prepaid</span>
+              </div>
+            </div>
+
+            <!-- Add-ons with Quantity Steppers -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-[11px] font-medium text-[#A1A1AA] uppercase tracking-wider">
+                  Add-on Modules & Quotas
+                </label>
+                <span class="text-[10px] text-white/40">Real-time capacity scaling</span>
+              </div>
+
+              <div class="space-y-2 border border-white/5 rounded-lg p-2.5 bg-[#0e0e10]">
+                
+                <!-- Add-on 1: Showroom / B2B module -->
+                <div class="flex items-center justify-between py-1.5 px-2 bg-[#141416] rounded-md border border-white/5">
+                  <div>
+                    <div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Showroom / B2B module
+                      <span class="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded font-mono">₹999/mo</span>
+                    </div>
+                    <span class="text-[10px] text-[#A1A1AA]">Fleet invoicing, OEM warranty & dealer wash contracts</span>
+                  </div>
+                  <!-- Stepper -->
+                  <div class="flex items-center gap-2 bg-[#09090B] border border-white/10 rounded-lg p-0.5">
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">−</button>
+                    <span class="w-5 text-center font-mono text-xs font-semibold text-white">1</span>
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">+</button>
+                  </div>
+                </div>
+
+                <!-- Add-on 2: 5 more users -->
+                <div class="flex items-center justify-between py-1.5 px-2 bg-[#141416] rounded-md border border-white/5">
+                  <div>
+                    <div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      5 more users
+                      <span class="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded font-mono">₹299/mo</span>
+                    </div>
+                    <span class="text-[10px] text-[#A1A1AA]">Expands simultaneous car spa manager & cashier seats</span>
+                  </div>
+                  <!-- Stepper -->
+                  <div class="flex items-center gap-2 bg-[#09090B] border border-white/10 rounded-lg p-0.5">
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">−</button>
+                    <span class="w-5 text-center font-mono text-xs font-semibold text-white">2</span>
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">+</button>
+                  </div>
+                </div>
+
+                <!-- Add-on 3: Franchise network -->
+                <div class="flex items-center justify-between py-1.5 px-2 bg-[#141416] rounded-md border border-white/5">
+                  <div>
+                    <div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      Franchise network
+                      <span class="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded font-mono">₹2,999/mo</span>
+                    </div>
+                    <span class="text-[10px] text-[#A1A1AA]">Cross-outlet customer loyalty, centralized inventory</span>
+                  </div>
+                  <!-- Stepper -->
+                  <div class="flex items-center gap-2 bg-[#09090B] border border-white/10 rounded-lg p-0.5">
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition opacity-40 cursor-not-allowed">−</button>
+                    <span class="w-5 text-center font-mono text-xs font-semibold text-[#A1A1AA]">0</span>
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">+</button>
+                  </div>
+                </div>
+
+                <!-- Add-on 4: 10 more franchise branches -->
+                <div class="flex items-center justify-between py-1.5 px-2 bg-[#141416] rounded-md border border-white/5">
+                  <div>
+                    <div class="text-xs font-medium text-white flex items-center gap-1.5">
+                      10 more franchise branches
+                      <span class="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.2 rounded font-mono">₹1,499/mo</span>
+                    </div>
+                    <span class="text-[10px] text-[#A1A1AA]">Secondary outlet telemetry & regional supervisor dashboards</span>
+                  </div>
+                  <!-- Stepper -->
+                  <div class="flex items-center gap-2 bg-[#09090B] border border-white/10 rounded-lg p-0.5">
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition opacity-40 cursor-not-allowed">−</button>
+                    <span class="w-5 text-center font-mono text-xs font-semibold text-[#A1A1AA]">0</span>
+                    <button type="button" class="w-6 h-6 rounded flex items-center justify-center text-[#A1A1AA] hover:text-white hover:bg-white/10 text-xs font-bold transition">+</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN: Price Summary Box (5 cols on lg) -->
+        <div class="lg:col-span-5 flex flex-col justify-between">
+          <div class="bg-[#111113] border border-white/10 rounded-xl p-5 relative overflow-hidden flex flex-col h-full shadow-lg">
+            
+            <!-- Glow effect in top right -->
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div>
+              <div class="flex items-center justify-between border-b border-white/5 pb-3 mb-4">
+                <span class="text-xs font-semibold text-white uppercase tracking-wider">Commercial Summary</span>
+                <span class="text-[10px] font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">Monthly Invoicing</span>
+              </div>
+
+              <!-- Line item breakdown -->
+              <div class="space-y-3 text-xs">
+                <!-- Base Plan -->
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="text-white font-medium block">Professional Plan</span>
+                    <span class="text-[11px] text-[#A1A1AA]">Base platform license (10 users)</span>
+                  </div>
+                  <span class="font-mono text-white text-right">₹3,999.00</span>
+                </div>
+
+                <!-- Add-on item 1 -->
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="text-white font-medium block">Showroom / B2B module</span>
+                    <span class="text-[11px] text-[#A1A1AA]">1 module instance</span>
+                  </div>
+                  <span class="font-mono text-white text-right">₹999.00</span>
+                </div>
+
+                <!-- Add-on item 2 -->
+                <div class="flex items-center justify-between">
+                  <div>
+                    <span class="text-white font-medium block">User Seat Bundles</span>
+                    <span class="text-[11px] text-[#A1A1AA]">2 × 5 users (+10 seats total)</span>
+                  </div>
+                  <span class="font-mono text-white text-right">₹598.00</span>
+                </div>
+
+                <div class="pt-3 border-t border-dashed border-white/10 flex items-center justify-between text-xs text-[#A1A1AA]">
+                  <span>Subtotal</span>
+                  <span class="font-mono text-white">₹5,596.00</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-[#A1A1AA]">
+                  <span>Taxes (GST)</span>
+                  <span class="font-mono text-white">₹0.00</span>
+                </div>
+              </div>
+
+              <!-- Total Card -->
+              <div class="mt-5 p-3.5 bg-[#18181B] border border-white/10 rounded-xl">
+                <div class="flex items-baseline justify-between mb-1">
+                  <span class="text-xs font-semibold text-[#A1A1AA] uppercase tracking-wide">Total Per Month</span>
+                  <div class="text-right">
+                    <span class="text-2xl font-bold font-mono text-white tracking-tight">₹5,596.00</span>
+                    <span class="block text-[10px] text-[#A1A1AA] font-mono">Billed every 30 days</span>
+                  </div>
+                </div>
+
+                <!-- Mandatory GST Legal Note -->
+                <div class="mt-3 pt-2.5 border-t border-white/5 flex items-start gap-2 text-[11px] text-[#A1A1AA] leading-snug">
+                  <svg class="w-4 h-4 text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <span><strong>No GST</strong> (Trovo is not GST-registered). Gross invoice amount matches net payable.</span>
+                </div>
+              </div>
+
+              <!-- Quick Verification Metadata -->
+              <div class="mt-4 p-3 bg-[#09090B] rounded-lg border border-white/5 space-y-1.5 text-[11px]">
+                <div class="flex justify-between text-[#A1A1AA]">
+                  <span>Auto-renewal status:</span>
+                  <span class="text-white font-mono">Manual Bank Invoice</span>
+                </div>
+                <div class="flex justify-between text-[#A1A1AA]">
+                  <span>Dedicated database:</span>
+                  <span class="text-emerald-400 font-mono">trovo_tenant_0043.db</span>
+                </div>
+                <div class="flex justify-between text-[#A1A1AA]">
+                  <span>SLA Guarantee:</span>
+                  <span class="text-white font-mono">99.9% Uptime</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Security info box -->
+            <div class="mt-6 text-[11px] text-[#A1A1AA] flex items-center gap-2 bg-blue-500/5 border border-blue-500/10 p-2.5 rounded-lg">
+              <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+              <span>Submitting executes database schema migration and provisions one-time tenant credential.</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer (Actions) -->
+      <div class="px-6 py-4 border-t border-white/5 bg-[#141416] flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs text-[#A1A1AA]">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Tenant ready for immediate deployment</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <button type="button" class="px-4 py-2 bg-[#202024] hover:bg-[#27272a] text-[#E4E4E7] hover:text-white rounded-lg text-xs font-semibold border border-white/5 transition">
+            Cancel
+          </button>
+          <a href="#modal-success-state" class="px-5 py-2 brand-gradient hover:opacity-90 text-white rounded-lg text-xs font-semibold shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
+            <span>Create company</span>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ================= STATE 2: SUCCESS STATE DIALOG ================= -->
+    <div id="modal-success-state" class="w-full max-w-xl bg-[#18181B] border border-white/10 rounded-2xl shadow-2xl shadow-black/80 overflow-hidden relative">
+      
+      <!-- Top Success Stroke (Emerald-to-Blue subtle gradient) -->
+      <div class="h-1.5 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-blue-500"></div>
+
+      <div class="p-8 space-y-6">
+        
+        <!-- Success Icon & Title Heading -->
+        <div class="text-center space-y-2">
+          <div class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10 mb-3">
+            <svg class="w-7 h-7 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-white tracking-tight">Sunrise Detailing is ready</h2>
+          <p class="text-xs text-[#A1A1AA] max-w-sm mx-auto">
+            Tenant container created and database allocated. Provide the onboarding credentials below to the business owner.
+          </p>
+        </div>
+
+        <!-- Highlighted Credential Boxes (Company Code + Monospace Registration Code) -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+          
+          <!-- Box 1: Company Code (4 cols) -->
+          <div class="sm:col-span-4 bg-[#111113] border border-white/10 rounded-xl p-3.5 flex flex-col justify-between relative group hover:border-white/20 transition">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-semibold text-[#A1A1AA] uppercase tracking-wider">Company Code</span>
+            </div>
+            <div class="py-1">
+              <span class="font-mono text-2xl font-bold text-white tracking-wider block">0043</span>
+            </div>
+            <div class="pt-2 border-t border-white/5 flex items-center justify-between">
+              <span class="text-[10px] text-white/40 font-mono">System ID</span>
+              <button type="button" class="text-[11px] font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 transition" title="Copy company code">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <!-- Box 2: Registration Code (8 cols) -->
+          <div class="sm:col-span-8 bg-[#111113] border border-blue-500/40 rounded-xl p-3.5 flex flex-col justify-between relative group shadow-lg shadow-blue-500/5">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                One-Time Registration Code
+              </span>
+              <span class="text-[10px] bg-blue-500/10 text-blue-400 font-mono px-1.5 py-0.2 rounded border border-blue-500/20">Single Use</span>
+            </div>
+            <div class="py-1 flex items-center justify-between">
+              <span class="font-mono text-xl sm:text-2xl font-bold tracking-wider text-white select-all">
+                K7QM-4RTX-9PWD
+              </span>
+            </div>
+            <div class="pt-2 border-t border-white/5 flex items-center justify-between">
+              <span class="text-[10px] text-[#A1A1AA]">Expires in 14 days</span>
+              <button type="button" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold flex items-center gap-1.5 shadow transition">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                Copy Code
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Warning / Urgent Banner -->
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3.5">
+          <div class="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-3.5 h-3.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div class="space-y-1">
+            <h4 class="text-xs font-bold text-amber-300 tracking-wide uppercase">Critical Security Notice</h4>
+            <p class="text-xs text-amber-200/90 leading-relaxed font-normal">
+              The registration code is shown only once. Send it to the customer now (WhatsApp or phone). It works once and expires on <strong>26 Oct 2026</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Dispatch Helper (WhatsApp / Copy Message for Support Staff) -->
+        <div class="p-3 bg-[#111113] border border-white/5 rounded-lg flex items-center justify-between text-xs text-[#A1A1AA]">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+            <span>Pre-formatted WhatsApp message ready</span>
+          </div>
+          <button type="button" class="text-xs text-white hover:text-blue-400 font-medium underline underline-offset-2">
+            Copy Welcome SMS / Text
+          </button>
+        </div>
+
+        <!-- Bottom Action Button -->
+        <div class="pt-2 flex justify-end">
+          <button type="button" class="w-full sm:w-auto px-8 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2">
+            <span>Done</span>
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Small footer indicator -->
+    <div class="text-center text-[11px] text-[#A1A1AA] pb-6">
+      Trovo Platform Admin Ops Console • Internal Operations Team Only
+    </div>
+
+  </div>
+
+</body>
+</html>
