@@ -2,5 +2,6 @@ export { AuthProvider, useAuth } from './auth-context';
 export { default as LoginPage } from './LoginPage';
 export { default as LoginForm } from './LoginForm';
 export { default as FirstTimeSetup } from './FirstTimeSetup';
+export { default as RegisterCompanyPage } from './RegisterCompanyPage';
 export type { AuthContextValue } from './auth-context';
 export type { AuthUserResponse as AuthUser } from '../../lib/api';

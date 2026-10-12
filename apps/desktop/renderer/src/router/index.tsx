@@ -2,7 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '../components/shell/AppLayout';
 import { RouteGuard } from '../components/auth/RouteGuard';
 import { FranchisorGuard } from '../features/franchise/FranchisorGuard';
-import { LoginPage, FirstTimeSetup } from '../features/auth';
+import { LoginPage, FirstTimeSetup, RegisterCompanyPage } from '../features/auth';
 
 // Import wrappers
 const loadDashboard = () => import('../features/dashboard/DashboardPage');
@@ -43,6 +43,11 @@ export const router = createBrowserRouter([
 	{
 		path: '/setup',
 		element: <FirstTimeSetup />,
+	},
+	{
+		// Trovo's platform: a new company registers with the company code and registration code Trovo gave it.
+		path: '/register',
+		element: <RegisterCompanyPage />,
 	},
 	{
 		// The link a franchisor sends: the invited company's Owner signs in, then answers. It sits outside the app

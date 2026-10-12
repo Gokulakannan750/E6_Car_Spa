@@ -164,7 +164,8 @@ export async function request<T>(
 	const isAuthEndpoint =
 		normalizedPath.includes('/auth/login') ||
 		normalizedPath.includes('/auth/status') ||
-		normalizedPath.includes('/auth/bootstrap');
+		normalizedPath.includes('/auth/bootstrap') ||
+		normalizedPath.includes('/auth/register');
 
 	if (res.status === 401 && !isAuthEndpoint) {
 		setAuthToken(null);
@@ -2844,6 +2845,14 @@ export function getJobCardStatusLabel(status: number | string): string {
 
 export interface AuthStatusResponse {
 	initialized: boolean;
+	/** True on Trovo's platform: new companies register with the codes Trovo gives them. */
+	companyRegistration?: boolean;
+}
+
+/** First registration of a company Trovo created: its company code, the one-time registration code and the Owner account. */
+export interface RegisterCompanyInput extends BootstrapOwnerInput {
+	companyCode: string;
+	registrationCode: string;
 }
 
 export interface BootstrapOwnerInput {
@@ -2928,6 +2937,13 @@ export async function bootstrapOwner(data: BootstrapOwnerInput) {
 		method: 'POST',
 		body: JSON.stringify(cleanPayload(data)),
 	}, 'initialize owner account');
+}
+
+export async function registerCompany(data: RegisterCompanyInput) {
+	return request<AuthUserResponse & { companyCode: string }>('/api/auth/register', {
+		method: 'POST',
+		body: JSON.stringify(cleanPayload(data)),
+	}, 'register company');
 }
 
 export async function loginApi(data: LoginInput) {
