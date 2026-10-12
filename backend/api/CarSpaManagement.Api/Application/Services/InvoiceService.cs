@@ -1406,6 +1406,18 @@ public class InvoiceService : IInvoiceService
 		{
 			baseUrl = baseUrl.Substring(0, baseUrl.Length - 2).TrimEnd('/');
 		}
+		// On the platform the link names the company ("0002-<token>"), so it can be opened without signing in.
+		if (_configuration.GetValue<bool>("Platform:Enabled"))
+		{
+			var companyCode = _db.Organizations.AsNoTracking()
+				.Where(o => o.Id == _db.CurrentOrganizationId)
+				.Select(o => o.Code)
+				.FirstOrDefault();
+			if (!string.IsNullOrEmpty(companyCode))
+			{
+				return $"{baseUrl}/i/{companyCode}-{rawToken}";
+			}
+		}
 		return $"{baseUrl}/i/{rawToken}";
 	}
 

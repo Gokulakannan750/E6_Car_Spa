@@ -55,8 +55,9 @@ public class WhatsAppBackgroundWorker : BackgroundService
 		List<Guid> organizationIds;
 		using (var listScope = scopeFactory.CreateScope())
 		{
-			var db = listScope.ServiceProvider.GetRequiredService<AppDbContext>();
-			organizationIds = await db.Organizations.Where(o => o.IsActive).Select(o => o.Id).ToListAsync(stoppingToken);
+			// On the platform the companies come from Trovo's catalog, each with its own database.
+			var directory = listScope.ServiceProvider.GetRequiredService<ICompanyDirectory>();
+			organizationIds = (await directory.ListActiveAsync(stoppingToken)).Select(c => c.Id).ToList();
 		}
 
 		foreach (var organizationId in organizationIds)

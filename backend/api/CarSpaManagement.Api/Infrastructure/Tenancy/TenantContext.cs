@@ -12,6 +12,19 @@ public sealed class TenantContext : ITenantContext
 {
     public Guid? OrganizationId { get; private set; }
 
+    /// <summary>
+    /// On the platform, the database connection trusted server code chose for this company when the company is not
+    /// yet reachable through the directory (registration of a new company). Normally null.
+    /// </summary>
+    public string? ConnectionOverride { get; private set; }
+
+    /// <summary>Establishes the company and the database to use for it. Only for trusted server code (registration).</summary>
+    public void Set(Guid organizationId, string connectionString)
+    {
+        Set(organizationId);
+        ConnectionOverride = connectionString;
+    }
+
     /// <summary>Establishes the company for this scope. It can be set only once, so a request cannot switch company.</summary>
     public void Set(Guid organizationId)
     {
