@@ -1,6 +1,6 @@
 # Phase 2.4 — Trovo Admin Portal (plan)
 
-Status: **Built** (12 Oct 2026) on branch `feature/saas-admin-portal`, not merged · builds on `main` `3a2ebfed` (Phases 2.1–2.3 merged). Next steps: `docs/SAAS_HANDOFF_AND_NEXT_STEPS.md`.
+Status: **Built** (12 Oct 2026) and merged into `main` · builds on `main` `3a2ebfed` (Phases 2.1–2.3 merged). Next steps: `docs/SAAS_HANDOFF_AND_NEXT_STEPS.md`.
 
 ## 1. What it is
 A **separate web app for Trovo staff only**. It is not part of the car spa apps, and customers never see it.
