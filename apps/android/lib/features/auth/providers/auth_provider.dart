@@ -7,6 +7,7 @@ import '../models/auth_user.dart';
 import '../models/bootstrap_owner_request.dart';
 import '../models/register_company_request.dart';
 import 'auth_state.dart';
+import '../../subscription/subscription_provider.dart';
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
   ref,
@@ -24,6 +25,8 @@ final companyRegistrationAvailableProvider = Provider<bool>((ref) {
 });
 
 final currentUserProvider = Provider<AuthUser?>((ref) {
+  // Read again when the company's plan arrives: permission checks consult it.
+  ref.watch(subscriptionStatusProvider);
   final authState = ref.watch(authNotifierProvider);
   if (authState is Authenticated) {
     return authState.user;

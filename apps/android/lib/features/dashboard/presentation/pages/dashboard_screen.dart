@@ -9,6 +9,7 @@ import '../../../../core/theme/brand_palette.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../franchise/providers/franchise_providers.dart';
 import '../../../settings/providers/settings_provider.dart';
+import '../../../subscription/plan_features.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -280,9 +281,14 @@ class DashboardScreen extends ConsumerWidget {
         false;
 
     bool isAuthorized(List<String> requiredPermissions) {
+      // Only permissions whose module is in the company's plan count.
+      final inPlan = requiredPermissions
+          .where(PlanFeatures.allowsPermission)
+          .toList();
+      if (inPlan.isEmpty) return false;
       if (isOwner) return true;
       if (permissions.contains('*')) return true;
-      return requiredPermissions.any((p) => permissions.contains(p));
+      return inPlan.any((p) => permissions.contains(p));
     }
 
     final allApps = [

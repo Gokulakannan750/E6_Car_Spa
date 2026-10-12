@@ -14,6 +14,7 @@ import '../../../customers/presentation/pages/customers_screen.dart';
 import '../../../invoices/presentation/pages/invoices_screen.dart';
 import '../../../jobcards/presentation/pages/job_cards_screen.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
+import '../../../subscription/plan_features.dart';
 
 class BillingTabDefinition {
   final String label;
@@ -77,6 +78,7 @@ class _BillingScreenState extends ConsumerState<BillingScreen>
 
   static bool _canAccess(AuthUser? user, String permission) {
     if (user == null) return false;
+    if (!PlanFeatures.allowsPermission(permission)) return false;
     if (user.isOwner || user.role.toLowerCase() == 'owner') return true;
     if (user.permissions.contains('*')) return true;
     return user.hasPermission(permission);

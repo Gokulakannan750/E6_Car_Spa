@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_logout_action.dart';
 import '../../../../shared/widgets/powered_by_trovo.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../franchise/providers/franchise_providers.dart';
+import '../../../subscription/plan_features.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -67,7 +68,9 @@ class SettingsScreen extends ConsumerWidget {
         iconColor: const Color(0xFF16A34A),
         bgColor: const Color(0xFFF0FDF4),
         route: AppRoutes.whatsAppSettings,
-        isVisible: canViewSettings,
+        isVisible:
+            canViewSettings &&
+            PlanFeatures.hasFeature(PlanFeatureKeys.whatsApp),
       ),
       _SettingsWorkspaceItem(
         title: 'Audit Trail',
@@ -76,7 +79,7 @@ class SettingsScreen extends ConsumerWidget {
         iconColor: const Color(0xFF7C3AED),
         bgColor: const Color(0xFFF5F3FF),
         route: AppRoutes.audit,
-        isVisible: canViewAudit,
+        isVisible: canViewAudit && PlanFeatures.allowsPermission('audit.view'),
       ),
       _SettingsWorkspaceItem(
         title: 'Franchise Sharing',
