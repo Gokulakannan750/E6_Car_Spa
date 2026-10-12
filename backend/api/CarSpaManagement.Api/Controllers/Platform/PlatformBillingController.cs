@@ -17,6 +17,12 @@ public sealed record PlatformInvoiceDto(
 public sealed record PlatformSubscriptionEventDto(string EventType, DateTime EffectiveAt, string ActorType, string? Metadata);
 public sealed record PlatformCompanyBillingDto(IReadOnlyList<PlatformInvoiceDto> Invoices, IReadOnlyList<PlatformSubscriptionEventDto> Events);
 public sealed record ManualPaymentRequest(long AmountMinor, string Reference, DateTime? PaidAt);
+public sealed record PlatformInvoiceListItem(Guid Id, string InvoiceNumber, Guid CompanyId, string CompanyCode, string CompanyName,
+    string Status, bool Overdue, string Currency, long TotalMinor, long AmountDueMinor, DateTime IssuedAt, DateTime DueAt,
+    DateTime? PaidAt, DateTime? PeriodStart, DateTime? PeriodEnd);
+public sealed record PlatformSellerDto(string Name, string Address, string Phone, string Email, string? Gstin);
+public sealed record PlatformInvoiceDetail(PlatformInvoiceDto Invoice, string CompanyCode, string CompanyName, string? BillToAddress,
+    string? BillToGstin, PlatformSellerDto Seller);
 public sealed record VoidInvoiceRequest(string Reason);
 
 /// <summary>Trovo's invoices to companies and the payments recorded against them (manual until a gateway is chosen).</summary>
@@ -47,6 +53,56 @@ public class PlatformBillingController(
         return Ok(new PlatformCompanyBillingDto(
             invoices.Select(i => ToDto(i, payments.Where(p => p.BillingInvoiceId == i.Id))).ToList(),
             events.Select(e => new PlatformSubscriptionEventDto(e.EventType, e.EffectiveAt, e.ActorType.ToString(), e.Metadata)).ToList()));
+    }
+
+    /// <summary>
+    /// Trovo's invoices across all companies, for follow-up. Status: Open, Overdue (open and past due), Paid, Void,
+    /// or empty for all. Search matches the invoice number, company code or name.
+    /// </summary>
+    [HttpGet("invoices")]
+    public async Task<ActionResult<IReadOnlyList<PlatformInvoiceListItem>>> Invoices([FromQuery] string? status, [FromQuery] Guid? companyId,
+        [FromQuery] string? search, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var query = from i in catalog.BillingInvoices.AsNoTracking()
+                    join c in catalog.Companies.AsNoTracking() on i.CompanyId equals c.Id
+                    where c.Product!.Key == options.Value.ProductKey
+                    select new { i, c };
+
+        if (companyId is not null) query = query.Where(x => x.i.CompanyId == companyId);
+        switch (status?.ToLowerInvariant())
+        {
+            case "open": query = query.Where(x => x.i.Status == BillingInvoiceStatus.Open); break;
+            case "overdue": query = query.Where(x => x.i.Status == BillingInvoiceStatus.Open && x.i.DueAt < now); break;
+            case "paid": query = query.Where(x => x.i.Status == BillingInvoiceStatus.Paid); break;
+            case "void": query = query.Where(x => x.i.Status == BillingInvoiceStatus.Void); break;
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(x => x.i.InvoiceNumber.ToLower().Contains(term) || x.c.Code.ToLower().Contains(term) || x.c.Name.ToLower().Contains(term));
+        }
+
+        var rows = await query.OrderByDescending(x => x.i.IssuedAt).Take(500).ToListAsync(cancellationToken);
+        return Ok(rows.Select(x => new PlatformInvoiceListItem(
+            x.i.Id, x.i.InvoiceNumber, x.c.Id, x.c.Code, x.c.Name, x.i.Status.ToString(),
+            x.i.Status == BillingInvoiceStatus.Open && x.i.DueAt < now, x.i.Currency, x.i.TotalMinor, x.i.AmountDueMinor,
+            x.i.IssuedAt, x.i.DueAt, x.i.PaidAt, x.i.PeriodStart, x.i.PeriodEnd)).ToList());
+    }
+
+    /// <summary>One invoice with its lines, payments, the bill-to snapshot and Trovo's details, for the print view.</summary>
+    [HttpGet("invoices/{invoiceId:guid}")]
+    public async Task<ActionResult<PlatformInvoiceDetail>> Invoice(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var invoice = await catalog.BillingInvoices.AsNoTracking().Include(i => i.Lines).FirstOrDefaultAsync(i => i.Id == invoiceId, cancellationToken);
+        if (invoice is null) return NotFound();
+        var company = await catalog.Companies.AsNoTracking().FirstAsync(c => c.Id == invoice.CompanyId, cancellationToken);
+        var payments = await catalog.PaymentTransactions.AsNoTracking().Where(p => p.BillingInvoiceId == invoiceId).ToListAsync(cancellationToken);
+        var settings = options.Value;
+
+        return Ok(new PlatformInvoiceDetail(ToDto(invoice, payments), company.Code, company.Name, invoice.BillToAddress, invoice.BillToGstin,
+            new PlatformSellerDto(settings.SellerName, settings.SellerAddress, settings.SellerPhone, settings.SellerEmail,
+                invoice.TaxMinor > 0 ? settings.Gstin : null)));
     }
 
     /// <summary>Issues the invoice for the company's next period now.</summary>

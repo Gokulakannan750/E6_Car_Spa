@@ -77,6 +77,8 @@ builder.Services.AddControllers(options =>
 {
 	// Endpoints whose permission belongs to a module outside the company's plan are refused (Trovo's platform).
 	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlanFeatureFilter>();
+	// A platform admin with a one-time password may only change it.
+	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlatformPasswordChangeFilter>();
 }).ConfigureApplicationPartManager(manager =>
 {
 	// Without the platform, the /api/platform controllers are not part of the API at all.
@@ -230,6 +232,16 @@ if (platformEnabled)
 			options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
 			options.MapInboundClaims = false;
 			options.TokenValidationParameters = CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.AccessValidation(builder.Configuration);
+			options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+			{
+				OnTokenValidated = async context =>
+				{
+					var catalog = context.HttpContext.RequestServices.GetRequiredService<CarSpaManagement.Api.Infrastructure.Platform.PlatformDbContext>();
+					var reason = await CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.RejectionReasonAsync(
+						context.Principal!, catalog, context.HttpContext.RequestAborted);
+					if (reason is not null) context.Fail(reason);
+				}
+			};
 		});
 	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService>();
 	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformAuditService>();
@@ -369,6 +381,11 @@ builder.Services.AddCors(options =>
  options.AddPolicy("Production", policy =>
  {
  var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+ // Trovo's admin portal is its own website; on the platform its address may call the API too.
+ if (platformEnabled && builder.Configuration["Platform:AdminPortalOrigin"] is { Length: > 0 } adminPortal)
+ {
+ 	origins = [.. origins, adminPortal.TrimEnd('/')];
+ }
  policy.WithOrigins(origins)
  .AllowAnyMethod()
  .AllowAnyHeader()

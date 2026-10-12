@@ -19,6 +19,9 @@ public sealed record PlatformSignInStep(PlatformAdmin Admin, bool NeedsTotpSetup
 public sealed class PlatformAdminService(PlatformDbContext catalog, IAesEncryptionService encryption)
 {
     private const int MaxFailedAttempts = 5;
+
+    /// <summary>Platform admins can change every company's subscription, so their passwords are longer than the apps' minimum.</summary>
+    public const int MinimumAdminPasswordLength = 12;
     private static readonly TimeSpan LockoutFor = TimeSpan.FromMinutes(15);
     private const string Issuer = "Trovo Platform";
 
@@ -43,6 +46,7 @@ public sealed class PlatformAdminService(PlatformDbContext catalog, IAesEncrypti
             Name = name.Trim(),
             Role = role,
             IsActive = true,
+            MustChangePassword = true,
             CreatedAt = DateTime.UtcNow
         };
         admin.PasswordHash = _hasher.HashPassword(admin, password);
@@ -56,14 +60,91 @@ public sealed class PlatformAdminService(PlatformDbContext catalog, IAesEncrypti
     {
         var admin = await catalog.Admins.FirstOrDefaultAsync(a => a.Email == NormalizeEmail(email), cancellationToken)
             ?? throw new NotFoundException("No administrator with this email.");
+        return await ResetAsync(admin, cancellationToken);
+    }
+
+    /// <summary>Same as <see cref="ResetAsync(string, CancellationToken)"/>, by id (from the admin portal).</summary>
+    public async Task<string> ResetAsync(Guid adminId, CancellationToken cancellationToken = default)
+    {
+        var admin = await catalog.Admins.FirstOrDefaultAsync(a => a.Id == adminId, cancellationToken)
+            ?? throw new NotFoundException("Administrator not found.");
+        return await ResetAsync(admin, cancellationToken);
+    }
+
+    private async Task<string> ResetAsync(PlatformAdmin admin, CancellationToken cancellationToken)
+    {
         var password = GeneratePassword();
         admin.PasswordHash = _hasher.HashPassword(admin, password);
         admin.TotpSecretEncrypted = null;
         admin.TotpConfirmed = false;
+        admin.MustChangePassword = true;
         admin.FailedSignInAttempts = 0;
         admin.LockedUntil = null;
         await catalog.SaveChangesAsync(cancellationToken);
         return password;
+    }
+
+    public async Task<IReadOnlyList<PlatformAdmin>> ListAsync(CancellationToken cancellationToken = default) =>
+        await catalog.Admins.AsNoTracking().OrderBy(a => a.Name).ToListAsync(cancellationToken);
+
+    /// <summary>
+    /// Changes an admin's role or switches the account off/on. Nobody can switch themselves off or lower their own
+    /// role, and the platform always keeps at least one active Owner.
+    /// </summary>
+    public async Task<PlatformAdmin> UpdateAsync(Guid adminId, PlatformAdminRole? role, bool? isActive, Guid actingAdminId,
+        CancellationToken cancellationToken = default)
+    {
+        var admin = await catalog.Admins.FirstOrDefaultAsync(a => a.Id == adminId, cancellationToken)
+            ?? throw new NotFoundException("Administrator not found.");
+
+        if (adminId == actingAdminId && ((isActive == false) || (role is { } r && r != admin.Role)))
+        {
+            throw new ValidationException("You cannot switch off your own account or change your own role.");
+        }
+
+        var losesOwner = admin.Role == PlatformAdminRole.Owner && admin.IsActive
+            && ((role is { } newRole && newRole != PlatformAdminRole.Owner) || isActive == false);
+        if (losesOwner && !await catalog.Admins.AnyAsync(a => a.Id != adminId && a.IsActive && a.Role == PlatformAdminRole.Owner, cancellationToken))
+        {
+            throw new ValidationException("The platform must keep at least one active Owner.");
+        }
+
+        if (role is { } changedRole) admin.Role = changedRole;
+        if (isActive is { } active) admin.IsActive = active;
+        await catalog.SaveChangesAsync(cancellationToken);
+        return admin;
+    }
+
+    /// <summary>Changes the admin's own password (the current one is required) and clears "must change password".</summary>
+    public async Task<PlatformAdmin> ChangePasswordAsync(Guid adminId, string currentPassword, string newPassword, string confirmPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var admin = await catalog.Admins.FirstOrDefaultAsync(a => a.Id == adminId && a.IsActive, cancellationToken)
+            ?? throw new UnauthorizedException("Sign-in expired. Please start again.");
+
+        if (_hasher.VerifyHashedPassword(admin, admin.PasswordHash, currentPassword ?? string.Empty) == PasswordVerificationResult.Failed)
+        {
+            throw new ValidationException("The current password is not correct.");
+        }
+
+        var (isValid, error) = PasswordPolicyValidator.Validate(newPassword, confirmPassword, admin.Email);
+        if (!isValid)
+        {
+            throw new ValidationException(error ?? "Invalid password.");
+        }
+        if (newPassword.Length < MinimumAdminPasswordLength)
+        {
+            throw new ValidationException($"An admin password must be at least {MinimumAdminPasswordLength} characters long.");
+        }
+        if (_hasher.VerifyHashedPassword(admin, admin.PasswordHash, newPassword) != PasswordVerificationResult.Failed)
+        {
+            throw new ValidationException("Choose a password different from the current one.");
+        }
+
+        admin.PasswordHash = _hasher.HashPassword(admin, newPassword);
+        admin.MustChangePassword = false;
+        await catalog.SaveChangesAsync(cancellationToken);
+        return admin;
     }
 
     /// <summary>

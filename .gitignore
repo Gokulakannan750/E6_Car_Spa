@@ -23,6 +23,7 @@ scratch/
 *.svg
 !apps/desktop/renderer/src/assets/**
 !apps/desktop/renderer/public/**
+!apps/platform-admin/public/**
 !apps/android/assets/**
 *.pdb
 *.deps.json
@@ -68,3 +69,7 @@ key.properties
 *.jks
 
 .commandcode/
+
+# Playwright output
+apps/platform-admin/test-results/
+apps/platform-admin/playwright-report/

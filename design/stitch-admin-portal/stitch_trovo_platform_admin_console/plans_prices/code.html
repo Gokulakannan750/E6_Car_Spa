@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"tertiary-container":"#00a572","on-surface-variant":"#c2c6d6","inverse-surface":"#e5e1e4","surface-alt":"#111113","tertiary-fixed":"#6ffbbe","text-muted":"#71717A","status-readonly-bg":"rgba(249, 115, 22, 0.15)","error-container":"#93000a","surface-container-low":"#1c1b1d","text-secondary":"#A1A1AA","on-secondary-fixed":"#410006","status-pastdue-bg":"rgba(245, 158, 11, 0.15)","outline-variant":"#424754","surface":"#131315","tertiary-fixed-dim":"#4edea3","on-error-container":"#ffdad6","on-error":"#690005","surface-tint":"#adc6ff","primary-hover":"#2563EB","inverse-primary":"#005ac2","status-suspended-text":"#F87171","on-primary-fixed-variant":"#004395","surface-variant":"#353437","primary":"#adc6ff","status-registration-bg":"rgba(139, 92, 246, 0.15)","outline":"#8c909f","inverse-on-surface":"#313032","tertiary":"#4edea3","border-subtle":"#27272A","status-readonly-text":"#FB923C","surface-bright":"#39393b","secondary-fixed-dim":"#ffb3b0","on-primary-fixed":"#001a42","on-tertiary-fixed":"#002113","status-canceled-bg":"rgba(113, 113, 122, 0.15)","on-background":"#e5e1e4","primary-container":"#4d8eff","surface-container-highest":"#353437","text-heading":"#FFFFFF","primary-fixed":"#d8e2ff","surface-container":"#201f22","status-canceled-text":"#A1A1AA","secondary-fixed":"#ffdad8","surface-card":"#18181B","background":"#131315","status-registration-text":"#A78BFA","secondary":"#ffb3b0","status-suspended-bg":"rgba(239, 68, 68, 0.15)","border-hairline":"rgba(255, 255, 255, 0.08)","on-tertiary":"#003824","on-surface":"#e5e1e4","surface-container-lowest":"#0e0e10","primary-fixed-dim":"#adc6ff","status-trial-bg":"rgba(59, 130, 246, 0.15)","status-pastdue-text":"#FBBF24","on-secondary-fixed-variant":"#881d24","text-primary":"#E4E4E7","on-secondary":"#670211","status-active-bg":"rgba(16, 185, 129, 0.15)","error":"#ffb4ab","surface-container-high":"#2a2a2c","on-primary":"#002e6a","on-tertiary-container":"#00311f","status-active-text":"#34D399","on-tertiary-fixed-variant":"#005236","surface-dim":"#131315","on-secondary-container":"#ff9996","on-primary-container":"#00285d","secondary-container":"#881d24","status-trial-text":"#60A5FA"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-2xl":"2rem","space-xl":"1.5rem","gutter":"1rem","space-xs":"0.375rem","space-2xs":"0.25rem","margin":"1.5rem","space-lg":"1rem","space-md":"0.75rem","gutter-mobile":"0.75rem","margin-mobile":"1rem","space-sm":"0.5rem"},"fontFamily":{"headline-lg":["Inter"],"table-header":["Inter"],"label-sm":["Inter"],"title-sm":["Inter"],"caption-micro":["Inter"],"headline-lg-mobile":["Inter"],"headline-md":["Inter"],"body-medium":["Inter"],"table-data":["Inter"],"display":["Inter"],"body-default":["Inter"]},"fontSize":{"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.02em","fontWeight":"600"}],"table-header":["12px",{"lineHeight":"16px","letterSpacing":"0.04em","fontWeight":"600"}],"label-sm":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"title-sm":["16px",{"lineHeight":"22px","letterSpacing":"-0.01em","fontWeight":"600"}],"caption-micro":["11px",{"lineHeight":"14px","letterSpacing":"0.02em","fontWeight":"500"}],"headline-lg-mobile":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"body-medium":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"500"}],"table-data":["13px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"display":["30px",{"lineHeight":"38px","letterSpacing":"-0.025em","fontWeight":"700"}],"body-default":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}]}}}};</script></head><body class="bg-surface-alt font-body-default text-text-primary min-h-screen"><aside class="fixed left-0 top-0 h-screen w-60 bg-surface-container-lowest border-r border-border-hairline z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-16 px-space-lg flex items-center gap-space-sm border-b border-border-hairline"><img alt="Trovo Logo Mark" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X3XzizDYgmVqEBr7W8587k4LQXbtKYn4UYAGL0xJYc0weiopbmlmSkL7z2uNYECn6oCGpTpJ6nAPOrIfdYwtcRY4CcvzCZuzrWh5-d_QaSmZJCi_jZAmiihKef-9e17MW302ch3lVx_P2Zs4IlRbniOYogfiO0P1LBx3T5ReJ_pSFdaPV0UlMaNQLv213pkTZdEDPgYWBShTbR0Yexk2uPxXNPExnHcTGV_wsaNJUuKA3pz0P8eXUKMNg"/><div class="flex flex-col min-w-0 leading-tight"><span class="font-title-sm text-title-sm text-text-heading tracking-tight truncate">Trovo Platform</span><span class="font-caption-micro text-caption-micro text-text-muted uppercase tracking-wider">Admin Ops</span></div></div><nav class="px-space-sm py-space-md flex flex-col gap-1" data-active-classes="bg-surface-card text-text-heading relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-[#2563EB] before:to-[#EF4444]"><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg transition-colors font-body-medium bg-surface-card text-text-heading relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-[#2563EB] before:to-[#EF4444]" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[18px]">grid_view</span><span>Dashboard</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="companies" href="#"><span class="material-symbols-outlined text-[18px]">domain</span><span>Companies</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="invoices" href="#"><span class="material-symbols-outlined text-[18px]">receipt_long</span><span>Invoices</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="plans-prices" href="#"><span class="material-symbols-outlined text-[18px]">sell</span><span>Plans &amp; Prices</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="audit-log" href="#"><span class="material-symbols-outlined text-[18px]">history_toggle_off</span><span>Audit Log</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="admins" href="#"><span class="material-symbols-outlined text-[18px]">admin_panel_settings</span><span>Admins</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="system" href="#"><span class="material-symbols-outlined text-[18px]">settings</span><span>System</span></a></nav></div><div class="p-space-sm border-t border-border-hairline flex flex-col gap-1"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors font-body-medium text-body-medium" data-path="my-account" href="#"><span class="material-symbols-outlined text-[18px]">manage_accounts</span><span>My account</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-status-suspended-text hover:bg-status-suspended-bg transition-colors font-body-medium text-body-medium" data-path="sign-in" href="#"><span class="material-symbols-outlined text-[18px]">logout</span><span>Sign out</span></a></div></aside><div class="pl-60 min-h-screen flex flex-col"><header class="fixed top-0 left-60 right-0 h-16 bg-surface-alt/90 backdrop-blur-md border-b border-border-hairline z-40 px-space-xl flex items-center justify-between"><div class="flex items-center gap-space-sm"><span class="font-label-sm text-label-sm text-text-muted">Trovo Ops</span><span class="font-label-sm text-label-sm text-text-muted">/</span><span class="font-body-medium text-body-medium text-text-heading font-medium">Operations Console</span></div><div class="flex items-center gap-space-lg"><div class="relative flex items-center"><span class="material-symbols-outlined absolute left-2.5 text-text-muted text-[16px]">search</span><input class="h-9 w-72 bg-surface-container-lowest border border-border-subtle rounded-lg pl-8 pr-10 text-body-default font-body-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary" placeholder="Search company code or name..." type="text"/><kbd class="absolute right-2 px-1.5 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-subtle select-none">⌘K</kbd></div><div class="h-4 w-px bg-border-hairline"></div><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-active-bg"><span class="w-1.5 h-1.5 rounded-full bg-status-active-text animate-pulse"></span><span class="font-caption-micro text-caption-micro text-status-active-text uppercase tracking-wide">Operational</span></div><button class="relative p-1.5 rounded-lg text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary-container"></span></button><div class="h-4 w-px bg-border-hairline"></div><div class="flex items-center gap-space-sm"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col leading-tight"><span class="font-body-medium text-body-medium text-text-heading font-medium">Vikram Malhotra</span><span class="font-caption-micro text-caption-micro text-text-muted">Owner</span></div><span class="px-2 py-0.5 rounded-full bg-primary-container/20 text-primary font-caption-micro text-caption-micro font-medium border border-primary/30">Owner</span></div></div></header><main class="flex-1 w-full pt-16 bg-surface-alt px-space-xl py-space-xl"><div class="flex flex-col w-full">
+<!-- Interactive Script to Synchronize Shell Active Navigation & Modal Controls -->
+<script>
+    (function initNavAndModals() {
+      // 1. Highlight Plans & Prices in Parent Navigation Shell
+      try {
+        const navLinks = window.parent?.document?.querySelectorAll('aside nav a') || document.querySelectorAll('aside nav a');
+        navLinks.forEach(link => {
+          if (link.getAttribute('data-path') === 'plans-prices') {
+            link.classList.add('bg-surface-card', 'text-text-heading', 'relative');
+            link.classList.remove('text-text-secondary');
+            if (!link.querySelector('.nav-active-pill')) {
+              const indicator = document.createElement('span');
+              indicator.className = 'nav-active-pill absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-gradient-to-b from-[#2563EB] to-[#EF4444]';
+              link.prepend(indicator);
+            }
+          }
+        });
+      } catch (e) {
+        /* sandbox safe */
+      }
+
+      window.openPriceModal = function(planName, monthlyVal, yearlyVal, usersVal) {
+        const modal = document.getElementById('priceVersionModal');
+        if (!modal) return;
+        const titlePlan = document.getElementById('modalPlanTitle');
+        const badgePlan = document.getElementById('modalPlanBadge');
+        const monthlyInput = document.getElementById('inputMonthly');
+        const yearlyInput = document.getElementById('inputYearly');
+        const usersInput = document.getElementById('inputUsers');
+        
+        if (titlePlan && planName) titlePlan.textContent = planName;
+        if (badgePlan && planName) badgePlan.textContent = planName;
+        if (monthlyInput && monthlyVal) monthlyInput.value = monthlyVal;
+        if (yearlyInput && yearlyVal) yearlyInput.value = yearlyVal;
+        if (usersInput && usersVal) usersInput.value = usersVal;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      };
+
+      window.closePriceModal = function() {
+        const modal = document.getElementById('priceVersionModal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+      };
+    })();
+  </script>
+<!-- Main View Container -->
+<div class="flex flex-col gap-space-xl max-w-[1560px] mx-auto w-full">
+<!-- Section 1: Page Header with Breadcrumbs Context & Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-lg">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-caption-micro text-caption-micro text-primary uppercase tracking-widest font-semibold">Tier Governance</span>
+<span class="w-1 h-1 rounded-full bg-border-subtle"></span>
+<span class="font-caption-micro text-caption-micro text-text-muted">Catalog Schema v1.4</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-text-heading tracking-tight flex items-center gap-3">
+          Plans &amp; Prices
+          <span class="px-2 py-0.5 rounded-full bg-status-active-bg text-status-active-text font-caption-micro text-caption-micro border border-status-active-text/20">
+            Catalog Synced
+          </span>
+</h1>
+<p class="font-body-default text-body-default text-text-secondary">
+          Configure subscription tiers, feature entitlements, add-on packaging, and versioned pricing contracts.
+        </p>
+</div>
+<!-- Action Cluster -->
+<div class="flex items-center gap-space-md shrink-0">
+<button class="inline-flex items-center gap-2 px-space-md h-9 rounded-lg bg-surface-container border border-border-hairline text-text-primary hover:bg-surface-variant hover:border-outline-variant font-body-medium text-body-medium transition-all duration-150" type="button">
+<span class="material-symbols-outlined text-[18px] text-text-muted">history</span>
+<span>Version Changelog</span>
+</button>
+<button class="inline-flex items-center gap-2 px-space-md h-9 rounded-lg bg-primary-container hover:bg-primary-hover text-white font-body-medium text-body-medium shadow-sm transition-all duration-150 active:scale-[0.98]" onclick="openPriceModal('Professional', '1,999', '19,990', '10')" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span>Deploy New Revision</span>
+</button>
+</div>
+</div>
+<!-- Section 2: Prominent Immutable Pricing Notice Banner -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container-low border border-primary/20 p-space-lg shadow-sm">
+<div class="absolute -right-8 -top-8 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none"></div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md relative z-10">
+<div class="flex items-start sm:items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[20px]">verified_user</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-text-heading font-medium">
+              Immutable Contract Guarantee
+            </span>
+<p class="font-body-default text-body-default text-text-secondary">
+              Changing a price creates a discrete revision. Existing subscribers remain grandfathered at their initial onboarding rate until an intentional tier switch occurs.
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-2 self-start sm:self-auto shrink-0 bg-surface-card px-3 py-1.5 rounded-lg border border-border-hairline">
+<span class="w-2 h-2 rounded-full bg-status-active-text animate-pulse"></span>
+<span class="font-caption-micro text-caption-micro text-text-primary font-medium tracking-wide">
+            Grandfathered pricing protected · v1 active since 12 Oct 2026
+          </span>
+</div>
+</div>
+</div>
+<!-- Section 3: Core Plan Cards Side-by-Side Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-space-xl">
+<!-- Plan 1: Starter -->
+<div class="relative rounded-xl bg-surface-card border border-border-hairline p-space-xl flex flex-col justify-between transition-all duration-200 hover:border-outline-variant group">
+<div>
+<!-- Card Header & Badge -->
+<div class="flex items-start justify-between gap-space-md mb-space-lg">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-caption-micro text-caption-micro text-text-muted uppercase tracking-wider font-semibold">Tier 01</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-text-secondary text-caption-micro font-caption-micro border border-border-subtle">
+                  v1 Active
+                </span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-text-heading">Starter Plan</h2>
+<span class="font-caption-micro text-caption-micro text-text-muted">Effective revision v1 · Activated 12 Oct 2026</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-border-hairline text-text-secondary">
+<span class="material-symbols-outlined text-[22px]">local_car_wash</span>
+</div>
+</div>
+<!-- Pricing Block -->
+<div class="p-space-lg rounded-xl bg-surface-alt border border-border-subtle flex flex-col sm:flex-row sm:items-baseline justify-between gap-space-sm mb-space-xl">
+<div>
+<div class="flex items-baseline gap-1.5">
+<span class="font-display text-display text-text-heading tracking-tight font-bold">₹999</span>
+<span class="font-body-default text-body-default text-text-muted">/ month</span>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted">Billed monthly recurring</span>
+</div>
+<div class="sm:text-right border-t sm:border-t-0 sm:border-l border-border-hairline pt-space-sm sm:pt-0 sm:pl-space-lg">
+<div class="flex items-center sm:justify-end gap-2">
+<span class="font-title-sm text-title-sm text-text-primary font-semibold">₹9,990</span>
+<span class="font-caption-micro text-caption-micro text-text-muted">/ yr</span>
+<span class="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary font-caption-micro text-caption-micro font-semibold border border-tertiary/30">
+                  Save ~17%
+                </span>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted block mt-0.5">Two months gratis</span>
+</div>
+</div>
+<!-- Capacity Limits -->
+<div class="flex flex-col gap-2 mb-space-xl">
+<span class="font-table-header text-table-header text-text-muted uppercase tracking-wider">Capacity Limits</span>
+<div class="grid grid-cols-2 gap-2">
+<div class="p-space-md rounded-lg bg-surface-container-low border border-border-hairline flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-secondary text-[18px]">group</span>
+<div class="flex flex-col">
+<span class="font-body-medium text-body-medium text-text-primary font-semibold leading-tight">3 Staff Users</span>
+<span class="font-caption-micro text-caption-micro text-text-muted">Included in base</span>
+</div>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-low border border-border-hairline flex items-center gap-2.5">
+<span class="material-symbols-outlined text-text-secondary text-[18px]">warehouse</span>
+<div class="flex flex-col">
+<span class="font-body-medium text-body-medium text-text-primary font-semibold leading-tight">1 Wash Bay</span>
+<span class="font-caption-micro text-caption-micro text-text-muted">Single site layout</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Feature Matrix -->
+<div class="flex flex-col gap-3 mb-space-2xl">
+<span class="font-table-header text-table-header text-text-muted uppercase tracking-wider">Entitlements</span>
+<ul class="flex flex-col gap-2.5">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">check_circle</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  WhatsApp automation <span class="text-text-muted">(standard delivery templates)</span>
+</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">check_circle</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Outside jobs dispatch &amp; billing
+                </span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">check_circle</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Staff salary ledger &amp; advance payments
+                </span>
+</li>
+<li class="flex items-start gap-2.5 opacity-40">
+<span class="material-symbols-outlined text-text-muted text-[18px] mt-0.5">cancel</span>
+<span class="font-body-default text-body-default text-text-muted line-through">
+                  Advanced financial reports &amp; bay throughput analytics
+                </span>
+</li>
+<li class="flex items-start gap-2.5 opacity-40">
+<span class="material-symbols-outlined text-text-muted text-[18px] mt-0.5">cancel</span>
+<span class="font-body-default text-body-default text-text-muted line-through">
+                  Immutable administrative audit trail (1-year retention)
+                </span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="pt-space-lg border-t border-border-hairline flex items-center justify-between">
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">CODE: TRV-TIER-01</span>
+<button class="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-surface-container hover:bg-surface-variant text-text-heading border border-border-subtle hover:border-outline-variant font-body-medium text-body-medium transition-all" onclick="openPriceModal('Starter Plan', '999', '9,990', '3')" type="button">
+<span class="material-symbols-outlined text-[16px] text-text-muted">edit_note</span>
+<span>New price version</span>
+</button>
+</div>
+</div>
+<!-- Plan 2: Professional -->
+<div class="relative rounded-xl bg-surface-card border-2 border-primary/40 p-space-xl flex flex-col justify-between shadow-lg shadow-primary/5 transition-all duration-200 group">
+<!-- Floating Highlight Pill -->
+<div class="absolute -top-3.5 right-6 px-3 py-0.5 rounded-full bg-gradient-to-r from-primary-hover to-[#EF4444] text-white font-caption-micro text-caption-micro font-bold uppercase tracking-wider shadow-md">
+          Most Popular · Recommended
+        </div>
+<div>
+<!-- Card Header & Badge -->
+<div class="flex items-start justify-between gap-space-md mb-space-lg">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-caption-micro text-caption-micro text-primary uppercase tracking-wider font-semibold">Tier 02 · Full Suite</span>
+<span class="px-2 py-0.5 rounded-full bg-status-active-bg text-status-active-text text-caption-micro font-caption-micro border border-status-active-text/25">
+                  v1 Active
+                </span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-text-heading flex items-center gap-2">
+                Professional Plan
+                <span class="material-symbols-outlined text-primary text-[20px]">stars</span>
+</h2>
+<span class="font-caption-micro text-caption-micro text-text-muted">Effective revision v1 · Activated 12 Oct 2026</span>
+</div>
+<div class="w-10 h-10 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+</div>
+</div>
+<!-- Pricing Block -->
+<div class="p-space-lg rounded-xl bg-surface-alt border border-primary/20 flex flex-col sm:flex-row sm:items-baseline justify-between gap-space-sm mb-space-xl relative overflow-hidden">
+<div class="absolute inset-y-0 left-0 w-1 bg-primary"></div>
+<div>
+<div class="flex items-baseline gap-1.5">
+<span class="font-display text-display text-text-heading tracking-tight font-bold">₹1,999</span>
+<span class="font-body-default text-body-default text-text-muted">/ month</span>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted">Billed monthly recurring</span>
+</div>
+<div class="sm:text-right border-t sm:border-t-0 sm:border-l border-border-hairline pt-space-sm sm:pt-0 sm:pl-space-lg">
+<div class="flex items-center sm:justify-end gap-2">
+<span class="font-title-sm text-title-sm text-text-primary font-semibold">₹19,990</span>
+<span class="font-caption-micro text-caption-micro text-text-muted">/ yr</span>
+<span class="px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary font-caption-micro text-caption-micro font-semibold border border-tertiary/30">
+                  Save ~17%
+                </span>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted block mt-0.5">Two months gratis</span>
+</div>
+</div>
+<!-- Capacity Limits -->
+<div class="flex flex-col gap-2 mb-space-xl">
+<span class="font-table-header text-table-header text-text-muted uppercase tracking-wider">Expanded Fleet Quotas</span>
+<div class="grid grid-cols-2 gap-2">
+<div class="p-space-md rounded-lg bg-surface-container-low border border-primary/20 flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[18px]">groups</span>
+<div class="flex flex-col">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold leading-tight">10 Staff Users</span>
+<span class="font-caption-micro text-caption-micro text-primary">High-velocity seat pack</span>
+</div>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-low border border-primary/20 flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-[18px]">domain_add</span>
+<div class="flex flex-col">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold leading-tight">Multi-Bay Matrix</span>
+<span class="font-caption-micro text-caption-micro text-primary">Dynamic bay allocation</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Feature Matrix -->
+<div class="flex flex-col gap-3 mb-space-2xl">
+<span class="font-table-header text-table-header text-text-muted uppercase tracking-wider">Full Operational Capabilities</span>
+<ul class="flex flex-col gap-2.5">
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">verified</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  WhatsApp automation <span class="text-status-active-text font-medium">(unlimited &amp; custom webhooks)</span>
+</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">verified</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Outside jobs dispatch with real-time GPS telemetry
+                </span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">verified</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Staff salary automation, deductions, advances &amp; bank exports
+                </span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">verified</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Advanced reports: Net P&amp;L, bay throughput &amp; cohort metrics
+                </span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="material-symbols-outlined text-status-active-text text-[18px] mt-0.5">verified</span>
+<span class="font-body-default text-body-default text-text-primary">
+                  Immutable administrative audit trail <span class="text-text-muted">(1-year compliance log)</span>
+</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Card Footer -->
+<div class="pt-space-lg border-t border-border-hairline flex items-center justify-between">
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">CODE: TRV-TIER-02</span>
+<button class="inline-flex items-center gap-2 px-4 h-9 rounded-lg bg-primary-container hover:bg-primary-hover text-white font-body-medium text-body-medium shadow-sm transition-all active:scale-[0.98]" onclick="openPriceModal('Professional Plan', '1,999', '19,990', '10')" type="button">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>New price version</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Section 4: Add-ons Catalog Section -->
+<div class="flex flex-col gap-space-md mt-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<div class="flex flex-col">
+<h3 class="font-headline-md text-headline-md text-text-heading flex items-center gap-2">
+<span>Modular Add-ons Catalog</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-text-secondary font-caption-micro text-caption-micro border border-border-subtle">
+              4 Active Modules
+            </span>
+</h3>
+<p class="font-body-default text-body-default text-text-secondary">
+            Modular capacity packs and enterprise extensions available for co-subscription across active tenant accounts.
+          </p>
+</div>
+<button class="inline-flex items-center gap-2 px-space-md h-9 rounded-lg bg-surface-container hover:bg-surface-variant text-text-heading border border-border-hairline font-body-medium text-body-medium self-start sm:self-auto transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">add_box</span>
+<span>New Add-on Pack</span>
+</button>
+</div>
+<!-- Add-ons Data Table Container -->
+<div class="rounded-xl bg-surface-card border border-border-hairline overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="h-9 bg-surface-alt border-b border-border-subtle">
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider w-1/4">
+                  Add-on Package
+                </th>
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider w-2/5">
+                  Entitlement Specification
+                </th>
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider text-right">
+                  Monthly Price
+                </th>
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider text-right">
+                  Yearly Price
+                </th>
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider text-center">
+                  Revision
+                </th>
+<th class="px-space-md font-table-header text-table-header text-text-muted uppercase tracking-wider text-right">
+                  Action
+                </th>
+</tr>
+</thead>
+<tbody class="divide-y divide-border-hairline">
+<!-- Row 1: Showroom B2B -->
+<tr class="h-11 hover:bg-surface-container transition-colors duration-100">
+<td class="px-space-md py-2.5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[16px]">storefront</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold truncate">Showroom / B2B module</span>
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">ADDON-B2B-EXP</span>
+</div>
+</div>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-secondary">
+                  Dealership fleet portal, vehicle intake inspection checklist &amp; B2B corporate billing flows.
+                </td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹999 <span class="text-caption-micro text-text-muted">/ mo</span>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹9,990 <span class="text-caption-micro text-text-muted">/ yr</span>
+</td>
+<td class="px-space-md py-2.5 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-hairline font-mono">
+                    v1 · 12 Oct 2026
+                  </span>
+</td>
+<td class="px-space-md py-2.5 text-right">
+<button class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-alt hover:bg-surface-variant text-text-primary border border-border-hairline font-body-medium text-caption-micro transition-colors" onclick="openPriceModal('Showroom / B2B Module', '999', '9,990', 'Unlimited')" type="button">
+<span class="material-symbols-outlined text-[14px] text-text-muted">edit</span>
+<span>New price</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: 5 Users Pack -->
+<tr class="h-11 hover:bg-surface-container transition-colors duration-100">
+<td class="px-space-md py-2.5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-tertiary/10 border border-tertiary/20 flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[16px]">person_add</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold truncate">5 more users</span>
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">ADDON-USR-05</span>
+</div>
+</div>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-secondary">
+                  Adds 5 additional staff/technician user seats to the active tenant quota pool.
+                </td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹299 <span class="text-caption-micro text-text-muted">/ mo</span>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹2,990 <span class="text-caption-micro text-text-muted">/ yr</span>
+</td>
+<td class="px-space-md py-2.5 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-hairline font-mono">
+                    v1 · 12 Oct 2026
+                  </span>
+</td>
+<td class="px-space-md py-2.5 text-right">
+<button class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-alt hover:bg-surface-variant text-text-primary border border-border-hairline font-body-medium text-caption-micro transition-colors" onclick="openPriceModal('5 More Users Pack', '299', '2,990', '5')" type="button">
+<span class="material-symbols-outlined text-[14px] text-text-muted">edit</span>
+<span>New price</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Franchise network -->
+<tr class="h-11 hover:bg-surface-container transition-colors duration-100">
+<td class="px-space-md py-2.5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-status-registration-bg border border-status-registration-text/30 flex items-center justify-center text-status-registration-text shrink-0">
+<span class="material-symbols-outlined text-[16px]">hub</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold truncate">Franchise network</span>
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">ADDON-FRAN-HQ</span>
+</div>
+</div>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-secondary">
+                  Centralized HQ multi-tenant master view, global aggregate reports &amp; unified inventory catalog.
+                </td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹2,999 <span class="text-caption-micro text-text-muted">/ mo</span>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹29,990 <span class="text-caption-micro text-text-muted">/ yr</span>
+</td>
+<td class="px-space-md py-2.5 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-hairline font-mono">
+                    v1 · 12 Oct 2026
+                  </span>
+</td>
+<td class="px-space-md py-2.5 text-right">
+<button class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-alt hover:bg-surface-variant text-text-primary border border-border-hairline font-body-medium text-caption-micro transition-colors" onclick="openPriceModal('Franchise Network HQ', '2,999', '29,990', 'Global')" type="button">
+<span class="material-symbols-outlined text-[14px] text-text-muted">edit</span>
+<span>New price</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: 10 more franchise branches -->
+<tr class="h-11 hover:bg-surface-container transition-colors duration-100">
+<td class="px-space-md py-2.5">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded bg-status-readonly-bg border border-status-readonly-text/30 flex items-center justify-center text-status-readonly-text shrink-0">
+<span class="material-symbols-outlined text-[16px]">share_location</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-body-medium text-body-medium text-text-heading font-semibold truncate">10 more franchise branches</span>
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">ADDON-FRAN-EXP10</span>
+</div>
+</div>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-secondary">
+                  Expands franchise network master license capacity by 10 additional connected physical car spa sites.
+                </td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹1,499 <span class="text-caption-micro text-text-muted">/ mo</span>
+</td>
+<td class="px-space-md py-2.5 font-table-data text-table-data text-text-heading text-right font-mono font-medium">
+                  ₹14,990 <span class="text-caption-micro text-text-muted">/ yr</span>
+</td>
+<td class="px-space-md py-2.5 text-center">
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-container text-caption-micro font-caption-micro text-text-muted border border-border-hairline font-mono">
+                    v1 · 12 Oct 2026
+                  </span>
+</td>
+<td class="px-space-md py-2.5 text-right">
+<button class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-alt hover:bg-surface-variant text-text-primary border border-border-hairline font-body-medium text-caption-micro transition-colors" onclick="openPriceModal('10 Franchise Branches Pack', '1,499', '14,990', '10 Sites')" type="button">
+<span class="material-symbols-outlined text-[14px] text-text-muted">edit</span>
+<span>New price</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Summary Ribbon -->
+<div class="h-9 px-space-md bg-surface-alt border-t border-border-hairline flex items-center justify-between">
+<span class="font-caption-micro text-caption-micro text-text-muted">
+            All prices subject to GST (18%) at point of checkout.
+          </span>
+<span class="font-caption-micro text-caption-micro text-text-muted font-mono">
+            4 / 4 modules published
+          </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 5: Modal Dialog ("New price version") -->
+<!-- Rendered natively in open state with semi-transparent backdrop -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-[3px] transition-opacity" id="priceVersionModal">
+<div class="relative w-full max-w-2xl bg-surface-card border border-border-hairline rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] flex flex-col max-h-[92vh] overflow-hidden">
+<!-- Modal Header -->
+<div class="px-space-xl py-space-lg bg-surface-container-low border-b border-border-hairline flex items-start justify-between">
+<div class="flex flex-col gap-1 pr-6">
+<div class="flex items-center gap-2">
+<h3 class="font-headline-md text-headline-md text-text-heading">New Price Version</h3>
+<span class="px-2 py-0.5 rounded bg-primary/10 text-primary text-caption-micro font-caption-micro border border-primary/25 font-semibold" id="modalPlanBadge">
+              Professional Plan
+            </span>
+</div>
+<p class="font-body-default text-body-default text-text-secondary text-sm">
+            Publishing a new revision for <strong class="text-text-heading font-medium" id="modalPlanTitle">Professional Plan</strong>. Current customer fleets stay locked on v1 contracts until explicit upgrade.
+          </p>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-variant text-text-muted hover:text-text-primary flex items-center justify-center transition-colors" onclick="closePriceModal()" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable form) -->
+<div class="p-space-xl overflow-y-auto space-y-space-lg">
+<!-- Target Tier Context Pill -->
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-alt border border-border-hairline">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+<span class="font-body-medium text-body-medium text-text-primary">Target Tier Contract</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-caption-micro text-caption-micro text-text-muted">Previous Active:</span>
+<span class="font-caption-micro text-caption-micro text-text-heading bg-surface-container px-2 py-0.5 rounded border border-border-subtle font-mono">
+              v1 (12 Oct 2026)
+            </span>
+</div>
+</div>
+<!-- Pricing Grid (Monthly & Yearly) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<!-- Monthly Price -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary flex justify-between">
+<span>Monthly Recurring Price</span>
+<span class="text-caption-micro text-text-muted font-mono">Current: ₹1,999</span>
+</label>
+<div class="relative flex items-center">
+<span class="absolute left-3 text-text-muted font-body-medium">₹</span>
+<input class="h-9 w-full bg-surface-alt border border-border-subtle rounded-lg pl-7 pr-3 text-body-medium font-body-medium text-text-heading font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="inputMonthly" type="text" value="1,999"/>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted">Billed on the 1st of every calendar cycle</span>
+</div>
+<!-- Yearly Price -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary flex justify-between">
+<span>Annual Contract Price</span>
+<span class="text-caption-micro text-text-muted font-mono">Current: ₹19,990</span>
+</label>
+<div class="relative flex items-center">
+<span class="absolute left-3 text-text-muted font-body-medium">₹</span>
+<input class="h-9 w-full bg-surface-alt border border-border-subtle rounded-lg pl-7 pr-3 text-body-medium font-body-medium text-text-heading font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="inputYearly" type="text" value="19,990"/>
+</div>
+<span class="font-caption-micro text-caption-micro text-tertiary">Recommended annual discount ~17% applied</span>
+</div>
+</div>
+<!-- Included Seat Quota -->
+<div class="flex flex-col gap-1.5">
+<label class="font-label-sm text-label-sm text-text-secondary flex justify-between">
+<span>Included Staff User Seats</span>
+<span class="text-caption-micro text-text-muted">Quota per company account</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-2.5 text-text-muted text-[16px]">group</span>
+<input class="h-9 w-full bg-surface-alt border border-border-subtle rounded-lg pl-8 pr-3 text-body-medium font-body-medium text-text-heading font-mono focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" id="inputUsers" type="number" value="10"/>
+</div>
+<span class="font-caption-micro text-caption-micro text-text-muted">Extra users beyond this baseline require the '5 more users' add-on pack</span>
+</div>
+<!-- Entitlement Feature Toggles -->
+<div class="flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-text-secondary">Entitlement Capabilities</span>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+<label class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-alt border border-border-hairline cursor-pointer hover:border-outline-variant">
+<input checked="" class="w-4 h-4 rounded bg-surface-card border-border-subtle text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="font-body-default text-body-default text-text-primary">WhatsApp automation</span>
+</label>
+<label class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-alt border border-border-hairline cursor-pointer hover:border-outline-variant">
+<input checked="" class="w-4 h-4 rounded bg-surface-card border-border-subtle text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="font-body-default text-body-default text-text-primary">Outside jobs dispatch</span>
+</label>
+<label class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-alt border border-border-hairline cursor-pointer hover:border-outline-variant">
+<input checked="" class="w-4 h-4 rounded bg-surface-card border-border-subtle text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="font-body-default text-body-default text-text-primary">Staff advances &amp; payroll</span>
+</label>
+<label class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-alt border border-border-hairline cursor-pointer hover:border-outline-variant">
+<input checked="" class="w-4 h-4 rounded bg-surface-card border-border-subtle text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="font-body-default text-body-default text-text-primary">Advanced financial reports</span>
+</label>
+<label class="flex items-center gap-2.5 p-2 rounded-lg bg-surface-alt border border-border-hairline cursor-pointer hover:border-outline-variant sm:col-span-2">
+<input checked="" class="w-4 h-4 rounded bg-surface-card border-border-subtle text-primary focus:ring-0 focus:ring-offset-0" type="checkbox"/>
+<span class="font-body-default text-body-default text-text-primary">Immutable admin audit trail &amp; export logs</span>
+</label>
+</div>
+</div>
+<!-- Mandatory Revision Rationale / Justification -->
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<label class="font-label-sm text-label-sm text-text-heading flex items-center gap-1.5">
+<span>Reason for price change</span>
+<span class="px-1.5 py-0.5 rounded bg-error-container/40 text-error text-[10px] font-semibold uppercase">Required</span>
+</label>
+<span class="font-caption-micro text-caption-micro text-text-muted">Audit-tracked</span>
+</div>
+<textarea class="w-full bg-surface-alt border border-border-subtle rounded-lg p-2.5 text-body-default font-body-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" rows="2">2027 fiscal pricing calibration and expanded automated webhook compute limits.</textarea>
+<span class="font-caption-micro text-caption-micro text-text-muted">
+            This justification is permanently inscribed into the Trovo Audit Log and rendered on client upgrade notes.
+          </span>
+</div>
+<!-- Version Preview Bar -->
+<div class="p-3 rounded-lg bg-surface-container border border-primary/25 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">new_releases</span>
+<span class="font-body-medium text-body-medium text-text-primary">Staged Version Output</span>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary/20 text-primary font-caption-micro text-caption-micro font-mono font-bold border border-primary/30">
+            Will be published as Version: v2
+          </span>
+</div>
+</div>
+<!-- Modal Footer -->
+<div class="px-space-xl py-space-md bg-surface-container-low border-t border-border-hairline flex items-center justify-between">
+<button class="px-4 h-9 rounded-lg border border-border-subtle text-text-secondary hover:bg-surface-container hover:text-text-primary font-body-medium text-body-medium transition-colors" onclick="closePriceModal()" type="button">
+          Cancel
+        </button>
+<div class="flex items-center gap-2">
+<button class="px-4 h-9 rounded-lg bg-surface-container hover:bg-surface-variant text-text-primary border border-border-hairline font-body-medium text-body-medium transition-colors" onclick="closePriceModal()" type="button">
+            Save as Draft
+          </button>
+<button class="px-5 h-9 rounded-lg bg-gradient-to-r from-[#2563EB] to-[#EF4444] hover:opacity-95 text-white font-body-medium text-body-medium font-semibold shadow-md transition-all active:scale-[0.98]" onclick="closePriceModal()" type="button">
+            Publish New Version
+          </button>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

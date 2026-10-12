@@ -45,6 +45,7 @@ public sealed class PlatformApiHost : IAsyncLifetime
             b.UseSetting("Jwt:Key", "company-http-test-signing-key-at-least-32-chars");
             b.UseSetting("Platform:Jwt:Key", "platform-http-test-signing-key-at-least-32-chars");
             b.UseSetting("WhatsApp:EncryptionKey", "platform-http-test-encryption-key-32-chars!!");
+            b.UseSetting("Platform:AdminPortalOrigin", "https://admin.trovo.test");
         });
         Client = _factory.CreateClient();
         return Task.CompletedTask;
@@ -101,6 +102,9 @@ public sealed class PlatformApiHost : IAsyncLifetime
         return await InScopeAsync(async sp =>
         {
             var (admin, _) = await sp.GetRequiredService<PlatformAdminService>().CreateAsync($"{role}-{Guid.NewGuid():N}@trovo.test", role.ToString(), role);
+            // An admin who has already replaced the one-time password.
+            admin.MustChangePassword = false;
+            await sp.GetRequiredService<PlatformDbContext>().SaveChangesAsync();
             return sp.GetRequiredService<PlatformTokenService>().CreateAccessToken(admin);
         });
     }
@@ -152,7 +156,16 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
         var verify = await host.SendAsync(HttpMethod.Post, "/api/platform/auth/verify", null,
             new { challengeToken = challenge, code = Totp.CodeAt(secret, DateTime.UtcNow) });
         Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
-        var token = (await Json(verify)).GetProperty("token").GetString()!;
+        var firstSession = await Json(verify);
+        Assert.True(firstSession.GetProperty("admin").GetProperty("mustChangePassword").GetBoolean());
+
+        // With the one-time password, choosing a new password comes first.
+        var limited = firstSession.GetProperty("token").GetString()!;
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Get, "/api/platform/dashboard", limited)).StatusCode);
+        var changed = await host.SendAsync(HttpMethod.Post, "/api/platform/auth/change-password", limited,
+            new { currentPassword = password, newPassword = "Trovo#Platform2026", confirmPassword = "Trovo#Platform2026" });
+        Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+        var token = (await Json(changed)).GetProperty("token").GetString()!;
 
         Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Get, "/api/platform/dashboard", token)).StatusCode);
         var me = await Json(await host.SendAsync(HttpMethod.Get, "/api/platform/auth/me", token));

@@ -68,6 +68,16 @@ public class PlatformOptions
 
     /// <summary>Whether Trovo charges GST on new invoices.</summary>
     public bool ChargesGst => !string.IsNullOrWhiteSpace(Gstin);
+
+    // ── Trovo's details on its invoices, and the admin portal ────────────────────
+
+    public string SellerName { get; set; } = "Trovo Tech Solutions";
+    public string SellerAddress { get; set; } = "37, Gokul Illam, 2 Velampalayam, Erode, Tamil Nadu 638112, India";
+    public string SellerPhone { get; set; } = "+91 90426 72148";
+    public string SellerEmail { get; set; } = "info@trovotechsolutions.in";
+
+    /// <summary>The admin portal's address (e.g. https://admin.trovotechsolutions.in), allowed to call the API (CORS).</summary>
+    public string? AdminPortalOrigin { get; set; }
 }
 
 /// <summary>

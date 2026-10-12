@@ -46,7 +46,7 @@ public static class PlatformCommandLine
                     var (admin, password) = await admins.CreateAsync(positional[1], positional[2], role);
                     Console.WriteLine($"Administrator created: {admin.Email} ({admin.Role})");
                     Console.WriteLine($"  One-time password: {password}");
-                    Console.WriteLine("At the first sign-in to the admin portal they set up 2-step verification with an authenticator app.");
+                    Console.WriteLine("At the first sign-in to the admin portal they choose a new password and set up 2-step verification with an authenticator app.");
                     return 0;
                 }
 
