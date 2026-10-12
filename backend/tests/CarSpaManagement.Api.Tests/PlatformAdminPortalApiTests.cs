@@ -20,6 +20,20 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
         host.InScopeAsync(sp => sp.GetRequiredService<PlatformAdminService>()
             .CreateAsync($"{role}-{Guid.NewGuid():N}@trovo.test", $"{role} admin", role));
 
+    /// <summary>An admin past the first sign-in (own password set), in the database as well as in memory.</summary>
+    private async Task<PlatformAdmin> ReadyAdminAsync(PlatformAdminRole role)
+    {
+        var (admin, _) = await NewAdminAsync(role);
+        await host.InScopeAsync(async sp =>
+        {
+            var catalog = sp.GetRequiredService<PlatformDbContext>();
+            (await catalog.Admins.SingleAsync(a => a.Id == admin.Id)).MustChangePassword = false;
+            return await catalog.SaveChangesAsync();
+        });
+        admin.MustChangePassword = false;
+        return admin;
+    }
+
     private Task<string> TokenAsync(PlatformAdmin admin) =>
         host.InScopeAsync(sp => Task.FromResult(sp.GetRequiredService<PlatformTokenService>().CreateAccessToken(admin)));
 
@@ -56,17 +70,9 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
     [PostgresFact]
     public async Task OnlyOwners_ManageAdmins_AndANewAdminGetsAOneTimePasswordOnce()
     {
-        var (owner, _) = await NewAdminAsync(PlatformAdminRole.Owner);
-        await host.InScopeAsync(async sp =>
-        {
-            var catalog = sp.GetRequiredService<PlatformDbContext>();
-            (await catalog.Admins.SingleAsync(a => a.Id == owner.Id)).MustChangePassword = false;
-            return await catalog.SaveChangesAsync();
-        });
-        owner.MustChangePassword = false;
+        var owner = await ReadyAdminAsync(PlatformAdminRole.Owner);
         var ownerToken = await TokenAsync(owner);
-        var (billing, _) = await NewAdminAsync(PlatformAdminRole.Billing);
-        billing.MustChangePassword = false;
+        var billing = await ReadyAdminAsync(PlatformAdminRole.Billing);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Get, "/api/platform/admins", await TokenAsync(billing))).StatusCode);
 
@@ -101,8 +107,7 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
     [PostgresFact]
     public async Task Invoices_AreListedAcrossCompanies_AndOneOpensWithTrovosDetailsForPrinting()
     {
-        var (billingAdmin, _) = await NewAdminAsync(PlatformAdminRole.Billing);
-        billingAdmin.MustChangePassword = false;
+        var billingAdmin = await ReadyAdminAsync(PlatformAdminRole.Billing);
         var token = await TokenAsync(billingAdmin);
         var (company, _) = await host.RegisteredCompanyAsync("Invoice List Co",
             new CompanyPlan("professional", BillingInterval.Month, new Dictionary<string, int> { ["showroom"] = 1 }, DateTime.UtcNow.AddMonths(1)));
@@ -131,6 +136,37 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
         Assert.Equal("Invoice", detail.GetProperty("invoice").GetProperty("title").GetString());
         Assert.Equal(2, detail.GetProperty("invoice").GetProperty("lines").GetArrayLength());
         Assert.Equal(company.Code, detail.GetProperty("companyCode").GetString());
+    }
+
+    [PostgresFact]
+    public async Task ASession_StopsWorking_WhenItsAdminIsSwitchedOff_ChangesRole_OrIsReset()
+    {
+        var owner = await ReadyAdminAsync(PlatformAdminRole.Owner);
+        var ownerToken = await TokenAsync(owner);
+
+        async Task<HttpStatusCode> DashboardWith(string token) =>
+            (await host.SendAsync(HttpMethod.Get, "/api/platform/dashboard", token)).StatusCode;
+
+        var switchedOff = await ReadyAdminAsync(PlatformAdminRole.Support);
+        var switchedOffToken = await TokenAsync(switchedOff);
+        Assert.Equal(HttpStatusCode.OK, await DashboardWith(switchedOffToken));
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Put, $"/api/platform/admins/{switchedOff.Id}", ownerToken,
+            new { isActive = false, reason = "Left Trovo" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await DashboardWith(switchedOffToken));
+
+        var demoted = await ReadyAdminAsync(PlatformAdminRole.Billing);
+        var demotedToken = await TokenAsync(demoted);
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Put, $"/api/platform/admins/{demoted.Id}", ownerToken,
+            new { role = "ReadOnly", reason = "Moved to support desk" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await DashboardWith(demotedToken));
+
+        var reset = await ReadyAdminAsync(PlatformAdminRole.Support);
+        var resetToken = await TokenAsync(reset);
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Post, $"/api/platform/admins/{reset.Id}/reset", ownerToken,
+            new { reason = "Lost phone" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await DashboardWith(resetToken));
+
+        Assert.Equal(HttpStatusCode.OK, await DashboardWith(ownerToken));
     }
 
     [PostgresFact]

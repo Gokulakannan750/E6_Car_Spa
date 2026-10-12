@@ -232,6 +232,16 @@ if (platformEnabled)
 			options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
 			options.MapInboundClaims = false;
 			options.TokenValidationParameters = CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.AccessValidation(builder.Configuration);
+			options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+			{
+				OnTokenValidated = async context =>
+				{
+					var catalog = context.HttpContext.RequestServices.GetRequiredService<CarSpaManagement.Api.Infrastructure.Platform.PlatformDbContext>();
+					var reason = await CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService.RejectionReasonAsync(
+						context.Principal!, catalog, context.HttpContext.RequestAborted);
+					if (reason is not null) context.Fail(reason);
+				}
+			};
 		});
 	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformTokenService>();
 	builder.Services.AddScoped<CarSpaManagement.Api.Infrastructure.Platform.PlatformAuditService>();

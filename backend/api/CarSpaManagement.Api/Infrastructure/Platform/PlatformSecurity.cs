@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using CarSpaManagement.Api.Domain.Platform;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 namespace CarSpaManagement.Api.Infrastructure.Platform;
@@ -49,6 +50,23 @@ public sealed class PlatformTokenService(IConfiguration configuration)
         RoleClaimType = ClaimTypes.Role,
         NameClaimType = ClaimTypes.Email
     };
+
+    /// <summary>
+    /// Checked on every platform request: a token stops working as soon as its admin is switched off, changes role or
+    /// has their sign-in reset, instead of lasting until it expires.
+    /// </summary>
+    public static async Task<string?> RejectionReasonAsync(ClaimsPrincipal principal, PlatformDbContext catalog, CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId)) return "Invalid session.";
+        var admin = await catalog.Admins.AsNoTracking()
+            .Where(a => a.Id == adminId)
+            .Select(a => new { a.IsActive, a.Role, a.MustChangePassword })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (admin is null || !admin.IsActive) return "This administrator account is switched off.";
+        if (admin.Role.ToString() != principal.FindFirstValue(ClaimTypes.Role)) return "Your role changed. Please sign in again.";
+        if (admin.MustChangePassword && principal.FindFirstValue(PasswordChangeClaim) != "required") return "Your sign-in was reset. Please sign in again.";
+        return null;
+    }
 
     public string CreateAccessToken(PlatformAdmin admin) => Create(AccessAudience, AccessLifetime,
     [
