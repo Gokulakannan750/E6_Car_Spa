@@ -1,8 +1,8 @@
-using System.IO.Compression;
 using System.Text;
 using CarSpaManagement.Api.Application.Services;
 using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Enums;
+using UglyToad.PdfPig;
 using Xunit;
 
 namespace CarSpaManagement.Api.Tests;
@@ -71,149 +71,21 @@ public class InvoicePdfGeneratorTests
         return invoice;
     }
 
+    /// <summary>
+    /// Reads the visible text of the PDF with PdfPig, which decodes any embedded font. The PDF uses
+    /// whatever font the machine has (Arial on Windows, a fallback on Linux CI), so the tests must not
+    /// depend on how one particular font encodes its glyphs.
+    /// </summary>
     private static string ExtractAllText(byte[] pdfBytes)
     {
-        var rawString = Encoding.UTF8.GetString(pdfBytes);
-        var decompressedStreams = new List<string>();
-
-        // Decompress FlateDecode/ZLib streams
-        var streamStartTag = Encoding.ASCII.GetBytes("stream\n");
-        var streamStartTagCrlf = Encoding.ASCII.GetBytes("stream\r\n");
-        var streamEndTag = Encoding.ASCII.GetBytes("endstream");
-
-        int pos = 0;
-        while (pos < pdfBytes.Length)
-        {
-            var idx = IndexOf(pdfBytes, streamStartTag, pos);
-            var tagLen = streamStartTag.Length;
-            if (idx == -1)
-            {
-                idx = IndexOf(pdfBytes, streamStartTagCrlf, pos);
-                tagLen = streamStartTagCrlf.Length;
-            }
-            if (idx == -1) break;
-
-            var start = idx + tagLen;
-            var end = IndexOf(pdfBytes, streamEndTag, start);
-            if (end == -1) break;
-
-            var streamBytes = new byte[end - start];
-            Array.Copy(pdfBytes, start, streamBytes, 0, streamBytes.Length);
-
-            try
-            {
-                var len = streamBytes.Length;
-                while (len > 0 && (streamBytes[len - 1] == (byte)'\r' || streamBytes[len - 1] == (byte)'\n'))
-                {
-                    len--;
-                }
-                var cleanBytes = new byte[len];
-                Array.Copy(streamBytes, 0, cleanBytes, 0, len);
-
-                using var ms = new MemoryStream(cleanBytes);
-                if (cleanBytes.Length > 2 && cleanBytes[0] == 0x78)
-                {
-                    using var zlib = new ZLibStream(ms, CompressionMode.Decompress);
-                    using var reader = new StreamReader(zlib, Encoding.UTF8);
-                    decompressedStreams.Add(reader.ReadToEnd());
-                }
-                else
-                {
-                    using var deflate = new DeflateStream(ms, CompressionMode.Decompress);
-                    using var reader = new StreamReader(deflate, Encoding.UTF8);
-                    decompressedStreams.Add(reader.ReadToEnd());
-                }
-            }
-            catch { }
-
-            pos = end + streamEndTag.Length;
-        }
-
-        // Build list of CMaps from each ToUnicode stream
-        var cmaps = new List<Dictionary<int, string>>();
-        foreach (var stream in decompressedStreams)
-        {
-            if (stream.Contains("begincmap") || stream.Contains("beginbfchar") || stream.Contains("beginbfrange"))
-            {
-                var fontCmap = new Dictionary<int, string>();
-                var charMatches = System.Text.RegularExpressions.Regex.Matches(stream, @"<([0-9a-fA-F]+)>\s+<([0-9a-fA-F]+)>");
-                foreach (System.Text.RegularExpressions.Match m in charMatches)
-                {
-                    var src = Convert.ToInt32(m.Groups[1].Value, 16);
-                    var dst = Convert.ToInt32(m.Groups[2].Value, 16);
-                    fontCmap[src] = ((char)dst).ToString();
-                }
-
-                var rangeMatches = System.Text.RegularExpressions.Regex.Matches(stream, @"<([0-9a-fA-F]+)>\s+<([0-9a-fA-F]+)>\s+<([0-9a-fA-F]+)>");
-                foreach (System.Text.RegularExpressions.Match m in rangeMatches)
-                {
-                    var startGid = Convert.ToInt32(m.Groups[1].Value, 16);
-                    var endGid = Convert.ToInt32(m.Groups[2].Value, 16);
-                    var dstStart = Convert.ToInt32(m.Groups[3].Value, 16);
-                    for (int i = 0; i <= endGid - startGid; i++)
-                    {
-                        fontCmap[startGid + i] = ((char)(dstStart + i)).ToString();
-                    }
-                }
-
-                if (fontCmap.Count > 0)
-                {
-                    cmaps.Add(fontCmap);
-                }
-            }
-        }
-
+        using var document = PdfDocument.Open(pdfBytes);
         var sb = new StringBuilder();
-        sb.AppendLine(rawString);
-
-        // Decode hex glyphs in content streams using all font CMaps
-        foreach (var stream in decompressedStreams)
+        foreach (var page in document.GetPages())
         {
-            sb.AppendLine(stream);
-
-            foreach (var cmap in cmaps)
-            {
-                var hexTokens = System.Text.RegularExpressions.Regex.Matches(stream, @"<([0-9a-fA-F]{4,})>");
-                var unspaced = new StringBuilder();
-                var spaced = new StringBuilder();
-                foreach (System.Text.RegularExpressions.Match m in hexTokens)
-                {
-                    var hex = m.Groups[1].Value;
-                    for (int i = 0; i + 4 <= hex.Length; i += 4)
-                    {
-                        var gid = Convert.ToInt32(hex.Substring(i, 4), 16);
-                        if (cmap.TryGetValue(gid, out var ch))
-                        {
-                            unspaced.Append(ch);
-                            spaced.Append(ch);
-                        }
-                    }
-                    spaced.Append(' ');
-                }
-                sb.AppendLine(unspaced.ToString());
-                sb.AppendLine(spaced.ToString());
-            }
+            sb.AppendLine(page.Text);
+            sb.AppendLine(string.Join(" ", page.GetWords().Select(w => w.Text)));
         }
-
         return sb.ToString();
-    }
-
-    private static int IndexOf(byte[] haystack, byte[] needle, int start)
-    {
-        for (int i = start; i <= haystack.Length - needle.Length; i++)
-        {
-            bool match = true;
-            for (int j = 0; j < needle.Length; j++)
-            {
-                if (haystack[i + j] != needle[j])
-                {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) return i;
-        }
-        return -1;
     }
 
     [Fact]
