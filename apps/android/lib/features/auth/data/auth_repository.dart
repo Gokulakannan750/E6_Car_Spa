@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/api_exception.dart';
 import '../models/auth_user.dart';
 import '../models/bootstrap_owner_request.dart';
+import '../models/register_company_request.dart';
 import '../models/login_request.dart';
 import 'auth_api.dart';
 import 'auth_token_storage.dart';
@@ -16,12 +17,29 @@ class AuthRepository {
   final AuthApi _api;
   final AuthTokenStorage _storage;
 
-  const AuthRepository(this._api, this._storage);
+  AuthRepository(this._api, this._storage);
+
+  bool _companyRegistration = false;
+
+  /// Whether the last status check found Trovo's platform, where new companies
+  /// register with the codes Trovo gives them. False until a check succeeds.
+  bool get companyRegistration => _companyRegistration;
 
   /// Checks whether backend is initialized with an Owner against GET /api/auth/status
   Future<bool> checkInitialization() async {
     final status = await _api.getAuthStatus();
+    _companyRegistration = status.companyRegistration;
     return status.initialized;
+  }
+
+  /// Registers a company with its codes; the company code is remembered on
+  /// this device so sign-in is prefilled.
+  Future<String> registerCompany(RegisterCompanyRequest request) async {
+    final companyCode = await _api.registerCompany(request);
+    if (companyCode.isNotEmpty) {
+      await _storage.saveCompanyCode(companyCode);
+    }
+    return companyCode;
   }
 
   /// Bootstraps initial Owner account against POST /api/auth/bootstrap

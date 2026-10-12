@@ -6,6 +6,7 @@ import '../models/auth_status_response.dart';
 import '../models/auth_user.dart';
 import '../models/bootstrap_owner_request.dart';
 import '../models/login_request.dart';
+import '../models/register_company_request.dart';
 import '../models/login_response.dart';
 
 final authApiProvider = Provider<AuthApi>((ref) {
@@ -54,6 +55,27 @@ class AuthApi {
       }
       throw const ApiException(
         message: 'Invalid response format from bootstrap API.',
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// Registers a company Trovo created, with its codes, against
+  /// POST /api/auth/register. Returns the company code.
+  Future<String> registerCompany(RegisterCompanyRequest request) async {
+    try {
+      final response = await _dio.post(
+        '/auth/register',
+        data: request.toJson(),
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        final json = response.data as Map<String, dynamic>;
+        return json['companyCode'] as String? ?? request.companyCode;
+      }
+      throw const ApiException(
+        message: 'Invalid response format from registration API.',
       );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);

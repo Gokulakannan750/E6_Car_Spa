@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/routes.dart';
 import '../../features/auth/presentation/pages/first_time_setup_screen.dart';
 import '../../features/auth/presentation/pages/login_screen.dart';
+import '../../features/auth/presentation/pages/register_company_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/auth/providers/auth_state.dart';
 import '../../features/billing/presentation/pages/billing_screen.dart';
@@ -53,7 +54,8 @@ class RouterNotifier extends ChangeNotifier {
     final isAuthRoute =
         location == AppRoutes.login ||
         location == AppRoutes.forgotPassword ||
-        location == AppRoutes.firstTimeSetup;
+        location == AppRoutes.firstTimeSetup ||
+        location == AppRoutes.registerCompany;
 
     // During initial session check, keep on current route or don't redirect yet
     if (authState is AuthInitial) {
@@ -107,6 +109,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.firstTimeSetup,
         builder: (context, state) => const FirstTimeSetupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.registerCompany,
+        builder: (context, state) => const RegisterCompanyScreen(),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
