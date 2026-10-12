@@ -445,6 +445,9 @@ public class PlatformAdmin
 
     public bool TotpConfirmed { get; set; }
 
+    /// <summary>Set for a one-time password (new admin or reset): the admin must choose a new password before anything else.</summary>
+    public bool MustChangePassword { get; set; }
+
     public PlatformAdminRole Role { get; set; }
     public bool IsActive { get; set; } = true;
     public int FailedSignInAttempts { get; set; }

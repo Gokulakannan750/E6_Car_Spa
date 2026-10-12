@@ -56,8 +56,12 @@ public sealed class PlatformTokenService(IConfiguration configuration)
         new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()),
         new Claim(ClaimTypes.Email, admin.Email),
         new Claim(ClaimTypes.Name, admin.Name),
-        new Claim(ClaimTypes.Role, admin.Role.ToString())
+        new Claim(ClaimTypes.Role, admin.Role.ToString()),
+        .. admin.MustChangePassword ? [new Claim(PasswordChangeClaim, "required")] : Array.Empty<Claim>()
     ]);
+
+    /// <summary>On a token issued while the admin still has a one-time password: only changing it is allowed.</summary>
+    public const string PasswordChangeClaim = "pwd_change";
 
     /// <summary>A short-lived token between the password step and the authenticator-code step. Not an access token.</summary>
     public string CreateChallengeToken(Guid adminId) => Create(ChallengeAudience, ChallengeLifetime,
@@ -131,5 +135,34 @@ public sealed class PlatformAuditService(PlatformDbContext catalog, IHttpContext
             CreatedAt = DateTime.UtcNow
         });
         await catalog.SaveChangesAsync(cancellationToken);
+    }
+}
+
+/// <summary>The endpoint stays usable while the admin must still change a one-time password.</summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public sealed class AllowedBeforePasswordChangeAttribute : Attribute;
+
+/// <summary>
+/// An admin signed in with a one-time password can only change it (and read who they are); every other platform
+/// endpoint answers 403 PASSWORD_CHANGE_REQUIRED until then.
+/// </summary>
+public sealed class PlatformPasswordChangeFilter : Microsoft.AspNetCore.Mvc.Filters.IAsyncActionFilter
+{
+    public async Task OnActionExecutionAsync(Microsoft.AspNetCore.Mvc.Filters.ActionExecutingContext context,
+        Microsoft.AspNetCore.Mvc.Filters.ActionExecutionDelegate next)
+    {
+        var mustChange = context.HttpContext.User.FindFirst(PlatformTokenService.PasswordChangeClaim)?.Value == "required";
+        var allowed = context.ActionDescriptor.EndpointMetadata.OfType<AllowedBeforePasswordChangeAttribute>().Any();
+        if (mustChange && !allowed)
+        {
+            context.Result = new Microsoft.AspNetCore.Mvc.ObjectResult(new
+            {
+                error = "Choose a new password before continuing.",
+                code = "PASSWORD_CHANGE_REQUIRED"
+            })
+            { StatusCode = StatusCodes.Status403Forbidden };
+            return;
+        }
+        await next();
     }
 }

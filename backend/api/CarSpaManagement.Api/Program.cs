@@ -77,6 +77,8 @@ builder.Services.AddControllers(options =>
 {
 	// Endpoints whose permission belongs to a module outside the company's plan are refused (Trovo's platform).
 	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlanFeatureFilter>();
+	// A platform admin with a one-time password may only change it.
+	options.Filters.Add<CarSpaManagement.Api.Infrastructure.Platform.PlatformPasswordChangeFilter>();
 }).ConfigureApplicationPartManager(manager =>
 {
 	// Without the platform, the /api/platform controllers are not part of the API at all.
@@ -369,6 +371,11 @@ builder.Services.AddCors(options =>
  options.AddPolicy("Production", policy =>
  {
  var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+ // Trovo's admin portal is its own website; on the platform its address may call the API too.
+ if (platformEnabled && builder.Configuration["Platform:AdminPortalOrigin"] is { Length: > 0 } adminPortal)
+ {
+ 	origins = [.. origins, adminPortal.TrimEnd('/')];
+ }
  policy.WithOrigins(origins)
  .AllowAnyMethod()
  .AllowAnyHeader()

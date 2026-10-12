@@ -13,7 +13,8 @@ public sealed record PlatformVerifyRequest(string ChallengeToken, string Code);
 /// <summary>Step 1 result: always continue with an authenticator code; first time, set up the authenticator.</summary>
 public sealed record PlatformLoginResponse(string Stage, string ChallengeToken, string? TotpSecret, string? AuthenticatorUri);
 
-public sealed record PlatformAdminDto(Guid Id, string Email, string Name, string Role);
+public sealed record PlatformAdminDto(Guid Id, string Email, string Name, string Role, bool MustChangePassword = false);
+public sealed record PlatformChangePasswordRequest(string CurrentPassword, string NewPassword, string ConfirmPassword);
 public sealed record PlatformSessionResponse(string Token, DateTime ExpiresAt, PlatformAdminDto Admin);
 
 /// <summary>Sign-in for Trovo's platform administrators: email and password, then an authenticator code (always).</summary>
@@ -66,7 +67,7 @@ public class PlatformAuthController(PlatformAdminService admins, PlatformTokenSe
             ], PlatformTokenService.Scheme));
             await audit.RecordAsync("platform.signed_in", null, null, null, null, cancellationToken);
             return Ok(new PlatformSessionResponse(token, DateTime.UtcNow.Add(PlatformTokenService.AccessLifetime),
-                new PlatformAdminDto(admin.Id, admin.Email, admin.Name, admin.Role.ToString())));
+                new PlatformAdminDto(admin.Id, admin.Email, admin.Name, admin.Role.ToString(), admin.MustChangePassword)));
         }
         catch (UnauthorizedException ex)
         {
@@ -76,9 +77,36 @@ public class PlatformAuthController(PlatformAdminService admins, PlatformTokenSe
 
     [HttpGet("me")]
     [Authorize(Policy = PlatformPolicies.Any)]
+    [AllowedBeforePasswordChange]
     public ActionResult<PlatformAdminDto> Me() => Ok(new PlatformAdminDto(
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
         User.FindFirstValue(ClaimTypes.Email)!,
         User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
-        User.FindFirstValue(ClaimTypes.Role)!));
+        User.FindFirstValue(ClaimTypes.Role)!,
+        User.FindFirstValue(PlatformTokenService.PasswordChangeClaim) == "required"));
+
+    /// <summary>Changes the signed-in admin's password and returns a fresh session (no longer limited to this step).</summary>
+    [HttpPost("change-password")]
+    [Authorize(Policy = PlatformPolicies.Any)]
+    [AllowedBeforePasswordChange]
+    [EnableRateLimiting("auth-login")]
+    public async Task<ActionResult<PlatformSessionResponse>> ChangePassword([FromBody] PlatformChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var admin = await admins.ChangePasswordAsync(Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
+                request.CurrentPassword, request.NewPassword, request.ConfirmPassword, cancellationToken);
+            await audit.RecordAsync("platform.password_changed", null, null, null, null, cancellationToken);
+            return Ok(new PlatformSessionResponse(tokens.CreateAccessToken(admin), DateTime.UtcNow.Add(PlatformTokenService.AccessLifetime),
+                new PlatformAdminDto(admin.Id, admin.Email, admin.Name, admin.Role.ToString(), admin.MustChangePassword)));
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (UnauthorizedException ex)
+        {
+            return Unauthorized(new { error = ex.Message });
+        }
+    }
 }
