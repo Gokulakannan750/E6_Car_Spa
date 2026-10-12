@@ -83,8 +83,12 @@ class ApiException implements Exception {
         normEndpoint.endsWith('auth/login');
 
     if (statusCode == 401) {
+      // At sign-in the server's own message is shown (e.g. "This company's
+      // access is switched off"); its wrong-credentials answer is generic.
       final msg = isLogin
-          ? 'Invalid username or password.'
+          ? (rawMessage != null && !isTechnical(rawMessage)
+                ? rawMessage
+                : 'Invalid username or password.')
           : 'Session expired. Please log in again.';
       return UnauthorizedException(
         message: msg,

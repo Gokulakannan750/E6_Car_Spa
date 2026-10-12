@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Domain.Entities;
 using CarSpaManagement.Api.Domain.Platform;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -27,6 +28,20 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<PlatformAdmin> Admins => Set<PlatformAdmin>();
     public DbSet<PlatformAuditLog> AuditLogs => Set<PlatformAuditLog>();
     public DbSet<PlatformCounter> Counters => Set<PlatformCounter>();
+
+    /// <summary>Franchise links between two companies (on the platform they cannot live in either company's database).</summary>
+    public DbSet<FranchiseLink> FranchiseLinks => Set<FranchiseLink>();
+    public DbSet<FranchiseLinkScope> FranchiseLinkScopes => Set<FranchiseLinkScope>();
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<CarSpaManagement.Api.Domain.Common.BaseEntity>())
+        {
+            if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default) entry.Entity.CreatedAt = DateTime.UtcNow;
+            if (entry.State == EntityState.Modified) entry.Entity.UpdatedAt = DateTime.UtcNow;
+        }
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -175,6 +190,37 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
         {
             e.ToTable("PlatformCounters");
             e.HasKey(c => c.Key);
+        });
+
+        // ── Franchise links (consent, scopes and lifecycle; independent of billing) ──
+        modelBuilder.Entity<FranchiseLink>(e =>
+        {
+            e.ToTable("FranchiseLinks");
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Id).ValueGeneratedNever();
+            e.Property(l => l.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.HasOne<PlatformCompany>().WithMany().HasForeignKey(l => l.FranchisorOrganizationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<PlatformCompany>().WithMany().HasForeignKey(l => l.FranchiseeOrganizationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => new { l.FranchisorOrganizationId, l.FranchiseeOrganizationId }).IsUnique()
+                .HasFilter("\"Status\" IN ('Pending', 'Active')").HasDatabaseName("UX_FranchiseLinks_OpenLink");
+            e.Property(l => l.InviteTokenHash).HasMaxLength(64);
+            e.HasIndex(l => l.InviteTokenHash).IsUnique().HasFilter("\"InviteTokenHash\" IS NOT NULL")
+                .HasDatabaseName("UX_FranchiseLinks_InviteTokenHash");
+            e.HasIndex(l => l.FranchiseeOrganizationId);
+            e.ToTable(t => t.HasCheckConstraint("CK_FranchiseLinks_DifferentCompanies", "\"FranchisorOrganizationId\" <> \"FranchiseeOrganizationId\""));
+            e.HasQueryFilter(l => !l.IsDeleted);
+        });
+        modelBuilder.Entity<FranchiseLinkScope>(e =>
+        {
+            e.ToTable("FranchiseLinkScopes");
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.Scope).HasMaxLength(40).IsRequired();
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+            e.HasOne(s => s.FranchiseLink).WithMany(l => l.Scopes).HasForeignKey(s => s.FranchiseLinkId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(s => new { s.FranchiseLinkId, s.Scope }).IsUnique();
+            e.HasIndex(s => s.FranchiseeOrganizationId);
+            e.HasQueryFilter(s => !s.IsDeleted);
         });
     }
 }

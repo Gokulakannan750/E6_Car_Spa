@@ -22,6 +22,122 @@ namespace CarSpaManagement.Api.Migrations.Platform
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EndedByOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FranchiseeOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchisorOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("InviteTokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InviteTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("InvitedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RespondedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FranchiseeOrganizationId");
+
+                    b.HasIndex("InviteTokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FranchiseLinks_InviteTokenHash")
+                        .HasFilter("\"InviteTokenHash\" IS NOT NULL");
+
+                    b.HasIndex("FranchisorOrganizationId", "FranchiseeOrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FranchiseLinks_OpenLink")
+                        .HasFilter("\"Status\" IN ('Pending', 'Active')");
+
+                    b.ToTable("FranchiseLinks", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FranchiseLinks_DifferentCompanies", "\"FranchisorOrganizationId\" <> \"FranchiseeOrganizationId\"");
+                        });
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLinkScope", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FranchiseLinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchiseeOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FranchisorOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FranchiseeOrganizationId");
+
+                    b.HasIndex("FranchiseLinkId", "Scope")
+                        .IsUnique();
+
+                    b.ToTable("FranchiseLinkScopes", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.AddOn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -927,6 +1043,32 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.ToTable("SubscriptionItems", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformCompany", null)
+                        .WithMany()
+                        .HasForeignKey("FranchiseeOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformCompany", null)
+                        .WithMany()
+                        .HasForeignKey("FranchisorOrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLinkScope", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Entities.FranchiseLink", "FranchiseLink")
+                        .WithMany("Scopes")
+                        .HasForeignKey("FranchiseLinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FranchiseLink");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.AddOn", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformProduct", null)
@@ -1104,6 +1246,11 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Navigation("AddOnPrice");
 
                     b.Navigation("Subscription");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
+                {
+                    b.Navigation("Scopes");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.AddOn", b =>

@@ -125,7 +125,18 @@ if (platformEnabled)
 	builder.Services.AddScoped<IFranchiseEntitlement, SubscriptionFranchiseEntitlement>();
 else
 	builder.Services.AddScoped<IFranchiseEntitlement, OrganizationFranchiseEntitlement>();
-builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
+// Franchise links: in the company database on a single-company server, in Trovo's catalog on the platform, where
+// the franchisor's figures are read from the franchisee's own database (read-only, through its own login).
+if (platformEnabled)
+{
+	builder.Services.AddScoped<IFranchiseLinkStore, CarSpaManagement.Api.Infrastructure.Platform.CatalogFranchiseLinkStore>();
+	builder.Services.AddScoped<IFranchiseFigures, CarSpaManagement.Api.Infrastructure.Platform.CrossDatabaseFranchiseFigures>();
+}
+else
+{
+	builder.Services.AddScoped<IFranchiseLinkStore, CarSpaManagement.Api.Infrastructure.Platform.CompanyDatabaseFranchiseLinkStore>();
+	builder.Services.AddScoped<IFranchiseFigures, PostgresFranchiseFigures>();
+}
 builder.Services.AddScoped<IFranchiseReports, FranchiseReportService>();
 builder.Services.AddScoped<IFranchiseService, FranchiseService>();
 builder.Services.AddScoped<IOutsideJobService, OutsideJobService>();

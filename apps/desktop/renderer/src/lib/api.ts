@@ -222,8 +222,10 @@ export async function request<T>(
 		switch (res.status) {
 			case 401:
 				code = 'UNAUTHORIZED';
+				// At sign-in the server's own message is shown (e.g. "This company's access is switched off");
+				// its wrong-credentials answer is already generic.
 				friendlyMessage = isAuthEndpoint
-					? 'Invalid username or password.'
+					? (rawDetail && !isTechnicalError(rawDetail) ? rawDetail : 'Invalid username or password.')
 					: 'Session expired. Please log in again.';
 				break;
 			case 403:
