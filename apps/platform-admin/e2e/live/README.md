@@ -6,8 +6,8 @@
 2. A company is created on the free trial; the company code and one-time registration code are read from the dialog.
 3. The customer registers with those codes (`POST /api/auth/register`); the same code cannot be used twice.
 4. The customer signs in with the company code; their subscription is `Trialing`.
-5. Trovo changes the plan to Starter yearly, issues the invoice (₹9,990) and records a bank payment.
-6. The customer's subscription is `Active` on `starter`.
+5. Trovo changes the plan to Starter yearly with 1 Windows + Android and 1 Android licence plus Outside jobs, issues the invoice (₹17,970 at placeholder prices) and records a bank payment.
+6. The customer's subscription is `Active` on `starter` with Outside jobs on; an Android-only user can sign in from Android but not Windows.
 7. The invoice print view shows Trovo Tech Solutions.
 8. Suspend blocks the customer's sign-in; reactivate restores it.
 9. The Companies and Invoices CSV exports contain the company and the paid invoice.

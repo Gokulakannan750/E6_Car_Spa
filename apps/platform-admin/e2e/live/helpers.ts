@@ -116,9 +116,9 @@ export async function signOut(page: Page): Promise<void> {
 }
 
 /** The customer's side: sign in to their company with the company code (as the desktop and Android apps do). */
-export async function companyLogin(request: APIRequestContext, api: string, companyCode: string, username: string, password: string) {
+export async function companyLogin(request: APIRequestContext, api: string, companyCode: string, username: string, password: string, app = 'windows') {
 	await authBudget(1);
-	return request.post(`${api}/api/auth/login`, { data: { companyCode, username, password } });
+	return request.post(`${api}/api/auth/login`, { data: { companyCode, username, password, app } });
 }
 
 export function stamp(): string {

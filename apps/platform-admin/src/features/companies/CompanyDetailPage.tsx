@@ -25,7 +25,7 @@ import { RecordPaymentDialog, VoidInvoiceDialog, type InvoiceRef } from '@/featu
 import { api, ApiError } from '@/lib/api';
 import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel, totalLicences } from '@/lib/catalog';
 import { date, dateTime, daysUntil, intervalLabel, money, moneyShort, perInterval } from '@/lib/format';
-import type { CompanyDetail, Invoice, SubscriptionEvent } from '@/lib/types';
+import type { CompanyDetail, Invoice, Subscription, SubscriptionEvent } from '@/lib/types';
 import { BillingAccountDialog, CancelDialog, ChangeSubscriptionDialog, isSuspended, RegistrationCodeDialog, SuspendDialog } from './CompanyDialogs';
 
 type Tab = 'overview' | 'invoices' | 'history';
@@ -238,7 +238,9 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 								<div className="text-micro font-medium tracking-wide text-text-muted uppercase">Plan</div>
 								<div className="mt-1 text-title font-semibold text-text-heading">{s.planName}</div>
 								<div className="tabular text-label text-text-secondary">
-									{s.status === 'Trialing' ? 'Free trial' : `${moneyShort(s.priceMinor, s.currency)}${perInterval(s.interval)} · ${intervalLabel(s.interval)}`}
+									{s.status === 'Trialing'
+										? 'Free trial'
+										: `${moneyShort(subscriptionPrice(s), s.currency)}${perInterval(s.interval)}${s.addOns.length > 0 ? ' + add-ons' : ''} · ${intervalLabel(s.interval)}`}
 								</div>
 							</div>
 							<div className="sm:col-span-2">
@@ -393,6 +395,14 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 			</div>
 		</div>
 	);
+}
+
+/** Company fee plus every licence at its price (add-ons are billed on top). */
+function subscriptionPrice(s: Subscription): number {
+	const licences = s.licences && s.licencePrices
+		? s.licences.android * s.licencePrices.android + s.licences.windows * s.licencePrices.windows + s.licences.both * s.licencePrices.both
+		: 0;
+	return s.priceMinor + licences;
 }
 
 function toRef(invoice: Invoice, company: CompanyDetail): InvoiceRef {

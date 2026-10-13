@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
+	type AppAccess,
+	type LicenceUsageDto,
 	type UserItemDto,
 	type PermissionGroupDetailDto,
 	createUser,
 	updateUser,
 	ApiError,
 } from '../../lib/api';
+import { APP_ACCESS_OPTIONS, freeLicences } from './appAccess';
 import { capitalizeSentence } from '../../utils/text';
 import { PermissionSelector } from './PermissionSelector';
 import { X, ShieldCheck, Check } from 'lucide-react';
@@ -15,9 +18,13 @@ interface UserFormProps {
 	permissionGroups: PermissionGroupDetailDto[];
 	onClose: () => void;
 	onSuccess: () => void;
+	/** The company's licences (Trovo's platform); null on a single-company server, where every user has both apps. */
+	licences?: LicenceUsageDto[] | null;
+	/** Only the Owner decides who takes which licence. */
+	canChangeAppAccess?: boolean;
 }
 
-export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFormProps) {
+export function UserForm({ user, permissionGroups, onClose, onSuccess, licences = null, canChangeAppAccess = false }: UserFormProps) {
 	const isEdit = !!user;
 	const isOwner = user?.role === 'Owner';
 
@@ -42,6 +49,13 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 	);
 	const [error, setError] = useState('');
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const currentAccess: AppAccess = user?.appAccess ?? 'Both';
+	const [appAccess, setAppAccess] = useState<AppAccess>(() => {
+		if (user) return currentAccess;
+		// A new user takes the first type with a free licence (both apps first).
+		return APP_ACCESS_OPTIONS.find((o) => freeLicences(licences, o.value) > 0)?.value ?? 'Both';
+	});
+	const showAppAccess = !!licences && licences.length > 0;
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -85,6 +99,7 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 					confirmPassword: confirmPassword || undefined,
 					role: isOwner ? 'Owner' : role,
 					permissionCodes: isOwner ? undefined : selectedPermissions,
+					appAccess: showAppAccess && canChangeAppAccess && appAccess !== currentAccess ? appAccess : undefined,
 				});
 			} else {
 				await createUser({
@@ -95,6 +110,7 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 					confirmPassword,
 					role,
 					permissionCodes: selectedPermissions,
+					appAccess: showAppAccess ? appAccess : undefined,
 				});
 			}
 
@@ -228,6 +244,34 @@ export function UserForm({ user, permissionGroups, onClose, onSuccess }: UserFor
 							</div>
 						)}
 					</div>
+
+					{showAppAccess && (
+						<div className="border-t border-slate-200 pt-4">
+							<label htmlFor="user-app-access" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+								App access
+							</label>
+							<select
+								id="user-app-access"
+								value={appAccess}
+								disabled={isEdit && !canChangeAppAccess}
+								onChange={(e) => setAppAccess(e.target.value as AppAccess)}
+								className="w-full md:w-1/2 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:opacity-60"
+							>
+								{APP_ACCESS_OPTIONS.map((o) => {
+									const free = freeLicences(licences, o.value) + (isEdit && user?.isActive && o.value === currentAccess ? 1 : 0);
+									const total = licences?.find((l) => l.appAccess === o.value)?.total ?? 0;
+									return (
+										<option key={o.value} value={o.value} disabled={free <= 0 && !(isEdit && o.value === currentAccess)}>
+											{o.label} — {Math.max(0, free)} of {total} free
+										</option>
+									);
+								})}
+							</select>
+							<p className="text-xs text-slate-500 mt-1">
+								Each user takes one licence of this type. {isEdit && !canChangeAppAccess ? 'Only the Owner can change it.' : 'Ask Trovo for more licences when none are free.'}
+							</p>
+						</div>
+					)}
 
 					{/* Password Fields */}
 					<div className="border-t border-slate-200 pt-4">

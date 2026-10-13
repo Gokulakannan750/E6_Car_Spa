@@ -9,6 +9,9 @@ class UpdateUserRequest {
   final String? role;
   final List<String>? permissionCodes;
 
+  /// Only the Owner may change it; null leaves it as it is.
+  final String? appAccess;
+
   const UpdateUserRequest({
     required this.fullName,
     this.email,
@@ -16,6 +19,7 @@ class UpdateUserRequest {
     this.confirmPassword,
     this.role,
     this.permissionCodes,
+    this.appAccess,
   });
 
   Map<String, dynamic> toJson() {
@@ -37,6 +41,10 @@ class UpdateUserRequest {
 
     if (permissionCodes != null) {
       map['permissionCodes'] = permissionCodes;
+    }
+
+    if (appAccess != null) {
+      map['appAccess'] = appAccess;
     }
 
     return map;

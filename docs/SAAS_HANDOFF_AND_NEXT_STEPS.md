@@ -40,7 +40,8 @@ Copy-paste prompt for a new agent session: see §9.
 | Trial | 7 days, full Professional |
 | Unpaid | 7 days grace (banner), then **read-only** until paid |
 | Cancel | Read-only for 90 days, then data deleted on request |
-| Plans | Starter ₹999/mo or ₹9,990/yr (3 users); Professional ₹1,999/mo or ₹19,990/yr (10 users). Add-ons: Showroom, +5 users, Franchise network (10 branches), +10 franchise branches. Prices are data and can be changed in the portal |
+| Pricing (13 Oct) | **Per user licence**, by app: Android only, Windows only, or Windows + Android (one person on both apps = one licence). Bought **one at a time**; every plan includes **at least 1**. A user can sign in only to the apps their licence covers; the company Owner assigns licences to users. Plans: Starter and Professional (Professional includes Outside jobs, Staff advances & salary, WhatsApp automation, Advanced reports, Audit trail). **Starter can buy each of those five as an add-on**; a plan never pays twice for a module. Showroom and Franchise network are add-ons. **Excel/CSV export is free in every plan.** **Real prices: not decided yet** — the seeded prices are placeholders; the owner sets them in Plans & Prices |
+| Configuration | Prices, plans, add-ons, trial days, trial users, grace days and renewal-invoice days are set by Trovo in the admin portal. Only the list of features and the licence types are in code |
 | Money | Integer paise + currency everywhere |
 | GST | Trovo has **no GSTIN**: no GST, invoices titled "Invoice". Seller name **"Trovo Tech Solutions"** (never "Private Limited") |
 | Payment gateway | Provider-independent interface; **the gateway with the lowest platform fee**, chosen by the owner before Phase 2.5 (Razorpay is the first candidate) |
@@ -62,6 +63,7 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 | 2.2 | Plans, subscriptions, entitlements, seat limits, lifecycle job, read-only/suspended enforcement, platform admin API with 2-step sign-in and roles, manual invoices and payments | ✅ merged to `main` |
 | 2.3 | Franchise across separate databases | ✅ merged to `main` |
 | 2.4 | **Admin portal web app** + API additions + E2E tests | ✅ merged to `main` and pushed (12 Oct) |
+| 2.4b | **Per-user app licences, module add-ons, catalog management, platform settings** (owner's pricing decision, 13 Oct) | ✅ built on branch `feature/saas-user-licences` (worktree `C:\r2e\p25`). **Not merged, not pushed.** |
 | 2.5 | Payment gateway | ⏳ next (needs the owner's gateway choice) |
 | 2.6 | Self sign-up and email | ⏳ |
 | 2.7 | Full end-to-end validation, backups, E6 rehearsal, hosting and rollout | ⏳ |
@@ -77,6 +79,32 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 
 Test counts at the end of 2.4: backend **1268/1268** (with PostgreSQL), portal Vitest **18/18**, portal Playwright
 mocked **4/4**, portal live E2E **8/8**. Windows (734) and Android (1062) were not changed in 2.4.
+
+### Phase 2.4b: per-user app licences (branch `feature/saas-user-licences`, based on `main` ee7ac298)
+
+What changed, and where:
+- **Catalog:** `PlanVersion` has `AndroidUserPriceMinor`, `WindowsUserPriceMinor`, `BothUserPriceMinor` (plus `PriceMinor` =
+  optional company fee, `IncludedSeats` = minimum licences). `Subscription` has `AndroidLicences`, `WindowsLicences`,
+  `BothLicences`. New table `PlatformSettings` (`PlatformSettingsService`, limits in code). Migration
+  `UserLicencesAndSettings` converted existing subscriptions (one both-apps licence per user allowed before), retired the
+  `seats_5` add-on and put placeholder licence prices on the two seeded plans.
+- **Company databases:** `Users.AppAccess` (0 = Both, 1 = Android, 2 = Windows; migration `AddUserAppAccess`).
+- **Rules:** `UserService.EnsureSeatAvailableAsync` (licence per type on create/reactivate/change; only the Owner changes
+  app access); `AuthService.LoginAsync` checks `LoginRequest.App` ("windows"/"android") against the user's access and
+  puts it in the token (`app` claim); `PermissionAuthorizationHandler` re-checks it on every protected request;
+  `ClientApp` in `Domain/Enums/AppAccess.cs`. Owner at registration takes the best licence bought.
+- **Add-ons:** five module add-ons seeded (`outside_jobs`, `staff_advances`, `whatsapp_automation`, `advanced_reports`,
+  `audit_trail`); `SubscriptionService.SetAddOnsAsync` refuses a module the plan includes; a plan change drops them.
+- **Portal API:** `PlatformCatalogController` (create/update plans and add-ons, GET/PUT settings); licences on
+  company create/change and in company detail (`licencesUsed`); licence prices on plan versions.
+- **Apps:** Windows sends `app: "windows"`, Android `app: "android"` at sign-in; both have an "App access" choice on the
+  Users screen (shown only on the platform) and show the server's message when sign-in is refused.
+- **Portal UI:** licence steppers in New company / Change plan with live totals and an "upgrade is cheaper" hint;
+  licences bought vs in use on the company page; New plan, New add-on, stop/resume selling; Subscription settings on
+  the System page; dialogs scroll inside on 1366×768.
+
+Test counts at the end of 2.4b: backend **1287/1287**, Windows **738**, Android **1066**, portal Vitest **18/18**,
+portal Playwright mocked **4/4**, live E2E updated for licences (see §6 Step A2).
 
 ---
 
@@ -209,6 +237,20 @@ CI (`.github/workflows/ci.yml`) runs backend, Windows, Android and the admin por
 - [ ] Clean up throwaway databases from local testing when the owner agrees: `carspa_platform_dev21`,
       `carspa_rehearsal_e6`, `carspa_t_0002`… created by tests, `E6CarSpaFranchiseView`, `E6CarSpaTenantCopy`,
       `carspa_test_whatsapp`, and roles `carspa_t_*` (never `E6CarSpaNew`).
+
+### Step A2: Per-user licences (Phase 2.4b) — owner review, prices, then merge
+
+- [ ] Owner tests: create a company with a mix of licences; in the Windows app give a user "Android only" and check
+      that user cannot sign in on Windows but can on Android; try adding more users than licences; buy a module add-on
+      on Starter; upgrade to Professional and check the add-on ends; change trial days in System.
+- [ ] **Owner sets the real prices** in Plans & Prices (New price on Starter and Professional, and on each add-on).
+      The seeded ones are placeholders: Starter ₹999 / ₹699 / ₹499 per user per month (both / Windows / Android),
+      Professional ₹1,499 / ₹1,199 / ₹799, module add-ons ₹299, yearly = 10 × monthly.
+- [ ] When the owner says "merge": `git merge --no-ff feature/saas-user-licences` in the main checkout, run all
+      suites, push only if told, remove worktree `C:\r2e\p25`.
+- [ ] Release note for clients: **new Windows and Android app versions are required** on Trovo's platform (old apps do
+      not send the app type, so only users with both apps can sign in with them). Single-company servers (E6 today)
+      are unaffected.
 
 ### Step B: Phase 2.5 Payment gateway (estimate 9–12 days)
 

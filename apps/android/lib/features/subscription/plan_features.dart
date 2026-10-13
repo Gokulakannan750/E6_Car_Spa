@@ -12,6 +12,9 @@ class SubscriptionStatus {
   final String? bannerLevel;
   final String? bannerMessage;
 
+  /// User licences per app type, bought and in use (Trovo's platform only).
+  final List<LicenceUsage> licences;
+
   const SubscriptionStatus({
     required this.managed,
     required this.access,
@@ -23,6 +26,7 @@ class SubscriptionStatus {
     this.seatsUsed = 0,
     this.bannerLevel,
     this.bannerMessage,
+    this.licences = const [],
   });
 
   factory SubscriptionStatus.fromJson(Map<String, dynamic> json) {
@@ -40,10 +44,60 @@ class SubscriptionStatus {
       seatsUsed: json['seatsUsed'] as int? ?? 0,
       bannerLevel: banner?['level'] as String?,
       bannerMessage: banner?['message'] as String?,
+      licences: (json['licences'] as List<dynamic>? ?? const [])
+          .map((e) => LicenceUsage.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
+  /// Licences of [appAccess] not taken by an active user.
+  int freeLicences(String appAccess) {
+    for (final l in licences) {
+      if (l.appAccess == appAccess) return l.total - l.used;
+    }
+    return 0;
+  }
+
   bool get isReadOnly => access == 'ReadOnly';
+}
+
+/// User licences of one app type ("Both", "Windows" or "Android").
+class LicenceUsage {
+  final String appAccess;
+  final int total;
+  final int used;
+
+  const LicenceUsage({
+    required this.appAccess,
+    required this.total,
+    required this.used,
+  });
+
+  factory LicenceUsage.fromJson(Map<String, dynamic> json) => LicenceUsage(
+    appAccess: json['appAccess'] as String? ?? 'Both',
+    total: json['total'] as int? ?? 0,
+    used: json['used'] as int? ?? 0,
+  );
+}
+
+/// The apps a user may use, with the labels shown to people.
+class AppAccessOption {
+  final String value;
+  final String label;
+  const AppAccessOption(this.value, this.label);
+}
+
+const appAccessOptions = [
+  AppAccessOption('Both', 'Windows + Android'),
+  AppAccessOption('Windows', 'Windows only'),
+  AppAccessOption('Android', 'Android only'),
+];
+
+String appAccessLabel(String value) {
+  for (final o in appAccessOptions) {
+    if (o.value == value) return o.label;
+  }
+  return value;
 }
 
 /// The plan features the server knows (FeatureKeys on the backend).

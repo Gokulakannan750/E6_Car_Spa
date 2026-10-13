@@ -12,6 +12,9 @@ class UserModel {
   final DateTime createdAt;
   final List<String> permissions;
 
+  /// "Both", "Windows" or "Android": the apps this user may sign in to.
+  final String appAccess;
+
   const UserModel({
     required this.id,
     required this.fullName,
@@ -22,6 +25,7 @@ class UserModel {
     this.lastLoginAt,
     required this.createdAt,
     this.permissions = const [],
+    this.appAccess = 'Both',
   });
 
   bool get isOwner => role.toLowerCase() == 'owner';
@@ -52,6 +56,7 @@ class UserModel {
               ?.map((e) => e.toString())
               .toList() ??
           const [],
+      appAccess: json['appAccess'] as String? ?? 'Both',
     );
   }
 
@@ -66,6 +71,7 @@ class UserModel {
       'lastLoginAt': lastLoginAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'permissions': permissions,
+      'appAccess': appAccess,
     };
   }
 
@@ -79,6 +85,7 @@ class UserModel {
     DateTime? lastLoginAt,
     DateTime? createdAt,
     List<String>? permissions,
+    String? appAccess,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -90,6 +97,7 @@ class UserModel {
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       createdAt: createdAt ?? this.createdAt,
       permissions: permissions ?? this.permissions,
+      appAccess: appAccess ?? this.appAccess,
     );
   }
 

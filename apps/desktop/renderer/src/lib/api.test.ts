@@ -261,7 +261,7 @@ describe('Authentication API Client', () => {
       expect.stringContaining('/api/auth/login'),
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ username: 'admin', password: 'ValidPassword123' }),
+        body: JSON.stringify({ username: 'admin', password: 'ValidPassword123', app: 'windows' }),
       })
     );
     expect(result).toEqual(mockLoginResponse);

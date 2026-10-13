@@ -2870,6 +2870,12 @@ export interface LoginInput {
 	companyCode?: string;
 }
 
+/** Which apps a user may sign in to (each needs a licence of that type on Trovo's platform). */
+export type AppAccess = 'Both' | 'Windows' | 'Android';
+
+/** This is the Windows app; the server checks it against the user's licence. */
+export const CLIENT_APP = 'windows';
+
 export interface AuthUserResponse {
 	id: string;
 	fullName: string;
@@ -2878,6 +2884,7 @@ export interface AuthUserResponse {
 	role: 'Owner' | 'Manager' | 'Staff';
 	isOwner: boolean;
 	permissions: string[];
+	appAccess?: AppAccess;
 }
 
 export interface LoginResponse {
@@ -2896,6 +2903,7 @@ export interface UserItemDto {
 	lastLoginAt?: string | null;
 	createdAt: string;
 	permissions: string[];
+	appAccess?: AppAccess;
 }
 
 export interface CreateUserInput {
@@ -2906,6 +2914,7 @@ export interface CreateUserInput {
 	confirmPassword: string;
 	role: string;
 	permissionCodes: string[];
+	appAccess?: AppAccess;
 }
 
 export interface UpdateUserInput {
@@ -2915,6 +2924,7 @@ export interface UpdateUserInput {
 	confirmPassword?: string | null;
 	role?: string | null;
 	permissionCodes?: string[] | null;
+	appAccess?: AppAccess | null;
 }
 
 export interface PermissionDetailDto {
@@ -2956,6 +2966,14 @@ export interface SubscriptionStatusDto {
 	graceEndsAt?: string | null;
 	currentPeriodEnd?: string | null;
 	banner?: { level: 'info' | 'warning' | 'error'; message: string } | null;
+	/** User licences per app type: bought and in use (only on Trovo's platform). */
+	licences?: LicenceUsageDto[] | null;
+}
+
+export interface LicenceUsageDto {
+	appAccess: AppAccess;
+	total: number;
+	used: number;
 }
 
 export async function getSubscriptionStatus() {
@@ -2972,7 +2990,7 @@ export async function registerCompany(data: RegisterCompanyInput) {
 export async function loginApi(data: LoginInput) {
 	return request<LoginResponse>('/api/auth/login', {
 		method: 'POST',
-		body: JSON.stringify(cleanPayload(data)),
+		body: JSON.stringify(cleanPayload({ ...data, app: CLIENT_APP })),
 	}, 'sign in');
 }
 

@@ -10,6 +10,9 @@ class CreateUserRequest {
   final String role;
   final List<String> permissionCodes;
 
+  /// "Both", "Windows" or "Android" (null leaves the server's default).
+  final String? appAccess;
+
   const CreateUserRequest({
     required this.fullName,
     required this.username,
@@ -18,6 +21,7 @@ class CreateUserRequest {
     required this.confirmPassword,
     required this.role,
     this.permissionCodes = const [],
+    this.appAccess,
   });
 
   Map<String, dynamic> toJson() {
@@ -31,6 +35,7 @@ class CreateUserRequest {
       'confirmPassword': confirmPassword,
       'role': role,
       'permissionCodes': permissionCodes,
+      if (appAccess != null) 'appAccess': appAccess,
     };
   }
 }
