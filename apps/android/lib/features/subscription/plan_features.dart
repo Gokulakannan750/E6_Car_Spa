@@ -15,6 +15,9 @@ class SubscriptionStatus {
   /// User licences per app type, bought and in use (Trovo's platform only).
   final List<LicenceUsage> licences;
 
+  /// Trovo has proposed a plan change that waits for the Owner's answer.
+  final bool planChangePending;
+
   const SubscriptionStatus({
     required this.managed,
     required this.access,
@@ -27,6 +30,7 @@ class SubscriptionStatus {
     this.bannerLevel,
     this.bannerMessage,
     this.licences = const [],
+    this.planChangePending = false,
   });
 
   factory SubscriptionStatus.fromJson(Map<String, dynamic> json) {
@@ -47,6 +51,7 @@ class SubscriptionStatus {
       licences: (json['licences'] as List<dynamic>? ?? const [])
           .map((e) => LicenceUsage.fromJson(e as Map<String, dynamic>))
           .toList(),
+      planChangePending: json['planChangePending'] as bool? ?? false,
     );
   }
 

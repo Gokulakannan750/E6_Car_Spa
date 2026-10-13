@@ -17,13 +17,16 @@ import type {
 	LoginResponse,
 	MigrationStatus,
 	Payment,
+	PlanChangeBody,
+	PlanChangePreview,
+	PlanChangeRequest,
 	PlanRequest,
 	PlanTermsInput,
 	PlatformAdmin,
 	PlatformSettings,
 	RegistrationCodeResponse,
-	SignupOrder,
 	SessionResponse,
+	SignupOrder,
 } from './types';
 
 // In development VITE_API_URL is empty and /api goes through the Vite dev server; in production it is the API address.
@@ -162,6 +165,13 @@ export const api = {
 			reason: string;
 		},
 	) => request<void>(`${P}/companies/${id}/subscription`, { method: 'PUT', body }),
+	previewPlanChange: (id: string, body: PlanChangeBody) =>
+		request<PlanChangePreview>(`${P}/companies/${id}/plan-change/preview`, { method: 'POST', body }),
+	proposePlanChange: (id: string, body: PlanChangeBody) =>
+		request<PlanChangeRequest>(`${P}/companies/${id}/plan-change`, { method: 'POST', body }),
+	planChanges: (id: string) => request<PlanChangeRequest[]>(`${P}/companies/${id}/plan-changes`),
+	withdrawPlanChange: (id: string, requestId: string) =>
+		request<void>(`${P}/companies/${id}/plan-change/${requestId}/cancel`, { method: 'POST' }),
 	cancelSubscription: (id: string, atPeriodEnd: boolean, reason: string) =>
 		request<void>(`${P}/companies/${id}/cancel`, { method: 'POST', body: { atPeriodEnd, reason } }),
 	updateBillingAccount: (id: string, body: BillingAccount) =>

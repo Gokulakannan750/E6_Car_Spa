@@ -3,6 +3,7 @@ import { useAuth } from '../auth/auth-context';
 import type { AppAccess } from '../../lib/api';
 import { cn } from '../../utils/cn';
 import { FEATURES, isFeatureOn } from './subscriptionFeatures';
+import { PlanChangeCard } from './PlanChangeCard';
 
 /** The plan modules and add-ons, in the order shown on Trovo's pricing page. */
 const MODULES: { key: string; label: string }[] = [
@@ -60,6 +61,7 @@ export default function SubscriptionPage() {
 	return (
 		<div className="space-y-6 w-full">
 			<Header />
+			<PlanChangeCard />
 
 			<div className="grid gap-6 lg:grid-cols-3">
 				<section aria-label="Plan" className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">

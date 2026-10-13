@@ -1,4 +1,5 @@
-import { AlertTriangle, Info, Lock } from 'lucide-react';
+import { AlertTriangle, ChevronRight, Info, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { cn } from '../../utils/cn';
 
@@ -22,6 +23,11 @@ export function SubscriptionBanner() {
 		<div role="status" className={cn('flex items-center gap-2.5 border-b px-6 py-2 text-sm font-medium', style.box)}>
 			<style.Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
 			<span>{banner.message}</span>
+			{subscription?.planChangePending && (
+				<Link to="/settings/subscription" className="ml-auto inline-flex items-center gap-0.5 font-semibold underline-offset-2 hover:underline">
+					Review <ChevronRight className="h-4 w-4" aria-hidden="true" />
+				</Link>
+			)}
 		</div>
 	);
 }

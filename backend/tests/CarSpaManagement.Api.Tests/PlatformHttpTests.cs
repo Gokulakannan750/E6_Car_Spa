@@ -261,14 +261,15 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
         var support = await host.AdminTokenAsync(PlatformAdminRole.Support);
         var billing = await host.AdminTokenAsync(PlatformAdminRole.Billing);
         var readOnly = await host.AdminTokenAsync(PlatformAdminRole.ReadOnly);
-        var change = new { planCode = "starter", reason = "Customer asked to downgrade" };
+        // A registered company's plan changes by proposal; its Owner approves in the app.
+        var change = new { planCode = "starter", interval = "Month", licences = new { android = 0, windows = 0, both = 3 }, reason = "Customer asked to downgrade" };
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/subscription", support, change)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Post, $"/api/platform/companies/{company.Id}/plan-change", support, change)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", readOnly,
             new { action = "suspend", reason = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Get, "/api/platform/audit-logs", billing)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/subscription", billing, change)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Post, $"/api/platform/companies/{company.Id}/plan-change", billing, change)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", support,
             new { action = "suspend", reason = "" })).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", support,
@@ -276,7 +277,7 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
 
         var actions = await host.InScopeAsync(sp => sp.GetRequiredService<PlatformDbContext>().AuditLogs
             .Where(a => a.TargetCompanyId == company.Id).OrderBy(a => a.CreatedAt).Select(a => a.Action + ":" + a.Reason).ToListAsync());
-        Assert.Equal(new[] { "subscription.changed:Customer asked to downgrade", "company.suspend:Testing suspension" }, actions);
+        Assert.Equal(new[] { "subscription.change_proposed:Customer asked to downgrade", "company.suspend:Testing suspension" }, actions);
     }
 
     [PostgresFact]

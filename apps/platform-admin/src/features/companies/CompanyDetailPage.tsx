@@ -25,7 +25,7 @@ import { RecordPaymentDialog, VoidInvoiceDialog, type InvoiceRef } from '@/featu
 import { api, ApiError } from '@/lib/api';
 import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel, totalLicences } from '@/lib/catalog';
 import { date, dateTime, daysUntil, intervalLabel, money, moneyShort, perInterval } from '@/lib/format';
-import type { CompanyDetail, Invoice, Subscription, SubscriptionEvent } from '@/lib/types';
+import type { CompanyDetail, Invoice, PlanChangeRequest, Subscription, SubscriptionEvent } from '@/lib/types';
 import { BillingAccountDialog, CancelDialog, ChangeSubscriptionDialog, isSuspended, RegistrationCodeDialog, SuspendDialog } from './CompanyDialogs';
 
 type Tab = 'overview' | 'invoices' | 'history';
@@ -229,6 +229,7 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 		<div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_400px]">
 			<Card>
 				<CardHeader title="Subscription and features" />
+				<PlanChangeNotice company={c} />
 				{!s ? (
 					<EmptyState title="No subscription" />
 				) : (
@@ -398,6 +399,66 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 }
 
 /** Company fee plus every licence at its price (add-ons are billed on top). */
+/** A change sent to the customer: waiting for the Owner, or approved to start at the period end. Billing can withdraw it. */
+function PlanChangeNotice({ company }: { company: CompanyDetail }) {
+	const { can } = useAuth();
+	const toast = useToast();
+	const queryClient = useQueryClient();
+	const changes = useQuery({ queryKey: ['plan-changes', company.id], queryFn: () => api.planChanges(company.id) });
+	const withdraw = useMutation({
+		mutationFn: (request: PlanChangeRequest) => api.withdrawPlanChange(company.id, request.id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['plan-changes', company.id] });
+			queryClient.invalidateQueries({ queryKey: ['company', company.id] });
+			toast.success('Plan change withdrawn.');
+		},
+	});
+	const open = changes.data?.find((r) => r.status === 'Pending' || r.status === 'Scheduled');
+	const last = changes.data?.[0];
+	const canWithdraw = can(...BILLING_ROLES);
+	if (!open && !(last && (last.status === 'Declined' || last.status === 'Expired'))) return null;
+
+	const target = (r: PlanChangeRequest) =>
+		`${r.planCode} ${intervalLabel(r.interval).toLowerCase()}, ${totalLicences(r.licences)} user licence${totalLicences(r.licences) === 1 ? '' : 's'}`;
+	return (
+		<div className="mx-5 mt-5 rounded-lg border border-action/40 bg-action/10 p-4 text-body text-text-primary" data-testid="plan-change-notice">
+			{open?.status === 'Pending' && (
+				<>
+					<p className="font-semibold text-text-heading">Waiting for the customer's Owner to approve: {target(open)}</p>
+					<p className="mt-1 text-label text-text-secondary">
+						Sent {dateTime(open.createdAt)}
+						{open.requestedByEmail ? ` by ${open.requestedByEmail}` : ''} · expires {date(open.expiresAt)}
+						{open.timing === 'NowWithCharge' ? ` · about ${money(open.amountNowMinor, open.currency)} to pay when approved` : ''}
+						{open.timing === 'AtPeriodEnd' ? ` · would start ${date(open.effectiveAt)}` : ''}
+					</p>
+				</>
+			)}
+			{open?.status === 'Scheduled' && (
+				<>
+					<p className="font-semibold text-text-heading">
+						Approved by {open.decidedByName ?? 'the Owner'}: {target(open)} from {date(open.effectiveAt)}
+					</p>
+					<p className="mt-1 text-label text-text-secondary">No refund; the renewal invoice uses the new price.</p>
+				</>
+			)}
+			{!open && last && (
+				<p className="text-label text-text-secondary">
+					Last proposal ({target(last)}) was {last.status === 'Declined' ? `declined by ${last.decidedByName ?? 'the Owner'}` : 'not answered in time'}
+					{last.decidedAt ? ` on ${date(last.decidedAt)}` : ''}.
+				</p>
+			)}
+			{open && canWithdraw && (
+				<div className="mt-3">
+					<Button size="sm" variant="ghost" loading={withdraw.isPending} onClick={() => withdraw.mutate(open)}>
+						Withdraw
+					</Button>
+					<InlineError message={withdraw.error?.message} />
+				</div>
+			)}
+		</div>
+	);
+}
+
 function subscriptionPrice(s: Subscription): number {
 	const licences = s.licences && s.licencePrices
 		? s.licences.android * s.licencePrices.android + s.licences.windows * s.licencePrices.windows + s.licences.both * s.licencePrices.both

@@ -34,6 +34,8 @@ public static class DependencyInjection
   services.AddScoped<PlatformSettingsService>();
   services.AddScoped<PriceQuoteService>();
   services.AddScoped<SignupService>();
+  services.AddScoped<PlanChangeService>();
+  services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IPlanChangeApprovals, PlatformPlanChangeApprovals>();
   services.AddScoped<FranchiseSignupCodeRedemption>();
   services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IFranchiseSignupCodeService, FranchiseSignupCodeService>();
   services.AddScoped<PlatformAdminService>();
@@ -65,6 +67,7 @@ public static class DependencyInjection
 
  services.AddScoped<ICompanyDirectory, SingleDatabaseCompanyDirectory>();
  services.AddScoped<IEntitlementService, UnmanagedEntitlementService>();
+ services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IPlanChangeApprovals, NoPlanChangeApprovals>();
  services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IFranchiseSignupCodeService, UnavailableFranchiseSignupCodeService>();
 
  services.AddDbContext<AppDbContext>(options =>

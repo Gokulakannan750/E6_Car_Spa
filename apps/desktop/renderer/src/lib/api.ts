@@ -2968,12 +2968,59 @@ export interface SubscriptionStatusDto {
 	banner?: { level: 'info' | 'warning' | 'error'; message: string } | null;
 	/** User licences per app type: bought and in use (only on Trovo's platform). */
 	licences?: LicenceUsageDto[] | null;
+	/** Trovo proposed a plan change that waits for the Owner's answer. */
+	planChangePending?: boolean;
 }
 
 export interface LicenceUsageDto {
 	appAccess: AppAccess;
 	total: number;
 	used: number;
+}
+
+export interface PlanTermsSummaryDto {
+	planName: string;
+	interval: string;
+	androidLicences: number;
+	windowsLicences: number;
+	bothLicences: number;
+	addOns: string[];
+}
+
+/**
+ * A change to the plan that Trovo proposed ("Pending": the Owner approves or declines) or that the Owner approved and
+ * starts at the end of the paid period ("Scheduled"). Amounts are in paise, before tax.
+ */
+export interface PlanChangeProposalDto {
+	id: string;
+	status: 'Pending' | 'Scheduled';
+	timing: 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+	from: PlanTermsSummaryDto;
+	to: PlanTermsSummaryDto;
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+	expiresAt: string;
+	reason: string | null;
+}
+
+/** The open plan change, or null when there is none. */
+export async function getPlanChange() {
+	return (await request<PlanChangeProposalDto | undefined>('/api/subscription/plan-change', {}, 'check for a plan change')) ?? null;
+}
+
+/** Approves; returns the change while it waits for the end of the paid period, or null once it is in effect. */
+export async function approvePlanChange(id: string) {
+	return (
+		(await request<PlanChangeProposalDto | undefined>(`/api/subscription/plan-change/${encodeURIComponent(id)}/approve`, { method: 'POST' }, 'approve the plan change')) ??
+		null
+	);
+}
+
+export async function declinePlanChange(id: string) {
+	return request<void>(`/api/subscription/plan-change/${encodeURIComponent(id)}/decline`, { method: 'POST' }, 'decline the plan change');
 }
 
 export async function getSubscriptionStatus() {

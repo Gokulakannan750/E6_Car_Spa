@@ -50,6 +50,7 @@ Copy-paste prompt for a new agent session: see §9.
 | Email | Not decided yet (needed for Phase 2.6) |
 | Admin portal address | Not decided yet (e.g. `admin.trovotechsolutions.in`) |
 | Branches (one owner, several outlets) | **Approved 13 Oct** (`docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md`): in-database `Branches` table, Phase 2.9; no branches in a trial; numbering and day-close decided with E6 later |
+| Plan changes (13 Oct) | **Built.** Trovo proposes in the portal; the company's **Owner approves or declines in the app** (Windows Settings → Subscription, Android banner). Proposals expire after 7 days. **Upgrade**: starts on approval, invoice for the price difference for the rest of the paid period. **Downgrade or interval change**: starts at the period end, **no refund**, renewal invoice on the new terms. Not in a paid period (trial, unpaid): applies at once. Direct changes only before the company registers. Refunds follow the Refund Policy (manual until the gateway). |
 | Franchise sign-up code | **Built 13 Oct** (Phase 2.8): franchisor makes a 1-hour single-use code; the new franchisee enters it on the sign-up website, consents, and is linked when its company is created |
 | Franchise | Each franchisee pays Trovo separately; the franchisor sees approved totals read-only |
 

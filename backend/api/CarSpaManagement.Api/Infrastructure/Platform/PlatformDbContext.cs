@@ -22,6 +22,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<SubscriptionItem> SubscriptionItems => Set<SubscriptionItem>();
     public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();
     public DbSet<BillingInvoice> BillingInvoices => Set<BillingInvoice>();
+    public DbSet<PlanChangeRequest> PlanChangeRequests => Set<PlanChangeRequest>();
     public DbSet<BillingInvoiceLine> BillingInvoiceLines => Set<BillingInvoiceLine>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents => Set<PaymentWebhookEvent>();
@@ -170,7 +171,18 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasIndex(i => i.InvoiceNumber).IsUnique();
             e.HasIndex(i => new { i.CompanyId, i.IssuedAt });
             e.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(BillingInvoiceKind.Period);
             e.Property(i => i.TaxRatePercent).HasPrecision(5, 2);
+        });
+        modelBuilder.Entity<PlanChangeRequest>(e =>
+        {
+            e.ToTable("PlanChangeRequests");
+            e.HasOne<PlatformCompany>().WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Subscription>().WithMany().HasForeignKey(r => r.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => new { r.CompanyId, r.Status });
+            e.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(r => r.Timing).HasConversion<string>().HasMaxLength(20);
+            e.Property(r => r.Interval).HasConversion<string>().HasMaxLength(10);
         });
         modelBuilder.Entity<BillingInvoiceLine>(e =>
         {

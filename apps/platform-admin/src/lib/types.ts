@@ -136,6 +136,45 @@ export interface CompanyDetail {
 	licencesUsed: Licences | null;
 }
 
+/** When an approved plan change takes effect: at once (nothing or the rest of the period to pay) or at the period end. */
+export type PlanChangeTiming = 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+
+export interface PlanChangeBody {
+	planCode: string;
+	interval: string;
+	licences: Licences;
+	addOns: Record<string, number>;
+	reason?: string;
+}
+
+export interface PlanChangePreview {
+	timing: PlanChangeTiming;
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+}
+
+export type PlanChangeStatus = 'Pending' | 'Scheduled' | 'Applied' | 'Declined' | 'Cancelled' | 'Expired';
+
+/** A change Trovo proposed; the company's Owner approves or declines it in the app. */
+export interface PlanChangeRequest extends PlanChangePreview {
+	id: string;
+	status: PlanChangeStatus;
+	planCode: string;
+	interval: string;
+	licences: Licences;
+	addOns: Record<string, number>;
+	expiresAt: string;
+	reason: string | null;
+	requestedByEmail: string | null;
+	createdAt: string;
+	decidedAt: string | null;
+	decidedByName: string | null;
+	adjustmentInvoiceNumber: string | null;
+}
+
 export interface PlanRequest {
 	planCode: string;
 	interval: string;

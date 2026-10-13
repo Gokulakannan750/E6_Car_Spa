@@ -283,7 +283,7 @@ public sealed class SubscriptionService(
     /// </summary>
     private async Task ApplyPaidInvoiceAsync(BillingInvoice invoice, SubscriptionActor actor, CancellationToken cancellationToken)
     {
-        if (invoice.SubscriptionId is not { } subscriptionId) return;
+        if (invoice.SubscriptionId is not { } subscriptionId || invoice.Kind == BillingInvoiceKind.Adjustment) return;
         var subscription = await catalog.Subscriptions.Include(s => s.PlanVersion)
             .FirstAsync(s => s.Id == subscriptionId, cancellationToken);
         if (!subscription.IsCurrent || subscription.Status is SubscriptionStatus.Canceled or SubscriptionStatus.Suspended) return;
@@ -316,12 +316,15 @@ public sealed class SubscriptionService(
     public async Task<BillingInvoice> IssueNextInvoiceAsync(Guid companyId, CancellationToken cancellationToken = default)
     {
         var subscription = await CurrentAsync(companyId, cancellationToken);
-        if (await catalog.BillingInvoices.AnyAsync(i => i.SubscriptionId == subscription.Id && i.Status == BillingInvoiceStatus.Open, cancellationToken))
+        if (await catalog.BillingInvoices.AnyAsync(i => i.SubscriptionId == subscription.Id && i.Status == BillingInvoiceStatus.Open
+                && i.Kind == BillingInvoiceKind.Period, cancellationToken))
         {
             throw new ConflictException("This company already has an open invoice.");
         }
         var (start, end) = NextPeriod(subscription, DateTime.UtcNow);
-        return await invoices.CreateForPeriodAsync(subscription, start, end, cancellationToken);
+        var terms = await ScheduledTermsAsync(subscription, start, cancellationToken);
+        if (terms is not null) end = AddInterval(start, terms.Version.Interval);
+        return await invoices.CreateForPeriodAsync(subscription, start, end, cancellationToken, terms);
     }
 
     // ── Time-based rules (run every few minutes) ─────────────────────────────────
@@ -333,7 +336,8 @@ public sealed class SubscriptionService(
     /// </summary>
     public async Task<int> RunLifecycleAsync(DateTime now, CancellationToken cancellationToken = default)
     {
-        var changed = 0;
+        var changed = await ApplyScheduledChangesAsync(now, cancellationToken);
+        await ExpireProposalsAsync(now, cancellationToken);
         var effective = await platformSettings.GetAsync(cancellationToken);
         var due = await catalog.Subscriptions
             .Include(s => s.PlanVersion!).ThenInclude(v => v.Plan)
@@ -366,12 +370,16 @@ public sealed class SubscriptionService(
             if (now < issueFrom) continue;
             var hasInvoice = await catalog.BillingInvoices.AnyAsync(i =>
                 i.SubscriptionId == subscription.Id &&
+                i.Kind == BillingInvoiceKind.Period &&
                 (i.Status == BillingInvoiceStatus.Open || (i.Status == BillingInvoiceStatus.Paid && i.PeriodStart >= subscription.CurrentPeriodEnd)),
                 cancellationToken);
             if (hasInvoice) continue;
 
             var (start, end) = NextPeriod(subscription, now);
-            var invoice = await invoices.CreateForPeriodAsync(subscription, start, end, cancellationToken);
+            // A downgrade the Owner approved starts with the next period, so that period is billed on the new terms.
+            var terms = await ScheduledTermsAsync(subscription, start, cancellationToken);
+            if (terms is not null) end = AddInterval(start, terms.Version.Interval);
+            var invoice = await invoices.CreateForPeriodAsync(subscription, start, end, cancellationToken, terms);
             AddEvent(subscription, "invoice_issued", SubscriptionActor.System, new { invoice = invoice.InvoiceNumber, total = invoice.TotalMinor });
             await catalog.SaveChangesAsync(cancellationToken);
             Log.Information("Platform: issued {Invoice} to company {CompanyId}", invoice.InvoiceNumber, subscription.CompanyId);
@@ -415,6 +423,129 @@ public sealed class SubscriptionService(
         }
         subscription.UpdatedAt = now;
     }
+
+    // ── Approved plan changes ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The plan, licences and add-ons of a change, priced from today's catalog (validated as a sale would be: the
+    /// plan's minimum licences, add-ons on sale, no add-on the plan already includes).
+    /// </summary>
+    public async Task<InvoiceTerms> TermsForAsync(Guid productId, string planCode, BillingInterval interval, LicenceCounts licences,
+        IReadOnlyDictionary<string, int> addOns, CancellationToken cancellationToken = default)
+    {
+        var version = await CurrentVersionAsync(productId, planCode, interval, cancellationToken);
+        RequireValid(licences, version);
+        var now = DateTime.UtcNow;
+        var priced = new List<(AddOnPrice Price, int Quantity)>();
+        foreach (var (code, quantity) in addOns.Where(a => a.Value > 0))
+        {
+            if (quantity > 100) throw new ValidationException($"Add-on '{code}': quantity must be 0 to 100.");
+            var price = await catalog.AddOnPrices.Include(p => p.AddOn)
+                .Where(p => p.AddOn!.ProductId == productId && p.AddOn.Code == code && p.AddOn.IsActive && p.Interval == interval
+                            && p.EffectiveFrom <= now && (p.EffectiveTo == null || p.EffectiveTo > now))
+                .OrderByDescending(p => p.Version)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new ValidationException($"Add-on '{code}' is not available.");
+            if (PlanIncludes(version, price.AddOn!))
+            {
+                throw new ValidationException($"The {version.Plan?.Name ?? "chosen"} plan already includes {price.AddOn!.Name}; it cannot be added again.");
+            }
+            priced.Add((price, quantity));
+        }
+        return new InvoiceTerms(version, licences, priced);
+    }
+
+    /// <summary>The terms of a downgrade approved to start at or before <paramref name="periodStart"/>, or null.</summary>
+    private async Task<InvoiceTerms?> ScheduledTermsAsync(Subscription subscription, DateTime periodStart, CancellationToken cancellationToken)
+    {
+        var scheduled = await catalog.PlanChangeRequests.AsNoTracking()
+            .Where(r => r.SubscriptionId == subscription.Id && r.Status == PlanChangeStatus.Scheduled && r.EffectiveAt <= periodStart)
+            .OrderByDescending(r => r.DecidedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (scheduled is null) return null;
+        var productId = await catalog.Companies.Where(c => c.Id == subscription.CompanyId).Select(c => c.ProductId).FirstAsync(cancellationToken);
+        return await TermsForAsync(productId, scheduled.PlanCode, scheduled.Interval, scheduled.Licences, AddOnsOf(scheduled), cancellationToken);
+    }
+
+    public static IReadOnlyDictionary<string, int> AddOnsOf(PlanChangeRequest request) =>
+        JsonSerializer.Deserialize<Dictionary<string, int>>(request.AddOnsJson) ?? new Dictionary<string, int>();
+
+    /// <summary>Approved downgrades whose date has come: the subscription moves to the new terms.</summary>
+    private async Task<int> ApplyScheduledChangesAsync(DateTime now, CancellationToken cancellationToken)
+    {
+        var dueChanges = await catalog.PlanChangeRequests
+            .Where(r => r.Status == PlanChangeStatus.Scheduled && r.EffectiveAt <= now)
+            .ToListAsync(cancellationToken);
+        var applied = 0;
+        foreach (var request in dueChanges)
+        {
+            var subscription = await catalog.Subscriptions.FirstOrDefaultAsync(s => s.CompanyId == request.CompanyId && s.IsCurrent, cancellationToken);
+            if (subscription is null || subscription.Id != request.SubscriptionId || subscription.Status is SubscriptionStatus.Canceled)
+            {
+                request.Status = PlanChangeStatus.Cancelled;
+                await catalog.SaveChangesAsync(cancellationToken);
+                continue;
+            }
+            await ChangeAsync(request.CompanyId,
+                new SubscriptionChange(request.PlanCode, request.Interval, AddOnsOf(request), null, request.Licences),
+                SubscriptionActor.System, cancellationToken);
+            request.Status = PlanChangeStatus.Applied;
+            request.AppliedAt = now;
+            await catalog.SaveChangesAsync(cancellationToken);
+            Log.Information("Platform: scheduled plan change {RequestId} applied to company {CompanyId}", request.Id, request.CompanyId);
+            applied++;
+        }
+        return applied;
+    }
+
+    private async Task ExpireProposalsAsync(DateTime now, CancellationToken cancellationToken) =>
+        await catalog.PlanChangeRequests
+            .Where(r => r.Status == PlanChangeStatus.Pending && r.ExpiresAt <= now)
+            .ExecuteUpdateAsync(set => set.SetProperty(r => r.Status, PlanChangeStatus.Expired), cancellationToken);
+
+    /// <summary>
+    /// Unpaid period invoices no longer match after the terms changed: each is voided and issued again for the same
+    /// period on the terms that apply to it. Paid invoices are never touched.
+    /// </summary>
+    public async Task ReissueOpenPeriodInvoicesAsync(Guid companyId, CancellationToken cancellationToken = default)
+    {
+        var subscription = await CurrentAsync(companyId, cancellationToken);
+        var open = await catalog.BillingInvoices
+            .Where(i => i.SubscriptionId == subscription.Id && i.Status == BillingInvoiceStatus.Open && i.Kind == BillingInvoiceKind.Period
+                        && i.PeriodStart != null && i.PeriodEnd != null)
+            .ToListAsync(cancellationToken);
+        foreach (var old in open)
+        {
+            old.Status = BillingInvoiceStatus.Void;
+            await catalog.SaveChangesAsync(cancellationToken);
+            var terms = await ScheduledTermsAsync(subscription, old.PeriodStart!.Value, cancellationToken);
+            var end = terms is null ? old.PeriodEnd!.Value : AddInterval(old.PeriodStart.Value, terms.Version.Interval);
+            var replacement = await invoices.CreateForPeriodAsync(subscription, old.PeriodStart.Value, end, cancellationToken, terms);
+            AddEvent(subscription, "invoice_reissued", SubscriptionActor.System,
+                new { voided = old.InvoiceNumber, issued = replacement.InvoiceNumber, total = replacement.TotalMinor });
+            await catalog.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    /// <summary>Records a step of a plan change in the subscription's history.</summary>
+    public async Task RecordPlanChangeEventAsync(Guid subscriptionId, string type, SubscriptionActor actor, object metadata,
+        CancellationToken cancellationToken = default)
+    {
+        catalog.SubscriptionEvents.Add(new SubscriptionEvent
+        {
+            Id = Guid.NewGuid(),
+            SubscriptionId = subscriptionId,
+            EventType = type,
+            EffectiveAt = DateTime.UtcNow,
+            ActorType = actor.Type,
+            ActorId = actor.Id,
+            Metadata = JsonSerializer.Serialize(metadata),
+            CreatedAt = DateTime.UtcNow
+        });
+        await catalog.SaveChangesAsync(cancellationToken);
+    }
+
+    public static DateTime NextIntervalEnd(DateTime start, BillingInterval interval) => AddInterval(start, interval);
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
 

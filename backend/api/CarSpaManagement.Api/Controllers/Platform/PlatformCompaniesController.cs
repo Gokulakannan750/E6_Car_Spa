@@ -49,6 +49,13 @@ public sealed record CompanyStatusRequest(string Action, string Reason);
 public sealed record ChangeSubscriptionRequest(string? PlanCode, string? Interval, Dictionary<string, int>? AddOns, int? ExtendTrialDays, string Reason,
     PlatformLicencesDto? Licences = null);
 public sealed record CancelSubscriptionRequest(bool AtPeriodEnd, string Reason);
+public sealed record PlanChangeBody(string PlanCode, string Interval, PlatformLicencesDto Licences, Dictionary<string, int>? AddOns, string? Reason);
+public sealed record PlanChangePreviewDto(string Timing, long CurrentPeriodPriceMinor, long NewPeriodPriceMinor, long AmountNowMinor, string Currency,
+    DateTime EffectiveAt);
+public sealed record PlanChangeRequestDto(Guid Id, string Status, string Timing, string PlanCode, string Interval, PlatformLicencesDto Licences,
+    Dictionary<string, int> AddOns, long CurrentPeriodPriceMinor, long NewPeriodPriceMinor, long AmountNowMinor, string Currency, DateTime EffectiveAt,
+    DateTime ExpiresAt, string? Reason, string? RequestedByEmail, DateTime CreatedAt, DateTime? DecidedAt, string? DecidedByName,
+    string? AdjustmentInvoiceNumber);
 
 /// <summary>Trovo's view of companies: provisioning, registration codes, subscriptions, suspension. Every change is audited.</summary>
 [ApiController]
@@ -58,6 +65,7 @@ public class PlatformCompaniesController(
     PlatformDbContext catalog,
     CompanyDatabaseProvisioner provisioner,
     SubscriptionService subscriptions,
+    PlanChangeService planChanges,
     PlatformAuditService audit,
     IAesEncryptionService encryption,
     IConfiguration configuration,
@@ -180,11 +188,75 @@ public class PlatformCompaniesController(
         return await Run(id, async actor =>
         {
             if (string.IsNullOrWhiteSpace(request.Reason)) throw new ValidationException("A reason is required.");
+            var changesTerms = request.PlanCode is not null || request.Interval is not null || request.AddOns is not null || request.Licences is not null;
+            if (changesTerms && await catalog.Companies.AnyAsync(c => c.Id == id && c.Status != PlatformCompanyStatus.AwaitingRegistration, cancellationToken))
+            {
+                throw new ConflictException("This company is registered, so its Owner must approve plan changes. Send the change for approval instead.");
+            }
             var before = ToDto(await subscriptions.CurrentAsync(id, cancellationToken));
             var change = new SubscriptionChange(request.PlanCode, request.Interval is null ? null : ParseInterval(request.Interval),
                 request.AddOns, request.ExtendTrialDays, ToCounts(request.Licences));
             var after = ToDto(await subscriptions.ChangeAsync(id, change, actor, cancellationToken));
             await audit.RecordAsync("subscription.changed", id, before, after, request.Reason, cancellationToken);
+        });
+    }
+
+    /// <summary>What a change would cost the company now and when it would start (nothing is saved).</summary>
+    [HttpPost("{id:guid}/plan-change/preview")]
+    [Authorize(Policy = PlatformPolicies.Billing)]
+    public async Task<ActionResult<PlanChangePreviewDto>> PreviewPlanChange(Guid id, [FromBody] PlanChangeBody body, CancellationToken cancellationToken)
+    {
+        if (!await catalog.Companies.AnyAsync(c => c.Id == id, cancellationToken)) return NotFound();
+        try
+        {
+            var preview = await planChanges.PreviewAsync(id, ToTarget(body), cancellationToken);
+            return Ok(new PlanChangePreviewDto(preview.Timing.ToString(), preview.CurrentPeriodPriceMinor, preview.NewPeriodPriceMinor,
+                preview.AmountNowMinor, preview.Currency, preview.EffectiveAt));
+        }
+        catch (ValidationException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+    }
+
+    /// <summary>Sends a change to the company's Owner for approval. Nothing changes until they approve in the app.</summary>
+    [HttpPost("{id:guid}/plan-change")]
+    [Authorize(Policy = PlatformPolicies.Billing)]
+    public async Task<ActionResult<PlanChangeRequestDto>> ProposePlanChange(Guid id, [FromBody] PlanChangeBody body, CancellationToken cancellationToken)
+    {
+        if (!await catalog.Companies.AnyAsync(c => c.Id == id, cancellationToken)) return NotFound();
+        try
+        {
+            var request = await planChanges.ProposeAsync(id, ToTarget(body), body.Reason ?? string.Empty, AdminId(),
+                User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value, cancellationToken);
+            await audit.RecordAsync("subscription.change_proposed", id, null,
+                new { request.Id, request.PlanCode, interval = request.Interval.ToString(), request.Licences, request.AddOnsJson, timing = request.Timing.ToString(), request.AmountNowMinor },
+                body.Reason, cancellationToken);
+            return Ok(await ToDtoAsync(request, cancellationToken));
+        }
+        catch (ValidationException ex) { return BadRequest(new { error = ex.Message }); }
+        catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { error = ex.Message }); }
+    }
+
+    /// <summary>The company's plan change proposals, newest first.</summary>
+    [HttpGet("{id:guid}/plan-changes")]
+    public async Task<ActionResult<IReadOnlyList<PlanChangeRequestDto>>> PlanChanges(Guid id, CancellationToken cancellationToken)
+    {
+        await planChanges.OpenForCompanyAsync(id, cancellationToken); // closes expired proposals
+        var requests = await catalog.PlanChangeRequests.AsNoTracking().Where(r => r.CompanyId == id)
+            .OrderByDescending(r => r.CreatedAt).Take(20).ToListAsync(cancellationToken);
+        var list = new List<PlanChangeRequestDto>();
+        foreach (var request in requests) list.Add(await ToDtoAsync(request, cancellationToken));
+        return Ok(list);
+    }
+
+    [HttpPost("{id:guid}/plan-change/{requestId:guid}/cancel")]
+    [Authorize(Policy = PlatformPolicies.Billing)]
+    public async Task<IActionResult> CancelPlanChange(Guid id, Guid requestId, CancellationToken cancellationToken)
+    {
+        return await Run(id, async _ =>
+        {
+            await planChanges.CancelAsync(id, requestId, cancellationToken);
+            await audit.RecordAsync("subscription.change_withdrawn", id, null, new { requestId }, null, cancellationToken);
         });
     }
 
@@ -279,6 +351,26 @@ public class PlatformCompaniesController(
     private static CompanyPlan ToPlan(PlatformPlanRequest plan) =>
         new(plan.PlanCode, ParseInterval(plan.Interval), plan.AddOns ?? new Dictionary<string, int>(), DateTime.SpecifyKind(plan.PaidUntil, DateTimeKind.Utc),
             ToCounts(plan.Licences));
+
+    private static PlanChangeTarget ToTarget(PlanChangeBody body)
+    {
+        if (string.IsNullOrWhiteSpace(body.PlanCode)) throw new ValidationException("Choose a plan.");
+        if (body.Licences is null) throw new ValidationException("Choose the user licences.");
+        return new PlanChangeTarget(body.PlanCode.Trim().ToLowerInvariant(), ParseInterval(body.Interval),
+            new LicenceCounts(body.Licences.Android, body.Licences.Windows, body.Licences.Both), body.AddOns ?? new Dictionary<string, int>());
+    }
+
+    private async Task<PlanChangeRequestDto> ToDtoAsync(PlanChangeRequest r, CancellationToken cancellationToken)
+    {
+        var invoiceNumber = r.AdjustmentInvoiceId is { } invoiceId
+            ? await catalog.BillingInvoices.Where(i => i.Id == invoiceId).Select(i => i.InvoiceNumber).FirstOrDefaultAsync(cancellationToken)
+            : null;
+        return new PlanChangeRequestDto(r.Id, r.Status.ToString(), r.Timing.ToString(), r.PlanCode, r.Interval.ToString(),
+            new PlatformLicencesDto(r.AndroidLicences, r.WindowsLicences, r.BothLicences),
+            SubscriptionService.AddOnsOf(r).ToDictionary(a => a.Key, a => a.Value), r.CurrentPeriodPriceMinor, r.NewPeriodPriceMinor,
+            r.AmountNowMinor, r.Currency, r.EffectiveAt, r.ExpiresAt, r.Reason, r.RequestedByEmail, r.CreatedAt, r.DecidedAt, r.DecidedByName,
+            invoiceNumber);
+    }
 
     private static BillingInterval ParseInterval(string interval) =>
         Enum.TryParse<BillingInterval>(interval, ignoreCase: true, out var parsed)

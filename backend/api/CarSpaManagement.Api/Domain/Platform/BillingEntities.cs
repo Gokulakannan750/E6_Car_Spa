@@ -303,6 +303,16 @@ public class SubscriptionEvent
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>What an invoice is for: a billing period, or a one-off amount such as the rest of a period after an upgrade.</summary>
+public enum BillingInvoiceKind
+{
+    /// <summary>One billing period; paying it activates or renews the subscription for that period.</summary>
+    Period = 0,
+
+    /// <summary>A one-off charge (an upgrade during a paid period). Paying it never changes the subscription's dates.</summary>
+    Adjustment = 1
+}
+
 public enum BillingInvoiceStatus
 {
     Draft = 0,
@@ -340,6 +350,8 @@ public class BillingInvoice
     public long TotalMinor { get; set; }
     public long AmountDueMinor { get; set; }
     public BillingInvoiceStatus Status { get; set; }
+
+    public BillingInvoiceKind Kind { get; set; } = BillingInvoiceKind.Period;
 
     public DateTime? PeriodStart { get; set; }
     public DateTime? PeriodEnd { get; set; }
@@ -777,4 +789,112 @@ public enum FranchiseSignupCodeStatus
     Used,
     Expired,
     Cancelled
+}
+
+public enum PlanChangeStatus
+{
+    /// <summary>Trovo proposed it; waiting for the company's Owner.</summary>
+    Pending,
+
+    /// <summary>The Owner approved a downgrade; it takes effect when the paid period ends.</summary>
+    Scheduled,
+
+    /// <summary>The change is in effect.</summary>
+    Applied,
+
+    Declined,
+
+    /// <summary>Withdrawn by Trovo, or replaced by a newer proposal.</summary>
+    Cancelled,
+
+    /// <summary>Not answered in time.</summary>
+    Expired
+}
+
+/// <summary>When an approved change takes effect, and whether anything is charged for it.</summary>
+public enum PlanChangeTiming
+{
+    /// <summary>At once, nothing to pay now (a trial, an unpaid company, or the same price).</summary>
+    Now,
+
+    /// <summary>At once, with an invoice for the price difference for the rest of the paid period (an upgrade).</summary>
+    NowWithCharge,
+
+    /// <summary>When the paid period ends, with no refund (a downgrade, or a change of billing interval).</summary>
+    AtPeriodEnd
+}
+
+/// <summary>
+/// A change to a company's subscription that Trovo proposes and the company's Owner approves in the app. Nothing
+/// changes for the company until the Owner approves; what they approved (plan, licences, add-ons, amount) is kept.
+/// </summary>
+public class PlanChangeRequest
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+
+    /// <summary>The subscription the change was proposed against.</summary>
+    public Guid SubscriptionId { get; set; }
+
+    public PlanChangeStatus Status { get; set; }
+    public PlanChangeTiming Timing { get; set; }
+
+    [Required, MaxLength(40)]
+    public string PlanCode { get; set; } = string.Empty;
+
+    public BillingInterval Interval { get; set; }
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    /// <summary>Add-on codes and quantities wanted (JSON object).</summary>
+    [MaxLength(1000)]
+    public string AddOnsJson { get; set; } = "{}";
+
+    /// <summary>The current and the new price for one full period, in minor units (before tax).</summary>
+    public long CurrentPeriodPriceMinor { get; set; }
+    public long NewPeriodPriceMinor { get; set; }
+
+    /// <summary>What the company pays now (the difference for the rest of the period), before tax; 0 when nothing.</summary>
+    public long AmountNowMinor { get; set; }
+
+    [Required, MaxLength(3)]
+    public string Currency { get; set; } = "INR";
+
+    /// <summary>When the change takes effect (worked out again when approved).</summary>
+    public DateTime EffectiveAt { get; set; }
+
+    [MaxLength(500)]
+    public string? Reason { get; set; }
+
+    public Guid? RequestedByAdminId { get; set; }
+
+    [MaxLength(256)]
+    public string? RequestedByEmail { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+
+    public DateTime? DecidedAt { get; set; }
+    public Guid? DecidedByUserId { get; set; }
+
+    [MaxLength(150)]
+    public string? DecidedByName { get; set; }
+
+    public DateTime? AppliedAt { get; set; }
+
+    /// <summary>The invoice for the amount charged now, if any.</summary>
+    public Guid? AdjustmentInvoiceId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public LicenceCounts Licences
+    {
+        get => new(AndroidLicences, WindowsLicences, BothLicences);
+        set
+        {
+            AndroidLicences = value.Android;
+            WindowsLicences = value.Windows;
+            BothLicences = value.Both;
+        }
+    }
 }

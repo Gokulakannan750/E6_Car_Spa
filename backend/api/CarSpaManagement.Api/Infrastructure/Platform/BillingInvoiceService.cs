@@ -16,67 +16,100 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
 
     /// <summary>
     /// Builds and saves an open invoice for one billing period of a subscription. The subscription must be loaded
-    /// with its plan version (and plan) and items (with add-on prices and add-ons).
+    /// with its plan version (and plan) and items (with add-on prices and add-ons). <paramref name="terms"/> replaces
+    /// the subscription's own plan, licences and add-ons (a downgrade that starts with this period).
     /// </summary>
     public async Task<BillingInvoice> CreateForPeriodAsync(Subscription subscription, DateTime periodStart, DateTime periodEnd,
+        CancellationToken cancellationToken = default, InvoiceTerms? terms = null)
+    {
+        terms ??= InvoiceTerms.Of(subscription, periodStart);
+        var invoice = await NewInvoiceAsync(subscription, terms.Version.Currency, cancellationToken);
+        invoice.PeriodStart = periodStart;
+        invoice.PeriodEnd = periodEnd;
+        invoice.DueAt = periodStart > invoice.IssuedAt ? periodStart : invoice.IssuedAt;
+
+        var periodText = $"{ToIndia(periodStart):dd MMM yyyy} – {ToIndia(periodEnd).AddDays(-1):dd MMM yyyy}";
+        var sort = 0;
+        foreach (var (description, quantity, unit) in Lines(terms, periodText))
+        {
+            invoice.Lines.Add(Line(invoice.Id, description, quantity, unit, sort++));
+        }
+        return await SaveAsync(invoice, cancellationToken);
+    }
+
+    /// <summary>
+    /// A one-off invoice (e.g. the price difference for the rest of a paid period after an upgrade). Paying it never
+    /// changes the subscription's dates. Due in 7 days.
+    /// </summary>
+    public async Task<BillingInvoice> CreateAdjustmentAsync(Subscription subscription, string description, long amountMinor, string currency,
         CancellationToken cancellationToken = default)
     {
-        var version = subscription.PlanVersion ?? throw new InvalidOperationException("The subscription's plan version is not loaded.");
+        if (amountMinor <= 0) throw new InvalidOperationException("An adjustment invoice needs an amount above zero.");
+        var invoice = await NewInvoiceAsync(subscription, currency, cancellationToken);
+        invoice.Kind = BillingInvoiceKind.Adjustment;
+        invoice.DueAt = invoice.IssuedAt.AddDays(7);
+        invoice.Lines.Add(Line(invoice.Id, description, 1, amountMinor, 0));
+        return await SaveAsync(invoice, cancellationToken);
+    }
+
+    /// <summary>The price of one full period for these terms, before tax (the same lines as an invoice).</summary>
+    public static long PeriodSubtotal(InvoiceTerms terms) => Lines(terms, string.Empty).Sum(l => l.Unit * l.Quantity);
+
+    private static IEnumerable<(string Description, int Quantity, long Unit)> Lines(InvoiceTerms terms, string periodText)
+    {
+        var version = terms.Version;
+        var planName = version.Plan?.Name ?? "Plan";
+        var period = periodText.Length > 0 ? $", {periodText}" : string.Empty;
+        // The plan line: its company fee, or the whole price for a subscription from before per-app licences.
+        if (version.PriceMinor > 0 || terms.Licences.Total == 0)
+        {
+            yield return ($"{planName} plan ({Describe(version.Interval)}){period}", 1, version.PriceMinor);
+        }
+        foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows"), (AppAccess.Android, "Android") })
+        {
+            var count = terms.Licences.Of(access);
+            if (count == 0) continue;
+            yield return ($"{label} user licence, {planName} ({Describe(version.Interval)}){period}", count, version.UserPriceMinor(access));
+        }
+        // Add-ons in name order, so the same subscription always gives the same invoice.
+        foreach (var (price, quantity) in terms.AddOns.OrderBy(a => a.Price.AddOn?.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (price.Currency != version.Currency)
+            {
+                throw new InvalidOperationException("All lines of an invoice must use the same currency.");
+            }
+            yield return ($"{price.AddOn?.Name ?? "Add-on"} ({Describe(price.Interval)})", quantity, price.UnitPriceMinor);
+        }
+    }
+
+    private async Task<BillingInvoice> NewInvoiceAsync(Subscription subscription, string currency, CancellationToken cancellationToken)
+    {
         var account = await catalog.BillingAccounts.FirstAsync(b => b.Id == subscription.BillingAccountId, cancellationToken);
         var now = DateTime.UtcNow;
-
-        var invoice = new BillingInvoice
+        return new BillingInvoice
         {
             Id = Guid.NewGuid(),
             CompanyId = subscription.CompanyId,
             SubscriptionId = subscription.Id,
             BillingAccountId = account.Id,
-            Currency = version.Currency,
+            Currency = currency,
             Status = BillingInvoiceStatus.Open,
-            PeriodStart = periodStart,
-            PeriodEnd = periodEnd,
             IssuedAt = now,
-            DueAt = periodStart > now ? periodStart : now,
+            DueAt = now,
             BillToName = account.BillingName,
             BillToAddress = account.BillingAddress,
             BillToGstin = account.Gstin,
             CreatedAt = now
         };
+    }
 
-        var periodText = $"{ToIndia(periodStart):dd MMM yyyy} – {ToIndia(periodEnd).AddDays(-1):dd MMM yyyy}";
-        var sort = 0;
-        var planName = version.Plan?.Name ?? "Plan";
-        var licences = subscription.Licences;
-        // The plan line: its company fee, or the whole price for a subscription from before per-app licences.
-        if (version.PriceMinor > 0 || licences.Total == 0)
-        {
-            invoice.Lines.Add(Line(invoice.Id, $"{planName} plan ({Describe(version.Interval)}), {periodText}", 1, version.PriceMinor, sort++));
-        }
-        foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows"), (AppAccess.Android, "Android") })
-        {
-            var count = licences.Of(access);
-            if (count == 0) continue;
-            invoice.Lines.Add(Line(invoice.Id, $"{label} user licence, {planName} ({Describe(version.Interval)}), {periodText}",
-                count, version.UserPriceMinor(access), sort++));
-        }
-
-        // Add-ons in name order, so the same subscription always gives the same invoice.
-        foreach (var item in subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart)
-                     .OrderBy(i => i.AddOnPrice?.AddOn?.Name, StringComparer.OrdinalIgnoreCase))
-        {
-            var price = item.AddOnPrice ?? throw new InvalidOperationException("Subscription item prices are not loaded.");
-            if (price.Currency != version.Currency)
-            {
-                throw new InvalidOperationException("All lines of an invoice must use the same currency.");
-            }
-            invoice.Lines.Add(Line(invoice.Id, $"{price.AddOn?.Name ?? "Add-on"} ({Describe(price.Interval)})", item.Quantity, price.UnitPriceMinor, sort++));
-        }
-
+    private async Task<BillingInvoice> SaveAsync(BillingInvoice invoice, CancellationToken cancellationToken)
+    {
         ApplyTotals(invoice, options.Value);
         await using var transaction = catalog.Database.CurrentTransaction is null
             ? await catalog.Database.BeginTransactionAsync(cancellationToken)
             : null;
-        invoice.InvoiceNumber = await NextNumberAsync(now, cancellationToken);
+        invoice.InvoiceNumber = await NextNumberAsync(invoice.IssuedAt, cancellationToken);
         catalog.BillingInvoices.Add(invoice);
         await catalog.SaveChangesAsync(cancellationToken);
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
@@ -136,6 +169,18 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
 
     private static string Describe(BillingInterval interval) => interval == BillingInterval.Year ? "yearly" : "monthly";
 
-    private static DateTime ToIndia(DateTime utc) =>
+    public static DateTime ToIndia(DateTime utc) =>
         TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), India);
+}
+
+/// <summary>What one period of a subscription is billed for: the plan version, the user licences and the add-ons.</summary>
+public sealed record InvoiceTerms(PlanVersion Version, LicenceCounts Licences, IReadOnlyList<(AddOnPrice Price, int Quantity)> AddOns)
+{
+    /// <summary>The subscription's own terms for a period starting at <paramref name="periodStart"/>.</summary>
+    public static InvoiceTerms Of(Subscription subscription, DateTime periodStart) => new(
+        subscription.PlanVersion ?? throw new InvalidOperationException("The subscription's plan version is not loaded."),
+        subscription.Licences,
+        subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart)
+            .Select(i => (i.AddOnPrice ?? throw new InvalidOperationException("Subscription item prices are not loaded."), i.Quantity))
+            .ToList());
 }
