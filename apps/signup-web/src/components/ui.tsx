@@ -171,7 +171,7 @@ export function CodeBox({ label, value, note }: { label: string; value: string; 
 				{note && <span className="normal-case tracking-normal text-pastdue">{note}</span>}
 			</div>
 			<div className="mt-2 flex items-center justify-between gap-3">
-				<code className="tabular font-mono text-[28px] leading-9 font-semibold tracking-wider break-all text-text-heading select-all">{value}</code>
+				<code className="tabular font-mono text-[22px] leading-9 font-semibold tracking-wide whitespace-nowrap text-text-heading select-all sm:text-[24px]">{value}</code>
 				<button
 					type="button"
 					onClick={copy}
