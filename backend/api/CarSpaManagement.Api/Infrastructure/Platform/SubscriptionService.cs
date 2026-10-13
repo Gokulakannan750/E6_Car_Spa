@@ -210,13 +210,23 @@ public sealed class SubscriptionService(
     /// subscription is activated or renewed for the invoice's period. A reference already recorded is refused, so the
     /// same payment cannot be entered twice.
     /// </summary>
-    public async Task<PaymentTransaction> RecordManualPaymentAsync(Guid invoiceId, long amountMinor, string reference, DateTime? paidAt,
+    public Task<PaymentTransaction> RecordManualPaymentAsync(Guid invoiceId, long amountMinor, string reference, DateTime? paidAt,
+        SubscriptionActor actor, CancellationToken cancellationToken = default) =>
+        RecordPaymentAsync(invoiceId, amountMinor, "Manual", reference, paidAt, actor, cancellationToken);
+
+    /// <summary>
+    /// Records a payment from any source ("Manual" by Trovo, "Test" on test servers, later the gateway's name).
+    /// The same reference cannot be recorded twice for one source. Fully paying the invoice activates or renews.
+    /// </summary>
+    public async Task<PaymentTransaction> RecordPaymentAsync(Guid invoiceId, long amountMinor, string provider, string reference, DateTime? paidAt,
         SubscriptionActor actor, CancellationToken cancellationToken = default)
     {
         if (amountMinor <= 0) throw new ValidationException("The amount must be more than zero.");
         if (string.IsNullOrWhiteSpace(reference)) throw new ValidationException("A payment reference (UTR, UPI id or note) is required.");
 
-        await using var transaction = await catalog.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = catalog.Database.CurrentTransaction is null
+            ? await catalog.Database.BeginTransactionAsync(cancellationToken)
+            : null;
         var invoice = await catalog.BillingInvoices
             .FromSqlInterpolated($"""SELECT * FROM "BillingInvoices" WHERE "Id" = {invoiceId} FOR UPDATE""")
             .FirstOrDefaultAsync(cancellationToken)
@@ -232,7 +242,7 @@ public sealed class SubscriptionService(
         }
 
         var trimmedReference = reference.Trim();
-        if (await catalog.PaymentTransactions.AnyAsync(p => p.Provider == "Manual" && p.Reference == trimmedReference, cancellationToken))
+        if (await catalog.PaymentTransactions.AnyAsync(p => p.Provider == provider && p.Reference == trimmedReference, cancellationToken))
         {
             throw new ConflictException("A payment with this reference has already been recorded.");
         }
@@ -242,7 +252,7 @@ public sealed class SubscriptionService(
         {
             Id = Guid.NewGuid(),
             BillingInvoiceId = invoice.Id,
-            Provider = "Manual",
+            Provider = provider,
             AmountMinor = amountMinor,
             Currency = invoice.Currency,
             Status = PaymentTransactionStatus.Succeeded,
@@ -261,7 +271,7 @@ public sealed class SubscriptionService(
         }
 
         await catalog.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
         entitlements.Invalidate(invoice.CompanyId);
         return payment;
     }

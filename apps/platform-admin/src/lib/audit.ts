@@ -18,6 +18,8 @@ const ACTIONS: Record<string, string> = {
 	'addon.created': 'Add-on created',
 	'addon.updated': 'Add-on changed',
 	'settings.updated': 'Settings changed',
+	'signup.trial_started': 'Free trial started (website)',
+	'signup.paid': 'Paid sign-up (website)',
 	'admin.created': 'Admin added',
 	'admin.updated': 'Admin changed',
 	'admin.reset': 'Admin sign-in reset',

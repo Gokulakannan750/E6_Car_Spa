@@ -6,6 +6,7 @@ namespace CarSpaManagement.Api.Domain.Platform;
 // Trovo's subscriptions and billing, kept in the catalog database. Every company (franchisees too) pays Trovo for
 // itself; nothing here is shared between companies. Money is stored in minor units (paise) next to its currency.
 
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<BillingInterval>))]
 public enum BillingInterval
 {
     Month = 0,
@@ -607,4 +608,107 @@ public class PlatformSetting
 
     [MaxLength(150)]
     public string? UpdatedBy { get; set; }
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SignupStart>))]
+public enum SignupStart
+{
+    Trial = 0,
+    Paid = 1
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SignupStatus>))]
+public enum SignupStatus
+{
+    /// <summary>A paid order waiting for its payment.</summary>
+    AwaitingPayment = 0,
+    /// <summary>Done: the company exists (trial started, or paid and activated).</summary>
+    Completed = 1,
+    /// <summary>Not paid in time.</summary>
+    Expired = 2,
+    /// <summary>Paid, but creating the company failed; Trovo finishes it by hand.</summary>
+    NeedsAttention = 3,
+    /// <summary>Payment received; the company is being created right now.</summary>
+    Processing = 4
+}
+
+/// <summary>
+/// A business signing up on the public website: its details, what it chose, the price fixed when it ordered, and what
+/// happened. The company is created only when the trial starts or the payment arrives, so abandoned checkouts leave
+/// no databases behind.
+/// </summary>
+public class SignupOrder
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+
+    public SignupStart Start { get; set; }
+    public SignupStatus Status { get; set; }
+
+    [Required, MaxLength(150)]
+    public string BusinessName { get; set; } = string.Empty;
+
+    [Required, MaxLength(150)]
+    public string OwnerName { get; set; } = string.Empty;
+
+    /// <summary>10-digit Indian mobile number, digits only.</summary>
+    [Required, MaxLength(10)]
+    public string Mobile { get; set; } = string.Empty;
+
+    /// <summary>Lower-case email.</summary>
+    [Required, MaxLength(150)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, MaxLength(80)]
+    public string City { get; set; } = string.Empty;
+
+    [Required, MaxLength(80)]
+    public string State { get; set; } = string.Empty;
+
+    [MaxLength(15)]
+    public string? Gstin { get; set; }
+
+    [MaxLength(40)]
+    public string? PlanCode { get; set; }
+
+    public BillingInterval? Interval { get; set; }
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    /// <summary>Add-on codes and quantities chosen (JSON object).</summary>
+    [MaxLength(1000)]
+    public string? AddOnsJson { get; set; }
+
+    /// <summary>The price fixed at ordering, in minor units; the payment must match it.</summary>
+    public long AmountMinor { get; set; }
+
+    [Required, MaxLength(3)]
+    public string Currency { get; set; } = "INR";
+
+    /// <summary>The quoted lines (JSON), kept to show the customer exactly what they agreed to.</summary>
+    [MaxLength(4000)]
+    public string? QuoteJson { get; set; }
+
+    /// <summary>SHA-256 of the secret the customer's browser holds; needed to pay or see the order.</summary>
+    [Required, MaxLength(64)]
+    public string TokenHash { get; set; } = string.Empty;
+
+    public Guid? CompanyId { get; set; }
+
+    [MaxLength(30)]
+    public string? PaymentProvider { get; set; }
+
+    [MaxLength(100)]
+    public string? PaymentReference { get; set; }
+
+    [MaxLength(500)]
+    public string? FailureReason { get; set; }
+
+    [MaxLength(64)]
+    public string? IpAddress { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
 }

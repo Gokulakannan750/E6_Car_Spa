@@ -46,6 +46,9 @@ public sealed class PlatformApiHost : IAsyncLifetime
             b.UseSetting("Platform:Jwt:Key", "platform-http-test-signing-key-at-least-32-chars");
             b.UseSetting("WhatsApp:EncryptionKey", "platform-http-test-encryption-key-32-chars!!");
             b.UseSetting("Platform:AdminPortalOrigin", "https://admin.trovo.test");
+            b.UseSetting("Platform:SignupEnabled", "true");
+            b.UseSetting("Platform:TestPayments", "true");
+            b.UseSetting("Platform:SignupOrigin", "https://signup.trovo.test");
         });
         Client = _factory.CreateClient();
         return Task.CompletedTask;

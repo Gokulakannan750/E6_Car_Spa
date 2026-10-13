@@ -334,3 +334,31 @@ export interface PlanTermsInput {
 	windowsUserPriceMinor: number;
 	bothUserPriceMinor: number;
 }
+
+export type SignupStatus = 'AwaitingPayment' | 'Completed' | 'Expired' | 'NeedsAttention' | 'Processing';
+
+/** An order from the public sign-up website. */
+export interface SignupOrder {
+	id: string;
+	createdAt: string;
+	start: 'Trial' | 'Paid';
+	status: SignupStatus;
+	businessName: string;
+	ownerName: string;
+	mobile: string;
+	email: string;
+	city: string;
+	state: string;
+	planCode: string | null;
+	interval: string | null;
+	licences: number;
+	amountMinor: number;
+	currency: string;
+	companyId: string | null;
+	companyCode: string | null;
+	paymentProvider: string | null;
+	paymentReference: string | null;
+	failureReason: string | null;
+	completedAt: string | null;
+	expiresAt: string;
+}

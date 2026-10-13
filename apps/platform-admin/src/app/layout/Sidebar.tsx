@@ -8,6 +8,7 @@ import {
 	Server,
 	Tags,
 	UserCircle,
+	UserPlus,
 	Users,
 	type LucideIcon,
 } from 'lucide-react';
@@ -24,6 +25,7 @@ interface NavItem {
 const NAV: NavItem[] = [
 	{ to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 	{ to: '/companies', label: 'Companies', icon: Building2 },
+	{ to: '/signups', label: 'Sign-ups', icon: UserPlus },
 	{ to: '/invoices', label: 'Invoices', icon: FileText },
 	{ to: '/plans', label: 'Plans & Prices', icon: Tags },
 	{ to: '/audit-log', label: 'Audit Log', icon: History, roles: OWNER_ROLES },

@@ -9,6 +9,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { CompaniesPage } from '@/features/companies/CompaniesPage';
 import { CompanyDetailPage } from '@/features/companies/CompanyDetailPage';
 import { InvoicesPage } from '@/features/invoices/InvoicesPage';
+import { SignupsPage } from '@/features/signups/SignupsPage';
 import { InvoicePrintPage } from '@/features/invoices/InvoicePrintPage';
 import { PlansPage } from '@/features/plans/PlansPage';
 import { AuditLogPage } from '@/features/audit/AuditLogPage';
@@ -56,6 +57,7 @@ export function AppRoutes() {
 				<Route path="/companies" element={<CompaniesPage />} />
 				<Route path="/companies/:id" element={<CompanyDetailPage />} />
 				<Route path="/invoices" element={<InvoicesPage />} />
+				<Route path="/signups" element={<SignupsPage />} />
 				<Route path="/plans" element={<PlansPage />} />
 				<Route path="/audit-log" element={<RequireAuth roles={OWNER_ROLES}><AuditLogPage /></RequireAuth>} />
 				<Route path="/admins" element={<RequireAuth roles={OWNER_ROLES}><AdminsPage /></RequireAuth>} />

@@ -18,6 +18,10 @@ public sealed record CreateAddOnRequest(string Code, string Name, string Feature
 public sealed record UpdateAddOnRequest(string? Name, bool? IsActive, string Reason);
 public sealed record PlatformSettingsDto(int TrialDays, int GraceDays, int TrialLicences, int RenewalInvoiceDaysBefore);
 public sealed record UpdatePlatformSettingsRequest(int? TrialDays, int? GraceDays, int? TrialLicences, int? RenewalInvoiceDaysBefore, string Reason);
+public sealed record SignupOrderListItem(Guid Id, DateTime CreatedAt, string Start, string Status, string BusinessName, string OwnerName,
+    string Mobile, string Email, string City, string State, string? PlanCode, string? Interval, int Licences, long AmountMinor, string Currency,
+    Guid? CompanyId, string? CompanyCode, string? PaymentProvider, string? PaymentReference, string? FailureReason, DateTime? CompletedAt,
+    DateTime ExpiresAt);
 
 /// <summary>
 /// Trovo manages its own catalog from the admin portal: new plans and add-ons, renaming or stopping one, and the
@@ -182,6 +186,32 @@ public partial class PlatformCatalogController(
             await audit.RecordAsync("settings.updated", null, before, after, request.Reason, cancellationToken);
             return Ok(after);
         });
+    }
+
+    /// <summary>
+    /// Orders from the public sign-up website, newest first. "NeedsAttention" means paid but the company could not be
+    /// created: Trovo creates it by hand (New company, already paid) and calls the customer.
+    /// </summary>
+    [HttpGet("signups")]
+    public async Task<ActionResult<IReadOnlyList<SignupOrderListItem>>> Signups([FromQuery] string? status, CancellationToken cancellationToken)
+    {
+        var productId = await ProductIdAsync(cancellationToken);
+        var query = catalog.SignupOrders.AsNoTracking().Where(o => o.ProductId == productId);
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<SignupStatus>(status, ignoreCase: true, out var wanted)) return BadRequest(new { error = "Unknown status." });
+            query = query.Where(o => o.Status == wanted);
+        }
+        var orders = await query.OrderByDescending(o => o.CreatedAt).Take(500).ToListAsync(cancellationToken);
+        var companyIds = orders.Where(o => o.CompanyId != null).Select(o => o.CompanyId!.Value).ToList();
+        var codes = await catalog.Companies.Where(c => companyIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Code, cancellationToken);
+        var now = DateTime.UtcNow;
+        return Ok(orders.Select(o => new SignupOrderListItem(o.Id, o.CreatedAt, o.Start.ToString(),
+            (o.Status == SignupStatus.AwaitingPayment && o.ExpiresAt <= now ? SignupStatus.Expired : o.Status).ToString(),
+            o.BusinessName, o.OwnerName, o.Mobile, o.Email, o.City, o.State, o.PlanCode, o.Interval?.ToString(),
+            o.AndroidLicences + o.WindowsLicences + o.BothLicences, o.AmountMinor, o.Currency, o.CompanyId,
+            o.CompanyId is { } id && codes.TryGetValue(id, out var code) ? code : null,
+            o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt)).ToList());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────

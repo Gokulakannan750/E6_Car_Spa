@@ -22,6 +22,7 @@ import type {
 	PlatformAdmin,
 	PlatformSettings,
 	RegistrationCodeResponse,
+	SignupOrder,
 	SessionResponse,
 } from './types';
 
@@ -213,6 +214,7 @@ export const api = {
 	}) => request<void>(`${P}/addons`, { method: 'POST', body }),
 	updateAddOn: (code: string, body: { name?: string; isActive?: boolean; reason: string }) =>
 		request<void>(`${P}/addons/${code}`, { method: 'PUT', body }),
+	signups: (status?: string) => request<SignupOrder[]>(`${P}/signups${query({ status })}`),
 	settings: () => request<PlatformSettings>(`${P}/settings`),
 	updateSettings: (body: Partial<PlatformSettings> & { reason: string }) =>
 		request<PlatformSettings>(`${P}/settings`, { method: 'PUT', body }),

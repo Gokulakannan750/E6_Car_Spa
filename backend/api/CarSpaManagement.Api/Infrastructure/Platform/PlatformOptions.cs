@@ -81,6 +81,23 @@ public class PlatformOptions
 
     /// <summary>The admin portal's address (e.g. https://admin.trovotechsolutions.in), allowed to call the API (CORS).</summary>
     public string? AdminPortalOrigin { get; set; }
+
+    // ── Public sign-up website ───────────────────────────────────────────────────
+
+    /// <summary>Whether businesses may sign up and buy on the public website. Off unless Trovo switches it on.</summary>
+    public bool SignupEnabled { get; set; }
+
+    /// <summary>The sign-up website's address, allowed to call the API (CORS).</summary>
+    public string? SignupOrigin { get; set; }
+
+    /// <summary>
+    /// Allows the "Pay (test)" button, which marks an order paid without taking money. Only for test servers: it is
+    /// refused in the Production environment whatever this says.
+    /// </summary>
+    public bool TestPayments { get; set; }
+
+    /// <summary>How long an unpaid sign-up order can still be paid.</summary>
+    public int SignupOrderHours { get; set; } = 24;
 }
 
 /// <summary>

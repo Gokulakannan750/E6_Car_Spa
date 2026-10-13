@@ -254,6 +254,19 @@ CI (`.github/workflows/ci.yml`) runs backend, Windows, Android and the admin por
       not send the app type, so only users with both apps can sign in with them). Single-company servers (E6 today)
       are unaffected.
 
+### Step A3: Customer sign-up website — server side ✅ built 13 Oct, screens waiting for the Stitch export
+
+- ✅ Public API for the website (`docs/SIGNUP_API.md`): catalog of plans/licence prices/add-ons, server-side quote,
+  sign-up (free trial creates the company at once; paid order fixes the price and creates the company on payment),
+  test payment (test servers only), order status. Table `SignupOrders`; admin portal **Sign-ups** page (orders and the
+  "paid but needs attention" case). Switched on with `Platform:SignupEnabled` (+ `Platform:TestPayments` on test
+  servers, `Platform:SignupOrigin` for CORS).
+- [ ] Owner designs the screens in Stitch (`docs/STITCH_PROMPTS_SIGNUP.md`) and sends the export → put it in
+      `design/stitch-signup/`.
+- [ ] Build the website `apps/signup-web` from the export (React + Vite + Tailwind like `apps/platform-admin`; public,
+      no login; strict CSP; mobile-first), using only the endpoints in `docs/SIGNUP_API.md`; Vitest + Playwright
+      (mocked API in CI, live flow: trial → codes → register; paid → test payment → codes → register).
+
 ### Step B: Phase 2.5 Payment gateway (estimate 9–12 days)
 
 **Decisions needed from the owner first:**

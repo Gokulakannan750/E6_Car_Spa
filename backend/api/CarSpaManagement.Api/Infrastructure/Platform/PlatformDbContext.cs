@@ -27,6 +27,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents => Set<PaymentWebhookEvent>();
     public DbSet<PlatformAdmin> Admins => Set<PlatformAdmin>();
     public DbSet<PlatformSetting> Settings => Set<PlatformSetting>();
+    public DbSet<SignupOrder> SignupOrders => Set<SignupOrder>();
     public DbSet<PlatformAuditLog> AuditLogs => Set<PlatformAuditLog>();
     public DbSet<PlatformCounter> Counters => Set<PlatformCounter>();
 
@@ -84,6 +85,16 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.Property(v => v.Interval).HasConversion<string>().HasMaxLength(10);
         });
         modelBuilder.Entity<PlatformSetting>(e => e.ToTable("PlatformSettings"));
+        modelBuilder.Entity<SignupOrder>(e =>
+        {
+            e.ToTable("SignupOrders");
+            e.Property(o => o.Start).HasConversion<string>().HasMaxLength(10);
+            e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(o => o.Interval).HasConversion<string>().HasMaxLength(10);
+            e.HasIndex(o => new { o.ProductId, o.Email });
+            e.HasIndex(o => new { o.ProductId, o.Mobile });
+            e.HasIndex(o => o.CompanyId);
+        });
         modelBuilder.Entity<PlanEntitlement>(e =>
         {
             e.ToTable("PlanEntitlements");
