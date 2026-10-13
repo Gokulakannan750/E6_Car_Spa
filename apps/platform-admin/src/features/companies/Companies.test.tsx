@@ -17,6 +17,7 @@ const company = (over: Partial<CompanyListItem>): CompanyListItem => ({
 	trialEndsAt: null,
 	migrationFailed: false,
 	createdAt: '2026-10-01T00:00:00Z',
+	licences: 1,
 	...over,
 });
 
@@ -30,16 +31,27 @@ const companies = [
 const catalog: Catalog = {
 	chargesGst: false,
 	gstRatePercent: 0,
-	plans: ['starter', 'professional'].map((code, index) => ({
-		id: code,
-		code,
-		name: code === 'starter' ? 'Starter' : 'Professional',
-		isActive: true,
-		versions: [
-			{ id: `${code}-m`, version: 1, interval: 'Month', currency: 'INR', priceMinor: index ? 199_900 : 99_900, includedSeats: index ? 10 : 3, effectiveFrom: '2026-10-01T00:00:00Z', effectiveTo: null, entitlements: [] },
-			{ id: `${code}-y`, version: 1, interval: 'Year', currency: 'INR', priceMinor: index ? 1_999_000 : 999_000, includedSeats: index ? 10 : 3, effectiveFrom: '2026-10-01T00:00:00Z', effectiveTo: null, entitlements: [] },
-		],
-	})),
+	plans: ['starter', 'professional'].map((code, index) => {
+		const prices = index ? [79_900, 119_900, 149_900] : [49_900, 69_900, 99_900];
+		const version = (interval: 'Month' | 'Year') => {
+			const k = interval === 'Year' ? 10 : 1;
+			return {
+				id: `${code}-${interval}`,
+				version: 1,
+				interval,
+				currency: 'INR',
+				priceMinor: 0,
+				includedSeats: 1,
+				androidUserPriceMinor: prices[0]! * k,
+				windowsUserPriceMinor: prices[1]! * k,
+				bothUserPriceMinor: prices[2]! * k,
+				effectiveFrom: '2026-10-01T00:00:00Z',
+				effectiveTo: null,
+				entitlements: index ? [{ featureKey: 'whatsapp_automation.enabled', value: 'true' }] : [],
+			};
+		};
+		return { id: code, code, name: code === 'starter' ? 'Starter' : 'Professional', isActive: true, versions: [version('Month'), version('Year')] };
+	}),
 	addOns: [
 		{
 			id: 'showroom',
@@ -133,13 +145,16 @@ describe('companies', () => {
 		await user.click(screen.getByRole('radio', { name: /Already paid/ }));
 		await user.click(await screen.findByRole('radio', { name: 'Yearly' }));
 		await user.click(screen.getByRole('radio', { name: /Starter/ }));
-		await user.click(screen.getByRole('checkbox'));
-		expect(screen.getByText('₹19,980.00')).toBeInTheDocument(); // ₹9,990 + ₹9,990 showroom
+		await user.click(screen.getByRole('checkbox', { name: 'Include Showroom / B2B module' }));
+		expect(screen.getByText('₹19,980.00')).toBeInTheDocument(); // 1 × ₹9,990 Windows + Android licence + ₹9,990 showroom
+		await user.click(screen.getByRole('button', { name: 'More Android only licences' }));
+		await user.click(screen.getByRole('button', { name: 'More Android only licences' }));
+		expect(screen.getByText('₹29,960.00')).toBeInTheDocument(); // + 2 × ₹4,990 Android licences
 		await user.click(screen.getByRole('button', { name: 'Create company' }));
 
 		await screen.findByText('Paid Spa is ready');
 		const body = api.calls.find((c) => c.method === 'POST')?.body as { plan: Record<string, unknown> };
-		expect(body.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 } });
+		expect(body.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, licences: { android: 2, windows: 0, both: 1 } });
 		expect(new Date(String(body.plan.paidUntil)).getTime()).toBeGreaterThan(Date.now() + 300 * 86_400_000);
 	});
 

@@ -19,7 +19,8 @@ public sealed record SubscriptionChange(
     string? PlanCode = null,
     BillingInterval? Interval = null,
     IReadOnlyDictionary<string, int>? AddOns = null,
-    int? ExtendTrialDays = null);
+    int? ExtendTrialDays = null,
+    LicenceCounts? Licences = null);
 
 /// <summary>
 /// A company's subscription over its life: trial, paid periods, renewals, grace, read-only, suspension and
@@ -29,24 +30,30 @@ public sealed class SubscriptionService(
     PlatformDbContext catalog,
     BillingInvoiceService invoices,
     IEntitlementService entitlements,
-    IOptions<PlatformOptions> options)
+    IOptions<PlatformOptions> options,
+    PlatformSettingsService platformSettings)
 {
     private PlatformOptions Settings => options.Value;
 
     // ── Starting ─────────────────────────────────────────────────────────────────
 
-    /// <summary>A new company's free trial: full Professional for <see cref="PlatformOptions.TrialDays"/> days.</summary>
+    /// <summary>
+    /// A new company's free trial: full Professional for the trial days, with the trial's user licences (for both
+    /// apps). Both come from the platform settings Trovo can change in the admin portal.
+    /// </summary>
     public async Task<Subscription> StartTrialAsync(PlatformCompany company, SubscriptionActor actor, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
+        var effective = await platformSettings.GetAsync(cancellationToken);
         var version = await CurrentVersionAsync(company.ProductId, "professional", BillingInterval.Month, cancellationToken);
         var account = await EnsureBillingAccountAsync(company, cancellationToken);
-        var trialEnd = now.AddDays(Settings.TrialDays);
+        var trialEnd = now.AddDays(effective.TrialDays);
 
         var subscription = NewSubscription(company, account, version, SubscriptionStatus.Trialing, now, now, trialEnd);
         subscription.TrialEndsAt = trialEnd;
+        subscription.Licences = new LicenceCounts(0, 0, effective.TrialLicences);
         catalog.Subscriptions.Add(subscription);
-        AddEvent(subscription, "trial_started", actor, new { plan = "professional", trialEndsAt = trialEnd });
+        AddEvent(subscription, "trial_started", actor, new { plan = "professional", trialEndsAt = trialEnd, licences = subscription.Licences });
         await catalog.SaveChangesAsync(cancellationToken);
         entitlements.Invalidate(company.Id);
         return subscription;
@@ -57,17 +64,19 @@ public sealed class SubscriptionService(
     /// Trovo received outside the system before the company was created).
     /// </summary>
     public async Task<Subscription> StartPaidAsync(PlatformCompany company, string planCode, BillingInterval interval,
-        IReadOnlyDictionary<string, int> addOns, DateTime periodStart, DateTime periodEnd, SubscriptionActor actor,
+        IReadOnlyDictionary<string, int> addOns, LicenceCounts licences, DateTime periodStart, DateTime periodEnd, SubscriptionActor actor,
         CancellationToken cancellationToken = default)
     {
         if (periodEnd <= periodStart) throw new ValidationException("The paid period must end after it starts.");
 
         var version = await CurrentVersionAsync(company.ProductId, planCode, interval, cancellationToken);
+        RequireValid(licences, version);
         var account = await EnsureBillingAccountAsync(company, cancellationToken);
         var subscription = NewSubscription(company, account, version, SubscriptionStatus.Active, periodStart, periodStart, periodEnd);
+        subscription.Licences = licences;
         catalog.Subscriptions.Add(subscription);
-        await SetAddOnsAsync(subscription, company.ProductId, interval, addOns, periodStart, cancellationToken);
-        AddEvent(subscription, "activated", actor, new { plan = planCode, interval = interval.ToString(), addOns, periodStart, periodEnd });
+        await SetAddOnsAsync(subscription, version, company.ProductId, interval, addOns, periodStart, cancellationToken);
+        AddEvent(subscription, "activated", actor, new { plan = planCode, interval = interval.ToString(), addOns, licences, periodStart, periodEnd });
         await catalog.SaveChangesAsync(cancellationToken);
         entitlements.Invalidate(company.Id);
         return subscription;
@@ -88,19 +97,35 @@ public sealed class SubscriptionService(
 
         var planCode = change.PlanCode ?? subscription.PlanVersion!.Plan!.Code;
         var interval = change.Interval ?? subscription.PlanVersion!.Interval;
-        if (planCode != subscription.PlanVersion!.Plan!.Code || interval != subscription.PlanVersion.Interval)
+        var planChanged = planCode != subscription.PlanVersion!.Plan!.Code || interval != subscription.PlanVersion.Interval;
+        if (planChanged)
         {
             var version = await CurrentVersionAsync(company.ProductId, planCode, interval, cancellationToken);
             subscription.PlanVersionId = version.Id;
             subscription.PlanVersion = version;
         }
 
-        if (change.AddOns is not null || change.Interval is not null)
+        if (change.Licences is { } licences)
+        {
+            RequireValid(licences, subscription.PlanVersion);
+            subscription.Licences = licences;
+        }
+        else if (planChanged)
+        {
+            RequireValid(subscription.Licences, subscription.PlanVersion);
+        }
+
+        if (change.AddOns is not null || planChanged)
         {
             var wanted = change.AddOns ?? subscription.Items
                 .Where(i => i.EffectiveTo is null)
                 .ToDictionary(i => i.AddOnPrice!.AddOn!.Code, i => i.Quantity);
-            await SetAddOnsAsync(subscription, company.ProductId, interval, wanted, now, cancellationToken);
+            if (planChanged && change.AddOns is null)
+            {
+                // Moving to a plan that includes a module ends that module's add-on, so it is not paid for twice.
+                wanted = await WithoutIncludedModulesAsync(wanted, subscription.PlanVersion, company.ProductId, cancellationToken);
+            }
+            await SetAddOnsAsync(subscription, subscription.PlanVersion, company.ProductId, interval, wanted, now, cancellationToken);
         }
 
         if (change.ExtendTrialDays is { } days)
@@ -150,7 +175,7 @@ public sealed class SubscriptionService(
         subscription.StatusBeforeSuspension = null;
         subscription.UpdatedAt = DateTime.UtcNow;
         AddEvent(subscription, "reactivated", actor, new { reason, status = subscription.Status.ToString() });
-        ApplyDates(subscription, DateTime.UtcNow);
+        ApplyDates(subscription, DateTime.UtcNow, (await platformSettings.GetAsync(cancellationToken)).GraceDays);
         await catalog.SaveChangesAsync(cancellationToken);
         entitlements.Invalidate(companyId);
     }
@@ -299,6 +324,7 @@ public sealed class SubscriptionService(
     public async Task<int> RunLifecycleAsync(DateTime now, CancellationToken cancellationToken = default)
     {
         var changed = 0;
+        var effective = await platformSettings.GetAsync(cancellationToken);
         var due = await catalog.Subscriptions
             .Include(s => s.PlanVersion!).ThenInclude(v => v.Plan)
             .Include(s => s.Items).ThenInclude(i => i.AddOnPrice!).ThenInclude(p => p.AddOn)
@@ -311,7 +337,7 @@ public sealed class SubscriptionService(
         foreach (var subscription in due)
         {
             var before = subscription.Status;
-            ApplyDates(subscription, now);
+            ApplyDates(subscription, now, effective.GraceDays);
             if (subscription.Status != before)
             {
                 changed++;
@@ -325,7 +351,7 @@ public sealed class SubscriptionService(
                      s.Status is SubscriptionStatus.Active or SubscriptionStatus.PastDue or SubscriptionStatus.Trialing && !s.CancelAtPeriodEnd))
         {
             // A trial gets its first invoice in its last 3 days; a paid period gets its renewal invoice earlier.
-            var daysBefore = subscription.Status == SubscriptionStatus.Trialing ? 3 : Settings.RenewalInvoiceDaysBefore;
+            var daysBefore = subscription.Status == SubscriptionStatus.Trialing ? 3 : effective.RenewalInvoiceDaysBefore;
             var issueFrom = subscription.CurrentPeriodEnd.AddDays(-daysBefore);
             if (now < issueFrom) continue;
             var hasInvoice = await catalog.BillingInvoices.AnyAsync(i =>
@@ -345,7 +371,7 @@ public sealed class SubscriptionService(
     }
 
     /// <summary>The date rules for one subscription (no saving).</summary>
-    private void ApplyDates(Subscription subscription, DateTime now)
+    private void ApplyDates(Subscription subscription, DateTime now, int graceDays)
     {
         switch (subscription.Status)
         {
@@ -363,7 +389,7 @@ public sealed class SubscriptionService(
 
             case SubscriptionStatus.Active when subscription.CurrentPeriodEnd <= now:
                 subscription.Status = SubscriptionStatus.PastDue;
-                subscription.GraceEndsAt = subscription.CurrentPeriodEnd.AddDays(Settings.GraceDays);
+                subscription.GraceEndsAt = subscription.CurrentPeriodEnd.AddDays(graceDays);
                 AddEvent(subscription, "period_ended_unpaid", SubscriptionActor.System, new { graceEndsAt = subscription.GraceEndsAt });
                 if (subscription.GraceEndsAt <= now)
                 {
@@ -385,6 +411,7 @@ public sealed class SubscriptionService(
     public async Task<Subscription> CurrentAsync(Guid companyId, CancellationToken cancellationToken) =>
         await catalog.Subscriptions
             .Include(s => s.PlanVersion!).ThenInclude(v => v.Plan)
+            .Include(s => s.PlanVersion!).ThenInclude(v => v.Entitlements)
             .Include(s => s.Items).ThenInclude(i => i.AddOnPrice!).ThenInclude(p => p.AddOn)
             .FirstOrDefaultAsync(s => s.CompanyId == companyId && s.IsCurrent, cancellationToken)
         ?? throw new NotFoundException("This company has no subscription.");
@@ -392,7 +419,7 @@ public sealed class SubscriptionService(
     private async Task<PlanVersion> CurrentVersionAsync(Guid productId, string planCode, BillingInterval interval, CancellationToken cancellationToken)
     {
         var now = DateTime.UtcNow;
-        return await catalog.PlanVersions.Include(v => v.Plan)
+        return await catalog.PlanVersions.Include(v => v.Plan).Include(v => v.Entitlements)
             .Where(v => v.Plan!.ProductId == productId && v.Plan.Code == planCode && v.Plan.IsActive && v.Interval == interval
                         && v.EffectiveFrom <= now && (v.EffectiveTo == null || v.EffectiveTo > now))
             .OrderByDescending(v => v.Version)
@@ -416,13 +443,25 @@ public sealed class SubscriptionService(
         return account;
     }
 
-    /// <summary>Makes the subscription's add-ons match the wanted quantities (0 removes). History is kept.</summary>
-    private async Task SetAddOnsAsync(Subscription subscription, Guid productId, BillingInterval interval,
+    /// <summary>
+    /// Makes the subscription's add-ons match the wanted quantities (0 removes). History is kept. A module the plan
+    /// already includes cannot be bought again.
+    /// </summary>
+    private async Task SetAddOnsAsync(Subscription subscription, PlanVersion version, Guid productId, BillingInterval interval,
         IReadOnlyDictionary<string, int> wanted, DateTime at, CancellationToken cancellationToken)
     {
         foreach (var (code, quantity) in wanted)
         {
             if (quantity < 0 || quantity > 100) throw new ValidationException($"Add-on '{code}': quantity must be 0 to 100.");
+        }
+
+        var wantedCodes = wanted.Where(w => w.Value > 0).Select(w => w.Key).ToList();
+        var wantedAddOns = await catalog.AddOns.AsNoTracking()
+            .Where(a => a.ProductId == productId && wantedCodes.Contains(a.Code))
+            .ToListAsync(cancellationToken);
+        if (wantedAddOns.FirstOrDefault(a => PlanIncludes(version, a)) is { } duplicate)
+        {
+            throw new ValidationException($"The {version.Plan?.Name ?? "chosen"} plan already includes {duplicate.Name}; it cannot be added again.");
         }
 
         var current = subscription.Items.Where(i => i.EffectiveTo is null).ToList();
@@ -457,6 +496,25 @@ public sealed class SubscriptionService(
                 EffectiveFrom = at
             });
         }
+    }
+
+    /// <summary>Whether a plan version already grants what a module add-on would switch on.</summary>
+    public static bool PlanIncludes(PlanVersion version, AddOn addOn) =>
+        addOn.Value == "true" && version.Entitlements.Any(e =>
+            string.Equals(e.FeatureKey, addOn.FeatureKey, StringComparison.OrdinalIgnoreCase) && e.Value == "true");
+
+    private async Task<IReadOnlyDictionary<string, int>> WithoutIncludedModulesAsync(IReadOnlyDictionary<string, int> wanted, PlanVersion version,
+        Guid productId, CancellationToken cancellationToken)
+    {
+        var codes = wanted.Keys.ToList();
+        var addOns = await catalog.AddOns.AsNoTracking().Where(a => a.ProductId == productId && codes.Contains(a.Code)).ToListAsync(cancellationToken);
+        var drop = addOns.Where(a => PlanIncludes(version, a)).Select(a => a.Code).ToHashSet();
+        return wanted.Where(w => !drop.Contains(w.Key)).ToDictionary(w => w.Key, w => w.Value);
+    }
+
+    private static void RequireValid(LicenceCounts licences, PlanVersion version)
+    {
+        if (licences.Problem(version.IncludedSeats) is { } problem) throw new ValidationException(problem);
     }
 
     private static Subscription NewSubscription(PlatformCompany company, BillingAccount account, PlanVersion version,
@@ -506,6 +564,7 @@ public sealed class SubscriptionService(
         interval = subscription.PlanVersion?.Interval.ToString(),
         status = subscription.Status.ToString(),
         trialEndsAt = subscription.TrialEndsAt,
+        licences = new { android = subscription.AndroidLicences, windows = subscription.WindowsLicences, both = subscription.BothLicences },
         addOns = subscription.Items.Where(i => i.EffectiveTo is null).Select(i => new { code = i.AddOnPrice?.AddOn?.Code, i.Quantity })
     };
 

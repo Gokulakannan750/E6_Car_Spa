@@ -45,6 +45,13 @@ public class PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
             return; // Inactive or deleted user denied immediately
         }
 
+        // The Owner can change a user's app access at any time; it applies to the next request, not the next sign-in.
+        // Tokens from before app licences carry no app claim and are accepted only for users with both apps.
+        if (!ClientApp.Allows(user.AppAccess, context.User.FindFirstValue(JwtTokenService.AppClaim)))
+        {
+            return;
+        }
+
         // 1. OWNER RULE: Active Owner bypasses all permission checks automatically based on current database record
         if (user.Role == UserRole.Owner)
         {

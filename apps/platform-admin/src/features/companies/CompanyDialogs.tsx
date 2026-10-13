@@ -7,7 +7,8 @@ import { Modal } from '@/components/Modal';
 import { ReasonDialog } from '@/components/ReasonDialog';
 import { InlineError, LoadingState } from '@/components/Surface';
 import { useToast } from '@/components/Toast';
-import { PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { addOnsToBuy, ONE_BOTH_LICENCE, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { totalLicences } from '@/lib/catalog';
 import { api } from '@/lib/api';
 import { date, dateTime } from '@/lib/format';
 import type { BillingAccount, CompanyDetail, RegistrationCodeResponse } from '@/lib/types';
@@ -303,6 +304,7 @@ function selectionFrom(company: CompanyDetail): PlanSelection {
 		planCode: s?.plan || 'professional',
 		interval: s?.interval === 'Year' ? 'Year' : 'Month',
 		addOns: Object.fromEntries((s?.addOns ?? []).map((a) => [a.code, a.quantity])),
+		licences: s?.licences && totalLicences(s.licences) > 0 ? s.licences : ONE_BOTH_LICENCE,
 	};
 }
 
@@ -318,14 +320,17 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 	const mutation = useMutation({
 		mutationFn: () => {
 			const before = selectionFrom(company);
-			const addOnsChanged = JSON.stringify(Object.entries(before.addOns).sort()) !== JSON.stringify(Object.entries(selection.addOns).sort());
+			const wanted = catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns;
+			const addOnsChanged = JSON.stringify(Object.entries(before.addOns).sort()) !== JSON.stringify(Object.entries(wanted).sort());
+			const licencesChanged = JSON.stringify(before.licences) !== JSON.stringify(selection.licences);
 			// The API takes the complete set of add-ons wanted; anything left out ends.
-			const addOns = addOnsChanged ? selection.addOns : null;
+			const addOns = addOnsChanged ? wanted : null;
 			return api.changeSubscription(company.id, {
 				planCode: selection.planCode !== before.planCode ? selection.planCode : null,
 				interval: selection.interval !== before.interval ? selection.interval : null,
 				addOns,
 				extendTrialDays: trial && extendDays ? Number(extendDays) : null,
+				licences: licencesChanged ? selection.licences : null,
 				reason: reason.trim(),
 			});
 		},
@@ -370,7 +375,7 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" form="change-subscription" variant="primary" loading={mutation.isPending} disabled={!changed || !catalog.data}>
+					<Button type="submit" form="change-subscription" variant="primary" loading={mutation.isPending} disabled={!changed || !catalog.data || totalLicences(selection.licences) < 1}>
 						Save changes
 					</Button>
 				</>

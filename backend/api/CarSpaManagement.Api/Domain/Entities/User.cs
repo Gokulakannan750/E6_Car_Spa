@@ -16,5 +16,8 @@ public class User : BaseEntity, IOrganizationOwned
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
 
+    /// <summary>Which apps this user may sign in to (each needs a licence of that type on Trovo's platform).</summary>
+    public AppAccess AppAccess { get; set; } = AppAccess.Both;
+
     public ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
 }

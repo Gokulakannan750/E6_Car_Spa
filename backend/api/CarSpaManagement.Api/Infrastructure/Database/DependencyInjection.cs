@@ -31,6 +31,7 @@ public static class DependencyInjection
   services.AddScoped<CompanyRegistrationService>();
   services.AddScoped<BillingInvoiceService>();
   services.AddScoped<SubscriptionService>();
+  services.AddScoped<PlatformSettingsService>();
   services.AddScoped<PlatformAdminService>();
   services.AddScoped<IEntitlementService, PlatformEntitlementService>();
 

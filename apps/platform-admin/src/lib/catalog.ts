@@ -1,3 +1,5 @@
+import type { AppAccess, Licences } from './types';
+
 // Names for the feature keys the API uses (Domain/Platform FeatureKeys) and small helpers for plan codes.
 
 export const FEATURE_LABELS: Record<string, string> = {
@@ -33,3 +35,13 @@ export function planName(code: string | null | undefined): string {
 }
 
 export const SUBSCRIPTION_STATUSES = ['Trialing', 'Active', 'PastDue', 'ReadOnly', 'Suspended', 'Canceled'] as const;
+
+export const APP_ACCESS: { key: keyof Licences; access: AppAccess; label: string; short: string }[] = [
+	{ key: 'both', access: 'Both', label: 'Windows + Android', short: 'Both apps' },
+	{ key: 'windows', access: 'Windows', label: 'Windows only', short: 'Windows' },
+	{ key: 'android', access: 'Android', label: 'Android only', short: 'Android' },
+];
+
+export function totalLicences(l: Licences | null | undefined): number {
+	return l ? l.android + l.windows + l.both : 0;
+}

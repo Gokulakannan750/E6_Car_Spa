@@ -8,6 +8,7 @@ public static class AuditActions
     public const string UserCreated = "USER_CREATED";
     public const string UserActivated = "USER_ACTIVATED";
     public const string UserDeactivated = "USER_DEACTIVATED";
+    public const string UserAppAccessChanged = "USER_APP_ACCESS_CHANGED";
     public const string PermissionChanged = "PERMISSION_CHANGED";
     public const string PasswordReset = "PASSWORD_RESET";
     public const string UserManagementDenied = "USER_MANAGEMENT_DENIED";

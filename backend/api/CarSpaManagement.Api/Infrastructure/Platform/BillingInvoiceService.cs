@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -44,7 +45,20 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
 
         var periodText = $"{ToIndia(periodStart):dd MMM yyyy} – {ToIndia(periodEnd).AddDays(-1):dd MMM yyyy}";
         var sort = 0;
-        invoice.Lines.Add(Line(invoice.Id, $"{version.Plan?.Name ?? "Plan"} plan ({Describe(version.Interval)}), {periodText}", 1, version.PriceMinor, sort++));
+        var planName = version.Plan?.Name ?? "Plan";
+        var licences = subscription.Licences;
+        // The plan line: its company fee, or the whole price for a subscription from before per-app licences.
+        if (version.PriceMinor > 0 || licences.Total == 0)
+        {
+            invoice.Lines.Add(Line(invoice.Id, $"{planName} plan ({Describe(version.Interval)}), {periodText}", 1, version.PriceMinor, sort++));
+        }
+        foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows"), (AppAccess.Android, "Android") })
+        {
+            var count = licences.Of(access);
+            if (count == 0) continue;
+            invoice.Lines.Add(Line(invoice.Id, $"{label} user licence, {planName} ({Describe(version.Interval)}), {periodText}",
+                count, version.UserPriceMinor(access), sort++));
+        }
 
         foreach (var item in subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart))
         {

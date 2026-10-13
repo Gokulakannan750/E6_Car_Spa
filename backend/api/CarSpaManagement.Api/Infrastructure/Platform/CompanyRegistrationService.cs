@@ -28,9 +28,18 @@ public sealed class CompanyRegistrationService(
     IAesEncryptionService encryption,
     IConfiguration configuration,
     IMemoryCache cache,
-    IOptions<PlatformOptions> options)
+    IOptions<PlatformOptions> options,
+    IEntitlementService entitlements)
 {
     private const string InvalidCodes = "Invalid company code or registration code.";
+
+    /// <summary>The Owner takes the best licence the company bought: both apps, else Windows, else Android.</summary>
+    private async Task<AppAccess> OwnerAccessAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var current = await entitlements.GetForCompanyAsync(companyId, cancellationToken);
+        if (current.Licences is not { } licences || licences.Both > 0) return AppAccess.Both;
+        return licences.Windows > 0 ? AppAccess.Windows : AppAccess.Android;
+    }
 
     public async Task<BootstrapOwnerResponse> RegisterAsync(RegisterCompanyRequest request, CancellationToken cancellationToken = default)
     {
@@ -116,6 +125,7 @@ public sealed class CompanyRegistrationService(
             Username = request.Username.Trim().ToLowerInvariant(),
             Role = UserRole.Owner,
             IsActive = true,
+            AppAccess = await OwnerAccessAsync(company.Id, cancellationToken),
             CreatedAt = now
         };
         owner.PasswordHash = passwordHasher.HashPassword(owner, request.Password);

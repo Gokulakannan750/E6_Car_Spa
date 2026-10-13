@@ -67,6 +67,17 @@ export interface CompanyListItem {
 	trialEndsAt: string | null;
 	migrationFailed: boolean;
 	createdAt: string;
+	/** Total user licences on the subscription. */
+	licences: number;
+}
+
+export type AppAccess = 'Both' | 'Windows' | 'Android';
+
+/** User licences per app type. */
+export interface Licences {
+	android: number;
+	windows: number;
+	both: number;
 }
 
 export interface AddOnLine {
@@ -91,6 +102,9 @@ export interface Subscription {
 	cancelAtPeriodEnd: boolean;
 	retainUntil: string | null;
 	addOns: AddOnLine[];
+	licences: Licences | null;
+	/** Price per user licence per period, by app type. */
+	licencePrices: Licences | null;
 }
 
 export interface BillingAccount {
@@ -118,6 +132,8 @@ export interface CompanyDetail {
 	features: Record<string, string>;
 	seatLimit: number | null;
 	seatsUsed: number | null;
+	/** Active users per app access in the company's database (null when it could not be read). */
+	licencesUsed: Licences | null;
 }
 
 export interface PlanRequest {
@@ -125,6 +141,7 @@ export interface PlanRequest {
 	interval: string;
 	addOns?: Record<string, number> | null;
 	paidUntil: string;
+	licences?: Licences | null;
 }
 
 export interface CreateCompanyResponse {
@@ -237,11 +254,16 @@ export interface PlanVersion {
 	version: number;
 	interval: string;
 	currency: string;
+	/** Company fee per period (0 when the price is licences only). */
 	priceMinor: number;
+	/** The fewest user licences a subscription on this version may have. */
 	includedSeats: number;
 	effectiveFrom: string;
 	effectiveTo: string | null;
 	entitlements: Entitlement[];
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
 }
 
 export interface Plan {
@@ -297,4 +319,18 @@ export interface AdminListItem {
 	mustChangePassword: boolean;
 	lastSignInAt: string | null;
 	createdAt: string;
+}
+
+export interface PlatformSettings {
+	trialDays: number;
+	graceDays: number;
+	trialLicences: number;
+	renewalInvoiceDaysBefore: number;
+}
+
+export interface PlanTermsInput {
+	companyFeeMinor: number;
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
 }

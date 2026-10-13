@@ -12,32 +12,39 @@ export interface FakeOptions {
 const now = Date.now();
 const iso = (days: number) => new Date(now + days * 86_400_000).toISOString();
 
-const version = (code: string, interval: 'Month' | 'Year', priceMinor: number, seats: number) => ({
-	id: `${code}-${interval}`,
-	version: 1,
-	interval,
-	currency: 'INR',
-	priceMinor,
-	includedSeats: seats,
-	effectiveFrom: iso(-10),
-	effectiveTo: null,
-	entitlements: [
-		{ featureKey: 'users.max_active', value: String(seats) },
-		{ featureKey: 'whatsapp_automation.enabled', value: code === 'professional' ? 'true' : 'false' },
-	],
-});
+/** Per-user licence prices (Android, Windows, both apps); yearly = 10 × monthly. */
+const version = (code: string, interval: 'Month' | 'Year', monthly: [number, number, number]) => {
+	const k = interval === 'Year' ? 10 : 1;
+	return {
+		id: `${code}-${interval}`,
+		version: 1,
+		interval,
+		currency: 'INR',
+		priceMinor: 0,
+		includedSeats: 1,
+		androidUserPriceMinor: monthly[0] * k,
+		windowsUserPriceMinor: monthly[1] * k,
+		bothUserPriceMinor: monthly[2] * k,
+		effectiveFrom: iso(-10),
+		effectiveTo: null,
+		entitlements: [
+			{ featureKey: 'users.max_active', value: '1' },
+			{ featureKey: 'whatsapp_automation.enabled', value: code === 'professional' ? 'true' : 'false' },
+		],
+	};
+};
 
 export const catalog = {
 	chargesGst: false,
 	gstRatePercent: 0,
 	plans: [
-		{ id: 'p1', code: 'starter', name: 'Starter', isActive: true, versions: [version('starter', 'Month', 99_900, 3), version('starter', 'Year', 999_000, 3)] },
+		{ id: 'p1', code: 'starter', name: 'Starter', isActive: true, versions: [version('starter', 'Month', [49_900, 69_900, 99_900]), version('starter', 'Year', [49_900, 69_900, 99_900])] },
 		{
 			id: 'p2',
 			code: 'professional',
 			name: 'Professional',
 			isActive: true,
-			versions: [version('professional', 'Month', 199_900, 10), version('professional', 'Year', 1_999_000, 10)],
+			versions: [version('professional', 'Month', [79_900, 119_900, 149_900]), version('professional', 'Year', [79_900, 119_900, 149_900])],
 		},
 	],
 	addOns: [
@@ -68,6 +75,7 @@ interface Company {
 	trialEndsAt: string | null;
 	migrationFailed: boolean;
 	createdAt: string;
+	licences: number;
 }
 
 interface Invoice {
@@ -98,6 +106,7 @@ export class FakePlatform {
 			trialEndsAt: null,
 			migrationFailed: false,
 			createdAt: iso(-30),
+			licences: 4,
 		},
 	];
 	invoices: Invoice[] = [
@@ -188,6 +197,7 @@ export class FakePlatform {
 				trialEndsAt: body.plan ? null : iso(7),
 				migrationFailed: false,
 				createdAt: iso(0),
+				licences: body.plan ? body.plan.licences.android + body.plan.licences.windows + body.plan.licences.both : 3,
 			};
 			this.companies.push(company);
 			return json(201, { id: company.id, code, name: company.name, registrationCode: 'K7QM-4RTX-9PWD', registrationCodeExpiresAt: iso(7), databaseName: `carspa_t_${code}` });

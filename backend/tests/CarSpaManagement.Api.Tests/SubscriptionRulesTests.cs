@@ -45,6 +45,59 @@ public class SubscriptionRulesTests
     }
 
     [Fact]
+    public void PerAppLicences_ReplaceTheOldUserLimit_AndAreReportedPerType()
+    {
+        var subscription = SubscriptionOn("starter", 1, SubscriptionStatus.Active);
+        subscription.Licences = new LicenceCounts(Android: 3, Windows: 0, Both: 2);
+        subscription.Items.Add(Item(FeatureKeys.UsersMaxActive, "5", 1)); // an old pack no longer adds anything
+
+        var entitlements = PlatformEntitlementService.Build(subscription, Now);
+
+        Assert.Equal(5, entitlements.SeatLimit);
+        Assert.Equal(3, entitlements.LicencesFor(Domain.Enums.AppAccess.Android));
+        Assert.Equal(0, entitlements.LicencesFor(Domain.Enums.AppAccess.Windows));
+        Assert.Equal("2", entitlements.Features[FeatureKeys.LicencesBoth]);
+        Assert.Null(CompanyEntitlements.Unmanaged.LicencesFor(Domain.Enums.AppAccess.Android));
+    }
+
+    [Theory]
+    [InlineData(1, 0, 0, 1, null)]
+    [InlineData(0, 0, 0, 1, "At least 1 user licence is needed.")]
+    [InlineData(1, 0, 0, 2, "At least 2 user licences are needed.")]
+    [InlineData(-1, 0, 3, 1, "Android licences must be between 0 and 500.")]
+    [InlineData(0, 501, 0, 1, "Windows licences must be between 0 and 500.")]
+    public void LicenceNumbers_AreChecked(int android, int windows, int both, int minimum, string? problem)
+    {
+        Assert.Equal(problem, new LicenceCounts(android, windows, both).Problem(minimum));
+    }
+
+    [Theory]
+    [InlineData(Domain.Enums.AppAccess.Both, "windows", true)]
+    [InlineData(Domain.Enums.AppAccess.Both, null, true)]
+    [InlineData(Domain.Enums.AppAccess.Android, "android", true)]
+    [InlineData(Domain.Enums.AppAccess.Android, "Android ", true)]
+    [InlineData(Domain.Enums.AppAccess.Android, "windows", false)]
+    [InlineData(Domain.Enums.AppAccess.Windows, "android", false)]
+    [InlineData(Domain.Enums.AppAccess.Windows, null, false)]
+    [InlineData(Domain.Enums.AppAccess.Windows, "ios", false)]
+    public void AnAppIsAllowed_OnlyWhenTheUsersLicenceCoversIt(Domain.Enums.AppAccess access, string? app, bool allowed)
+    {
+        Assert.Equal(allowed, Domain.Enums.ClientApp.Allows(access, app));
+    }
+
+    [Fact]
+    public void AnInvoice_HasOneLinePerLicenceType_AtThePlanVersionsPrices()
+    {
+        var version = new PlanVersion
+        {
+            Interval = BillingInterval.Month, Currency = "INR", PriceMinor = 0, AndroidUserPriceMinor = 49_900, WindowsUserPriceMinor = 69_900,
+            BothUserPriceMinor = 99_900, Plan = new Plan { Name = "Starter" }
+        };
+        Assert.Equal(69_900, version.UserPriceMinor(Domain.Enums.AppAccess.Windows));
+        Assert.Equal(99_900, version.UserPriceMinor(Domain.Enums.AppAccess.Both));
+    }
+
+    [Fact]
     public void AnAddOnSwitchesItsModuleOn_AndThePlansOwnFeaturesStay()
     {
         var subscription = SubscriptionOn("starter", 3, SubscriptionStatus.Active,

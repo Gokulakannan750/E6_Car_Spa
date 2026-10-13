@@ -243,8 +243,11 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
 
         var status = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/status", token));
         Assert.Equal("starter", status.GetProperty("planCode").GetString());
-        Assert.Equal(3, status.GetProperty("seatLimit").GetInt32());
+        Assert.Equal(1, status.GetProperty("seatLimit").GetInt32()); // one licence for both apps, held by the Owner
         Assert.Equal(1, status.GetProperty("seatsUsed").GetInt32());
+        var both = status.GetProperty("licences").EnumerateArray().Single(l => l.GetProperty("appAccess").GetString() == "Both");
+        Assert.Equal(1, both.GetProperty("total").GetInt32());
+        Assert.Equal(1, both.GetProperty("used").GetInt32());
         Assert.Equal("false", status.GetProperty("features").GetProperty(FeatureKeys.Showroom).GetString());
     }
 

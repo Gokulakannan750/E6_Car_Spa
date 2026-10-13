@@ -15,9 +15,12 @@ public class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtTokenService
     /// <summary>Name of the token claim that carries the user's company.</summary>
     public const string OrganizationClaim = "org";
 
+    /// <summary>Name of the token claim that carries the app the user signed in to ("windows" or "android").</summary>
+    public const string AppClaim = "app";
+
     private readonly JwtOptions _options = jwtOptions.Value;
 
-    public string GenerateToken(User user)
+    public string GenerateToken(User user, string? app = null)
     {
         if (string.IsNullOrWhiteSpace(_options.Key) || _options.Key.Length < 32)
         {
@@ -38,6 +41,10 @@ public class JwtTokenService(IOptions<JwtOptions> jwtOptions) : IJwtTokenService
             // The company is taken from this signed claim on every request; clients never send it themselves.
             new(OrganizationClaim, user.OrganizationId.ToString())
         };
+        if (ClientApp.Normalize(app) is { } signedInApp)
+        {
+            claims.Add(new Claim(AppClaim, signedInApp));
+        }
 
         var token = new JwtSecurityToken(
             issuer: _options.Issuer,

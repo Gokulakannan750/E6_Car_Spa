@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Infrastructure.Platform;
@@ -14,7 +15,13 @@ namespace CarSpaManagement.Api.Controllers.Platform;
 
 public sealed record PlatformCompanyListItem(
     Guid Id, string Code, string Name, string CompanyStatus, string? SubscriptionStatus, string? Plan, string? Interval,
-    DateTime? CurrentPeriodEnd, DateTime? TrialEndsAt, bool MigrationFailed, DateTime CreatedAt);
+    DateTime? CurrentPeriodEnd, DateTime? TrialEndsAt, bool MigrationFailed, DateTime CreatedAt, int Licences = 0);
+
+/// <summary>User licences per app type.</summary>
+public sealed record PlatformLicencesDto(int Android, int Windows, int Both);
+
+/// <summary>Price per user licence per period, by app type.</summary>
+public sealed record PlatformLicencePricesDto(long Android, long Windows, long Both);
 
 public sealed record PlatformAddOnLine(string Code, string Name, int Quantity);
 
@@ -22,21 +29,25 @@ public sealed record PlatformCompanyDetail(
     Guid Id, string Code, string Name, string CompanyStatus, string DatabaseName, string? SchemaVersion, string? MigrationError,
     DateTime CreatedAt, DateTime? RegisteredAt, bool RegistrationCodeOpen,
     PlatformSubscriptionDto? Subscription, PlatformBillingAccountDto? BillingAccount,
-    IReadOnlyDictionary<string, string> Features, int? SeatLimit, int? SeatsUsed);
+    IReadOnlyDictionary<string, string> Features, int? SeatLimit, int? SeatsUsed,
+    PlatformLicencesDto? LicencesUsed = null);
 
 public sealed record PlatformSubscriptionDto(
     Guid Id, string Status, string Plan, string PlanName, string Interval, long PriceMinor, string Currency,
     DateTime StartedAt, DateTime CurrentPeriodStart, DateTime CurrentPeriodEnd, DateTime? TrialEndsAt, DateTime? GraceEndsAt,
-    bool CancelAtPeriodEnd, DateTime? RetainUntil, IReadOnlyList<PlatformAddOnLine> AddOns);
+    bool CancelAtPeriodEnd, DateTime? RetainUntil, IReadOnlyList<PlatformAddOnLine> AddOns,
+    PlatformLicencesDto? Licences = null, PlatformLicencePricesDto? LicencePrices = null);
 
 public sealed record PlatformBillingAccountDto(string BillingName, string? BillingEmail, string? BillingPhone, string? Gstin, string? BillingAddress, string? StateCode);
 
-public sealed record PlatformPlanRequest(string PlanCode, string Interval, Dictionary<string, int>? AddOns, DateTime PaidUntil);
+public sealed record PlatformPlanRequest(string PlanCode, string Interval, Dictionary<string, int>? AddOns, DateTime PaidUntil,
+    PlatformLicencesDto? Licences = null);
 public sealed record CreatePlatformCompanyRequest(string Name, PlatformPlanRequest? Plan);
 public sealed record CreatePlatformCompanyResponse(Guid Id, string Code, string Name, string RegistrationCode, DateTime RegistrationCodeExpiresAt, string DatabaseName);
 public sealed record RegistrationCodeResponse(string RegistrationCode, DateTime ExpiresAt);
 public sealed record CompanyStatusRequest(string Action, string Reason);
-public sealed record ChangeSubscriptionRequest(string? PlanCode, string? Interval, Dictionary<string, int>? AddOns, int? ExtendTrialDays, string Reason);
+public sealed record ChangeSubscriptionRequest(string? PlanCode, string? Interval, Dictionary<string, int>? AddOns, int? ExtendTrialDays, string Reason,
+    PlatformLicencesDto? Licences = null);
 public sealed record CancelSubscriptionRequest(bool AtPeriodEnd, string Reason);
 
 /// <summary>Trovo's view of companies: provisioning, registration codes, subscriptions, suspension. Every change is audited.</summary>
@@ -70,7 +81,8 @@ public class PlatformCompaniesController(
         {
             subs.TryGetValue(c.Id, out var s);
             return new PlatformCompanyListItem(c.Id, c.Code, c.Name, c.Status.ToString(), s?.Status.ToString(), s?.PlanVersion?.Plan?.Code,
-                s?.PlanVersion?.Interval.ToString(), s?.CurrentPeriodEnd, s?.TrialEndsAt, c.MigrationError is not null, c.CreatedAt);
+                s?.PlanVersion?.Interval.ToString(), s?.CurrentPeriodEnd, s?.TrialEndsAt, c.MigrationError is not null, c.CreatedAt,
+                s?.Licences.Total ?? 0);
         });
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -94,6 +106,7 @@ public class PlatformCompaniesController(
         var account = await catalog.BillingAccounts.AsNoTracking().FirstOrDefaultAsync(b => b.CompanyId == id, cancellationToken);
         var codeOpen = await catalog.RegistrationCodes.AnyAsync(r => r.CompanyId == id && r.UsedAt == null && r.RevokedAt == null && r.ExpiresAt > DateTime.UtcNow, cancellationToken);
         var entitlements = subscription is null ? null : PlatformEntitlementService.Build(subscription, DateTime.UtcNow);
+        var usage = await CountActiveUsersAsync(company, cancellationToken);
 
         return Ok(new PlatformCompanyDetail(
             company.Id, company.Code, company.Name, company.Status.ToString(), company.DatabaseName, company.SchemaVersion, company.MigrationError,
@@ -102,7 +115,8 @@ public class PlatformCompaniesController(
             account is null ? null : new PlatformBillingAccountDto(account.BillingName, account.BillingEmail, account.BillingPhone, account.Gstin, account.BillingAddress, account.StateCode),
             entitlements?.Features ?? new Dictionary<string, string>(),
             entitlements?.SeatLimit,
-            await CountActiveUsersAsync(company, cancellationToken)));
+            usage?.Total,
+            usage is null ? null : new PlatformLicencesDto(usage.Value.Android, usage.Value.Windows, usage.Value.Both)));
     }
 
     [HttpPost]
@@ -168,7 +182,7 @@ public class PlatformCompaniesController(
             if (string.IsNullOrWhiteSpace(request.Reason)) throw new ValidationException("A reason is required.");
             var before = ToDto(await subscriptions.CurrentAsync(id, cancellationToken));
             var change = new SubscriptionChange(request.PlanCode, request.Interval is null ? null : ParseInterval(request.Interval),
-                request.AddOns, request.ExtendTrialDays);
+                request.AddOns, request.ExtendTrialDays, ToCounts(request.Licences));
             var after = ToDto(await subscriptions.ChangeAsync(id, change, actor, cancellationToken));
             await audit.RecordAsync("subscription.changed", id, before, after, request.Reason, cancellationToken);
         });
@@ -228,8 +242,8 @@ public class PlatformCompaniesController(
     private Guid? AdminId() =>
         Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
 
-    /// <summary>Active users in the company's own database (its user count only; nothing else is read).</summary>
-    private async Task<int?> CountActiveUsersAsync(PlatformCompany company, CancellationToken cancellationToken)
+    /// <summary>Active users per app access in the company's own database (counts only; nothing else is read).</summary>
+    private async Task<LicenceCounts?> CountActiveUsersAsync(PlatformCompany company, CancellationToken cancellationToken)
     {
         try
         {
@@ -238,7 +252,11 @@ public class PlatformCompaniesController(
                 .AddInterceptors(new TenantSessionInterceptor())
                 .Options;
             await using var db = new AppDbContext(contextOptions, new FixedTenantContext(company.Id));
-            return await db.Users.CountAsync(u => u.IsActive, cancellationToken);
+            var byAccess = await db.Users.Where(u => u.IsActive).GroupBy(u => u.AppAccess)
+                .Select(g => new { Access = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Access, g => g.Count, cancellationToken);
+            return new LicenceCounts(byAccess.GetValueOrDefault(AppAccess.Android), byAccess.GetValueOrDefault(AppAccess.Windows),
+                byAccess.GetValueOrDefault(AppAccess.Both));
         }
         catch
         {
@@ -252,10 +270,15 @@ public class PlatformCompaniesController(
         s.StartedAt, s.CurrentPeriodStart, s.CurrentPeriodEnd, s.TrialEndsAt, s.GraceEndsAt, s.CancelAtPeriodEnd, s.RetainUntil,
         s.Items.Where(i => i.EffectiveTo is null)
             .Select(i => new PlatformAddOnLine(i.AddOnPrice?.AddOn?.Code ?? string.Empty, i.AddOnPrice?.AddOn?.Name ?? string.Empty, i.Quantity))
-            .ToList());
+            .ToList(),
+        new PlatformLicencesDto(s.AndroidLicences, s.WindowsLicences, s.BothLicences),
+        s.PlanVersion is null ? null : new PlatformLicencePricesDto(s.PlanVersion.AndroidUserPriceMinor, s.PlanVersion.WindowsUserPriceMinor, s.PlanVersion.BothUserPriceMinor));
+
+    private static LicenceCounts? ToCounts(PlatformLicencesDto? dto) => dto is null ? null : new LicenceCounts(dto.Android, dto.Windows, dto.Both);
 
     private static CompanyPlan ToPlan(PlatformPlanRequest plan) =>
-        new(plan.PlanCode, ParseInterval(plan.Interval), plan.AddOns ?? new Dictionary<string, int>(), DateTime.SpecifyKind(plan.PaidUntil, DateTimeKind.Utc));
+        new(plan.PlanCode, ParseInterval(plan.Interval), plan.AddOns ?? new Dictionary<string, int>(), DateTime.SpecifyKind(plan.PaidUntil, DateTimeKind.Utc),
+            ToCounts(plan.Licences));
 
     private static BillingInterval ParseInterval(string interval) =>
         Enum.TryParse<BillingInterval>(interval, ignoreCase: true, out var parsed)

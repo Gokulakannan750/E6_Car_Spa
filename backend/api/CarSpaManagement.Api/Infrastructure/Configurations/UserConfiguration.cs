@@ -37,6 +37,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsDeleted)
             .HasDefaultValue(false);
 
+        // Stored as the enum number; 0 = both apps, so every existing user keeps both.
+        builder.Property(u => u.AppAccess)
+            .IsRequired()
+            .HasDefaultValue(Domain.Enums.AppAccess.Both)
+            .HasSentinel(Domain.Enums.AppAccess.Both);
+
         builder.Property(u => u.CreatedAt)
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 

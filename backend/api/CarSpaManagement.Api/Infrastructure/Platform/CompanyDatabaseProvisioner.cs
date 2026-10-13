@@ -18,7 +18,12 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 /// A paid plan to start a company on (instead of the free trial): plan, interval, add-on quantities and the date it
 /// is paid until.
 /// </summary>
-public sealed record CompanyPlan(string PlanCode, BillingInterval Interval, IReadOnlyDictionary<string, int> AddOns, DateTime PaidUntil);
+/// <summary>
+/// A paid subscription to start a company on. Without <paramref name="Licences"/> a new company gets one licence for
+/// both apps, and an adopted database one licence for both apps per active user (so nobody loses access).
+/// </summary>
+public sealed record CompanyPlan(string PlanCode, BillingInterval Interval, IReadOnlyDictionary<string, int> AddOns, DateTime PaidUntil,
+    LicenceCounts? Licences = null);
 
 /// <summary>A newly created company and the registration code to give the customer (shown only once).</summary>
 public sealed record CreatedCompany(PlatformCompany Company, string RegistrationCode, DateTime RegistrationCodeExpiresAt);
@@ -177,6 +182,7 @@ public sealed partial class CompanyDatabaseProvisioner(
 
         // The database's own company record says who it belongs to.
         Organization organization;
+        int activeUsers;
         await using (var db = CreateAdminContext(databaseName, Guid.Empty))
         {
             var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
@@ -192,6 +198,7 @@ public sealed partial class CompanyDatabaseProvisioner(
                     $"Database '{databaseName}' holds {organizations.Count} companies; only a database with exactly one company can be adopted.");
             }
             organization = organizations[0];
+            activeUsers = await db.Users.IgnoreQueryFilters().CountAsync(u => u.IsActive && !u.IsDeleted, cancellationToken);
         }
 
         if (await catalog.Companies.AnyAsync(c => c.Id == organization.Id || (c.ProductId == product.Id && c.Code == organization.Code), cancellationToken))
@@ -221,7 +228,7 @@ public sealed partial class CompanyDatabaseProvisioner(
         await catalog.SaveChangesAsync(cancellationToken);
 
         await MigrateCompanyAsync(company, cancellationToken);
-        await StartSubscriptionAsync(company, plan, cancellationToken);
+        await StartSubscriptionAsync(company, plan with { Licences = plan.Licences ?? new LicenceCounts(0, 0, Math.Max(1, activeUsers)) }, cancellationToken);
         Log.Information("Platform: adopted database {Database} as company {Code}", databaseName, company.Code);
         return company;
     }
@@ -263,8 +270,8 @@ public sealed partial class CompanyDatabaseProvisioner(
         }
 
         var now = DateTime.UtcNow;
-        await subscriptions.StartPaidAsync(company, plan.PlanCode, plan.Interval, plan.AddOns, now, plan.PaidUntil,
-            SubscriptionActor.System, cancellationToken);
+        await subscriptions.StartPaidAsync(company, plan.PlanCode, plan.Interval, plan.AddOns, plan.Licences ?? new LicenceCounts(0, 0, 1),
+            now, plan.PaidUntil, SubscriptionActor.System, cancellationToken);
     }
 
     /// <summary>

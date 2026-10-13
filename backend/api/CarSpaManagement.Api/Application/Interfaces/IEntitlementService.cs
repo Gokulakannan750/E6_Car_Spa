@@ -29,7 +29,8 @@ public sealed record CompanyEntitlements(
     DateTime? TrialEndsAt,
     DateTime? GraceEndsAt,
     DateTime? CurrentPeriodEnd,
-    DateTime? RetainUntil)
+    DateTime? RetainUntil,
+    LicenceCounts? Licences = null)
 {
     /// <summary>Everything allowed: single-company servers, and tools that run without a subscription.</summary>
     public static readonly CompanyEntitlements Unmanaged = new(
@@ -42,6 +43,12 @@ public sealed record CompanyEntitlements(
     /// <summary>A whole-number feature value, or null when not granted (or not managed).</summary>
     public int? Number(string featureKey) =>
         Managed && Features.TryGetValue(featureKey, out var value) && int.TryParse(value, out var number) ? number : null;
+
+    /// <summary>
+    /// How many users may have this app access, or null when there is no limit (not managed, or a subscription from
+    /// before per-app licences, which only has an overall user limit).
+    /// </summary>
+    public int? LicencesFor(Domain.Enums.AppAccess access) => Managed && Licences is { } licences ? licences.Of(access) : null;
 }
 
 /// <summary>Resolves a company's entitlements. The server is the authority; the apps only display them.</summary>

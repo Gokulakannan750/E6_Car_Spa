@@ -118,7 +118,7 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
         var open = await Json(await host.SendAsync(HttpMethod.Get, $"/api/platform/invoices?status=open&search={company.Code}", token));
         var row = Assert.Single(open.EnumerateArray());
         Assert.Equal(company.Code, row.GetProperty("companyCode").GetString());
-        Assert.Equal(299_800, row.GetProperty("amountDueMinor").GetInt64()); // ₹1,999 + ₹999 showroom
+        Assert.Equal(249_800, row.GetProperty("amountDueMinor").GetInt64()); // 1 × ₹1,499 licence + ₹999 showroom
         Assert.False(row.GetProperty("overdue").GetBoolean());
 
         await host.InScopeAsync(async sp =>

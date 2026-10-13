@@ -23,7 +23,7 @@ import { useToast } from '@/components/Toast';
 import { useAuth, BILLING_ROLES, SUPPORT_ROLES } from '@/features/auth/AuthProvider';
 import { RecordPaymentDialog, VoidInvoiceDialog, type InvoiceRef } from '@/features/invoices/InvoiceDialogs';
 import { api, ApiError } from '@/lib/api';
-import { BOOLEAN_FEATURES, featureLabel } from '@/lib/catalog';
+import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel, totalLicences } from '@/lib/catalog';
 import { date, dateTime, daysUntil, intervalLabel, money, moneyShort, perInterval } from '@/lib/format';
 import type { CompanyDetail, Invoice, SubscriptionEvent } from '@/lib/types';
 import { BillingAccountDialog, CancelDialog, ChangeSubscriptionDialog, isSuspended, RegistrationCodeDialog, SuspendDialog } from './CompanyDialogs';
@@ -204,7 +204,6 @@ function ActionsMenu({ items }: { items: MenuItem[] }) {
 
 function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEditBilling?: () => void }) {
 	const s = c.subscription;
-	const seatPercent = c.seatLimit && c.seatsUsed !== null ? Math.min(100, Math.round((c.seatsUsed / c.seatLimit) * 100)) : 0;
 	const branches = c.features['franchise_network.max_branches'];
 
 	let periodNote: React.ReactNode = null;
@@ -267,22 +266,53 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 							)}
 						</div>
 
-						{c.seatLimit !== null && (
-							<div className="rounded-lg border border-border-subtle bg-surface-alt p-4">
-								<div className="flex items-center justify-between text-body">
-									<span className="font-medium text-text-heading">Users</span>
+						{s.licences && (
+							<div className="rounded-lg border border-border-subtle bg-surface-alt">
+								<div className="flex items-center justify-between px-4 pt-3 text-body">
+									<span className="font-medium text-text-heading">User licences</span>
 									<span className="tabular text-label text-text-secondary">
-										{c.seatsUsed ?? '—'} of {c.seatLimit} in use
+										{c.seatsUsed ?? '—'} of {totalLicences(s.licences)} in use
 									</span>
 								</div>
-								<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container">
-									<div className={`h-full rounded-full ${seatPercent >= 100 ? 'bg-pastdue' : 'bg-action'}`} style={{ width: `${seatPercent}%` }} />
-								</div>
-								{c.seatsUsed === null && (
-									<p className="mt-2 text-micro text-text-muted">
-										{c.registeredAt ? 'Could not be counted right now (the company’s database did not answer).' : 'Counted after the company registers.'}
+								<table className="mt-2 w-full text-table">
+									<thead>
+										<tr className="text-left text-micro font-semibold tracking-[0.04em] text-text-muted uppercase">
+											<th className="px-4 py-1.5">App access</th>
+											<th className="px-4 py-1.5 text-right">Bought</th>
+											<th className="px-4 py-1.5 text-right">In use</th>
+											<th className="px-4 py-1.5 text-right">Price each</th>
+										</tr>
+									</thead>
+									<tbody className="tabular">
+										{APP_ACCESS.map((type) => {
+											const bought = s.licences![type.key];
+											const used = c.licencesUsed ? c.licencesUsed[type.key] : null;
+											const over = used !== null && used > bought;
+											return (
+												<tr key={type.key} className="border-t border-border-hairline">
+													<td className="px-4 py-2 text-text-primary">{type.label}</td>
+													<td className="px-4 py-2 text-right text-text-heading">{bought}</td>
+													<td className={`px-4 py-2 text-right ${over ? 'text-pastdue' : 'text-text-secondary'}`}>{used ?? '—'}</td>
+													<td className="px-4 py-2 text-right text-text-secondary">
+														{s.licencePrices ? `${moneyShort(s.licencePrices[type.key], s.currency)}${perInterval(s.interval)}` : '—'}
+													</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+								{c.licencesUsed === null ? (
+									<p className="px-4 pb-3 text-micro text-text-muted">
+										{c.registeredAt ? 'Users could not be counted right now (the company’s database did not answer).' : 'Users are counted after the company registers.'}
 									</p>
+								) : (
+									APP_ACCESS.some((t) => c.licencesUsed![t.key] > s.licences![t.key]) && (
+										<p className="px-4 pb-3 text-micro text-pastdue">
+											More users than licences of a type: the owner must change or deactivate users before adding more.
+										</p>
+									)
 								)}
+								<div className="h-1" />
 							</div>
 						)}
 

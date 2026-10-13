@@ -47,6 +47,9 @@ public class PlatformOptions
     /// <summary>Days of full access after a renewal fails or a paid period ends unpaid, before read-only.</summary>
     public int GraceDays { get; set; } = 7;
 
+    /// <summary>User licences (for both apps) a new company gets during its free trial.</summary>
+    public int TrialLicences { get; set; } = 3;
+
     /// <summary>Days a canceled company keeps read-only access to its data (then deleted on request).</summary>
     public int CanceledRetentionDays { get; set; } = 90;
 

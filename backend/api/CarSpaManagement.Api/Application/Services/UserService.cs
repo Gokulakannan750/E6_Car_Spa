@@ -16,21 +16,50 @@ public class UserService(
     IEntitlementService? entitlements = null) : IUserService
 {
     /// <summary>
-    /// The plan's user limit counts active users (Owner included); one person on Windows and Android is one user.
-    /// Checked by the server whenever a user would become active.
+    /// Each active user needs a user licence of their app type (Owner included); one person on Windows and Android is
+    /// one user with a "both apps" licence. Checked by the server whenever a user would become active or change type.
+    /// A subscription from before per-app licences only has an overall user limit.
     /// </summary>
-    private async Task EnsureSeatAvailableAsync(CancellationToken cancellationToken)
+    private async Task EnsureSeatAvailableAsync(AppAccess access, Guid? exceptUserId, CancellationToken cancellationToken)
     {
         if (entitlements is null) return;
         var current = await entitlements.GetCurrentAsync(cancellationToken);
-        if (current.SeatLimit is not { } limit) return;
 
-        var active = await db.Users.CountAsync(u => u.IsActive, cancellationToken);
+        if (current.LicencesFor(access) is { } licences)
+        {
+            var used = await db.Users.CountAsync(u => u.IsActive && u.AppAccess == access && u.Id != exceptUserId, cancellationToken);
+            if (used >= licences)
+            {
+                var label = AppAccessLabel(access);
+                throw new ValidationException(licences == 0
+                    ? $"Your plan has no {label} licences. Choose another app access or ask Trovo for a {label} licence."
+                    : $"All {licences} {label} licence{(licences == 1 ? " is" : "s are")} in use. Choose another app access, deactivate a user, or ask Trovo for more licences.");
+            }
+            return;
+        }
+
+        if (current.SeatLimit is not { } limit) return;
+        var active = await db.Users.CountAsync(u => u.IsActive && u.Id != exceptUserId, cancellationToken);
         if (active >= limit)
         {
             throw new ValidationException(
-                $"Your plan allows {limit} active users and all are in use. Deactivate a user or ask Trovo for a 5-user pack.");
+                $"Your plan allows {limit} active users and all are in use. Deactivate a user or ask Trovo for more user licences.");
         }
+    }
+
+    private static string AppAccessLabel(AppAccess access) => access switch
+    {
+        AppAccess.Android => "Android",
+        AppAccess.Windows => "Windows",
+        _ => "Windows + Android"
+    };
+
+    private static AppAccess ParseAppAccess(string? value, AppAccess fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
+        return Enum.TryParse<AppAccess>(value.Replace("+", string.Empty).Replace(" ", string.Empty), true, out var parsed) && Enum.IsDefined(parsed)
+            ? parsed
+            : throw new ValidationException("App access must be 'Both', 'Android' or 'Windows'.");
     }
 
     public async Task<List<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -68,7 +97,8 @@ public class UserService(
             throw new ValidationException("Invalid role. Only 'Manager' and 'Staff' accounts can be created.");
         }
 
-        await EnsureSeatAvailableAsync(cancellationToken);
+        var appAccess = ParseAppAccess(request.AppAccess, AppAccess.Both);
+        await EnsureSeatAvailableAsync(appAccess, null, cancellationToken);
 
         // 2. Hierarchy validation: Only Owner may assign permissions or create Manager accounts
         isOwner = isOwner && await IsActiveOwnerAsync(currentUserId, cancellationToken);
@@ -108,6 +138,7 @@ public class UserService(
             Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
             Role = role,
             IsActive = true,
+            AppAccess = appAccess,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -216,6 +247,22 @@ public class UserService(
             }
         }
 
+        // App access decides which licence the user takes, so only the Owner changes it.
+        var newAccess = ParseAppAccess(request.AppAccess, user.AppAccess);
+        var oldAccess = user.AppAccess;
+        if (newAccess != user.AppAccess)
+        {
+            if (!isOwner)
+            {
+                throw new ForbiddenException("Only an Owner can change which apps a user may use.");
+            }
+            if (user.IsActive)
+            {
+                await EnsureSeatAvailableAsync(newAccess, user.Id, cancellationToken);
+            }
+            user.AppAccess = newAccess;
+        }
+
         var oldRole = user.Role.ToString();
         var oldFullName = user.FullName;
         var oldPermissions = user.UserPermissions.Select(up => up.Permission?.Code).Where(c => c != null).ToList();
@@ -289,6 +336,22 @@ public class UserService(
 
         user.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        if (oldAccess != user.AppAccess)
+        {
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.UserAppAccessChanged,
+                module: Domain.Constants.AuditModules.Users,
+                description: $"App access for user '{user.Username}' changed from {AppAccessLabel(oldAccess)} to {AppAccessLabel(user.AppAccess)}.",
+                userId: currentUserId,
+                entityType: "User",
+                entityId: user.Id,
+                entityReference: user.Username,
+                oldValues: System.Text.Json.JsonSerializer.Serialize(new { appAccess = oldAccess.ToString() }),
+                newValues: System.Text.Json.JsonSerializer.Serialize(new { appAccess = user.AppAccess.ToString() }),
+                outcome: "Success",
+                cancellationToken: cancellationToken);
+        }
 
         if (isPermissionChange)
         {
@@ -372,7 +435,7 @@ public class UserService(
 
         if (!user.IsActive)
         {
-            await EnsureSeatAvailableAsync(cancellationToken);
+            await EnsureSeatAvailableAsync(user.AppAccess, user.Id, cancellationToken);
         }
 
         user.IsActive = !user.IsActive;
@@ -449,7 +512,8 @@ public class UserService(
             IsActive = user.IsActive,
             LastLoginAt = user.LastLoginAt,
             CreatedAt = user.CreatedAt,
-            Permissions = user.UserPermissions.Select(up => up.Permission.Code).Distinct().ToList()
+            Permissions = user.UserPermissions.Select(up => up.Permission.Code).Distinct().ToList(),
+            AppAccess = user.AppAccess.ToString()
         };
     }
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CarSpaManagement.Api.Domain.Enums;
 
 namespace CarSpaManagement.Api.Domain.Platform;
 
@@ -54,8 +55,27 @@ public class PlanVersion
     [Required, MaxLength(3)]
     public string Currency { get; set; } = "INR";
 
+    /// <summary>A fixed company fee per period, on top of the user licences (0 when the price is licences only).</summary>
     public long PriceMinor { get; set; }
+
+    /// <summary>The fewest user licences a subscription on this version may have (normally 1).</summary>
     public int IncludedSeats { get; set; }
+
+    /// <summary>Price per period of one user licence for the Android app only.</summary>
+    public long AndroidUserPriceMinor { get; set; }
+
+    /// <summary>Price per period of one user licence for the Windows app only.</summary>
+    public long WindowsUserPriceMinor { get; set; }
+
+    /// <summary>Price per period of one user licence for both apps.</summary>
+    public long BothUserPriceMinor { get; set; }
+
+    public long UserPriceMinor(AppAccess access) => access switch
+    {
+        AppAccess.Android => AndroidUserPriceMinor,
+        AppAccess.Windows => WindowsUserPriceMinor,
+        _ => BothUserPriceMinor
+    };
 
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
@@ -203,6 +223,23 @@ public class Subscription
 
     /// <summary>Until when a canceled company keeps read-only access to its data.</summary>
     public DateTime? RetainUntil { get; set; }
+
+    /// <summary>User licences bought: each active user needs one of their app type.</summary>
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public LicenceCounts Licences
+    {
+        get => new(AndroidLicences, WindowsLicences, BothLicences);
+        set
+        {
+            AndroidLicences = value.Android;
+            WindowsLicences = value.Windows;
+            BothLicences = value.Both;
+        }
+    }
 
     [MaxLength(30)]
     public string? GatewayProvider { get; set; }
@@ -497,6 +534,32 @@ public class PlatformCounter
 }
 
 /// <summary>The feature keys plans and add-ons can grant. Code checks only these keys, never plan names.</summary>
+/// <summary>How many user licences of each app type a subscription has.</summary>
+public readonly record struct LicenceCounts(int Android, int Windows, int Both)
+{
+    public const int MaxPerType = 500;
+
+    public int Total => Android + Windows + Both;
+
+    public int Of(AppAccess access) => access switch
+    {
+        AppAccess.Android => Android,
+        AppAccess.Windows => Windows,
+        _ => Both
+    };
+
+    /// <summary>What is wrong with these numbers (negative, absurd, or fewer than the plan needs), or null.</summary>
+    public string? Problem(int minimum)
+    {
+        foreach (var (name, count) in new[] { ("Android", Android), ("Windows", Windows), ("Windows + Android", Both) })
+        {
+            if (count < 0 || count > MaxPerType) return $"{name} licences must be between 0 and {MaxPerType}.";
+        }
+        var needed = Math.Max(1, minimum);
+        return Total < needed ? $"At least {needed} user licence{(needed == 1 ? " is" : "s are")} needed." : null;
+    }
+}
+
 public static class FeatureKeys
 {
     public const string UsersMaxActive = "users.max_active";
@@ -508,6 +571,11 @@ public static class FeatureKeys
     public const string StaffAdvances = "staff_advances.enabled";
     public const string AdvancedReports = "reports.advanced";
     public const string AuditTrail = "audit_trail.enabled";
+
+    // Computed from the subscription's licences (not set on plans or add-ons); reported with the other features.
+    public const string LicencesAndroid = "licences.android";
+    public const string LicencesWindows = "licences.windows";
+    public const string LicencesBoth = "licences.both";
 
     public static readonly IReadOnlyDictionary<string, EntitlementValueType> All = new Dictionary<string, EntitlementValueType>
     {
@@ -521,4 +589,22 @@ public static class FeatureKeys
         [AdvancedReports] = EntitlementValueType.Bool,
         [AuditTrail] = EntitlementValueType.Bool,
     };
+}
+
+/// <summary>
+/// A business setting Trovo changes from the admin portal (trial length, grace days...). Overrides the server's
+/// configured default; see <c>PlatformSettingsService</c>.
+/// </summary>
+public class PlatformSetting
+{
+    [Key, MaxLength(60)]
+    public string Key { get; set; } = string.Empty;
+
+    [Required, MaxLength(200)]
+    public string Value { get; set; } = string.Empty;
+
+    public DateTime UpdatedAt { get; set; }
+
+    [MaxLength(150)]
+    public string? UpdatedBy { get; set; }
 }

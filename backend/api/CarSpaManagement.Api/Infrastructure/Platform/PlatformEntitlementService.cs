@@ -92,6 +92,16 @@ public sealed class PlatformEntitlementService(PlatformDbContext catalog, ITenan
             }
         }
 
+        // Per-app user licences replace the old "users included + 5-user packs" limit when a subscription has them.
+        LicenceCounts? licences = subscription.Licences.Total > 0 ? subscription.Licences : null;
+        if (licences is { } bought)
+        {
+            seatLimit = bought.Total;
+            features[FeatureKeys.LicencesAndroid] = bought.Android.ToString();
+            features[FeatureKeys.LicencesWindows] = bought.Windows.ToString();
+            features[FeatureKeys.LicencesBoth] = bought.Both.ToString();
+        }
+
         features[FeatureKeys.UsersMaxActive] = seatLimit.ToString();
         features[FeatureKeys.FranchiseNetworkBranches] = features.TryGetValue(FeatureKeys.FranchiseNetwork, out var franchise) && franchise == "true"
             ? (IncludedFranchiseBranches + extraFranchiseBranches).ToString()
@@ -109,7 +119,8 @@ public sealed class PlatformEntitlementService(PlatformDbContext catalog, ITenan
             TrialEndsAt: subscription.TrialEndsAt,
             GraceEndsAt: subscription.GraceEndsAt,
             CurrentPeriodEnd: subscription.CurrentPeriodEnd,
-            RetainUntil: subscription.RetainUntil);
+            RetainUntil: subscription.RetainUntil,
+            Licences: licences);
     }
 
     /// <summary>The access each subscription state gives (see the lifecycle table in docs/SAAS_PHASE2_PLAN.md §5).</summary>

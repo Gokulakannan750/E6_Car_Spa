@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,11 @@ public sealed record SubscriptionStatusDto(
     DateTime? TrialEndsAt,
     DateTime? GraceEndsAt,
     DateTime? CurrentPeriodEnd,
-    SubscriptionBannerDto? Banner);
+    SubscriptionBannerDto? Banner,
+    IReadOnlyList<LicenceUsageDto>? Licences = null);
+
+/// <summary>User licences of one app type: how many the company bought and how many active users have that access.</summary>
+public sealed record LicenceUsageDto(string AppAccess, int Total, int Used);
 
 /// <summary>A message the apps show at the top of the screen: info, warning or error.</summary>
 public sealed record SubscriptionBannerDto(string Level, string Message);
@@ -36,6 +41,16 @@ public class SubscriptionController(IEntitlementService entitlements, AppDbConte
     {
         var current = await entitlements.GetCurrentAsync(cancellationToken);
         var seatsUsed = await db.Users.CountAsync(u => u.IsActive, cancellationToken);
+        List<LicenceUsageDto>? licences = null;
+        if (current.Licences is { } bought)
+        {
+            var used = await db.Users.Where(u => u.IsActive).GroupBy(u => u.AppAccess)
+                .Select(g => new { Access = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Access, g => g.Count, cancellationToken);
+            licences = new[] { AppAccess.Both, AppAccess.Windows, AppAccess.Android }
+                .Select(a => new LicenceUsageDto(a.ToString(), bought.Of(a), used.GetValueOrDefault(a)))
+                .ToList();
+        }
         return Ok(new SubscriptionStatusDto(
             current.Managed,
             current.Access.ToString(),
@@ -49,7 +64,8 @@ public class SubscriptionController(IEntitlementService entitlements, AppDbConte
             current.TrialEndsAt,
             current.GraceEndsAt,
             current.CurrentPeriodEnd,
-            BannerFor(current, DateTime.UtcNow)));
+            BannerFor(current, DateTime.UtcNow),
+            licences));
     }
 
     /// <summary>The banner for a subscription state (docs/SAAS_PHASE2_PLAN.md §5), or none.</summary>

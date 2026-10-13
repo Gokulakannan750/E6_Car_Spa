@@ -8,7 +8,7 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 /// Trovo's maintenance commands, run on the server (the admin portal does the same through /api/platform):
 /// <code>
 /// platform create-admin you@trovotechsolutions.in "Your Name" [--role Owner]
-/// platform create-company "Sunrise Detailing" [--plan professional --interval year --addons showroom,seats_5:2 --paid-until 2027-10-12]
+/// platform create-company "Sunrise Detailing" [--plan professional --interval year --licences both:2,android:3 --addons showroom --paid-until 2027-10-12]
 /// platform new-registration-code 0002
 /// platform adopt-database E6CarSpaNew --plan professional --interval year --addons showroom,franchise_network [--paid-until 2027-10-12]
 /// platform list
@@ -148,9 +148,9 @@ public static class PlatformCommandLine
                         Platform commands:
                           platform create-admin <email> <name> [--role Owner|Billing|Support|ReadOnly]
                           platform reset-admin <email>
-                          platform create-company <name> [--plan <code> --interval month|year --addons a,b:2 --paid-until yyyy-mm-dd]
+                          platform create-company <name> [--plan <code> --interval month|year --licences both:2,android:1 --addons a,b:2 --paid-until yyyy-mm-dd]
                           platform new-registration-code <code>
-                          platform adopt-database <database> --plan <code> --interval month|year [--addons ...] [--paid-until ...]
+                          platform adopt-database <database> --plan <code> --interval month|year [--licences ...] [--addons ...] [--paid-until ...]
                           platform migrate          migrate the catalog and every company database
                           platform run-lifecycle    apply trial/grace/renewal rules now
                           platform list             list companies and subscriptions
@@ -183,7 +183,26 @@ public static class PlatformCommandLine
         var paidUntil = flags.TryGetValue("paid-until", out var until)
             ? DateTime.SpecifyKind(DateTime.Parse(until), DateTimeKind.Utc)
             : (interval == BillingInterval.Year ? DateTime.UtcNow.AddYears(1) : DateTime.UtcNow.AddMonths(1));
-        return new CompanyPlan(flags["plan"], interval, addOns, paidUntil);
+        LicenceCounts? licences = null;
+        if (flags.TryGetValue("licences", out var licenceText))
+        {
+            // e.g. --licences both:2,android:3
+            int both = 0, android = 0, windows = 0;
+            foreach (var part in licenceText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var pieces = part.Split(':');
+                var count = pieces.Length > 1 ? int.Parse(pieces[1]) : 1;
+                switch (pieces[0].ToLowerInvariant())
+                {
+                    case "both": both = count; break;
+                    case "android": android = count; break;
+                    case "windows": windows = count; break;
+                    default: throw new ArgumentException($"Unknown licence type '{pieces[0]}' (use both, android or windows).");
+                }
+            }
+            licences = new LicenceCounts(android, windows, both);
+        }
+        return new CompanyPlan(flags["plan"], interval, addOns, paidUntil, licences);
     }
 
     private static (List<string> Positional, Dictionary<string, string> Flags) Parse(string[] args)

@@ -98,6 +98,12 @@ export function CompaniesPage() {
 					),
 			},
 			{
+				accessorKey: 'licences',
+				header: 'Users',
+				meta: { align: 'right' },
+				cell: ({ row }) => <span className="tabular text-text-secondary">{row.original.licences || '—'}</span>,
+			},
+			{
 				id: 'status',
 				accessorFn: statusText,
 				header: 'Status',
@@ -137,7 +143,7 @@ export function CompaniesPage() {
 	function exportCsv() {
 		downloadCsv(
 			`trovo-companies-${todayStamp()}.csv`,
-			['Code', 'Company', 'Company status', 'Subscription status', 'Plan', 'Billing', 'Renews / ends', 'Trial ends', 'Created', 'Database update failed'],
+			['Code', 'Company', 'Company status', 'Subscription status', 'Plan', 'Billing', 'User licences', 'Renews / ends', 'Trial ends', 'Created', 'Database update failed'],
 			rows.map((c) => [
 				c.code,
 				c.name,
@@ -145,6 +151,7 @@ export function CompaniesPage() {
 				c.subscriptionStatus ?? '',
 				c.plan ? planName(c.plan) : '',
 				c.interval ? intervalLabel(c.interval) : '',
+				c.licences,
 				csvDate(c.currentPeriodEnd),
 				csvDate(c.trialEndsAt),
 				csvDate(c.createdAt),

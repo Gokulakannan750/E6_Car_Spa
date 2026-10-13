@@ -26,6 +26,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents => Set<PaymentWebhookEvent>();
     public DbSet<PlatformAdmin> Admins => Set<PlatformAdmin>();
+    public DbSet<PlatformSetting> Settings => Set<PlatformSetting>();
     public DbSet<PlatformAuditLog> AuditLogs => Set<PlatformAuditLog>();
     public DbSet<PlatformCounter> Counters => Set<PlatformCounter>();
 
@@ -82,6 +83,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasIndex(v => new { v.PlanId, v.Version, v.Interval }).IsUnique();
             e.Property(v => v.Interval).HasConversion<string>().HasMaxLength(10);
         });
+        modelBuilder.Entity<PlatformSetting>(e => e.ToTable("PlatformSettings"));
         modelBuilder.Entity<PlanEntitlement>(e =>
         {
             e.ToTable("PlanEntitlements");

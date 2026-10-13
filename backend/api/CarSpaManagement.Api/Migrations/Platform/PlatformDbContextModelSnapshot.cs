@@ -589,6 +589,12 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<long>("AndroidUserPriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("BothUserPriceMinor")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -619,6 +625,9 @@ namespace CarSpaManagement.Api.Migrations.Platform
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
+
+                    b.Property<long>("WindowsUserPriceMinor")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -888,14 +897,43 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.ToTable("RegistrationCodes", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlatformSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("PlatformSettings", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AndroidLicences")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("BillingAccountId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("BothLicences")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("CancelAtPeriodEnd")
                         .HasColumnType("boolean");
@@ -952,6 +990,9 @@ namespace CarSpaManagement.Api.Migrations.Platform
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("WindowsLicences")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

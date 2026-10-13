@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
 using Microsoft.AspNetCore.Authorization;
@@ -8,13 +9,17 @@ using Microsoft.Extensions.Options;
 namespace CarSpaManagement.Api.Controllers.Platform;
 
 public sealed record PlatformEntitlementDto(string FeatureKey, string Value);
+/// <summary>A plan version. PriceMinor is the company fee; the user licence prices are per user per period.</summary>
 public sealed record PlatformPlanVersionDto(Guid Id, int Version, string Interval, string Currency, long PriceMinor, int IncludedSeats,
-    DateTime EffectiveFrom, DateTime? EffectiveTo, IReadOnlyList<PlatformEntitlementDto> Entitlements);
+    DateTime EffectiveFrom, DateTime? EffectiveTo, IReadOnlyList<PlatformEntitlementDto> Entitlements,
+    long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor);
 public sealed record PlatformPlanDto(Guid Id, string Code, string Name, bool IsActive, IReadOnlyList<PlatformPlanVersionDto> Versions);
 public sealed record PlatformAddOnPriceDto(Guid Id, int Version, string Interval, string Currency, long UnitPriceMinor, DateTime EffectiveFrom, DateTime? EffectiveTo);
 public sealed record PlatformAddOnDto(Guid Id, string Code, string Name, string FeatureKey, string Value, bool IsActive, IReadOnlyList<PlatformAddOnPriceDto> Prices);
 public sealed record PlatformCatalogDto(IReadOnlyList<PlatformPlanDto> Plans, IReadOnlyList<PlatformAddOnDto> AddOns, bool ChargesGst, decimal GstRatePercent);
-public sealed record NewPlanVersionRequest(string Interval, long PriceMinor, int IncludedSeats, Dictionary<string, string> Entitlements, string Reason);
+/// <summary>New terms for a plan and interval. PriceMinor is the company fee; IncludedSeats the fewest user licences.</summary>
+public sealed record NewPlanVersionRequest(string Interval, long PriceMinor, int IncludedSeats, Dictionary<string, string> Entitlements, string Reason,
+    long AndroidUserPriceMinor = 0, long WindowsUserPriceMinor = 0, long BothUserPriceMinor = 0);
 public sealed record NewAddOnPriceRequest(string Interval, long UnitPriceMinor, string Reason);
 
 public sealed record PlatformDashboardDto(
@@ -50,9 +55,13 @@ public class PlatformAdminController(
         long Monthly(long amount, BillingInterval interval) => interval == BillingInterval.Year ? amount / 12 : amount;
         var mrr = subscriptions
             .Where(s => s.Status is SubscriptionStatus.Active or SubscriptionStatus.PastDue && s.PlanVersion is not null)
-            .Sum(s => Monthly(s.PlanVersion!.PriceMinor, s.PlanVersion.Interval)
+            .Sum(s => Monthly(s.PlanVersion!.PriceMinor + LicencesCost(s), s.PlanVersion.Interval)
                       + s.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > now)
                           .Sum(i => Monthly(i.AddOnPrice!.UnitPriceMinor * i.Quantity, i.AddOnPrice.Interval)));
+
+        static long LicencesCost(Subscription s) =>
+            s.AndroidLicences * s.PlanVersion!.AndroidUserPriceMinor + s.WindowsLicences * s.PlanVersion.WindowsUserPriceMinor
+            + s.BothLicences * s.PlanVersion.BothUserPriceMinor;
 
         return Ok(new PlatformDashboardDto(
             companies.Count,
@@ -79,7 +88,8 @@ public class PlatformAdminController(
             plans.Select(p => new PlatformPlanDto(p.Id, p.Code, p.Name, p.IsActive,
                 p.Versions.OrderBy(v => v.Interval).ThenByDescending(v => v.Version).Select(v => new PlatformPlanVersionDto(
                     v.Id, v.Version, v.Interval.ToString(), v.Currency, v.PriceMinor, v.IncludedSeats, v.EffectiveFrom, v.EffectiveTo,
-                    v.Entitlements.OrderBy(e => e.FeatureKey).Select(e => new PlatformEntitlementDto(e.FeatureKey, e.Value)).ToList())).ToList())).ToList(),
+                    v.Entitlements.OrderBy(e => e.FeatureKey).Select(e => new PlatformEntitlementDto(e.FeatureKey, e.Value)).ToList(),
+                    v.AndroidUserPriceMinor, v.WindowsUserPriceMinor, v.BothUserPriceMinor)).ToList())).ToList(),
             addOns.Select(a => new PlatformAddOnDto(a.Id, a.Code, a.Name, a.FeatureKey, a.Value, a.IsActive,
                 a.Prices.OrderBy(p => p.Interval).ThenByDescending(p => p.Version).Select(p => new PlatformAddOnPriceDto(
                     p.Id, p.Version, p.Interval.ToString(), p.Currency, p.UnitPriceMinor, p.EffectiveFrom, p.EffectiveTo)).ToList())).ToList(),
@@ -96,11 +106,19 @@ public class PlatformAdminController(
     public async Task<IActionResult> NewPlanVersion(string code, [FromBody] NewPlanVersionRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Reason)) return BadRequest(new { error = "A reason is required." });
-        if (request.PriceMinor < 0 || request.IncludedSeats < 1) return BadRequest(new { error = "Price must be zero or more and seats at least 1." });
         if (!Enum.TryParse<BillingInterval>(request.Interval, true, out var interval)) return BadRequest(new { error = "Interval must be 'Month' or 'Year'." });
-        foreach (var key in request.Entitlements.Keys)
+        var features = request.Entitlements
+            .Where(e => e.Key is not (FeatureKeys.UsersMaxActive or FeatureKeys.FranchiseNetworkBranches))
+            .ToDictionary(e => e.Key, e => e.Value);
+        var terms = new PlanTerms(request.PriceMinor, request.IncludedSeats, request.AndroidUserPriceMinor, request.WindowsUserPriceMinor,
+            request.BothUserPriceMinor, features);
+        try
         {
-            if (!FeatureKeys.All.ContainsKey(key)) return BadRequest(new { error = $"Unknown feature '{key}'." });
+            PlanVersionFactory.Validate(terms);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
 
         var plan = await catalog.Plans.Include(p => p.Versions)
@@ -111,31 +129,16 @@ public class PlatformAdminController(
         var current = plan.Versions.Where(v => v.Interval == interval && v.EffectiveTo == null).ToList();
         foreach (var old in current) old.EffectiveTo = now;
 
-        var version = new PlanVersion
-        {
-            Id = Guid.NewGuid(),
-            PlanId = plan.Id,
-            Version = plan.Versions.Where(v => v.Interval == interval).Select(v => v.Version).DefaultIfEmpty(0).Max() + 1,
-            Interval = interval,
-            Currency = "INR",
-            PriceMinor = request.PriceMinor,
-            IncludedSeats = request.IncludedSeats,
-            EffectiveFrom = now,
-            CreatedAt = now
-        };
-        foreach (var (key, type) in FeatureKeys.All)
-        {
-            var value = key == FeatureKeys.UsersMaxActive
-                ? request.IncludedSeats.ToString()
-                : request.Entitlements.TryGetValue(key, out var v) ? v : (type == EntitlementValueType.Bool ? "false" : "0");
-            if (key == FeatureKeys.FranchiseNetworkBranches) continue; // comes from the Franchise network add-on
-            version.Entitlements.Add(new PlanEntitlement { Id = Guid.NewGuid(), PlanVersionId = version.Id, FeatureKey = key, ValueType = type, Value = value });
-        }
+        var version = PlanVersionFactory.Create(plan, interval, terms, now);
         catalog.PlanVersions.Add(version);
         await catalog.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync("plan.version_created", null,
-            current.Select(c => new { c.Version, c.PriceMinor, c.IncludedSeats }),
-            new { plan = code, version.Version, interval = interval.ToString(), version.PriceMinor, version.IncludedSeats, request.Entitlements },
+            current.Select(c => new { c.Version, c.PriceMinor, c.IncludedSeats, c.AndroidUserPriceMinor, c.WindowsUserPriceMinor, c.BothUserPriceMinor }),
+            new
+            {
+                plan = code, version.Version, interval = interval.ToString(), version.PriceMinor, version.IncludedSeats,
+                version.AndroidUserPriceMinor, version.WindowsUserPriceMinor, version.BothUserPriceMinor, request.Entitlements
+            },
             request.Reason, cancellationToken);
         return StatusCode(StatusCodes.Status201Created);
     }
