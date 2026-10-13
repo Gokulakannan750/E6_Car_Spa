@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registerCompany, rememberCompanyCode, ApiError } from '../../lib/api';
 import { capitalizeSentence } from '../../utils/text';
 import { Building2, KeyRound, ShieldCheck, UserCheck, Lock, User, CheckCircle2 } from 'lucide-react';
-import { BrandMark, DEFAULT_APP_NAME } from '../../components/shared/BrandMark';
+import { BrandMark } from '../../components/shared/BrandMark';
+import { PRODUCT, productPaletteStyle } from '../../config/product';
 
 const inputClass =
 	'w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all';
@@ -64,14 +65,18 @@ export default function RegisterCompanyPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-side-950 via-black to-side-950 flex items-center justify-center p-6">
+		<div className="min-h-screen bg-gradient-to-br from-side-950 via-black to-side-950 flex items-center justify-center p-6" style={productPaletteStyle()}>
 			<div className="w-full max-w-md">
 				<div className="text-center mb-8">
-					<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/30 text-white font-black text-2xl mb-4">
-						<BrandMark iconClassName="h-8 w-8" />
-					</div>
+					{PRODUCT.logo ? (
+						<img src={PRODUCT.logo} alt="" className="mx-auto mb-4 h-16 w-16 object-contain" />
+					) : (
+						<div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-side-600 to-side-900 shadow-lg shadow-side-900/40 text-white font-black text-2xl mb-4">
+							<BrandMark name={PRODUCT.name} iconClassName="h-8 w-8" />
+						</div>
+					)}
 					<h1 className="text-2xl font-extrabold text-white tracking-tight">
-						WELCOME TO {DEFAULT_APP_NAME.toUpperCase()}
+						WELCOME TO {PRODUCT.name.toUpperCase()}
 					</h1>
 					<p className="text-sm text-blue-200/80 mt-1 font-medium">Register Your Company</p>
 				</div>

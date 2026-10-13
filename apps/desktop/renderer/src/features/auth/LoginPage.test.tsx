@@ -3,6 +3,7 @@ import { screen, waitFor } from '@testing-library/react';
 import LoginPage from './LoginPage';
 import { renderWithProviders } from '../../test/test-utils';
 import * as api from '../../lib/api';
+import { PRODUCT } from '../../config/product';
 
 vi.mock('../../lib/api', async (importOriginal) => {
 	const actual = await importOriginal<typeof import('../../lib/api')>();
@@ -51,5 +52,14 @@ describe('LoginPage background picture', () => {
 
 		await screen.findAllByText('Car Spa Management');
 		expect(container.innerHTML).not.toMatch(/login-banner/);
+	});
+
+	it('introduces the product (the software name) on the left and the company on the sign-in side', async () => {
+		vi.mocked(api.getPublicBusinessProfile).mockResolvedValue({ businessName: 'Gokul Detailing', logoPath: null, updatedAt: null, loginImagePath: null });
+		renderWithProviders(<LoginPage />, { initialEntries: ['/login'] });
+
+		expect(await screen.findByTestId('product-name')).toHaveTextContent(PRODUCT.name);
+		expect(screen.getByText(`© ${new Date().getFullYear()} ${PRODUCT.name}. All rights reserved.`)).toBeInTheDocument();
+		expect(await screen.findByRole('heading', { name: 'Gokul Detailing' })).toBeInTheDocument();
 	});
 });
