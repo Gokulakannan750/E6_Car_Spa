@@ -68,6 +68,8 @@ void main() {
       final json = request.toJson();
       expect(json['username'], 'test_user');
       expect(json['password'], 'Password123!');
+      // The server checks the app against the user's licence.
+      expect(json['app'], 'android');
     });
 
     test('LoginResponse deserializes from backend contract', () {

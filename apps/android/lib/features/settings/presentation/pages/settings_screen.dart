@@ -82,6 +82,15 @@ class SettingsScreen extends ConsumerWidget {
         isVisible: canViewAudit && PlanFeatures.allowsPermission('audit.view'),
       ),
       _SettingsWorkspaceItem(
+        title: 'Subscription',
+        description: 'Plan, user licences and invoices',
+        icon: Icons.workspace_premium_rounded,
+        iconColor: const Color(0xFF4F46E5),
+        bgColor: const Color(0xFFEEF2FF),
+        route: AppRoutes.subscription,
+        isVisible: canViewSettings && (PlanFeatures.current?.managed ?? false),
+      ),
+      _SettingsWorkspaceItem(
         title: 'Franchise Sharing',
         description: 'What the company that franchises you can see',
         icon: Icons.hub_rounded,

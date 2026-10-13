@@ -6,8 +6,10 @@ import {
 	type UserItemDto,
 	type PermissionGroupDetailDto,
 } from '../../lib/api';
-import { useAuth } from '../auth/auth-context';
+import { SUBSCRIPTION_QUERY_KEY, useAuth } from '../auth/auth-context';
 import { UserForm } from './UserForm';
+import { APP_ACCESS_OPTIONS, appAccessLabel } from './appAccess';
+import { useQueryClient } from '@tanstack/react-query';
 import {
 	UserPlus,
 	Edit2,
@@ -22,7 +24,9 @@ import {
 } from 'lucide-react';
 
 export default function UsersManagementPage() {
-	const { user: currentUser, hasPermission } = useAuth();
+	const { user: currentUser, hasPermission, subscription } = useAuth();
+	const queryClient = useQueryClient();
+	const licences = subscription?.managed ? subscription.licences ?? null : null;
 	const [users, setUsers] = useState<UserItemDto[]>([]);
 	const [permissionGroups, setPermissionGroups] = useState<PermissionGroupDetailDto[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
@@ -173,6 +177,23 @@ export default function UsersManagementPage() {
 				</div>
 			</div>
 
+			{licences && licences.length > 0 && (
+				<div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs" aria-label="User licences">
+					<span className="font-semibold uppercase tracking-wider text-slate-600">User licences</span>
+					{APP_ACCESS_OPTIONS.map((o) => {
+						const l = licences.find((x) => x.appAccess === o.value);
+						if (!l || (l.total === 0 && l.used === 0)) return null;
+						const over = l.used > l.total;
+						return (
+							<span key={o.value} className={`rounded-full border px-2.5 py-0.5 font-medium ${over ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+								{o.label}: {l.used} of {l.total} in use
+							</span>
+						);
+					})}
+					<span className="text-slate-400">Need more? Contact Trovo.</span>
+				</div>
+			)}
+
 			{/* Error Notice */}
 			{error && (
 				<div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
@@ -203,6 +224,7 @@ export default function UsersManagementPage() {
 									<th className="py-3.5 px-4">Name</th>
 									<th className="py-3.5 px-4">Username</th>
 									<th className="py-3.5 px-4">Role</th>
+									{licences && <th className="py-3.5 px-4">App access</th>}
 									<th className="py-3.5 px-4">Status</th>
 									<th className="py-3.5 px-4">Permissions</th>
 									<th className="py-3.5 px-4">Last Login</th>
@@ -230,6 +252,7 @@ export default function UsersManagementPage() {
 											<td className="py-3.5 px-4">
 												{getRoleBadge(u.role)}
 											</td>
+											{licences && <td className="py-3.5 px-4 text-xs text-slate-700">{appAccessLabel(u.appAccess ?? 'Both')}</td>}
 											<td className="py-3.5 px-4">
 												{u.isActive ? (
 													<span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -304,10 +327,12 @@ export default function UsersManagementPage() {
 				<UserForm
 					user={editingUser}
 					permissionGroups={permissionGroups}
+					licences={licences}
+					canChangeAppAccess={!!currentUser?.isOwner}
 					onClose={() => setIsFormOpen(false)}
 					onSuccess={async () => {
 						setIsFormOpen(false);
-						await loadData();
+						await Promise.all([loadData(), queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_QUERY_KEY })]);
 					}}
 				/>
 			)}

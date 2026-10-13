@@ -23,9 +23,9 @@ import { useToast } from '@/components/Toast';
 import { useAuth, BILLING_ROLES, SUPPORT_ROLES } from '@/features/auth/AuthProvider';
 import { RecordPaymentDialog, VoidInvoiceDialog, type InvoiceRef } from '@/features/invoices/InvoiceDialogs';
 import { api, ApiError } from '@/lib/api';
-import { BOOLEAN_FEATURES, featureLabel } from '@/lib/catalog';
+import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel, totalLicences } from '@/lib/catalog';
 import { date, dateTime, daysUntil, intervalLabel, money, moneyShort, perInterval } from '@/lib/format';
-import type { CompanyDetail, Invoice, SubscriptionEvent } from '@/lib/types';
+import type { CompanyDetail, Invoice, PlanChangeRequest, Subscription, SubscriptionEvent } from '@/lib/types';
 import { BillingAccountDialog, CancelDialog, ChangeSubscriptionDialog, isSuspended, RegistrationCodeDialog, SuspendDialog } from './CompanyDialogs';
 
 type Tab = 'overview' | 'invoices' | 'history';
@@ -204,7 +204,6 @@ function ActionsMenu({ items }: { items: MenuItem[] }) {
 
 function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEditBilling?: () => void }) {
 	const s = c.subscription;
-	const seatPercent = c.seatLimit && c.seatsUsed !== null ? Math.min(100, Math.round((c.seatsUsed / c.seatLimit) * 100)) : 0;
 	const branches = c.features['franchise_network.max_branches'];
 
 	let periodNote: React.ReactNode = null;
@@ -230,6 +229,7 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 		<div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_400px]">
 			<Card>
 				<CardHeader title="Subscription and features" />
+				<PlanChangeNotice company={c} />
 				{!s ? (
 					<EmptyState title="No subscription" />
 				) : (
@@ -239,7 +239,9 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 								<div className="text-micro font-medium tracking-wide text-text-muted uppercase">Plan</div>
 								<div className="mt-1 text-title font-semibold text-text-heading">{s.planName}</div>
 								<div className="tabular text-label text-text-secondary">
-									{s.status === 'Trialing' ? 'Free trial' : `${moneyShort(s.priceMinor, s.currency)}${perInterval(s.interval)} · ${intervalLabel(s.interval)}`}
+									{s.status === 'Trialing'
+										? 'Free trial'
+										: `${moneyShort(subscriptionPrice(s), s.currency)}${perInterval(s.interval)}${s.addOns.length > 0 ? ' + add-ons' : ''} · ${intervalLabel(s.interval)}`}
 								</div>
 							</div>
 							<div className="sm:col-span-2">
@@ -267,22 +269,53 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 							)}
 						</div>
 
-						{c.seatLimit !== null && (
-							<div className="rounded-lg border border-border-subtle bg-surface-alt p-4">
-								<div className="flex items-center justify-between text-body">
-									<span className="font-medium text-text-heading">Users</span>
+						{s.licences && (
+							<div className="rounded-lg border border-border-subtle bg-surface-alt">
+								<div className="flex items-center justify-between px-4 pt-3 text-body">
+									<span className="font-medium text-text-heading">User licences</span>
 									<span className="tabular text-label text-text-secondary">
-										{c.seatsUsed ?? '—'} of {c.seatLimit} in use
+										{c.seatsUsed ?? '—'} of {totalLicences(s.licences)} in use
 									</span>
 								</div>
-								<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-container">
-									<div className={`h-full rounded-full ${seatPercent >= 100 ? 'bg-pastdue' : 'bg-action'}`} style={{ width: `${seatPercent}%` }} />
-								</div>
-								{c.seatsUsed === null && (
-									<p className="mt-2 text-micro text-text-muted">
-										{c.registeredAt ? 'Could not be counted right now (the company’s database did not answer).' : 'Counted after the company registers.'}
+								<table className="mt-2 w-full text-table">
+									<thead>
+										<tr className="text-left text-micro font-semibold tracking-[0.04em] text-text-muted uppercase">
+											<th className="px-4 py-1.5">App access</th>
+											<th className="px-4 py-1.5 text-right">Bought</th>
+											<th className="px-4 py-1.5 text-right">In use</th>
+											<th className="px-4 py-1.5 text-right">Price each</th>
+										</tr>
+									</thead>
+									<tbody className="tabular">
+										{APP_ACCESS.map((type) => {
+											const bought = s.licences![type.key];
+											const used = c.licencesUsed ? c.licencesUsed[type.key] : null;
+											const over = used !== null && used > bought;
+											return (
+												<tr key={type.key} className="border-t border-border-hairline">
+													<td className="px-4 py-2 text-text-primary">{type.label}</td>
+													<td className="px-4 py-2 text-right text-text-heading">{bought}</td>
+													<td className={`px-4 py-2 text-right ${over ? 'text-pastdue' : 'text-text-secondary'}`}>{used ?? '—'}</td>
+													<td className="px-4 py-2 text-right text-text-secondary">
+														{s.licencePrices ? `${moneyShort(s.licencePrices[type.key], s.currency)}${perInterval(s.interval)}` : '—'}
+													</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+								{c.licencesUsed === null ? (
+									<p className="px-4 pb-3 text-micro text-text-muted">
+										{c.registeredAt ? 'Users could not be counted right now (the company’s database did not answer).' : 'Users are counted after the company registers.'}
 									</p>
+								) : (
+									APP_ACCESS.some((t) => c.licencesUsed![t.key] > s.licences![t.key]) && (
+										<p className="px-4 pb-3 text-micro text-pastdue">
+											More users than licences of a type: the owner must change or deactivate users before adding more.
+										</p>
+									)
 								)}
+								<div className="h-1" />
 							</div>
 						)}
 
@@ -363,6 +396,74 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 			</div>
 		</div>
 	);
+}
+
+/** Company fee plus every licence at its price (add-ons are billed on top). */
+/** A change sent to the customer: waiting for the Owner, or approved to start at the period end. Billing can withdraw it. */
+function PlanChangeNotice({ company }: { company: CompanyDetail }) {
+	const { can } = useAuth();
+	const toast = useToast();
+	const queryClient = useQueryClient();
+	const changes = useQuery({ queryKey: ['plan-changes', company.id], queryFn: () => api.planChanges(company.id) });
+	const withdraw = useMutation({
+		mutationFn: (request: PlanChangeRequest) => api.withdrawPlanChange(company.id, request.id),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ['plan-changes', company.id] });
+			queryClient.invalidateQueries({ queryKey: ['company', company.id] });
+			toast.success('Plan change withdrawn.');
+		},
+	});
+	const open = changes.data?.find((r) => r.status === 'Pending' || r.status === 'Scheduled');
+	const last = changes.data?.[0];
+	const canWithdraw = can(...BILLING_ROLES);
+	if (!open && !(last && (last.status === 'Declined' || last.status === 'Expired'))) return null;
+
+	const target = (r: PlanChangeRequest) =>
+		`${r.planCode} ${intervalLabel(r.interval).toLowerCase()}, ${totalLicences(r.licences)} user licence${totalLicences(r.licences) === 1 ? '' : 's'}`;
+	return (
+		<div className="mx-5 mt-5 rounded-lg border border-action/40 bg-action/10 p-4 text-body text-text-primary" data-testid="plan-change-notice">
+			{open?.status === 'Pending' && (
+				<>
+					<p className="font-semibold text-text-heading">Waiting for the customer's Owner to approve: {target(open)}</p>
+					<p className="mt-1 text-label text-text-secondary">
+						Sent {dateTime(open.createdAt)}
+						{open.requestedByEmail ? ` by ${open.requestedByEmail}` : ''} · expires {date(open.expiresAt)}
+						{open.timing === 'NowWithCharge' ? ` · about ${money(open.amountNowMinor, open.currency)} to pay when approved` : ''}
+						{open.timing === 'AtPeriodEnd' ? ` · would start ${date(open.effectiveAt)}` : ''}
+					</p>
+				</>
+			)}
+			{open?.status === 'Scheduled' && (
+				<>
+					<p className="font-semibold text-text-heading">
+						Approved by {open.decidedByName ?? 'the Owner'}: {target(open)} from {date(open.effectiveAt)}
+					</p>
+					<p className="mt-1 text-label text-text-secondary">No refund; the renewal invoice uses the new price.</p>
+				</>
+			)}
+			{!open && last && (
+				<p className="text-label text-text-secondary">
+					Last proposal ({target(last)}) was {last.status === 'Declined' ? `declined by ${last.decidedByName ?? 'the Owner'}` : 'not answered in time'}
+					{last.decidedAt ? ` on ${date(last.decidedAt)}` : ''}.
+				</p>
+			)}
+			{open && canWithdraw && (
+				<div className="mt-3">
+					<Button size="sm" variant="ghost" loading={withdraw.isPending} onClick={() => withdraw.mutate(open)}>
+						Withdraw
+					</Button>
+					<InlineError message={withdraw.error?.message} />
+				</div>
+			)}
+		</div>
+	);
+}
+
+function subscriptionPrice(s: Subscription): number {
+	const licences = s.licences && s.licencePrices
+		? s.licences.android * s.licencePrices.android + s.licences.windows * s.licencePrices.windows + s.licences.both * s.licencePrices.both
+		: 0;
+	return s.priceMinor + licences;
 }
 
 function toRef(invoice: Invoice, company: CompanyDetail): InvoiceRef {

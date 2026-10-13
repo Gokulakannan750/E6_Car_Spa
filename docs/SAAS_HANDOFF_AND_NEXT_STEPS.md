@@ -40,13 +40,19 @@ Copy-paste prompt for a new agent session: see §9.
 | Trial | 7 days, full Professional |
 | Unpaid | 7 days grace (banner), then **read-only** until paid |
 | Cancel | Read-only for 90 days, then data deleted on request |
-| Plans | Starter ₹999/mo or ₹9,990/yr (3 users); Professional ₹1,999/mo or ₹19,990/yr (10 users). Add-ons: Showroom, +5 users, Franchise network (10 branches), +10 franchise branches. Prices are data and can be changed in the portal |
+| Pricing (13 Oct) | **Per user licence**, by app: Android only, Windows only, or Windows + Android (one person on both apps = one licence). Bought **one at a time**; every plan includes **at least 1**. A user can sign in only to the apps their licence covers; the company Owner assigns licences to users. Plans: Starter and Professional (Professional includes Outside jobs, Staff advances & salary, WhatsApp automation, Advanced reports, Audit trail). **Starter can buy each of those five as an add-on**; a plan never pays twice for a module. Showroom and Franchise network are add-ons. **Excel/CSV export is free in every plan.** **Real prices: not decided yet** — the seeded prices are placeholders; the owner sets them in Plans & Prices |
+| Configuration | Prices, plans, add-ons, trial days, trial users, grace days and renewal-invoice days are set by Trovo in the admin portal. Only the list of features and the licence types are in code |
+| Customer sign-up and buy (13 Oct) | A **separate public website** (like the admin portal, but public; linked from trovotechsolutions.in) where a business enters its details, picks plan / licences / add-ons, pays or starts the trial, and gets its company code + registration code. **Designed in Google Stitch first** (prompts: `docs/STITCH_PROMPTS_SIGNUP.md`, export to `design/stitch-signup/`). Until a gateway is chosen, payment is a **test payment** button that works only on test servers; the real gateway replaces it in Phase 2.5 |
+| More products (13 Oct) | **One admin portal and one catalog for all Trovo products.** Any future software (the owner gave a civil ERP only as an example) becomes another product in the same portal (product switcher), not a second portal. Plan: §6 Step E. Start only when the next product's project starts |
 | Money | Integer paise + currency everywhere |
 | GST | Trovo has **no GSTIN**: no GST, invoices titled "Invoice". Seller name **"Trovo Tech Solutions"** (never "Private Limited") |
 | Payment gateway | Provider-independent interface; **the gateway with the lowest platform fee**, chosen by the owner before Phase 2.5 (Razorpay is the first candidate) |
 | Email | Not decided yet (needed for Phase 2.6) |
 | Admin portal address | Not decided yet (e.g. `admin.trovotechsolutions.in`) |
-| Branches (one owner, several outlets) | Later; discuss numbering with the first client |
+| Branches (one owner, several outlets) | **Approved 13 Oct** (`docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md`): in-database `Branches` table, Phase 2.9; no branches in a trial; numbering and day-close decided with E6 later |
+| Plan changes (13 Oct) | **Built.** Trovo proposes in the portal; the company's **Owner approves or declines in the app** (Windows Settings → Subscription, Android banner). Proposals expire after 7 days. **Upgrade**: starts on approval, invoice for the price difference for the rest of the paid period. **Downgrade or interval change**: starts at the period end, **no refund**, renewal invoice on the new terms. Not in a paid period (trial, unpaid): applies at once. Direct changes only before the company registers. Refunds follow the Refund Policy (manual until the gateway). |
+| Self-service (13 Oct) | **Built, in the apps (no separate login).** The Owner only, in Windows Settings → Subscription and Android Settings → Subscription: change plan, billing, user licences and add-ons with a live price (same rules as approved proposals), invoices with **Pay** (test payment on test servers; "call Trovo" elsewhere until the gateway, Phase 2.5), renew early, cancel at period end and take it back. Licences cannot go below the active users who have them. API: `/api/subscription/self/*` (works while read-only, so an unpaid company can pay). |
+| Franchise sign-up code | **Built 13 Oct** (Phase 2.8): franchisor makes a 1-hour single-use code; the new franchisee enters it on the sign-up website, consents, and is linked when its company is created |
 | Franchise | Each franchisee pays Trovo separately; the franchisor sees approved totals read-only |
 
 Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 entitlements, §7 platform API, §9 security).
@@ -62,6 +68,7 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 | 2.2 | Plans, subscriptions, entitlements, seat limits, lifecycle job, read-only/suspended enforcement, platform admin API with 2-step sign-in and roles, manual invoices and payments | ✅ merged to `main` |
 | 2.3 | Franchise across separate databases | ✅ merged to `main` |
 | 2.4 | **Admin portal web app** + API additions + E2E tests | ✅ merged to `main` and pushed (12 Oct) |
+| 2.4b | **Per-user app licences, module add-ons, catalog management, platform settings** (owner's pricing decision, 13 Oct) | ✅ built on branch `feature/saas-user-licences` (worktree `C:\r2e\p25`). **Not merged, not pushed.** |
 | 2.5 | Payment gateway | ⏳ next (needs the owner's gateway choice) |
 | 2.6 | Self sign-up and email | ⏳ |
 | 2.7 | Full end-to-end validation, backups, E6 rehearsal, hosting and rollout | ⏳ |
@@ -77,6 +84,32 @@ Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 en
 
 Test counts at the end of 2.4: backend **1268/1268** (with PostgreSQL), portal Vitest **18/18**, portal Playwright
 mocked **4/4**, portal live E2E **8/8**. Windows (734) and Android (1062) were not changed in 2.4.
+
+### Phase 2.4b: per-user app licences (branch `feature/saas-user-licences`, based on `main` ee7ac298)
+
+What changed, and where:
+- **Catalog:** `PlanVersion` has `AndroidUserPriceMinor`, `WindowsUserPriceMinor`, `BothUserPriceMinor` (plus `PriceMinor` =
+  optional company fee, `IncludedSeats` = minimum licences). `Subscription` has `AndroidLicences`, `WindowsLicences`,
+  `BothLicences`. New table `PlatformSettings` (`PlatformSettingsService`, limits in code). Migration
+  `UserLicencesAndSettings` converted existing subscriptions (one both-apps licence per user allowed before), retired the
+  `seats_5` add-on and put placeholder licence prices on the two seeded plans.
+- **Company databases:** `Users.AppAccess` (0 = Both, 1 = Android, 2 = Windows; migration `AddUserAppAccess`).
+- **Rules:** `UserService.EnsureSeatAvailableAsync` (licence per type on create/reactivate/change; only the Owner changes
+  app access); `AuthService.LoginAsync` checks `LoginRequest.App` ("windows"/"android") against the user's access and
+  puts it in the token (`app` claim); `PermissionAuthorizationHandler` re-checks it on every protected request;
+  `ClientApp` in `Domain/Enums/AppAccess.cs`. Owner at registration takes the best licence bought.
+- **Add-ons:** five module add-ons seeded (`outside_jobs`, `staff_advances`, `whatsapp_automation`, `advanced_reports`,
+  `audit_trail`); `SubscriptionService.SetAddOnsAsync` refuses a module the plan includes; a plan change drops them.
+- **Portal API:** `PlatformCatalogController` (create/update plans and add-ons, GET/PUT settings); licences on
+  company create/change and in company detail (`licencesUsed`); licence prices on plan versions.
+- **Apps:** Windows sends `app: "windows"`, Android `app: "android"` at sign-in; both have an "App access" choice on the
+  Users screen (shown only on the platform) and show the server's message when sign-in is refused.
+- **Portal UI:** licence steppers in New company / Change plan with live totals and an "upgrade is cheaper" hint;
+  licences bought vs in use on the company page; New plan, New add-on, stop/resume selling; Subscription settings on
+  the System page; dialogs scroll inside on 1366×768.
+
+Test counts at the end of 2.4b: backend **1287/1287**, Windows **738**, Android **1066**, portal Vitest **18/18**,
+portal Playwright mocked **4/4**, live E2E updated for licences (see §6 Step A2).
 
 ---
 
@@ -210,6 +243,38 @@ CI (`.github/workflows/ci.yml`) runs backend, Windows, Android and the admin por
       `carspa_rehearsal_e6`, `carspa_t_0002`… created by tests, `E6CarSpaFranchiseView`, `E6CarSpaTenantCopy`,
       `carspa_test_whatsapp`, and roles `carspa_t_*` (never `E6CarSpaNew`).
 
+### Step A2: Per-user licences (Phase 2.4b) — owner review, prices, then merge
+
+- [ ] Owner tests: create a company with a mix of licences; in the Windows app give a user "Android only" and check
+      that user cannot sign in on Windows but can on Android; try adding more users than licences; buy a module add-on
+      on Starter; upgrade to Professional and check the add-on ends; change trial days in System.
+- [ ] **Owner sets the real prices** in Plans & Prices (New price on Starter and Professional, and on each add-on).
+      The seeded ones are placeholders: Starter ₹999 / ₹699 / ₹499 per user per month (both / Windows / Android),
+      Professional ₹1,499 / ₹1,199 / ₹799, module add-ons ₹299, yearly = 10 × monthly.
+- [ ] When the owner says "merge": `git merge --no-ff feature/saas-user-licences` in the main checkout, run all
+      suites, push only if told, remove worktree `C:\r2e\p25`.
+- [ ] Release note for clients: **new Windows and Android app versions are required** on Trovo's platform (old apps do
+      not send the app type, so only users with both apps can sign in with them). Single-company servers (E6 today)
+      are unaffected.
+
+### Step A3: Customer sign-up website ✅ built 13 Oct (server side and website)
+
+- ✅ Public API for the website (`docs/SIGNUP_API.md`): catalog of plans/licence prices/add-ons, server-side quote,
+  sign-up (free trial creates the company at once; paid order fixes the price and creates the company on payment),
+  test payment (test servers only), order status. Table `SignupOrders`; admin portal **Sign-ups** page (orders and the
+  "paid but needs attention" case). Switched on with `Platform:SignupEnabled` (+ `Platform:TestPayments` on test
+  servers, `Platform:SignupOrigin` for CORS).
+- ✅ Stitch export in `design/stitch-signup/` (web + mobile). Built dark everywhere (the mobile screens came out light);
+  the extra "home setup" screen was not built because it made claims we can't back up.
+- ✅ Website `apps/signup-web` (README there): pricing → your business → plan and users (server quote) → review and
+  test payment → codes. Strict CSP, state in sessionStorage only, phone-friendly. Vitest, Playwright mocked (CI job
+  `signup-web`) and live (`--project=live`: paid → register → Active with the add-on; trial → register; second trial
+  refused).
+- ✅ "How are you joining?" on step 1 (own car spa / franchise outlet with code + consent / branch → done in the app)
+  and franchise sign-up codes in both apps (Phase 2.8, see `docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md` §4.2 B).
+- [ ] Before going live: publish the Terms, Refund policy and Privacy pages on trovotechsolutions.in, set
+      `VITE_WINDOWS_DOWNLOAD_URL` / `VITE_ANDROID_DOWNLOAD_URL`, real prices in the portal, real gateway (Step B).
+
 ### Step B: Phase 2.5 Payment gateway (estimate 9–12 days)
 
 **Decisions needed from the owner first:**
@@ -280,7 +345,94 @@ app like the portal); whether sign-up may start a trial without talking to Trovo
 - Branches inside one company (several outlets, per-branch access and numbering): discuss with the first client.
 - GST switch-on when Trovo registers (`Platform:Gstin`, rate; new invoices only).
 - Deleting a canceled company's data after 90 days on request (with export first).
-- More Trovo products on the same catalog (Products table exists).
+- More Trovo products (any future software, e.g. an ERP for another industry): see Step E below.
+
+### Step E: More Trovo products on one platform — when the next product starts (estimate 1–2 weeks)
+
+**Decision (owner, 13 Oct 2026):** Trovo keeps **one admin portal** and **one catalog database** for all its products,
+whatever the next product is (the owner mentioned a civil-construction ERP only as an example; it could be any
+software). Do **not** build a second admin portal or a second billing system for a new product. Reasons: one set of staff logins and
+2-step verification, one audit log, **one invoice series** (`TROVO/{FY}/{n}`, one legal business), one place to record
+payments and see revenue, and every improvement (payment gateway, email, reports) built once.
+
+**Do not start this before the owner says a second product's project has started.** Car spa goes live first (Steps A2–D).
+
+#### What already supports several products
+
+- Catalog table `Products` (`PlatformProduct`: Key, Name). `Plans`, `AddOns` and `Companies` each have `ProductId`.
+- Company databases are named per product: `{productKey}_t_{code}` (car spa: `carspa_t_0001`; a product with key
+  `newproduct` would get `newproduct_t_0001`), each with its own login.
+- `PlatformAdmins`, `PlatformAuditLogs`, `BillingInvoices` (numbering via `PlatformCounters`), `PaymentTransactions` are
+  not per product: shared on purpose.
+
+#### What is still single-product (to change)
+
+1. **The server serves one product:** `Platform:ProductKey` (default `carspa`) is read in about 18 places
+   (`PlatformCompaniesController`, `PlatformAdminController`, `PlatformBillingController`, `PlatformCatalogController`,
+   `CompanyDatabaseProvisioner`, `CompanyRegistrationService`…). Company and code lookups assume that one product.
+2. **The admin portal has no product choice:** every screen shows the one product.
+3. **The feature list is in code and is car-spa specific:** `FeatureKeys` in `Domain/Platform/BillingEntities.cs`, the
+   permission→feature map `PlanFeatureMap` (API), `featureForPermission` (Windows), `PlanFeatures` (Android).
+4. **The subscription engine lives inside the car spa API:** catalog, `SubscriptionService`, entitlements, licences,
+   invoices, payments, platform admin sign-in, lifecycle worker, provisioner. Every new product needs the same engine.
+5. **Billing account is per company:** a customer who buys car spa *and* another Trovo product would get two billing accounts.
+
+#### Target design
+
+```
+Trovo Admin Portal (one website) ── product switcher: Car Spa | <next product> | All products
+        │
+Trovo Platform service (one)      catalog DB: products, product features, plans, add-ons, licences,
+  /api/platform/* (admins)        companies, customers/billing accounts, subscriptions, invoices,
+  /api/billing/* (gateway)        payments, admins, audit, settings (per product where it matters)
+  /api/signup/*  (later)
+        │  "what may company X use?" (entitlements)   "register company X with its code"
+   ┌────┴─────────────┐
+Car Spa API        <Next product> API     each product keeps its own API, apps, company databases
+carspa_t_0001…     newproduct_t_0001…     and business rules; neither touches the other's databases
+```
+
+#### Tasks (in this order, each tested before the next)
+
+1. **Product in every platform request.** Replace `Platform:ProductKey` lookups in the admin API with a product chosen
+   per request (`?product=carspa`, or "all" for lists). Company codes stay unique **per product** (0001 can exist in
+   both). Keep `Platform:ProductKey` only as the product a *product API* serves.
+2. **Product features in the catalog.** New table `ProductFeatures` (ProductId, Key, Name, ValueType, IsModule,
+   SortOrder). Seed car spa's current `FeatureKeys` into it unchanged (same keys, so nothing breaks). Plans, add-ons,
+   `PlanVersionFactory` and the portal read the list from there. Each product API still maps its own permissions to its
+   own feature keys in code (that mapping belongs to the product).
+3. **Portal product switcher.** Top bar selector, remembered per admin (local preference). Plans & Prices, Companies,
+   Invoices, Dashboard, Audit log filter by it; "All products" adds a Product column. New company asks for the product.
+   New plan / New add-on use that product's features.
+4. **Customers above companies (optional, ask the owner).** New `Customers` (billing party: name, GSTIN, address,
+   contacts) with `BillingAccount` moved to it; a company belongs to a customer. One customer can then hold a car spa
+   company and a company in another product, on one invoice or one per product (owner decides).
+5. **Move the engine into the Trovo Platform service.** New project `backend/platform/` (ASP.NET Core) that owns the
+   catalog DB, `/api/platform/*`, billing, the lifecycle worker and provisioning. Product APIs get entitlements and
+   registration from it through a small typed client (`IPlatformClient`, cached like today's
+   `PlatformEntitlementService`), or by reading the catalog read-only through a shared library — choose the client
+   approach unless hosting forces otherwise. Car spa must keep working at every step (run both suites).
+6. **Onboard the new product.** Add the product (its key, e.g. `newproduct`) with its features, plans, licence prices
+   and add-ons (data, in the portal). Its API uses the same registration-code flow, per-app licences (if it has
+   Windows/Android apps) and the same subscription banner endpoint.
+
+#### Decisions needed from the owner (ask before starting)
+
+1. Which product, and its apps: web, Windows, Android? (Decides which licence types it uses; a web app may need a
+   "Web" licence type added.)
+2. Its modules (its feature list) and plans.
+3. One invoice for a customer with both products, or one per product?
+4. Same trial/grace settings for every product, or per product?
+5. Hosting: both product APIs and the platform service on one server to start (recommended), or separate?
+
+#### Done when
+
+- The portal switches between Car Spa and the new product; each shows only its plans, companies and invoices; "All"
+  shows everything with a Product column.
+- A company of the new product can be created, registered with its codes, invoiced and paid, with car spa unaffected.
+- One admin login, one audit log and one invoice series cover both products.
+- All car spa suites still pass; new tests cover product separation (a car spa admin view never lists
+  companies of another product unless "All" is chosen; company codes may repeat across products; entitlements never mix products).
 
 ---
 

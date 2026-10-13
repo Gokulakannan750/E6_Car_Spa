@@ -9,6 +9,28 @@ class FranchiseApi {
   Map<String, dynamic> _map(Response<dynamic> response) =>
       response.data as Map<String, dynamic>;
 
+  Future<FranchiseSignupCodes> getSignupCodes() async =>
+      FranchiseSignupCodes.fromJson(
+        _map(await _dio.get('/franchise/signup-codes')),
+      );
+
+  Future<CreatedFranchiseSignupCode> createSignupCode(
+    List<String> scopes,
+    String? label,
+  ) async => CreatedFranchiseSignupCode.fromJson(
+    _map(
+      await _dio.post(
+        '/franchise/signup-codes',
+        data: {'scopes': scopes, 'label': ?label},
+      ),
+    ),
+  );
+
+  Future<FranchiseSignupCode> cancelSignupCode(String id) async =>
+      FranchiseSignupCode.fromJson(
+        _map(await _dio.post('/franchise/signup-codes/$id/cancel')),
+      );
+
   Future<FranchiseAccess> getAccess() async =>
       FranchiseAccess.fromJson(_map(await _dio.get('/franchise/access')));
 

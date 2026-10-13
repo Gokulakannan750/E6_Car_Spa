@@ -46,6 +46,9 @@ public sealed class PlatformApiHost : IAsyncLifetime
             b.UseSetting("Platform:Jwt:Key", "platform-http-test-signing-key-at-least-32-chars");
             b.UseSetting("WhatsApp:EncryptionKey", "platform-http-test-encryption-key-32-chars!!");
             b.UseSetting("Platform:AdminPortalOrigin", "https://admin.trovo.test");
+            b.UseSetting("Platform:SignupEnabled", "true");
+            b.UseSetting("Platform:TestPayments", "true");
+            b.UseSetting("Platform:SignupOrigin", "https://signup.trovo.test");
         });
         Client = _factory.CreateClient();
         return Task.CompletedTask;
@@ -243,8 +246,11 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
 
         var status = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/status", token));
         Assert.Equal("starter", status.GetProperty("planCode").GetString());
-        Assert.Equal(3, status.GetProperty("seatLimit").GetInt32());
+        Assert.Equal(1, status.GetProperty("seatLimit").GetInt32()); // one licence for both apps, held by the Owner
         Assert.Equal(1, status.GetProperty("seatsUsed").GetInt32());
+        var both = status.GetProperty("licences").EnumerateArray().Single(l => l.GetProperty("appAccess").GetString() == "Both");
+        Assert.Equal(1, both.GetProperty("total").GetInt32());
+        Assert.Equal(1, both.GetProperty("used").GetInt32());
         Assert.Equal("false", status.GetProperty("features").GetProperty(FeatureKeys.Showroom).GetString());
     }
 
@@ -255,14 +261,15 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
         var support = await host.AdminTokenAsync(PlatformAdminRole.Support);
         var billing = await host.AdminTokenAsync(PlatformAdminRole.Billing);
         var readOnly = await host.AdminTokenAsync(PlatformAdminRole.ReadOnly);
-        var change = new { planCode = "starter", reason = "Customer asked to downgrade" };
+        // A registered company's plan changes by proposal; its Owner approves in the app.
+        var change = new { planCode = "starter", interval = "Month", licences = new { android = 0, windows = 0, both = 3 }, reason = "Customer asked to downgrade" };
 
-        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/subscription", support, change)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Post, $"/api/platform/companies/{company.Id}/plan-change", support, change)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", readOnly,
             new { action = "suspend", reason = "x" })).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await host.SendAsync(HttpMethod.Get, "/api/platform/audit-logs", billing)).StatusCode);
 
-        Assert.Equal(HttpStatusCode.NoContent, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/subscription", billing, change)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await host.SendAsync(HttpMethod.Post, $"/api/platform/companies/{company.Id}/plan-change", billing, change)).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", support,
             new { action = "suspend", reason = "" })).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await host.SendAsync(HttpMethod.Put, $"/api/platform/companies/{company.Id}/status", support,
@@ -270,7 +277,7 @@ public class PlatformHttpTests(PlatformApiHost host) : IClassFixture<PlatformApi
 
         var actions = await host.InScopeAsync(sp => sp.GetRequiredService<PlatformDbContext>().AuditLogs
             .Where(a => a.TargetCompanyId == company.Id).OrderBy(a => a.CreatedAt).Select(a => a.Action + ":" + a.Reason).ToListAsync());
-        Assert.Equal(new[] { "subscription.changed:Customer asked to downgrade", "company.suspend:Testing suspension" }, actions);
+        Assert.Equal(new[] { "subscription.change_proposed:Customer asked to downgrade", "company.suspend:Testing suspension" }, actions);
     }
 
     [PostgresFact]

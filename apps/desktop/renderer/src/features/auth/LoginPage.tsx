@@ -11,6 +11,7 @@ import {
 } from '../../lib/api';
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { BrandMark, displayName } from '../../components/shared/BrandMark';
+import { PRODUCT, productPaletteStyle } from '../../config/product';
 
 
 export default function LoginPage() {
@@ -74,7 +75,9 @@ export default function LoginPage() {
 	const showImage = hasCustomLogo && !imgError;
 	const logoUrl = resolveLogoUrl(logoPath, updatedAt);
 	const loginImagePath = publicProfile !== null ? publicProfile.loginImagePath : cachedProfile?.loginImagePath;
-	const bannerUrl = resolveLogoUrl(loginImagePath, updatedAt);
+	// The left half belongs to the product: Trovo's picture, unless the company uploaded its own login picture.
+	const bannerUrl = loginImagePath ? resolveLogoUrl(loginImagePath, updatedAt) : PRODUCT.heroImage;
+	const [productLogoError, setProductLogoError] = useState(false);
 
 	if (isLoading) {
 		return (
@@ -93,7 +96,7 @@ export default function LoginPage() {
 	}
 
 	return (
-		<div className="min-h-screen w-full flex bg-side-950 overflow-hidden">
+		<div className="min-h-screen w-full flex bg-side-950 overflow-hidden" style={productPaletteStyle()}>
 			{/* Left Hero Banner (Desktop / Widescreen) */}
 			<div className="hidden lg:flex lg:w-1/2 xl:w-7/12 relative overflow-hidden flex-col justify-between p-10 xl:p-14 select-none">
 				{/* Background Image with Dark Vignette & Red Ambient Overlays */}
@@ -111,16 +114,18 @@ export default function LoginPage() {
 				{/* Top Branding Pill */}
 				<div className="relative z-10 flex justify-center w-full">
 					<div className="inline-flex items-center gap-4 px-6 py-3.5 rounded-2xl bg-black/65 border border-white/20 backdrop-blur-xl shadow-2xl shadow-black/60">
-						<div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-side-600 to-side-900 text-white font-black text-lg shadow-lg shadow-side-950/60 ring-1 ring-white/20">
-							<BrandMark name={hasBusinessName ? businessName : null} iconClassName="h-6 w-6" />
-						</div>
+						{PRODUCT.logo && !productLogoError ? (
+							<img src={PRODUCT.logo} alt="" className="h-12 w-12 object-contain" onError={() => setProductLogoError(true)} />
+						) : (
+							<div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-side-600 to-side-900 text-white font-black text-lg shadow-lg shadow-side-950/60 ring-1 ring-white/20">
+								<BrandMark name={PRODUCT.name} iconClassName="h-6 w-6" />
+							</div>
+						)}
 						<div className="leading-tight text-left">
-							<span className="font-extrabold text-xl xl:text-2xl tracking-wider uppercase text-white block">
-								{businessName}
+							<span data-testid="product-name" className="font-extrabold text-xl xl:text-2xl tracking-wider uppercase text-white block">
+								{PRODUCT.name}
 							</span>
-							<span className="text-xs text-side-300 font-medium tracking-wide block mt-0.5">
-								Automotive Spa & Detailing Suite
-							</span>
+							<span className="text-xs text-side-300 font-medium tracking-wide block mt-0.5">{PRODUCT.tagline}</span>
 						</div>
 					</div>
 				</div>
@@ -146,8 +151,8 @@ export default function LoginPage() {
 
 				{/* Bottom Banner Footer */}
 				<div className="relative z-10 flex items-center justify-between pt-6 border-t border-white/10 text-xs text-slate-400">
-					<span>© {new Date().getFullYear()} {businessName}. All rights reserved.</span>
-					<span className="text-side-300/80 font-medium">Enterprise Suite</span>
+					<span>© {new Date().getFullYear()} {PRODUCT.name}. All rights reserved.</span>
+					<span className="text-side-300/80 font-medium">by Trovo Tech Solutions</span>
 				</div>
 			</div>
 

@@ -25,7 +25,7 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 	const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 	const isCollapsed = collapsed !== undefined ? collapsed : storeCollapsed;
 
-	const { user: authUser, hasPermission, hasFeature } = useAuth();
+	const { user: authUser, hasPermission, hasFeature, subscription } = useAuth();
 	const franchiseAccess = useFranchiseAccess();
 	const { profile, logoUrl, hasCustomLogo } = useBusinessProfile();
 	const [imgError, setImgError] = useState(false);
@@ -64,6 +64,9 @@ export function Sidebar({ collapsed }: { collapsed?: boolean } = {}) {
 			return null;
 		}
 		if (item.requiresFranchisee && !franchiseAccess.isFranchisee) {
+			return null;
+		}
+		if (item.requiresSubscription && !subscription?.managed) {
 			return null;
 		}
 		if (item.requiresFeature && hasFeature && !hasFeature(item.requiresFeature)) {

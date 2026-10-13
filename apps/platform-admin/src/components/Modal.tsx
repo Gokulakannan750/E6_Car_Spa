@@ -59,7 +59,7 @@ export function Modal({ open, title, description, onClose, children, footer, wid
 	if (!open) return null;
 
 	return createPortal(
-		<div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+		<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 			<div
 				className="fixed inset-0 bg-black/75 backdrop-blur-sm"
 				aria-hidden
@@ -71,9 +71,9 @@ export function Modal({ open, title, description, onClose, children, footer, wid
 				aria-modal="true"
 				aria-labelledby={titleId}
 				tabIndex={-1}
-				className={`relative my-8 w-full ${widths[width]} rounded-lg border border-border-strong bg-surface-card shadow-2xl shadow-black/60 focus:outline-none`}
+				className={`relative flex max-h-[calc(100dvh-2rem)] w-full ${widths[width]} flex-col rounded-lg border border-border-strong bg-surface-card shadow-2xl shadow-black/60 focus:outline-none`}
 			>
-				<header className="flex items-start justify-between gap-4 border-b border-border-subtle px-5 py-4">
+				<header className="flex shrink-0 items-start justify-between gap-4 border-b border-border-subtle px-5 py-4">
 					<div className="min-w-0">
 						<h2 id={titleId} className="text-title font-semibold text-text-heading">
 							{title}
@@ -86,8 +86,9 @@ export function Modal({ open, title, description, onClose, children, footer, wid
 						</IconButton>
 					)}
 				</header>
-				<div className="px-5 py-4">{children}</div>
-				{footer && <footer className="flex flex-wrap justify-end gap-2 border-t border-border-subtle px-5 py-3">{footer}</footer>}
+				{/* Only the body scrolls, so the title and the buttons stay in view on small screens. */}
+				<div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+				{footer && <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border-subtle px-5 py-3">{footer}</footer>}
 			</div>
 		</div>,
 		document.body,

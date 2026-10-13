@@ -351,6 +351,13 @@ export const WORKSPACE_NAVIGATION: Record<Workspace, NavigationItem[]> = {
 			requiresPermission: 'users.view',
 		},
 		{
+			label: 'Subscription',
+			path: '/settings/subscription',
+			icon: 'CreditCard',
+			requiresPermission: 'settings.view',
+			requiresSubscription: true,
+		},
+		{
 			label: 'System Preferences',
 			path: '/settings/system',
 			icon: 'SlidersHorizontal',
@@ -418,6 +425,10 @@ export function isItemActive(
 
 	if (item.path === '/settings/system') {
 		return normPath === '/settings/system' || (normPath === '/settings' && search.includes('tab=system'));
+	}
+
+	if (item.path === '/settings/subscription') {
+		return normPath === '/settings/subscription';
 	}
 
 	if (item.path === '/settings/franchise-sharing') {

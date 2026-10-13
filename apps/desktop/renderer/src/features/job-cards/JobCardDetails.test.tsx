@@ -3,6 +3,8 @@ import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import JobCardDetails from './JobCardDetails';
 import { renderWithProviders } from '../../test/test-utils';
+
+const owner: api.AuthUserResponse = { id: 'u1', fullName: 'Owner', username: 'owner', role: 'Owner', isOwner: true, permissions: [] };
 import * as api from '../../lib/api';
 
 vi.mock('../../lib/api', async (importOriginal) => {
@@ -107,6 +109,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -127,6 +130,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -171,6 +175,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -192,6 +197,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -240,6 +246,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -279,6 +286,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -303,6 +311,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -331,6 +340,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -354,6 +364,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -388,6 +399,7 @@ describe('JobCardDetails Component & Lifecycle States', () => {
 			</Routes>,
 			{
 				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
 			}
 		);
 
@@ -763,5 +775,23 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 				]
 			);
 		});
+	});
+
+	it('hides sending the vehicle outside when the plan does not include Outside jobs (Starter)', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/job-cards/:id" element={<JobCardDetails />} />
+			</Routes>,
+			{
+				initialEntries: ['/job-cards/jc-1'],
+				authUser: owner,
+				// The real hasPermission refuses a module outside the plan; the test helper's does not, so mimic it.
+				authContextValue: { hasPermission: (code?: string) => !code?.startsWith('outsidejobs.') },
+			}
+		);
+		expect(await screen.findByText('Print Job Card')).toBeInTheDocument();
+		expect(screen.queryByTestId('header-btn-send-outside')).toBeNull();
+		expect(screen.queryByTestId('btn-vehicle-location-send-outside')).toBeNull();
+		expect(screen.queryByText('Vehicle Location')).toBeNull();
 	});
 });

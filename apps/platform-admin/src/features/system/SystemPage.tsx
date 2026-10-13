@@ -8,6 +8,7 @@ import { Card, CardHeader, EmptyState, ErrorState, InlineError, LoadingState, Pa
 import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api';
 import { dateTime } from '@/lib/format';
+import { PlatformSettingsCard } from './PlatformSettingsCard';
 
 export function SystemPage() {
 	useBreadcrumbs({ label: 'System' });
@@ -36,13 +37,14 @@ export function SystemPage() {
 		<>
 			<PageHeader
 				title="System"
-				description="Each company has its own database. The API updates them when it starts; run the update here after a failure."
+				description="Subscription settings, and each company's own database (the API updates them when it starts; run the update here after a failure)."
 				actions={
 					<Button variant="primary" icon={<Play className="size-4" />} onClick={() => setConfirming(true)}>
 						Update all databases
 					</Button>
 				}
 			/>
+			<PlatformSettingsCard />
 			<div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Stat label="Company databases" value={rows.length} />
 				<Stat label="Schema versions in use" value={versions.size} note={versions.size > 1 ? 'Some databases are behind' : undefined} />

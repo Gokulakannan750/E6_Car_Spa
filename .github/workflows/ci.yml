@@ -149,6 +149,49 @@ jobs:
           name: platform-admin-playwright-report
           path: apps/platform-admin/playwright-report
 
+  signup-web:
+    name: Sign-up website (web)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm --dir apps/signup-web type-check
+
+      - name: Tests
+        run: pnpm --dir apps/signup-web test
+
+      - name: Build
+        run: pnpm --dir apps/signup-web build
+
+      - name: Install Playwright Chromium
+        run: pnpm --dir apps/signup-web exec playwright install --with-deps chromium
+
+      - name: End-to-end tests (mocked API)
+        run: pnpm --dir apps/signup-web test:e2e --project=mocked
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signup-web-playwright-report
+          path: apps/signup-web/playwright-report
+
   android:
     name: Android (Flutter)
     runs-on: ubuntu-latest

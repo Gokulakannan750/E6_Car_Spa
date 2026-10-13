@@ -2870,6 +2870,12 @@ export interface LoginInput {
 	companyCode?: string;
 }
 
+/** Which apps a user may sign in to (each needs a licence of that type on Trovo's platform). */
+export type AppAccess = 'Both' | 'Windows' | 'Android';
+
+/** This is the Windows app; the server checks it against the user's licence. */
+export const CLIENT_APP = 'windows';
+
 export interface AuthUserResponse {
 	id: string;
 	fullName: string;
@@ -2878,6 +2884,7 @@ export interface AuthUserResponse {
 	role: 'Owner' | 'Manager' | 'Staff';
 	isOwner: boolean;
 	permissions: string[];
+	appAccess?: AppAccess;
 }
 
 export interface LoginResponse {
@@ -2896,6 +2903,7 @@ export interface UserItemDto {
 	lastLoginAt?: string | null;
 	createdAt: string;
 	permissions: string[];
+	appAccess?: AppAccess;
 }
 
 export interface CreateUserInput {
@@ -2906,6 +2914,7 @@ export interface CreateUserInput {
 	confirmPassword: string;
 	role: string;
 	permissionCodes: string[];
+	appAccess?: AppAccess;
 }
 
 export interface UpdateUserInput {
@@ -2915,6 +2924,7 @@ export interface UpdateUserInput {
 	confirmPassword?: string | null;
 	role?: string | null;
 	permissionCodes?: string[] | null;
+	appAccess?: AppAccess | null;
 }
 
 export interface PermissionDetailDto {
@@ -2956,6 +2966,183 @@ export interface SubscriptionStatusDto {
 	graceEndsAt?: string | null;
 	currentPeriodEnd?: string | null;
 	banner?: { level: 'info' | 'warning' | 'error'; message: string } | null;
+	/** User licences per app type: bought and in use (only on Trovo's platform). */
+	licences?: LicenceUsageDto[] | null;
+	/** Trovo proposed a plan change that waits for the Owner's answer. */
+	planChangePending?: boolean;
+}
+
+export interface LicenceUsageDto {
+	appAccess: AppAccess;
+	total: number;
+	used: number;
+}
+
+export interface PlanTermsSummaryDto {
+	planName: string;
+	interval: string;
+	androidLicences: number;
+	windowsLicences: number;
+	bothLicences: number;
+	addOns: string[];
+}
+
+/**
+ * A change to the plan that Trovo proposed ("Pending": the Owner approves or declines) or that the Owner approved and
+ * starts at the end of the paid period ("Scheduled"). Amounts are in paise, before tax.
+ */
+export interface PlanChangeProposalDto {
+	id: string;
+	status: 'Pending' | 'Scheduled';
+	timing: 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+	from: PlanTermsSummaryDto;
+	to: PlanTermsSummaryDto;
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+	expiresAt: string;
+	reason: string | null;
+}
+
+/** The open plan change, or null when there is none. */
+export async function getPlanChange() {
+	return (await request<PlanChangeProposalDto | undefined>('/api/subscription/plan-change', {}, 'check for a plan change')) ?? null;
+}
+
+/** Approves; returns the change while it waits for the end of the paid period, or null once it is in effect. */
+export async function approvePlanChange(id: string) {
+	return (
+		(await request<PlanChangeProposalDto | undefined>(`/api/subscription/plan-change/${encodeURIComponent(id)}/approve`, { method: 'POST' }, 'approve the plan change')) ??
+		null
+	);
+}
+
+export async function declinePlanChange(id: string) {
+	return request<void>(`/api/subscription/plan-change/${encodeURIComponent(id)}/decline`, { method: 'POST' }, 'decline the plan change');
+}
+
+// ── The Owner's own subscription management (Trovo's platform) ───────────────
+
+export interface CatalogPrices {
+	companyFeeMinor: number;
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
+}
+
+export interface CatalogPlan {
+	code: string;
+	name: string;
+	minimumLicences: number;
+	/** Feature keys the plan includes (e.g. outside_jobs.enabled). */
+	modules: string[];
+	monthly: CatalogPrices | null;
+	yearly: CatalogPrices | null;
+}
+
+export interface CatalogAddOn {
+	code: string;
+	name: string;
+	featureKey: string;
+	/** A pack (bought by quantity, e.g. 10 more franchise branches) rather than a module switched on. */
+	isPack: boolean;
+	perUnit: number;
+	monthlyPriceMinor: number | null;
+	yearlyPriceMinor: number | null;
+}
+
+export interface LicenceCountsDto {
+	android: number;
+	windows: number;
+	both: number;
+}
+
+export interface OwnerChoice {
+	planCode: string;
+	interval: 'Month' | 'Year';
+	licences: LicenceCountsDto;
+	addOns: Record<string, number>;
+}
+
+export interface OwnerSubscriptionDto {
+	catalog: { plans: CatalogPlan[]; addOns: CatalogAddOn[]; chargesGst: boolean; gstRatePercent: number | null };
+	current: OwnerChoice;
+	licencesInUse: LicenceCountsDto;
+	status: string;
+	currentPeriodEnd: string;
+	cancelAtPeriodEnd: boolean;
+	canPayOnline: boolean;
+	testPayments: boolean;
+}
+
+export interface PlanChangePreviewDto {
+	timing: 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+}
+
+export interface OwnerChangeResultDto {
+	status: 'Applied' | 'Scheduled';
+	timing: PlanChangePreviewDto['timing'];
+	effectiveAt: string;
+	amountNowMinor: number;
+	invoiceId: string | null;
+	invoiceNumber: string | null;
+}
+
+export interface OwnerInvoiceDto {
+	id: string;
+	invoiceNumber: string;
+	kind: 'Period' | 'Adjustment';
+	status: 'Open' | 'Paid' | 'Void' | 'Uncollectible' | 'Draft';
+	issuedAt: string;
+	dueAt: string;
+	periodStart: string | null;
+	periodEnd: string | null;
+	subtotalMinor: number;
+	taxMinor: number;
+	totalMinor: number;
+	amountDueMinor: number;
+	currency: string;
+	paidAt: string | null;
+	lines: { description: string; quantity: number; unitPriceMinor: number; amountMinor: number }[];
+}
+
+export async function getOwnerSubscription() {
+	return request<OwnerSubscriptionDto>('/api/subscription/self', {}, 'load your subscription');
+}
+
+export async function previewOwnerChange(choice: OwnerChoice) {
+	return request<PlanChangePreviewDto>('/api/subscription/self/preview', { method: 'POST', body: JSON.stringify(choice) }, 'work out the price');
+}
+
+export async function changeOwnerPlan(choice: OwnerChoice) {
+	return request<OwnerChangeResultDto>('/api/subscription/self/change', { method: 'POST', body: JSON.stringify(choice) }, 'change your plan');
+}
+
+export async function getOwnerInvoices() {
+	return request<OwnerInvoiceDto[]>('/api/subscription/self/invoices', {}, 'load your invoices');
+}
+
+export async function payOwnerInvoice(id: string) {
+	return request<OwnerInvoiceDto>(`/api/subscription/self/invoices/${encodeURIComponent(id)}/pay`, { method: 'POST' }, 'pay the invoice');
+}
+
+export async function renewOwnerSubscription() {
+	return request<OwnerInvoiceDto>('/api/subscription/self/renew', { method: 'POST' }, 'renew');
+}
+
+export async function cancelOwnerSubscription(reason?: string) {
+	return request<void>('/api/subscription/self/cancel', { method: 'POST', body: JSON.stringify({ reason }) }, 'cancel the subscription');
+}
+
+export async function resumeOwnerSubscription() {
+	return request<void>('/api/subscription/self/resume', { method: 'POST' }, 'keep the subscription');
 }
 
 export async function getSubscriptionStatus() {
@@ -2972,7 +3159,7 @@ export async function registerCompany(data: RegisterCompanyInput) {
 export async function loginApi(data: LoginInput) {
 	return request<LoginResponse>('/api/auth/login', {
 		method: 'POST',
-		body: JSON.stringify(cleanPayload(data)),
+		body: JSON.stringify(cleanPayload({ ...data, app: CLIENT_APP })),
 	}, 'sign in');
 }
 
@@ -3265,6 +3452,42 @@ export async function decideFranchiseScope(linkId: string, scope: string, grant:
 		{ method: 'PUT', body: JSON.stringify({ grant }) },
 		'change what is shared',
 	);
+}
+
+export type FranchiseSignupCodeStatus = 'Open' | 'Reserved' | 'Used' | 'Expired' | 'Cancelled';
+
+/** A franchise sign-up code as the franchisor sees it (the code itself is shown only once, when made). */
+export interface FranchiseSignupCodeDto {
+	id: string;
+	label: string | null;
+	scopes: FranchiseScopeDto[];
+	status: FranchiseSignupCodeStatus;
+	createdAt: string;
+	expiresAt: string;
+	usedAt: string | null;
+	usedByCompanyName: string | null;
+}
+
+export interface FranchiseSignupCodesDto {
+	/** False on a single-company server (no sign-up website). */
+	available: boolean;
+	lifetimeMinutes: number;
+	codes: FranchiseSignupCodeDto[];
+}
+
+export async function getFranchiseSignupCodes() {
+	return request<FranchiseSignupCodesDto>('/api/franchise/signup-codes', {}, 'view the franchise codes');
+}
+
+export async function createFranchiseSignupCode(data: { scopes: string[]; label?: string }) {
+	return request<{ code: string; item: FranchiseSignupCodeDto }>('/api/franchise/signup-codes', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'make a franchise code');
+}
+
+export async function cancelFranchiseSignupCode(id: string) {
+	return request<FranchiseSignupCodeDto>(`/api/franchise/signup-codes/${encodeURIComponent(id)}/cancel`, { method: 'POST' }, 'withdraw the franchise code');
 }
 
 export interface PublicBusinessProfileDto {

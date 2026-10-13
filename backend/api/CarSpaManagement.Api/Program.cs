@@ -293,6 +293,42 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 			});
 	});
 
+	// The public sign-up website (Trovo's platform): placing orders is limited; reading prices less so.
+	rateLimiterOptions.AddPolicy("public-signup", httpContext =>
+		RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip",
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 10,
+				Window = TimeSpan.FromMinutes(10),
+				SegmentsPerWindow = 10,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			}));
+	// Checking a franchise sign-up code: strict, against guessing (a code has about 59 bits and lives an hour).
+	rateLimiterOptions.AddPolicy("public-code", httpContext =>
+		RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip",
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 10,
+				Window = TimeSpan.FromMinutes(10),
+				SegmentsPerWindow = 10,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			}));
+	rateLimiterOptions.AddPolicy("public-read", httpContext =>
+		RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip",
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 60,
+				Window = TimeSpan.FromSeconds(60),
+				SegmentsPerWindow = 6,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			}));
+
 	rateLimiterOptions.AddPolicy("auth-bootstrap", httpContext =>
 	{
 		var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
@@ -385,6 +421,11 @@ builder.Services.AddCors(options =>
  if (platformEnabled && builder.Configuration["Platform:AdminPortalOrigin"] is { Length: > 0 } adminPortal)
  {
  	origins = [.. origins, adminPortal.TrimEnd('/')];
+ }
+ // The public sign-up website likewise.
+ if (platformEnabled && builder.Configuration["Platform:SignupOrigin"] is { Length: > 0 } signupSite)
+ {
+ 	origins = [.. origins, signupSite.TrimEnd('/')];
  }
  policy.WithOrigins(origins)
  .AllowAnyMethod()

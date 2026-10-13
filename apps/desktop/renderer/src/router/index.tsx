@@ -26,6 +26,7 @@ const loadShowroomOperations = () => import('../features/showroom/ShowroomOperat
 const loadSettings = () => import('../features/settings/SettingsPage');
 const loadWhatsAppSettings = () => import('../features/settings/WhatsAppSettingsPage');
 const loadSystemPreferences = () => import('../features/settings/SystemPreferencesPage');
+const loadSubscription = () => import('../features/subscription/SubscriptionPage');
 const loadShowroomConfiguration = () => import('../features/showroom/ShowroomConfigurationPage');
 const loadUsers = () => import('../features/users/UsersManagementPage');
 const loadAudit = () => import('../features/audit/AuditLogPage');
@@ -576,6 +577,20 @@ export const router = createBrowserRouter([
 				path: '/settings/system',
 				lazy: async () => {
 					const m = await loadSystemPreferences();
+					const Comp = m.default;
+					return {
+						Component: () => (
+							<RouteGuard requiredPermission="settings.view">
+								<Comp />
+							</RouteGuard>
+						),
+					};
+				},
+			},
+			{
+				path: '/settings/subscription',
+				lazy: async () => {
+					const m = await loadSubscription();
 					const Comp = m.default;
 					return {
 						Component: () => (

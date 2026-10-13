@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Application.Interfaces;
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Database;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,12 @@ public sealed record SubscriptionStatusDto(
     DateTime? TrialEndsAt,
     DateTime? GraceEndsAt,
     DateTime? CurrentPeriodEnd,
-    SubscriptionBannerDto? Banner);
+    SubscriptionBannerDto? Banner,
+    IReadOnlyList<LicenceUsageDto>? Licences = null,
+    bool PlanChangePending = false);
+
+/// <summary>User licences of one app type: how many the company bought and how many active users have that access.</summary>
+public sealed record LicenceUsageDto(string AppAccess, int Total, int Used);
 
 /// <summary>A message the apps show at the top of the screen: info, warning or error.</summary>
 public sealed record SubscriptionBannerDto(string Level, string Message);
@@ -29,13 +35,50 @@ public sealed record SubscriptionBannerDto(string Level, string Message);
 [ApiController]
 [Route("api/subscription")]
 [Authorize]
-public class SubscriptionController(IEntitlementService entitlements, AppDbContext db) : ControllerBase
+public class SubscriptionController(IEntitlementService entitlements, AppDbContext db, IPlanChangeApprovals planChanges) : ControllerBase
 {
+    /// <summary>A plan change Trovo proposed (or one approved that starts at the end of the paid period), or 204.</summary>
+    [HttpGet("plan-change")]
+    public async Task<ActionResult<PlanChangeProposalDto>> GetPlanChange(CancellationToken cancellationToken) =>
+        await planChanges.GetOpenAsync(cancellationToken) is { } proposal ? Ok(proposal) : NoContent();
+
+    /// <summary>
+    /// The Owner approves Trovo's proposal (only the Owner, since it changes what the company pays). Answers with the
+    /// change while it waits for the end of the paid period, or 204 once it is in effect.
+    /// </summary>
+    [HttpPost("plan-change/{id:guid}/approve")]
+    public async Task<ActionResult<PlanChangeProposalDto>> ApprovePlanChange(Guid id, CancellationToken cancellationToken)
+    {
+        if (!IsOwner) return Forbid();
+        return await planChanges.ApproveAsync(id, cancellationToken) is { } waiting ? Ok(waiting) : NoContent();
+    }
+
+    [HttpPost("plan-change/{id:guid}/decline")]
+    public async Task<IActionResult> DeclinePlanChange(Guid id, CancellationToken cancellationToken)
+    {
+        if (!IsOwner) return Forbid();
+        await planChanges.DeclineAsync(id, cancellationToken);
+        return NoContent();
+    }
+
+    private bool IsOwner => User.FindFirst("isOwner")?.Value == "true";
+
     [HttpGet("status")]
     public async Task<ActionResult<SubscriptionStatusDto>> GetStatus(CancellationToken cancellationToken)
     {
         var current = await entitlements.GetCurrentAsync(cancellationToken);
         var seatsUsed = await db.Users.CountAsync(u => u.IsActive, cancellationToken);
+        List<LicenceUsageDto>? licences = null;
+        if (current.Licences is { } bought)
+        {
+            var used = await db.Users.Where(u => u.IsActive).GroupBy(u => u.AppAccess)
+                .Select(g => new { Access = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.Access, g => g.Count, cancellationToken);
+            licences = new[] { AppAccess.Both, AppAccess.Windows, AppAccess.Android }
+                .Select(a => new LicenceUsageDto(a.ToString(), bought.Of(a), used.GetValueOrDefault(a)))
+                .ToList();
+        }
+        var planChange = current.Managed ? await planChanges.GetOpenAsync(cancellationToken) : null;
         return Ok(new SubscriptionStatusDto(
             current.Managed,
             current.Access.ToString(),
@@ -49,7 +92,17 @@ public class SubscriptionController(IEntitlementService entitlements, AppDbConte
             current.TrialEndsAt,
             current.GraceEndsAt,
             current.CurrentPeriodEnd,
-            BannerFor(current, DateTime.UtcNow)));
+            BannerFor(current, DateTime.UtcNow) ?? PlanChangeBanner(planChange),
+            licences,
+            planChange?.Status == "Pending"));
+    }
+
+    /// <summary>When nothing more urgent is shown: a plan change waiting for the Owner's answer.</summary>
+    private static SubscriptionBannerDto? PlanChangeBanner(PlanChangeProposalDto? open)
+    {
+        return open?.Status == "Pending"
+            ? new SubscriptionBannerDto("info", "Trovo has proposed a change to your plan. The Owner can approve or decline it in Settings → Subscription.")
+            : null;
     }
 
     /// <summary>The banner for a subscription state (docs/SAAS_PHASE2_PLAN.md §5), or none.</summary>

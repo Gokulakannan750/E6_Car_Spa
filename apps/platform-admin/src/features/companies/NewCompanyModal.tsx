@@ -6,7 +6,8 @@ import { OneTimeValue } from '@/components/CopyButton';
 import { TextField } from '@/components/Field';
 import { Modal } from '@/components/Modal';
 import { InlineError, LoadingState } from '@/components/Surface';
-import { PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { addOnsToBuy, ONE_BOTH_LICENCE, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { totalLicences } from '@/lib/catalog';
 import { api } from '@/lib/api';
 import { dateTime } from '@/lib/format';
 import type { CreateCompanyResponse } from '@/lib/types';
@@ -24,7 +25,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 	const queryClient = useQueryClient();
 	const [name, setName] = useState('');
 	const [start, setStart] = useState<Start>('trial');
-	const [selection, setSelection] = useState<PlanSelection>({ planCode: 'professional', interval: 'Month', addOns: {} });
+	const [selection, setSelection] = useState<PlanSelection>({ planCode: 'professional', interval: 'Month', addOns: {}, licences: ONE_BOTH_LICENCE });
 	const [paidUntil, setPaidUntil] = useState(defaultPaidUntil('Month'));
 	const [nameError, setNameError] = useState<string | null>(null);
 	const [created, setCreated] = useState<CreateCompanyResponse | null>(null);
@@ -35,7 +36,13 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 			api.createCompany(
 				name.trim(),
 				start === 'paid'
-					? { planCode: selection.planCode, interval: selection.interval, addOns: selection.addOns, paidUntil: new Date(`${paidUntil}T23:59:59+05:30`).toISOString() }
+					? {
+							planCode: selection.planCode,
+							interval: selection.interval,
+							addOns: catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns,
+							licences: selection.licences,
+							paidUntil: new Date(`${paidUntil}T23:59:59+05:30`).toISOString(),
+						}
 					: null,
 			),
 		onSuccess: (result) => {
@@ -48,7 +55,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 	function reset() {
 		setName('');
 		setStart('trial');
-		setSelection({ planCode: 'professional', interval: 'Month', addOns: {} });
+		setSelection({ planCode: 'professional', interval: 'Month', addOns: {}, licences: ONE_BOTH_LICENCE });
 		setPaidUntil(defaultPaidUntil('Month'));
 		setNameError(null);
 		setCreated(null);
@@ -135,7 +142,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 					<Button variant="ghost" onClick={close}>
 						Cancel
 					</Button>
-					<Button type="submit" form="new-company" variant="primary" loading={create.isPending} disabled={start === 'paid' && (!catalog.data || paidUntilInvalid)}>
+					<Button type="submit" form="new-company" variant="primary" loading={create.isPending} disabled={start === 'paid' && (!catalog.data || paidUntilInvalid || totalLicences(selection.licences) < 1)}>
 						Create company
 					</Button>
 				</>
@@ -160,15 +167,15 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 							selected={start === 'trial'}
 							onSelect={() => setStart('trial')}
 							title="Free trial"
-							subtitle="7 days, full Professional"
-							detail="No payment now. After 7 days it needs a paid plan, then 7 days’ grace before it becomes read-only."
+							subtitle="Full Professional"
+							detail="No payment now. Users and trial length come from the platform settings. After the trial it needs a paid plan, then the grace days before it becomes read-only."
 						/>
 						<StartOption
 							selected={start === 'paid'}
 							onSelect={() => setStart('paid')}
 							title="Already paid"
 							subtitle="Paid by bank transfer or UPI"
-							detail="Choose the plan and add-ons it paid for and the date it is paid until."
+							detail="Choose the plan, user licences and add-ons it paid for, and the date it is paid until."
 						/>
 					</div>
 				</fieldset>

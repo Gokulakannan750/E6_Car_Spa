@@ -82,6 +82,12 @@ test('Trovo moves it to Starter yearly, invoices it and records the bank payment
 	const change = page.getByRole('dialog');
 	await change.getByRole('radio', { name: 'Yearly' }).click();
 	await change.getByRole('radio', { name: /Starter/ }).click();
+	// One person on both apps (the owner) and one Android-only user, plus the Outside jobs module.
+	await change.getByLabel('Windows + Android licences', { exact: true }).fill('1');
+	await change.getByLabel('Windows only licences', { exact: true }).fill('0');
+	await change.getByLabel('Android only licences', { exact: true }).fill('1');
+	await change.getByRole('checkbox', { name: 'Include Outside jobs & vendors' }).check();
+	await expect(change.getByText('₹17,970.00')).toBeVisible(); // ₹9,990 + ₹4,990 + ₹2,990 (placeholder prices)
 	await change.getByLabel('Reason (recorded in the audit log)').fill('E2E: customer chose Starter yearly');
 	await change.getByRole('button', { name: 'Save changes' }).click();
 	await expect(page.getByText('Subscription updated.')).toBeVisible();
@@ -94,7 +100,7 @@ test('Trovo moves it to Starter yearly, invoices it and records the bank payment
 	invoiceNumber = (await issued.textContent())!.match(/TROVO\/\S+/)![0];
 
 	const row = page.getByRole('row', { name: new RegExp(invoiceNumber.replace(/\//g, '\\/')) });
-	await expect(row.getByText('₹9,990.00').first()).toBeVisible();
+	await expect(row.getByText('₹17,970.00').first()).toBeVisible();
 	await row.getByRole('button', { name: 'Record payment' }).click();
 	const pay = page.getByRole('dialog');
 	await pay.getByLabel('Paid by').selectOption('Bank transfer');
@@ -108,9 +114,42 @@ test('Trovo moves it to Starter yearly, invoices it and records the bank payment
 	const status = await (await request.get(`${config.api}/api/subscription/status`, { headers: { Authorization: `Bearer ${token}` } })).json();
 	expect(status.status).toBe('Active');
 	expect(status.planCode).toBe('starter');
+	expect(status.features['outside_jobs.enabled']).toBe('true');
+	expect(status.features['staff_advances.enabled']).toBe('false');
+});
+
+test('a user with an Android licence signs in only from Android', async ({ request }) => {
+	const owner = await companyLogin(request, config.api, companyCode, customer.username, customer.password);
+	const ownerToken = (await owner.json()).token as string;
+	const field = { username: 'field', password: `E2e#Field${run}` };
+	const created = await request.post(`${config.api}/api/users`, {
+		headers: { Authorization: `Bearer ${ownerToken}` },
+		data: { fullName: 'Field Staff', ...field, confirmPassword: field.password, role: 'Staff', appAccess: 'Android', permissionCodes: [] },
+	});
+	expect(created.status(), await created.text()).toBe(201);
+
+	// Both licences are now taken: a second Android user is refused.
+	const second = await request.post(`${config.api}/api/users`, {
+		headers: { Authorization: `Bearer ${ownerToken}` },
+		data: { fullName: 'Second', username: 'second', password: field.password, confirmPassword: field.password, role: 'Staff', appAccess: 'Android' },
+	});
+	expect(second.status()).toBe(400);
+
+	const fromWindows = await companyLogin(request, config.api, companyCode, field.username, field.password, 'windows');
+	expect(fromWindows.status()).toBe(403);
+	expect((await fromWindows.json()).error).toContain('Android app only');
+	const fromAndroid = await companyLogin(request, config.api, companyCode, field.username, field.password, 'android');
+	expect(fromAndroid.status(), await fromAndroid.text()).toBe(200);
+
+	// The portal sees the licences in use.
+	await openCompany();
+	const licences = page.getByRole('table').filter({ hasText: 'App access' });
+	await expect(licences.getByRole('row', { name: /Android only 1 1/ })).toBeVisible();
 });
 
 test('the invoice prints with Trovo’s details', async () => {
+	await openCompany();
+	await page.getByRole('tab', { name: /Invoices/ }).click();
 	await page.getByRole('link', { name: `Print ${invoiceNumber}` }).click();
 	await expect(page.getByRole('heading', { name: 'Invoice' })).toBeVisible();
 	await expect(page.getByText(invoiceNumber, { exact: true })).toBeVisible();
@@ -142,7 +181,7 @@ test('CSV exports include the company and its paid invoice', async () => {
 	await page.goto(`/companies?search=${companyCode}`);
 	let download = page.waitForEvent('download');
 	await page.getByRole('button', { name: 'Export CSV' }).click();
-	expect(await readFile((await (await download).path())!, 'utf8')).toContain(`${companyCode},${companyName},Active,Active,Starter,Yearly`);
+	expect(await readFile((await (await download).path())!, 'utf8')).toContain(`${companyCode},${companyName},Active,Active,Starter,Yearly,2,`);
 
 	await page.goto(`/invoices?search=${encodeURIComponent(invoiceNumber)}`);
 	download = page.waitForEvent('download');

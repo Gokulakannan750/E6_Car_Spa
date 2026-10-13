@@ -7,10 +7,11 @@ import { Modal } from '@/components/Modal';
 import { ReasonDialog } from '@/components/ReasonDialog';
 import { InlineError, LoadingState } from '@/components/Surface';
 import { useToast } from '@/components/Toast';
-import { PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { addOnsToBuy, ONE_BOTH_LICENCE, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { totalLicences } from '@/lib/catalog';
 import { api } from '@/lib/api';
-import { date, dateTime } from '@/lib/format';
-import type { BillingAccount, CompanyDetail, RegistrationCodeResponse } from '@/lib/types';
+import { date, dateTime, money } from '@/lib/format';
+import type { BillingAccount, CompanyDetail, PlanChangeBody, PlanChangePreview, RegistrationCodeResponse } from '@/lib/types';
 
 export function isSuspended(company: CompanyDetail): boolean {
 	return company.companyStatus === 'Suspended' || company.subscription?.status === 'Suspended';
@@ -303,6 +304,7 @@ function selectionFrom(company: CompanyDetail): PlanSelection {
 		planCode: s?.plan || 'professional',
 		interval: s?.interval === 'Year' ? 'Year' : 'Month',
 		addOns: Object.fromEntries((s?.addOns ?? []).map((a) => [a.code, a.quantity])),
+		licences: s?.licences && totalLicences(s.licences) > 0 ? s.licences : ONE_BOTH_LICENCE,
 	};
 }
 
@@ -315,23 +317,49 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 	const [reason, setReason] = useState('');
 	const [errors, setErrors] = useState<{ reason?: string; extend?: string }>({});
 	const trial = company.subscription?.status === 'Trialing';
+	// Once the company has registered, its Owner must approve plan changes in the app.
+	const needsApproval = company.companyStatus !== 'AwaitingRegistration';
+	const termsChanged = JSON.stringify(selectionFrom(company)) !== JSON.stringify(selection);
+	const body = (): PlanChangeBody => ({
+		planCode: selection.planCode,
+		interval: selection.interval,
+		licences: selection.licences,
+		addOns: catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns,
+		reason: reason.trim(),
+	});
+	const preview = useQuery({
+		queryKey: ['plan-change-preview', company.id, selection],
+		queryFn: () => api.previewPlanChange(company.id, body()),
+		enabled: open && needsApproval && termsChanged && !!catalog.data && totalLicences(selection.licences) > 0,
+		retry: false,
+	});
 	const mutation = useMutation({
-		mutationFn: () => {
+		mutationFn: async () => {
+			if (needsApproval) {
+				if (trial && extendDays) {
+					await api.changeSubscription(company.id, { extendTrialDays: Number(extendDays), reason: reason.trim() });
+				}
+				if (termsChanged) await api.proposePlanChange(company.id, body());
+				return;
+			}
 			const before = selectionFrom(company);
-			const addOnsChanged = JSON.stringify(Object.entries(before.addOns).sort()) !== JSON.stringify(Object.entries(selection.addOns).sort());
+			const wanted = catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns;
+			const addOnsChanged = JSON.stringify(Object.entries(before.addOns).sort()) !== JSON.stringify(Object.entries(wanted).sort());
+			const licencesChanged = JSON.stringify(before.licences) !== JSON.stringify(selection.licences);
 			// The API takes the complete set of add-ons wanted; anything left out ends.
-			const addOns = addOnsChanged ? selection.addOns : null;
+			const addOns = addOnsChanged ? wanted : null;
 			return api.changeSubscription(company.id, {
 				planCode: selection.planCode !== before.planCode ? selection.planCode : null,
 				interval: selection.interval !== before.interval ? selection.interval : null,
 				addOns,
 				extendTrialDays: trial && extendDays ? Number(extendDays) : null,
+				licences: licencesChanged ? selection.licences : null,
 				reason: reason.trim(),
 			});
 		},
 		onSuccess: () => {
 			refresh();
-			toast.success('Subscription updated.');
+			toast.success(needsApproval && termsChanged ? 'Sent to the customer. Their Owner approves it in the app.' : 'Subscription updated.');
 			onClose();
 		},
 	});
@@ -370,8 +398,8 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" form="change-subscription" variant="primary" loading={mutation.isPending} disabled={!changed || !catalog.data}>
-						Save changes
+					<Button type="submit" form="change-subscription" variant="primary" loading={mutation.isPending} disabled={!changed || !catalog.data || totalLicences(selection.licences) < 1}>
+						{needsApproval && termsChanged ? 'Send for approval' : 'Save changes'}
 					</Button>
 				</>
 			}
@@ -385,11 +413,15 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 					<PlanPicker catalog={catalog.data} value={selection} onChange={setSelection} />
 					<div className="flex flex-col gap-4">
 						<PriceSummary catalog={catalog.data} selection={selection} title="New price" />
-						<p className="text-label text-text-muted">
-							{trial
-								? 'During the trial nothing is charged; the new plan applies when the first invoice is issued.'
-								: 'The new price applies from the next invoice. Nothing already paid is changed.'}
-						</p>
+						{needsApproval ? (
+							termsChanged && <ChangeTiming preview={preview.data} loading={preview.isFetching} error={preview.error?.message} />
+						) : (
+							<p className="text-label text-text-muted">
+								{trial
+									? 'During the trial nothing is charged; the new plan applies when the first invoice is issued.'
+									: 'The new price applies from the next invoice. Nothing already paid is changed.'}
+							</p>
+						)}
 						{trial && (
 							<TextField
 								label="Extend trial by (days)"
@@ -414,5 +446,29 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 				</form>
 			)}
 		</Modal>
+	);
+}
+
+/** What approving the change would mean for the company: when it starts and what is charged. */
+function ChangeTiming({ preview, loading, error }: { preview?: PlanChangePreview; loading: boolean; error?: string }) {
+	if (error) return <InlineError message={error} />;
+	if (!preview) return <p className="text-label text-text-muted">{loading ? 'Working out the price…' : ''}</p>;
+	return (
+		<div className="flex flex-col gap-1.5 rounded-md border border-border-subtle bg-surface-alt p-3 text-label text-text-secondary" data-testid="change-timing">
+			<p className="font-semibold text-text-heading">The customer's Owner approves it in the app (within 7 days).</p>
+			{preview.timing === 'NowWithCharge' && (
+				<p>
+					Upgrade: starts when approved. Invoiced then: <strong className="text-text-heading">{money(preview.amountNowMinor, preview.currency)}</strong>, the
+					price difference for the rest of the paid period (worked out again on the day they approve).
+				</p>
+			)}
+			{preview.timing === 'Now' && <p>Starts when approved. Nothing to pay now; the next invoice uses the new price.</p>}
+			{preview.timing === 'AtPeriodEnd' && (
+				<p>
+					Starts when the paid period ends, on <strong className="text-text-heading">{date(preview.effectiveAt)}</strong>. No refund; the renewal invoice
+					uses the new price.
+				</p>
+			)}
+		</div>
 	);
 }

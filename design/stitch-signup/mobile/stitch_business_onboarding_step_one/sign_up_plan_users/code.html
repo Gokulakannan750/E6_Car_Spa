@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><style>@layer base{html,body{width:100vw;margin:0;padding:0;}body{overscroll-behavior:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary": "#ffffff", "surface-tint": "#3c4ae0", "surface-container": "#eaedff", "error": "#ba1a1a", "surface-container-high": "#e2e7ff", "tertiary-fixed-dim": "#b7c8e1", "outline-variant": "#c6c5d8", "on-secondary-fixed-variant": "#005236", "surface-dim": "#d2d9f4", "on-primary-fixed-variant": "#1d2cc9", "tertiary-fixed": "#d3e4fe", "background": "#faf8ff", "on-error-container": "#93000a", "inverse-on-surface": "#eef0ff", "secondary-fixed": "#6ffbbe", "primary": "#1c2ac8", "inverse-primary": "#bdc2ff", "tertiary": "#38475c", "surface-variant": "#dae2fd", "error-container": "#ffdad6", "on-tertiary-container": "#c8d9f3", "on-secondary-container": "#00714d", "on-surface": "#131b2e", "primary-fixed": "#e0e0ff", "on-primary": "#ffffff", "secondary-fixed-dim": "#4edea3", "surface-container-highest": "#dae2fd", "on-secondary": "#ffffff", "on-surface-variant": "#454655", "outline": "#757687", "on-tertiary-fixed": "#0b1c30", "surface": "#faf8ff", "on-primary-fixed": "#000668", "secondary-container": "#6cf8bb", "secondary": "#006c49", "surface-container-lowest": "#ffffff", "on-primary-container": "#d2d4ff", "on-secondary-fixed": "#002113", "surface-bright": "#faf8ff", "surface-container-low": "#f2f3ff", "primary-fixed-dim": "#bdc2ff", "on-tertiary-fixed-variant": "#38485d", "inverse-surface": "#283044", "on-error": "#ffffff", "tertiary-container": "#4f5f75", "on-background": "#131b2e", "primary-container": "#3b49df" }, "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" }, "spacing": { "gutter": "1.5rem", "gutter-mobile": "1rem", "space-xl": "2.5rem", "margin": "2rem", "margin-mobile": "1rem", "space-xs": "0.25rem", "space-md": "1rem", "space-lg": "1.5rem", "space-sm": "0.5rem" }, "fontFamily": { "label-md": ["Inter"], "body-md": ["Inter"], "body-sm": ["Inter"], "label-sm": ["Inter"], "headline-md": ["Plus Jakarta Sans"], "label-lg": ["Inter"], "metric-xl": ["Plus Jakarta Sans"], "headline-sm": ["Plus Jakarta Sans"], "metric-md": ["Plus Jakarta Sans"], "body-lg": ["Inter"], "display-lg": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "display-lg-mobile": ["Plus Jakarta Sans"] }, "fontSize": { "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }], "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "headline-md": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }], "metric-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }], "metric-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }], "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }], "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }] } } } };</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased flex flex-col min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 px-gutter-mobile flex items-center justify-between gap-space-xs"><div class="flex items-center gap-space-xs"><button aria-label="Go back" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-on-surface hover:text-primary transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[20px]">arrow_back</span></button><div class="flex items-center gap-space-xs"><img alt="Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrOT1Im9XhoXxALdSst81uwEWxbzFrGab3sNzrZtGcXt4rLfxADjyxCfYHLvbWT1IC63msk8IktXNkEwYd1ke3t3buF03rdPMq5d8LhbbqIuAWEqiD5Q1lvp9c80vsOaBnBXa91Lo57rULptCkpQo6UVy-uBWzG3cDMjH-AKdhiA5VUlR5K0aL8EC_TjBTJJmDlS23IOx4sD4o295Cbp8wODcPM0lcy2BLaFlv6EF4cia_E6UrwZES"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Trovo</span></div></div><div class="flex items-center gap-space-xs"><div class="inline-flex items-center gap-1 bg-surface-container-low px-2 py-1 rounded-full" title="256-Bit SSL Encrypted"><span class="material-symbols-outlined text-secondary text-[16px]">lock</span><span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider hidden sm:inline">SSL</span></div><a aria-label="Customer support helpline" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="tel:1800-TROVO-BIZ"><span class="material-symbols-outlined text-[20px]">support_agent</span></a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex flex-col relative w-full pt-16 bg-surface min-h-screen"><div class="flex flex-col w-full pb-28">
+<!-- Top Stepper Tracker -->
+<div class="px-gutter-mobile pt-space-md pb-space-sm">
+<div class="flex items-center justify-between gap-space-xs bg-surface-container-low p-space-sm rounded-xl">
+<!-- Step 1: Completed -->
+<div class="flex items-center gap-1.5 min-w-0">
+<div class="w-6 h-6 rounded-full bg-secondary text-on-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[15px]">check</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface truncate">Business</span>
+</div>
+<!-- Connector line -->
+<div class="h-[2px] flex-1 bg-secondary rounded-full mx-1"></div>
+<!-- Step 2: Active -->
+<div class="flex items-center gap-1.5 min-w-0">
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-sm text-label-sm shrink-0 shadow-sm">
+          2
+        </div>
+<span class="font-label-sm text-label-sm text-primary font-semibold truncate">Plan &amp; users</span>
+</div>
+<!-- Connector line -->
+<div class="h-[2px] flex-1 bg-surface-container-highest rounded-full mx-1"></div>
+<!-- Step 3: Upcoming -->
+<div class="flex items-center gap-1.5 min-w-0 opacity-60">
+<div class="w-6 h-6 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-label-sm text-label-sm shrink-0">
+          3
+        </div>
+<span class="font-label-sm text-label-sm text-on-surface-variant truncate">Payment</span>
+</div>
+</div>
+</div>
+<!-- Screen Heading -->
+<div class="px-gutter-mobile pt-space-sm pb-space-md">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Choose your plan &amp; licences</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Tailor your seats, platforms, and add-ons. Switch or scale anytime.</p>
+</div>
+<!-- Content Stream -->
+<div class="px-gutter-mobile flex flex-col gap-space-lg">
+<!-- 1) Billing Cycle Segmented Control -->
+<div class="bg-surface-container-low p-1 rounded-full flex items-center justify-between relative shadow-sm">
+<button class="flex-1 py-2 text-center rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface transition-all" type="button">
+        Monthly
+      </button>
+<button class="flex-1 py-2 px-2 text-center rounded-full bg-surface-container-lowest text-on-surface font-label-lg text-label-lg shadow-sm flex items-center justify-center gap-1.5 transition-all" type="button">
+<span>Yearly</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full inline-flex items-center">
+          2 months free
+        </span>
+</button>
+</div>
+<!-- 2) Plan Selection Cards -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Select baseline plan</h2>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Billed annually</span>
+</div>
+<!-- Starter Card (Unselected) -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm transition-all hover:bg-surface-container-low/40">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-on-surface">Starter</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full">Essential</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">from ₹7,990 per user / year</p>
+</div>
+<div class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center">
+<span class="w-2.5 h-2.5 rounded-full bg-transparent"></span>
+</div>
+</div>
+<div class="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-on-surface-variant font-body-sm text-body-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Core invoicing</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>GST filing</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Single-store POS</span>
+</div>
+</div>
+<!-- Professional Card (Selected) -->
+<div class="bg-surface-container-lowest p-space-md rounded-xl shadow-md relative overflow-hidden bg-gradient-to-br from-surface-container-lowest to-surface-container-low">
+<div class="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-label-sm px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">star</span> Popular
+        </div>
+<div class="flex items-start justify-between pt-1">
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm text-primary font-bold">Professional</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full font-medium">Recommended</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">from ₹7,990 per user / year</p>
+</div>
+<div class="w-6 h-6 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+</div>
+<div class="flex flex-col gap-1.5 pt-2 text-on-surface font-body-sm text-body-sm">
+<div class="grid grid-cols-2 gap-2">
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Multi-warehouse</span>
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Auto workflows</span>
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>WhatsApp triggers</span>
+<span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px] text-secondary">check_circle</span>Full API access</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 3) User Licences Section -->
+<div class="flex flex-col gap-space-sm">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">User licences</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-relaxed">
+          Each person who uses the software needs one licence. A Windows + Android licence lets one person use both apps. Minimum 1 licence.
+        </p>
+</div>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm p-space-sm flex flex-col gap-space-sm">
+<!-- Licence Row 1 -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low/60 hover:bg-surface-container-low transition-colors">
+<div class="min-w-0 pr-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-primary">laptop_chromebook</span>
+<span class="font-label-lg text-label-lg text-on-surface truncate">Windows + Android</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">₹14,990 / user / yr</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-2 py-1 rounded-full shadow-sm shrink-0">
+<button aria-label="Decrease quantity" class="w-7 h-7 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-6 text-center font-headline-sm text-headline-sm text-on-surface">1</span>
+<button aria-label="Increase quantity" class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Licence Row 2 -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low/40 hover:bg-surface-container-low transition-colors">
+<div class="min-w-0 pr-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">desktop_windows</span>
+<span class="font-label-lg text-label-lg text-on-surface truncate">Windows only</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">₹11,990 / user / yr</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-2 py-1 rounded-full shadow-sm shrink-0">
+<button aria-label="Decrease quantity disabled" class="w-7 h-7 rounded-full bg-surface-container text-outline-variant flex items-center justify-center cursor-not-allowed" disabled="" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-6 text-center font-headline-sm text-headline-sm text-on-surface-variant">0</span>
+<button aria-label="Increase quantity" class="w-7 h-7 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Licence Row 3 -->
+<div class="flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low/60 hover:bg-surface-container-low transition-colors">
+<div class="min-w-0 pr-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px] text-secondary">phone_android</span>
+<span class="font-label-lg text-label-lg text-on-surface truncate">Android only</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">₹7,990 / user / yr</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-lowest px-2 py-1 rounded-full shadow-sm shrink-0">
+<button aria-label="Decrease quantity" class="w-7 h-7 rounded-full bg-surface-container-high text-on-surface flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="w-6 text-center font-headline-sm text-headline-sm text-on-surface">2</span>
+<button aria-label="Increase quantity" class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center active:scale-95 transition-transform" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+<!-- Summary Note -->
+<div class="flex items-center gap-2 p-2 bg-surface-container-high/50 rounded-lg text-on-surface-variant mt-1">
+<span class="material-symbols-outlined text-[18px] text-primary shrink-0">info</span>
+<span class="font-body-sm text-body-sm leading-tight">3 users in total. You decide later which person gets which licence.</span>
+</div>
+</div>
+</div>
+<!-- 4) Recommended Add-ons Section -->
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Recommended Add-ons</h2>
+<span class="font-label-sm text-label-sm text-secondary font-medium">B2B Scalers</span>
+</div>
+<div class="flex flex-col gap-2.5">
+<!-- Add-on 1: Checked -->
+<label class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-start gap-3 cursor-pointer">
+<div class="pt-0.5">
+<input checked="" class="sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Showroom / B2B module</span>
+<span class="font-label-lg text-label-lg text-on-surface font-bold shrink-0">₹9,990 / yr</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Custom catalogue, client tier pricing &amp; wholesale portal.</p>
+</div>
+</label>
+<!-- Add-on 2: Unchecked -->
+<label class="bg-surface-container-lowest p-space-sm rounded-xl shadow-sm flex items-start gap-3 cursor-pointer hover:bg-surface-container-low/50 transition-colors">
+<div class="pt-0.5">
+<input class="sr-only" type="checkbox"/>
+<div class="w-5 h-5 rounded bg-surface-container-high flex items-center justify-center">
+<span class="w-2.5 h-2.5 rounded-sm bg-transparent"></span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Franchise network</span>
+<span class="font-label-lg text-label-lg text-on-surface font-bold shrink-0">₹29,990 / yr</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Multi-tenant rollup, consolidated reporting &amp; master royalties.</p>
+</div>
+</label>
+<!-- Add-on 3: Included Free -->
+<div class="bg-surface-container-low/70 p-space-sm rounded-xl flex items-start gap-3 opacity-90">
+<div class="pt-0.5">
+<div class="w-5 h-5 rounded bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">WhatsApp automation</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full shrink-0">Free with Pro</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Included in Professional tier (Automated payment alerts &amp; PDFs).</p>
+</div>
+</div>
+<!-- Add-on 4: Included Free -->
+<div class="bg-surface-container-low/70 p-space-sm rounded-xl flex items-start gap-3 opacity-90">
+<div class="pt-0.5">
+<div class="w-5 h-5 rounded bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-lg text-label-lg text-on-surface font-semibold truncate">Outside jobs &amp; field dispatch</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2 py-0.5 rounded-full shrink-0">Free with Pro</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Included in Professional tier (Live engineer geo-tracking).</p>
+</div>
+</div>
+</div>
+</div>
+<!-- 5) Your Order Summary Card -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between pb-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Your order</h3>
+<span class="bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-2.5 py-1 rounded-full font-semibold">
+          Professional · Yearly
+        </span>
+</div>
+<div class="flex flex-col gap-2 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex items-center justify-between">
+<span class="truncate pr-2">Windows + Android (1 × ₹14,990)</span>
+<span class="font-medium text-on-surface shrink-0">₹14,990</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="truncate pr-2">Android only (2 × ₹7,990)</span>
+<span class="font-medium text-on-surface shrink-0">₹15,980</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="truncate pr-2">Showroom / B2B module</span>
+<span class="font-medium text-on-surface shrink-0">₹9,990</span>
+</div>
+</div>
+<!-- Separation indicator -->
+<div class="h-px bg-surface-container-high my-1"></div>
+<!-- Grand Total -->
+<div class="flex items-end justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block uppercase tracking-wider">Total per year</span>
+<span class="font-body-sm text-body-sm text-secondary font-medium">No GST charged (Exempt/Export)</span>
+</div>
+<div class="text-right">
+<span class="font-metric-md text-metric-md text-on-surface font-bold tracking-tight">₹40,960</span>
+</div>
+</div>
+<!-- Green Helpful Hint Callout -->
+<div class="bg-secondary-container/30 text-on-secondary-container p-2.5 rounded-lg flex items-start gap-2 text-body-sm font-body-sm mt-1">
+<span class="material-symbols-outlined text-[18px] text-secondary shrink-0 pt-0.5">tips_and_updates</span>
+<span><strong>Tip:</strong> Professional includes bundled automation modules and costs less than Starter combined with these add-ons.</span>
+</div>
+<!-- Action Button Group -->
+<div class="flex flex-col gap-2 pt-2">
+<button class="w-full h-12 bg-primary hover:bg-on-primary-fixed-variant text-on-primary rounded-xl font-label-lg text-label-lg font-semibold flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition-all" type="button">
+<span>Continue to payment</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<button class="w-full h-11 bg-surface-container-low hover:bg-surface-container text-on-surface rounded-xl font-label-lg text-label-lg font-semibold flex items-center justify-center gap-1.5 transition-colors" type="button">
+<span>Start 7-day free trial instead</span>
+</button>
+</div>
+<!-- Microcopy hint -->
+<p class="font-body-sm text-body-sm text-on-surface-variant text-center mt-0.5">
+        Full Professional for 7 days with 3 users. No payment now.
+      </p>
+</div>
+</div>
+</div></main></body></html>

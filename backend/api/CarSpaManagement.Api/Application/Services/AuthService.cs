@@ -270,6 +270,25 @@ public class AuthService(
             throw new UnauthorizedException("Invalid username or password.");
         }
 
+        // On Trovo's platform the user's licence decides which apps they may use (checked after the password, so
+        // the message never tells a stranger which usernames exist).
+        if (organization is not null && entitlements is not null
+            && (await entitlements.GetForCompanyAsync(organization.Id, cancellationToken)).Managed
+            && !ClientApp.Allows(user.AppAccess, request.App))
+        {
+            Log.Warning("Login refused for '{Username}': licence covers {Access}, app was {App}", request.Username, user.AppAccess, request.App ?? "(not given)");
+            await auditLogService.RecordAsync(
+                action: Domain.Constants.AuditActions.LoginFailed,
+                module: Domain.Constants.AuditModules.Authentication,
+                description: $"Sign-in refused: the user's licence covers {ClientApp.Describe(user.AppAccess)}, not {(ClientApp.Normalize(request.App) ?? "this app")}.",
+                userId: user.Id,
+                outcome: "Failure",
+                cancellationToken: cancellationToken);
+            throw new ForbiddenException(ClientApp.Normalize(request.App) is null
+                ? "Please update the app to the latest version to sign in."
+                : $"Your licence covers {ClientApp.Describe(user.AppAccess)} only. Ask your owner to change your app access.");
+        }
+
         // Reset failed attempts upon successful login
         accountLockoutService.RecordSuccessfulLogin(lockoutKey);
 
@@ -289,7 +308,7 @@ public class AuthService(
             outcome: "Success",
             cancellationToken: cancellationToken);
 
-        var token = jwtTokenService.GenerateToken(user);
+        var token = jwtTokenService.GenerateToken(user, request.App);
         var permissions = user.Role == UserRole.Owner
             ? new List<string>() // Owner permissions are handled via isOwner = true
             : user.UserPermissions.Select(up => up.Permission.Code).Distinct().ToList();
@@ -333,7 +352,8 @@ public class AuthService(
             Email = user.Email,
             Role = user.Role.ToString(),
             IsOwner = user.Role == UserRole.Owner,
-            Permissions = permissions
+            Permissions = permissions,
+            AppAccess = user.AppAccess.ToString()
         };
     }
 }

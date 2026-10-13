@@ -56,6 +56,13 @@ public class LoginRequest
     /// </summary>
     [StringLength(20)]
     public string? CompanyCode { get; set; }
+
+    /// <summary>
+    /// Which app is signing in: "windows" or "android". On Trovo's platform a user may only sign in to the apps
+    /// their licence covers; an app that does not say is treated as needing both.
+    /// </summary>
+    [StringLength(20)]
+    public string? App { get; set; }
 }
 
 public class AuthUserDto
@@ -67,6 +74,9 @@ public class AuthUserDto
     public string Role { get; set; } = string.Empty;
     public bool IsOwner { get; set; }
     public List<string> Permissions { get; set; } = [];
+
+    /// <summary>"Both", "Android" or "Windows".</summary>
+    public string AppAccess { get; set; } = "Both";
 }
 
 /// <summary>The new Owner plus the code of the company that was just created, which they sign in with.</summary>

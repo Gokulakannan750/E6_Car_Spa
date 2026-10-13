@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using CarSpaManagement.Api.Domain.Enums;
 
 namespace CarSpaManagement.Api.Domain.Platform;
 
 // Trovo's subscriptions and billing, kept in the catalog database. Every company (franchisees too) pays Trovo for
 // itself; nothing here is shared between companies. Money is stored in minor units (paise) next to its currency.
 
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<BillingInterval>))]
 public enum BillingInterval
 {
     Month = 0,
@@ -54,8 +56,27 @@ public class PlanVersion
     [Required, MaxLength(3)]
     public string Currency { get; set; } = "INR";
 
+    /// <summary>A fixed company fee per period, on top of the user licences (0 when the price is licences only).</summary>
     public long PriceMinor { get; set; }
+
+    /// <summary>The fewest user licences a subscription on this version may have (normally 1).</summary>
     public int IncludedSeats { get; set; }
+
+    /// <summary>Price per period of one user licence for the Android app only.</summary>
+    public long AndroidUserPriceMinor { get; set; }
+
+    /// <summary>Price per period of one user licence for the Windows app only.</summary>
+    public long WindowsUserPriceMinor { get; set; }
+
+    /// <summary>Price per period of one user licence for both apps.</summary>
+    public long BothUserPriceMinor { get; set; }
+
+    public long UserPriceMinor(AppAccess access) => access switch
+    {
+        AppAccess.Android => AndroidUserPriceMinor,
+        AppAccess.Windows => WindowsUserPriceMinor,
+        _ => BothUserPriceMinor
+    };
 
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
@@ -204,6 +225,23 @@ public class Subscription
     /// <summary>Until when a canceled company keeps read-only access to its data.</summary>
     public DateTime? RetainUntil { get; set; }
 
+    /// <summary>User licences bought: each active user needs one of their app type.</summary>
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public LicenceCounts Licences
+    {
+        get => new(AndroidLicences, WindowsLicences, BothLicences);
+        set
+        {
+            AndroidLicences = value.Android;
+            WindowsLicences = value.Windows;
+            BothLicences = value.Both;
+        }
+    }
+
     [MaxLength(30)]
     public string? GatewayProvider { get; set; }
 
@@ -265,6 +303,16 @@ public class SubscriptionEvent
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>What an invoice is for: a billing period, or a one-off amount such as the rest of a period after an upgrade.</summary>
+public enum BillingInvoiceKind
+{
+    /// <summary>One billing period; paying it activates or renews the subscription for that period.</summary>
+    Period = 0,
+
+    /// <summary>A one-off charge (an upgrade during a paid period). Paying it never changes the subscription's dates.</summary>
+    Adjustment = 1
+}
+
 public enum BillingInvoiceStatus
 {
     Draft = 0,
@@ -302,6 +350,8 @@ public class BillingInvoice
     public long TotalMinor { get; set; }
     public long AmountDueMinor { get; set; }
     public BillingInvoiceStatus Status { get; set; }
+
+    public BillingInvoiceKind Kind { get; set; } = BillingInvoiceKind.Period;
 
     public DateTime? PeriodStart { get; set; }
     public DateTime? PeriodEnd { get; set; }
@@ -497,6 +547,32 @@ public class PlatformCounter
 }
 
 /// <summary>The feature keys plans and add-ons can grant. Code checks only these keys, never plan names.</summary>
+/// <summary>How many user licences of each app type a subscription has.</summary>
+public readonly record struct LicenceCounts(int Android, int Windows, int Both)
+{
+    public const int MaxPerType = 500;
+
+    public int Total => Android + Windows + Both;
+
+    public int Of(AppAccess access) => access switch
+    {
+        AppAccess.Android => Android,
+        AppAccess.Windows => Windows,
+        _ => Both
+    };
+
+    /// <summary>What is wrong with these numbers (negative, absurd, or fewer than the plan needs), or null.</summary>
+    public string? Problem(int minimum)
+    {
+        foreach (var (name, count) in new[] { ("Android", Android), ("Windows", Windows), ("Windows + Android", Both) })
+        {
+            if (count < 0 || count > MaxPerType) return $"{name} licences must be between 0 and {MaxPerType}.";
+        }
+        var needed = Math.Max(1, minimum);
+        return Total < needed ? $"At least {needed} user licence{(needed == 1 ? " is" : "s are")} needed." : null;
+    }
+}
+
 public static class FeatureKeys
 {
     public const string UsersMaxActive = "users.max_active";
@@ -508,6 +584,11 @@ public static class FeatureKeys
     public const string StaffAdvances = "staff_advances.enabled";
     public const string AdvancedReports = "reports.advanced";
     public const string AuditTrail = "audit_trail.enabled";
+
+    // Computed from the subscription's licences (not set on plans or add-ons); reported with the other features.
+    public const string LicencesAndroid = "licences.android";
+    public const string LicencesWindows = "licences.windows";
+    public const string LicencesBoth = "licences.both";
 
     public static readonly IReadOnlyDictionary<string, EntitlementValueType> All = new Dictionary<string, EntitlementValueType>
     {
@@ -521,4 +602,299 @@ public static class FeatureKeys
         [AdvancedReports] = EntitlementValueType.Bool,
         [AuditTrail] = EntitlementValueType.Bool,
     };
+}
+
+/// <summary>
+/// A business setting Trovo changes from the admin portal (trial length, grace days...). Overrides the server's
+/// configured default; see <c>PlatformSettingsService</c>.
+/// </summary>
+public class PlatformSetting
+{
+    [Key, MaxLength(60)]
+    public string Key { get; set; } = string.Empty;
+
+    [Required, MaxLength(200)]
+    public string Value { get; set; } = string.Empty;
+
+    public DateTime UpdatedAt { get; set; }
+
+    [MaxLength(150)]
+    public string? UpdatedBy { get; set; }
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SignupStart>))]
+public enum SignupStart
+{
+    Trial = 0,
+    Paid = 1
+}
+
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SignupStatus>))]
+public enum SignupStatus
+{
+    /// <summary>A paid order waiting for its payment.</summary>
+    AwaitingPayment = 0,
+    /// <summary>Done: the company exists (trial started, or paid and activated).</summary>
+    Completed = 1,
+    /// <summary>Not paid in time.</summary>
+    Expired = 2,
+    /// <summary>Paid, but creating the company failed; Trovo finishes it by hand.</summary>
+    NeedsAttention = 3,
+    /// <summary>Payment received; the company is being created right now.</summary>
+    Processing = 4
+}
+
+/// <summary>
+/// A business signing up on the public website: its details, what it chose, the price fixed when it ordered, and what
+/// happened. The company is created only when the trial starts or the payment arrives, so abandoned checkouts leave
+/// no databases behind.
+/// </summary>
+public class SignupOrder
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+
+    public SignupStart Start { get; set; }
+    public SignupStatus Status { get; set; }
+
+    [Required, MaxLength(150)]
+    public string BusinessName { get; set; } = string.Empty;
+
+    [Required, MaxLength(150)]
+    public string OwnerName { get; set; } = string.Empty;
+
+    /// <summary>10-digit Indian mobile number, digits only.</summary>
+    [Required, MaxLength(10)]
+    public string Mobile { get; set; } = string.Empty;
+
+    /// <summary>Lower-case email.</summary>
+    [Required, MaxLength(150)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, MaxLength(80)]
+    public string City { get; set; } = string.Empty;
+
+    [Required, MaxLength(80)]
+    public string State { get; set; } = string.Empty;
+
+    [MaxLength(15)]
+    public string? Gstin { get; set; }
+
+    [MaxLength(40)]
+    public string? PlanCode { get; set; }
+
+    public BillingInterval? Interval { get; set; }
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    /// <summary>Add-on codes and quantities chosen (JSON object).</summary>
+    [MaxLength(1000)]
+    public string? AddOnsJson { get; set; }
+
+    /// <summary>The price fixed at ordering, in minor units; the payment must match it.</summary>
+    public long AmountMinor { get; set; }
+
+    [Required, MaxLength(3)]
+    public string Currency { get; set; } = "INR";
+
+    /// <summary>The quoted lines (JSON), kept to show the customer exactly what they agreed to.</summary>
+    [MaxLength(4000)]
+    public string? QuoteJson { get; set; }
+
+    /// <summary>SHA-256 of the secret the customer's browser holds; needed to pay or see the order.</summary>
+    [Required, MaxLength(64)]
+    public string TokenHash { get; set; } = string.Empty;
+
+    public Guid? CompanyId { get; set; }
+
+    [MaxLength(30)]
+    public string? PaymentProvider { get; set; }
+
+    [MaxLength(100)]
+    public string? PaymentReference { get; set; }
+
+    [MaxLength(500)]
+    public string? FailureReason { get; set; }
+
+    [MaxLength(64)]
+    public string? IpAddress { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+
+    /// <summary>The franchise sign-up code the business used (reserved for this order), if any.</summary>
+    public Guid? FranchiseSignupCodeId { get; set; }
+
+    /// <summary>The business ticked "I allow the franchisor to see this" for the code's items.</summary>
+    public bool FranchiseConsent { get; set; }
+
+    /// <summary>The franchise link made when the company was created.</summary>
+    public Guid? FranchiseLinkId { get; set; }
+
+    /// <summary>Why the franchise link could not be made (the company was still created, as an independent company).</summary>
+    [MaxLength(300)]
+    public string? FranchiseProblem { get; set; }
+}
+
+/// <summary>
+/// A code a franchisor gives a new franchisee to use on the sign-up website, so the new company is linked to the
+/// franchisor as soon as it is created. Only a hash is kept; the code is shown once. Short-lived and single-use.
+/// While a paid order waits for payment the code is reserved for that order.
+/// </summary>
+public class FranchiseSignupCode
+{
+    public Guid Id { get; set; }
+    public Guid FranchisorCompanyId { get; set; }
+
+    /// <summary>SHA-256 of the normalised code (see <c>RegistrationCodes.Normalize</c>).</summary>
+    [Required, MaxLength(64)]
+    public string CodeHash { get; set; } = string.Empty;
+
+    /// <summary>The items the franchisor asks to see (FranchiseScopes), comma-separated.</summary>
+    [Required, MaxLength(200)]
+    public string Scopes { get; set; } = string.Empty;
+
+    /// <summary>The franchisor's own note, e.g. "Salem — Ramesh".</summary>
+    [MaxLength(80)]
+    public string? Label { get; set; }
+
+    public Guid? CreatedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+
+    public Guid? ReservedBySignupOrderId { get; set; }
+
+    /// <summary>The reservation lasts as long as the order can still be paid.</summary>
+    public DateTime? ReservedUntil { get; set; }
+
+    public DateTime? UsedAt { get; set; }
+    public Guid? UsedByCompanyId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+
+    public FranchiseSignupCodeStatus StatusAt(DateTime now) =>
+        CancelledAt is not null ? FranchiseSignupCodeStatus.Cancelled
+        : UsedAt is not null ? FranchiseSignupCodeStatus.Used
+        : ReservedUntil > now ? FranchiseSignupCodeStatus.Reserved
+        : ExpiresAt > now ? FranchiseSignupCodeStatus.Open
+        : FranchiseSignupCodeStatus.Expired;
+}
+
+public enum FranchiseSignupCodeStatus
+{
+    Open,
+    /// <summary>Entered in a paid order that has not been paid yet.</summary>
+    Reserved,
+    Used,
+    Expired,
+    Cancelled
+}
+
+public enum PlanChangeStatus
+{
+    /// <summary>Trovo proposed it; waiting for the company's Owner.</summary>
+    Pending,
+
+    /// <summary>The Owner approved a downgrade; it takes effect when the paid period ends.</summary>
+    Scheduled,
+
+    /// <summary>The change is in effect.</summary>
+    Applied,
+
+    Declined,
+
+    /// <summary>Withdrawn by Trovo, or replaced by a newer proposal.</summary>
+    Cancelled,
+
+    /// <summary>Not answered in time.</summary>
+    Expired
+}
+
+/// <summary>When an approved change takes effect, and whether anything is charged for it.</summary>
+public enum PlanChangeTiming
+{
+    /// <summary>At once, nothing to pay now (a trial, an unpaid company, or the same price).</summary>
+    Now,
+
+    /// <summary>At once, with an invoice for the price difference for the rest of the paid period (an upgrade).</summary>
+    NowWithCharge,
+
+    /// <summary>When the paid period ends, with no refund (a downgrade, or a change of billing interval).</summary>
+    AtPeriodEnd
+}
+
+/// <summary>
+/// A change to a company's subscription that Trovo proposes and the company's Owner approves in the app. Nothing
+/// changes for the company until the Owner approves; what they approved (plan, licences, add-ons, amount) is kept.
+/// </summary>
+public class PlanChangeRequest
+{
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+
+    /// <summary>The subscription the change was proposed against.</summary>
+    public Guid SubscriptionId { get; set; }
+
+    public PlanChangeStatus Status { get; set; }
+    public PlanChangeTiming Timing { get; set; }
+
+    [Required, MaxLength(40)]
+    public string PlanCode { get; set; } = string.Empty;
+
+    public BillingInterval Interval { get; set; }
+    public int AndroidLicences { get; set; }
+    public int WindowsLicences { get; set; }
+    public int BothLicences { get; set; }
+
+    /// <summary>Add-on codes and quantities wanted (JSON object).</summary>
+    [MaxLength(1000)]
+    public string AddOnsJson { get; set; } = "{}";
+
+    /// <summary>The current and the new price for one full period, in minor units (before tax).</summary>
+    public long CurrentPeriodPriceMinor { get; set; }
+    public long NewPeriodPriceMinor { get; set; }
+
+    /// <summary>What the company pays now (the difference for the rest of the period), before tax; 0 when nothing.</summary>
+    public long AmountNowMinor { get; set; }
+
+    [Required, MaxLength(3)]
+    public string Currency { get; set; } = "INR";
+
+    /// <summary>When the change takes effect (worked out again when approved).</summary>
+    public DateTime EffectiveAt { get; set; }
+
+    [MaxLength(500)]
+    public string? Reason { get; set; }
+
+    public Guid? RequestedByAdminId { get; set; }
+
+    [MaxLength(256)]
+    public string? RequestedByEmail { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+
+    public DateTime? DecidedAt { get; set; }
+    public Guid? DecidedByUserId { get; set; }
+
+    [MaxLength(150)]
+    public string? DecidedByName { get; set; }
+
+    public DateTime? AppliedAt { get; set; }
+
+    /// <summary>The invoice for the amount charged now, if any.</summary>
+    public Guid? AdjustmentInvoiceId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public LicenceCounts Licences
+    {
+        get => new(AndroidLicences, WindowsLicences, BothLicences);
+        set
+        {
+            AndroidLicences = value.Android;
+            WindowsLicences = value.Windows;
+            BothLicences = value.Both;
+        }
+    }
 }

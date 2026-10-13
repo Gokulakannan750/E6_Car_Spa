@@ -10,6 +10,9 @@ import '../../models/update_user_request.dart';
 import '../../models/user_model.dart';
 import '../../providers/users_provider.dart';
 import '../../providers/users_state.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../subscription/plan_features.dart';
+import '../../../subscription/subscription_provider.dart';
 import 'permission_selector.dart';
 
 class UserFormSheet extends ConsumerStatefulWidget {
@@ -47,12 +50,91 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
 
   late String _role;
   late List<String> _selectedPermissions;
+  late String _appAccess;
+  late final String _originalAccess;
 
   bool _isSubmitting = false;
   String? _errorMessage;
 
   bool get _isEdit => widget.user != null;
   bool get _isOwner => widget.user?.isOwner ?? false;
+
+  /// Shown only on Trovo's platform, where each user needs a licence.
+  bool get _showsAppAccess {
+    final status = ref.read(subscriptionStatusProvider);
+    return status != null && status.managed && status.licences.isNotEmpty;
+  }
+
+  Widget _appAccessField() {
+    final status = ref.watch(subscriptionStatusProvider);
+    final canChange =
+        !_isEdit || (ref.watch(currentUserProvider)?.isOwner ?? false);
+    final ownActive = _isEdit && (widget.user?.isActive ?? false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'APP ACCESS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              key: const Key('appAccessDropdown'),
+              value: _appAccess,
+              isExpanded: true,
+              items: appAccessOptions.map((o) {
+                final total = status?.licences
+                        .where((l) => l.appAccess == o.value)
+                        .fold<int>(0, (sum, l) => sum + l.total) ??
+                    0;
+                final free = (status?.freeLicences(o.value) ?? 0) +
+                    (ownActive && o.value == _originalAccess ? 1 : 0);
+                final enabled = free > 0 || (_isEdit && o.value == _originalAccess);
+                return DropdownMenuItem(
+                  value: o.value,
+                  enabled: enabled,
+                  child: Text(
+                    '${o.label} — ${free < 0 ? 0 : free} of $total free',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: enabled ? null : AppColors.textSecondary,
+                    ),
+                  ),
+                );
+              }).toList(),
+              onChanged: canChange
+                  ? (value) {
+                      if (value != null) setState(() => _appAccess = value);
+                    }
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          canChange
+              ? 'Each user takes one licence of this type. Ask Trovo for more when none are free.'
+              : 'Only the Owner can change it.',
+          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
 
   @override
   void initState() {
@@ -63,6 +145,17 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
     _emailController = TextEditingController(text: u?.email ?? '');
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+
+    _originalAccess = u?.appAccess ?? 'Both';
+    final licences = PlanFeatures.current;
+    // A new user takes the first app type with a free licence (both apps first).
+    _appAccess = u?.appAccess ??
+        appAccessOptions
+            .map((o) => o.value)
+            .firstWhere(
+              (v) => (licences?.freeLicences(v) ?? 1) > 0,
+              orElse: () => 'Both',
+            );
 
     _role = u?.role ?? 'Manager';
     if (_role.toLowerCase() != 'manager' && _role.toLowerCase() != 'staff') {
@@ -140,6 +233,7 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
         confirmPassword: confirmPassword.isNotEmpty ? confirmPassword : null,
         role: _isOwner ? 'Owner' : _role,
         permissionCodes: _isOwner ? null : _selectedPermissions,
+        appAccess: _appAccess != _originalAccess ? _appAccess : null,
       );
 
       success = await notifier.updateUser(widget.user!.id, request);
@@ -154,6 +248,7 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
         confirmPassword: confirmPassword,
         role: _role,
         permissionCodes: _selectedPermissions,
+        appAccess: _showsAppAccess ? _appAccess : null,
       );
 
       success = await notifier.createUser(request);
@@ -441,6 +536,8 @@ class _UserFormSheetState extends ConsumerState<UserFormSheet> {
                       ),
                       const SizedBox(height: 20),
                     ],
+
+                    if (_showsAppAccess) _appAccessField(),
 
                     // Password Section
                     const Divider(color: AppColors.border),

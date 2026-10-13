@@ -25,12 +25,13 @@
 | Plans | **Versioned**: a price change creates a new plan version, and existing subscribers keep their agreed terms until they renew or change plan | Schema plan |
 | Money | Integer **minor units** (paise) plus an explicit currency on every amount. For example ₹1,999.00 = `199900` INR. | Schema plan |
 | Seats | **Active users** (Owner included). One person on Windows and Android uses **1 seat**. | Schema plan, and our 8 Oct decision |
+| User licences (13 Oct, replaces "users included + 5-user packs") | Each active user needs a licence for **Android only**, **Windows only** or **both apps**, each priced separately per plan; bought one at a time; at least 1 per plan. A user signs in only to the apps their licence covers. Starter can buy the five Professional modules one by one; CSV export free for all; Franchise stays an add-on. Prices set later by the owner in the portal | User, 13 Oct |
 | Add-ons | Showroom, WhatsApp automation, Franchise network and extra seat packs are **subscription items**, not flags on the company | Schema plan |
 | Payment gateway | **Provider-independent interface.** Razorpay is the first candidate; **the final choice is made later**. | User, 12 Oct, and the schema plan |
 | Admin portal | **Separate web app** with its own login and 2-step verification, deployed separately from the customer apps | Schema plan |
 | First login | Trovo creates the company, and the customer registers with **company code + one-time registration code** | User, 12 Oct (built in 2.1) |
 | More products | The catalog has **Products**, so Trovo's other software can use the same platform later | User, 12 Oct (built in 2.1) |
-| Branches (one owner, several outlets) | **Later.** Discuss with the first client. | User, 12 Oct |
+| Branches (one owner, several outlets) | **Approved design** (`docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md`): in-database `Branches`, Phase 2.9, not in trials; numbering decided with E6 later. Franchise sign-up code built (Phase 2.8). | User, 13 Oct |
 | Billing intervals | **Monthly and yearly** for every plan and add-on (yearly = 2 months free, per the price draft) | User, 12 Oct |
 | GST on Trovo invoices | **None for now**: Trovo has no GSTIN. Invoices are titled "Invoice" (not "Tax Invoice"), with tax 0. A platform setting (GSTIN + rate) switches GST on later, for new invoices only. Note: GST registration is required once turnover passes the threshold (₹20 lakh/year for services); confirm with your accountant. | User, 12 Oct |
 | After cancellation | Read-only for **90 days**, then data deleted on request | User, 12 Oct |

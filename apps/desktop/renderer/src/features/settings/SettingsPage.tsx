@@ -403,7 +403,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setBusinessName(e.target.value)}
 											onBlur={() => setBusinessName(capitalizeSentence(businessName))}
-											placeholder="e.g. Sunrise Car Care"
+											placeholder="Your business name"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine1(e.target.value)}
 											onBlur={() => setAddressLine1(capitalizeSentence(addressLine1))}
-											placeholder="e.g. 12, Park Road"
+											placeholder="Door no., street"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -433,7 +433,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											onChange={(e) => setAddressLine2(e.target.value)}
 											onBlur={() => setAddressLine2(capitalizeSentence(addressLine2))}
-											placeholder="e.g. Near City Mall"
+											placeholder="Area or landmark"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 									</div>
@@ -449,7 +449,7 @@ export default function SettingsPage() {
 												disabled={!canManageBusiness}
 												onChange={(e) => setCity(e.target.value)}
 												onBlur={() => setCity(capitalizeSentence(city))}
-												placeholder="e.g. Erode"
+												placeholder="City"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -463,7 +463,7 @@ export default function SettingsPage() {
 												disabled={!canManageBusiness}
 												onChange={(e) => setState(e.target.value)}
 												onBlur={() => setState(capitalizeSentence(state))}
-												placeholder="e.g. Tamil Nadu"
+												placeholder="State"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -476,7 +476,7 @@ export default function SettingsPage() {
 												value={postalCode}
 												disabled={!canManageBusiness}
 												onChange={(e) => setPostalCode(e.target.value)}
-												placeholder="e.g. 638011"
+												placeholder="6-digit PIN code"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -494,7 +494,7 @@ export default function SettingsPage() {
 												value={phone}
 												disabled={!canManageBusiness}
 												onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-												placeholder="e.g. 9876543210"
+												placeholder="10-digit mobile number"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -507,7 +507,7 @@ export default function SettingsPage() {
 												value={email}
 												disabled={!canManageBusiness}
 												onChange={(e) => setEmail(e.target.value)}
-												placeholder="e.g. hello@yourcompany.com"
+												placeholder="name@example.com"
 												className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 											/>
 										</div>
@@ -525,7 +525,7 @@ export default function SettingsPage() {
 											value={gstin}
 											disabled={!canManageBusiness}
 											onChange={(e) => setGstin(e.target.value.toUpperCase())}
-											placeholder="e.g. 33AAAAA0000A1Z5"
+											placeholder="15-character GSTIN"
 											maxLength={15}
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none font-mono uppercase disabled:bg-slate-100 disabled:text-slate-500"
 										/>
@@ -554,7 +554,7 @@ export default function SettingsPage() {
 											disabled={!canManageBusiness}
 											maxLength={150}
 											onChange={(e) => setTagline(e.target.value)}
-											placeholder="e.g. Premium car care you can trust"
+											placeholder="A short tagline"
 											className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none disabled:bg-slate-100 disabled:text-slate-500"
 										/>
 										<p className="text-[11px] text-slate-400 mt-1">Printed under your business name. Left off when blank.</p>

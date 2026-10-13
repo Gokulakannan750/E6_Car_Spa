@@ -136,6 +136,38 @@ class FakeFranchiseRepository extends FranchiseRepository {
     }
   }
 
+  /// Unavailable (hidden) unless a test sets codes.
+  FranchiseSignupCodes signupCodes = FranchiseSignupCodes.unavailable;
+
+  @override
+  Future<FranchiseSignupCodes> getSignupCodes() async => signupCodes;
+
+  @override
+  Future<CreatedFranchiseSignupCode> createSignupCode(
+    List<String> scopes,
+    String? label,
+  ) async {
+    _record('code:${label ?? ''}:${scopes.join(',')}');
+    return CreatedFranchiseSignupCode(
+      code: 'K7QM-4RTX-9PWD',
+      item: FranchiseSignupCode(
+        id: 'new',
+        label: label,
+        scopes: const [],
+        status: 'Open',
+        createdAt: DateTime(2026, 10, 13, 10),
+        expiresAt: DateTime(2026, 10, 13, 11),
+        usedByCompanyName: null,
+      ),
+    );
+  }
+
+  @override
+  Future<FranchiseSignupCode> cancelSignupCode(String id) async {
+    _record('withdraw:$id');
+    return signupCodes.codes.firstWhere((c) => c.id == id);
+  }
+
   @override
   Future<FranchiseAccess> getAccess() async => access;
 

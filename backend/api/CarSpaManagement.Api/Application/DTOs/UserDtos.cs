@@ -13,6 +13,9 @@ public class UserDto
     public DateTime? LastLoginAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<string> Permissions { get; set; } = [];
+
+    /// <summary>"Both", "Android" or "Windows": the apps this user may sign in to.</summary>
+    public string AppAccess { get; set; } = "Both";
 }
 
 public class CreateUserRequest
@@ -38,6 +41,9 @@ public class CreateUserRequest
     [Required]
     public string Role { get; set; } = string.Empty; // "Manager" or "Staff"
 
+    /// <summary>"Both" (default), "Android" or "Windows". Each needs a free licence of that type on Trovo's platform.</summary>
+    public string? AppAccess { get; set; }
+
     public List<string> PermissionCodes { get; set; } = [];
 }
 
@@ -57,6 +63,9 @@ public class UpdateUserRequest
     public string? Role { get; set; } // "Manager" or "Staff"
 
     public List<string>? PermissionCodes { get; set; }
+
+    /// <summary>"Both", "Android" or "Windows"; only the Owner can change it. Null leaves it as it is.</summary>
+    public string? AppAccess { get; set; }
 }
 
 public class PermissionDto

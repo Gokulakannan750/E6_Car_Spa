@@ -1,3 +1,7 @@
+/// This is the Android app; the server checks it against the user's licence
+/// (a user may only sign in to the apps their licence covers).
+const String clientApp = 'android';
+
 class LoginRequest {
   final String username;
   final String password;
@@ -15,6 +19,7 @@ class LoginRequest {
       'username': username,
       'password': password,
       if (code.isNotEmpty) 'companyCode': code,
+      'app': clientApp,
     };
   }
 }

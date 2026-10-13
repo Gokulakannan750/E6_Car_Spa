@@ -743,51 +743,24 @@ public class JobCardService : IJobCardService
 			return $"{prefix}-{currentYear}-{count:D6}";
 		}
 
-		var conn = _db.Database.GetDbConnection();
-		var openedLocally = false;
-		if (conn.State != System.Data.ConnectionState.Open)
+		// Each company numbers its job cards from 1 on its own counter (created on first use, incremented atomically
+		// in the database). Run through EF, not a raw connection command, so the connection interceptors apply: on
+		// Trovo's platform they set the company for the database's row rules, without which the insert is refused.
+		var organizationId = _db.CurrentOrganizationId;
+		var counterName = OrganizationCounter.JobCard;
+		while (true)
 		{
-			await conn.OpenAsync(cancellationToken);
-			openedLocally = true;
-		}
+			var nextNumber = (await _db.Database.SqlQuery<long>($"""
+				INSERT INTO "OrganizationCounters" ("OrganizationId", "Name", "Value") VALUES ({organizationId}, {counterName}, 1)
+				ON CONFLICT ("OrganizationId", "Name") DO UPDATE SET "Value" = "OrganizationCounters"."Value" + 1
+				RETURNING "Value"::bigint AS "Value"
+				""").ToListAsync(cancellationToken)).Single();
 
-		try
-		{
-			using var cmd = conn.CreateCommand();
-			var currentTx = _db.Database.CurrentTransaction?.GetDbTransaction();
-			if (currentTx != null) cmd.Transaction = currentTx;
-
-			while (true)
+			var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
+			var exists = await _db.JobCards.AnyAsync(j => j.JobCardNumber == candidate, cancellationToken);
+			if (!exists)
 			{
-				// Each company numbers its job cards from 1 on its own counter (created on first use, incremented
-				// atomically in the database).
-				cmd.CommandText = "INSERT INTO \"OrganizationCounters\" (\"OrganizationId\", \"Name\", \"Value\") VALUES (@org, @name, 1) " +
-					"ON CONFLICT (\"OrganizationId\", \"Name\") DO UPDATE SET \"Value\" = \"OrganizationCounters\".\"Value\" + 1 RETURNING \"Value\"";
-				cmd.Parameters.Clear();
-				var orgParameter = cmd.CreateParameter();
-				orgParameter.ParameterName = "org";
-				orgParameter.Value = _db.CurrentOrganizationId;
-				cmd.Parameters.Add(orgParameter);
-				var nameParameter = cmd.CreateParameter();
-				nameParameter.ParameterName = "name";
-				nameParameter.Value = OrganizationCounter.JobCard;
-				cmd.Parameters.Add(nameParameter);
-				var scalar = await cmd.ExecuteScalarAsync(cancellationToken);
-				var nextNumber = Convert.ToInt64(scalar);
-
-				var candidate = string.Concat(prefix, "-", currentYear.ToString(), "-", nextNumber.ToString("D6"));
-				var exists = await _db.JobCards.AnyAsync(j => j.JobCardNumber == candidate, cancellationToken);
-				if (!exists)
-				{
-					return candidate;
-				}
-			}
-		}
-		finally
-		{
-			if (openedLocally && conn.State == System.Data.ConnectionState.Open)
-			{
-				await conn.CloseAsync();
+				return candidate;
 			}
 		}
 	}

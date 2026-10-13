@@ -22,10 +22,14 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<SubscriptionItem> SubscriptionItems => Set<SubscriptionItem>();
     public DbSet<SubscriptionEvent> SubscriptionEvents => Set<SubscriptionEvent>();
     public DbSet<BillingInvoice> BillingInvoices => Set<BillingInvoice>();
+    public DbSet<PlanChangeRequest> PlanChangeRequests => Set<PlanChangeRequest>();
     public DbSet<BillingInvoiceLine> BillingInvoiceLines => Set<BillingInvoiceLine>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents => Set<PaymentWebhookEvent>();
     public DbSet<PlatformAdmin> Admins => Set<PlatformAdmin>();
+    public DbSet<PlatformSetting> Settings => Set<PlatformSetting>();
+    public DbSet<SignupOrder> SignupOrders => Set<SignupOrder>();
+    public DbSet<FranchiseSignupCode> FranchiseSignupCodes => Set<FranchiseSignupCode>();
     public DbSet<PlatformAuditLog> AuditLogs => Set<PlatformAuditLog>();
     public DbSet<PlatformCounter> Counters => Set<PlatformCounter>();
 
@@ -81,6 +85,23 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasOne(v => v.Plan).WithMany(p => p.Versions).HasForeignKey(v => v.PlanId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(v => new { v.PlanId, v.Version, v.Interval }).IsUnique();
             e.Property(v => v.Interval).HasConversion<string>().HasMaxLength(10);
+        });
+        modelBuilder.Entity<PlatformSetting>(e => e.ToTable("PlatformSettings"));
+        modelBuilder.Entity<SignupOrder>(e =>
+        {
+            e.ToTable("SignupOrders");
+            e.Property(o => o.Start).HasConversion<string>().HasMaxLength(10);
+            e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(o => o.Interval).HasConversion<string>().HasMaxLength(10);
+            e.HasIndex(o => new { o.ProductId, o.Email });
+            e.HasIndex(o => new { o.ProductId, o.Mobile });
+            e.HasIndex(o => o.CompanyId);
+        });
+        modelBuilder.Entity<FranchiseSignupCode>(e =>
+        {
+            e.ToTable("FranchiseSignupCodes");
+            e.HasIndex(c => c.CodeHash).IsUnique();
+            e.HasIndex(c => new { c.FranchisorCompanyId, c.CreatedAt });
         });
         modelBuilder.Entity<PlanEntitlement>(e =>
         {
@@ -150,7 +171,18 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasIndex(i => i.InvoiceNumber).IsUnique();
             e.HasIndex(i => new { i.CompanyId, i.IssuedAt });
             e.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20).HasDefaultValue(BillingInvoiceKind.Period);
             e.Property(i => i.TaxRatePercent).HasPrecision(5, 2);
+        });
+        modelBuilder.Entity<PlanChangeRequest>(e =>
+        {
+            e.ToTable("PlanChangeRequests");
+            e.HasOne<PlatformCompany>().WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Subscription>().WithMany().HasForeignKey(r => r.SubscriptionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => new { r.CompanyId, r.Status });
+            e.Property(r => r.Status).HasConversion<string>().HasMaxLength(20);
+            e.Property(r => r.Timing).HasConversion<string>().HasMaxLength(20);
+            e.Property(r => r.Interval).HasConversion<string>().HasMaxLength(10);
         });
         modelBuilder.Entity<BillingInvoiceLine>(e =>
         {

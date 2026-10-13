@@ -46,7 +46,8 @@ public class PlatformSubscriptionTests : IAsyncLifetime
 
         var entitlements = await Env.EntitlementsAsync(company.Id);
         Assert.Equal(CompanyAccessLevel.Full, entitlements.Access);
-        Assert.Equal(10, entitlements.SeatLimit);
+        Assert.Equal(new LicenceCounts(0, 0, 3), entitlements.Licences); // the trial's licences, for both apps
+        Assert.Equal(3, entitlements.SeatLimit);
         Assert.True(entitlements.Has(FeatureKeys.WhatsAppAutomation));
         Assert.False(entitlements.Has(FeatureKeys.Showroom));
     }
@@ -61,7 +62,10 @@ public class PlatformSubscriptionTests : IAsyncLifetime
         await Env.WithSubscriptionsAsync(s => s.RunLifecycleAsync(DateTime.UtcNow));
         var invoice = await Env.WithCatalogAsync(c => c.BillingInvoices.Include(i => i.Lines).SingleAsync(i => i.CompanyId == company.Id));
         Assert.Equal(BillingInvoiceStatus.Open, invoice.Status);
-        Assert.Equal(199_900, invoice.TotalMinor);
+        Assert.Equal(449_700, invoice.TotalMinor); // 3 × ₹1,499 Windows + Android licences on Professional
+        var line = Assert.Single(invoice.Lines);
+        Assert.Equal(3, line.Quantity);
+        Assert.StartsWith("Windows + Android user licence, Professional (monthly)", line.Description);
         Assert.Equal(0, invoice.TaxMinor);
         Assert.StartsWith("TROVO/", invoice.InvoiceNumber);
 
@@ -69,7 +73,7 @@ public class PlatformSubscriptionTests : IAsyncLifetime
         await Env.WithSubscriptionsAsync(s => s.RunLifecycleAsync(DateTime.UtcNow));
         Assert.Equal(CompanyAccessLevel.ReadOnly, (await Env.EntitlementsAsync(company.Id)).Access);
 
-        await Env.WithSubscriptionsAsync(s => s.RecordManualPaymentAsync(invoice.Id, 199_900, "UPI 1001", null, Admin));
+        await Env.WithSubscriptionsAsync(s => s.RecordManualPaymentAsync(invoice.Id, 449_700, "UPI 1001", null, Admin));
 
         var paid = await Env.WithCatalogAsync(c => c.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent));
         Assert.Equal(SubscriptionStatus.Active, paid.Status);
@@ -111,11 +115,9 @@ public class PlatformSubscriptionTests : IAsyncLifetime
     public async Task ManualPayments_RefuseDuplicateReferences_Overpayment_AndPaidInvoices()
     {
         var company = (await Env.CreateCompanyAsync("Careful Payer")).Company;
-        var invoice = await Env.WithCatalogAsync(async c =>
-        {
-            await using var scope = Env.Scope();
-            return await scope.ServiceProvider.GetRequiredService<SubscriptionService>().IssueNextInvoiceAsync(company.Id);
-        });
+        BillingInvoice invoice;
+        await using (var scope = Env.Scope())
+            invoice = await scope.ServiceProvider.GetRequiredService<SubscriptionService>().IssueNextInvoiceAsync(company.Id);
 
         await Assert.ThrowsAsync<ValidationException>(() => Env.WithSubscriptionsAsync(s =>
             s.RecordManualPaymentAsync(invoice.Id, invoice.TotalMinor + 1, "UPI 2001", null, Admin)));
@@ -189,42 +191,128 @@ public class PlatformSubscriptionTests : IAsyncLifetime
     }
 
     [PostgresFact]
-    public async Task ThePlansUserLimit_IsEnforcedOnCreateAndReactivate_AndAPackRaisesIt()
+    public async Task EachActiveUser_NeedsALicenceOfTheirAppType_OnCreateChangeAndReactivate()
     {
+        // 1 licence for both apps (the Owner takes it) and 2 Android-only licences.
         var company = await Env.CreateRegisteredCompanyAsync("Small Team",
-            new CompanyPlan("starter", BillingInterval.Month, new Dictionary<string, int>(), DateTime.UtcNow.AddMonths(1)));
+            new CompanyPlan("starter", BillingInterval.Month, new Dictionary<string, int>(), DateTime.UtcNow.AddMonths(1), new LicenceCounts(2, 0, 1)));
         var ownerId = await OwnerIdAsync(company.Id);
 
-        async Task<UserDto> CreateUser(string username)
+        async Task<UserDto> CreateUser(string username, string? access)
         {
             await using var scope = Env.CompanyScope(company.Id);
             return await scope.ServiceProvider.GetRequiredService<IUserService>().CreateUserAsync(new CreateUserRequest
             {
                 FullName = username, Username = username, Password = PlatformTestEnvironment.OwnerPassword,
-                ConfirmPassword = PlatformTestEnvironment.OwnerPassword, Role = "Staff"
+                ConfirmPassword = PlatformTestEnvironment.OwnerPassword, Role = "Staff", AppAccess = access
             }, ownerId, isOwner: true);
         }
+        async Task<T> Users<T>(Func<IUserService, Task<T>> work)
+        {
+            await using var scope = Env.CompanyScope(company.Id);
+            return await work(scope.ServiceProvider.GetRequiredService<IUserService>());
+        }
 
-        // Starter = 3 users, the Owner included.
-        await CreateUser("staff1");
-        var staff2 = await CreateUser("staff2");
-        var full = await Assert.ThrowsAsync<ValidationException>(() => CreateUser("staff3"));
-        Assert.Contains("allows 3 active users", full.Message);
+        Assert.Equal("Both", (await Users(u => u.GetUserByIdAsync(ownerId))).AppAccess);
+        var bothTaken = await Assert.ThrowsAsync<ValidationException>(() => CreateUser("staff0", null));
+        Assert.Contains("All 1 Windows + Android licence is in use", bothTaken.Message);
+        var noWindows = await Assert.ThrowsAsync<ValidationException>(() => CreateUser("staff0", "Windows"));
+        Assert.Contains("no Windows licences", noWindows.Message);
 
-        // Deactivating frees a seat; reactivating needs one again.
-        await using (var scope = Env.CompanyScope(company.Id))
-            await scope.ServiceProvider.GetRequiredService<IUserService>().ToggleUserStatusAsync(staff2.Id, ownerId);
-        await CreateUser("staff3");
-        await using (var scope = Env.CompanyScope(company.Id))
-            await Assert.ThrowsAsync<ValidationException>(() =>
-                scope.ServiceProvider.GetRequiredService<IUserService>().ToggleUserStatusAsync(staff2.Id, ownerId));
+        await CreateUser("staff1", "Android");
+        var staff2 = await CreateUser("staff2", "Android");
+        Assert.Equal("Android", staff2.AppAccess);
+        var full = await Assert.ThrowsAsync<ValidationException>(() => CreateUser("staff3", "Android"));
+        Assert.Contains("All 2 Android licences are in use", full.Message);
 
-        // A 5-user pack: 8 users.
-        await Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id,
-            new SubscriptionChange(AddOns: new Dictionary<string, int> { ["seats_5"] = 1 }), Admin));
-        Assert.Equal(8, (await Env.EntitlementsAsync(company.Id)).SeatLimit);
-        await using (var scope = Env.CompanyScope(company.Id))
-            await scope.ServiceProvider.GetRequiredService<IUserService>().ToggleUserStatusAsync(staff2.Id, ownerId);
+        // Deactivating frees a licence; reactivating needs one again.
+        await Users(u => u.ToggleUserStatusAsync(staff2.Id, ownerId));
+        await CreateUser("staff3", "Android");
+        await Assert.ThrowsAsync<ValidationException>(() => Users(u => u.ToggleUserStatusAsync(staff2.Id, ownerId)));
+
+        // Trovo adds a Windows licence: the inactive user can move to it and come back.
+        await Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id, new SubscriptionChange(Licences: new LicenceCounts(2, 1, 1)), Admin));
+        Assert.Equal(4, (await Env.EntitlementsAsync(company.Id)).SeatLimit);
+        await Users(u => u.UpdateUserAsync(staff2.Id, new UpdateUserRequest { FullName = "staff2", AppAccess = "Windows" }, ownerId, isOwner: true));
+        await Users(u => u.ToggleUserStatusAsync(staff2.Id, ownerId));
+        Assert.Equal("Windows", (await Users(u => u.GetUserByIdAsync(staff2.Id))).AppAccess);
+
+        // Only the Owner decides who takes which licence.
+        await Assert.ThrowsAsync<ForbiddenException>(() =>
+            Users(u => u.UpdateUserAsync(staff2.Id, new UpdateUserRequest { FullName = "staff2", AppAccess = "Android" }, staff2.Id, isOwner: false)));
+
+        // Fewer than one licence, or a negative number, is refused.
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id, new SubscriptionChange(Licences: new LicenceCounts(0, 0, 0)), Admin)));
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id, new SubscriptionChange(Licences: new LicenceCounts(-1, 0, 2)), Admin)));
+    }
+
+    [PostgresFact]
+    public async Task Starter_BuysProfessionalModulesOneByOne_ButAPlanNeverPaysTwiceForAModule()
+    {
+        var company = (await Env.CreateCompanyAsync("Modules Co",
+            new CompanyPlan("starter", BillingInterval.Month, new Dictionary<string, int> { ["outside_jobs"] = 1, ["whatsapp_automation"] = 1 },
+                DateTime.UtcNow.AddMonths(1), new LicenceCounts(2, 0, 1)))).Company;
+        var entitlements = await Env.EntitlementsAsync(company.Id);
+        Assert.True(entitlements.Has(FeatureKeys.OutsideJobs));
+        Assert.True(entitlements.Has(FeatureKeys.WhatsAppAutomation));
+        Assert.False(entitlements.Has(FeatureKeys.StaffAdvances));
+
+        // The invoice: one line per licence type, then the add-ons.
+        BillingInvoice invoice;
+        await using (var scope = Env.Scope())
+            invoice = await scope.ServiceProvider.GetRequiredService<SubscriptionService>().IssueNextInvoiceAsync(company.Id);
+        var lines = await Env.WithCatalogAsync(c => c.BillingInvoiceLines.Where(l => l.BillingInvoiceId == invoice.Id).OrderBy(l => l.SortOrder).ToListAsync());
+        Assert.Equal(["Windows + Android user licence", "Android user licence", "Outside jobs & vendors", "WhatsApp automation"],
+            lines.Select(l => l.Description.Split(',')[0].Split(" (")[0]).ToArray());
+        Assert.Equal(99_900 + 2 * 49_900 + 29_900 + 29_900, invoice.TotalMinor);
+
+        // Professional already includes WhatsApp: it cannot be bought on top.
+        var duplicate = await Assert.ThrowsAsync<ValidationException>(() => Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id,
+            new SubscriptionChange(PlanCode: "professional", AddOns: new Dictionary<string, int> { ["whatsapp_automation"] = 1 }), Admin)));
+        Assert.Contains("already includes WhatsApp automation", duplicate.Message);
+
+        // Upgrading without naming add-ons ends the ones the new plan includes, and keeps the others.
+        await Env.WithSubscriptionsAsync(s => s.ChangeAsync(company.Id, new SubscriptionChange(PlanCode: "professional"), Admin));
+        var open = await Env.WithCatalogAsync(c => c.SubscriptionItems.Include(i => i.AddOnPrice!).ThenInclude(p => p.AddOn)
+            .Where(i => i.Subscription!.CompanyId == company.Id && i.EffectiveTo == null).Select(i => i.AddOnPrice!.AddOn!.Code).ToListAsync());
+        Assert.Empty(open);
+        Assert.True((await Env.EntitlementsAsync(company.Id)).Has(FeatureKeys.StaffAdvances));
+    }
+
+    [PostgresFact]
+    public async Task TrialLength_GraceAndTrialLicences_ComeFromTheSettingsTrovoSaves()
+    {
+        await Env.CreateCompanyAsync("First Company"); // creates the catalog
+        await using (var scope = Env.Scope())
+        {
+            var settings = scope.ServiceProvider.GetRequiredService<PlatformSettingsService>();
+            await Assert.ThrowsAsync<ValidationException>(() => settings.SaveAsync(new Dictionary<string, int> { [PlatformSettingsService.TrialDaysKey] = 365 }, "test"));
+            await settings.SaveAsync(new Dictionary<string, int>
+            {
+                [PlatformSettingsService.TrialDaysKey] = 14,
+                [PlatformSettingsService.TrialLicencesKey] = 5,
+                [PlatformSettingsService.GraceDaysKey] = 3
+            }, "test");
+        }
+
+        var company = (await Env.CreateCompanyAsync("Long Trial")).Company;
+        var subscription = await Env.WithCatalogAsync(c => c.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent));
+        Assert.InRange(subscription.TrialEndsAt!.Value - DateTime.UtcNow, TimeSpan.FromDays(13.9), TimeSpan.FromDays(14));
+        Assert.Equal(5, subscription.BothLicences);
+
+        // Grace after a paid period ends unpaid uses the saved 3 days.
+        await Env.EditSubscriptionAsync(company.Id, s =>
+        {
+            s.Status = SubscriptionStatus.Active;
+            s.TrialEndsAt = null;
+            s.CurrentPeriodEnd = DateTime.UtcNow.AddMinutes(-1);
+        });
+        await Env.WithSubscriptionsAsync(s => s.RunLifecycleAsync(DateTime.UtcNow));
+        var pastDue = await Env.WithCatalogAsync(c => c.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent));
+        Assert.Equal(SubscriptionStatus.PastDue, pastDue.Status);
+        Assert.InRange(pastDue.GraceEndsAt!.Value - pastDue.CurrentPeriodEnd, TimeSpan.FromDays(2.99), TimeSpan.FromDays(3.01));
     }
 
     [PostgresFact]
@@ -242,7 +330,7 @@ public class PlatformSubscriptionTests : IAsyncLifetime
         var after = await Env.EntitlementsAsync(company.Id);
         Assert.True(after.Has(FeatureKeys.WhatsAppAutomation));
         Assert.False(after.Has(FeatureKeys.Showroom));
-        Assert.Equal(10, after.SeatLimit);
+        Assert.Equal(1, after.SeatLimit); // the licence it had; the plan change does not add users
         var items = await Env.WithCatalogAsync(c => c.SubscriptionItems.Where(i => i.Subscription!.CompanyId == company.Id).ToListAsync());
         Assert.Single(items);
         Assert.NotNull(items[0].EffectiveTo); // the showroom item is closed, not deleted

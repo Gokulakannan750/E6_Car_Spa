@@ -67,6 +67,17 @@ export interface CompanyListItem {
 	trialEndsAt: string | null;
 	migrationFailed: boolean;
 	createdAt: string;
+	/** Total user licences on the subscription. */
+	licences: number;
+}
+
+export type AppAccess = 'Both' | 'Windows' | 'Android';
+
+/** User licences per app type. */
+export interface Licences {
+	android: number;
+	windows: number;
+	both: number;
 }
 
 export interface AddOnLine {
@@ -91,6 +102,9 @@ export interface Subscription {
 	cancelAtPeriodEnd: boolean;
 	retainUntil: string | null;
 	addOns: AddOnLine[];
+	licences: Licences | null;
+	/** Price per user licence per period, by app type. */
+	licencePrices: Licences | null;
 }
 
 export interface BillingAccount {
@@ -118,6 +132,47 @@ export interface CompanyDetail {
 	features: Record<string, string>;
 	seatLimit: number | null;
 	seatsUsed: number | null;
+	/** Active users per app access in the company's database (null when it could not be read). */
+	licencesUsed: Licences | null;
+}
+
+/** When an approved plan change takes effect: at once (nothing or the rest of the period to pay) or at the period end. */
+export type PlanChangeTiming = 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+
+export interface PlanChangeBody {
+	planCode: string;
+	interval: string;
+	licences: Licences;
+	addOns: Record<string, number>;
+	reason?: string;
+}
+
+export interface PlanChangePreview {
+	timing: PlanChangeTiming;
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+}
+
+export type PlanChangeStatus = 'Pending' | 'Scheduled' | 'Applied' | 'Declined' | 'Cancelled' | 'Expired';
+
+/** A change Trovo proposed; the company's Owner approves or declines it in the app. */
+export interface PlanChangeRequest extends PlanChangePreview {
+	id: string;
+	status: PlanChangeStatus;
+	planCode: string;
+	interval: string;
+	licences: Licences;
+	addOns: Record<string, number>;
+	expiresAt: string;
+	reason: string | null;
+	requestedByEmail: string | null;
+	createdAt: string;
+	decidedAt: string | null;
+	decidedByName: string | null;
+	adjustmentInvoiceNumber: string | null;
 }
 
 export interface PlanRequest {
@@ -125,6 +180,7 @@ export interface PlanRequest {
 	interval: string;
 	addOns?: Record<string, number> | null;
 	paidUntil: string;
+	licences?: Licences | null;
 }
 
 export interface CreateCompanyResponse {
@@ -237,11 +293,16 @@ export interface PlanVersion {
 	version: number;
 	interval: string;
 	currency: string;
+	/** Company fee per period (0 when the price is licences only). */
 	priceMinor: number;
+	/** The fewest user licences a subscription on this version may have. */
 	includedSeats: number;
 	effectiveFrom: string;
 	effectiveTo: string | null;
 	entitlements: Entitlement[];
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
 }
 
 export interface Plan {
@@ -297,4 +358,52 @@ export interface AdminListItem {
 	mustChangePassword: boolean;
 	lastSignInAt: string | null;
 	createdAt: string;
+}
+
+export interface PlatformSettings {
+	trialDays: number;
+	graceDays: number;
+	trialLicences: number;
+	renewalInvoiceDaysBefore: number;
+	/** How long a franchise sign-up code works (10 minutes to 7 days). */
+	franchiseCodeMinutes: number;
+}
+
+export interface PlanTermsInput {
+	companyFeeMinor: number;
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
+}
+
+export type SignupStatus = 'AwaitingPayment' | 'Completed' | 'Expired' | 'NeedsAttention' | 'Processing';
+
+/** An order from the public sign-up website. */
+export interface SignupOrder {
+	id: string;
+	createdAt: string;
+	start: 'Trial' | 'Paid';
+	status: SignupStatus;
+	businessName: string;
+	ownerName: string;
+	mobile: string;
+	email: string;
+	city: string;
+	state: string;
+	planCode: string | null;
+	interval: string | null;
+	licences: number;
+	amountMinor: number;
+	currency: string;
+	companyId: string | null;
+	companyCode: string | null;
+	paymentProvider: string | null;
+	paymentReference: string | null;
+	failureReason: string | null;
+	completedAt: string | null;
+	expiresAt: string;
+	/** Company code of the franchisor whose franchise code was used, if any. */
+	franchisorCode?: string | null;
+	franchiseLinked?: boolean;
+	franchiseProblem?: string | null;
 }

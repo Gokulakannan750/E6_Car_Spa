@@ -95,3 +95,29 @@ public record FranchiseDashboardDto(
     string To,
     FranchiseFinancialTotalsDto Network,
     IReadOnlyList<FranchiseeFinancialsDto> Franchisees);
+
+// ── Franchise sign-up codes (Trovo's platform) ─────────────────────────────────────────────────────────────
+
+/// <summary>A franchise sign-up code as the franchisor sees it. The code itself is shown only once, when created.</summary>
+public record FranchiseSignupCodeDto(
+    Guid Id,
+    string? Label,
+    IReadOnlyList<FranchiseScopeDto> Scopes,
+    string Status,
+    DateTime CreatedAt,
+    DateTime ExpiresAt,
+    DateTime? UsedAt,
+    string? UsedByCompanyName);
+
+/// <summary><c>Available</c> is false on a single-company server, where there is no sign-up website.</summary>
+public record FranchiseSignupCodesDto(bool Available, int LifetimeMinutes, IReadOnlyList<FranchiseSignupCodeDto> Codes);
+
+public record CreatedFranchiseSignupCodeDto(string Code, FranchiseSignupCodeDto Item);
+
+public class CreateFranchiseSignupCodeRequest
+{
+    public List<string>? Scopes { get; set; }
+
+    [MaxLength(80)]
+    public string? Label { get; set; }
+}

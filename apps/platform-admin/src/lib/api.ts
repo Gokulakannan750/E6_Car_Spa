@@ -13,13 +13,20 @@ import type {
 	Invoice,
 	InvoiceDetail,
 	InvoiceListItem,
+	Licences,
 	LoginResponse,
 	MigrationStatus,
 	Payment,
+	PlanChangeBody,
+	PlanChangePreview,
+	PlanChangeRequest,
 	PlanRequest,
+	PlanTermsInput,
 	PlatformAdmin,
+	PlatformSettings,
 	RegistrationCodeResponse,
 	SessionResponse,
+	SignupOrder,
 } from './types';
 
 // In development VITE_API_URL is empty and /api goes through the Vite dev server; in production it is the API address.
@@ -149,8 +156,22 @@ export const api = {
 		request<void>(`${P}/companies/${id}/status`, { method: 'PUT', body: { action, reason } }),
 	changeSubscription: (
 		id: string,
-		body: { planCode?: string | null; interval?: string | null; addOns?: Record<string, number> | null; extendTrialDays?: number | null; reason: string },
+		body: {
+			planCode?: string | null;
+			interval?: string | null;
+			addOns?: Record<string, number> | null;
+			extendTrialDays?: number | null;
+			licences?: Licences | null;
+			reason: string;
+		},
 	) => request<void>(`${P}/companies/${id}/subscription`, { method: 'PUT', body }),
+	previewPlanChange: (id: string, body: PlanChangeBody) =>
+		request<PlanChangePreview>(`${P}/companies/${id}/plan-change/preview`, { method: 'POST', body }),
+	proposePlanChange: (id: string, body: PlanChangeBody) =>
+		request<PlanChangeRequest>(`${P}/companies/${id}/plan-change`, { method: 'POST', body }),
+	planChanges: (id: string) => request<PlanChangeRequest[]>(`${P}/companies/${id}/plan-changes`),
+	withdrawPlanChange: (id: string, requestId: string) =>
+		request<void>(`${P}/companies/${id}/plan-change/${requestId}/cancel`, { method: 'POST' }),
 	cancelSubscription: (id: string, atPeriodEnd: boolean, reason: string) =>
 		request<void>(`${P}/companies/${id}/cancel`, { method: 'POST', body: { atPeriodEnd, reason } }),
 	updateBillingAccount: (id: string, body: BillingAccount) =>
@@ -170,8 +191,43 @@ export const api = {
 	plans: () => request<Catalog>(`${P}/plans`),
 	newPlanVersion: (
 		code: string,
-		body: { interval: string; priceMinor: number; includedSeats: number; entitlements: Record<string, string>; reason: string },
+		body: {
+			interval: string;
+			priceMinor: number;
+			includedSeats: number;
+			androidUserPriceMinor: number;
+			windowsUserPriceMinor: number;
+			bothUserPriceMinor: number;
+			entitlements: Record<string, string>;
+			reason: string;
+		},
 	) => request<void>(`${P}/plans/${code}/versions`, { method: 'POST', body }),
+	createPlan: (body: {
+		code: string;
+		name: string;
+		minimumLicences: number;
+		monthly: PlanTermsInput;
+		yearly: PlanTermsInput;
+		features: Record<string, string>;
+		reason: string;
+	}) => request<void>(`${P}/plans`, { method: 'POST', body }),
+	updatePlan: (code: string, body: { name?: string; isActive?: boolean; reason: string }) =>
+		request<void>(`${P}/plans/${code}`, { method: 'PUT', body }),
+	createAddOn: (body: {
+		code: string;
+		name: string;
+		featureKey: string;
+		value: string;
+		monthlyPriceMinor: number;
+		yearlyPriceMinor: number;
+		reason: string;
+	}) => request<void>(`${P}/addons`, { method: 'POST', body }),
+	updateAddOn: (code: string, body: { name?: string; isActive?: boolean; reason: string }) =>
+		request<void>(`${P}/addons/${code}`, { method: 'PUT', body }),
+	signups: (status?: string) => request<SignupOrder[]>(`${P}/signups${query({ status })}`),
+	settings: () => request<PlatformSettings>(`${P}/settings`),
+	updateSettings: (body: Partial<PlatformSettings> & { reason: string }) =>
+		request<PlatformSettings>(`${P}/settings`, { method: 'PUT', body }),
 	newAddOnPrice: (code: string, body: { interval: string; unitPriceMinor: number; reason: string }) =>
 		request<void>(`${P}/addons/${code}/prices`, { method: 'POST', body }),
 

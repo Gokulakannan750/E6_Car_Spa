@@ -76,8 +76,10 @@ test('creates an already-paid company and shows its codes once', async ({ page }
 	await dialog.getByRole('radio', { name: /Already paid/ }).click();
 	await dialog.getByRole('radio', { name: 'Yearly' }).click();
 	await dialog.getByRole('radio', { name: /Starter/ }).click();
-	await dialog.getByRole('checkbox').check();
-	await expect(dialog.getByText('₹19,980.00')).toBeVisible();
+	await dialog.getByRole('checkbox', { name: 'Include Showroom / B2B module' }).check();
+	await expect(dialog.getByText('₹19,980.00')).toBeVisible(); // 1 × ₹9,990 Windows + Android licence + ₹9,990 showroom
+	await dialog.getByRole('button', { name: 'More Android only licences' }).click();
+	await expect(dialog.getByText('₹24,970.00')).toBeVisible();
 	await dialog.getByRole('button', { name: 'Create company' }).click();
 
 	await expect(dialog.getByText('Sunrise Detailing is ready')).toBeVisible();
@@ -87,8 +89,8 @@ test('creates an already-paid company and shows its codes once', async ({ page }
 	await dialog.getByRole('button', { name: 'Done' }).click();
 
 	await expect(page.getByRole('cell', { name: 'Sunrise Detailing' })).toBeVisible();
-	const created = api.requests.find((r) => r.method === 'POST' && r.path === '/companies')!.body as { plan: { planCode: string; interval: string; addOns: object } };
-	expect(created.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 } });
+	const created = api.requests.find((r) => r.method === 'POST' && r.path === '/companies')!.body as { plan: object };
+	expect(created.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, licences: { android: 1, windows: 0, both: 1 } });
 	expect(problems).toEqual([]);
 });
 

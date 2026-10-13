@@ -1,13 +1,16 @@
-import { Minus, Plus } from 'lucide-react';
-import { featureLabel } from '@/lib/catalog';
+import { Lightbulb, Minus, Plus } from 'lucide-react';
+import { APP_ACCESS, featureLabel, totalLicences } from '@/lib/catalog';
 import { money, moneyShort, perInterval } from '@/lib/format';
-import type { AddOn, AddOnPrice, Catalog, PlanVersion } from '@/lib/types';
+import type { AddOn, AddOnPrice, Catalog, Licences, PlanVersion } from '@/lib/types';
 
 export interface PlanSelection {
 	planCode: string;
 	interval: 'Month' | 'Year';
 	addOns: Record<string, number>;
+	licences: Licences;
 }
+
+export const ONE_BOTH_LICENCE: Licences = { android: 0, windows: 0, both: 1 };
 
 /** The price version in force now (no end date) for an interval. */
 export function currentVersion(versions: PlanVersion[], interval: string): PlanVersion | undefined {
@@ -16,6 +19,21 @@ export function currentVersion(versions: PlanVersion[], interval: string): PlanV
 
 export function currentAddOnPrice(prices: AddOnPrice[], interval: string): AddOnPrice | undefined {
 	return prices.filter((p) => p.interval === interval && !p.effectiveTo).sort((a, b) => b.version - a.version)[0];
+}
+
+export function licencePrice(version: PlanVersion, key: keyof Licences): number {
+	return key === 'android' ? version.androidUserPriceMinor : key === 'windows' ? version.windowsUserPriceMinor : version.bothUserPriceMinor;
+}
+
+/** The cheapest licence of a version (for "from ₹… per user"), ignoring types that have no price. */
+function cheapestLicence(version: PlanVersion): number | null {
+	const prices = [version.androidUserPriceMinor, version.windowsUserPriceMinor, version.bothUserPriceMinor].filter((p) => p > 0);
+	return prices.length > 0 ? Math.min(...prices) : null;
+}
+
+/** Whether a plan version already includes what a module add-on would switch on (it cannot be bought again). */
+export function planIncludes(version: PlanVersion | undefined, addOn: AddOn): boolean {
+	return !!version && addOn.value === 'true' && version.entitlements.some((e) => e.featureKey === addOn.featureKey && e.value === 'true');
 }
 
 export interface PriceLine {
@@ -29,26 +47,92 @@ export function priceLines(catalog: Catalog, selection: PlanSelection): { lines:
 	const version = plan ? currentVersion(plan.versions, selection.interval) : undefined;
 	const lines: PriceLine[] = [];
 	if (plan && version) {
-		lines.push({ label: `${plan.name} plan`, detail: `${version.includedSeats} users included`, amountMinor: version.priceMinor });
+		if (version.priceMinor > 0) lines.push({ label: `${plan.name} company fee`, amountMinor: version.priceMinor });
+		for (const type of APP_ACCESS) {
+			const count = selection.licences[type.key];
+			if (count > 0) {
+				const unit = licencePrice(version, type.key);
+				lines.push({ label: `${type.label} user licence`, detail: `${count} × ${moneyShort(unit)} · ${plan.name}`, amountMinor: unit * count });
+			}
+		}
 	}
 	for (const addOn of catalog.addOns) {
 		const qty = selection.addOns[addOn.code] ?? 0;
 		const price = currentAddOnPrice(addOn.prices, selection.interval);
-		if (qty > 0 && price) {
+		if (qty > 0 && price && !planIncludes(version, addOn)) {
 			lines.push({ label: addOn.name, detail: qty > 1 ? `${qty} × ${moneyShort(price.unitPriceMinor)}` : undefined, amountMinor: price.unitPriceMinor * qty });
 		}
 	}
 	return { lines, totalMinor: lines.reduce((s, l) => s + l.amountMinor, 0), currency: version?.currency ?? 'INR' };
 }
 
-/** On/off add-ons (a module) take 0 or 1; packs (more users, more branches) take a quantity. */
+/**
+ * When another active plan includes some of the chosen module add-ons and would cost less with the same licences,
+ * that plan and its total; otherwise null. Used for the "upgrading is cheaper" hint.
+ */
+export function cheaperPlan(catalog: Catalog, selection: PlanSelection): { name: string; code: string; totalMinor: number } | null {
+	const current = priceLines(catalog, selection).totalMinor;
+	let best: { name: string; code: string; totalMinor: number } | null = null;
+	for (const plan of catalog.plans.filter((p) => p.isActive && p.code !== selection.planCode)) {
+		const version = currentVersion(plan.versions, selection.interval);
+		if (!version) continue;
+		const chosen = Object.keys(selection.addOns)
+			.map((code) => catalog.addOns.find((a) => a.code === code))
+			.filter((a): a is AddOn => !!a);
+		if (!chosen.some((a) => planIncludes(version, a))) continue;
+		const addOns = Object.fromEntries(Object.entries(selection.addOns).filter(([code]) => !chosen.some((a) => a.code === code && planIncludes(version, a))));
+		const total = priceLines(catalog, { ...selection, planCode: plan.code, addOns }).totalMinor;
+		if (total < current && (!best || total < best.totalMinor)) best = { name: plan.name, code: plan.code, totalMinor: total };
+	}
+	return best;
+}
+
+/** On/off add-ons (a module) take 0 or 1; packs (more branches) take a quantity. */
 function isPack(addOn: AddOn): boolean {
 	return addOn.value !== 'true';
 }
 
+function Stepper({ label, value, onChange, min = 0, max = 500 }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number }) {
+	return (
+		<div className="flex items-center gap-1">
+			<button
+				type="button"
+				aria-label={`Fewer ${label}`}
+				disabled={value <= min}
+				onClick={() => onChange(value - 1)}
+				className="inline-flex size-7 items-center justify-center rounded-md border border-border-subtle text-text-secondary hover:text-text-heading disabled:opacity-40"
+			>
+				<Minus className="size-3.5" />
+			</button>
+			<input
+				aria-label={label}
+				inputMode="numeric"
+				value={value}
+				onChange={(e) => {
+					const n = Number(e.target.value.replace(/\D/g, '') || '0');
+					onChange(Math.min(max, Math.max(min, n)));
+				}}
+				className="tabular h-7 w-12 rounded-md border border-border-subtle bg-surface-alt text-center text-body text-text-heading focus:border-action focus:outline-none"
+			/>
+			<button
+				type="button"
+				aria-label={`More ${label}`}
+				disabled={value >= max}
+				onClick={() => onChange(value + 1)}
+				className="inline-flex size-7 items-center justify-center rounded-md border border-border-subtle text-text-secondary hover:text-text-heading disabled:opacity-40"
+			>
+				<Plus className="size-3.5" />
+			</button>
+		</div>
+	);
+}
+
 export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; value: PlanSelection; onChange: (v: PlanSelection) => void }) {
-	const plans = catalog.plans.filter((p) => p.isActive);
-	const addOns = catalog.addOns.filter((a) => a.isActive);
+	const plans = catalog.plans.filter((p) => p.isActive || p.code === value.planCode);
+	const plan = catalog.plans.find((p) => p.code === value.planCode);
+	const version = plan ? currentVersion(plan.versions, value.interval) : undefined;
+	const addOns = catalog.addOns.filter((a) => a.isActive || (value.addOns[a.code] ?? 0) > 0);
+	const minimum = Math.max(1, version?.includedSeats ?? 1);
 
 	function setQty(code: string, qty: number) {
 		const next = { ...value.addOns };
@@ -80,32 +164,67 @@ export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; val
 			<fieldset>
 				<legend className="mb-2 text-label font-medium text-text-primary">Plan</legend>
 				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup">
-					{plans.map((plan) => {
-						const version = currentVersion(plan.versions, value.interval);
-						const selected = value.planCode === plan.code;
-						const features = version?.entitlements.filter((e) => e.value === 'true').map((e) => featureLabel(e.featureKey)) ?? [];
+					{plans.map((p) => {
+						const v = currentVersion(p.versions, value.interval);
+						const selected = value.planCode === p.code;
+						const from = v ? cheapestLicence(v) : null;
+						const features = v?.entitlements.filter((e) => e.value === 'true').map((e) => featureLabel(e.featureKey)) ?? [];
 						return (
 							<button
-								key={plan.code}
+								key={p.code}
 								type="button"
 								role="radio"
 								aria-checked={selected}
-								onClick={() => onChange({ ...value, planCode: plan.code })}
+								onClick={() => onChange({ ...value, planCode: p.code })}
 								className={`rounded-lg border p-4 text-left transition-colors ${selected ? 'border-action bg-action/10 ring-1 ring-action' : 'border-border-subtle bg-surface-alt hover:border-text-muted'}`}
 							>
 								<div className="flex items-baseline justify-between gap-2">
-									<span className="text-title font-semibold text-text-heading">{plan.name}</span>
-									<span className="tabular text-body text-text-heading">
-										{version ? moneyShort(version.priceMinor) : '—'}
-										<span className="text-label text-text-muted">{perInterval(value.interval)}</span>
+									<span className="text-title font-semibold text-text-heading">{p.name}</span>
+									<span className="tabular text-label text-text-secondary">
+										{from !== null ? (
+											<>
+												from {moneyShort(from)}
+												<span className="text-text-muted">/user{perInterval(value.interval)}</span>
+											</>
+										) : v ? (
+											moneyShort(v.priceMinor)
+										) : (
+											'—'
+										)}
 									</span>
 								</div>
-								<div className="mt-1 text-label text-text-secondary">{version ? `${version.includedSeats} users` : 'No price for this billing period'}</div>
-								{features.length > 0 && <div className="mt-2 text-micro text-text-muted">{features.join(' · ')}</div>}
+								<div className="mt-2 text-micro text-text-muted">{features.length > 0 ? features.join(' · ') : 'Billing, job cards, customers, staff'}</div>
 							</button>
 						);
 					})}
 				</div>
+			</fieldset>
+
+			<fieldset>
+				<legend className="mb-1 text-label font-medium text-text-primary">User licences</legend>
+				<p className="mb-2 text-micro text-text-muted">Each user needs one. A Windows + Android licence lets one person use both apps. At least {minimum}.</p>
+				<ul className="flex flex-col divide-y divide-border-hairline rounded-lg border border-border-subtle bg-surface-alt">
+					{APP_ACCESS.map((type) => (
+						<li key={type.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
+							<div className="min-w-0">
+								<div className="text-body text-text-heading">{type.label}</div>
+								<div className="tabular text-label text-text-muted">
+									{version ? `${moneyShort(licencePrice(version, type.key))} per user${perInterval(value.interval)}` : 'No price for this billing period'}
+								</div>
+							</div>
+							<Stepper
+								label={`${type.label} licences`}
+								value={value.licences[type.key]}
+								onChange={(n) => onChange({ ...value, licences: { ...value.licences, [type.key]: n } })}
+							/>
+						</li>
+					))}
+				</ul>
+				{totalLicences(value.licences) < minimum && (
+					<p role="alert" className="mt-2 text-label text-danger">
+						Add at least {minimum} user licence{minimum === 1 ? '' : 's'}.
+					</p>
+				)}
 			</fieldset>
 
 			{addOns.length > 0 && (
@@ -115,42 +234,31 @@ export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; val
 						{addOns.map((addOn) => {
 							const price = currentAddOnPrice(addOn.prices, value.interval);
 							const qty = value.addOns[addOn.code] ?? 0;
+							const included = planIncludes(version, addOn);
 							return (
 								<li key={addOn.code} className="flex items-center justify-between gap-3 px-4 py-2.5">
 									<div className="min-w-0">
-										<div className="text-body text-text-heading">{addOn.name}</div>
+										<div className={`text-body ${included ? 'text-text-muted' : 'text-text-heading'}`}>
+											{addOn.name}
+											{!addOn.isActive && <span className="ml-2 text-micro text-text-muted">(no longer sold)</span>}
+										</div>
 										<div className="tabular text-label text-text-muted">
-											{price ? `${moneyShort(price.unitPriceMinor)}${perInterval(value.interval)}${isPack(addOn) ? ' each' : ''}` : 'No price for this billing period'}
+											{included
+												? `Included in ${plan?.name ?? 'this plan'}`
+												: price
+													? `${moneyShort(price.unitPriceMinor)}${perInterval(value.interval)}${isPack(addOn) ? ' each' : ''}`
+													: 'No price for this billing period'}
 										</div>
 									</div>
-									{isPack(addOn) ? (
-										<div className="flex items-center gap-1" aria-label={`${addOn.name} quantity`}>
-											<button
-												type="button"
-												aria-label={`Fewer ${addOn.name}`}
-												disabled={qty === 0}
-												onClick={() => setQty(addOn.code, qty - 1)}
-												className="inline-flex size-7 items-center justify-center rounded-md border border-border-subtle text-text-secondary hover:text-text-heading disabled:opacity-40"
-											>
-												<Minus className="size-3.5" />
-											</button>
-											<span className="tabular w-8 text-center text-body text-text-heading">{qty}</span>
-											<button
-												type="button"
-												aria-label={`More ${addOn.name}`}
-												disabled={!price || qty >= 50}
-												onClick={() => setQty(addOn.code, qty + 1)}
-												className="inline-flex size-7 items-center justify-center rounded-md border border-border-subtle text-text-secondary hover:text-text-heading disabled:opacity-40"
-											>
-												<Plus className="size-3.5" />
-											</button>
-										</div>
+									{included ? null : isPack(addOn) ? (
+										<Stepper label={addOn.name} value={qty} max={50} onChange={(n) => setQty(addOn.code, n)} />
 									) : (
 										<label className="flex items-center gap-2 text-label text-text-secondary">
 											<input
 												type="checkbox"
+												aria-label={`Include ${addOn.name}`}
 												checked={qty > 0}
-												disabled={!price}
+												disabled={!price || (!addOn.isActive && qty === 0)}
 												onChange={(e) => setQty(addOn.code, e.target.checked ? 1 : 0)}
 												className="size-4 accent-[#3b82f6]"
 											/>
@@ -167,8 +275,21 @@ export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; val
 	);
 }
 
+/** The add-ons to send to the API: modules the plan already includes are left out (the API refuses them). */
+export function addOnsToBuy(catalog: Catalog, selection: PlanSelection): Record<string, number> {
+	const plan = catalog.plans.find((p) => p.code === selection.planCode);
+	const version = plan ? currentVersion(plan.versions, selection.interval) : undefined;
+	return Object.fromEntries(
+		Object.entries(selection.addOns).filter(([code, qty]) => {
+			const addOn = catalog.addOns.find((a) => a.code === code);
+			return qty > 0 && addOn && !planIncludes(version, addOn);
+		}),
+	);
+}
+
 export function PriceSummary({ catalog, selection, title = 'Summary' }: { catalog: Catalog; selection: PlanSelection; title?: string }) {
 	const { lines, totalMinor, currency } = priceLines(catalog, selection);
+	const cheaper = cheaperPlan(catalog, selection);
 	return (
 		<div className="rounded-lg border border-border-subtle bg-surface-alt p-4">
 			<div className="mb-3 text-label font-semibold tracking-[0.04em] text-text-muted uppercase">{title}</div>
@@ -190,6 +311,15 @@ export function PriceSummary({ catalog, selection, title = 'Summary' }: { catalo
 				<span className="tabular text-headline font-bold text-text-heading">{money(totalMinor, currency)}</span>
 			</div>
 			{!catalog.chargesGst && <p className="mt-1 text-right text-micro text-text-muted">No GST charged</p>}
+			{cheaper && (
+				<p role="status" className="mt-3 flex items-start gap-2 rounded-md border border-active/30 bg-active-bg px-3 py-2 text-label text-text-primary">
+					<Lightbulb className="mt-px size-3.5 shrink-0 text-active" aria-hidden />
+					<span>
+						{cheaper.name} includes these modules and would cost <span className="tabular font-semibold">{money(cheaper.totalMinor, currency)}</span> with the same
+						licences.
+					</span>
+				</p>
+			)}
 		</div>
 	);
 }

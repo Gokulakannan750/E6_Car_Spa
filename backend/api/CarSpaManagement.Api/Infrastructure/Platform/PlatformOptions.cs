@@ -47,6 +47,9 @@ public class PlatformOptions
     /// <summary>Days of full access after a renewal fails or a paid period ends unpaid, before read-only.</summary>
     public int GraceDays { get; set; } = 7;
 
+    /// <summary>User licences (for both apps) a new company gets during its free trial.</summary>
+    public int TrialLicences { get; set; } = 3;
+
     /// <summary>Days a canceled company keeps read-only access to its data (then deleted on request).</summary>
     public int CanceledRetentionDays { get; set; } = 90;
 
@@ -78,6 +81,26 @@ public class PlatformOptions
 
     /// <summary>The admin portal's address (e.g. https://admin.trovotechsolutions.in), allowed to call the API (CORS).</summary>
     public string? AdminPortalOrigin { get; set; }
+
+    // ── Public sign-up website ───────────────────────────────────────────────────
+
+    /// <summary>Whether businesses may sign up and buy on the public website. Off unless Trovo switches it on.</summary>
+    public bool SignupEnabled { get; set; }
+
+    /// <summary>The sign-up website's address, allowed to call the API (CORS).</summary>
+    public string? SignupOrigin { get; set; }
+
+    /// <summary>
+    /// Allows the "Pay (test)" button, which marks an order paid without taking money. Only for test servers: it is
+    /// refused in the Production environment whatever this says.
+    /// </summary>
+    public bool TestPayments { get; set; }
+
+    /// <summary>How long an unpaid sign-up order can still be paid.</summary>
+    public int SignupOrderHours { get; set; } = 24;
+
+    /// <summary>Default lifetime of a franchise sign-up code in minutes (Trovo can change it in the admin portal).</summary>
+    public int FranchiseCodeMinutes { get; set; } = 60;
 }
 
 /// <summary>

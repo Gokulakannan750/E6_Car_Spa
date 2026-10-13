@@ -96,6 +96,8 @@ export interface NavigationItem {
 	requiresFranchisor?: boolean;
 	/** Shown only to a company that is linked to a franchisor (it can review what it shares). */
 	requiresFranchisee?: boolean;
+	/** Shown only when the company is on a Trovo subscription (Trovo's online service). */
+	requiresSubscription?: boolean;
 	anchor?: boolean;
 }
 

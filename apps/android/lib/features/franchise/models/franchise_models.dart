@@ -310,3 +310,95 @@ class FranchiseDashboard {
 
 /// The period shown on the dashboard, as yyyy-MM-dd dates. A record, so two equal periods are the same provider key.
 typedef FranchisePeriod = ({String from, String to});
+
+/// A franchise sign-up code as the franchisor sees it. The code itself is shown only once, when made.
+class FranchiseSignupCode {
+  final String id;
+  final String? label;
+  final List<FranchiseScope> scopes;
+
+  /// Open, Reserved, Used, Expired or Cancelled.
+  final String status;
+  final DateTime? createdAt;
+  final DateTime? expiresAt;
+  final String? usedByCompanyName;
+
+  const FranchiseSignupCode({
+    required this.id,
+    required this.label,
+    required this.scopes,
+    required this.status,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.usedByCompanyName,
+  });
+
+  bool get canWithdraw => status == 'Open' || status == 'Reserved';
+
+  String get statusLabel => switch (status) {
+    'Reserved' => 'In use (awaiting payment)',
+    'Cancelled' => 'Withdrawn',
+    _ => status,
+  };
+
+  factory FranchiseSignupCode.fromJson(Map<String, dynamic> json) {
+    DateTime? date(String key) => json[key] is String
+        ? DateTime.tryParse(json[key] as String)?.toLocal()
+        : null;
+    return FranchiseSignupCode(
+      id: json['id'] as String? ?? '',
+      label: json['label'] as String?,
+      scopes: (json['scopes'] as List<dynamic>? ?? [])
+          .map((e) => FranchiseScope.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      status: json['status'] as String? ?? '',
+      createdAt: date('createdAt'),
+      expiresAt: date('expiresAt'),
+      usedByCompanyName: json['usedByCompanyName'] as String?,
+    );
+  }
+}
+
+/// The franchisor's codes. [available] is false on a single-company server (there is no sign-up website).
+class FranchiseSignupCodes {
+  final bool available;
+  final int lifetimeMinutes;
+  final List<FranchiseSignupCode> codes;
+
+  const FranchiseSignupCodes({
+    required this.available,
+    required this.lifetimeMinutes,
+    required this.codes,
+  });
+
+  static const unavailable = FranchiseSignupCodes(
+    available: false,
+    lifetimeMinutes: 0,
+    codes: [],
+  );
+
+  factory FranchiseSignupCodes.fromJson(Map<String, dynamic> json) =>
+      FranchiseSignupCodes(
+        available: json['available'] as bool? ?? false,
+        lifetimeMinutes: json['lifetimeMinutes'] as int? ?? 0,
+        codes: (json['codes'] as List<dynamic>? ?? [])
+            .map((e) => FranchiseSignupCode.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// A new code: [code] is shown once.
+class CreatedFranchiseSignupCode {
+  final String code;
+  final FranchiseSignupCode item;
+
+  const CreatedFranchiseSignupCode({required this.code, required this.item});
+
+  factory CreatedFranchiseSignupCode.fromJson(Map<String, dynamic> json) =>
+      CreatedFranchiseSignupCode(
+        code: json['code'] as String? ?? '',
+        item: FranchiseSignupCode.fromJson(
+          json['item'] as Map<String, dynamic>? ?? const {},
+        ),
+      );
+}

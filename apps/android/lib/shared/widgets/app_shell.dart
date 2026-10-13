@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/subscription/plan_change.dart';
 import '../../features/subscription/plan_features.dart';
 import '../../features/subscription/subscription_provider.dart';
 
@@ -64,25 +65,37 @@ class SubscriptionBanner extends StatelessWidget {
     return Material(
       key: const Key('subscription_banner'),
       color: background,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Icon(icon, size: 18, color: foreground),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  status.bannerMessage ?? '',
-                  style: TextStyle(
-                    color: foreground,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+      // A plan change waiting for the Owner: tap to see it and answer.
+      child: InkWell(
+        onTap: status.planChangePending
+            ? () => showPlanChangeSheet(context)
+            : null,
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: foreground),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    status.bannerMessage ?? '',
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
-            ],
+                if (status.planChangePending)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: foreground,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
