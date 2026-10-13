@@ -3023,6 +3023,128 @@ export async function declinePlanChange(id: string) {
 	return request<void>(`/api/subscription/plan-change/${encodeURIComponent(id)}/decline`, { method: 'POST' }, 'decline the plan change');
 }
 
+// ── The Owner's own subscription management (Trovo's platform) ───────────────
+
+export interface CatalogPrices {
+	companyFeeMinor: number;
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
+}
+
+export interface CatalogPlan {
+	code: string;
+	name: string;
+	minimumLicences: number;
+	/** Feature keys the plan includes (e.g. outside_jobs.enabled). */
+	modules: string[];
+	monthly: CatalogPrices | null;
+	yearly: CatalogPrices | null;
+}
+
+export interface CatalogAddOn {
+	code: string;
+	name: string;
+	featureKey: string;
+	/** A pack (bought by quantity, e.g. 10 more franchise branches) rather than a module switched on. */
+	isPack: boolean;
+	perUnit: number;
+	monthlyPriceMinor: number | null;
+	yearlyPriceMinor: number | null;
+}
+
+export interface LicenceCountsDto {
+	android: number;
+	windows: number;
+	both: number;
+}
+
+export interface OwnerChoice {
+	planCode: string;
+	interval: 'Month' | 'Year';
+	licences: LicenceCountsDto;
+	addOns: Record<string, number>;
+}
+
+export interface OwnerSubscriptionDto {
+	catalog: { plans: CatalogPlan[]; addOns: CatalogAddOn[]; chargesGst: boolean; gstRatePercent: number | null };
+	current: OwnerChoice;
+	licencesInUse: LicenceCountsDto;
+	status: string;
+	currentPeriodEnd: string;
+	cancelAtPeriodEnd: boolean;
+	canPayOnline: boolean;
+	testPayments: boolean;
+}
+
+export interface PlanChangePreviewDto {
+	timing: 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
+	currentPeriodPriceMinor: number;
+	newPeriodPriceMinor: number;
+	amountNowMinor: number;
+	currency: string;
+	effectiveAt: string;
+}
+
+export interface OwnerChangeResultDto {
+	status: 'Applied' | 'Scheduled';
+	timing: PlanChangePreviewDto['timing'];
+	effectiveAt: string;
+	amountNowMinor: number;
+	invoiceId: string | null;
+	invoiceNumber: string | null;
+}
+
+export interface OwnerInvoiceDto {
+	id: string;
+	invoiceNumber: string;
+	kind: 'Period' | 'Adjustment';
+	status: 'Open' | 'Paid' | 'Void' | 'Uncollectible' | 'Draft';
+	issuedAt: string;
+	dueAt: string;
+	periodStart: string | null;
+	periodEnd: string | null;
+	subtotalMinor: number;
+	taxMinor: number;
+	totalMinor: number;
+	amountDueMinor: number;
+	currency: string;
+	paidAt: string | null;
+	lines: { description: string; quantity: number; unitPriceMinor: number; amountMinor: number }[];
+}
+
+export async function getOwnerSubscription() {
+	return request<OwnerSubscriptionDto>('/api/subscription/self', {}, 'load your subscription');
+}
+
+export async function previewOwnerChange(choice: OwnerChoice) {
+	return request<PlanChangePreviewDto>('/api/subscription/self/preview', { method: 'POST', body: JSON.stringify(choice) }, 'work out the price');
+}
+
+export async function changeOwnerPlan(choice: OwnerChoice) {
+	return request<OwnerChangeResultDto>('/api/subscription/self/change', { method: 'POST', body: JSON.stringify(choice) }, 'change your plan');
+}
+
+export async function getOwnerInvoices() {
+	return request<OwnerInvoiceDto[]>('/api/subscription/self/invoices', {}, 'load your invoices');
+}
+
+export async function payOwnerInvoice(id: string) {
+	return request<OwnerInvoiceDto>(`/api/subscription/self/invoices/${encodeURIComponent(id)}/pay`, { method: 'POST' }, 'pay the invoice');
+}
+
+export async function renewOwnerSubscription() {
+	return request<OwnerInvoiceDto>('/api/subscription/self/renew', { method: 'POST' }, 'renew');
+}
+
+export async function cancelOwnerSubscription(reason?: string) {
+	return request<void>('/api/subscription/self/cancel', { method: 'POST', body: JSON.stringify({ reason }) }, 'cancel the subscription');
+}
+
+export async function resumeOwnerSubscription() {
+	return request<void>('/api/subscription/self/resume', { method: 'POST' }, 'keep the subscription');
+}
+
 export async function getSubscriptionStatus() {
 	return request<SubscriptionStatusDto>('/api/subscription/status', {}, 'check the subscription');
 }

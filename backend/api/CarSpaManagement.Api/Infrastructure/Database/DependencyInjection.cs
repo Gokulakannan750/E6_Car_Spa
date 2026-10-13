@@ -35,6 +35,7 @@ public static class DependencyInjection
   services.AddScoped<PriceQuoteService>();
   services.AddScoped<SignupService>();
   services.AddScoped<PlanChangeService>();
+  services.AddScoped<CatalogReader>();
   services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IPlanChangeApprovals, PlatformPlanChangeApprovals>();
   services.AddScoped<FranchiseSignupCodeRedemption>();
   services.AddScoped<CarSpaManagement.Api.Application.Interfaces.IFranchiseSignupCodeService, FranchiseSignupCodeService>();

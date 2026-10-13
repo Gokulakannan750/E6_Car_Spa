@@ -203,6 +203,21 @@ public sealed class SubscriptionService(
         entitlements.Invalidate(companyId);
     }
 
+    /// <summary>Takes back a cancellation scheduled for the period end (the subscription renews as usual).</summary>
+    public async Task ResumeAsync(Guid companyId, SubscriptionActor actor, CancellationToken cancellationToken = default)
+    {
+        var subscription = await CurrentAsync(companyId, cancellationToken);
+        if (!subscription.CancelAtPeriodEnd || subscription.Status is SubscriptionStatus.Canceled)
+        {
+            throw new ConflictException("There is no cancellation to take back.");
+        }
+        subscription.CancelAtPeriodEnd = false;
+        subscription.UpdatedAt = DateTime.UtcNow;
+        AddEvent(subscription, "cancel_withdrawn", actor, new { });
+        await catalog.SaveChangesAsync(cancellationToken);
+        entitlements.Invalidate(companyId);
+    }
+
     // ── Payments ─────────────────────────────────────────────────────────────────
 
     /// <summary>

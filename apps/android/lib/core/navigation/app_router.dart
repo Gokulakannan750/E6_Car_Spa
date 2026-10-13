@@ -1,3 +1,4 @@
+import '../../features/subscription/subscription_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -391,6 +392,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'whatsapp',
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: WhatsAppSettingsScreen()),
+              ),
+              GoRoute(
+                path: 'subscription',
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: SubscriptionScreen()),
               ),
               GoRoute(
                 path: 'franchise-sharing',

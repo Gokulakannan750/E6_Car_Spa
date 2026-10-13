@@ -114,6 +114,45 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
         return request;
     }
 
+    /// <summary>
+    /// The Owner changes the plan in the app: the same rules as an approved proposal (upgrade now with the rest of
+    /// the period invoiced, downgrade at the period end). It replaces any proposal from Trovo still waiting.
+    /// </summary>
+    public async Task<PlanChangeRequest> ChangeByOwnerAsync(Guid companyId, PlanChangeTarget target, Guid? userId, string? userName,
+        CancellationToken cancellationToken = default)
+    {
+        var subscription = await subscriptions.CurrentAsync(companyId, cancellationToken);
+        if (subscription.Status is SubscriptionStatus.Canceled or SubscriptionStatus.Suspended)
+        {
+            throw new ConflictException("A cancelled or suspended subscription cannot be changed. Please contact Trovo.");
+        }
+        if (IsCurrent(subscription, target)) throw new ValidationException("That is already your plan.");
+
+        var preview = await PreviewAsync(companyId, target, cancellationToken);
+        var now = DateTime.UtcNow;
+        await catalog.PlanChangeRequests
+            .Where(r => r.CompanyId == companyId && r.Status == PlanChangeStatus.Pending)
+            .ExecuteUpdateAsync(set => set.SetProperty(r => r.Status, PlanChangeStatus.Cancelled), cancellationToken);
+        var request = new PlanChangeRequest
+        {
+            Id = Guid.NewGuid(),
+            CompanyId = companyId,
+            SubscriptionId = subscription.Id,
+            Status = PlanChangeStatus.Pending,
+            PlanCode = target.PlanCode,
+            Interval = target.Interval,
+            Licences = target.Licences,
+            AddOnsJson = JsonSerializer.Serialize(target.AddOns.Where(a => a.Value > 0).ToDictionary(a => a.Key, a => a.Value)),
+            Reason = "Changed by the Owner in the app",
+            CreatedAt = now,
+            ExpiresAt = now + ProposalLifetime
+        };
+        Fill(request, preview);
+        catalog.PlanChangeRequests.Add(request);
+        await catalog.SaveChangesAsync(cancellationToken);
+        return await ApproveAsync(companyId, request.Id, userId, userName, cancellationToken);
+    }
+
     /// <summary>Trovo withdraws a proposal, or a downgrade the Owner approved that has not started yet.</summary>
     public async Task CancelAsync(Guid companyId, Guid requestId, CancellationToken cancellationToken = default)
     {

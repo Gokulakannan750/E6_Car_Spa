@@ -4,6 +4,7 @@ import type { AppAccess } from '../../lib/api';
 import { cn } from '../../utils/cn';
 import { FEATURES, isFeatureOn } from './subscriptionFeatures';
 import { PlanChangeCard } from './PlanChangeCard';
+import { OwnerBillingPanel } from './OwnerBillingPanel';
 
 /** The plan modules and add-ons, in the order shown on Trovo's pricing page. */
 const MODULES: { key: string; label: string }[] = [
@@ -43,7 +44,7 @@ const date = (value?: string | null) =>
 
 /** The company's Trovo subscription: plan, status, dates, user licences and modules. Read-only; Trovo makes changes. */
 export default function SubscriptionPage() {
-	const { subscription } = useAuth();
+	const { subscription, isOwner } = useAuth();
 
 	if (!subscription?.managed) {
 		return (
@@ -160,7 +161,11 @@ export default function SubscriptionPage() {
 				</ul>
 			</section>
 
-			<p className="text-xs text-slate-500">To add users or modules, change plan or renew, call Trovo on +91 90426 72148 or email info@trovotechsolutions.in.</p>
+			{isOwner ? (
+				<OwnerBillingPanel />
+			) : (
+				<p className="text-xs text-slate-500">The Owner can change the plan, add user licences and pay invoices here.</p>
+			)}
 		</div>
 	);
 }
