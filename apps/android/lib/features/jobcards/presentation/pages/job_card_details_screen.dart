@@ -22,6 +22,7 @@ import '../widgets/job_card_print_preview_dialog.dart';
 import '../../../../core/utils/auto_refresh_mixin.dart';
 import '../../../settings/providers/system_preferences_provider.dart';
 import '../widgets/outside_jobs_section.dart';
+import '../../../subscription/plan_features.dart';
 import '../widgets/vehicle_location_badge.dart';
 import '../../models/outside_job_model.dart';
 import '../../providers/outside_job_providers.dart';
@@ -228,6 +229,10 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
         currentUser == null || currentUser.hasPermission('jobcards.view');
     final canEdit =
         currentUser == null || currentUser.hasPermission('jobcards.edit');
+    // Outside jobs are a module (Professional, or an add-on): hidden when the plan or the user's permissions lack it.
+    final canViewOutsideJobs = currentUser == null
+        ? PlanFeatures.allowsPermission('outsidejobs.view')
+        : currentUser.hasPermission('outsidejobs.view');
 
     if (!canView) {
       return const AppScreenScaffold(
@@ -292,7 +297,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
           ],
         ],
       ),
-      body: _buildBody(context, state, notifier, canEdit),
+      body: _buildBody(context, state, notifier, canEdit, canViewOutsideJobs),
       bottomNavigationBar: state.jobCard != null
           ? _buildBottomBar(context, state.jobCard!)
           : null,
@@ -351,6 +356,7 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
     JobCardDetailsState state,
     JobCardDetailsNotifier notifier,
     bool canEdit,
+    bool canViewOutsideJobs,
   ) {
     if (state.isLoading) {
       return const AppLoadingState(message: 'Loading Job Card details...');
@@ -652,13 +658,15 @@ class _JobCardDetailsScreenState extends ConsumerState<JobCardDetailsScreen>
             const SizedBox(height: 16),
 
             // ── Outside Jobs Section ────────────────────────────────────
-            OutsideJobsSection(
-              jobCardId: widget.jobCardId,
-              vehicleRegistration: jc.vehicle.registrationNumber,
-              vehicleModel: jc.vehicle.displayName,
-              isLocked: jc.isLocked,
-            ),
-            const SizedBox(height: 24),
+            if (canViewOutsideJobs) ...[
+              OutsideJobsSection(
+                jobCardId: widget.jobCardId,
+                vehicleRegistration: jc.vehicle.registrationNumber,
+                vehicleModel: jc.vehicle.displayName,
+                isLocked: jc.isLocked,
+              ),
+              const SizedBox(height: 24),
+            ],
           ],
         ),
       ),

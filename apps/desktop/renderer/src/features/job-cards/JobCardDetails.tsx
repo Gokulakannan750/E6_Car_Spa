@@ -15,6 +15,7 @@ import {
 } from '../../lib/api';
 import { formatRate, taxRows } from '../../lib/gstDisplay';
 import { OutsideJobsSection, type OutsideJobsSectionHandle } from './OutsideJobsSection';
+import { useAuth } from '../auth/auth-context';
 import { ServicePickerDialog } from './ServicePickerDialog';
 
 // ─── Status Helpers ──────────────────────────────────────────────────────────
@@ -302,6 +303,10 @@ export default function JobCardDetails() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { profile, logoUrl } = useBusinessProfile();
+	// Outside jobs are a module (Professional, or an add-on): hidden when the plan or the user's permissions lack it.
+	const { hasPermission } = useAuth();
+	const canViewOutsideJobs = hasPermission('outsidejobs.view');
+	const canManageOutsideJobs = hasPermission('outsidejobs.manage');
 
 	// State
 	const [isEditing, setIsEditing] = useState(false);
@@ -576,7 +581,7 @@ export default function JobCardDetails() {
 										View Invoice {jobCard.invoiceNumber ? `(#${jobCard.invoiceNumber})` : ''}
 									</button>
 								)}
-								{jobCard.vehicleLocation?.isOutside ? (
+								{canManageOutsideJobs && (jobCard.vehicleLocation?.isOutside ? (
 									<button
 										onClick={() => outsideJobsRef.current?.openReturnModal()}
 										className="flex items-center gap-1.5 bg-emerald-600 text-white font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:bg-emerald-700 transition-colors shadow-sm"
@@ -603,7 +608,7 @@ export default function JobCardDetails() {
 										<Truck className="w-4 h-4" />
 										Send Vehicle Outside
 									</button>
-								)}
+								))}
 								<button
 									onClick={handleOpenPrintPreview}
 									className="flex items-center gap-1.5 bg-secondary text-white font-semibold text-xs uppercase tracking-wider px-4 py-2 rounded hover:opacity-90 transition-opacity shadow-sm"
@@ -736,6 +741,7 @@ export default function JobCardDetails() {
 						</div>
 
 						{/* Outside Jobs & Movement Lifecycle */}
+						{canViewOutsideJobs && (
 						<OutsideJobsSection
 							ref={outsideJobsRef}
 							jobCardId={jobCard.id}
@@ -744,6 +750,7 @@ export default function JobCardDetails() {
 							isLocked={isLocked}
 							onUpdated={refetch}
 						/>
+						)}
 
 						{/* Notes Section */}
 						<div className="bg-surface rounded-xl border border-outline-variant shadow-sm p-6">
@@ -822,6 +829,7 @@ export default function JobCardDetails() {
 								)}
 
 								{/* Vehicle Movement Location Section */}
+								{canViewOutsideJobs && (
 								<div className="pt-3 border-t border-outline-variant mt-2">
 									<div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
 										<Truck className="w-3.5 h-3.5 text-secondary" />
@@ -840,13 +848,13 @@ export default function JobCardDetails() {
 											</div>
 											<div><strong>Vendor:</strong> {jobCard.vehicleLocation.vendorName || 'Outside Shop'}</div>
 											{jobCard.vehicleLocation.serviceName && <div><strong>Service:</strong> {jobCard.vehicleLocation.serviceName}</div>}
-											<button
+											{canManageOutsideJobs && <button
 												type="button"
 												onClick={() => outsideJobsRef.current?.openReturnModal()}
 												className="mt-1.5 w-full bg-emerald-600 text-white text-xs font-semibold py-1.5 px-2.5 rounded hover:bg-emerald-700 transition-colors text-center block cursor-pointer"
 											>
 												Mark Vehicle Returned
-											</button>
+											</button>}
 										</div>
 									) : (
 										<div className="bg-surface-container-low border border-outline-variant rounded-lg p-2.5 text-xs text-on-surface flex items-center justify-between">
@@ -854,7 +862,7 @@ export default function JobCardDetails() {
 												<span className="w-2 h-2 rounded-full bg-emerald-500" />
 												At Showroom
 											</span>
-											<button
+											{canManageOutsideJobs && <button
 												type="button"
 												disabled={isLocked}
 												onClick={() => {
@@ -870,10 +878,11 @@ export default function JobCardDetails() {
 												data-testid="btn-vehicle-location-send-outside"
 											>
 												Send Outside &rarr;
-											</button>
+											</button>}
 										</div>
 									)}
 								</div>
+								)}
 							</div>
 						</div>
 
