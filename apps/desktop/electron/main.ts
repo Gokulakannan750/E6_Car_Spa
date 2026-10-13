@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { TokenStorage } from './tokenStorage';
+import { resolveRendererPath } from './rendererPath';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,12 +40,8 @@ function registerAppProtocol() {
 				pathname = '/index.html';
 			}
 
-			// Prevent directory traversal
-			const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
-			let filePath = path.join(rendererDist, safePath);
-
-			// Verify the resolved path stays within rendererDist
-			if (!filePath.startsWith(rendererDist)) {
+			let filePath = resolveRendererPath(rendererDist, pathname);
+			if (filePath === null) {
 				return new Response('Forbidden', { status: 403 });
 			}
 

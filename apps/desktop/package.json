@@ -6,10 +6,10 @@
   "main": "renderer/dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
     "clean": "rm -rf renderer/dist-renderer renderer/dist-electron",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "pnpm --dir renderer type-check && tsc --project tsconfig.electron.json",
     "test": "pnpm --dir renderer test",
     "test:watch": "pnpm --dir renderer test:watch",
     "electron:dev": "vite",

@@ -6,7 +6,7 @@ import { queryClient } from './lib/query-client';
 import { AuthProvider, useAuth } from './features/auth';
 import { SessionCacheReset } from './features/auth/SessionCacheReset';
 import { getSystemPreferences } from './lib/api';
-import { saveStoredPreferences, type SystemPreferences } from './features/settings/SystemPreferencesPage';
+import { saveStoredPreferences, type SystemPreferences } from './lib/system-preferences';
 
 function PreferencesSync() {
 	const { isAuthenticated, token, hasPermission } = useAuth();

@@ -35,7 +35,12 @@ function persist(session: Session | null): void {
 }
 
 export function isExpired(session: Session, now = Date.now()): boolean {
-	return new Date(session.expiresAt).getTime() <= now || now - session.lastActivityAt >= IDLE_LIMIT_MS;
+	const expiresAt = new Date(session.expiresAt).getTime();
+	return !Number.isFinite(expiresAt)
+		|| !Number.isFinite(session.lastActivityAt)
+		|| session.lastActivityAt > now
+		|| expiresAt <= now
+		|| now - session.lastActivityAt >= IDLE_LIMIT_MS;
 }
 
 export function loadSession(now = Date.now()): Session | null {
@@ -46,7 +51,9 @@ export function loadSession(now = Date.now()): Session | null {
 		const raw = store.getItem(STORAGE_KEY);
 		if (!raw) return null;
 		const parsed = JSON.parse(raw) as Session;
-		if (!parsed.token || !parsed.admin || isExpired(parsed, now)) return clearSession();
+		if (!parsed || typeof parsed.token !== 'string' || !parsed.token.trim()
+			|| !parsed.admin || typeof parsed.admin !== 'object'
+			|| typeof parsed.expiresAt !== 'string' || isExpired(parsed, now)) return clearSession();
 		current = parsed;
 		return current;
 	} catch {
@@ -63,6 +70,10 @@ export function saveSession(response: SessionResponse, now = Date.now()): Sessio
 /** Records user activity; stored at most once a minute so typing does not hammer storage. */
 export function touchSession(now = Date.now()): void {
 	if (!current) return;
+	if (isExpired(current, now)) {
+		clearSession();
+		return;
+	}
 	if (now - current.lastActivityAt < 60_000) return;
 	current = { ...current, lastActivityAt: now };
 	persist(current);

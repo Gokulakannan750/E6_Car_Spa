@@ -24,7 +24,8 @@ export function parseRupees(text: string): number | null {
 	const cleaned = text.replace(/[₹,\s]/g, '');
 	if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
 	const [whole, fraction = ''] = cleaned.split('.');
-	return Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+	const minor = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+	return Number.isSafeInteger(minor) ? minor : null;
 }
 
 export function date(value: string | null | undefined): string {

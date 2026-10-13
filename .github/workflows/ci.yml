@@ -13,6 +13,23 @@ jobs:
   backend:
     name: Backend (.NET)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: carspa_ci_test_only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CARSPA_TEST_PG_CONNECTION: "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=carspa_ci_test_only;CommandTimeout=180"
+      CARSPA_REQUIRE_PG_TESTS: "true"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +55,15 @@ jobs:
 
       - name: Run backend tests
         run: dotnet test backend/tests/CarSpaManagement.Api.Tests/CarSpaManagement.Api.Tests.csproj --no-build --configuration Release --logger "trx;LogFileName=test_results.trx"
+
+      - name: Verify backend tests ran without skips
+        shell: pwsh
+        run: |
+          [xml]$report = Get-Content backend/tests/CarSpaManagement.Api.Tests/TestResults/test_results.trx
+          $counters = $report.TestRun.ResultSummary.Counters
+          if ([int]$counters.total -eq 0 -or [int]$counters.notExecuted -gt 0) {
+            throw 'Backend coverage is incomplete: all tests must execute with PostgreSQL enabled.'
+          }
 
       - name: Upload test results
         if: always()

@@ -1,5 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
-import { getStoredPreferences } from '../features/settings/SystemPreferencesPage';
+import { getStoredPreferences } from './system-preferences';
 
 export function getSystemRefreshIntervalMs(): number | false {
 	try {

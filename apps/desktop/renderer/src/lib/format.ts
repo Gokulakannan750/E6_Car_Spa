@@ -1,4 +1,4 @@
-import { getStoredPreferences, type SystemPreferences } from '../features/settings/SystemPreferencesPage';
+import { getStoredPreferences, type SystemPreferences } from './system-preferences';
 
 export function formatCurrency(value: number, prefs?: Partial<SystemPreferences>): string {
 	const currentPrefs = prefs ? { ...getStoredPreferences(), ...prefs } : getStoredPreferences();

@@ -109,15 +109,15 @@ describe('OutsideJobsReportsView Component', () => {
 			/>
 		);
 
-		await waitFor(() => {
-			expect(screen.getByText('Outside Jobs & External Movements')).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /export outside jobs excel/i })).toBeInTheDocument();
-			expect(screen.getByText('TN 33 AA 1111')).toBeInTheDocument();
-			expect(screen.getByText('Toyota Innova Crysta')).toBeInTheDocument();
-			expect(screen.getByText('Apex Aligners & Wheels')).toBeInTheDocument();
-			expect(screen.getByText('JC-2026-1001')).toBeInTheDocument();
-			expect(screen.getByText('Overdue')).toBeInTheDocument();
-		});
+		// Wait for report data before inspecting the complete screen. Parallel suites
+		// can delay the query notification beyond the default one-second UI timeout.
+		expect(await screen.findByText('TN 33 AA 1111', undefined, { timeout: 5000 })).toBeInTheDocument();
+		expect(screen.getByText('Outside Jobs & External Movements')).toBeInTheDocument();
+		expect(screen.getByRole('button', { name: /export outside jobs excel/i })).toBeInTheDocument();
+		expect(screen.getByText('Toyota Innova Crysta')).toBeInTheDocument();
+		expect(screen.getByText('Apex Aligners & Wheels')).toBeInTheDocument();
+		expect(screen.getByText('JC-2026-1001')).toBeInTheDocument();
+		expect(screen.getByText('Overdue')).toBeInTheDocument();
 	});
 
 	it('switches to Movement History sub-tab and displays historical movements', async () => {

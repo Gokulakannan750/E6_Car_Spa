@@ -14,6 +14,7 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
   Timer? _refreshTimer;
   int _lastConfiguredSeconds = -1;
   bool _isRefreshing = false;
+  bool _isBackgrounded = false;
 
   /// Override to customize the default interval if needed (default: 12 seconds).
   Duration get defaultAutoRefreshInterval => const Duration(seconds: 12);
@@ -31,6 +32,10 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
 
   void _startTimer([Duration? interval]) {
     _refreshTimer?.cancel();
+    if (_isBackgrounded) {
+      _refreshTimer = null;
+      return;
+    }
     final effectiveInterval = interval ?? defaultAutoRefreshInterval;
     if (effectiveInterval.inSeconds <= 0) {
       _refreshTimer = null;
@@ -61,7 +66,7 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
   }
 
   Future<void> _triggerAutoRefresh() async {
-    if (!mounted || _isRefreshing) return;
+    if (!mounted || _isRefreshing || _isBackgrounded) return;
     _isRefreshing = true;
     try {
       final res = onAutoRefresh();
@@ -82,6 +87,7 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _isBackgrounded = false;
       _triggerAutoRefresh();
       if (_lastConfiguredSeconds > 0) {
         _startTimer(Duration(seconds: _lastConfiguredSeconds));
@@ -91,6 +97,7 @@ mixin AutoRefreshMixin<T extends ConsumerStatefulWidget>
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
+      _isBackgrounded = true;
       _stopTimer();
     }
   }

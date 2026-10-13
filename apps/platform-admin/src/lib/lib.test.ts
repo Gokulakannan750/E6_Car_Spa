@@ -18,6 +18,8 @@ describe('money', () => {
 		expect(parseRupees('12.345')).toBeNull();
 		expect(parseRupees('-5')).toBeNull();
 		expect(parseRupees('abc')).toBeNull();
+		expect(parseRupees('90071992547410')).toBeNull();
+		expect(parseRupees('9'.repeat(400))).toBeNull();
 	});
 
 	it('shows dates in India time', () => {
@@ -38,6 +40,31 @@ describe('session', () => {
 		token: 't',
 		expiresAt: new Date(Date.now() + minutes * 60_000).toISOString(),
 		admin: { id: '1', email: 'a@trovo.test', name: 'A', role: 'Owner' as const, mustChangePassword: false },
+	});
+
+	it('rejects malformed expiry and activity timestamps', () => {
+		const now = Date.now();
+		const session = saveSession(response(120), now);
+		expect(isExpired({ ...session, expiresAt: 'invalid' }, now)).toBe(true);
+		expect(isExpired({ ...session, lastActivityAt: NaN }, now)).toBe(true);
+		expect(isExpired({ ...session, lastActivityAt: undefined as unknown as number }, now)).toBe(true);
+		expect(isExpired({ ...session, lastActivityAt: now + 1 }, now)).toBe(true);
+	});
+
+	it('clears corrupted sessions after a reload', () => {
+		clearSession();
+		window.sessionStorage.setItem('trovo.platform.session', JSON.stringify({
+			token: 't', admin: response(120).admin, expiresAt: 'invalid', lastActivityAt: Date.now(),
+		}));
+		expect(loadSession()).toBeNull();
+		expect(window.sessionStorage.length).toBe(0);
+	});
+
+	it('does not revive an idle session when activity resumes', () => {
+		const start = Date.now();
+		saveSession(response(120), start);
+		touchSession(start + IDLE_LIMIT_MS);
+		expect(loadSession(start + IDLE_LIMIT_MS)).toBeNull();
 	});
 
 	it('survives a reload of the tab but not expiry', () => {

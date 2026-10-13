@@ -135,11 +135,9 @@ export async function request<T>(
 ): Promise<T> {
 	const token = getAuthToken();
 	const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
-	const headers: Record<string, string> = {
-		...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-		...(token ? { Authorization: `Bearer ${token}` } : {}),
-		...((options.headers as Record<string, string>) || {}),
-	};
+	const headers = new Headers(options.headers);
+	if (!isFormData && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+	if (token && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
 
 	let res: Response;
 	try {
@@ -147,7 +145,9 @@ export async function request<T>(
 			...options,
 			headers,
 		});
-	} catch {
+	} catch (error) {
+		// Cancellation is intentional and must not appear as a connection failure.
+		if (options.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw error;
 		// Network failure / server unreachable / fetch error
 		throw new ApiError(
 			'Unable to connect to the server. Please try again.',

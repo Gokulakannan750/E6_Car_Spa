@@ -380,7 +380,7 @@ export function calculateStaffAdvancesSummary(
 	let totalAdvancesGiven = 0;
 	let totalAdvancesRecovered = 0;
 	let totalOutstandingBalance = 0;
-	let totalAdvanceCount = advances.length;
+	const totalAdvanceCount = advances.length;
 	let outstandingCount = 0;
 	let settledCount = 0;
 	let obsoleteCount = 0;

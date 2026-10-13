@@ -22,7 +22,7 @@ public static class PostgresTestEnvironment
     /// write a checkpoint, and many tests do it at once, so each can wait well past the 30 second default.
     /// </summary>
     public static string? AdminConnectionString =>
-        Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } cs
+        Environment.GetEnvironmentVariable(ConnectionVariable) is { } cs && !string.IsNullOrWhiteSpace(cs)
             ? new NpgsqlConnectionStringBuilder(cs) { CommandTimeout = 180 }.ConnectionString
             : null;
 }

@@ -22,52 +22,14 @@ import {
 	type SystemPreferencesDto,
 } from '../../lib/api';
 
-export interface SystemPreferences {
-	dateFormat: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
-	timeFormat: '12h' | '24h';
-	currencySymbol: '₹';
-	decimalPrecision: number;
-	defaultPrintCopies: number;
-	autoPrintReceipt: boolean;
-	refreshInterval: number; // in seconds, 0 = manual
-}
-
-export const SYSTEM_PREFERENCES_STORAGE_KEY = 'e6_system_preferences';
-
-export const DEFAULT_SYSTEM_PREFERENCES: SystemPreferences = {
-	dateFormat: 'DD/MM/YYYY',
-	timeFormat: '12h',
-	currencySymbol: '₹',
-	decimalPrecision: 2,
-	defaultPrintCopies: 1,
-	autoPrintReceipt: true,
-	refreshInterval: 30,
-};
-
-export function getStoredPreferences(): SystemPreferences {
-	if (typeof localStorage === 'undefined') return DEFAULT_SYSTEM_PREFERENCES;
-	try {
-		const raw = localStorage.getItem(SYSTEM_PREFERENCES_STORAGE_KEY);
-		if (!raw) return DEFAULT_SYSTEM_PREFERENCES;
-		const parsed = JSON.parse(raw);
-		return {
-			...DEFAULT_SYSTEM_PREFERENCES,
-			...parsed,
-			currencySymbol: '₹', // Fallback/migrate to INR strictly
-		};
-	} catch {
-		return DEFAULT_SYSTEM_PREFERENCES;
-	}
-}
-
-export function saveStoredPreferences(prefs: SystemPreferences): void {
-	if (typeof localStorage === 'undefined') return;
-	try {
-		localStorage.setItem(SYSTEM_PREFERENCES_STORAGE_KEY, JSON.stringify(prefs));
-	} catch {
-		// Ignore storage quota errors
-	}
-}
+import { DEFAULT_SYSTEM_PREFERENCES, getStoredPreferences, saveStoredPreferences, type SystemPreferences } from '../../lib/system-preferences';
+export {
+	DEFAULT_SYSTEM_PREFERENCES,
+	SYSTEM_PREFERENCES_STORAGE_KEY,
+	getStoredPreferences,
+	saveStoredPreferences,
+	type SystemPreferences,
+} from '../../lib/system-preferences';
 
 export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);

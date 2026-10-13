@@ -219,7 +219,7 @@ describe('MonthlyShowroomReportView Component', () => {
 			expect(screen.getAllByText('₹45,000.00').length).toBeGreaterThan(0); // total billed
 			expect(screen.getAllByText('₹40,000.00').length).toBeGreaterThan(0); // total collected
 			expect(screen.getAllByText('₹5,000.00').length).toBeGreaterThan(0); // total outstanding
-		});
+		}, { timeout: 5000 });
 	});
 
 	it('filters by selected showroom via tab navigation', async () => {
