@@ -16,12 +16,13 @@ public sealed record CreatePlanRequest(string Code, string Name, int MinimumLice
 public sealed record UpdatePlanRequest(string? Name, bool? IsActive, string Reason);
 public sealed record CreateAddOnRequest(string Code, string Name, string FeatureKey, string Value, long MonthlyPriceMinor, long YearlyPriceMinor, string Reason);
 public sealed record UpdateAddOnRequest(string? Name, bool? IsActive, string Reason);
-public sealed record PlatformSettingsDto(int TrialDays, int GraceDays, int TrialLicences, int RenewalInvoiceDaysBefore);
-public sealed record UpdatePlatformSettingsRequest(int? TrialDays, int? GraceDays, int? TrialLicences, int? RenewalInvoiceDaysBefore, string Reason);
+public sealed record PlatformSettingsDto(int TrialDays, int GraceDays, int TrialLicences, int RenewalInvoiceDaysBefore, int FranchiseCodeMinutes);
+public sealed record UpdatePlatformSettingsRequest(int? TrialDays, int? GraceDays, int? TrialLicences, int? RenewalInvoiceDaysBefore, string Reason,
+    int? FranchiseCodeMinutes = null);
 public sealed record SignupOrderListItem(Guid Id, DateTime CreatedAt, string Start, string Status, string BusinessName, string OwnerName,
     string Mobile, string Email, string City, string State, string? PlanCode, string? Interval, int Licences, long AmountMinor, string Currency,
     Guid? CompanyId, string? CompanyCode, string? PaymentProvider, string? PaymentReference, string? FailureReason, DateTime? CompletedAt,
-    DateTime ExpiresAt);
+    DateTime ExpiresAt, string? FranchisorCode = null, bool FranchiseLinked = false, string? FranchiseProblem = null);
 
 /// <summary>
 /// Trovo manages its own catalog from the admin portal: new plans and add-ons, renaming or stopping one, and the
@@ -179,6 +180,7 @@ public partial class PlatformCatalogController(
             if (request.GraceDays is { } grace) values[PlatformSettingsService.GraceDaysKey] = grace;
             if (request.TrialLicences is { } licences) values[PlatformSettingsService.TrialLicencesKey] = licences;
             if (request.RenewalInvoiceDaysBefore is { } renewal) values[PlatformSettingsService.RenewalInvoiceDaysKey] = renewal;
+            if (request.FranchiseCodeMinutes is { } codeMinutes) values[PlatformSettingsService.FranchiseCodeMinutesKey] = codeMinutes;
             if (values.Count == 0) throw new ValidationException("Nothing to change.");
 
             var before = ToDto(await settings.GetAsync(cancellationToken));
@@ -204,6 +206,10 @@ public partial class PlatformCatalogController(
         }
         var orders = await query.OrderByDescending(o => o.CreatedAt).Take(500).ToListAsync(cancellationToken);
         var companyIds = orders.Where(o => o.CompanyId != null).Select(o => o.CompanyId!.Value).ToList();
+        var codeIds = orders.Where(o => o.FranchiseSignupCodeId != null).Select(o => o.FranchiseSignupCodeId!.Value).ToList();
+        var franchisors = await catalog.FranchiseSignupCodes.Where(c => codeIds.Contains(c.Id)).Select(c => new { c.Id, c.FranchisorCompanyId })
+            .ToDictionaryAsync(c => c.Id, c => c.FranchisorCompanyId, cancellationToken);
+        companyIds.AddRange(franchisors.Values);
         var codes = await catalog.Companies.Where(c => companyIds.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Code, cancellationToken);
         var now = DateTime.UtcNow;
         return Ok(orders.Select(o => new SignupOrderListItem(o.Id, o.CreatedAt, o.Start.ToString(),
@@ -211,7 +217,9 @@ public partial class PlatformCatalogController(
             o.BusinessName, o.OwnerName, o.Mobile, o.Email, o.City, o.State, o.PlanCode, o.Interval?.ToString(),
             o.AndroidLicences + o.WindowsLicences + o.BothLicences, o.AmountMinor, o.Currency, o.CompanyId,
             o.CompanyId is { } id && codes.TryGetValue(id, out var code) ? code : null,
-            o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt)).ToList());
+            o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt,
+            o.FranchiseSignupCodeId is { } fc && franchisors.TryGetValue(fc, out var franchisor) && codes.TryGetValue(franchisor, out var fcode) ? fcode : null,
+            o.FranchiseLinkId is not null, o.FranchiseProblem)).ToList());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -231,7 +239,7 @@ public partial class PlatformCatalogController(
         new(dto.CompanyFeeMinor, minimumLicences, dto.AndroidUserPriceMinor, dto.WindowsUserPriceMinor, dto.BothUserPriceMinor,
             features ?? new Dictionary<string, string>());
 
-    private static PlatformSettingsDto ToDto(EffectivePlatformSettings s) => new(s.TrialDays, s.GraceDays, s.TrialLicences, s.RenewalInvoiceDaysBefore);
+    private static PlatformSettingsDto ToDto(EffectivePlatformSettings s) => new(s.TrialDays, s.GraceDays, s.TrialLicences, s.RenewalInvoiceDaysBefore, s.FranchiseCodeMinutes);
 
     private static string ValidCode(string? code)
     {

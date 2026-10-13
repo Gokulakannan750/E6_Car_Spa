@@ -395,6 +395,63 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.ToTable("BillingInvoiceLines", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.FranchiseSignupCode", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FranchisorCompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid?>("ReservedBySignupOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReservedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Scopes")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UsedByCompanyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("FranchisorCompanyId", "CreatedAt");
+
+                    b.ToTable("FranchiseSignupCodes", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PaymentTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -974,6 +1031,19 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Property<string>("FailureReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("FranchiseConsent")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("FranchiseLinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FranchiseProblem")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("FranchiseSignupCodeId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Gstin")
                         .HasMaxLength(15)

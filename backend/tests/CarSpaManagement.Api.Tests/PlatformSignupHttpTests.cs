@@ -83,6 +83,25 @@ public class PlatformSignupHttpTests(PlatformApiHost host) : IClassFixture<Platf
     }
 
     [PostgresFact]
+    public async Task AFranchiseCodeCheck_GivesTheSameAnswerForEveryInvalidCode()
+    {
+        foreach (var code in new[] { "K7QM-4RTX-9PWD", "nope" })
+        {
+            var refused = await host.SendAsync(HttpMethod.Post, "/api/public/signup/franchise-code", null, new { code });
+            Assert.Equal(HttpStatusCode.NotFound, refused.StatusCode);
+            Assert.Equal(FranchiseSignupCodeRules.NotValidMessage, (await Json(refused)).GetProperty("error").GetString());
+        }
+
+        // A sign-up with a code but no consent is refused before anything is created.
+        var noConsent = await host.SendAsync(HttpMethod.Post, "/api/public/signup", null, new
+        {
+            business = Business($"fc-{Guid.NewGuid():N}@sunrise.test", $"7{Random.Shared.Next(100_000_000, 999_999_999)}"),
+            startTrial = true, acceptTerms = true, franchiseCode = "K7QM-4RTX-9PWD", franchiseConsent = false
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, noConsent.StatusCode);
+    }
+
+    [PostgresFact]
     public async Task AFreeTrial_CreatesTheCompanyAtOnce_TheCodesWork_AndOnlyOneTrialPerEmailOrMobile()
     {
         var email = $"trial-{Guid.NewGuid():N}@sunrise.test";

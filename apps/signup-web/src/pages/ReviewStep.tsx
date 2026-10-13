@@ -14,7 +14,7 @@ type Phase = 'review' | 'processing' | 'failed';
 
 export function ReviewStep() {
 	const navigate = useNavigate();
-	const { business, choice, order, setOrder, setResult } = useSignup();
+	const { business, joining, choice, order, setOrder, setResult } = useSignup();
 	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
 	const quote = useQuery({ queryKey: ['quote', choice], queryFn: () => api.quote(choice), retry: false });
 	const [accepted, setAccepted] = useState(false);
@@ -28,7 +28,7 @@ export function ReviewStep() {
 	const pay = useMutation({
 		mutationFn: async () => {
 			// Place the order once (its price is fixed then), then pay it. A retry pays the same order.
-			const placed = order?.orderToken ? order : await api.placeOrder(business, choice, accepted);
+			const placed = order?.orderToken ? order : await api.placeOrder(business, choice, accepted, joining);
 			if (!order?.orderToken) setOrder(placed);
 			setPhase('processing');
 			return api.payTest(placed.orderId, placed.orderToken!);
@@ -146,6 +146,14 @@ export function ReviewStep() {
 								<div>
 									<dt className="text-label text-text-muted">GSTIN</dt>
 									<dd className="font-mono text-text-heading">{business.gstin}</dd>
+								</div>
+							)}
+							{joining.kind === 'franchise' && joining.check && (
+								<div className="sm:col-span-2">
+									<dt className="text-label text-text-muted">Franchise</dt>
+									<dd className="text-text-heading">
+										Joining the franchise network of {joining.check.franchisorName}. They will see: {joining.check.scopes.map((s) => s.label).join(', ')}.
+									</dd>
 								</div>
 							)}
 						</dl>

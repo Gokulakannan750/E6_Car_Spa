@@ -326,6 +326,8 @@ export interface PlatformSettings {
 	graceDays: number;
 	trialLicences: number;
 	renewalInvoiceDaysBefore: number;
+	/** How long a franchise sign-up code works (10 minutes to 7 days). */
+	franchiseCodeMinutes: number;
 }
 
 export interface PlanTermsInput {
@@ -361,4 +363,8 @@ export interface SignupOrder {
 	failureReason: string | null;
 	completedAt: string | null;
 	expiresAt: string;
+	/** Company code of the franchisor whose franchise code was used, if any. */
+	franchisorCode?: string | null;
+	franchiseLinked?: boolean;
+	franchiseProblem?: string | null;
 }

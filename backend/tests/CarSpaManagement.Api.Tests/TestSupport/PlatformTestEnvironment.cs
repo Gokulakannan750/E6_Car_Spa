@@ -55,6 +55,7 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
         services.AddScoped<IAuditLogService, NullAuditLogService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<PlatformAuditService>();
+        services.AddSingleton<Microsoft.Extensions.Hosting.IHostEnvironment>(new TestHostEnvironment());
         Services = services.BuildServiceProvider();
     }
 
@@ -172,6 +173,14 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
             await using var drop = new NpgsqlCommand($"DROP ROLE IF EXISTS \"{role}\"", connection);
             await drop.ExecuteNonQueryAsync();
         }
+    }
+
+    private sealed class TestHostEnvironment : Microsoft.Extensions.Hosting.IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = "Development";
+        public string ApplicationName { get; set; } = "CarSpaManagement.Api.Tests";
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 
     private sealed class NullAuditLogService : IAuditLogService

@@ -85,6 +85,45 @@ test('a failed payment shows the failure screen and lets the customer try again'
 	await expect(page.getByRole('heading', { name: 'Sunrise Detailing is ready' })).toBeVisible();
 });
 
+test('a franchise outlet checks the code, must consent, and is linked when the trial starts', async ({ page }) => {
+	const { api, problems } = await setup(page);
+	await page.goto('/signup');
+	await expect(page.getByRole('radio', { name: /My own car spa/ })).toBeChecked();
+	await page.getByRole('radio', { name: /Joining a franchise network/ }).check();
+
+	await page.getByRole('textbox', { name: /^Franchise code/ }).fill('AAAA-BBBB-CCCC');
+	await page.getByRole('button', { name: 'Check code' }).click();
+	await expect(page.getByText(/This franchise code is not valid/)).toBeVisible();
+
+	await page.getByRole('textbox', { name: /^Franchise code/ }).fill('fran-4cod-e7xy');
+	await page.getByRole('button', { name: 'Check code' }).click();
+	await expect(page.getByText('Franchise of')).toBeVisible();
+	await expect(page.getByText('Financial totals (revenue, collections, jobs, invoices)')).toBeVisible();
+
+	await fillBusiness(page);
+	await page.getByRole('button', { name: 'Continue' }).click();
+	await expect(page.getByText(/Tick the box to allow your franchisor/)).toBeVisible();
+	await page.getByRole('checkbox', { name: 'I allow E6 Car Spa to see these items.' }).check();
+	await page.getByRole('button', { name: 'Continue' }).click();
+
+	await page.getByRole('button', { name: /free trial instead/ }).click();
+	await expect(page.getByRole('heading', { name: 'Your free trial has started' })).toBeVisible();
+	await expect(page.getByText(/Linked to the franchise network of/)).toBeVisible();
+	const sent = api.calls.find((c) => c.path === '/signup')!.body as { franchiseCode: string; franchiseConsent: boolean };
+	expect(sent).toMatchObject({ franchiseCode: 'FRAN-4COD-E7XY', franchiseConsent: true });
+	expect(problems).toEqual([]);
+});
+
+test('adding a branch is not a sign-up: the site explains where to do it', async ({ page }) => {
+	const { api } = await setup(page);
+	await page.goto('/signup');
+	await page.getByRole('radio', { name: /Adding a branch/ }).check();
+	await expect(page.getByText(/not signed up here/)).toBeVisible();
+	await expect(page.getByLabel('Business name')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+	expect(api.calls.filter((c) => c.path.startsWith('/signup'))).toEqual([]);
+});
+
 test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 

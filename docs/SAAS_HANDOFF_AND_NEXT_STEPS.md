@@ -49,7 +49,8 @@ Copy-paste prompt for a new agent session: see §9.
 | Payment gateway | Provider-independent interface; **the gateway with the lowest platform fee**, chosen by the owner before Phase 2.5 (Razorpay is the first candidate) |
 | Email | Not decided yet (needed for Phase 2.6) |
 | Admin portal address | Not decided yet (e.g. `admin.trovotechsolutions.in`) |
-| Branches (one owner, several outlets) | Later; discuss numbering with the first client |
+| Branches (one owner, several outlets) | **Approved 13 Oct** (`docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md`): in-database `Branches` table, Phase 2.9; no branches in a trial; numbering and day-close decided with E6 later |
+| Franchise sign-up code | **Built 13 Oct** (Phase 2.8): franchisor makes a 1-hour single-use code; the new franchisee enters it on the sign-up website, consents, and is linked when its company is created |
 | Franchise | Each franchisee pays Trovo separately; the franchisor sees approved totals read-only |
 
 Full reasoning: `docs/SAAS_PHASE2_PLAN.md` (§1 decisions, §5 lifecycle, §6 entitlements, §7 platform API, §9 security).
@@ -267,6 +268,8 @@ CI (`.github/workflows/ci.yml`) runs backend, Windows, Android and the admin por
   test payment → codes. Strict CSP, state in sessionStorage only, phone-friendly. Vitest, Playwright mocked (CI job
   `signup-web`) and live (`--project=live`: paid → register → Active with the add-on; trial → register; second trial
   refused).
+- ✅ "How are you joining?" on step 1 (own car spa / franchise outlet with code + consent / branch → done in the app)
+  and franchise sign-up codes in both apps (Phase 2.8, see `docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md` §4.2 B).
 - [ ] Before going live: publish the Terms, Refund policy and Privacy pages on trovotechsolutions.in, set
       `VITE_WINDOWS_DOWNLOAD_URL` / `VITE_ANDROID_DOWNLOAD_URL`, real prices in the portal, real gateway (Step B).
 

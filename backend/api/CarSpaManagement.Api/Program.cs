@@ -305,6 +305,18 @@ builder.Services.AddRateLimiter(rateLimiterOptions =>
 				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
 				QueueLimit = 0
 			}));
+	// Checking a franchise sign-up code: strict, against guessing (a code has about 59 bits and lives an hour).
+	rateLimiterOptions.AddPolicy("public-code", httpContext =>
+		RateLimitPartition.GetSlidingWindowLimiter(
+			partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip",
+			factory: _ => new SlidingWindowRateLimiterOptions
+			{
+				PermitLimit = 10,
+				Window = TimeSpan.FromMinutes(10),
+				SegmentsPerWindow = 10,
+				QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+				QueueLimit = 0
+			}));
 	rateLimiterOptions.AddPolicy("public-read", httpContext =>
 		RateLimitPartition.GetSlidingWindowLimiter(
 			partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip",

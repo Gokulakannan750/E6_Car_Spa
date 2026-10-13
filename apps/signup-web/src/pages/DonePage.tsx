@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { CheckCircle2, Download, Info, KeyRound, Lock, Printer, Smartphone } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Info, KeyRound, Lock, Network, Printer, Smartphone } from 'lucide-react';
 import { Page } from '@/components/Frame';
 import { Button, Card, CodeBox } from '@/components/ui';
 import { links } from '@/lib/config';
@@ -44,6 +44,25 @@ export function DonePage() {
 				<div className="mt-8 flex items-start gap-3 rounded-lg border border-action/40 bg-action/10 p-4 text-body text-text-primary">
 					<Info className="mt-0.5 size-5 shrink-0 text-action" aria-hidden />
 					<span>Before the trial ends, choose a plan and pay. If you don't, you get a few more days to pay, then the software becomes read-only. Your data is never deleted.</span>
+				</div>
+			)}
+
+			{result.franchisorName && result.franchiseLinked && (
+				<div className="mt-6 flex items-start gap-3 rounded-lg border border-active/30 bg-active-bg p-4 text-body text-text-primary">
+					<Network className="mt-0.5 size-5 shrink-0 text-active" aria-hidden />
+					<span>
+						Linked to the franchise network of <strong className="text-text-heading">{result.franchisorName}</strong>. You can see and change what they
+						see in the app, under Franchise.
+					</span>
+				</div>
+			)}
+			{result.franchisorName && !result.franchiseLinked && (
+				<div role="status" className="mt-6 flex items-start gap-3 rounded-lg border border-pastdue/40 bg-pastdue-bg p-4 text-body text-text-primary">
+					<AlertTriangle className="mt-0.5 size-5 shrink-0 text-pastdue" aria-hidden />
+					<span>
+						Your company is ready, but it could not be linked to {result.franchisorName}
+						{result.franchiseProblem ? `: ${result.franchiseProblem}` : '.'} Ask your franchisor to send you an invitation from the app.
+					</span>
 				</div>
 			)}
 

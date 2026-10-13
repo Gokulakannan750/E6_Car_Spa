@@ -28,7 +28,9 @@ public sealed record PublicCatalogDto(
 
 public sealed record PublicLicencesDto(int Android, int Windows, int Both);
 public sealed record PublicPlanChoiceDto(string PlanCode, string Interval, PublicLicencesDto Licences, Dictionary<string, int>? AddOns);
-public sealed record PublicSignupRequest(SignupBusiness Business, bool StartTrial, PublicPlanChoiceDto? Plan, bool AcceptTerms);
+public sealed record PublicSignupRequest(SignupBusiness Business, bool StartTrial, PublicPlanChoiceDto? Plan, bool AcceptTerms,
+    string? FranchiseCode = null, bool FranchiseConsent = false);
+public sealed record PublicFranchiseCodeRequest(string Code);
 public sealed record PublicOrderTokenRequest(string Token);
 
 /// <summary>
@@ -43,6 +45,7 @@ public class PublicSignupController(
     CompanyDatabaseProvisioner provisioner,
     PriceQuoteService quotes,
     SignupService signups,
+    FranchiseSignupCodeRedemption franchiseCodes,
     PlatformSettingsService platformSettings,
     IOptions<PlatformOptions> options) : ControllerBase
 {
@@ -118,10 +121,30 @@ public class PublicSignupController(
         return await Guarded(async () =>
         {
             var result = await signups.CreateAsync(
-                new SignupRequest(request.Business, request.StartTrial, request.Plan is null ? null : ToChoice(request.Plan), request.AcceptTerms),
+                new SignupRequest(request.Business, request.StartTrial, request.Plan is null ? null : ToChoice(request.Plan), request.AcceptTerms,
+                    request.FranchiseCode, request.FranchiseConsent),
                 HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken);
             return StatusCode(StatusCodes.Status201Created, result);
         });
+    }
+
+    /// <summary>
+    /// Checks a franchise sign-up code: for a valid one, the franchisor's name and what they ask to see (shown with the
+    /// consent box). Every invalid code gets the same answer; strictly rate-limited against guessing.
+    /// </summary>
+    [HttpPost("signup/franchise-code")]
+    [EnableRateLimiting("public-code")]
+    public async Task<ActionResult<FranchiseCodeCheck>> CheckFranchiseCode([FromBody] PublicFranchiseCodeRequest request, CancellationToken cancellationToken)
+    {
+        if (!Settings.SignupEnabled) return NotFound();
+        try
+        {
+            return Ok((await franchiseCodes.CheckAsync(request.Code, cancellationToken)).Check);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
     }
 
     /// <summary>Test servers only: completes a paid order without taking money.</summary>

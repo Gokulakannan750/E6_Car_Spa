@@ -71,12 +71,22 @@ export class FakeSignupApi {
 		const base = { quote: null, currency: 'INR', expiresAt: new Date(Date.now() + 86_400_000).toISOString(), testPayments: true, registrationCodeExpiresAt: '2026-11-03T00:00:00Z' };
 
 		if (path === '/catalog') return json(200, catalog);
+		if (path === '/signup/franchise-code') {
+			return body.code.replace(/[^A-Z0-9]/gi, '').toUpperCase() === 'FRAN4CODE7XY'
+				? json(200, {
+						franchisorName: 'E6 Car Spa',
+						scopes: [{ scope: 'financial_totals', label: 'Financial totals (revenue, collections, jobs, invoices)', status: 'Requested' }],
+						expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+					})
+				: json(404, { error: 'This franchise code is not valid. It may have expired or been used. Ask your franchisor for a new code.' });
+		}
 		if (path === '/signup/quote') {
 			const total = body.licences.android + body.licences.windows + body.licences.both;
 			return total === 0 ? json(400, { error: 'At least 1 user licence is needed.' }) : json(200, quote(body));
 		}
 		if (path === '/signup' && body.startTrial) {
-			return json(201, { ...base, orderId: 't1', orderToken: 'tok', status: 'Completed', start: 'Trial', amountMinor: 0, companyCode: '0008', registrationCode: 'H3TB-8KWQ-2MZD', trialEndsAt: '2026-10-27T00:00:00Z', paidUntil: null, invoiceNumber: null });
+			const franchise = body.franchiseCode ? { franchisorName: 'E6 Car Spa', franchiseLinked: body.franchiseConsent === true, franchiseProblem: null } : {};
+			return json(201, { ...base, orderId: 't1', orderToken: 'tok', status: 'Completed', start: 'Trial', amountMinor: 0, companyCode: '0008', registrationCode: 'H3TB-8KWQ-2MZD', trialEndsAt: '2026-10-27T00:00:00Z', paidUntil: null, invoiceNumber: null, ...franchise });
 		}
 		if (path === '/signup') {
 			const q = quote(body.plan);

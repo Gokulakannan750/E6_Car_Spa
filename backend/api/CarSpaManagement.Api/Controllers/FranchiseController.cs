@@ -8,8 +8,28 @@ namespace CarSpaManagement.Api.Controllers;
 /// <summary>The franchise network: links between this company and the companies it franchises, or that franchise it.</summary>
 [ApiController]
 [Route("api/franchise")]
-public class FranchiseController(IFranchiseService franchiseService, IFranchiseReports franchiseReports) : ControllerBase
+public class FranchiseController(IFranchiseService franchiseService, IFranchiseReports franchiseReports, IFranchiseSignupCodeService signupCodes) : ControllerBase
 {
+    /// <summary>The franchisor's franchise sign-up codes (for new franchisees using Trovo's sign-up website).</summary>
+    [HttpGet("signup-codes")]
+    [RequirePermission("franchise.view")]
+    public async Task<IActionResult> GetSignupCodes(CancellationToken ct) =>
+        Ok(await signupCodes.ListAsync(ct));
+
+    /// <summary>A new code; the code itself is in this answer only.</summary>
+    [HttpPost("signup-codes")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> CreateSignupCode([FromBody] CreateFranchiseSignupCodeRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        return Ok(await signupCodes.CreateAsync(request, ct));
+    }
+
+    [HttpPost("signup-codes/{id:guid}/cancel")]
+    [RequirePermission("franchise.manage")]
+    public async Task<IActionResult> CancelSignupCode(Guid id, CancellationToken ct) =>
+        Ok(await signupCodes.CancelAsync(id, ct));
+
     /// <summary>What the signed-in company can do here; the apps use it to decide whether to show the Franchise section.</summary>
     [HttpGet("access")]
     [Microsoft.AspNetCore.Authorization.Authorize]

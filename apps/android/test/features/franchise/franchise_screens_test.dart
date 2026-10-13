@@ -11,6 +11,79 @@ void main() {
   setUpAll(disableFontDownloads);
 
   group('Franchise screen', () {
+    FranchiseSignupCode signupCode(
+      String id,
+      String status, {
+      String? usedBy,
+    }) => FranchiseSignupCode(
+      id: id,
+      label: 'Code $id',
+      scopes: const [],
+      status: status,
+      createdAt: DateTime(2026, 10, 13, 9),
+      expiresAt: DateTime(2026, 10, 13, 10),
+      usedByCompanyName: usedBy,
+    );
+
+    testWidgets('franchise sign-up codes: hidden when not available', (
+      tester,
+    ) async {
+      useTallScreen(tester);
+      final repo = FakeFranchiseRepository();
+      await tester.pumpWidget(
+        franchiseApp(home: const FranchiseScreen(), repo: repo),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('franchise_signup_codes')), findsNothing);
+    });
+
+    testWidgets(
+      'franchise sign-up codes: make one with a note, see it once, withdraw an open one',
+      (tester) async {
+        useTallScreen(tester);
+        final repo = FakeFranchiseRepository()
+          ..signupCodes = FranchiseSignupCodes(
+            available: true,
+            lifetimeMinutes: 60,
+            codes: [
+              signupCode('used', 'Used', usedBy: 'E6 Salem'),
+              signupCode('open', 'Open'),
+            ],
+          );
+        await tester.pumpWidget(
+          franchiseApp(home: const FranchiseScreen(), repo: repo),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const Key('franchise_signup_codes')), findsOneWidget);
+        expect(
+          find.textContaining('A code works once, for 1 hour'),
+          findsOneWidget,
+        );
+        expect(find.textContaining('E6 Salem'), findsOneWidget);
+        expect(find.byKey(const Key('franchise_withdraw_used')), findsNothing);
+
+        await tester.enterText(
+          find.byKey(const Key('franchise_code_label')),
+          'Salem',
+        );
+        await tester.ensureVisible(
+          find.byKey(const Key('franchise_make_code')),
+        );
+        await tester.tap(find.byKey(const Key('franchise_make_code')));
+        await tester.pumpAndSettle();
+        expect(repo.calls, contains('code:Salem:financial_totals'));
+        expect(find.text('K7QM-4RTX-9PWD'), findsOneWidget);
+
+        await tester.ensureVisible(
+          find.byKey(const Key('franchise_withdraw_open')),
+        );
+        await tester.tap(find.byKey(const Key('franchise_withdraw_open')));
+        await tester.pumpAndSettle();
+        expect(repo.calls, contains('withdraw:open'));
+      },
+    );
+
     testWidgets('a company without the add-on is told it is not switched on', (
       tester,
     ) async {

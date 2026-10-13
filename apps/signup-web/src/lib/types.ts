@@ -105,4 +105,24 @@ export interface SignupResult {
 	trialEndsAt: string | null;
 	paidUntil: string | null;
 	invoiceNumber: string | null;
+	franchisorName?: string | null;
+	franchiseLinked?: boolean;
+	franchiseProblem?: string | null;
+}
+
+/** How the business joins: its own car spa, a franchise outlet (with the franchisor's code) or a branch (in the app). */
+export type JoiningKind = 'own' | 'franchise' | 'branch';
+
+export interface FranchiseCodeCheck {
+	franchisorName: string;
+	scopes: { scope: string; label: string }[];
+	expiresAt: string;
+}
+
+export interface Joining {
+	kind: JoiningKind;
+	code: string;
+	/** The checked code's franchisor and requested items, or null until checked. */
+	check: FranchiseCodeCheck | null;
+	consent: boolean;
 }

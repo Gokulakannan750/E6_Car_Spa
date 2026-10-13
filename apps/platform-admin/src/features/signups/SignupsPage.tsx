@@ -161,8 +161,21 @@ export function SignupsPage() {
 								{ label: 'Status', value: <StatusBadge status={selected.status} /> },
 								{ label: 'Payment', value: selected.paymentProvider ? `${selected.paymentProvider} · ${selected.paymentReference ?? ''}` : '—' },
 								{ label: 'Company', value: selected.companyCode ?? '—' },
+								...(selected.franchisorCode
+									? [
+											{
+												label: 'Franchise',
+												value: selected.franchiseLinked
+													? `Linked to ${selected.franchisorCode} (franchise code)`
+													: `Franchise code of ${selected.franchisorCode}${selected.completedAt ? ' — not linked' : ''}`,
+											},
+										]
+									: []),
 							]}
 						/>
+						{selected.franchiseProblem && (
+							<p className="rounded-md border border-pastdue/40 bg-pastdue-bg px-3 py-2 text-label text-text-primary">Franchise link not made: {selected.franchiseProblem}</p>
+						)}
 						{selected.failureReason && (
 							<p className="rounded-md border border-danger-strong/40 bg-danger-strong/10 px-3 py-2 text-label text-danger">What went wrong: {selected.failureReason}</p>
 						)}

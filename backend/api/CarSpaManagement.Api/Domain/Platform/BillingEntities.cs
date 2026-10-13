@@ -711,4 +711,70 @@ public class SignupOrder
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+
+    /// <summary>The franchise sign-up code the business used (reserved for this order), if any.</summary>
+    public Guid? FranchiseSignupCodeId { get; set; }
+
+    /// <summary>The business ticked "I allow the franchisor to see this" for the code's items.</summary>
+    public bool FranchiseConsent { get; set; }
+
+    /// <summary>The franchise link made when the company was created.</summary>
+    public Guid? FranchiseLinkId { get; set; }
+
+    /// <summary>Why the franchise link could not be made (the company was still created, as an independent company).</summary>
+    [MaxLength(300)]
+    public string? FranchiseProblem { get; set; }
+}
+
+/// <summary>
+/// A code a franchisor gives a new franchisee to use on the sign-up website, so the new company is linked to the
+/// franchisor as soon as it is created. Only a hash is kept; the code is shown once. Short-lived and single-use.
+/// While a paid order waits for payment the code is reserved for that order.
+/// </summary>
+public class FranchiseSignupCode
+{
+    public Guid Id { get; set; }
+    public Guid FranchisorCompanyId { get; set; }
+
+    /// <summary>SHA-256 of the normalised code (see <c>RegistrationCodes.Normalize</c>).</summary>
+    [Required, MaxLength(64)]
+    public string CodeHash { get; set; } = string.Empty;
+
+    /// <summary>The items the franchisor asks to see (FranchiseScopes), comma-separated.</summary>
+    [Required, MaxLength(200)]
+    public string Scopes { get; set; } = string.Empty;
+
+    /// <summary>The franchisor's own note, e.g. "Salem — Ramesh".</summary>
+    [MaxLength(80)]
+    public string? Label { get; set; }
+
+    public Guid? CreatedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime ExpiresAt { get; set; }
+
+    public Guid? ReservedBySignupOrderId { get; set; }
+
+    /// <summary>The reservation lasts as long as the order can still be paid.</summary>
+    public DateTime? ReservedUntil { get; set; }
+
+    public DateTime? UsedAt { get; set; }
+    public Guid? UsedByCompanyId { get; set; }
+    public DateTime? CancelledAt { get; set; }
+
+    public FranchiseSignupCodeStatus StatusAt(DateTime now) =>
+        CancelledAt is not null ? FranchiseSignupCodeStatus.Cancelled
+        : UsedAt is not null ? FranchiseSignupCodeStatus.Used
+        : ReservedUntil > now ? FranchiseSignupCodeStatus.Reserved
+        : ExpiresAt > now ? FranchiseSignupCodeStatus.Open
+        : FranchiseSignupCodeStatus.Expired;
+}
+
+public enum FranchiseSignupCodeStatus
+{
+    Open,
+    /// <summary>Entered in a paid order that has not been paid yet.</summary>
+    Reserved,
+    Used,
+    Expired,
+    Cancelled
 }

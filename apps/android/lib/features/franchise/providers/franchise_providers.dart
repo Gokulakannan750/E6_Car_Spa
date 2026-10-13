@@ -21,6 +21,17 @@ final franchiseAccessProvider = FutureProvider.autoDispose<FranchiseAccess>((
   }
 });
 
+/// The franchisor's franchise sign-up codes; "unavailable" (and so hidden) when they cannot be loaded.
+final franchiseSignupCodesProvider =
+    FutureProvider.autoDispose<FranchiseSignupCodes>((ref) async {
+      ref.watch(currentUserProvider);
+      try {
+        return await ref.watch(franchiseRepositoryProvider).getSignupCodes();
+      } catch (_) {
+        return FranchiseSignupCodes.unavailable;
+      }
+    });
+
 final franchiseNetworkProvider = FutureProvider.autoDispose<FranchiseNetwork>((
   ref,
 ) {

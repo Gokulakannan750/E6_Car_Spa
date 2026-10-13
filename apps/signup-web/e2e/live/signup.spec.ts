@@ -76,3 +76,53 @@ test('a free trial creates the company at once, and only one trial per mobile', 
 	await page.getByRole('button', { name: /free trial instead/ }).click();
 	await expect(page.getByText(/already used with this email or mobile/)).toBeVisible();
 });
+
+test('a franchisor makes a code in the app, and a new franchisee who uses it is linked at once', async ({ page, request }) => {
+	// The franchisor: a paid sign-up with the Franchise network add-on, then registered and signed in like the app.
+	await fillBusiness(page, `E2E Franchisor ${run}`, `franchisor-${run}@e2e.test`, mobile('7'));
+	await page.getByRole('radio', { name: /^Professional/ }).click();
+	await page.getByRole('radio', { name: /Monthly/ }).click();
+	await page.getByRole('checkbox', { name: /^Franchise network/ }).check();
+	await page.getByRole('button', { name: 'Continue to payment' }).click();
+	await page.getByRole('checkbox').check();
+	await page.getByRole('button', { name: /Pay .* \(test\)/ }).click();
+	await expect(page.getByRole('heading', { name: `E2E Franchisor ${run} is ready` })).toBeVisible({ timeout: 60_000 });
+	const franchisorCodes = await codesShown(page);
+	const password = `E2e#Owner${run}`;
+	expect((await request.post(`${base}/api/auth/register`, {
+		data: { companyCode: franchisorCodes.company, registrationCode: franchisorCodes.registration, fullName: 'Franchisor Owner', username: 'owner', password, confirmPassword: password },
+	})).status()).toBe(201);
+	const login = await request.post(`${base}/api/auth/login`, { data: { companyCode: franchisorCodes.company, username: 'owner', password, app: 'windows' } });
+	const auth = { Authorization: `Bearer ${(await login.json()).token}` };
+
+	const made = await request.post(`${base}/api/franchise/signup-codes`, { headers: auth, data: { scopes: ['financial_totals', 'invoice_list'], label: 'E2E' } });
+	expect(made.status(), await made.text()).toBe(200);
+	const franchiseCode = (await made.json()).code as string;
+
+	// The franchisee: chooses "Joining a franchise network", checks the code, consents and starts the trial.
+	await page.evaluate(() => sessionStorage.clear());
+	await page.goto('/signup');
+	await page.getByRole('radio', { name: /Joining a franchise network/ }).check();
+	await page.getByRole('textbox', { name: /^Franchise code/ }).fill(franchiseCode.toLowerCase());
+	await page.getByRole('button', { name: 'Check code' }).click();
+	await expect(page.getByText(`Franchise of E2E Franchisor ${run}`)).toBeVisible();
+	await page.getByRole('checkbox', { name: `I allow E2E Franchisor ${run} to see these items.` }).check();
+	await page.getByLabel('Business name').fill(`E2E Franchisee ${run}`);
+	await page.getByLabel('Your name').fill('E2E Franchisee');
+	await page.getByLabel('Mobile number').fill(mobile('6'));
+	await page.getByLabel('Email').fill(`franchisee-${run}@e2e.test`);
+	await page.getByLabel('City').fill('Salem');
+	await page.getByLabel('State').selectOption('Tamil Nadu');
+	await page.getByRole('button', { name: 'Continue' }).click();
+	await page.getByRole('button', { name: /free trial instead/ }).click();
+	await expect(page.getByRole('heading', { name: 'Your free trial has started' })).toBeVisible({ timeout: 60_000 });
+	await expect(page.getByText(/Linked to the franchise network of/)).toBeVisible();
+
+	// The franchisor sees the new franchisee in its network, active, with both items allowed; the code is used.
+	const networkBody = await (await request.get(`${base}/api/franchise`, { headers: auth })).json();
+	const franchisee = networkBody.franchisees.find((l: { partnerName: string }) => l.partnerName === `E2E Franchisee ${run}`);
+	expect(franchisee.status).toBe('Active');
+	expect(franchisee.scopes.map((s: { status: string }) => s.status)).toEqual(['Granted', 'Granted']);
+	const codesBody = await (await request.get(`${base}/api/franchise/signup-codes`, { headers: auth })).json();
+	expect(codesBody.codes[0].status).toBe('Used');
+});

@@ -25,7 +25,7 @@ function useDebounced<T>(value: T, ms = 250): T {
 
 export function PlanStep() {
 	const navigate = useNavigate();
-	const { business, choice, setChoice, setResult } = useSignup();
+	const { business, joining, choice, setChoice, setResult } = useSignup();
 	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
 	const debounced = useDebounced(choice);
 	const totalLicences = choice.licences.android + choice.licences.windows + choice.licences.both;
@@ -37,7 +37,7 @@ export function PlanStep() {
 		placeholderData: (previous) => previous,
 	});
 	const trial = useMutation({
-		mutationFn: () => api.startTrial(business),
+		mutationFn: () => api.startTrial(business, joining),
 		onSuccess: (result) => {
 			setResult(result);
 			navigate('/signup/done');

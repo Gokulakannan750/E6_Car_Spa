@@ -14,6 +14,7 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		endFranchiseLink: vi.fn(),
 		requestFranchiseScopes: vi.fn(),
 		createFranchiseLink: vi.fn(),
+		getFranchiseSignupCodes: vi.fn().mockResolvedValue({ available: false, lifetimeMinutes: 0, codes: [] }),
 	};
 });
 

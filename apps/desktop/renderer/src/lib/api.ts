@@ -3285,6 +3285,42 @@ export async function decideFranchiseScope(linkId: string, scope: string, grant:
 	);
 }
 
+export type FranchiseSignupCodeStatus = 'Open' | 'Reserved' | 'Used' | 'Expired' | 'Cancelled';
+
+/** A franchise sign-up code as the franchisor sees it (the code itself is shown only once, when made). */
+export interface FranchiseSignupCodeDto {
+	id: string;
+	label: string | null;
+	scopes: FranchiseScopeDto[];
+	status: FranchiseSignupCodeStatus;
+	createdAt: string;
+	expiresAt: string;
+	usedAt: string | null;
+	usedByCompanyName: string | null;
+}
+
+export interface FranchiseSignupCodesDto {
+	/** False on a single-company server (no sign-up website). */
+	available: boolean;
+	lifetimeMinutes: number;
+	codes: FranchiseSignupCodeDto[];
+}
+
+export async function getFranchiseSignupCodes() {
+	return request<FranchiseSignupCodesDto>('/api/franchise/signup-codes', {}, 'view the franchise codes');
+}
+
+export async function createFranchiseSignupCode(data: { scopes: string[]; label?: string }) {
+	return request<{ code: string; item: FranchiseSignupCodeDto }>('/api/franchise/signup-codes', {
+		method: 'POST',
+		body: JSON.stringify(data),
+	}, 'make a franchise code');
+}
+
+export async function cancelFranchiseSignupCode(id: string) {
+	return request<FranchiseSignupCodeDto>(`/api/franchise/signup-codes/${encodeURIComponent(id)}/cancel`, { method: 'POST' }, 'withdraw the franchise code');
+}
+
 export interface PublicBusinessProfileDto {
 	businessName: string;
 	logoPath: string | null;

@@ -31,7 +31,7 @@
 | Admin portal | **Separate web app** with its own login and 2-step verification, deployed separately from the customer apps | Schema plan |
 | First login | Trovo creates the company, and the customer registers with **company code + one-time registration code** | User, 12 Oct (built in 2.1) |
 | More products | The catalog has **Products**, so Trovo's other software can use the same platform later | User, 12 Oct (built in 2.1) |
-| Branches (one owner, several outlets) | **Later.** Discuss with the first client. | User, 12 Oct |
+| Branches (one owner, several outlets) | **Approved design** (`docs/SAAS_FRANCHISE_VS_BRANCH_DESIGN.md`): in-database `Branches`, Phase 2.9, not in trials; numbering decided with E6 later. Franchise sign-up code built (Phase 2.8). | User, 13 Oct |
 | Billing intervals | **Monthly and yearly** for every plan and add-on (yearly = 2 months free, per the price draft) | User, 12 Oct |
 | GST on Trovo invoices | **None for now**: Trovo has no GSTIN. Invoices are titled "Invoice" (not "Tax Invoice"), with tax 0. A platform setting (GSTIN + rate) switches GST on later, for new invoices only. Note: GST registration is required once turnover passes the threshold (₹20 lakh/year for services); confirm with your accountant. | User, 12 Oct |
 | After cancellation | Read-only for **90 days**, then data deleted on request | User, 12 Oct |

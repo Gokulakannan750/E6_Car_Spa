@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace CarSpaManagement.Api.Infrastructure.Platform;
 
 /// <summary>The business settings in force: the server's defaults (PlatformOptions) overridden by what Trovo saved.</summary>
-public sealed record EffectivePlatformSettings(int TrialDays, int GraceDays, int TrialLicences, int RenewalInvoiceDaysBefore);
+public sealed record EffectivePlatformSettings(int TrialDays, int GraceDays, int TrialLicences, int RenewalInvoiceDaysBefore, int FranchiseCodeMinutes = 60);
 
 /// <summary>
 /// Settings Trovo changes from the admin portal without a new server release. Each has limits so a typing mistake
@@ -19,6 +19,7 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
     public const string GraceDaysKey = "grace_days";
     public const string TrialLicencesKey = "trial_licences";
     public const string RenewalInvoiceDaysKey = "renewal_invoice_days_before";
+    public const string FranchiseCodeMinutesKey = "franchise_code_minutes";
 
     /// <summary>Each setting with its allowed range.</summary>
     public static readonly IReadOnlyDictionary<string, (int Min, int Max)> Limits = new Dictionary<string, (int, int)>
@@ -27,6 +28,8 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
         [GraceDaysKey] = (0, 60),
         [TrialLicencesKey] = (1, 50),
         [RenewalInvoiceDaysKey] = (1, 30),
+        // 10 minutes to 7 days.
+        [FranchiseCodeMinutesKey] = (10, 10_080),
     };
 
     private const string CacheKey = "platform:settings";
@@ -46,7 +49,8 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
             Read(TrialDaysKey, defaults.TrialDays),
             Read(GraceDaysKey, defaults.GraceDays),
             Read(TrialLicencesKey, defaults.TrialLicences),
-            Read(RenewalInvoiceDaysKey, defaults.RenewalInvoiceDaysBefore));
+            Read(RenewalInvoiceDaysKey, defaults.RenewalInvoiceDaysBefore),
+            Read(FranchiseCodeMinutesKey, defaults.FranchiseCodeMinutes));
         cache.Set(CacheKey, effective, TimeSpan.FromSeconds(30));
         return effective;
     }

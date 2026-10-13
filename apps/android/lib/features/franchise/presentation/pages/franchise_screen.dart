@@ -19,6 +19,7 @@ import '../../data/franchise_repository.dart';
 import '../../export/franchise_excel.dart';
 import '../../models/franchise_models.dart';
 import '../../providers/franchise_providers.dart';
+import '../widgets/franchise_signup_codes.dart';
 import '../widgets/franchise_widgets.dart';
 
 /// The franchise workspace for a company that gives franchises to others: its network of invited companies, and the
@@ -269,6 +270,7 @@ class _NetworkTabState extends ConsumerState<_NetworkTab> {
                     }
                   }, success: 'Your request was made.'),
                 ),
+            FranchiseSignupCodesCard(canManage: canManage),
           ],
         ),
       ),

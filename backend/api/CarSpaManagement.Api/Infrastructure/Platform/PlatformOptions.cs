@@ -98,6 +98,9 @@ public class PlatformOptions
 
     /// <summary>How long an unpaid sign-up order can still be paid.</summary>
     public int SignupOrderHours { get; set; } = 24;
+
+    /// <summary>Default lifetime of a franchise sign-up code in minutes (Trovo can change it in the admin portal).</summary>
+    public int FranchiseCodeMinutes { get; set; } = 60;
 }
 
 /// <summary>

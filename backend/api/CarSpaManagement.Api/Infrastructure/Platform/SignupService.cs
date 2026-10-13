@@ -14,7 +14,12 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 public sealed record SignupBusiness(string Name, string OwnerName, string Mobile, string Email, string City, string State, string? Gstin);
 
 /// <summary>A sign-up: the business, and either a free trial or a plan to pay for.</summary>
-public sealed record SignupRequest(SignupBusiness Business, bool StartTrial, PlanChoice? Plan, bool AcceptTerms);
+/// <summary>
+/// A sign-up: the business, and either a free trial or a plan to pay for. With a franchise sign-up code, the business
+/// must also consent to the franchisor seeing the code's items.
+/// </summary>
+public sealed record SignupRequest(SignupBusiness Business, bool StartTrial, PlanChoice? Plan, bool AcceptTerms,
+    string? FranchiseCode = null, bool FranchiseConsent = false);
 
 /// <summary>What the website shows after a sign-up step. Codes are present only once, when the company is created.</summary>
 public sealed record SignupResult(
@@ -32,7 +37,10 @@ public sealed record SignupResult(
     DateTime? RegistrationCodeExpiresAt = null,
     DateTime? TrialEndsAt = null,
     DateTime? PaidUntil = null,
-    string? InvoiceNumber = null);
+    string? InvoiceNumber = null,
+    string? FranchisorName = null,
+    bool FranchiseLinked = false,
+    string? FranchiseProblem = null);
 
 /// <summary>
 /// Businesses signing up on the public website. A trial creates the company at once; a paid order fixes the price,
@@ -46,6 +54,7 @@ public sealed partial class SignupService(
     BillingInvoiceService invoices,
     PriceQuoteService quotes,
     PlatformAuditService audit,
+    FranchiseSignupCodeRedemption franchiseCodes,
     IHostEnvironment environment,
     IOptions<PlatformOptions> options)
 {
@@ -99,6 +108,7 @@ public sealed partial class SignupService(
 
             order.Start = SignupStart.Trial;
             order.Status = SignupStatus.Processing;
+            await ReserveFranchiseCodeAsync(request, order, now.AddMinutes(15), cancellationToken);
             catalog.SignupOrders.Add(order);
             await catalog.SaveChangesAsync(cancellationToken);
 
@@ -120,6 +130,7 @@ public sealed partial class SignupService(
                 throw new ConflictException("We could not set up your trial just now. Please try again in a few minutes or call Trovo.");
             }
 
+            var franchise = await LinkFranchiseAsync(order, created.Company.Id, cancellationToken);
             order.Status = SignupStatus.Completed;
             order.CompanyId = created.Company.Id;
             order.CompletedAt = DateTime.UtcNow;
@@ -130,7 +141,8 @@ public sealed partial class SignupService(
             Log.Information("Sign-up: trial started for company {Code} (order {OrderId})", created.Company.Code, order.Id);
 
             return new SignupResult(order.Id, token, order.Status, order.Start, null, 0, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
-                created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, subscription.TrialEndsAt);
+                created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, subscription.TrialEndsAt,
+                FranchisorName: franchise.Name, FranchiseLinked: franchise.Linked, FranchiseProblem: order.FranchiseProblem);
         }
 
         if (request.Plan is not { } choice) throw new ValidationException("Choose a plan, or start the free trial.");
@@ -147,12 +159,43 @@ public sealed partial class SignupService(
         order.AmountMinor = quote.TotalMinor;
         order.Currency = quote.Currency;
         order.QuoteJson = JsonSerializer.Serialize(quote.Lines);
+        await ReserveFranchiseCodeAsync(request, order, order.ExpiresAt, cancellationToken);
         catalog.SignupOrders.Add(order);
         await catalog.SaveChangesAsync(cancellationToken);
         Log.Information("Sign-up: order {OrderId} for {Plan} awaits payment of {Amount}", order.Id, quote.PlanCode, quote.TotalMinor);
 
-        return new SignupResult(order.Id, token, order.Status, order.Start, quote, order.AmountMinor, order.Currency, order.ExpiresAt, TestPaymentsAllowed);
+        return new SignupResult(order.Id, token, order.Status, order.Start, quote, order.AmountMinor, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
+            FranchisorName: await FranchisorNameAsync(order, cancellationToken));
     }
+
+    /// <summary>Checks the consent and reserves the franchise code for this order (before anything is created).</summary>
+    private async Task ReserveFranchiseCodeAsync(SignupRequest request, SignupOrder order, DateTime until, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.FranchiseCode)) return;
+        if (!request.FranchiseConsent)
+        {
+            throw new ValidationException("Tick the box to allow your franchisor to see the listed items, or sign up as your own car spa.");
+        }
+        order.FranchiseSignupCodeId = await franchiseCodes.ReserveAsync(request.FranchiseCode, order.Id, until, cancellationToken);
+        order.FranchiseConsent = true;
+    }
+
+    /// <summary>Links the new company to the franchisor, if a code was used. The company is kept either way.</summary>
+    private async Task<(string? Name, bool Linked)> LinkFranchiseAsync(SignupOrder order, Guid companyId, CancellationToken cancellationToken)
+    {
+        if (order.FranchiseSignupCodeId is null) return (null, false);
+        var (linkId, problem) = await franchiseCodes.LinkAsync(order, companyId, cancellationToken);
+        order.FranchiseLinkId = linkId;
+        order.FranchiseProblem = problem;
+        return (await FranchisorNameAsync(order, cancellationToken), linkId is not null);
+    }
+
+    private async Task<string?> FranchisorNameAsync(SignupOrder order, CancellationToken cancellationToken) =>
+        order.FranchiseSignupCodeId is { } codeId
+            ? await catalog.FranchiseSignupCodes.Where(c => c.Id == codeId)
+                .Join(catalog.Companies, c => c.FranchisorCompanyId, co => co.Id, (c, co) => co.Name)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
 
     /// <summary>
     /// The "Pay (test)" button: completes a paid order as if the payment had arrived. Refused unless test payments are
@@ -211,6 +254,7 @@ public sealed partial class SignupService(
             await subscriptions.RecordPaymentAsync(invoice.Id, invoice.TotalMinor, provider, reference, now,
                 new SubscriptionActor(PlatformActorType.Gateway), cancellationToken);
 
+            var franchise = await LinkFranchiseAsync(order, created.Company.Id, cancellationToken);
             order.Status = SignupStatus.Completed;
             order.CompanyId = created.Company.Id;
             order.CompletedAt = DateTime.UtcNow;
@@ -223,7 +267,8 @@ public sealed partial class SignupService(
             Log.Information("Sign-up: order {OrderId} paid ({Provider}); company {Code} created", order.Id, provider, created.Company.Code);
 
             return new SignupResult(order.Id, null, order.Status, order.Start, null, order.AmountMinor, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
-                created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, null, subscription.CurrentPeriodEnd, invoice.InvoiceNumber);
+                created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, null, subscription.CurrentPeriodEnd, invoice.InvoiceNumber,
+                franchise.Name, franchise.Linked, order.FranchiseProblem);
         }
         catch (Exception ex)
         {
@@ -260,7 +305,8 @@ public sealed partial class SignupService(
                 lines, lines.Sum(l => l.AmountMinor), order.AmountMinor - lines.Sum(l => l.AmountMinor), null, order.AmountMinor, order.Currency, null)
             : null;
         return new SignupResult(order.Id, null, order.Status, order.Start, quote, order.AmountMinor, order.Currency, order.ExpiresAt,
-            TestPaymentsAllowed, code);
+            TestPaymentsAllowed, code, FranchisorName: await FranchisorNameAsync(order, cancellationToken),
+            FranchiseLinked: order.FranchiseLinkId is not null, FranchiseProblem: order.FranchiseProblem);
     }
 
     private async Task<SignupOrder> FindAsync(Guid orderId, string? token, CancellationToken cancellationToken)

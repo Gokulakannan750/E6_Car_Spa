@@ -14,6 +14,7 @@ import {
 	type FranchiseLinkDto,
 	type FranchiseLinkStatus,
 } from '../../lib/api';
+import { FranchiseSignupCodes } from './FranchiseSignupCodes';
 
 export const FRANCHISE_QUERY_KEY = ['franchise-network'] as const;
 
@@ -221,6 +222,8 @@ export function FranchisePage() {
 					)}
 				</section>
 			)}
+
+			{data?.franchiseEnabled && <FranchiseSignupCodes canManage={canManage} />}
 		</div>
 	);
 }

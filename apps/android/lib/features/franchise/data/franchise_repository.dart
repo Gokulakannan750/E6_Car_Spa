@@ -30,6 +30,16 @@ class FranchiseRepository {
 
   Future<FranchiseAccess> getAccess() => _guard(_api.getAccess);
 
+  Future<FranchiseSignupCodes> getSignupCodes() => _guard(_api.getSignupCodes);
+
+  Future<CreatedFranchiseSignupCode> createSignupCode(
+    List<String> scopes,
+    String? label,
+  ) => _guard(() => _api.createSignupCode(scopes, label));
+
+  Future<FranchiseSignupCode> cancelSignupCode(String id) =>
+      _guard(() => _api.cancelSignupCode(id));
+
   Future<FranchiseNetwork> getNetwork() => _guard(_api.getNetwork);
 
   Future<FranchiseInviteResult> sendInvite(

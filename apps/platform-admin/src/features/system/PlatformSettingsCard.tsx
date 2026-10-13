@@ -13,6 +13,7 @@ const FIELDS: { key: keyof PlatformSettings; label: string; hint: string; min: n
 	{ key: 'trialLicences', label: 'Users during the trial', hint: 'Windows + Android licences a trial company gets.', min: 1, max: 50 },
 	{ key: 'graceDays', label: 'Grace after an unpaid period (days)', hint: 'Full access with a warning, then read-only.', min: 0, max: 60 },
 	{ key: 'renewalInvoiceDaysBefore', label: 'Renewal invoice (days before)', hint: 'When the next invoice is issued.', min: 1, max: 30 },
+	{ key: 'franchiseCodeMinutes', label: 'Franchise code lifetime (minutes)', hint: 'How long a franchise sign-up code works. 60 = 1 hour.', min: 10, max: 10080 },
 ];
 
 export function PlatformSettingsCard() {

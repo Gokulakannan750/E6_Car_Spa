@@ -28,6 +28,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
     public DbSet<PlatformAdmin> Admins => Set<PlatformAdmin>();
     public DbSet<PlatformSetting> Settings => Set<PlatformSetting>();
     public DbSet<SignupOrder> SignupOrders => Set<SignupOrder>();
+    public DbSet<FranchiseSignupCode> FranchiseSignupCodes => Set<FranchiseSignupCode>();
     public DbSet<PlatformAuditLog> AuditLogs => Set<PlatformAuditLog>();
     public DbSet<PlatformCounter> Counters => Set<PlatformCounter>();
 
@@ -94,6 +95,12 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasIndex(o => new { o.ProductId, o.Email });
             e.HasIndex(o => new { o.ProductId, o.Mobile });
             e.HasIndex(o => o.CompanyId);
+        });
+        modelBuilder.Entity<FranchiseSignupCode>(e =>
+        {
+            e.ToTable("FranchiseSignupCodes");
+            e.HasIndex(c => c.CodeHash).IsUnique();
+            e.HasIndex(c => new { c.FranchisorCompanyId, c.CreatedAt });
         });
         modelBuilder.Entity<PlanEntitlement>(e =>
         {

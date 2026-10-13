@@ -44,7 +44,9 @@ a module the plan already includes, a module added twice.
                 "email": "arun@sunrise.in", "city": "Erode", "state": "Tamil Nadu", "gstin": null },
   "startTrial": false,
   "plan": { "planCode": "starter", "interval": "Year", "licences": { "android": 2, "windows": 0, "both": 1 }, "addOns": { "outside_jobs": 1 } },
-  "acceptTerms": true
+  "acceptTerms": true,
+  "franchiseCode": null,
+  "franchiseConsent": false
 }
 ```
 - **Free trial** (`startTrial: true`, no `plan`): the company is created at once. 201 with `status: "Completed"`,
@@ -55,6 +57,17 @@ a module the plan already includes, a module added twice.
   `testPayments`. **No company exists yet.**
 - 400 messages for the fields (shown under the inputs): business name, your name, "Enter a 10-digit mobile number.",
   email, city, state, GSTIN format, "Please accept the Terms and the Refund policy."
+- **Franchise outlet** (optional `franchiseCode` + `franchiseConsent: true`): the code is checked and reserved for this
+  order (a trial links at once; a paid order links on payment). Without consent: 400. An invalid code: 404 with the
+  same message as the check below. The result then also has `franchisorName`, `franchiseLinked` and, if the link could
+  not be made (code withdrawn, franchisor lapsed or full), `franchiseProblem`. The company is created either way.
+
+### `POST /api/public/signup/franchise-code`
+Body `{ "code": "K7QM-4RTX-9PWD" }` (case, spaces and dashes ignored). For a valid open code: 200 with
+`franchisorName`, `scopes` (`scope`, `label`) and `expiresAt`, shown with the consent box. Every invalid, expired,
+used, withdrawn or reserved code gets the same 404 message. Rate limit `public-code`: 10 per 10 minutes per address.
+Codes are made by the franchisor in the Windows/Android app (`/api/franchise/signup-codes`), stored only as a hash,
+single-use, 1 hour by default (`franchise_code_minutes` in the admin portal's settings).
 
 ### `POST /api/public/signup/{orderId}/test-payment` — test servers only
 Body `{ "token": "<orderToken>" }`. Completes the order as if paid: creates the company with the chosen plan, licences

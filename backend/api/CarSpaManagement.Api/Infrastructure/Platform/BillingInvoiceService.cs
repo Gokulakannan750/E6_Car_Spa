@@ -60,7 +60,9 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
                 count, version.UserPriceMinor(access), sort++));
         }
 
-        foreach (var item in subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart))
+        // Add-ons in name order, so the same subscription always gives the same invoice.
+        foreach (var item in subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart)
+                     .OrderBy(i => i.AddOnPrice?.AddOn?.Name, StringComparer.OrdinalIgnoreCase))
         {
             var price = item.AddOnPrice ?? throw new InvalidOperationException("Subscription item prices are not loaded.");
             if (price.Currency != version.Currency)
