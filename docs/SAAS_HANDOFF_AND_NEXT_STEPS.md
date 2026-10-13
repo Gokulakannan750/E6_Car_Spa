@@ -42,6 +42,7 @@ Copy-paste prompt for a new agent session: see §9.
 | Cancel | Read-only for 90 days, then data deleted on request |
 | Pricing (13 Oct) | **Per user licence**, by app: Android only, Windows only, or Windows + Android (one person on both apps = one licence). Bought **one at a time**; every plan includes **at least 1**. A user can sign in only to the apps their licence covers; the company Owner assigns licences to users. Plans: Starter and Professional (Professional includes Outside jobs, Staff advances & salary, WhatsApp automation, Advanced reports, Audit trail). **Starter can buy each of those five as an add-on**; a plan never pays twice for a module. Showroom and Franchise network are add-ons. **Excel/CSV export is free in every plan.** **Real prices: not decided yet** — the seeded prices are placeholders; the owner sets them in Plans & Prices |
 | Configuration | Prices, plans, add-ons, trial days, trial users, grace days and renewal-invoice days are set by Trovo in the admin portal. Only the list of features and the licence types are in code |
+| More products (13 Oct) | **One admin portal and one catalog for all Trovo products.** Civil ERP will be a second product in the same portal (product switcher), not a second portal. Plan: §6 Step E. Start only when the Civil ERP project starts |
 | Money | Integer paise + currency everywhere |
 | GST | Trovo has **no GSTIN**: no GST, invoices titled "Invoice". Seller name **"Trovo Tech Solutions"** (never "Private Limited") |
 | Payment gateway | Provider-independent interface; **the gateway with the lowest platform fee**, chosen by the owner before Phase 2.5 (Razorpay is the first candidate) |
@@ -322,7 +323,92 @@ app like the portal); whether sign-up may start a trial without talking to Trovo
 - Branches inside one company (several outlets, per-branch access and numbering): discuss with the first client.
 - GST switch-on when Trovo registers (`Platform:Gstin`, rate; new invoices only).
 - Deleting a canceled company's data after 90 days on request (with export first).
-- More Trovo products on the same catalog (Products table exists).
+- More Trovo products (first: Civil ERP): see Step E below.
+
+### Step E: More Trovo products on one platform (first: Civil ERP) — when that project starts (estimate 1–2 weeks)
+
+**Decision (owner, 13 Oct 2026):** Trovo keeps **one admin portal** and **one catalog database** for all its products.
+Do **not** build a second admin portal or a second billing system for Civil ERP. Reasons: one set of staff logins and
+2-step verification, one audit log, **one invoice series** (`TROVO/{FY}/{n}`, one legal business), one place to record
+payments and see revenue, and every improvement (payment gateway, email, reports) built once.
+
+**Do not start this before the owner says the Civil ERP project has started.** Car spa goes live first (Steps A2–D).
+
+#### What already supports several products
+
+- Catalog table `Products` (`PlatformProduct`: Key, Name). `Plans`, `AddOns` and `Companies` each have `ProductId`.
+- Company databases are named per product: `{productKey}_t_{code}` (car spa: `carspa_t_0001`; Civil ERP would get
+  `civilerp_t_0001`), each with its own login.
+- `PlatformAdmins`, `PlatformAuditLogs`, `BillingInvoices` (numbering via `PlatformCounters`), `PaymentTransactions` are
+  not per product: shared on purpose.
+
+#### What is still single-product (to change)
+
+1. **The server serves one product:** `Platform:ProductKey` (default `carspa`) is read in about 18 places
+   (`PlatformCompaniesController`, `PlatformAdminController`, `PlatformBillingController`, `PlatformCatalogController`,
+   `CompanyDatabaseProvisioner`, `CompanyRegistrationService`…). Company and code lookups assume that one product.
+2. **The admin portal has no product choice:** every screen shows the one product.
+3. **The feature list is in code and is car-spa specific:** `FeatureKeys` in `Domain/Platform/BillingEntities.cs`, the
+   permission→feature map `PlanFeatureMap` (API), `featureForPermission` (Windows), `PlanFeatures` (Android).
+4. **The subscription engine lives inside the car spa API:** catalog, `SubscriptionService`, entitlements, licences,
+   invoices, payments, platform admin sign-in, lifecycle worker, provisioner. Civil ERP needs the same engine.
+5. **Billing account is per company:** a customer who buys car spa *and* Civil ERP would get two billing accounts.
+
+#### Target design
+
+```
+Trovo Admin Portal (one website) ── product switcher: Car Spa | Civil ERP | All products
+        │
+Trovo Platform service (one)      catalog DB: products, product features, plans, add-ons, licences,
+  /api/platform/* (admins)        companies, customers/billing accounts, subscriptions, invoices,
+  /api/billing/* (gateway)        payments, admins, audit, settings (per product where it matters)
+  /api/signup/*  (later)
+        │  "what may company X use?" (entitlements)   "register company X with its code"
+   ┌────┴─────────────┐
+Car Spa API        Civil ERP API          each product keeps its own API, apps, company databases
+carspa_t_0001…     civilerp_t_0001…       and business rules; neither touches the other's databases
+```
+
+#### Tasks (in this order, each tested before the next)
+
+1. **Product in every platform request.** Replace `Platform:ProductKey` lookups in the admin API with a product chosen
+   per request (`?product=carspa`, or "all" for lists). Company codes stay unique **per product** (0001 can exist in
+   both). Keep `Platform:ProductKey` only as the product a *product API* serves.
+2. **Product features in the catalog.** New table `ProductFeatures` (ProductId, Key, Name, ValueType, IsModule,
+   SortOrder). Seed car spa's current `FeatureKeys` into it unchanged (same keys, so nothing breaks). Plans, add-ons,
+   `PlanVersionFactory` and the portal read the list from there. Each product API still maps its own permissions to its
+   own feature keys in code (that mapping belongs to the product).
+3. **Portal product switcher.** Top bar selector, remembered per admin (local preference). Plans & Prices, Companies,
+   Invoices, Dashboard, Audit log filter by it; "All products" adds a Product column. New company asks for the product.
+   New plan / New add-on use that product's features.
+4. **Customers above companies (optional, ask the owner).** New `Customers` (billing party: name, GSTIN, address,
+   contacts) with `BillingAccount` moved to it; a company belongs to a customer. One customer can then hold a car spa
+   company and a Civil ERP company, on one invoice or one per product (owner decides).
+5. **Move the engine into the Trovo Platform service.** New project `backend/platform/` (ASP.NET Core) that owns the
+   catalog DB, `/api/platform/*`, billing, the lifecycle worker and provisioning. Product APIs get entitlements and
+   registration from it through a small typed client (`IPlatformClient`, cached like today's
+   `PlatformEntitlementService`), or by reading the catalog read-only through a shared library — choose the client
+   approach unless hosting forces otherwise. Car spa must keep working at every step (run both suites).
+6. **Civil ERP onboarding.** Add product `civilerp` with its features, plans, licence prices and add-ons (data, in the
+   portal). Its API uses the same registration-code flow, per-app licences (if Civil ERP has Windows/Android apps) and
+   the same subscription banner endpoint.
+
+#### Decisions needed from the owner (ask before starting)
+
+1. Civil ERP's apps: web, Windows, Android? (Decides which licence types it uses.)
+2. Civil ERP's modules (its feature list) and plans.
+3. One invoice for a customer with both products, or one per product?
+4. Same trial/grace settings for every product, or per product?
+5. Hosting: both product APIs and the platform service on one server to start (recommended), or separate?
+
+#### Done when
+
+- The portal switches between Car Spa and Civil ERP; each shows only its plans, companies and invoices; "All" shows
+  everything with a Product column.
+- A Civil ERP company can be created, registered with its codes, invoiced and paid, with car spa unaffected.
+- One admin login, one audit log and one invoice series cover both products.
+- All car spa suites still pass; new tests cover product separation (a car spa admin view never lists Civil ERP
+  companies unless "All" is chosen; company codes may repeat across products; entitlements never mix products).
 
 ---
 
