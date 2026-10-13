@@ -24,6 +24,7 @@ scratch/
 !apps/desktop/renderer/src/assets/**
 !apps/desktop/renderer/public/**
 !apps/platform-admin/public/**
+!apps/signup-web/public/**
 !apps/android/assets/**
 *.pdb
 *.deps.json
@@ -73,3 +74,5 @@ key.properties
 # Playwright output
 apps/platform-admin/test-results/
 apps/platform-admin/playwright-report/
+apps/signup-web/test-results/
+apps/signup-web/playwright-report/

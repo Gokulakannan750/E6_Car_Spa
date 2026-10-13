@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>Trovo Car Spa Management</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-primary-fixed-variant": "#004395", "tertiary-fixed-dim": "#45dfa4", "secondary": "#ffb3ad", "primary-fixed-dim": "#adc6ff", "surface-bright": "#39393c", "on-secondary-fixed": "#410004", "surface-variant": "#353438", "on-background": "#e4e1e6", "on-primary-fixed": "#001a42", "on-secondary-fixed-variant": "#930013", "on-tertiary-fixed-variant": "#005137", "surface-container-highest": "#353438", "on-tertiary": "#003825", "secondary-container": "#a40217", "tertiary-container": "#00a574", "on-tertiary-container": "#003120", "on-primary-container": "#00285d", "surface-tint": "#adc6ff", "on-surface-variant": "#c2c6d6", "tertiary": "#45dfa4", "on-primary": "#002e6a", "surface-container-lowest": "#0e0e11", "outline": "#8c909f", "outline-variant": "#424754", "tertiary-fixed": "#68fcbf", "on-error": "#690005", "on-error-container": "#ffdad6", "surface-container": "#1f1f22", "secondary-fixed-dim": "#ffb3ad", "surface-container-low": "#1b1b1e", "on-surface": "#e4e1e6", "primary-fixed": "#d8e2ff", "error-container": "#93000a", "surface-container-high": "#2a2a2d", "error": "#ffb4ab", "inverse-surface": "#e4e1e6", "on-secondary": "#68000a", "inverse-on-surface": "#303033", "background": "#131316", "on-secondary-container": "#ffaea8", "inverse-primary": "#005ac2", "on-tertiary-fixed": "#002114", "primary": "#adc6ff", "secondary-fixed": "#ffdad7", "surface-dim": "#131316", "surface": "#131316", "primary-container": "#4d8eff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "margin": "1rem", "gutter-desktop": "1.5rem", "space-md": "1rem", "space-xs": "0.25rem", "space-sm": "0.5rem", "space-lg": "1.5rem", "margin-desktop": "2rem", "space-xl": "2rem", "gutter": "1rem" }, "fontFamily": { "headline-md": ["Inter"], "body-md": ["Inter"], "headline-lg-mobile": ["Inter"], "body-lg": ["Inter"], "headline-xl": ["Inter"], "headline-xl-mobile": ["Inter"], "headline-sm": ["Inter"], "body-sm": ["Inter"], "label-lg": ["Inter"], "label-md": ["Inter"], "label-sm": ["Inter"], "headline-lg": ["Inter"] }, "fontSize": { "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }], "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }], "body-lg": ["16px", { "lineHeight": "24px", "letterSpacing": "0em", "fontWeight": "400" }], "headline-xl": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-xl-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }], "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" }], "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "400" }], "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500" }], "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }], "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }], "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.015em", "fontWeight": "600" }] } } } };</script></head><body class="bg-surface font-body-md text-on-surface antialiased min-h-screen flex flex-col"><header class="fixed top-0 left-0 right-0 z-50 bg-[#09090B] border-b border-white/[0.08]"><div class="h-16 max-w-[1120px] mx-auto px-margin md:px-margin-desktop flex items-center justify-between"><div class="flex items-center gap-space-md"><div class="w-9 h-9 rounded-lg bg-gradient-to-br from-[#2563EB] to-[#EF4444] flex items-center justify-center p-[2px] shadow-[0_0_16px_rgba(37,99,235,0.35)]"><div class="w-full h-full bg-[#09090B] rounded-[6px] flex items-center justify-center"><span class="material-symbols-outlined text-primary text-[20px]">local_car_wash</span></div></div><div class="flex flex-col"><span class="font-headline-sm text-headline-sm tracking-tight text-white leading-none">Trovo</span><span class="font-label-sm text-label-sm text-on-surface-variant font-medium mt-0.5 tracking-wider uppercase">Car Spa Management</span></div></div><nav class="hidden lg:flex items-center gap-space-lg" data-active-classes="bg-primary-container text-on-primary-container font-medium rounded-lg"><a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" data-path="overview" href="#">Overview</a><a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" data-path="bay-workflow" href="#">Bay Workflow</a><a class="text-on-surface-variant hover:text-on-surface transition-colors font-body-md text-body-md" data-path="subscriptions" href="#">Subscriptions</a></nav><div class="flex items-center gap-space-md"><a class="hidden sm:inline-flex text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-colors" data-path="download-app" href="#">Already registered? Download the app</a><span class="hidden md:inline-block w-px h-4 bg-outline-variant/40"></span><span class="hidden md:inline-flex items-center gap-space-xs font-label-md text-label-md text-on-surface-variant"><span class="material-symbols-outlined text-[16px] text-tertiary">call</span>Contact: +91 90426 72148</span><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div><div class="bg-[#111113] border-t border-white/[0.04]"><div class="max-w-[1120px] mx-auto px-margin md:px-margin-desktop py-space-sm"><div class="flex items-center justify-between max-w-2xl mx-auto"><div class="flex items-center gap-space-sm"><div class="w-6 h-6 rounded-full bg-tertiary-container/20 border border-tertiary/40 flex items-center justify-center"><span class="material-symbols-outlined text-tertiary text-[14px]">check</span></div><span class="font-label-md text-label-md text-white font-medium">1. Your business</span></div><div class="flex-1 h-px bg-white/[0.08] mx-space-sm"></div><div class="flex items-center gap-space-sm"><div class="w-6 h-6 rounded-full bg-tertiary-container/20 border border-tertiary/40 flex items-center justify-center"><span class="material-symbols-outlined text-tertiary text-[14px]">check</span></div><span class="font-label-md text-label-md text-white font-medium">2. Plan &amp; users</span></div><div class="flex-1 h-px bg-white/[0.08] mx-space-sm"></div><div class="flex items-center gap-space-sm"><div class="w-6 h-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-sm text-label-sm font-bold shadow-[0_0_12px_rgba(77,142,255,0.4)]">3</div><span class="font-label-md text-label-md text-primary font-semibold">3. Review &amp; pay</span></div></div></div></div></header><main class="w-full pt-28 pb-space-xl flex-1 bg-surface"><div class="max-w-[1120px] mx-auto px-margin md:px-margin-desktop"><div class="flex flex-col w-full">
+<!-- Subtle Ambient Glow -->
+<div class="relative w-full">
+<div class="absolute -top-16 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<div class="absolute top-48 right-10 w-80 h-80 bg-secondary/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<!-- Title Section -->
+<div class="mb-space-xl">
+<div class="inline-flex items-center gap-space-xs px-2.5 py-1 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm uppercase tracking-wider mb-space-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+        Final Step
+      </div>
+<h1 class="font-headline-xl text-headline-xl text-white tracking-tight">Review your subscription &amp; pay</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-1">Step 3 of 3 — Check your details before completing registration.</p>
+</div>
+<!-- Main 2-Column Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-desktop items-start">
+<!-- Left Column: Business & Plan Details (~65%) -->
+<div class="lg:col-span-7 flex flex-col gap-space-lg">
+<!-- Card 1: Your Business -->
+<section class="bg-surface-container rounded-xl p-space-lg shadow-xl relative overflow-hidden transition-all duration-200 hover:shadow-2xl">
+<div class="flex items-center justify-between pb-space-md mb-space-md border-b border-white/[0.06]">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">storefront</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-white">Your business</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Profile &amp; tax information</p>
+</div>
+</div>
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:text-primary-fixed transition-colors py-2 px-3 rounded-lg hover:bg-surface-container-high" data-path="step-1-business" href="#">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+              Edit
+            </a>
+</div>
+<!-- Business Metadata Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-y-space-md gap-x-space-lg">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Business Name</span>
+<span class="font-headline-sm text-headline-sm text-white mt-0.5">Sunrise Detailing</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Contact Person</span>
+<span class="font-body-lg text-body-lg text-white font-medium mt-0.5">Arun Kumar</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Mobile Number</span>
+<div class="flex items-center gap-space-xs mt-0.5">
+<span class="font-body-md text-body-md text-white font-medium">+91 98765 43210</span>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[13px]">verified</span>
+                  Verified
+                </span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email</span>
+<span class="font-body-md text-body-md text-white font-medium mt-0.5 truncate">arun@sunrisedetailing.in</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Operational Hub</span>
+<div class="flex items-center gap-1 text-white mt-0.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">location_on</span>
+<span class="font-body-md text-body-md">Erode, Tamil Nadu</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">GSTIN Number</span>
+<div class="flex items-center gap-2 mt-0.5">
+<span class="font-body-md text-body-md font-mono text-white tracking-wide">33ABCDE1234F1Z5</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Standard</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Card 2: Your Plan & Licences -->
+<section class="bg-surface-container rounded-xl p-space-lg shadow-xl relative overflow-hidden transition-all duration-200 hover:shadow-2xl">
+<div class="flex items-center justify-between pb-space-md mb-space-md border-b border-white/[0.06]">
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">badge</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-white">Your plan &amp; licences</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Selected modules, terminals &amp; billing cadence</p>
+</div>
+</div>
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:text-primary-fixed transition-colors py-2 px-3 rounded-lg hover:bg-surface-container-high" data-path="step-2-plan" href="#">
+<span class="material-symbols-outlined text-[16px]">edit</span>
+              Edit
+            </a>
+</div>
+<!-- Plan Badge & Cycle Banner -->
+<div class="p-space-md rounded-lg bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm">
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-white">Professional Plan</span>
+<span class="px-2 py-0.5 rounded-full bg-primary/20 text-primary-fixed font-label-sm text-label-sm font-semibold uppercase tracking-wider">Most popular</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Automotive studio suite configured for multi-bay shops</p>
+</div>
+<div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-tertiary-container/20 text-tertiary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              Yearly · 2 Months Free
+            </div>
+</div>
+<!-- Licences Itemized Breakdown -->
+<div class="mt-space-md">
+<div class="flex items-center justify-between mb-space-xs">
+<span class="font-label-md text-label-md text-white font-semibold">Allocated User Licences</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3 Total Users</span>
+</div>
+<div class="space-y-2.5">
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/60">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-md bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">devices</span>
+</div>
+<div>
+<span class="font-body-md text-body-md text-white font-medium block">1 × Windows + Android app licence</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Primary counter workstation + Mobile sync</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-body-md text-body-md font-semibold text-white">&amp;#8377;14,990</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">/year</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/60">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-md bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">phone_android</span>
+</div>
+<div>
+<span class="font-body-md text-body-md text-white font-medium block">2 × Android only app licence</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Bay operators &amp; floor supervisor terminals</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-body-md text-body-md font-semibold text-white">&amp;#8377;15,980</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">/year</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Included Modules & Add-ons -->
+<div class="mt-space-md pt-space-md border-t border-white/[0.06]">
+<span class="font-label-md text-label-md text-white font-semibold block mb-space-sm">Configured Enterprise Add-ons</span>
+<div class="flex items-center justify-between p-3 rounded-lg bg-surface-container-high/60 mb-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-md bg-surface-container-highest flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">handshake</span>
+</div>
+<div>
+<span class="font-body-md text-body-md text-white font-medium block">Showroom / B2B Dealership Module</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">PDI tracking, bulk showroom billing &amp; gate-pass automation</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-body-md text-body-md font-semibold text-white">&amp;#8377;9,990</span>
+<span class="block font-body-sm text-body-sm text-on-surface-variant">/year</span>
+</div>
+</div>
+<!-- Core Stack Pills -->
+<div class="p-3.5 rounded-lg bg-surface-container-low">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block mb-2">Standard Inclusions (Professional Plan)</span>
+<div class="flex flex-wrap gap-1.5">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check_circle</span>
+                  WhatsApp automation
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check_circle</span>
+                  Outside jobs &amp; vendors
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check_circle</span>
+                  Staff advances &amp; salary
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check_circle</span>
+                  Advanced reports
+                </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-high text-on-surface font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-tertiary text-[14px]">check_circle</span>
+                  Audit trail
+                </span>
+</div>
+</div>
+</div>
+</section>
+<!-- Legal & Terms Checkbox Container -->
+<div class="bg-surface-container-low rounded-xl p-space-md border border-white/[0.06] shadow-sm">
+<label class="flex items-start gap-3 cursor-pointer group select-none">
+<input checked="" class="mt-1 w-5 h-5 rounded bg-surface-container border-outline-variant text-primary focus:ring-0 focus:ring-offset-0 transition cursor-pointer" id="terms-agree" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface leading-snug">
+              I agree to the <a class="text-primary hover:underline font-medium" data-path="terms-modal" href="#">Terms of Service</a> and the <a class="text-primary hover:underline font-medium" data-path="refund-modal" href="#">Refund policy</a> (includes a hassle-free 14-day refund window on annual subscriptions).
+            </span>
+</label>
+</div>
+<!-- Security & Guarantee Visual Ribbon -->
+<div class="flex items-center gap-space-sm p-3.5 rounded-xl bg-tertiary-container/10 border border-tertiary/20 text-on-surface">
+<div class="w-8 h-8 rounded-full bg-tertiary/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary text-[20px]">verified_user</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-1">
+<span class="font-label-md text-label-md text-white font-medium">256-bit encrypted checkout</span>
+<span class="font-body-sm text-body-sm text-tertiary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">bolt</span>
+              Instant activation on Windows &amp; Android
+            </span>
+</div>
+</div>
+</div>
+<!-- Right Column: Sticky Amount to Pay Card (~35%) -->
+<div class="lg:col-span-5">
+<aside class="sticky top-24 bg-surface-container rounded-xl p-space-lg shadow-2xl border border-white/[0.08] relative">
+<!-- Accent highlight top line -->
+<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#2563EB] to-[#EF4444] rounded-t-xl"></div>
+<div class="flex items-center justify-between pb-space-sm mb-space-md border-b border-white/[0.06]">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block">Order Summary</span>
+<h2 class="font-headline-md text-headline-md text-white">Amount to pay</h2>
+</div>
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+</div>
+</div>
+<!-- Subscription Period Pill -->
+<div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-low mb-space-md">
+<span class="material-symbols-outlined text-primary text-[18px]">date_range</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Validity Period</span>
+<span class="font-label-md text-label-md text-white font-medium">20 Oct 2026 – 19 Oct 2027 (1 Year)</span>
+</div>
+</div>
+<!-- Cost Line Items -->
+<div class="space-y-3 pb-space-md border-b border-white/[0.06]">
+<div class="flex items-center justify-between text-body-md">
+<span class="text-on-surface-variant flex items-center gap-1">
+                Windows + Android licence <span class="text-on-surface font-mono text-xs">(1×)</span>
+</span>
+<span class="text-white font-medium">&amp;#8377;14,990</span>
+</div>
+<div class="flex items-center justify-between text-body-md">
+<span class="text-on-surface-variant flex items-center gap-1">
+                Android only licences <span class="text-on-surface font-mono text-xs">(2×)</span>
+</span>
+<span class="text-white font-medium">&amp;#8377;15,980</span>
+</div>
+<div class="flex items-center justify-between text-body-md">
+<span class="text-on-surface-variant flex items-center gap-1">
+                Showroom / B2B module
+              </span>
+<span class="text-white font-medium">&amp;#8377;9,990</span>
+</div>
+</div>
+<!-- Total Calculation -->
+<div class="py-space-md flex flex-col gap-1">
+<div class="flex items-baseline justify-between">
+<span class="font-body-md text-body-md text-on-surface-variant">Total per year</span>
+<div class="text-right">
+<span class="font-headline-xl text-headline-xl text-white font-bold tracking-tight">&amp;#8377;40,960</span>
+</div>
+</div>
+<div class="flex items-center justify-between mt-1">
+<span class="font-body-sm text-body-sm text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">savings</span>
+                Includes 2 months free saving
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">No GST charged</span>
+</div>
+</div>
+<!-- Billing Entity Details -->
+<div class="p-2.5 rounded-lg bg-surface-container-low mb-space-lg flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[16px] shrink-0">apartment</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant truncate">
+              Billed by Trovo Tech Solutions · Erode, Tamil Nadu
+            </span>
+</div>
+<!-- Payment Methods Accepted Grid -->
+<div class="mb-space-lg">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider block mb-2">Supported Payment Modes</span>
+<div class="flex flex-wrap items-center gap-2 text-on-surface-variant">
+<div class="px-2.5 py-1 rounded bg-surface-container-high border border-white/[0.05] font-label-sm text-label-sm text-white font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span> UPI (GPay, PhonePe, Paytm)
+              </div>
+<div class="px-2.5 py-1 rounded bg-surface-container-high border border-white/[0.05] font-label-sm text-label-sm text-white">
+                Net Banking
+              </div>
+<div class="px-2.5 py-1 rounded bg-surface-container-high border border-white/[0.05] font-label-sm text-label-sm text-white font-semibold">
+                RuPay
+              </div>
+<div class="px-2.5 py-1 rounded bg-surface-container-high border border-white/[0.05] font-label-sm text-label-sm text-white font-semibold">
+                Visa
+              </div>
+<div class="px-2.5 py-1 rounded bg-surface-container-high border border-white/[0.05] font-label-sm text-label-sm text-white font-semibold">
+                Mastercard
+              </div>
+</div>
+</div>
+<!-- Big Conversion Action CTA -->
+<button class="w-full min-h-[48px] h-12 rounded-lg text-white font-semibold text-lg flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all duration-200 hover:brightness-110 active:scale-[0.99] cursor-pointer" id="pay-submit-btn" style="background: linear-gradient(135deg, #2563EB 0%, #EF4444 100%);" type="button">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+            Pay &amp;#8377;40,960
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<!-- Post-Checkout Assurance -->
+<div class="mt-space-md flex items-start gap-2.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">key</span>
+<p class="font-body-sm text-body-sm leading-relaxed">
+              You'll get your company code and registration code immediately after payment confirmation.
+            </p>
+</div>
+<!-- Step Back Anchor -->
+<div class="mt-space-md pt-space-md border-t border-white/[0.06] text-center">
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-on-surface-variant hover:text-white transition-colors" data-path="step-2-plan" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+              Back to plan &amp; users
+            </a>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function() {
+    const payBtn = document.getElementById('pay-submit-btn');
+    const termsCheckbox = document.getElementById('terms-agree');
+
+    if (payBtn && termsCheckbox) {
+      function syncButtonState() {
+        if (!termsCheckbox.checked) {
+          payBtn.disabled = true;
+          payBtn.style.opacity = '0.5';
+          payBtn.style.cursor = 'not-allowed';
+          payBtn.style.boxShadow = 'none';
+        } else {
+          payBtn.disabled = false;
+          payBtn.style.opacity = '1';
+          payBtn.style.cursor = 'pointer';
+          payBtn.style.boxShadow = '0 0 20px rgba(37, 99, 235, 0.4)';
+        }
+      }
+
+      termsCheckbox.addEventListener('change', syncButtonState);
+
+      payBtn.addEventListener('click', function(e) {
+        if (!termsCheckbox.checked) {
+          e.preventDefault();
+          return;
+        }
+        payBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">progress_activity</span> Initializing Secure Gateway...';
+      });
+    }
+  })();
+</script></div></main><footer class="w-full bg-[#09090B] border-t border-white/[0.08] py-space-xl"><div class="max-w-[1120px] mx-auto px-margin md:px-margin-desktop flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="font-body-sm text-body-sm text-on-surface-variant text-center md:text-left">© 2026 Trovo Tech Solutions · Erode, Tamil Nadu</div><div class="flex flex-wrap items-center justify-center gap-x-space-md gap-y-space-xs font-body-sm text-body-sm text-on-surface-variant"><a class="hover:text-on-surface transition-colors" data-path="terms" href="#">Terms</a><span>·</span><a class="hover:text-on-surface transition-colors" data-path="privacy-policy" href="#">Privacy policy</a><span>·</span><a class="hover:text-on-surface transition-colors" data-path="refund-policy" href="#">Refund policy</a><span>·</span><a class="hover:text-on-surface transition-colors" data-path="contact" href="#">Contact</a><span>·</span><a class="hover:text-primary transition-colors" href="mailto:info@trovotechsolutions.in">info@trovotechsolutions.in</a></div></div></footer></body></html>

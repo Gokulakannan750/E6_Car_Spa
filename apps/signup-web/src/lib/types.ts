@@ -1,0 +1,108 @@
+// Shapes of the public sign-up API (docs/SIGNUP_API.md). Money is in paise.
+
+export type Interval = 'Month' | 'Year';
+export type LicenceKey = 'both' | 'windows' | 'android';
+
+export interface Licences {
+	android: number;
+	windows: number;
+	both: number;
+}
+
+export interface Prices {
+	companyFeeMinor: number;
+	androidUserPriceMinor: number;
+	windowsUserPriceMinor: number;
+	bothUserPriceMinor: number;
+}
+
+export interface PublicPlan {
+	code: string;
+	name: string;
+	minimumLicences: number;
+	modules: string[];
+	monthly: Prices | null;
+	yearly: Prices | null;
+}
+
+export interface PublicAddOn {
+	code: string;
+	name: string;
+	featureKey: string;
+	isPack: boolean;
+	perUnit: number;
+	monthlyPriceMinor: number | null;
+	yearlyPriceMinor: number | null;
+}
+
+export interface PublicCatalog {
+	productName: string;
+	plans: PublicPlan[];
+	addOns: PublicAddOn[];
+	trialDays: number;
+	trialLicences: number;
+	graceDays: number;
+	chargesGst: boolean;
+	gstRatePercent: number | null;
+	testPayments: boolean;
+	sellerName: string;
+	sellerPhone: string;
+	sellerEmail: string;
+}
+
+export interface PlanChoice {
+	planCode: string;
+	interval: Interval;
+	licences: Licences;
+	addOns: Record<string, number>;
+}
+
+export interface QuoteLine {
+	description: string;
+	quantity: number;
+	unitPriceMinor: number;
+	amountMinor: number;
+}
+
+export interface Quote {
+	planCode: string;
+	planName: string;
+	interval: Interval;
+	lines: QuoteLine[];
+	subtotalMinor: number;
+	taxMinor: number;
+	taxRatePercent: number | null;
+	totalMinor: number;
+	currency: string;
+	cheaper: { planCode: string; planName: string; totalMinor: number } | null;
+}
+
+export interface Business {
+	name: string;
+	ownerName: string;
+	mobile: string;
+	email: string;
+	city: string;
+	state: string;
+	gstin: string;
+}
+
+export type OrderStatus = 'AwaitingPayment' | 'Completed' | 'Expired' | 'NeedsAttention' | 'Processing';
+
+export interface SignupResult {
+	orderId: string;
+	orderToken: string | null;
+	status: OrderStatus;
+	start: 'Trial' | 'Paid';
+	quote: Quote | null;
+	amountMinor: number;
+	currency: string;
+	expiresAt: string;
+	testPayments: boolean;
+	companyCode: string | null;
+	registrationCode: string | null;
+	registrationCodeExpiresAt: string | null;
+	trialEndsAt: string | null;
+	paidUntil: string | null;
+	invoiceNumber: string | null;
+}

@@ -2,7 +2,7 @@
 
 Server side for the public website where a business picks a plan, user licences and add-ons, pays (or starts the free
 trial) and gets its company code + registration code. Built 13 Oct 2026 on branch `feature/saas-user-licences`. The
-website screens come from the Stitch designs (`docs/STITCH_PROMPTS_SIGNUP.md`).
+website screens come from the Stitch designs (`docs/STITCH_PROMPTS_SIGNUP.md`); the website is `apps/signup-web`.
 
 Code: `Controllers/Platform/PublicSignupController.cs`, `Infrastructure/Platform/SignupService.cs`,
 `Infrastructure/Platform/PriceQuoteService.cs`, table `SignupOrders` (catalog). Tests: `PlatformSignupHttpTests.cs`.
@@ -79,5 +79,5 @@ admin portal).
 
 ## Not built yet
 
-The website itself (waiting for the Stitch export to `design/stitch-signup/`), email verification and emails (Phase
+Email verification and emails (Phase
 2.6), the real payment gateway (Phase 2.5).
