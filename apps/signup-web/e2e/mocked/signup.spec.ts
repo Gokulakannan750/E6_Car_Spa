@@ -124,6 +124,27 @@ test('adding a branch is not a sign-up: the site explains where to do it', async
 	expect(api.calls.filter((c) => c.path.startsWith('/signup'))).toEqual([]);
 });
 
+for (const width of [320, 390, 768, 1366]) {
+	test(`header keeps the product return link usable at ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 844 });
+		await setup(page);
+		await page.goto('/');
+		const header = page.getByRole('banner');
+		const back = header.getByRole('link', { name: 'About Baylior' });
+		const brand = header.getByRole('link', { name: 'Baylior home' });
+		const contact = header.getByRole('link', { name: /Call Trovo/ });
+		await expect(back).toBeVisible();
+		await expect(back).toHaveAttribute('href', (await page.getByRole('contentinfo').getByRole('link', { name: 'About Baylior' }).getAttribute('href'))!);
+		await back.focus();
+		await expect(back).toBeFocused();
+		const [logoBox, backBox, contactBox] = await Promise.all([brand.boundingBox(), back.boundingBox(), contact.boundingBox()]);
+		expect(logoBox!.x + logoBox!.width).toBeLessThanOrEqual(backBox!.x);
+		expect(backBox!.x + backBox!.width).toBeLessThanOrEqual(contactBox!.x);
+		expect(contactBox!.x + contactBox!.width).toBeLessThanOrEqual(width);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+	});
+}
+
 test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 

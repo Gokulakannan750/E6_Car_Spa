@@ -8,22 +8,22 @@ const PHONE = '+91 90426 72148';
 export function Header() {
 	return (
 		<header className="no-print border-b border-border-hairline">
-			<div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between gap-4 px-4 sm:px-6">
-				<Link to="/" className="flex items-center" aria-label="Baylior home">
-					<img src="/brand/baylior-lockup-on-dark.svg" alt="Baylior Business Suite" className="h-10 w-auto" />
+			<div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
+				<Link to="/" className="flex shrink-0 items-center" aria-label="Baylior home">
+					<img src="/brand/baylior-lockup-on-dark.svg" alt="Baylior Business Suite" className="h-8 w-auto sm:h-10" />
 				</Link>
-				<nav aria-label="Help" className="flex items-center gap-4 text-label">
-					<a href={links.product} className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading md:inline-flex">
-						<ArrowLeft className="size-3.5" aria-hidden /> About Baylior
+				<nav aria-label="Help" className="flex items-center gap-2 text-label sm:gap-4">
+					<a href={links.product} aria-label="About Baylior" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap text-text-secondary hover:text-text-heading">
+						<ArrowLeft className="size-3.5" aria-hidden /> <span><span className="hidden sm:inline">About </span>Baylior</span>
 					</a>
 					{(links.windowsDownload || links.androidDownload) && (
-						<a href="#apps" className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading sm:inline-flex">
+						<a href="#apps" className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading lg:inline-flex">
 							<Download className="size-3.5" aria-hidden /> Already registered? Download the app
 						</a>
 					)}
-					<a href={`tel:${PHONE.replace(/\s/g, '')}`} className="inline-flex items-center gap-1.5 text-text-secondary hover:text-text-heading">
+					<a href={`tel:${PHONE.replace(/\s/g, '')}`} aria-label={`Call Trovo on ${PHONE}`} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 text-text-secondary hover:text-text-heading">
 						<Phone className="size-3.5 text-action" aria-hidden />
-						<span className="hidden sm:inline">Contact:</span> {PHONE}
+						<span className="hidden lg:inline">Contact: {PHONE}</span>
 					</a>
 				</nav>
 			</div>
