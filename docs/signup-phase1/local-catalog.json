@@ -1,0 +1,130 @@
+{
+  "productName": "Baylior",
+  "plans": [
+    {
+      "code": "starter",
+      "name": "Starter",
+      "minimumLicences": 1,
+      "modules": [],
+      "monthly": {
+        "companyFeeMinor": 0,
+        "androidUserPriceMinor": 49900,
+        "windowsUserPriceMinor": 69900,
+        "bothUserPriceMinor": 99900
+      },
+      "yearly": {
+        "companyFeeMinor": 0,
+        "androidUserPriceMinor": 499000,
+        "windowsUserPriceMinor": 699000,
+        "bothUserPriceMinor": 999000
+      }
+    },
+    {
+      "code": "professional",
+      "name": "Professional",
+      "minimumLicences": 1,
+      "modules": [
+        "audit_trail.enabled",
+        "outside_jobs.enabled",
+        "reports.advanced",
+        "staff_advances.enabled",
+        "whatsapp_automation.enabled"
+      ],
+      "monthly": {
+        "companyFeeMinor": 0,
+        "androidUserPriceMinor": 79900,
+        "windowsUserPriceMinor": 119900,
+        "bothUserPriceMinor": 149900
+      },
+      "yearly": {
+        "companyFeeMinor": 0,
+        "androidUserPriceMinor": 799000,
+        "windowsUserPriceMinor": 1199000,
+        "bothUserPriceMinor": 1499000
+      }
+    }
+  ],
+  "addOns": [
+    {
+      "code": "advanced_reports",
+      "name": "Advanced reports",
+      "featureKey": "reports.advanced",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 29900,
+      "yearlyPriceMinor": 299000
+    },
+    {
+      "code": "audit_trail",
+      "name": "Audit trail",
+      "featureKey": "audit_trail.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 29900,
+      "yearlyPriceMinor": 299000
+    },
+    {
+      "code": "franchise_branches_10",
+      "name": "10 more franchise branches",
+      "featureKey": "franchise_network.max_branches",
+      "isPack": true,
+      "perUnit": 10,
+      "monthlyPriceMinor": 149900,
+      "yearlyPriceMinor": 1499000
+    },
+    {
+      "code": "franchise_network",
+      "name": "Franchise network (up to 10 franchise branches)",
+      "featureKey": "franchise_network.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 299900,
+      "yearlyPriceMinor": 2999000
+    },
+    {
+      "code": "outside_jobs",
+      "name": "Outside jobs & vendors",
+      "featureKey": "outside_jobs.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 29900,
+      "yearlyPriceMinor": 299000
+    },
+    {
+      "code": "showroom",
+      "name": "Showroom / B2B module",
+      "featureKey": "showroom.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 99900,
+      "yearlyPriceMinor": 999000
+    },
+    {
+      "code": "staff_advances",
+      "name": "Staff advances & salary",
+      "featureKey": "staff_advances.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 29900,
+      "yearlyPriceMinor": 299000
+    },
+    {
+      "code": "whatsapp_automation",
+      "name": "WhatsApp automation",
+      "featureKey": "whatsapp_automation.enabled",
+      "isPack": false,
+      "perUnit": 1,
+      "monthlyPriceMinor": 29900,
+      "yearlyPriceMinor": 299000
+    }
+  ],
+  "trialDays": 7,
+  "trialLicences": 3,
+  "graceDays": 7,
+  "chargesGst": false,
+  "gstRatePercent": null,
+  "testPayments": true,
+  "sellerName": "Trovo Tech Solutions",
+  "sellerPhone": "+91 90426 72148",
+  "sellerEmail": "info@trovotechsolutions.in"
+}
