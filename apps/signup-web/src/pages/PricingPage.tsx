@@ -7,7 +7,7 @@ import { Alert, Button, Card } from '@/components/ui';
 import { api } from '@/lib/api';
 import { CORE_FEATURES, FEATURES, MODULE_ORDER, PLAN_TAGLINES, featureName } from '@/lib/featureNames';
 import { moneyShort } from '@/lib/format';
-import { LICENCE_TYPES, per, pricesFor } from '@/lib/rules';
+import { LICENCE_TYPES, freeMonthsLabel, per, pricesFor, yearlyFreeMonths } from '@/lib/rules';
 import type { Interval, PublicCatalog } from '@/lib/types';
 import { DEFAULT_CHOICE, useSignup } from '@/state/signup';
 
@@ -18,6 +18,7 @@ export function PricingPage() {
 	const { choice, setChoice } = useSignup();
 	const [interval, setInterval] = useState<Interval>(choice.interval);
 	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
+	const freeMonths = catalog.data ? yearlyFreeMonths(catalog.data) : 0;
 
 	useEffect(() => {
 		document.title = 'Plans and prices · Baylior';
@@ -60,7 +61,7 @@ export function PricingPage() {
 								className={`h-9 rounded-full px-5 text-label font-semibold ${interval === i ? 'bg-action text-white' : 'text-text-secondary hover:text-text-heading'}`}
 							>
 								{i === 'Month' ? 'Monthly' : 'Yearly'}
-								{i === 'Year' && <span className="ml-2 rounded-full bg-active-bg px-2 py-0.5 text-micro text-active">2 months free</span>}
+								{i === 'Year' && freeMonths > 0 && <span className="ml-2 rounded-full bg-active-bg px-2 py-0.5 text-micro text-active">{freeMonthsLabel(freeMonths)}</span>}
 							</button>
 						))}
 					</div>
@@ -274,7 +275,10 @@ function Faq({ catalog }: { catalog: PublicCatalog }) {
 			q: 'What happens after the free trial?',
 			a: `Choose a plan and pay. If you don't, you get ${catalog.graceDays} more days to pay, then the software becomes read-only until you do. Your data is never deleted.`,
 		},
-		{ q: 'Can I add users later?', a: 'Yes. Call Trovo and we add licences or modules to your subscription.' },
+		{
+			q: 'Can I add users later?',
+			a: 'Yes. The Owner adds licences or modules from Subscription in the Baylior app and sees the price before anything changes.',
+		},
 		{
 			q: 'Is GST charged?',
 			a: catalog.chargesGst ? `Yes, GST at ${catalog.gstRatePercent}% is added to the price.` : 'No GST is charged at present.',

@@ -24,6 +24,7 @@ different API.
 | Variable | Meaning |
 |---|---|
 | `VITE_API_URL` | API address in production (https). It is added to the CSP. The API must allow this site's address in `Platform:SignupOrigin`. |
+| `VITE_PRODUCT_URL` | The Baylior product page, linked as "About Baylior" in the header and footer. Defaults to `https://trovotechsolutions.in/products/baylior/`, which must be published before going live. |
 | `VITE_WINDOWS_DOWNLOAD_URL`, `VITE_ANDROID_DOWNLOAD_URL` | Download links on the final page. If neither is set, a note to contact Trovo shows instead. |
 | `VITE_TERMS_URL`, `VITE_REFUND_URL`, `VITE_PRIVACY_URL` | Policy pages. The defaults point to trovotechsolutions.in, and those pages must be published before going live. |
 

@@ -7,7 +7,7 @@ import { Alert, Button, Card, Quantity } from '@/components/ui';
 import { api } from '@/lib/api';
 import { FEATURES, PLAN_TAGLINES, featureName } from '@/lib/featureNames';
 import { money, moneyShort } from '@/lib/format';
-import { LICENCE_TYPES, cheapestLicence, isBusinessComplete, per, pricesFor } from '@/lib/rules';
+import { LICENCE_TYPES, cheapestLicence, freeMonthsLabel, isBusinessComplete, per, pricesFor, yearlyFreeMonths } from '@/lib/rules';
 import type { Interval, PlanChoice, PublicCatalog, Quote } from '@/lib/types';
 import { useSignup } from '@/state/signup';
 
@@ -71,7 +71,11 @@ export function PlanStep() {
 					<h1 className="text-headline font-semibold text-text-heading sm:text-display">Choose your plan and users</h1>
 					<p className="mt-1 text-body text-text-secondary">You can add users and modules later.</p>
 				</div>
-				<IntervalToggle value={choice.interval} onChange={(interval) => setChoice({ ...choice, interval })} />
+				<IntervalToggle
+					value={choice.interval}
+					freeMonths={catalog.data ? yearlyFreeMonths(catalog.data) : 0}
+					onChange={(interval) => setChoice({ ...choice, interval })}
+				/>
 			</div>
 
 			{catalog.isPending ? (
@@ -107,7 +111,7 @@ export function PlanStep() {
 	);
 }
 
-function IntervalToggle({ value, onChange }: { value: Interval; onChange: (v: Interval) => void }) {
+function IntervalToggle({ value, freeMonths, onChange }: { value: Interval; freeMonths: number; onChange: (v: Interval) => void }) {
 	return (
 		<div role="radiogroup" aria-label="Billing" className="inline-flex rounded-md border border-border-subtle bg-surface-card p-1">
 			{(['Month', 'Year'] as const).map((i) => (
@@ -120,7 +124,7 @@ function IntervalToggle({ value, onChange }: { value: Interval; onChange: (v: In
 					className={`h-9 rounded px-4 text-label font-semibold ${value === i ? 'bg-surface-raised text-text-heading' : 'text-text-secondary hover:text-text-heading'}`}
 				>
 					{i === 'Month' ? 'Monthly' : 'Yearly'}
-					{i === 'Year' && <span className="ml-2 rounded-full bg-active-bg px-2 py-0.5 text-micro text-active">2 months free</span>}
+					{i === 'Year' && freeMonths > 0 && <span className="ml-2 rounded-full bg-active-bg px-2 py-0.5 text-micro text-active">{freeMonthsLabel(freeMonths)}</span>}
 				</button>
 			))}
 		</div>

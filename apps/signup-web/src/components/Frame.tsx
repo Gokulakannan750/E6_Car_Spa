@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Download, Lock, Phone } from 'lucide-react';
+import { ArrowLeft, Check, Download, Lock, Phone } from 'lucide-react';
 import { links } from '@/lib/config';
 
 const PHONE = '+91 90426 72148';
@@ -13,6 +13,9 @@ export function Header() {
 					<img src="/brand/baylior-lockup-on-dark.svg" alt="Baylior Business Suite" className="h-10 w-auto" />
 				</Link>
 				<nav aria-label="Help" className="flex items-center gap-4 text-label">
+					<a href={links.product} className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading md:inline-flex">
+						<ArrowLeft className="size-3.5" aria-hidden /> About Baylior
+					</a>
 					{(links.windowsDownload || links.androidDownload) && (
 						<a href="#apps" className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading sm:inline-flex">
 							<Download className="size-3.5" aria-hidden /> Already registered? Download the app
@@ -34,6 +37,7 @@ export function Footer() {
 			<div className="mx-auto flex max-w-[1120px] flex-col gap-3 px-4 py-6 text-label text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
 				<span>© {new Date().getFullYear()} Baylior · by Trovo Tech Solutions, Erode, Tamil Nadu</span>
 				<nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
+					<a href={links.product} className="hover:text-text-heading">About Baylior</a>
 					<a href={links.terms} className="hover:text-text-heading">Terms</a>
 					<a href={links.privacy} className="hover:text-text-heading">Privacy policy</a>
 					<a href={links.refund} className="hover:text-text-heading">Refund policy</a>

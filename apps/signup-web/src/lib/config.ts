@@ -3,6 +3,8 @@
 const site = 'https://trovotechsolutions.in';
 
 export const links = {
+	// The Baylior product page this sign-up site belongs to ("About Baylior" in the header and footer).
+	product: import.meta.env.VITE_PRODUCT_URL || `${site}/products/baylior/`,
 	windowsDownload: import.meta.env.VITE_WINDOWS_DOWNLOAD_URL || null,
 	androidDownload: import.meta.env.VITE_ANDROID_DOWNLOAD_URL || null,
 	// The Terms and Refund policy pages still have to be published on the website before going live.

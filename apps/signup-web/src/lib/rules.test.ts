@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cheapestLicence, isBusinessComplete, validateBusiness } from './rules';
-import type { Business } from './types';
+import { cheapestLicence, freeMonthsLabel, isBusinessComplete, validateBusiness, yearlyFreeMonths } from './rules';
+import type { Business, Prices, PublicCatalog } from './types';
 
 const good: Business = { name: 'Sunrise Detailing', ownerName: 'Arun Kumar', mobile: '98765 43210', email: 'arun@sunrise.in', city: 'Erode', state: 'Tamil Nadu', gstin: '' };
 
@@ -25,5 +25,29 @@ describe('cheapestLicence', () => {
 	it('ignores licence types that are not sold (price 0)', () => {
 		expect(cheapestLicence({ companyFeeMinor: 0, androidUserPriceMinor: 0, windowsUserPriceMinor: 69_900, bothUserPriceMinor: 99_900 })).toBe(69_900);
 		expect(cheapestLicence(null)).toBeNull();
+	});
+});
+
+describe('yearlyFreeMonths', () => {
+	const prices = (android: number, windows: number, both: number): Prices => ({ companyFeeMinor: 0, androidUserPriceMinor: android, windowsUserPriceMinor: windows, bothUserPriceMinor: both });
+	const catalog = (plans: { monthly: Prices | null; yearly: Prices | null }[]) =>
+		({ plans: plans.map((p, i) => ({ code: `p${i}`, name: `P${i}`, minimumLicences: 1, modules: [], ...p })) }) as unknown as PublicCatalog;
+
+	it('reads the saving from the live prices', () => {
+		expect(yearlyFreeMonths(catalog([{ monthly: prices(100, 200, 300), yearly: prices(1000, 2000, 3000) }]))).toBe(2);
+	});
+
+	it('uses the smallest saving across plans and licences', () => {
+		const plans = [
+			{ monthly: prices(100, 200, 300), yearly: prices(1000, 2000, 3000) },
+			{ monthly: prices(100, 200, 300), yearly: prices(1000, 2200, 3000) },
+		];
+		expect(yearlyFreeMonths(catalog(plans))).toBe(1);
+		expect(freeMonthsLabel(1)).toBe('1 month free');
+	});
+
+	it('shows no badge when yearly saves less than a month or a price is missing', () => {
+		expect(yearlyFreeMonths(catalog([{ monthly: prices(100, 200, 300), yearly: prices(1200, 2400, 3500) }]))).toBe(0);
+		expect(yearlyFreeMonths(catalog([{ monthly: prices(100, 200, 300), yearly: null }]))).toBe(0);
 	});
 });

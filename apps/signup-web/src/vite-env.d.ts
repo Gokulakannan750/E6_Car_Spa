@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
 	/** The platform API address in production (for example https://api.trovotechsolutions.in). Empty in development. */
 	readonly VITE_API_URL?: string;
+	/** The Baylior product page on the company website, linked as "About Baylior". */
+	readonly VITE_PRODUCT_URL?: string;
 	/** Where the Windows installer can be downloaded (shown after sign-up). */
 	readonly VITE_WINDOWS_DOWNLOAD_URL?: string;
 	/** Where the Android app can be installed from (Play Store or the APK). */

@@ -1,4 +1,4 @@
-import type { Business, Interval, LicenceKey, Prices, PublicPlan } from './types';
+import type { Business, Interval, LicenceKey, Prices, PublicCatalog, PublicPlan } from './types';
 
 export const LICENCE_TYPES: { key: LicenceKey; label: string; description: string; price: (p: Prices) => number }[] = [
 	{ key: 'both', label: 'Windows + Android', description: 'One person on both apps (counter PC and phone)', price: (p) => p.bothUserPriceMinor },
@@ -18,6 +18,25 @@ export function cheapestLicence(prices: Prices | null): number | null {
 }
 
 export const per = (interval: Interval) => (interval === 'Year' ? '/yr' : '/mo');
+
+/**
+ * Whole months saved by paying yearly, from the live prices (Trovo can change them in the admin portal).
+ * Takes the smallest saving across every plan and licence, so the badge never promises more than a real price gives.
+ */
+export function yearlyFreeMonths(catalog: PublicCatalog): number {
+	let months = Infinity;
+	for (const plan of catalog.plans) {
+		if (!plan.monthly || !plan.yearly) continue;
+		for (const { price } of LICENCE_TYPES) {
+			const monthly = price(plan.monthly);
+			const yearly = price(plan.yearly);
+			if (monthly > 0 && yearly > 0) months = Math.min(months, Math.floor(12 - yearly / monthly + 1e-9));
+		}
+	}
+	return Number.isFinite(months) && months > 0 ? months : 0;
+}
+
+export const freeMonthsLabel = (months: number) => (months === 1 ? '1 month free' : `${months} months free`);
 
 export const INDIAN_STATES = [
 	'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh',
