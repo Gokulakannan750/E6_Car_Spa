@@ -1,0 +1,10 @@
+{
+  "Platform": {
+    "Enabled": true,
+    "ProductKey": "carspa",
+    "ProductName": "Baylior",
+    "SignupEnabled": true,
+    "SignupOrigin": "https://REPLACE-WITH-STAGING-SIGNUP-HOST",
+    "TestPayments": false
+  }
+}

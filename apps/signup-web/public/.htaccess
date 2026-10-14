@@ -1,0 +1,23 @@
+# Dedicated signup host, served from its document root. Phase 5 hosting template.
+# HTTPS/certificate and API reverse proxy are configured at the host level.
+Options -MultiViews
+DirectoryIndex index.html
+RewriteEngine On
+
+# Serve actual files/directories normally.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Missing assets/API routes must return real errors, never the SPA document.
+RewriteRule ^(?:api|assets|brand)(?:/|$) - [L]
+RewriteRule \.[^/]+$ - [L]
+
+# React Router routes must load/refresh directly.
+RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  <Files "index.html">
+    Header set Cache-Control "no-store"
+  </Files>
+</IfModule>

@@ -1,0 +1,13 @@
+{
+  "signupOrigin": null,
+  "apiOrigin": null,
+  "productUrl": null,
+  "termsUrl": null,
+  "refundUrl": null,
+  "privacyUrl": null,
+  "windowsDownloadUrl": null,
+  "androidDownloadUrl": null,
+  "installerContactFallback": true,
+  "paymentMode": "contact",
+  "throwawayCatalogueConfirmed": false
+}

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { FakeSignupApi } from './fakeApi';
+import { catalog, FakeSignupApi } from './fakeApi';
 
 async function setup(page: Page) {
 	const api = new FakeSignupApi();
@@ -142,6 +142,36 @@ for (const width of [320, 390, 768, 1366]) {
 		expect(backBox!.x + backBox!.width).toBeLessThanOrEqual(contactBox!.x);
 		expect(contactBox!.x + contactBox!.width).toBeLessThanOrEqual(width);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+	});
+}
+
+test('payment-disabled mode offers contact help without creating an order', async ({ page }) => {
+	const { api, problems } = await setup(page);
+	await page.route('**/api/public/catalog', route => route.fulfill({ json: { ...catalog, testPayments: false } }));
+	await page.goto('/signup');
+	await fillBusiness(page);
+	await page.getByRole('button', { name: 'Continue' }).click();
+	await page.getByRole('button', { name: 'Continue to payment' }).click();
+	await expect(page.getByText(/Online payment is coming soon/)).toBeVisible();
+	await expect(page.getByRole('button', { name: /Pay .*\(test\)/ })).toHaveCount(0);
+	await expect(page.getByText('Test mode — no real money is taken')).toHaveCount(0);
+	await page.getByRole('checkbox').check();
+	expect(api.calls.filter(call => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
+	expect(problems).toEqual([]);
+});
+
+for (const route of ['/', '/signup', '/signup/plan', '/signup/review', '/signup/done']) {
+	test(`direct load and refresh recover safely at ${route}`, async ({ page }) => {
+		const { api, problems } = await setup(page);
+		const response = await page.goto(route);
+		expect(response?.status()).toBe(200);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		const reloaded = await page.reload();
+		expect(reloaded?.status()).toBe(200);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		await expect(page.getByRole('banner').getByRole('link', { name: 'About Baylior' })).toBeVisible();
+		expect(api.calls.filter(call => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
+		expect(problems).toEqual([]);
 	});
 }
 

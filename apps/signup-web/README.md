@@ -54,3 +54,11 @@ pnpm --dir apps/signup-web build
 ```
 
 The output is static files in `dist/`, which can be served from any static host.
+
+## Phase 5 staging preparation
+
+See [`deploy/signup/README.md`](../../deploy/signup/README.md) for the dedicated-host setup, public frontend settings,
+API origin/CORS, staging payment mode, read-only preflight and isolation requirements. `public/.htaccess` is copied
+into `dist/` for Apache/LiteSpeed SPA fallback; HTTPS and rewrite-module support still need verification on the chosen host.
+Do not run live signup tests against the shared development catalogue. The mocked suite covers payment-disabled behaviour
+and direct loading/refreshing of every route without real company creation; this does not verify a deployed server's rewrite rules.
