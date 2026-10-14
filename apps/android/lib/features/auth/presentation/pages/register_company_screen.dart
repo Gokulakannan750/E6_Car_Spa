@@ -125,7 +125,7 @@ class _RegisterCompanyScreenState extends ConsumerState<RegisterCompanyScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'WELCOME TO CAR SPA MANAGEMENT',
+                    'WELCOME TO BAYLIOR',
                     style: AppTextStyles.displaySmall.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,

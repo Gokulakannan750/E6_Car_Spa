@@ -7,7 +7,7 @@ const plan = (code: string, name: string, monthly: [number, number, number], mod
 };
 
 export const catalog = {
-	productName: 'Car Spa Management',
+	productName: 'Baylior',
 	plans: [
 		plan('starter', 'Starter', [49_900, 69_900, 99_900], []),
 		plan('professional', 'Professional', [79_900, 119_900, 149_900], [

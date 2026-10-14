@@ -12,7 +12,7 @@ export function DonePage() {
 	const { result, business, choice } = useSignup();
 
 	useEffect(() => {
-		document.title = 'Your company is ready · Trovo';
+		document.title = 'Your company is ready · Baylior';
 	}, []);
 
 	if (!result?.companyCode) return <Navigate to="/" replace />;
@@ -71,7 +71,7 @@ export function DonePage() {
 					<KeyRound className="mt-0.5 size-5 shrink-0 text-action" aria-hidden />
 					<div>
 						<h2 className="text-title font-semibold text-text-heading">Your codes — save them now</h2>
-						<p className="text-label text-text-secondary">You need both when you open the Trovo app for the first time. They are not shown again.</p>
+						<p className="text-label text-text-secondary">You need both when you open the Baylior app for the first time. They are not shown again.</p>
 					</div>
 				</div>
 				<div className="mt-5 grid gap-4 sm:grid-cols-2">

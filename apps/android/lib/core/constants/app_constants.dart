@@ -6,7 +6,7 @@ class AppConstants {
   static const String defaultProdApiUrl = 'https://api.e6carspa.com/api';
 
   // Default values
-  static const String appName = 'Car Spa Management';
+  static const String appName = 'Baylior';
   static const String appVersion = '1.0.0';
   static const int connectTimeoutMs = 30000;
   static const int receiveTimeoutMs = 30000;

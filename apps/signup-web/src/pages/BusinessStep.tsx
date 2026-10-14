@@ -18,7 +18,7 @@ export function BusinessStep() {
   const [joiningError, setJoiningError] = useState<string | undefined>();
 
   useEffect(() => {
-    document.title = "Your business · Trovo sign-up";
+    document.title = "Your business · Baylior sign-up";
   }, []);
 
   const set =

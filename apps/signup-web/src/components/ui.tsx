@@ -4,7 +4,7 @@ import { AlertCircle, Check, Copy, Info, Loader2, Minus, Plus } from 'lucide-rea
 type Variant = 'primary' | 'secondary' | 'ghost';
 
 const variants: Record<Variant, string> = {
-	primary: 'bg-brand text-white shadow-[0_8px_24px_rgba(59,130,246,0.25)] hover:brightness-110',
+	primary: 'bg-brand text-white shadow-[0_8px_24px_rgba(45,107,255,0.3)] hover:brightness-110',
 	secondary: 'border border-border-subtle bg-surface-card text-text-heading hover:bg-surface-raised',
 	ghost: 'text-text-secondary hover:text-text-heading',
 };

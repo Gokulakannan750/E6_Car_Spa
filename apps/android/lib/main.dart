@@ -67,7 +67,7 @@ class _E6CarSpaAppState extends ConsumerState<E6CarSpaApp>
 
     return MaterialApp.router(
       key: ValueKey('${profile?.appColor}|${profile?.sidebarColor}'),
-      title: 'Car Spa Management',
+      title: 'Baylior',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: router,

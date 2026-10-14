@@ -67,7 +67,7 @@ describe('Suite Launcher (DashboardPage)', () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByText(/WELCOME TO CAR SPA MANAGEMENT/i)).toBeInTheDocument();
+			expect(screen.getByText(/WELCOME TO BAYLIOR/i)).toBeInTheDocument();
 			expect(screen.getByText(/Good (Morning|Afternoon|Evening)/i)).toBeInTheDocument();
 			expect(screen.getByText('What would you like to manage today?')).toBeInTheDocument();
 		});

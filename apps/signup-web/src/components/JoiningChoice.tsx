@@ -25,8 +25,8 @@ const OPTIONS: {
   },
   {
     kind: "branch",
-    title: "Adding a branch to my existing Trovo account",
-    text: "You already use Trovo and are opening another outlet.",
+    title: "Adding a branch to my existing Baylior account",
+    text: "You already use Baylior and are opening another outlet.",
     icon: Building2,
   },
 ];
@@ -123,7 +123,7 @@ export function JoiningChoice({
                     onChange({ ...joining, check: null, consent: false });
                 }}
                 error={check.isError ? check.error.message : error}
-                hint="Your franchisor makes it in their Trovo app. It works for a short time only."
+                hint="Your franchisor makes it in their Baylior app. It works for a short time only."
                 className="font-mono uppercase tracking-wider"
               />
             </div>

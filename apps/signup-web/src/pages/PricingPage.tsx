@@ -20,7 +20,7 @@ export function PricingPage() {
 	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
 
 	useEffect(() => {
-		document.title = 'Plans and prices · Trovo Car Spa Management';
+		document.title = 'Plans and prices · Baylior';
 	}, []);
 
 	function choose(planCode: string) {
@@ -31,7 +31,10 @@ export function PricingPage() {
 	return (
 		<Page>
 			<section className="mx-auto max-w-[760px] text-center">
-				<h1 className="text-[40px] leading-[48px] font-bold tracking-tight text-text-heading sm:text-[48px] sm:leading-[56px]">Run your car spa on Trovo</h1>
+				<h1 className="text-[40px] leading-[48px] font-bold tracking-tight text-text-heading sm:text-[48px] sm:leading-[56px]">Run your car spa on Baylior</h1>
+				<p className="mt-3 text-title font-semibold">
+					One suite. <span className="text-brand-gradient">Every detail.</span>
+				</p>
 				<p className="mt-4 text-[17px] leading-7 text-text-secondary">
 					Billing, job cards, invoices, staff and WhatsApp in one place — on Windows and Android.
 					{catalog.data ? ` Start with a ${catalog.data.trialDays}-day free trial.` : ''}

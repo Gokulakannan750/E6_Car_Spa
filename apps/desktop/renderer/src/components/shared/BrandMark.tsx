@@ -2,7 +2,7 @@ import { Car } from 'lucide-react';
 import { businessInitial } from '../../lib/documentBranding';
 
 /** What the app calls itself until a company has saved its own name in Company Settings. */
-export const DEFAULT_APP_NAME = 'Car Spa Management';
+export const DEFAULT_APP_NAME = 'Baylior';
 
 /** The company's name, or the neutral product name when none is saved yet. */
 export function displayName(businessName?: string | null): string {

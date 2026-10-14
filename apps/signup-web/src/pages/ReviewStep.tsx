@@ -22,7 +22,7 @@ export function ReviewStep() {
 	const [failure, setFailure] = useState<string | null>(null);
 
 	useEffect(() => {
-		document.title = 'Review and pay · Trovo sign-up';
+		document.title = 'Review and pay · Baylior sign-up';
 	}, []);
 
 	const pay = useMutation({

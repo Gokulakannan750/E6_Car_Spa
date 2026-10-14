@@ -67,6 +67,13 @@ public sealed partial class CompanyDatabaseProvisioner(
             await catalog.SaveChangesAsync(cancellationToken);
             Log.Information("Platform catalog: added product {ProductKey}", product.Key);
         }
+        else if (product.Name != Options.ProductName)
+        {
+            // The configured name is the product's name (e.g. renamed to Baylior on 14 Oct 2026).
+            Log.Information("Platform catalog: product {ProductKey} renamed from {Old} to {New}", product.Key, product.Name, Options.ProductName);
+            product.Name = Options.ProductName;
+            await catalog.SaveChangesAsync(cancellationToken);
+        }
 
         await PlatformCatalogSeeder.SeedAsync(catalog, product, cancellationToken);
         return product;

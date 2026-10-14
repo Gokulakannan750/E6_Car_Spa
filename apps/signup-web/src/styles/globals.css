@@ -1,18 +1,18 @@
 @import 'tailwindcss';
 
 /*
- * Trovo Platform design tokens, from the approved Stitch design (design/stitch-admin-portal, DESIGN.md
- * "Obsidian Precision Operations"): dark, dense, functional colour.
+ * Baylior design tokens: the dark layout from the approved Stitch design (design/stitch-signup) in the "Baylior cyan"
+ * palette (design/brand/README.md): blue #2D6BFF and cyan #14C8F0, magenta #D63AF9 for small accents only.
  */
 @theme {
 	--font-sans: 'Inter Variable', system-ui, 'Segoe UI', sans-serif;
 
-	--color-canvas: #09090b;
-	--color-surface-alt: #111113;
-	--color-surface-card: #18181b;
-	--color-surface-raised: #1f1f23;
-	--color-surface-container: #201f22;
-	--color-border-subtle: #27272a;
+	--color-canvas: #0a0f1c;
+	--color-surface-alt: #0e1424;
+	--color-surface-card: #121a2b;
+	--color-surface-raised: #182238;
+	--color-surface-container: #1a2540;
+	--color-border-subtle: #22304d;
 	--color-border-hairline: rgba(255, 255, 255, 0.08);
 	--color-border-strong: rgba(255, 255, 255, 0.14);
 
@@ -21,8 +21,10 @@
 	--color-text-secondary: #a1a1aa;
 	--color-text-muted: #71717a;
 
-	--color-action: #3b82f6;
-	--color-action-hover: #2563eb;
+	--color-action: #2d6bff;
+	--color-action-hover: #1f56e0;
+	--color-cyan: #14c8f0;
+	--color-magenta: #d63af9;
 	--color-danger: #f87171;
 	--color-danger-strong: #ef4444;
 
@@ -87,9 +89,17 @@
 	}
 }
 
-/* The brand gradient: logo mark, active navigation and the main button only. */
+/* The brand gradient (Baylior blue to cyan): active step, the main button and "Most popular" only. */
 @utility bg-brand {
-	background-image: linear-gradient(135deg, #2563eb 0%, #ef4444 100%);
+	background-image: linear-gradient(135deg, #2d6bff 0%, #14c8f0 100%);
+}
+
+/* The logo's full gradient, for the tagline highlight. */
+@utility text-brand-gradient {
+	background-image: linear-gradient(90deg, #d63af9 0%, #2d6bff 55%, #14c8f0 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
 }
 
 @media print {

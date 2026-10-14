@@ -60,7 +60,9 @@ function registerAppProtocol() {
 
 function createWindow() {
 	mainWindow = new BrowserWindow({
-		title: 'Car Spa Management',
+		title: 'Baylior',
+		// The Baylior icon in development; the installed app takes it from the .exe (electron-builder, build/icon.ico).
+		...(fs.existsSync(path.join(__dirname, '../../build/icon.ico')) ? { icon: path.join(__dirname, '../../build/icon.ico') } : {}),
 		width: 1400,
 		height: 900,
 		minWidth: 1024,

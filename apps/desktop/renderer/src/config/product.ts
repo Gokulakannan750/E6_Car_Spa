@@ -1,22 +1,21 @@
 import { buildScale, SHADES } from '../lib/theme';
 
 /**
- * Trovo's own branding for this software: shown on the sign-in and registration pages, where the product (not the
- * customer's company) introduces itself. Change it here only.
+ * The product's own branding (Baylior, by Trovo Tech Solutions): shown on the sign-in and registration pages, where
+ * the product (not the customer's company) introduces itself. Change it here only. Brand files: design/brand.
  *
- * Placeholders until the owner decides (13 Oct 2026): the name, the logo, the left-side picture and the colour.
+ * Name and tagline chosen 14 Oct 2026; colour "Baylior cyan". The left-side picture is still to come.
  */
 export const PRODUCT = {
-	/** The software's name. Placeholder. */
-	name: 'Trovo Car Spa',
+	name: 'Baylior',
 	/** The line under the name. */
-	tagline: 'Car spa & detailing management',
-	/** The software's logo in /public (e.g. '/product/logo.svg'), or null to show the first letter of the name. */
-	logo: null as string | null,
+	tagline: 'One suite. Every detail.',
+	/** The software's logo in /public, or null to show the first letter of the name. */
+	logo: '/brand/baylior-mark.svg' as string | null,
 	/** The picture on the left half of the sign-in page in /public, or null for a plain background. */
 	heroImage: null as string | null,
-	/** The colour the sign-in and registration pages are built from (a full scale of shades is made from it). */
-	color: '#1E293B',
+	/** The colour the sign-in and registration pages are built from (a full scale of shades is made from it): Baylior blue. */
+	color: '#2D6BFF',
 };
 
 /**

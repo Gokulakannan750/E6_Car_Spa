@@ -9,12 +9,8 @@ export function Header() {
 	return (
 		<header className="no-print border-b border-border-hairline">
 			<div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between gap-4 px-4 sm:px-6">
-				<Link to="/" className="flex items-center gap-3">
-					<img src="/trovo-logo.webp" alt="" className="size-9 rounded-md" />
-					<span className="leading-tight">
-						<span className="block text-title font-semibold text-text-heading">Trovo</span>
-						<span className="block text-micro text-text-muted">Car Spa Management</span>
-					</span>
+				<Link to="/" className="flex items-center" aria-label="Baylior home">
+					<img src="/brand/baylior-lockup-on-dark.svg" alt="Baylior Business Suite" className="h-10 w-auto" />
 				</Link>
 				<nav aria-label="Help" className="flex items-center gap-4 text-label">
 					{(links.windowsDownload || links.androidDownload) && (
@@ -36,7 +32,7 @@ export function Footer() {
 	return (
 		<footer className="no-print mt-16 border-t border-border-hairline">
 			<div className="mx-auto flex max-w-[1120px] flex-col gap-3 px-4 py-6 text-label text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-				<span>© {new Date().getFullYear()} Trovo Tech Solutions · Erode, Tamil Nadu</span>
+				<span>© {new Date().getFullYear()} Baylior · by Trovo Tech Solutions, Erode, Tamil Nadu</span>
 				<nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
 					<a href={links.terms} className="hover:text-text-heading">Terms</a>
 					<a href={links.privacy} className="hover:text-text-heading">Privacy policy</a>
@@ -93,7 +89,7 @@ export function Steps({ current }: { current: 1 | 2 | 3 }) {
 export function PrivacyNote() {
 	return (
 		<p className="mt-4 flex items-center justify-center gap-2 text-label text-text-muted">
-			<Lock className="size-3.5 text-active" aria-hidden /> Your details are used only for your Trovo account and invoices.
+			<Lock className="size-3.5 text-active" aria-hidden /> Your details are used only for your Baylior account and invoices.
 		</p>
 	);
 }

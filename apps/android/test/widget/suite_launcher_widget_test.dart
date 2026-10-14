@@ -134,7 +134,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // 1. Verify Header branding and greeting
-        expect(find.text('Car Spa Management'), findsWidgets);
+        expect(find.text('Baylior'), findsWidgets);
         expect(find.text('Good Morning, E6 Owner'), findsOneWidget);
         expect(
           find.text('Choose an application to manage your business'),
@@ -142,7 +142,7 @@ void main() {
         );
 
         // 2. Verify Promotional Vehicle Hero Banner
-        expect(find.text('CAR SPA MANAGEMENT'), findsOneWidget);
+        expect(find.text('BAYLIOR'), findsOneWidget);
         expect(find.textContaining('CLEAN CARS'), findsOneWidget);
         expect(find.textContaining('HAPPY PEOPLE'), findsOneWidget);
         expect(find.textContaining('DRIVE BETTER'), findsOneWidget);

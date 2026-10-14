@@ -79,7 +79,7 @@ void main() {
       expect(AppConstants.defaultDevApiUrl, 'http://192.168.1.7:5298/api');
       expect(AppConstants.defaultEmulatorApiUrl, 'http://10.0.2.2:5298/api');
       expect(AppConstants.defaultProdApiUrl, 'https://api.e6carspa.com/api');
-      expect(AppConstants.appName, 'Car Spa Management');
+      expect(AppConstants.appName, 'Baylior');
       expect(AppConstants.connectTimeoutMs, 30000);
       expect(AppConstants.receiveTimeoutMs, 30000);
       expect(AppEnvironment.apiBaseUrl, contains('5298'));

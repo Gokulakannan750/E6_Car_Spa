@@ -45,7 +45,7 @@ export function PlanStep() {
 	});
 
 	useEffect(() => {
-		document.title = 'Plan and users · Trovo sign-up';
+		document.title = 'Plan and users · Baylior sign-up';
 	}, []);
 
 	// Keep the choice valid for the catalog (a plan or add-on no longer sold is dropped).

@@ -22,7 +22,7 @@ public class PlatformOptions
     public string ProductKey { get; set; } = "carspa";
 
     /// <summary>The product's display name, used when the catalog is first created.</summary>
-    public string ProductName { get; set; } = "Car Spa Management";
+    public string ProductName { get; set; } = "Baylior";
 
     /// <summary>How long a registration code stays valid.</summary>
     public int RegistrationCodeValidDays { get; set; } = 14;

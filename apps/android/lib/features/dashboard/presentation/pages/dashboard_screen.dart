@@ -21,7 +21,7 @@ class DashboardScreen extends ConsumerWidget {
     final companyName =
         ref.watch(businessProfileProvider)?.businessName.trim() ?? '';
     final displayName = companyName.isEmpty
-        ? 'Car Spa Management'
+        ? 'Baylior'
         : companyName;
 
     return Scaffold(

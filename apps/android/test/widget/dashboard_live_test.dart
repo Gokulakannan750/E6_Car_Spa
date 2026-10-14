@@ -32,7 +32,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify Title & Greeting
-      expect(find.text('Car Spa Management'), findsWidgets);
+      expect(find.text('Baylior'), findsWidgets);
       expect(find.text('Good Morning, Admin User'), findsOneWidget);
       expect(
         find.text('Choose an application to manage your business'),

@@ -50,7 +50,7 @@ describe('LoginPage background picture', () => {
 		vi.mocked(api.getPublicBusinessProfile).mockResolvedValue({ businessName: '', logoPath: null, updatedAt: null });
 		const { container } = renderWithProviders(<LoginPage />, { initialEntries: ['/login'] });
 
-		await screen.findAllByText('Car Spa Management');
+		await screen.findAllByText('Baylior');
 		expect(container.innerHTML).not.toMatch(/login-banner/);
 	});
 

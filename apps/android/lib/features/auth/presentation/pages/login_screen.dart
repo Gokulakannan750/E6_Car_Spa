@@ -133,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final businessProfile = ref.watch(businessProfileProvider);
     final businessName = businessProfile?.businessName.trim().isNotEmpty == true
         ? businessProfile!.businessName
-        : 'Car Spa Management';
+        : 'Baylior';
     final isLoading = authState is Authenticating;
     final isLocked = _remainingLockoutSeconds > 0 || authState is AccountLocked;
     final isInputEnabled = !isLoading && !isLocked;

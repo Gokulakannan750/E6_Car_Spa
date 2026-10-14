@@ -81,7 +81,7 @@ void main() {
         await tester.pumpWidget(createLoginTestWidget());
         await tester.pumpAndSettle();
 
-        expect(find.text('Car Spa Management'), findsOneWidget);
+        expect(find.text('Baylior'), findsOneWidget);
         expect(find.text('Management Suite'), findsOneWidget);
         expect(find.text('Company code'), findsOneWidget);
         expect(find.text('Username'), findsOneWidget);

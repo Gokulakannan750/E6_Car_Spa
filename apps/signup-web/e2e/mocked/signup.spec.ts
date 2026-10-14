@@ -25,7 +25,7 @@ async function fillBusiness(page: Page, mobile = '98765 43210') {
 test('buys Professional yearly with mixed licences and an add-on, pays (test) and gets the codes', async ({ page }) => {
 	const { api, problems } = await setup(page);
 	await page.goto('/');
-	await expect(page.getByRole('heading', { name: 'Run your car spa on Trovo' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Run your car spa on Baylior' })).toBeVisible();
 	await expect(page.getByText('₹14,990')).toBeVisible(); // Professional yearly, both apps
 	await page.getByRole('button', { name: 'Choose Professional' }).click();
 
