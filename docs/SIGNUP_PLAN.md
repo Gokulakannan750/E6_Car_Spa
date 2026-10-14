@@ -268,6 +268,9 @@ Progress, 14 October 2026: feature copy and all four retaken screenshots approve
 
 ### Phase 3 — Connect the company website
 
+Phase 3 implementation prepared 14 October 2026 on signup-phase3 in the website repository: shared Products panels, header actions, footer links and home band are ready for local review. Source, DOM and browser checks (desktop, phone, keyboard) pass. See SIGNUP_PHASE3_STATUS.md. Phase 3 is complete as a local preview; the website's product presentation will be redesigned before upload.
+
+
 - Add the accessible Products disclosure and Baylior panel to shared headers, plus footer product links.
 - Add "Get the app", signup actions and the home page Baylior band.
 - Keep E6 in Portfolio; add its Baylior link only if the agreed permission is recorded.
@@ -349,4 +352,5 @@ Open:
 - **Release readiness:** payment, download links and policy pages.
 
 No website implementation, sign-up changes, commits or deployment were made during this planning task.
+
 
