@@ -14,6 +14,7 @@ import {
 import { PoweredByTrovo } from '../../components/shared/PoweredByTrovo';
 import { useAppStore } from '../../stores/app';
 import { useAuth } from '../auth';
+import { useSuiteShortcuts } from '../dashboard/suite-shortcuts';
 import { AppearanceCard } from './AppearanceCard';
 import { LoginImageCard } from './LoginImageCard';
 import {
@@ -35,6 +36,7 @@ export function SystemPreferencesPage() {
 	const isElectron = useAppStore((s) => s.isElectron);
 	const queryClient = useQueryClient();
 	const { user, isAuthenticated, token, hasPermission } = useAuth();
+	const { shortcuts: suiteShortcuts } = useSuiteShortcuts();
 
 	const [preferences, setPreferences] = useState<SystemPreferences>(getStoredPreferences);
 	const [tab, setTab] = useState<'general' | 'colours'>('general');
@@ -454,26 +456,12 @@ export function SystemPreferencesPage() {
 						</h4>
 
 						<div className="space-y-2 text-[11px]">
-							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">Billing</span>
-								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 1</kbd>
-							</div>
-							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">Staff</span>
-								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 2</kbd>
-							</div>
-							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">Showroom</span>
-								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 3</kbd>
-							</div>
-							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">Reports</span>
-								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 4</kbd>
-							</div>
-							<div className="flex justify-between items-center py-1">
-								<span className="text-slate-600">Settings</span>
-								<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">Alt + 5</kbd>
-							</div>
+							{suiteShortcuts.map((app) => (
+								<div key={app.id} className="flex justify-between items-center py-1">
+									<span className="text-slate-600">{app.name}</span>
+									<kbd className="px-2 py-0.5 bg-white rounded-md border border-slate-200 font-mono text-[10px] text-slate-700">{app.label}</kbd>
+								</div>
+							))}
 						</div>
 					</div>
 

@@ -196,4 +196,29 @@ describe('Suite Launcher (DashboardPage)', () => {
 			expect(screen.getByText('Billing Workspace Alt1')).toBeInTheDocument();
 		});
 	});
+
+	it('renumbers the Alt shortcuts when the plan has no Showroom (Reports becomes Alt + 3)', async () => {
+		renderWithProviders(
+			<Routes>
+				<Route path="/dashboard" element={<DashboardPage />} />
+				<Route path="/showroom" element={<div>Showroom Workspace</div>} />
+				<Route path="/reports" element={<div>Reports Workspace</div>} />
+				<Route path="/settings" element={<div>Settings Workspace</div>} />
+			</Routes>,
+			{ initialEntries: ['/dashboard'], authContextValue: { hasFeature: (key: string) => key !== 'showroom.enabled' } }
+		);
+
+		await waitFor(() => {
+			expect(screen.getByRole('heading', { name: 'Reports', level: 3 })).toBeInTheDocument();
+		});
+		expect(screen.queryByRole('heading', { name: 'Showroom', level: 3 })).not.toBeInTheDocument();
+		expect(screen.getByText('Alt + 3')).toBeInTheDocument();
+		expect(screen.getByText('Alt + 4')).toBeInTheDocument();
+		expect(screen.queryByText('Alt + 5')).not.toBeInTheDocument();
+
+		fireEvent.keyDown(window, { key: '3', altKey: true });
+		await waitFor(() => {
+			expect(screen.getByText('Reports Workspace')).toBeInTheDocument();
+		});
+	});
 });

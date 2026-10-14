@@ -29,7 +29,7 @@ import { useAuth } from '../auth/auth-context';
 import { useAppStore } from '../../stores/app';
 import { displayName } from '../../components/shared/BrandMark';
 import { useBusinessProfile } from '../settings/hooks/useBusinessProfile';
-import { useFranchiseAccess } from '../franchise/useFranchiseAccess';
+import { useSuiteShortcuts } from './suite-shortcuts';
 
 interface SuiteAppConfig {
 	id: string;
@@ -45,16 +45,13 @@ interface SuiteAppConfig {
 	icon: React.ReactNode;
 	features: { label: string; icon: React.ReactNode }[];
 	route: string;
-	shortcutKey: string;
 	buttonLabel: string;
 }
 
 export function DashboardPage() {
 	const navigate = useNavigate();
-	const { user: authUser, hasPermission, hasFeature } = useAuth();
-	const showShowroom = hasFeature ? hasFeature('showroom.enabled') : true;
-	const franchiseAccess = useFranchiseAccess();
-	const showFranchise = franchiseAccess.canActAsFranchisor && hasPermission('franchise.view');
+	const { user: authUser } = useAuth();
+	const { shortcuts, showShowroom, showFranchise } = useSuiteShortcuts();
 	const { profile } = useBusinessProfile();
 	const storeUser = useAppStore((s) => s.currentUser);
 	const user = authUser || storeUser;
@@ -77,43 +74,19 @@ export function DashboardPage() {
 		return timeGreeting;
 	}, [user?.fullName]);
 
-	// Global Suite Launcher keyboard shortcuts (Alt + 1 to Alt + 5)
+	// Suite launcher shortcuts: Alt + 1, 2, 3 … in the order of the workspaces the company can see.
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (!e.altKey) return;
-			switch (e.key) {
-				case '1':
-					e.preventDefault();
-					navigate('/job-cards');
-					break;
-				case '2':
-					e.preventDefault();
-					navigate('/staff-advances');
-					break;
-				case '3':
-					if (!showShowroom) break;
-					e.preventDefault();
-					navigate('/showroom');
-					break;
-				case '4':
-					e.preventDefault();
-					navigate('/reports');
-					break;
-				case '5':
-					e.preventDefault();
-					navigate('/settings');
-					break;
-				case '6':
-					if (!showFranchise) break;
-					e.preventDefault();
-					navigate('/franchise');
-					break;
-			}
+			const target = shortcuts.find((app) => String(app.number) === e.key);
+			if (!target) return;
+			e.preventDefault();
+			navigate(target.route);
 		};
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [navigate, showFranchise, showShowroom]);
+	}, [navigate, shortcuts]);
 
 	const allSuiteApplications: SuiteAppConfig[] = [
 		{
@@ -135,7 +108,6 @@ export function DashboardPage() {
 				{ label: 'Payments', icon: <CreditCard className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/job-cards',
-			shortcutKey: 'Alt + 1',
 			buttonLabel: 'Open Billing',
 		},
 		{
@@ -157,7 +129,6 @@ export function DashboardPage() {
 				{ label: 'Advances', icon: <Wallet className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/staff',
-			shortcutKey: 'Alt + 2',
 			buttonLabel: 'Open Staff',
 		},
 		{
@@ -179,7 +150,6 @@ export function DashboardPage() {
 				{ label: 'Billing', icon: <Receipt className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/showroom',
-			shortcutKey: 'Alt + 3',
 			buttonLabel: 'Open Showroom',
 		},
 		{
@@ -201,7 +171,6 @@ export function DashboardPage() {
 				{ label: 'Outside Jobs', icon: <Truck className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/reports',
-			shortcutKey: 'Alt + 4',
 			buttonLabel: 'Open Reports',
 		},
 		{
@@ -223,7 +192,6 @@ export function DashboardPage() {
 				{ label: 'System Preferences', icon: <Sliders className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/settings',
-			shortcutKey: 'Alt + 5',
 			buttonLabel: 'Open Settings',
 		},
 		{
@@ -244,15 +212,14 @@ export function DashboardPage() {
 				{ label: 'Shared Figures', icon: <Eye className="w-4 h-4 text-slate-400 shrink-0" /> },
 			],
 			route: '/franchise',
-			shortcutKey: 'Alt + 6',
 			buttonLabel: 'Open Franchise',
 		},
 	];
 	// A franchisee, or any company without the add-on, never sees the Franchise card.
 	// Franchise only for a franchisor; Showroom only when the company's plan includes it.
-	const suiteApplications = allSuiteApplications.filter(
-		(app) => (app.id !== 'franchise' || showFranchise) && (app.id !== 'showroom' || showShowroom),
-	);
+	const suiteApplications = allSuiteApplications
+		.filter((app) => (app.id !== 'franchise' || showFranchise) && (app.id !== 'showroom' || showShowroom))
+		.map((app) => ({ ...app, shortcutKey: shortcuts.find((s) => s.id === app.id)?.label ?? '' }));
 
 	return (
 		<div className="space-y-6 max-w-7xl mx-auto animate-fade-in select-none">
@@ -414,7 +381,7 @@ export function DashboardPage() {
 				</div>
 
 				{/* Row 2: Reports and Settings, plus Franchise for a company that has the add-on */}
-				<div className={`grid grid-cols-1 gap-5 pt-1 ${showFranchise ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+				<div className={`grid grid-cols-1 gap-5 pt-1 ${suiteApplications.length >= 6 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
 					{suiteApplications.slice(3, 6).map((app) => (
 						<article
 							key={app.id}
