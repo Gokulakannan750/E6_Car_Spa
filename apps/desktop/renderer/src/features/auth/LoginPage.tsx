@@ -51,12 +51,15 @@ export default function LoginPage() {
 		return () => { active = false; };
 	}, []);
 
+	// The company whose name and logo the sign-in side shows: the remembered code, then whatever code is typed.
+	const [brandCode, setBrandCode] = useState<string | undefined>(undefined);
 	useEffect(() => {
 		let isMounted = true;
-		getPublicBusinessProfile()
+		getPublicBusinessProfile(brandCode)
 			.then((profile) => {
 				if (isMounted) {
 					setPublicProfile(profile);
+					setImgError(false);
 				}
 			})
 			.catch(() => {
@@ -65,7 +68,7 @@ export default function LoginPage() {
 		return () => {
 			isMounted = false;
 		};
-	}, []);
+	}, [brandCode]);
 
 	const businessName = displayName(publicProfile?.businessName || cachedProfile?.businessName);
 	const hasBusinessName = Boolean(publicProfile?.businessName?.trim() || cachedProfile?.businessName?.trim());
@@ -185,7 +188,7 @@ export default function LoginPage() {
 
 					{/* Card */}
 					<div className="bg-white/95 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-white/20">
-						<LoginForm />
+						<LoginForm onCompanyCode={setBrandCode} />
 					</div>
 
 					{companyRegistration && (

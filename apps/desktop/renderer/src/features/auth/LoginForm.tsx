@@ -4,7 +4,8 @@ import { useAuth } from './auth-context';
 import { User, Lock, ArrowRight, Clock, Building2 } from 'lucide-react';
 import { getRememberedCompanyCode } from '../../lib/api';
 
-export default function LoginForm() {
+/** `onCompanyCode` is told the company code when the field is left, so the page can show that company's name and logo. */
+export default function LoginForm({ onCompanyCode }: { onCompanyCode?: (code: string) => void } = {}) {
 	const { login, sessionExpiredMessage, clearSessionExpiredMessage } = useAuth();
 	const [companyCode, setCompanyCode] = useState(() => getRememberedCompanyCode());
 	const [username, setUsername] = useState('');
@@ -118,6 +119,7 @@ export default function LoginForm() {
 							setCompanyCode(e.target.value);
 							if (!isLocked && error) setError('');
 						}}
+						onBlur={() => companyCode.trim() && onCompanyCode?.(companyCode.trim())}
 						disabled={isSubmitting || isLocked}
 						className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-side-500 focus:border-side-500 outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 						placeholder="Enter your company code"

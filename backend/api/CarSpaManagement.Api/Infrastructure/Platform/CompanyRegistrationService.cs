@@ -41,6 +41,40 @@ public sealed class CompanyRegistrationService(
         return licences.Windows > 0 ? AppAccess.Windows : AppAccess.Android;
     }
 
+    /// <summary>
+    /// Starts Company Settings with what the company gave when it signed up (name, city and state, phone, email,
+    /// GSTIN), so the Owner does not begin with an empty form and the sign-in page shows the company's name. The
+    /// Owner completes the address and PIN code.
+    /// </summary>
+    private async Task PrefillBusinessProfileAsync(PlatformCompany company, DateTime now, CancellationToken cancellationToken)
+    {
+        var account = await catalog.BillingAccounts.AsNoTracking().FirstOrDefaultAsync(b => b.CompanyId == company.Id, cancellationToken);
+        static string Cut(string? value, int max)
+        {
+            var v = (value ?? string.Empty).Trim();
+            return v.Length > max ? v[..max] : v;
+        }
+
+        var profile = await db.BusinessProfiles.FirstOrDefaultAsync(cancellationToken);
+        if (profile is null)
+        {
+            profile = new BusinessProfile { Id = Guid.NewGuid(), OrganizationId = company.Id, CreatedAt = now };
+            db.BusinessProfiles.Add(profile);
+        }
+
+        // Only empty fields are filled; anything already set is kept.
+        var place = (account?.BillingAddress ?? string.Empty).Split(',', 2, StringSplitOptions.TrimEntries);
+        var phoneDigits = new string((account?.BillingPhone ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (phoneDigits.Length == 12 && phoneDigits.StartsWith("91")) phoneDigits = phoneDigits[2..];
+        if (string.IsNullOrWhiteSpace(profile.BusinessName))
+            profile.BusinessName = Cut(string.IsNullOrWhiteSpace(account?.BillingName) ? company.Name : account!.BillingName, 150);
+        if (string.IsNullOrWhiteSpace(profile.City)) profile.City = Cut(place.Length > 0 ? place[0] : null, 100);
+        if (string.IsNullOrWhiteSpace(profile.State)) profile.State = Cut(place.Length > 1 ? place[1] : null, 100);
+        if (string.IsNullOrWhiteSpace(profile.Phone)) profile.Phone = Cut(phoneDigits, 10);
+        if (string.IsNullOrWhiteSpace(profile.Email)) profile.Email = Cut(account?.BillingEmail, 150);
+        if (string.IsNullOrWhiteSpace(profile.Gstin) && !string.IsNullOrWhiteSpace(account?.Gstin)) profile.Gstin = Cut(account!.Gstin, 20);
+    }
+
     public async Task<BootstrapOwnerResponse> RegisterAsync(RegisterCompanyRequest request, CancellationToken cancellationToken = default)
     {
         var settings = options.Value;
@@ -130,6 +164,7 @@ public sealed class CompanyRegistrationService(
         };
         owner.PasswordHash = passwordHasher.HashPassword(owner, request.Password);
         db.Users.Add(owner);
+        await PrefillBusinessProfileAsync(company, now, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         await auditLogService.RecordAsync(

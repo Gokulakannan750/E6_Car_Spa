@@ -38,6 +38,9 @@ public class PublicBusinessProfileController(
             }
 
             tenant.Set(organization.Id);
+            var own = await profileService.GetPublicProfileAsync(ct);
+            // Before the Owner saves Company Settings, the name the company signed up with is shown.
+            return Ok(string.IsNullOrWhiteSpace(own.BusinessName) ? own with { BusinessName = organization.Name } : own);
         }
 
         var profile = await profileService.GetPublicProfileAsync(ct);
