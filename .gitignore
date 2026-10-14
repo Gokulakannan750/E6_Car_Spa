@@ -25,6 +25,7 @@ scratch/
 !apps/desktop/renderer/public/**
 !apps/platform-admin/public/**
 !apps/signup-web/public/**
+!design/brand/**
 !apps/android/assets/**
 *.pdb
 *.deps.json
