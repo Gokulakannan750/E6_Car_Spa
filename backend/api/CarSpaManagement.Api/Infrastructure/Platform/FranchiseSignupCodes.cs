@@ -98,7 +98,7 @@ public sealed class FranchiseSignupCodeService(
         var names = await catalog.Companies.AsNoTracking().Where(c => companyIds.Contains(c.Id))
             .ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
         var now = DateTime.UtcNow;
-        return new FranchiseSignupCodesDto(true, (await settings.GetAsync(cancellationToken)).FranchiseCodeMinutes,
+        return new FranchiseSignupCodesDto(true, (await settings.GetAsync(cancellationToken, await catalog.Companies.Where(c => c.Id == me).Select(c => c.Product!.Key).SingleAsync(cancellationToken))).FranchiseCodeMinutes,
             codes.Select(c => Dto(c, now, c.UsedByCompanyId is { } id ? names.GetValueOrDefault(id) : null)).ToList());
     }
 
@@ -121,7 +121,7 @@ public sealed class FranchiseSignupCodeService(
         }
 
         var now = DateTime.UtcNow;
-        var lifetime = (await settings.GetAsync(cancellationToken)).FranchiseCodeMinutes;
+        var lifetime = (await settings.GetAsync(cancellationToken, await catalog.Companies.Where(c => c.Id == me).Select(c => c.Product!.Key).SingleAsync(cancellationToken))).FranchiseCodeMinutes;
         var plain = RegistrationCodes.Generate();
         var code = new FranchiseSignupCode
         {

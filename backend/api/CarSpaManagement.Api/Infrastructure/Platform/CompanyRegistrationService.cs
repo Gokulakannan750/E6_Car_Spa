@@ -187,7 +187,7 @@ public sealed class CompanyRegistrationService(
         await transaction.CommitAsync(cancellationToken);
 
         // The directory may have remembered that this company was not open yet.
-        cache.Remove($"platform-company:{company.Id}");
+        cache.Remove($"platform-company:{options.Value.ProductKey}:{company.Id}");
 
         Log.Information("Company {CompanyCode} registered; Owner '{Username}' created", company.Code, owner.Username);
 

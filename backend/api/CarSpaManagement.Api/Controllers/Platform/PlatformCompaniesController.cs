@@ -4,6 +4,7 @@ using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Database;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using CarSpaManagement.Api.Infrastructure.Security;
 using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +16,7 @@ namespace CarSpaManagement.Api.Controllers.Platform;
 
 public sealed record PlatformCompanyListItem(
     Guid Id, string Code, string Name, string CompanyStatus, string? SubscriptionStatus, string? Plan, string? Interval,
-    DateTime? CurrentPeriodEnd, DateTime? TrialEndsAt, bool MigrationFailed, DateTime CreatedAt, int Licences = 0);
+    DateTime? CurrentPeriodEnd, DateTime? TrialEndsAt, bool MigrationFailed, DateTime CreatedAt, int Licences = 0, string? ProductKey = null);
 
 /// <summary>User licences per app type.</summary>
 public sealed record PlatformLicencesDto(int Android, int Windows, int Both);
@@ -69,12 +70,14 @@ public class PlatformCompaniesController(
     PlatformAuditService audit,
     IAesEncryptionService encryption,
     IConfiguration configuration,
-    IOptions<PlatformOptions> options) : ControllerBase
+    IOptions<PlatformOptions> options,
+    ProductSelection products) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PlatformCompanyListItem>>> List([FromQuery] string? search, [FromQuery] string? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PlatformCompanyListItem>>> List([FromQuery] string? search, [FromQuery] string? status, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
-        var query = catalog.Companies.AsNoTracking().Where(c => c.Product!.Key == options.Value.ProductKey);
+        var productKey = products.OptionalKey(product);
+        var query = catalog.Companies.AsNoTracking().Include(c => c.Product).Where(c => productKey == null || c.Product!.Key == productKey);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLower();
@@ -90,7 +93,7 @@ public class PlatformCompaniesController(
             subs.TryGetValue(c.Id, out var s);
             return new PlatformCompanyListItem(c.Id, c.Code, c.Name, c.Status.ToString(), s?.Status.ToString(), s?.PlanVersion?.Plan?.Code,
                 s?.PlanVersion?.Interval.ToString(), s?.CurrentPeriodEnd, s?.TrialEndsAt, c.MigrationError is not null, c.CreatedAt,
-                s?.Licences.Total ?? 0);
+                s?.Licences.Total ?? 0, c.Product!.Key);
         });
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -129,13 +132,13 @@ public class PlatformCompaniesController(
 
     [HttpPost]
     [Authorize(Policy = PlatformPolicies.Support)]
-    public async Task<ActionResult<CreatePlatformCompanyResponse>> Create([FromBody] CreatePlatformCompanyRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<CreatePlatformCompanyResponse>> Create([FromBody] CreatePlatformCompanyRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest(new { error = "A company name is required." });
         try
         {
             var plan = request.Plan is null ? null : ToPlan(request.Plan);
-            var created = await provisioner.CreateCompanyAsync(request.Name, plan, cancellationToken);
+            var created = await provisioner.CreateCompanyAsync(products.RequiredKey(product), request.Name, plan, cancellationToken);
             await audit.RecordAsync("company.created", created.Company.Id, null,
                 new { created.Company.Code, created.Company.Name, plan = plan?.PlanCode ?? "trial" }, null, cancellationToken);
             return StatusCode(StatusCodes.Status201Created, new CreatePlatformCompanyResponse(
@@ -317,6 +320,7 @@ public class PlatformCompaniesController(
     /// <summary>Active users per app access in the company's own database (counts only; nothing else is read).</summary>
     private async Task<LicenceCounts?> CountActiveUsersAsync(PlatformCompany company, CancellationToken cancellationToken)
     {
+        if (!await catalog.Products.AnyAsync(p => p.Id == company.ProductId && p.Key == options.Value.ProductKey, cancellationToken)) return null;
         try
         {
             var contextOptions = new DbContextOptionsBuilder<AppDbContext>()

@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -31,29 +32,31 @@ public class PublicSignupController(
     CatalogReader catalogReader,
     FranchiseSignupCodeRedemption franchiseCodes,
     PlatformSettingsService platformSettings,
-    IOptions<PlatformOptions> options) : ControllerBase
+    IOptions<PlatformOptions> options,
+    ProductSelection products) : ControllerBase
 {
     private PlatformOptions Settings => options.Value;
 
     /// <summary>Plans, licence prices and add-ons on sale now, for the pricing page.</summary>
     [HttpGet("catalog")]
     [EnableRateLimiting("public-read")]
-    public async Task<ActionResult<PublicCatalogDto>> Catalog(CancellationToken cancellationToken)
+    public async Task<ActionResult<PublicCatalogDto>> Catalog(CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
-        return Ok(await catalogReader.ReadAsync(cancellationToken));
+        return Ok(await catalogReader.ReadAsync(cancellationToken, products.RequiredKey(product)));
     }
 
     /// <summary>The price of a choice, worked out by the server (the website shows it before the customer pays).</summary>
     [HttpPost("signup/quote")]
     [EnableRateLimiting("public-read")]
-    public async Task<ActionResult<PriceQuote>> Quote([FromBody] PublicPlanChoiceDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PriceQuote>> Quote([FromBody] PublicPlanChoiceDto request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
         try
         {
-            var product = await provisioner.EnsureCatalogAsync(cancellationToken);
-            return Ok(await quotes.QuoteAsync(product.Id, ToChoice(request), Settings, cancellationToken));
+            await provisioner.EnsureCatalogAsync(cancellationToken);
+            var selectedProduct = await products.RequiredAsync(product, cancellationToken);
+            return Ok(await quotes.QuoteAsync(selectedProduct.Id, ToChoice(request), Settings, cancellationToken));
         }
         catch (ValidationException ex)
         {
@@ -64,7 +67,7 @@ public class PublicSignupController(
     /// <summary>Starts the free trial (the company is created now) or places a paid order (created when paid).</summary>
     [HttpPost("signup")]
     [EnableRateLimiting("public-signup")]
-    public async Task<ActionResult<SignupResult>> Signup([FromBody] PublicSignupRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SignupResult>> Signup([FromBody] PublicSignupRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
         return await Guarded(async () =>
@@ -72,7 +75,7 @@ public class PublicSignupController(
             var result = await signups.CreateAsync(
                 new SignupRequest(request.Business, request.StartTrial, request.Plan is null ? null : ToChoice(request.Plan), request.AcceptTerms,
                     request.FranchiseCode, request.FranchiseConsent),
-                HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken);
+                HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken, products.RequiredKey(product));
             return StatusCode(StatusCodes.Status201Created, result);
         });
     }
@@ -83,17 +86,21 @@ public class PublicSignupController(
     /// </summary>
     [HttpPost("signup/franchise-code")]
     [EnableRateLimiting("public-code")]
-    public async Task<ActionResult<FranchiseCodeCheck>> CheckFranchiseCode([FromBody] PublicFranchiseCodeRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<FranchiseCodeCheck>> CheckFranchiseCode([FromBody] PublicFranchiseCodeRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
         try
         {
+            var key = products.RequiredKey(product);
+            var selected = await products.RequiredAsync(key, cancellationToken);
+            if (key != Settings.ProductKey || !selected.Capabilities.Split(',').Contains("franchise")) return NotFound();
             return Ok((await franchiseCodes.CheckAsync(request.Code, cancellationToken)).Check);
         }
         catch (NotFoundException ex)
         {
             return NotFound(new { error = ex.Message });
         }
+        catch (ValidationException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     /// <summary>Test servers only: completes a paid order without taking money.</summary>

@@ -34,6 +34,8 @@ public sealed class SubscriptionService(
     PlatformSettingsService platformSettings)
 {
     private PlatformOptions Settings => options.Value;
+    private Task<string> ProductKeyAsync(Guid companyId, CancellationToken ct) =>
+        catalog.Companies.Where(c => c.Id == companyId).Select(c => c.Product!.Key).SingleAsync(ct);
 
     // ── Starting ─────────────────────────────────────────────────────────────────
 
@@ -44,16 +46,19 @@ public sealed class SubscriptionService(
     public async Task<Subscription> StartTrialAsync(PlatformCompany company, SubscriptionActor actor, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var effective = await platformSettings.GetAsync(cancellationToken);
-        var version = await CurrentVersionAsync(company.ProductId, "professional", BillingInterval.Month, cancellationToken);
+        var product = await catalog.Products.SingleAsync(p => p.Id == company.ProductId, cancellationToken);
+        var effective = await platformSettings.GetAsync(cancellationToken, product.Key);
+        var version = await CurrentVersionAsync(company.ProductId, product.TrialPlanCode, BillingInterval.Month, cancellationToken);
         var account = await EnsureBillingAccountAsync(company, cancellationToken);
         var trialEnd = now.AddDays(effective.TrialDays);
 
         var subscription = NewSubscription(company, account, version, SubscriptionStatus.Trialing, now, now, trialEnd);
         subscription.TrialEndsAt = trialEnd;
-        subscription.Licences = new LicenceCounts(0, 0, effective.TrialLicences);
+        // SeatModel.None needs no Car Spa adapter rows when provisioning a trial (generic billing is Stage 3).
+        if (product.SeatModel != SeatModel.None)
+            subscription.Licences = new LicenceCounts(0, 0, effective.TrialLicences);
         catalog.Subscriptions.Add(subscription);
-        AddEvent(subscription, "trial_started", actor, new { plan = "professional", trialEndsAt = trialEnd, licences = subscription.Licences });
+        AddEvent(subscription, "trial_started", actor, new { plan = product.TrialPlanCode, trialEndsAt = trialEnd, licences = subscription.Licences });
         await catalog.SaveChangesAsync(cancellationToken);
         entitlements.Invalidate(company.Id);
         return subscription;
@@ -175,7 +180,7 @@ public sealed class SubscriptionService(
         subscription.StatusBeforeSuspension = null;
         subscription.UpdatedAt = DateTime.UtcNow;
         AddEvent(subscription, "reactivated", actor, new { reason, status = subscription.Status.ToString() });
-        ApplyDates(subscription, DateTime.UtcNow, (await platformSettings.GetAsync(cancellationToken)).GraceDays);
+        ApplyDates(subscription, DateTime.UtcNow, (await platformSettings.GetAsync(cancellationToken, await ProductKeyAsync(companyId, cancellationToken))).GraceDays);
         await catalog.SaveChangesAsync(cancellationToken);
         entitlements.Invalidate(companyId);
     }
@@ -353,7 +358,6 @@ public sealed class SubscriptionService(
     {
         var changed = await ApplyScheduledChangesAsync(now, cancellationToken);
         await ExpireProposalsAsync(now, cancellationToken);
-        var effective = await platformSettings.GetAsync(cancellationToken);
         var due = await catalog.Subscriptions
             .Include(s => s.PlanVersion!).ThenInclude(v => v.Plan)
             .Include(s => s.Items).ThenInclude(i => i.AddOnPrice!).ThenInclude(p => p.AddOn)
@@ -365,6 +369,7 @@ public sealed class SubscriptionService(
 
         foreach (var subscription in due)
         {
+            var effective = await platformSettings.GetAsync(cancellationToken, await ProductKeyAsync(subscription.CompanyId, cancellationToken));
             var before = subscription.Status;
             ApplyDates(subscription, now, effective.GraceDays);
             if (subscription.Status != before)
@@ -379,6 +384,7 @@ public sealed class SubscriptionService(
         foreach (var subscription in due.Where(s =>
                      s.Status is SubscriptionStatus.Active or SubscriptionStatus.PastDue or SubscriptionStatus.Trialing && !s.CancelAtPeriodEnd))
         {
+            var effective = await platformSettings.GetAsync(cancellationToken, await ProductKeyAsync(subscription.CompanyId, cancellationToken));
             // A trial gets its first invoice in its last 3 days; a paid period gets its renewal invoice earlier.
             var daysBefore = subscription.Status == SubscriptionStatus.Trialing ? 3 : effective.RenewalInvoiceDaysBefore;
             var issueFrom = subscription.CurrentPeriodEnd.AddDays(-daysBefore);

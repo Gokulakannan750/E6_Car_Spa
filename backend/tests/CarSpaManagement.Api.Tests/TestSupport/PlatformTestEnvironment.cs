@@ -26,7 +26,7 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
     public ServiceProvider Services { get; }
     public IReadOnlyDictionary<string, string?> Settings { get; }
 
-    public PlatformTestEnvironment(Action<DbContextOptionsBuilder>? configureCatalog = null)
+    public PlatformTestEnvironment(Action<DbContextOptionsBuilder>? configureCatalog = null, Action<IDictionary<string, string?>, string>? configureSettings = null)
     {
         var admin = PostgresTestEnvironment.AdminConnectionString
             ?? throw new InvalidOperationException("Platform tests need a PostgreSQL server.");
@@ -43,6 +43,7 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
             ["Jwt:Key"] = "company-test-signing-key-at-least-32-characters",
             ["Platform:Jwt:Key"] = "platform-test-signing-key-at-least-32-characters"
         };
+        configureSettings?.Invoke((IDictionary<string, string?>)Settings, ProductKey);
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(Settings).Build();
 
         var services = new ServiceCollection();

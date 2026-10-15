@@ -554,15 +554,15 @@ Log.Information("Starting Car Spa Management API");
 // Demo data (sample vendors) is seeded only in Development.
 if (platformEnabled)
 {
-	// Trovo's platform: migrate the catalog and then every company database, one at a time. Each company is
-	// migrated, given its starting data and its login's rights by the platform provisioner.
+	// Runtime startup migrates only this API's product. Cross-product rollouts are explicit CLI/admin operations.
 	using var platformScope = app.Services.CreateScope();
 	try
 	{
 		var platformProvisioner = platformScope.ServiceProvider.GetRequiredService<CarSpaManagement.Api.Infrastructure.Platform.CompanyDatabaseProvisioner>();
 		if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
 		{
-			var companies = await platformProvisioner.MigrateAllAsync();
+			var runtimeProduct = platformScope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<CarSpaManagement.Api.Infrastructure.Platform.PlatformOptions>>().Value.ProductKey;
+			var companies = await platformProvisioner.MigrateAllAsync(runtimeProduct);
 			foreach (var failed in companies.Where(c => c.MigrationError is not null))
 			{
 				Log.Error("Company {Code} is paused: its database could not be migrated ({Error})", failed.Code, failed.MigrationError);

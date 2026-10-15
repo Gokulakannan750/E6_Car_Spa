@@ -80,7 +80,7 @@ public sealed class PlatformCompanyDirectory(
 
     public async Task<CompanyRoute?> FindActiveByIdAsync(Guid companyId, CancellationToken cancellationToken = default)
     {
-        var key = $"platform-company:{companyId}";
+        var key = $"platform-company:{Options.ProductKey}:{companyId}";
         if (cache.TryGetValue(key, out CompanyRoute? cached))
         {
             return cached;

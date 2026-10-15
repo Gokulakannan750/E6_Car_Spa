@@ -25,6 +25,9 @@ namespace CarSpaManagement.Api.Tests;
 public sealed class PlatformApiHost : IAsyncLifetime
 {
     private WebApplicationFactory<AppDbContext>? _factory;
+    private readonly Action<IWebHostBuilder, string>? configureProducts;
+    public PlatformApiHost() { }
+    internal PlatformApiHost(Action<IWebHostBuilder, string> configureProducts) => this.configureProducts = configureProducts;
     public string ProductKey { get; } = "pt" + Guid.NewGuid().ToString("N")[..10];
     public HttpClient Client { get; private set; } = null!;
     public IServiceProvider Services => _factory!.Services;
@@ -49,6 +52,7 @@ public sealed class PlatformApiHost : IAsyncLifetime
             b.UseSetting("Platform:SignupEnabled", "true");
             b.UseSetting("Platform:TestPayments", "true");
             b.UseSetting("Platform:SignupOrigin", "https://signup.trovo.test");
+            configureProducts?.Invoke(b, ProductKey);
         });
         Client = _factory.CreateClient();
         return Task.CompletedTask;

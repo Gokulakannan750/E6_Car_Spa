@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using System.Text;
 using System.Text.RegularExpressions;
 using CarSpaManagement.Api.Application.Services;
@@ -37,7 +38,8 @@ public sealed partial class CompanyDatabaseProvisioner(
     IAesEncryptionService encryption,
     IConfiguration configuration,
     IOptions<PlatformOptions> options,
-    SubscriptionService subscriptions)
+    SubscriptionService subscriptions,
+    IProductModuleRegistry modules)
 {
     private PlatformOptions Options => options.Value;
 
@@ -53,31 +55,25 @@ public sealed partial class CompanyDatabaseProvisioner(
         await catalog.Database.MigrateAsync(cancellationToken);
         await LockCatalogAsync(catalogDatabase, cancellationToken);
 
-        var product = await catalog.Products.FirstOrDefaultAsync(p => p.Key == Options.ProductKey, cancellationToken);
-        if (product is null)
+        foreach (var module in modules.All)
         {
-            product = new PlatformProduct
+            var existing = await catalog.Products.SingleOrDefaultAsync(p => p.Key == module.Key, cancellationToken);
+            if (existing is null)
             {
-                Id = Guid.NewGuid(),
-                Key = Options.ProductKey,
-                DatabasePrefix = Options.ProductKey,
-                Name = Options.ProductName,
-                CreatedAt = DateTime.UtcNow
-            };
-            catalog.Products.Add(product);
-            await catalog.SaveChangesAsync(cancellationToken);
-            Log.Information("Platform catalog: added product {ProductKey}", product.Key);
+                // Module defaults own first creation only. Admin edits are authoritative after that.
+                existing = new PlatformProduct
+                {
+                    Id = Guid.NewGuid(), Key = module.Key, Name = module.Name, DatabasePrefix = module.DatabasePrefix,
+                    TrialPlanCode = module.TrialPlanCode, SeatModel = module.SeatModel,
+                    Capabilities = string.Join(",", module.Capabilities.OrderBy(c => c)), CreatedAt = DateTime.UtcNow
+                };
+                catalog.Products.Add(existing);
+                await catalog.SaveChangesAsync(cancellationToken);
+                Log.Information("Platform catalog: added product {ProductKey}", existing.Key);
+            }
+            await module.SeedCatalogAsync(catalog, existing, cancellationToken);
         }
-        else if (product.Name != Options.ProductName)
-        {
-            // The configured name is the product's name (e.g. renamed to Baylior on 14 Oct 2026).
-            Log.Information("Platform catalog: product {ProductKey} renamed from {Old} to {New}", product.Key, product.Name, Options.ProductName);
-            product.Name = Options.ProductName;
-            await catalog.SaveChangesAsync(cancellationToken);
-        }
-
-        await PlatformCatalogSeeder.SeedAsync(catalog, product, cancellationToken);
-        return product;
+        return await catalog.Products.SingleAsync(p => p.Key == Options.ProductKey, cancellationToken);
     }
 
     /// <summary>
@@ -103,15 +99,22 @@ public sealed partial class CompanyDatabaseProvisioner(
     /// If anything fails, the half-made company, database and login are removed again.
     /// </summary>
     public async Task<CreatedCompany> CreateCompanyAsync(string name, CompanyPlan? plan = null, CancellationToken cancellationToken = default)
+        => await CreateCompanyAsync(Options.ProductKey, name, plan, cancellationToken);
+
+    public async Task<CreatedCompany> CreateCompanyAsync(string productKey, string name, CompanyPlan? plan = null, CancellationToken cancellationToken = default)
     {
+        modules.Get(productKey);
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("A company name is required.", nameof(name));
         }
 
-        var product = await EnsureCatalogAsync(cancellationToken);
+        await EnsureCatalogAsync(cancellationToken);
+        var product = await catalog.Products.SingleAsync(p => p.Key == productKey, cancellationToken);
+        if (await catalog.Products.AnyAsync(p => p.Id != product.Id && p.DatabasePrefix == product.DatabasePrefix, cancellationToken))
+            throw new InvalidOperationException("The product database prefix is already used by another product.");
         var code = await NextCodeAsync(product.Id, cancellationToken);
-        var databaseName = DatabaseNameFor(code);
+        var databaseName = DatabaseNameFor(product, code);
         var company = new PlatformCompany
         {
             Id = Guid.NewGuid(),
@@ -180,6 +183,9 @@ public sealed partial class CompanyDatabaseProvisioner(
     /// </summary>
     public async Task<PlatformCompany> AdoptDatabaseAsync(string databaseName, CompanyPlan plan, CancellationToken cancellationToken = default)
     {
+        // Adoption reads a Car Spa schema and is deliberately unavailable to external modules.
+        if (modules.Get(Options.ProductKey) is not CarSpaProductModule)
+            throw new InvalidOperationException("Database adoption is supported only for Car Spa.");
         ValidateIdentifier(databaseName, allowExisting: true);
         var product = await EnsureCatalogAsync(cancellationToken);
 
@@ -214,7 +220,7 @@ public sealed partial class CompanyDatabaseProvisioner(
             throw new InvalidOperationException($"A company with id {organization.Id} or code {organization.Code} is already on the platform.");
         }
 
-        var login = DatabaseNameFor(organization.Code);
+        var login = DatabaseNameFor(product, organization.Code);
         var password = NewDatabasePassword();
         await ExecuteAdminAsync(null, $"CREATE ROLE {Quote(login)} LOGIN PASSWORD '{password}' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION", cancellationToken);
 
@@ -247,10 +253,16 @@ public sealed partial class CompanyDatabaseProvisioner(
     /// Migrates every company database, one at a time. A failure is recorded on that company (which pauses its
     /// sign-in) and the others carry on.
     /// </summary>
+    /// <summary>The default rollout is restricted to this API's runtime product. Pass an explicit null only for an operator-requested all-product rollout.</summary>
     public async Task<IReadOnlyList<PlatformCompany>> MigrateAllAsync(CancellationToken cancellationToken = default)
+        => await MigrateAllAsync(Options.ProductKey, cancellationToken);
+
+    public async Task<IReadOnlyList<PlatformCompany>> MigrateAllAsync(string? productKey, CancellationToken cancellationToken = default)
     {
-        var product = await EnsureCatalogAsync(cancellationToken);
-        var companies = await catalog.Companies.Where(c => c.ProductId == product.Id && c.Status != PlatformCompanyStatus.Suspended)
+        if (productKey is not null) modules.Get(productKey);
+        await EnsureCatalogAsync(cancellationToken);
+        var companies = await catalog.Companies.Include(c => c.Product)
+            .Where(c => (productKey == null || c.Product!.Key == productKey) && c.Status != PlatformCompanyStatus.Suspended)
             .OrderBy(c => c.Code).ToListAsync(cancellationToken);
         foreach (var company in companies)
         {
@@ -259,7 +271,7 @@ public sealed partial class CompanyDatabaseProvisioner(
 
         // A company created before subscriptions existed gets the free trial, so it is never left without one.
         var withoutSubscription = await catalog.Companies
-            .Where(c => c.ProductId == product.Id && !catalog.Subscriptions.Any(s => s.CompanyId == c.Id && s.IsCurrent))
+            .Where(c => (productKey == null || c.Product!.Key == productKey) && !catalog.Subscriptions.Any(s => s.CompanyId == c.Id && s.IsCurrent))
             .ToListAsync(cancellationToken);
         foreach (var company in withoutSubscription)
         {
@@ -290,27 +302,15 @@ public sealed partial class CompanyDatabaseProvisioner(
     {
         try
         {
-            await using (var db = CreateAdminContext(company.DatabaseName, company.Id))
-            {
-                await db.Database.MigrateAsync(cancellationToken);
-                await PermissionSeeder.SeedAsync(db);
-
-                if (!await db.Organizations.AnyAsync(o => o.Id == company.Id, cancellationToken))
-                {
-                    db.Organizations.Add(new Organization
-                    {
-                        Id = company.Id,
-                        Code = company.Code,
-                        Name = company.Name,
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                    await db.SaveChangesAsync(cancellationToken);
-                }
-
-                await new OrganizationProvisioner(db, configuration).SeedDefaultsAsync(includeDevelopmentDemoData: false, cancellationToken);
-                company.SchemaVersion = (await db.Database.GetAppliedMigrationsAsync(cancellationToken)).LastOrDefault();
-            }
+            var product = await catalog.Products.SingleAsync(p => p.Id == company.ProductId, cancellationToken);
+            var module = modules.Get(product.Key);
+            if (module is ExternalCommandProductModule && !company.DatabaseName.StartsWith(product.DatabasePrefix + "_t_", StringComparison.Ordinal))
+                throw new InvalidOperationException("The company database does not belong to its product prefix.");
+            company.SchemaVersion = await module.MigrateCompanyDatabaseAsync(new ProvisionContext(
+                company.Id, company.Code, company.Name, company.DatabaseName,
+                database => database == company.DatabaseName
+                    ? CompanyConnectionStrings.ForAdmin(configuration, database)
+                    : throw new InvalidOperationException("A product module can provision only the assigned company database.")), cancellationToken);
 
             await GrantCompanyLoginAsync(company, cancellationToken);
             company.MigrationError = null;
@@ -344,8 +344,12 @@ public sealed partial class CompanyDatabaseProvisioner(
             GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {login};
             GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {login};
             GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO {login};
-            REVOKE ALL ON TABLE "__EFMigrationsHistory" FROM {login};
-            GRANT SELECT ON TABLE "__EFMigrationsHistory" TO {login};
+            DO $grant$ BEGIN
+                IF to_regclass('public."__EFMigrationsHistory"') IS NOT NULL THEN
+                    REVOKE ALL ON TABLE "__EFMigrationsHistory" FROM {login};
+                    GRANT SELECT ON TABLE "__EFMigrationsHistory" TO {login};
+                END IF;
+            END $grant$;
             """, cancellationToken);
     }
 
@@ -397,9 +401,9 @@ public sealed partial class CompanyDatabaseProvisioner(
         return Organization.FormatCode(highest + 1);
     }
 
-    private string DatabaseNameFor(string code)
+    private static string DatabaseNameFor(PlatformProduct product, string code)
     {
-        var name = $"{Options.ProductKey}_t_{code}".ToLowerInvariant();
+        var name = $"{product.DatabasePrefix}_t_{code}".ToLowerInvariant();
         ValidateIdentifier(name, allowExisting: false);
         return name;
     }

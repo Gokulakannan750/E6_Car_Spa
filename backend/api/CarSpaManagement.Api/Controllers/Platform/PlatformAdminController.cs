@@ -2,6 +2,7 @@ using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +15,9 @@ public sealed record PlatformEntitlementDto(string FeatureKey, string Value);
 public sealed record PlatformPlanVersionDto(Guid Id, int Version, string Interval, string Currency, long PriceMinor, int IncludedSeats,
     DateTime EffectiveFrom, DateTime? EffectiveTo, IReadOnlyList<PlatformEntitlementDto> Entitlements,
     long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor);
-public sealed record PlatformPlanDto(Guid Id, string Code, string Name, bool IsActive, IReadOnlyList<PlatformPlanVersionDto> Versions);
+public sealed record PlatformPlanDto(Guid Id, string Code, string Name, bool IsActive, IReadOnlyList<PlatformPlanVersionDto> Versions, string? ProductKey = null);
 public sealed record PlatformAddOnPriceDto(Guid Id, int Version, string Interval, string Currency, long UnitPriceMinor, DateTime EffectiveFrom, DateTime? EffectiveTo);
-public sealed record PlatformAddOnDto(Guid Id, string Code, string Name, string FeatureKey, string Value, bool IsActive, IReadOnlyList<PlatformAddOnPriceDto> Prices);
+public sealed record PlatformAddOnDto(Guid Id, string Code, string Name, string FeatureKey, string Value, bool IsActive, IReadOnlyList<PlatformAddOnPriceDto> Prices, string? ProductKey = null);
 public sealed record PlatformCatalogDto(IReadOnlyList<PlatformPlanDto> Plans, IReadOnlyList<PlatformAddOnDto> AddOns, bool ChargesGst, decimal GstRatePercent);
 /// <summary>New terms for a plan and interval. PriceMinor is the company fee; IncludedSeats the fewest user licences.</summary>
 public sealed record NewPlanVersionRequest(string Interval, long PriceMinor, int IncludedSeats, Dictionary<string, string> Entitlements, string Reason,
@@ -28,7 +29,7 @@ public sealed record PlatformDashboardDto(
     int OpenInvoices, long AmountDueMinor, int AwaitingRegistration, int MigrationFailures, IReadOnlyList<PlatformAuditDto> RecentActivity);
 public sealed record PlatformAuditDto(Guid Id, DateTime CreatedAt, string? AdministratorEmail, string Action, Guid? TargetCompanyId,
     string? BeforeValues, string? AfterValues, string? Reason, string? IpAddress);
-public sealed record PlatformMigrationStatusDto(string Code, string Name, string? SchemaVersion, DateTime? LastMigratedAt, string? MigrationError);
+public sealed record PlatformMigrationStatusDto(string Code, string Name, string? SchemaVersion, DateTime? LastMigratedAt, string? MigrationError, string? ProductKey = null);
 
 /// <summary>Trovo's dashboard, plans and prices, the audit log and maintenance.</summary>
 [ApiController]
@@ -38,18 +39,21 @@ public class PlatformAdminController(
     PlatformDbContext catalog,
     CompanyDatabaseProvisioner provisioner,
     PlatformAuditService audit,
-    IOptions<PlatformOptions> options) : ControllerBase
+    IOptions<PlatformOptions> options,
+    ProductSelection products) : ControllerBase
 {
     [HttpGet("dashboard")]
-    public async Task<ActionResult<PlatformDashboardDto>> Dashboard(CancellationToken cancellationToken)
+    public async Task<ActionResult<PlatformDashboardDto>> Dashboard(CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
-        var companies = await catalog.Companies.AsNoTracking().Where(c => c.Product!.Key == options.Value.ProductKey).ToListAsync(cancellationToken);
+        var productKey = products.OptionalKey(product);
+        var companyQuery = catalog.Companies.Where(c => productKey == null || c.Product!.Key == productKey);
+        var companies = await companyQuery.AsNoTracking().ToListAsync(cancellationToken);
         var subscriptions = await catalog.Subscriptions.AsNoTracking()
             .Include(s => s.PlanVersion)
             .Include(s => s.Items).ThenInclude(i => i.AddOnPrice)
-            .Where(s => s.IsCurrent).ToListAsync(cancellationToken);
-        var openInvoices = await catalog.BillingInvoices.AsNoTracking().Where(i => i.Status == BillingInvoiceStatus.Open).ToListAsync(cancellationToken);
-        var recent = await catalog.AuditLogs.AsNoTracking().OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync(cancellationToken);
+            .Where(s => s.IsCurrent && companyQuery.Any(c => c.Id == s.CompanyId)).ToListAsync(cancellationToken);
+        var openInvoices = await catalog.BillingInvoices.AsNoTracking().Where(i => i.Status == BillingInvoiceStatus.Open && companyQuery.Any(c => c.Id == i.CompanyId)).ToListAsync(cancellationToken);
+        var recent = await catalog.AuditLogs.AsNoTracking().Where(a => productKey == null || companyQuery.Any(c => c.Id == a.TargetCompanyId)).OrderByDescending(a => a.CreatedAt).Take(10).ToListAsync(cancellationToken);
 
         // Monthly recurring revenue: paying subscriptions only, yearly prices counted per month.
         var now = DateTime.UtcNow;
@@ -76,9 +80,9 @@ public class PlatformAdminController(
     }
 
     [HttpGet("plans")]
-    public async Task<ActionResult<PlatformCatalogDto>> Plans(CancellationToken cancellationToken)
+    public async Task<ActionResult<PlatformCatalogDto>> Plans(CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
-        var productKey = options.Value.ProductKey;
+        var productKey = products.RequiredKey(product);
         var plans = await catalog.Plans.AsNoTracking().Include(p => p.Versions).ThenInclude(v => v.Entitlements)
             .Where(p => p.Product!.Key == productKey).OrderBy(p => p.SortOrder).ToListAsync(cancellationToken);
         var productId = await catalog.Products.Where(p => p.Key == productKey).Select(p => p.Id).FirstAsync(cancellationToken);
@@ -90,10 +94,10 @@ public class PlatformAdminController(
                 p.Versions.OrderBy(v => v.Interval).ThenByDescending(v => v.Version).Select(v => new PlatformPlanVersionDto(
                     v.Id, v.Version, v.Interval.ToString(), v.Currency, v.PriceMinor, v.IncludedSeats, v.EffectiveFrom, v.EffectiveTo,
                     v.Entitlements.OrderBy(e => e.FeatureKey).Select(e => new PlatformEntitlementDto(e.FeatureKey, e.Value)).ToList(),
-                    v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both))).ToList())).ToList(),
+                    v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both))).ToList(), productKey)).ToList(),
             addOns.Select(a => new PlatformAddOnDto(a.Id, a.Code, a.Name, a.FeatureKey, a.Value, a.IsActive,
                 a.Prices.OrderBy(p => p.Interval).ThenByDescending(p => p.Version).Select(p => new PlatformAddOnPriceDto(
-                    p.Id, p.Version, p.Interval.ToString(), p.Currency, p.UnitPriceMinor, p.EffectiveFrom, p.EffectiveTo)).ToList())).ToList(),
+                    p.Id, p.Version, p.Interval.ToString(), p.Currency, p.UnitPriceMinor, p.EffectiveFrom, p.EffectiveTo)).ToList(), productKey)).ToList(),
             options.Value.ChargesGst,
             options.Value.GstRatePercent));
     }
@@ -104,7 +108,7 @@ public class PlatformAdminController(
     /// </summary>
     [HttpPost("plans/{code}/versions")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> NewPlanVersion(string code, [FromBody] NewPlanVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> NewPlanVersion(string code, [FromBody] NewPlanVersionRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (string.IsNullOrWhiteSpace(request.Reason)) return BadRequest(new { error = "A reason is required." });
         if (!Enum.TryParse<BillingInterval>(request.Interval, true, out var interval)) return BadRequest(new { error = "Interval must be 'Month' or 'Year'." });
@@ -122,8 +126,9 @@ public class PlatformAdminController(
             return BadRequest(new { error = ex.Message });
         }
 
+        var productKey = products.RequiredKey(product);
         var plan = await catalog.Plans.Include(p => p.Versions)
-            .FirstOrDefaultAsync(p => p.Product!.Key == options.Value.ProductKey && p.Code == code, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Product!.Key == productKey && p.Code == code, cancellationToken);
         if (plan is null) return NotFound();
 
         var now = DateTime.UtcNow;
@@ -146,13 +151,13 @@ public class PlatformAdminController(
 
     [HttpPost("addons/{code}/prices")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> NewAddOnPrice(string code, [FromBody] NewAddOnPriceRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> NewAddOnPrice(string code, [FromBody] NewAddOnPriceRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (string.IsNullOrWhiteSpace(request.Reason)) return BadRequest(new { error = "A reason is required." });
         if (request.UnitPriceMinor < 0) return BadRequest(new { error = "The price must be zero or more." });
         if (!Enum.TryParse<BillingInterval>(request.Interval, true, out var interval)) return BadRequest(new { error = "Interval must be 'Month' or 'Year'." });
 
-        var productId = await catalog.Products.Where(p => p.Key == options.Value.ProductKey).Select(p => p.Id).FirstAsync(cancellationToken);
+        var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
         var addOn = await catalog.AddOns.Include(a => a.Prices).FirstOrDefaultAsync(a => a.ProductId == productId && a.Code == code, cancellationToken);
         if (addOn is null) return NotFound();
 
@@ -174,29 +179,34 @@ public class PlatformAdminController(
 
     [HttpGet("audit-logs")]
     [Authorize(Policy = PlatformPolicies.Owner)]
-    public async Task<ActionResult<IReadOnlyList<PlatformAuditDto>>> AuditLogs([FromQuery] Guid? companyId, [FromQuery] int page = 1, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IReadOnlyList<PlatformAuditDto>>> AuditLogs([FromQuery] Guid? companyId, [FromQuery] int page = 1, CancellationToken cancellationToken = default, [FromQuery] string? product = null)
     {
+        var productKey = products.OptionalKey(product);
         var query = catalog.AuditLogs.AsNoTracking().AsQueryable();
         if (companyId is not null) query = query.Where(a => a.TargetCompanyId == companyId);
+        if (productKey is not null) query = query.Where(a => catalog.Companies.Any(c => c.Id == a.TargetCompanyId && c.Product!.Key == productKey));
         var rows = await query.OrderByDescending(a => a.CreatedAt).Skip((Math.Max(page, 1) - 1) * 50).Take(50).ToListAsync(cancellationToken);
         return Ok(rows.Select(ToDto).ToList());
     }
 
     [HttpGet("migrations")]
     [Authorize(Policy = PlatformPolicies.Owner)]
-    public async Task<ActionResult<IReadOnlyList<PlatformMigrationStatusDto>>> Migrations(CancellationToken cancellationToken) =>
-        Ok(await catalog.Companies.AsNoTracking().Where(c => c.Product!.Key == options.Value.ProductKey).OrderBy(c => c.Code)
-            .Select(c => new PlatformMigrationStatusDto(c.Code, c.Name, c.SchemaVersion, c.LastMigratedAt, c.MigrationError))
+    public async Task<ActionResult<IReadOnlyList<PlatformMigrationStatusDto>>> Migrations(CancellationToken cancellationToken, [FromQuery] string? product = null)
+    {
+        var productKey = products.OptionalKey(product);
+        return Ok(await catalog.Companies.AsNoTracking().Where(c => productKey == null || c.Product!.Key == productKey).OrderBy(c => c.Code)
+            .Select(c => new PlatformMigrationStatusDto(c.Code, c.Name, c.SchemaVersion, c.LastMigratedAt, c.MigrationError, c.Product!.Key))
             .ToListAsync(cancellationToken));
+    }
 
     [HttpPost("migrations/run")]
     [Authorize(Policy = PlatformPolicies.Owner)]
-    public async Task<ActionResult<IReadOnlyList<PlatformMigrationStatusDto>>> RunMigrations(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PlatformMigrationStatusDto>>> RunMigrations(CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
-        var companies = await provisioner.MigrateAllAsync(cancellationToken);
+        var companies = await provisioner.MigrateAllAsync(products.OptionalKey(product), cancellationToken);
         await audit.RecordAsync("migrations.run", null, null,
             new { total = companies.Count, failed = companies.Count(c => c.MigrationError is not null) }, null, cancellationToken);
-        return Ok(companies.Select(c => new PlatformMigrationStatusDto(c.Code, c.Name, c.SchemaVersion, c.LastMigratedAt, c.MigrationError)).ToList());
+        return Ok(companies.Select(c => new PlatformMigrationStatusDto(c.Code, c.Name, c.SchemaVersion, c.LastMigratedAt, c.MigrationError, c.Product?.Key)).ToList());
     }
 
     private static PlatformAuditDto ToDto(PlatformAuditLog a) =>

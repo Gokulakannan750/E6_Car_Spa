@@ -1,5 +1,6 @@
 using CarSpaManagement.Api.Application.Interfaces;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using CarSpaManagement.Api.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,8 @@ public static class DependencyInjection
 
   services.AddDbContext<PlatformDbContext>(options => options.UseNpgsql(catalogConnection));
   services.AddScoped<ICompanyDirectory, PlatformCompanyDirectory>();
+  services.AddSingleton<IProductModuleRegistry, ProductModuleRegistry>();
+  services.AddScoped<ProductSelection>();
   services.AddScoped<CompanyDatabaseProvisioner>();
   services.AddScoped<CompanyRegistrationService>();
   services.AddScoped<BillingInvoiceService>();

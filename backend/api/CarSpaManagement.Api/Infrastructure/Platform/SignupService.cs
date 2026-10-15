@@ -71,11 +71,14 @@ public sealed partial class SignupService(
     [GeneratedRegex(@"^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$")]
     private static partial Regex GstinPattern();
 
-    public async Task<SignupResult> CreateAsync(SignupRequest request, string? ipAddress, CancellationToken cancellationToken = default)
+    public async Task<SignupResult> CreateAsync(SignupRequest request, string? ipAddress, CancellationToken cancellationToken = default, string? productKey = null)
     {
         if (!request.AcceptTerms) throw new ValidationException("Please accept the Terms and the Refund policy.");
         var business = Clean(request.Business);
-        var product = await provisioner.EnsureCatalogAsync(cancellationToken);
+        var runtime = await provisioner.EnsureCatalogAsync(cancellationToken);
+        var product = productKey is null ? runtime : await catalog.Products.SingleAsync(p => p.Key == productKey, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(request.FranchiseCode) && (product.Key != Settings.ProductKey || !product.Capabilities.Split(',').Contains("franchise")))
+            throw new ValidationException("Franchise joining is unavailable for this product.");
         var now = DateTime.UtcNow;
         var token = NewToken();
 
@@ -116,7 +119,7 @@ public sealed partial class SignupService(
             Subscription subscription;
             try
             {
-                created = await provisioner.CreateCompanyAsync(business.Name, null, cancellationToken);
+                created = await provisioner.CreateCompanyAsync(product.Key, business.Name, null, cancellationToken);
                 await FillBillingAccountAsync(created.Company.Id, order, cancellationToken);
                 subscription = await subscriptions.CurrentAsync(created.Company.Id, cancellationToken);
             }
@@ -134,7 +137,7 @@ public sealed partial class SignupService(
             order.Status = SignupStatus.Completed;
             order.CompanyId = created.Company.Id;
             order.CompletedAt = DateTime.UtcNow;
-            order.SetLicences(subscription.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
+            if (product.SeatModel != SeatModel.None) order.SetLicences(subscription.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
             await catalog.SaveChangesAsync(cancellationToken);
             await audit.RecordAsync("signup.trial_started", created.Company.Id, null,
                 new { order.Id, created.Company.Code, business.Name, business.Email, trialEndsAt = subscription.TrialEndsAt }, "Public sign-up", cancellationToken);
@@ -238,7 +241,8 @@ public sealed partial class SignupService(
             var addOns = JsonSerializer.Deserialize<Dictionary<string, int>>(order.AddOnsJson ?? "{}") ?? new Dictionary<string, int>();
             var licences = new LicenceCounts(order.Licences.Android, order.Licences.Windows, order.Licences.Both);
 
-            var created = await provisioner.CreateCompanyAsync(order.BusinessName,
+            var productKey = await catalog.Products.Where(p => p.Id == order.ProductId).Select(p => p.Key).SingleAsync(cancellationToken);
+            var created = await provisioner.CreateCompanyAsync(productKey, order.BusinessName,
                 new CompanyPlan(order.PlanCode!, interval, addOns, paidUntil, licences), cancellationToken);
             await FillBillingAccountAsync(created.Company.Id, order, cancellationToken);
 

@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Domain.Enums;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using CarSpaManagement.Api.Domain.Platform;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,19 +32,21 @@ public sealed class CatalogReader(
     CompanyDatabaseProvisioner provisioner,
     PlatformSettingsService platformSettings,
     SignupService signups,
-    IOptions<PlatformOptions> options)
+    IOptions<PlatformOptions> options,
+    ProductSelection products)
 {
     private PlatformOptions Settings => options.Value;
 
-    public async Task<PublicCatalogDto> ReadAsync(CancellationToken cancellationToken = default)
+    public async Task<PublicCatalogDto> ReadAsync(CancellationToken cancellationToken = default, string? productKey = null)
     {
-        var product = await provisioner.EnsureCatalogAsync(cancellationToken);
+        await provisioner.EnsureCatalogAsync(cancellationToken);
+        var product = await products.RequiredAsync(productKey, cancellationToken);
         var now = DateTime.UtcNow;
         var plans = await catalog.Plans.AsNoTracking().Include(p => p.Versions).ThenInclude(v => v.Entitlements)
             .Where(p => p.ProductId == product.Id && p.IsActive).OrderBy(p => p.SortOrder).ToListAsync(cancellationToken);
         var addOns = await catalog.AddOns.AsNoTracking().Include(a => a.Prices)
             .Where(a => a.ProductId == product.Id && a.IsActive).OrderBy(a => a.Code).ToListAsync(cancellationToken);
-        var effective = await platformSettings.GetAsync(cancellationToken);
+        var effective = await platformSettings.GetAsync(cancellationToken, product.Key);
 
         static PublicPricesDto? Prices(PlanVersion? v) =>
             v is null ? null : new PublicPricesDto(v.PriceMinor, v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both));

@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\api\CarSpaManagement.Api\CarSpaManagement.Api.csproj" />
+    <None Update="TestSupport/Scripts/external-product-test.ps1" CopyToOutputDirectory="PreserveNewest" />
     <None Update="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

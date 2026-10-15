@@ -1,6 +1,7 @@
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ public sealed record PlatformCompanyBillingDto(IReadOnlyList<PlatformInvoiceDto>
 public sealed record ManualPaymentRequest(long AmountMinor, string Reference, DateTime? PaidAt);
 public sealed record PlatformInvoiceListItem(Guid Id, string InvoiceNumber, Guid CompanyId, string CompanyCode, string CompanyName,
     string Status, bool Overdue, string Currency, long TotalMinor, long AmountDueMinor, DateTime IssuedAt, DateTime DueAt,
-    DateTime? PaidAt, DateTime? PeriodStart, DateTime? PeriodEnd);
+    DateTime? PaidAt, DateTime? PeriodStart, DateTime? PeriodEnd, string? ProductKey = null);
 public sealed record PlatformSellerDto(string Name, string Address, string Phone, string Email, string? Gstin);
 public sealed record PlatformInvoiceDetail(PlatformInvoiceDto Invoice, string CompanyCode, string CompanyName, string? BillToAddress,
     string? BillToGstin, PlatformSellerDto Seller);
@@ -33,7 +34,8 @@ public class PlatformBillingController(
     PlatformDbContext catalog,
     SubscriptionService subscriptions,
     PlatformAuditService audit,
-    IOptions<PlatformOptions> options) : ControllerBase
+    IOptions<PlatformOptions> options,
+    ProductSelection products) : ControllerBase
 {
     [HttpGet("companies/{id:guid}/billing")]
     public async Task<ActionResult<PlatformCompanyBillingDto>> CompanyBilling(Guid id, CancellationToken cancellationToken)
@@ -61,12 +63,13 @@ public class PlatformBillingController(
     /// </summary>
     [HttpGet("invoices")]
     public async Task<ActionResult<IReadOnlyList<PlatformInvoiceListItem>>> Invoices([FromQuery] string? status, [FromQuery] Guid? companyId,
-        [FromQuery] string? search, CancellationToken cancellationToken)
+        [FromQuery] string? search, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         var now = DateTime.UtcNow;
+        var productKey = products.OptionalKey(product);
         var query = from i in catalog.BillingInvoices.AsNoTracking()
-                    join c in catalog.Companies.AsNoTracking() on i.CompanyId equals c.Id
-                    where c.Product!.Key == options.Value.ProductKey
+                    join c in catalog.Companies.AsNoTracking().Include(c => c.Product) on i.CompanyId equals c.Id
+                    where productKey == null || c.Product!.Key == productKey
                     select new { i, c };
 
         if (companyId is not null) query = query.Where(x => x.i.CompanyId == companyId);
@@ -87,7 +90,7 @@ public class PlatformBillingController(
         return Ok(rows.Select(x => new PlatformInvoiceListItem(
             x.i.Id, x.i.InvoiceNumber, x.c.Id, x.c.Code, x.c.Name, x.i.Status.ToString(),
             x.i.Status == BillingInvoiceStatus.Open && x.i.DueAt < now, x.i.Currency, x.i.TotalMinor, x.i.AmountDueMinor,
-            x.i.IssuedAt, x.i.DueAt, x.i.PaidAt, x.i.PeriodStart, x.i.PeriodEnd)).ToList());
+            x.i.IssuedAt, x.i.DueAt, x.i.PaidAt, x.i.PeriodStart, x.i.PeriodEnd, x.c.Product!.Key)).ToList());
     }
 
     /// <summary>One invoice with its lines, payments, the bill-to snapshot and Trovo's details, for the print view.</summary>

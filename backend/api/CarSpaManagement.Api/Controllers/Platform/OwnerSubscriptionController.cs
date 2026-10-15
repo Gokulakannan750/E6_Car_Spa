@@ -63,7 +63,8 @@ public class OwnerSubscriptionController(
             new PublicLicencesDto(subscription.Licences.Android, subscription.Licences.Windows, subscription.Licences.Both),
             subscription.Items.Where(i => i.EffectiveTo is null).ToDictionary(i => i.AddOnPrice!.AddOn!.Code, i => i.Quantity));
         var used = await InUseAsync(cancellationToken);
-        return Ok(new OwnerSubscriptionDto(await catalogReader.ReadAsync(cancellationToken), current,
+        var productKey = await catalog.Companies.Where(c => c.Id == Company).Select(c => c.Product!.Key).SingleAsync(cancellationToken);
+        return Ok(new OwnerSubscriptionDto(await catalogReader.ReadAsync(cancellationToken, productKey), current,
             new PublicLicencesDto(used.Android, used.Windows, used.Both), subscription.Status.ToString(), subscription.CurrentPeriodEnd,
             subscription.CancelAtPeriodEnd, signups.TestPaymentsAllowed, signups.TestPaymentsAllowed));
     }

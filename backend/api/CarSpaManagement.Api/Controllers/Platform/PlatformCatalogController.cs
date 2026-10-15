@@ -3,10 +3,10 @@ using System.Text.RegularExpressions;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CarSpaManagement.Api.Controllers.Platform;
 
@@ -22,7 +22,7 @@ public sealed record UpdatePlatformSettingsRequest(int? TrialDays, int? GraceDay
 public sealed record SignupOrderListItem(Guid Id, DateTime CreatedAt, string Start, string Status, string BusinessName, string OwnerName,
     string Mobile, string Email, string City, string State, string? PlanCode, string? Interval, int Licences, long AmountMinor, string Currency,
     Guid? CompanyId, string? CompanyCode, string? PaymentProvider, string? PaymentReference, string? FailureReason, DateTime? CompletedAt,
-    DateTime ExpiresAt, string? FranchisorCode = null, bool FranchiseLinked = false, string? FranchiseProblem = null);
+    DateTime ExpiresAt, string? FranchisorCode = null, bool FranchiseLinked = false, string? FranchiseProblem = null, string? ProductKey = null);
 
 /// <summary>
 /// Trovo manages its own catalog from the admin portal: new plans and add-ons, renaming or stopping one, and the
@@ -35,21 +35,21 @@ public partial class PlatformCatalogController(
     PlatformDbContext catalog,
     PlatformSettingsService settings,
     PlatformAuditService audit,
-    IOptions<PlatformOptions> options) : ControllerBase
+    ProductSelection products) : ControllerBase
 {
     [GeneratedRegex("^[a-z][a-z0-9_]{1,38}$")]
     private static partial Regex CodePattern();
 
     [HttpPost("plans")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> CreatePlan([FromBody] CreatePlanRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreatePlan([FromBody] CreatePlanRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         return await Guarded(async () =>
         {
             RequireReason(request.Reason);
             var code = ValidCode(request.Code);
             var name = ValidName(request.Name);
-            var productId = await ProductIdAsync(cancellationToken);
+            var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
             if (await catalog.Plans.AnyAsync(p => p.ProductId == productId && p.Code == code, cancellationToken))
             {
                 throw new ConflictException($"A plan with the code '{code}' already exists.");
@@ -74,12 +74,12 @@ public partial class PlatformCatalogController(
 
     [HttpPut("plans/{code}")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> UpdatePlan(string code, [FromBody] UpdatePlanRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdatePlan(string code, [FromBody] UpdatePlanRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         return await Guarded(async () =>
         {
             RequireReason(request.Reason);
-            var productId = await ProductIdAsync(cancellationToken);
+            var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
             var plan = await catalog.Plans.FirstOrDefaultAsync(p => p.ProductId == productId && p.Code == code, cancellationToken)
                 ?? throw new NotFoundException("Plan not found.");
             var before = new { plan.Name, plan.IsActive };
@@ -101,7 +101,7 @@ public partial class PlatformCatalogController(
 
     [HttpPost("addons")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> CreateAddOn([FromBody] CreateAddOnRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateAddOn([FromBody] CreateAddOnRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         return await Guarded(async () =>
         {
@@ -122,7 +122,7 @@ public partial class PlatformCatalogController(
                 if (price < 0 || price > PlanVersionFactory.MaxPriceMinor) throw new ValidationException("Prices must be between ₹0 and ₹1,00,00,000.");
             }
 
-            var productId = await ProductIdAsync(cancellationToken);
+            var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
             if (await catalog.AddOns.AnyAsync(a => a.ProductId == productId && a.Code == code, cancellationToken))
             {
                 throw new ConflictException($"An add-on with the code '{code}' already exists.");
@@ -147,12 +147,12 @@ public partial class PlatformCatalogController(
 
     [HttpPut("addons/{code}")]
     [Authorize(Policy = PlatformPolicies.Billing)]
-    public async Task<IActionResult> UpdateAddOn(string code, [FromBody] UpdateAddOnRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateAddOn(string code, [FromBody] UpdateAddOnRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         return await Guarded(async () =>
         {
             RequireReason(request.Reason);
-            var productId = await ProductIdAsync(cancellationToken);
+            var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
             var addOn = await catalog.AddOns.FirstOrDefaultAsync(a => a.ProductId == productId && a.Code == code, cancellationToken)
                 ?? throw new NotFoundException("Add-on not found.");
             var before = new { addOn.Name, addOn.IsActive };
@@ -165,12 +165,12 @@ public partial class PlatformCatalogController(
     }
 
     [HttpGet("settings")]
-    public async Task<ActionResult<PlatformSettingsDto>> GetSettings(CancellationToken cancellationToken) =>
-        Ok(ToDto(await settings.GetAsync(cancellationToken)));
+    public async Task<ActionResult<PlatformSettingsDto>> GetSettings(CancellationToken cancellationToken, [FromQuery] string? product = null) =>
+        Ok(ToDto(await settings.GetAsync(cancellationToken, products.RequiredKey(product))));
 
     [HttpPut("settings")]
     [Authorize(Policy = PlatformPolicies.Owner)]
-    public async Task<IActionResult> UpdateSettings([FromBody] UpdatePlatformSettingsRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateSettings([FromBody] UpdatePlatformSettingsRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         return await Guarded(async () =>
         {
@@ -183,8 +183,8 @@ public partial class PlatformCatalogController(
             if (request.FranchiseCodeMinutes is { } codeMinutes) values[PlatformSettingsService.FranchiseCodeMinutesKey] = codeMinutes;
             if (values.Count == 0) throw new ValidationException("Nothing to change.");
 
-            var before = ToDto(await settings.GetAsync(cancellationToken));
-            var after = ToDto(await settings.SaveAsync(values, User.FindFirstValue(ClaimTypes.Email), cancellationToken));
+            var before = ToDto(await settings.GetAsync(cancellationToken, products.RequiredKey(product)));
+            var after = ToDto(await settings.SaveAsync(values, User.FindFirstValue(ClaimTypes.Email), cancellationToken, products.RequiredKey(product)));
             await audit.RecordAsync("settings.updated", null, before, after, request.Reason, cancellationToken);
             return Ok(after);
         });
@@ -195,10 +195,11 @@ public partial class PlatformCatalogController(
     /// created: Trovo creates it by hand (New company, already paid) and calls the customer.
     /// </summary>
     [HttpGet("signups")]
-    public async Task<ActionResult<IReadOnlyList<SignupOrderListItem>>> Signups([FromQuery] string? status, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<SignupOrderListItem>>> Signups([FromQuery] string? status, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
-        var productId = await ProductIdAsync(cancellationToken);
-        var query = catalog.SignupOrders.AsNoTracking().Where(o => o.ProductId == productId);
+        var productKey = products.OptionalKey(product);
+        var productRows = await catalog.Products.ToDictionaryAsync(p => p.Id, p => p.Key, cancellationToken);
+        var query = catalog.SignupOrders.AsNoTracking().Where(o => productKey == null || catalog.Products.Any(p => p.Id == o.ProductId && p.Key == productKey));
         if (!string.IsNullOrWhiteSpace(status))
         {
             if (!Enum.TryParse<SignupStatus>(status, ignoreCase: true, out var wanted)) return BadRequest(new { error = "Unknown status." });
@@ -219,7 +220,7 @@ public partial class PlatformCatalogController(
             o.CompanyId is { } id && codes.TryGetValue(id, out var code) ? code : null,
             o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt,
             o.FranchiseSignupCodeId is { } fc && franchisors.TryGetValue(fc, out var franchisor) && codes.TryGetValue(franchisor, out var fcode) ? fcode : null,
-            o.FranchiseLinkId is not null, o.FranchiseProblem)).ToList());
+            o.FranchiseLinkId is not null, o.FranchiseProblem, productRows[o.ProductId])).ToList());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -231,9 +232,6 @@ public partial class PlatformCatalogController(
         catch (NotFoundException ex) { return NotFound(new { error = ex.Message }); }
         catch (ConflictException ex) { return Conflict(new { error = ex.Message }); }
     }
-
-    private Task<Guid> ProductIdAsync(CancellationToken cancellationToken) =>
-        catalog.Products.Where(p => p.Key == options.Value.ProductKey).Select(p => p.Id).FirstAsync(cancellationToken);
 
     private static PlanTerms ToTerms(PlanTermsDto dto, int minimumLicences, IReadOnlyDictionary<string, string>? features) =>
         new(dto.CompanyFeeMinor, minimumLicences, dto.AndroidUserPriceMinor, dto.WindowsUserPriceMinor, dto.BothUserPriceMinor,

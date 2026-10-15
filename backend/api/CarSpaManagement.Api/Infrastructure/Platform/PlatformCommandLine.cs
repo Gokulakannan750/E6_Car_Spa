@@ -1,4 +1,5 @@
 using CarSpaManagement.Api.Domain.Platform;
+using CarSpaManagement.Api.Infrastructure.Platform.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -33,6 +34,8 @@ public static class PlatformCommandLine
         var catalog = scope.ServiceProvider.GetRequiredService<PlatformDbContext>();
         var (positional, flags) = Parse(args);
         var command = positional.Count > 0 ? positional[0] : "help";
+        var products = scope.ServiceProvider.GetRequiredService<ProductSelection>();
+        flags.TryGetValue("product", out var productKey);
 
         try
         {
@@ -61,7 +64,7 @@ public static class PlatformCommandLine
                 case "create-company" when positional.Count >= 2:
                 {
                     var plan = flags.ContainsKey("plan") ? ReadPlan(flags) : null;
-                    var created = await provisioner.CreateCompanyAsync(string.Join(' ', positional.Skip(1)), plan);
+                    var created = await provisioner.CreateCompanyAsync(products.RequiredKey(productKey), string.Join(' ', positional.Skip(1)), plan);
                     Console.WriteLine($"Company created: {created.Company.Name}");
                     Console.WriteLine($"  Company code:       {created.Company.Code}");
                     Console.WriteLine($"  Registration code:  {created.RegistrationCode}   (one-time; valid until {created.RegistrationCodeExpiresAt:dd MMM yyyy} UTC)");
@@ -74,9 +77,10 @@ public static class PlatformCommandLine
                 case "new-registration-code" when positional.Count == 2:
                 {
                     await provisioner.EnsureCatalogAsync();
+                    var selected = products.RequiredKey(productKey);
                     var code = positional[1].Trim().ToUpperInvariant();
                     var company = await catalog.Companies.Include(c => c.Product)
-                        .FirstOrDefaultAsync(c => c.Product!.Key == options.ProductKey && c.Code == code);
+                        .FirstOrDefaultAsync(c => c.Product!.Key == selected && c.Code == code);
                     if (company is null)
                     {
                         Console.Error.WriteLine($"No company with code {code}.");
@@ -99,6 +103,8 @@ public static class PlatformCommandLine
                         Console.Error.WriteLine("adopt-database needs the company's plan, e.g. --plan professional --interval year --addons showroom,franchise_network");
                         return 2;
                     }
+                    if (products.RequiredKey(productKey) != options.ProductKey)
+                        throw new InvalidOperationException("Database adoption is supported only for Car Spa.");
                     var company = await provisioner.AdoptDatabaseAsync(positional[1], ReadPlan(flags));
                     Console.WriteLine($"Database {company.DatabaseName} is now company {company.Code} ({company.Name}) with its own login {company.DatabaseUser}.");
                     return company.MigrationError is null ? 0 : 1;
@@ -106,12 +112,12 @@ public static class PlatformCommandLine
 
                 case "migrate":
                 {
-                    var companies = await provisioner.MigrateAllAsync();
+                    var companies = await provisioner.MigrateAllAsync(products.OptionalKey(productKey));
                     foreach (var company in companies)
                     {
                         Console.WriteLine(company.MigrationError is null
-                            ? $"  {company.Code}  OK      {company.SchemaVersion}"
-                            : $"  {company.Code}  FAILED  {company.MigrationError}");
+                            ? $"  {company.Product?.Key}/{company.Code}  OK      {company.SchemaVersion}"
+                            : $"  {company.Product?.Key}/{company.Code}  FAILED  {company.MigrationError}");
                     }
                     return companies.Any(c => c.MigrationError is not null) ? 1 : 0;
                 }
@@ -127,8 +133,9 @@ public static class PlatformCommandLine
                 case "list":
                 {
                     await provisioner.EnsureCatalogAsync();
+                    var selected = products.OptionalKey(productKey);
                     var companies = await catalog.Companies.AsNoTracking().Include(c => c.Product)
-                        .Where(c => c.Product!.Key == options.ProductKey).OrderBy(c => c.Code).ToListAsync();
+                        .Where(c => selected == null || c.Product!.Key == selected).OrderBy(c => c.Code).ToListAsync();
                     var subscriptions = await catalog.Subscriptions.AsNoTracking().Include(s => s.PlanVersion!).ThenInclude(v => v.Plan)
                         .Where(s => s.IsCurrent).ToDictionaryAsync(s => s.CompanyId);
                     Console.WriteLine($"{"Code",-6} {"Company",-22} {"Subscription",-30} {"Database",-24} Name");
@@ -138,7 +145,7 @@ public static class PlatformCommandLine
                         var plan = subscriptions.TryGetValue(c.Id, out var s)
                             ? $"{s.PlanVersion?.Plan?.Code} {s.Status} to {s.CurrentPeriodEnd:dd MMM yy}"
                             : "-";
-                        Console.WriteLine($"{c.Code,-6} {status,-22} {plan,-30} {c.DatabaseName,-24} {c.Name}");
+                        Console.WriteLine($"{c.Product!.Key}/{c.Code,-6} {status,-22} {plan,-30} {c.DatabaseName,-24} {c.Name}");
                     }
                     return 0;
                 }
@@ -148,12 +155,12 @@ public static class PlatformCommandLine
                         Platform commands:
                           platform create-admin <email> <name> [--role Owner|Billing|Support|ReadOnly]
                           platform reset-admin <email>
-                          platform create-company <name> [--plan <code> --interval month|year --licences both:2,android:1 --addons a,b:2 --paid-until yyyy-mm-dd]
-                          platform new-registration-code <code>
+                          platform create-company <name> [--product <key>] [--plan <code> --interval month|year --licences both:2,android:1 --addons a,b:2 --paid-until yyyy-mm-dd]
+                          platform new-registration-code <code> [--product <key>]
                           platform adopt-database <database> --plan <code> --interval month|year [--licences ...] [--addons ...] [--paid-until ...]
-                          platform migrate          migrate the catalog and every company database
+                          platform migrate [--product <key>] migrate the catalog and every company database
                           platform run-lifecycle    apply trial/grace/renewal rules now
-                          platform list             list companies and subscriptions
+                          platform list [--product <key>] list companies and subscriptions
                         Without --plan a new company starts on the free trial.
                         """);
                     return command == "help" ? 0 : 2;
