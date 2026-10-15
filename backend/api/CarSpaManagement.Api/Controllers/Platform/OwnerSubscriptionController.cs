@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Controllers.Platform;
 
-public sealed record OwnerChoiceDto(string PlanCode, string Interval, PublicLicencesDto Licences, Dictionary<string, int> AddOns);
+public sealed record OwnerChoiceDto(string PlanCode, string Interval, PublicLicencesDto? Licences, Dictionary<string, int> AddOns, Dictionary<string, int>? Seats = null);
 
 /// <summary>What the Owner's subscription page needs: what is on sale, what the company has, and licences in use.</summary>
 public sealed record OwnerSubscriptionDto(
@@ -22,7 +22,7 @@ public sealed record OwnerSubscriptionDto(
     DateTime CurrentPeriodEnd,
     bool CancelAtPeriodEnd,
     bool CanPayOnline,
-    bool TestPayments);
+    bool TestPayments, IReadOnlyList<SeatDto>? Seats = null, int? SeatLimit = null);
 
 public sealed record OwnerChangeResultDto(string Status, string Timing, DateTime EffectiveAt, long AmountNowMinor, Guid? InvoiceId, string? InvoiceNumber);
 
@@ -62,11 +62,13 @@ public class OwnerSubscriptionController(
         var current = new OwnerChoiceDto(subscription.PlanVersion!.Plan!.Code, subscription.PlanVersion.Interval.ToString(),
             new PublicLicencesDto(subscription.Licences.Android, subscription.Licences.Windows, subscription.Licences.Both),
             subscription.Items.Where(i => i.EffectiveTo is null).ToDictionary(i => i.AddOnPrice!.AddOn!.Code, i => i.Quantity));
-        var used = await InUseAsync(cancellationToken);
+        var productModel = await catalog.Companies.Where(c => c.Id == Company).Select(c => c.Product!.SeatModel).SingleAsync(cancellationToken);
+        var used = productModel == SeatModel.PerType ? await InUseAsync(cancellationToken) : new LicenceCounts(0, 0, 0);
         var productKey = await catalog.Companies.Where(c => c.Id == Company).Select(c => c.Product!.Key).SingleAsync(cancellationToken);
         return Ok(new OwnerSubscriptionDto(await catalogReader.ReadAsync(cancellationToken, productKey), current,
             new PublicLicencesDto(used.Android, used.Windows, used.Both), subscription.Status.ToString(), subscription.CurrentPeriodEnd,
-            subscription.CancelAtPeriodEnd, signups.TestPaymentsAllowed, signups.TestPaymentsAllowed));
+            subscription.CancelAtPeriodEnd, signups.TestPaymentsAllowed, signups.TestPaymentsAllowed, ProductSeats.Describe(subscription.PlanVersion, ProductSeats.Of(subscription)),
+            productModel == SeatModel.None ? null : subscription.Seats.Sum(s => s.Quantity)));
     }
 
     [HttpPost("preview")]
@@ -94,7 +96,8 @@ public class OwnerSubscriptionController(
         return await Guarded(async () =>
         {
             var target = ToTarget(choice);
-            var used = await InUseAsync(cancellationToken);
+            var productModel = await catalog.Companies.Where(c => c.Id == Company).Select(c => c.Product!.SeatModel).SingleAsync(cancellationToken);
+        var used = productModel == SeatModel.PerType ? await InUseAsync(cancellationToken) : new LicenceCounts(0, 0, 0);
             foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows only"), (AppAccess.Android, "Android only") })
             {
                 if (target.Licences.Of(access) < used.Of(access))
@@ -216,9 +219,9 @@ public class OwnerSubscriptionController(
         {
             throw new ValidationException("Choose monthly or yearly billing.");
         }
-        var licences = choice.Licences ?? throw new ValidationException("Choose the user licences.");
+        var licences = choice.Licences ?? new PublicLicencesDto(0, 0, 0);
         return new PlanChangeTarget(choice.PlanCode.Trim().ToLowerInvariant(), interval, new LicenceCounts(licences.Android, licences.Windows, licences.Both),
-            choice.AddOns ?? new Dictionary<string, int>());
+            choice.AddOns ?? new Dictionary<string, int>(), choice.Seats);
     }
 
     private static OwnerInvoiceDto ToDto(BillingInvoice i) => new(i.Id, i.InvoiceNumber, i.Kind.ToString(), i.Status.ToString(), i.IssuedAt, i.DueAt,

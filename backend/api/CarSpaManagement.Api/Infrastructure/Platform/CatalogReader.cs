@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace CarSpaManagement.Api.Infrastructure.Platform;
 
-public sealed record PublicPricesDto(long CompanyFeeMinor, long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor);
+public sealed record PublicPricesDto(long CompanyFeeMinor, long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor, IReadOnlyList<SeatDto>? Seats = null);
 public sealed record PublicPlanDto(string Code, string Name, int MinimumLicences, IReadOnlyList<string> Modules, PublicPricesDto? Monthly, PublicPricesDto? Yearly);
 public sealed record PublicAddOnDto(string Code, string Name, string FeatureKey, bool IsPack, int PerUnit, long? MonthlyPriceMinor, long? YearlyPriceMinor);
 public sealed record PublicCatalogDto(
@@ -45,11 +45,11 @@ public sealed class CatalogReader(
         var plans = await catalog.Plans.AsNoTracking().Include(p => p.Versions).ThenInclude(v => v.Entitlements)
             .Where(p => p.ProductId == product.Id && p.IsActive).OrderBy(p => p.SortOrder).ToListAsync(cancellationToken);
         var addOns = await catalog.AddOns.AsNoTracking().Include(a => a.Prices)
-            .Where(a => a.ProductId == product.Id && a.IsActive).OrderBy(a => a.Code).ToListAsync(cancellationToken);
+            .Where(a => a.ProductId == product.Id && a.IsActive && (product.SeatModel == SeatModel.PerType || a.FeatureKey != FeatureKeys.UsersMaxActive)).OrderBy(a => a.Code).ToListAsync(cancellationToken);
         var effective = await platformSettings.GetAsync(cancellationToken, product.Key);
 
         static PublicPricesDto? Prices(PlanVersion? v) =>
-            v is null ? null : new PublicPricesDto(v.PriceMinor, v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both));
+            v is null ? null : new PublicPricesDto(v.PriceMinor, v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both), ProductSeats.Describe(v));
         long? AddOnPrice(AddOn a, BillingInterval interval) =>
             a.Prices.Where(p => p.Interval == interval && p.EffectiveFrom <= now && (p.EffectiveTo == null || p.EffectiveTo > now))
                 .OrderByDescending(p => p.Version).Select(p => (long?)p.UnitPriceMinor).FirstOrDefault();
@@ -68,7 +68,7 @@ public sealed class CatalogReader(
             addOns.Select(a => new PublicAddOnDto(a.Code, a.Name, a.FeatureKey, a.Value != "true", int.TryParse(a.Value, out var unit) ? unit : 1,
                 AddOnPrice(a, BillingInterval.Month), AddOnPrice(a, BillingInterval.Year))).ToList(),
             effective.TrialDays,
-            effective.TrialLicences,
+            product.SeatModel == SeatModel.None ? 0 : effective.TrialLicences,
             effective.GraceDays,
             Settings.ChargesGst,
             Settings.ChargesGst ? Settings.GstRatePercent : null,

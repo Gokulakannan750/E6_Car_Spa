@@ -61,15 +61,16 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
         var planName = version.Plan?.Name ?? "Plan";
         var period = periodText.Length > 0 ? $", {periodText}" : string.Empty;
         // The plan line: its company fee, or the whole price for a subscription from before per-app licences.
-        if (version.PriceMinor > 0 || terms.Licences.Total == 0)
+        if (version.PriceMinor > 0 || (terms.Seats?.Values.Sum() ?? terms.Licences.Total) == 0)
         {
             yield return ($"{planName} plan ({Describe(version.Interval)}){period}", 1, version.PriceMinor);
         }
-        foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows"), (AppAccess.Android, "Android") })
+        var quantities = terms.Seats ?? ProductSeats.Legacy(terms.Licences);
+        foreach (var price in version.SeatPrices.OrderByDescending(p => p.SeatType!.SortOrder))
         {
-            var count = terms.Licences.Of(access);
+            var count = quantities.GetValueOrDefault(price.SeatType!.Code);
             if (count == 0) continue;
-            yield return ($"{label} user licence, {planName} ({Describe(version.Interval)}){period}", count, version.UserPriceMinor(access));
+            yield return ($"{ProductSeats.InvoiceLabel(price.SeatType)}, {planName} ({Describe(version.Interval)}){period}", count, price.PriceMinor);
         }
         // Add-ons in name order, so the same subscription always gives the same invoice.
         foreach (var (price, quantity) in terms.AddOns.OrderBy(a => a.Price.AddOn?.Name, StringComparer.OrdinalIgnoreCase))
@@ -174,7 +175,7 @@ public sealed class BillingInvoiceService(PlatformDbContext catalog, IOptions<Pl
 }
 
 /// <summary>What one period of a subscription is billed for: the plan version, the user licences and the add-ons.</summary>
-public sealed record InvoiceTerms(PlanVersion Version, LicenceCounts Licences, IReadOnlyList<(AddOnPrice Price, int Quantity)> AddOns)
+public sealed record InvoiceTerms(PlanVersion Version, LicenceCounts Licences, IReadOnlyList<(AddOnPrice Price, int Quantity)> AddOns, IReadOnlyDictionary<string, int>? Seats = null)
 {
     /// <summary>The subscription's own terms for a period starting at <paramref name="periodStart"/>.</summary>
     public static InvoiceTerms Of(Subscription subscription, DateTime periodStart) => new(
@@ -182,5 +183,5 @@ public sealed record InvoiceTerms(PlanVersion Version, LicenceCounts Licences, I
         subscription.Licences,
         subscription.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > periodStart)
             .Select(i => (i.AddOnPrice ?? throw new InvalidOperationException("Subscription item prices are not loaded."), i.Quantity))
-            .ToList());
+            .ToList(), ProductSeats.Of(subscription));
 }

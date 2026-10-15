@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CarSpaManagement.Api.Infrastructure.Platform;
 
 /// <summary>What a customer wants to buy.</summary>
-public sealed record PlanChoice(string PlanCode, BillingInterval Interval, LicenceCounts Licences, IReadOnlyDictionary<string, int> AddOns);
+public sealed record PlanChoice(string PlanCode, BillingInterval Interval, LicenceCounts Licences, IReadOnlyDictionary<string, int> AddOns, IReadOnlyDictionary<string, int>? Seats = null);
 
 public sealed record QuoteLine(string Description, int Quantity, long UnitPriceMinor, long AmountMinor);
 
@@ -23,7 +23,7 @@ public sealed record PriceQuote(
     decimal? TaxRatePercent,
     long TotalMinor,
     string Currency,
-    CheaperPlan? Cheaper);
+    CheaperPlan? Cheaper, IReadOnlyList<SeatDto>? Seats = null);
 
 /// <summary>Another plan that includes some of the chosen modules and costs less with the same licences.</summary>
 public sealed record CheaperPlan(string PlanCode, string PlanName, long TotalMinor);
@@ -35,11 +35,10 @@ public sealed record CheaperPlan(string PlanCode, string PlanName, long TotalMin
 /// </summary>
 public sealed class PriceQuoteService(PlatformDbContext catalog)
 {
-    private static readonly (AppAccess Access, string Label)[] LicenceTypes =
-        [(AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows"), (AppAccess.Android, "Android")];
-
     public async Task<PriceQuote> QuoteAsync(Guid productId, PlanChoice choice, PlatformOptions settings, CancellationToken cancellationToken = default)
     {
+        var product = await catalog.Products.SingleAsync(p => p.Id == productId, cancellationToken);
+        var types = await catalog.ProductSeatTypes.Where(t => t.ProductId == productId).ToListAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var plans = await catalog.Plans.AsNoTracking()
             .Include(p => p.Versions).ThenInclude(v => v.Entitlements)
@@ -51,7 +50,7 @@ public sealed class PriceQuoteService(PlatformDbContext catalog)
 
         var plan = plans.FirstOrDefault(p => p.Code == choice.PlanCode)
             ?? throw new ValidationException("Choose one of the plans on sale.");
-        var (lines, total, currency) = Price(plan, choice, addOns, now, refuseIncluded: true);
+        var (lines, total, currency) = Price(plan, choice, addOns, product, types, now, refuseIncluded: true);
 
         CheaperPlan? cheaper = null;
         foreach (var other in plans.Where(p => p.Code != plan.Code))
@@ -64,7 +63,7 @@ public sealed class PriceQuoteService(PlatformDbContext catalog)
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
             try
             {
-                var (_, otherTotal, _) = Price(other, choice with { PlanCode = other.Code, AddOns = remaining }, addOns, now, refuseIncluded: true);
+                var (_, otherTotal, _) = Price(other, choice with { PlanCode = other.Code, AddOns = remaining }, addOns, product, types, now, refuseIncluded: true);
                 if (otherTotal < total && (cheaper is null || otherTotal < cheaper.TotalMinor)) cheaper = new CheaperPlan(other.Code, other.Name, otherTotal);
             }
             catch (ValidationException)
@@ -75,33 +74,37 @@ public sealed class PriceQuoteService(PlatformDbContext catalog)
 
         // Tax the same way invoices do (BillingInvoiceService.ApplyTotals): only once Trovo charges GST.
         var tax = settings.ChargesGst ? (long)Math.Round(total * settings.GstRatePercent / 100m, MidpointRounding.AwayFromZero) : 0;
-        return new PriceQuote(plan.Code, plan.Name, choice.Interval, choice.Licences,
+        var selectedVersion = CurrentVersion(plan, choice.Interval, now)!;
+        var normalizedSeats = ProductSeats.Validate(product, selectedVersion, types, choice.Seats, choice.Licences);
+        var licenceView = product.SeatModel == SeatModel.PerType ? ProductSeats.LicenceView(normalizedSeats) : new LicenceCounts(0, 0, 0);
+        return new PriceQuote(plan.Code, plan.Name, choice.Interval, licenceView,
             choice.AddOns.Where(kv => kv.Value > 0).ToDictionary(kv => kv.Key, kv => kv.Value),
-            lines, total, tax, settings.ChargesGst ? settings.GstRatePercent : null, total + tax, currency, cheaper);
+            lines, total, tax, settings.ChargesGst ? settings.GstRatePercent : null, total + tax, currency, cheaper, ProductSeats.Describe(selectedVersion, normalizedSeats));
     }
 
     private static (List<QuoteLine> Lines, long Total, string Currency) Price(Plan plan, PlanChoice choice, IReadOnlyList<AddOn> addOns,
-        DateTime now, bool refuseIncluded)
+        PlatformProduct product, IReadOnlyList<ProductSeatType> types, DateTime now, bool refuseIncluded)
     {
         var version = CurrentVersion(plan, choice.Interval, now)
             ?? throw new ValidationException($"{plan.Name} is not sold {(choice.Interval == BillingInterval.Year ? "yearly" : "monthly")}.");
-        if (choice.Licences.Problem(version.IncludedSeats) is { } problem) throw new ValidationException(problem);
+        var quantities = ProductSeats.Validate(product, version, types, choice.Seats, choice.Licences);
 
         var period = choice.Interval == BillingInterval.Year ? "yearly" : "monthly";
         var lines = new List<QuoteLine>();
         if (version.PriceMinor > 0) lines.Add(new QuoteLine($"{plan.Name} plan ({period})", 1, version.PriceMinor, version.PriceMinor));
-        foreach (var (access, label) in LicenceTypes)
+        foreach (var price in version.SeatPrices.OrderByDescending(p => p.SeatType!.SortOrder))
         {
-            var count = choice.Licences.Of(access);
+            var count = quantities.GetValueOrDefault(price.SeatType!.Code);
             if (count == 0) continue;
-            var unit = version.UserPriceMinor(access);
-            lines.Add(new QuoteLine($"{label} user licence, {plan.Name} ({period})", count, unit, unit * count));
+            lines.Add(new QuoteLine($"{ProductSeats.InvoiceLabel(price.SeatType)}, {plan.Name} ({period})", count, price.PriceMinor, price.PriceMinor * count));
         }
 
         foreach (var (code, quantity) in choice.AddOns.Where(kv => kv.Value != 0))
         {
             if (quantity is < 0 or > 100) throw new ValidationException("Add-on quantities must be 0 to 100.");
             var addOn = addOns.FirstOrDefault(a => a.Code == code) ?? throw new ValidationException($"The add-on '{code}' is not on sale.");
+            if (product.SeatModel != SeatModel.PerType && addOn.FeatureKey == FeatureKeys.UsersMaxActive)
+                throw new ValidationException("Legacy user packs are unavailable for this product.");
             if (addOn.Value == "true" && quantity > 1) throw new ValidationException($"{addOn.Name} can be added only once.");
             if (refuseIncluded && SubscriptionService.PlanIncludes(version, addOn))
             {

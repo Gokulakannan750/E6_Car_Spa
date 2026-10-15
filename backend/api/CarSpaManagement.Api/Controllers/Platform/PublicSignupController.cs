@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace CarSpaManagement.Api.Controllers.Platform;
 
 public sealed record PublicLicencesDto(int Android, int Windows, int Both);
-public sealed record PublicPlanChoiceDto(string PlanCode, string Interval, PublicLicencesDto Licences, Dictionary<string, int>? AddOns);
+public sealed record PublicPlanChoiceDto(string PlanCode, string Interval, PublicLicencesDto? Licences, Dictionary<string, int>? AddOns, Dictionary<string, int>? Seats = null);
 public sealed record PublicSignupRequest(SignupBusiness Business, bool StartTrial, PublicPlanChoiceDto? Plan, bool AcceptTerms,
     string? FranchiseCode = null, bool FranchiseConsent = false);
 public sealed record PublicFranchiseCodeRequest(string Code);
@@ -136,8 +136,8 @@ public class PublicSignupController(
         {
             throw new ValidationException("Choose monthly or yearly billing.");
         }
-        var licences = dto.Licences ?? throw new ValidationException("Choose how many user licences you need.");
+        var licences = dto.Licences ?? new PublicLicencesDto(0, 0, 0);
         return new PlanChoice(dto.PlanCode.Trim().ToLowerInvariant(), interval, new LicenceCounts(licences.Android, licences.Windows, licences.Both),
-            dto.AddOns ?? new Dictionary<string, int>());
+            dto.AddOns ?? new Dictionary<string, int>(), dto.Seats);
     }
 }

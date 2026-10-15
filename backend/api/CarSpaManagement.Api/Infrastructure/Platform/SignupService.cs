@@ -40,7 +40,7 @@ public sealed record SignupResult(
     string? InvoiceNumber = null,
     string? FranchisorName = null,
     bool FranchiseLinked = false,
-    string? FranchiseProblem = null);
+    string? FranchiseProblem = null, IReadOnlyList<SeatDto>? Seats = null);
 
 /// <summary>
 /// Businesses signing up on the public website. A trial creates the company at once; a paid order fixes the price,
@@ -134,10 +134,11 @@ public sealed partial class SignupService(
             }
 
             var franchise = await LinkFranchiseAsync(order, created.Company.Id, cancellationToken);
+            order.SeatsQuoteJson = JsonSerializer.Serialize(ProductSeats.Describe(subscription.PlanVersion!, ProductSeats.Of(subscription)));
             order.Status = SignupStatus.Completed;
             order.CompanyId = created.Company.Id;
             order.CompletedAt = DateTime.UtcNow;
-            if (product.SeatModel != SeatModel.None) order.SetLicences(subscription.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
+            ProductSeats.SetOrder(order, ProductSeats.Of(subscription), await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
             await catalog.SaveChangesAsync(cancellationToken);
             await audit.RecordAsync("signup.trial_started", created.Company.Id, null,
                 new { order.Id, created.Company.Code, business.Name, business.Email, trialEndsAt = subscription.TrialEndsAt }, "Public sign-up", cancellationToken);
@@ -145,7 +146,7 @@ public sealed partial class SignupService(
 
             return new SignupResult(order.Id, token, order.Status, order.Start, null, 0, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
                 created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, subscription.TrialEndsAt,
-                FranchisorName: franchise.Name, FranchiseLinked: franchise.Linked, FranchiseProblem: order.FranchiseProblem);
+                FranchisorName: franchise.Name, FranchiseLinked: franchise.Linked, FranchiseProblem: order.FranchiseProblem, Seats: ReadSeats(order));
         }
 
         if (request.Plan is not { } choice) throw new ValidationException("Choose a plan, or start the free trial.");
@@ -155,18 +156,19 @@ public sealed partial class SignupService(
         order.Status = SignupStatus.AwaitingPayment;
         order.PlanCode = quote.PlanCode;
         order.Interval = quote.Interval;
-        order.SetLicences(quote.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
+        ProductSeats.SetOrder(order, quote.Seats!.ToDictionary(s => s.Code, s => s.Quantity), await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
         order.AddOnsJson = JsonSerializer.Serialize(quote.AddOns);
         order.AmountMinor = quote.TotalMinor;
         order.Currency = quote.Currency;
         order.QuoteJson = JsonSerializer.Serialize(quote.Lines);
+        order.SeatsQuoteJson = JsonSerializer.Serialize(quote.Seats);
         await ReserveFranchiseCodeAsync(request, order, order.ExpiresAt, cancellationToken);
         catalog.SignupOrders.Add(order);
         await catalog.SaveChangesAsync(cancellationToken);
         Log.Information("Sign-up: order {OrderId} for {Plan} awaits payment of {Amount}", order.Id, quote.PlanCode, quote.TotalMinor);
 
         return new SignupResult(order.Id, token, order.Status, order.Start, quote, order.AmountMinor, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
-            FranchisorName: await FranchisorNameAsync(order, cancellationToken));
+            FranchisorName: await FranchisorNameAsync(order, cancellationToken), Seats: ReadSeats(order));
     }
 
     /// <summary>Checks the consent and reserves the franchise code for this order (before anything is created).</summary>
@@ -243,7 +245,7 @@ public sealed partial class SignupService(
 
             var productKey = await catalog.Products.Where(p => p.Id == order.ProductId).Select(p => p.Key).SingleAsync(cancellationToken);
             var created = await provisioner.CreateCompanyAsync(productKey, order.BusinessName,
-                new CompanyPlan(order.PlanCode!, interval, addOns, paidUntil, licences), cancellationToken);
+                new CompanyPlan(order.PlanCode!, interval, addOns, paidUntil, licences, ProductSeats.Of(order)), cancellationToken);
             await FillBillingAccountAsync(created.Company.Id, order, cancellationToken);
 
             var subscription = await subscriptions.CurrentAsync(created.Company.Id, cancellationToken);
@@ -270,7 +272,7 @@ public sealed partial class SignupService(
 
             return new SignupResult(order.Id, null, order.Status, order.Start, null, order.AmountMinor, order.Currency, order.ExpiresAt, TestPaymentsAllowed,
                 created.Company.Code, created.RegistrationCode, created.RegistrationCodeExpiresAt, null, subscription.CurrentPeriodEnd, invoice.InvoiceNumber,
-                franchise.Name, franchise.Linked, order.FranchiseProblem);
+                franchise.Name, franchise.Linked, order.FranchiseProblem, ReadSeats(order));
         }
         catch (Exception ex)
         {
@@ -304,12 +306,14 @@ public sealed partial class SignupService(
             ? new PriceQuote(order.PlanCode!, order.PlanCode!, order.Interval ?? BillingInterval.Month,
                 new LicenceCounts(order.Licences.Android, order.Licences.Windows, order.Licences.Both),
                 JsonSerializer.Deserialize<Dictionary<string, int>>(order.AddOnsJson ?? "{}") ?? new Dictionary<string, int>(),
-                lines, lines.Sum(l => l.AmountMinor), order.AmountMinor - lines.Sum(l => l.AmountMinor), null, order.AmountMinor, order.Currency, null)
+                lines, lines.Sum(l => l.AmountMinor), order.AmountMinor - lines.Sum(l => l.AmountMinor), null, order.AmountMinor, order.Currency, null, ReadSeats(order))
             : null;
         return new SignupResult(order.Id, null, order.Status, order.Start, quote, order.AmountMinor, order.Currency, order.ExpiresAt,
             TestPaymentsAllowed, code, FranchisorName: await FranchisorNameAsync(order, cancellationToken),
-            FranchiseLinked: order.FranchiseLinkId is not null, FranchiseProblem: order.FranchiseProblem);
+            FranchiseLinked: order.FranchiseLinkId is not null, FranchiseProblem: order.FranchiseProblem, Seats: ReadSeats(order));
     }
+
+    private static IReadOnlyList<SeatDto> ReadSeats(SignupOrder order) => ProductSeats.OrderSnapshot(order);
 
     private async Task<SignupOrder> FindAsync(Guid orderId, string? token, CancellationToken cancellationToken)
     {

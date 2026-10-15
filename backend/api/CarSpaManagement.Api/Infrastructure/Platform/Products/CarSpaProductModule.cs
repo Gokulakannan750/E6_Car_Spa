@@ -10,6 +10,15 @@ namespace CarSpaManagement.Api.Infrastructure.Platform.Products;
 
 public sealed class CarSpaProductModule(IConfiguration configuration, IOptions<PlatformOptions> options) : IProductModule
 {
+    // Compatibility for pure Car Spa rule tests; runtime resolution always supplies catalog ProductFeature rows.
+    public static IReadOnlyList<ProductFeature> LegacyFeatureDefinitions() =>
+        FeatureKeys.All.Concat(new Dictionary<string, EntitlementValueType>
+        {
+            [FeatureKeys.LicencesAndroid] = EntitlementValueType.Int,
+            [FeatureKeys.LicencesWindows] = EntitlementValueType.Int,
+            [FeatureKeys.LicencesBoth] = EntitlementValueType.Int
+        }).Select(f => new ProductFeature { Key = f.Key, ValueType = f.Value }).ToList();
+
     public string Key => options.Value.ProductKey;
     public string Name => options.Value.ProductName;
     public string DatabasePrefix => Key;

@@ -217,26 +217,7 @@ public class Subscription
     public List<SubscriptionSeat> Seats { get; set; } = [];
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public LicenceCounts Licences
-    {
-        get => new(Count("android"), Count("windows"), Count("both"));
-        set
-        {
-            foreach (var access in new[] { AppAccess.Android, AppAccess.Windows, AppAccess.Both })
-            {
-                var code = LicenceCounts.CodeFor(access);
-                var row = Seats.SingleOrDefault(s => s.SeatType?.Code == code);
-                if (row is null)
-                {
-                    var type = PlanVersion?.SeatPrices.SingleOrDefault(p => p.SeatType?.Code == code)?.SeatType
-                        ?? throw new InvalidOperationException($"Load the plan's {code} seat type before setting licences.");
-                    row = new SubscriptionSeat { Id = Guid.NewGuid(), SubscriptionId = Id, SeatTypeId = type.Id, SeatType = type };
-                    Seats.Add(row);
-                }
-                row.Quantity = value.Of(access);
-            }
-        }
-    }
+    public LicenceCounts Licences => new(Count("android"), Count("windows"), Count("both"));
 
     private int Count(string code) => Seats.SingleOrDefault(s => s.SeatType?.Code == code)?.Quantity ?? 0;
 
@@ -723,6 +704,8 @@ public class SignupOrder
     [MaxLength(4000)]
     public string? QuoteJson { get; set; }
 
+    public string? SeatsQuoteJson { get; set; }
+
     /// <summary>SHA-256 of the secret the customer's browser holds; needed to pay or see the order.</summary>
     [Required, MaxLength(64)]
     public string TokenHash { get; set; } = string.Empty;
@@ -906,6 +889,8 @@ public class PlanChangeRequest
 
     /// <summary>The invoice for the amount charged now, if any.</summary>
     public Guid? AdjustmentInvoiceId { get; set; }
+
+    public string? SeatsJson { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public LicenceCounts Licences

@@ -695,6 +695,9 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<string>("SeatsJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -1299,6 +1302,9 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Property<string>("QuoteJson")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("SeatsQuoteJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Start")
                         .IsRequired()

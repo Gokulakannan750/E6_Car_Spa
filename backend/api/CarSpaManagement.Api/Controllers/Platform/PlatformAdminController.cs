@@ -14,14 +14,14 @@ public sealed record PlatformEntitlementDto(string FeatureKey, string Value);
 /// <summary>A plan version. PriceMinor is the company fee; the user licence prices are per user per period.</summary>
 public sealed record PlatformPlanVersionDto(Guid Id, int Version, string Interval, string Currency, long PriceMinor, int IncludedSeats,
     DateTime EffectiveFrom, DateTime? EffectiveTo, IReadOnlyList<PlatformEntitlementDto> Entitlements,
-    long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor);
+    long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor, IReadOnlyList<SeatDto>? Seats = null);
 public sealed record PlatformPlanDto(Guid Id, string Code, string Name, bool IsActive, IReadOnlyList<PlatformPlanVersionDto> Versions, string? ProductKey = null);
 public sealed record PlatformAddOnPriceDto(Guid Id, int Version, string Interval, string Currency, long UnitPriceMinor, DateTime EffectiveFrom, DateTime? EffectiveTo);
 public sealed record PlatformAddOnDto(Guid Id, string Code, string Name, string FeatureKey, string Value, bool IsActive, IReadOnlyList<PlatformAddOnPriceDto> Prices, string? ProductKey = null);
 public sealed record PlatformCatalogDto(IReadOnlyList<PlatformPlanDto> Plans, IReadOnlyList<PlatformAddOnDto> AddOns, bool ChargesGst, decimal GstRatePercent);
 /// <summary>New terms for a plan and interval. PriceMinor is the company fee; IncludedSeats the fewest user licences.</summary>
 public sealed record NewPlanVersionRequest(string Interval, long PriceMinor, int IncludedSeats, Dictionary<string, string> Entitlements, string Reason,
-    long AndroidUserPriceMinor = 0, long WindowsUserPriceMinor = 0, long BothUserPriceMinor = 0);
+    long AndroidUserPriceMinor = 0, long WindowsUserPriceMinor = 0, long BothUserPriceMinor = 0, Dictionary<string, long>? SeatPrices = null);
 public sealed record NewAddOnPriceRequest(string Interval, long UnitPriceMinor, string Reason);
 
 public sealed record PlatformDashboardDto(
@@ -64,9 +64,8 @@ public class PlatformAdminController(
                       + s.Items.Where(i => i.EffectiveTo is null || i.EffectiveTo > now)
                           .Sum(i => Monthly(i.AddOnPrice!.UnitPriceMinor * i.Quantity, i.AddOnPrice.Interval)));
 
-        static long LicencesCost(Subscription s) =>
-            s.Licences.Android * s.PlanVersion!.UserPriceMinor(AppAccess.Android) + s.Licences.Windows * s.PlanVersion.UserPriceMinor(AppAccess.Windows)
-            + s.Licences.Both * s.PlanVersion.UserPriceMinor(AppAccess.Both);
+        static long LicencesCost(Subscription s) => s.Seats.Sum(seat =>
+            seat.Quantity * (s.PlanVersion!.SeatPrices.SingleOrDefault(p => p.SeatTypeId == seat.SeatTypeId)?.PriceMinor ?? 0));
 
         return Ok(new PlatformDashboardDto(
             companies.Count,
@@ -94,7 +93,7 @@ public class PlatformAdminController(
                 p.Versions.OrderBy(v => v.Interval).ThenByDescending(v => v.Version).Select(v => new PlatformPlanVersionDto(
                     v.Id, v.Version, v.Interval.ToString(), v.Currency, v.PriceMinor, v.IncludedSeats, v.EffectiveFrom, v.EffectiveTo,
                     v.Entitlements.OrderBy(e => e.FeatureKey).Select(e => new PlatformEntitlementDto(e.FeatureKey, e.Value)).ToList(),
-                    v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both))).ToList(), productKey)).ToList(),
+                    v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both), ProductSeats.Describe(v))).ToList(), productKey)).ToList(),
             addOns.Select(a => new PlatformAddOnDto(a.Id, a.Code, a.Name, a.FeatureKey, a.Value, a.IsActive,
                 a.Prices.OrderBy(p => p.Interval).ThenByDescending(p => p.Version).Select(p => new PlatformAddOnPriceDto(
                     p.Id, p.Version, p.Interval.ToString(), p.Currency, p.UnitPriceMinor, p.EffectiveFrom, p.EffectiveTo)).ToList(), productKey)).ToList(),
@@ -116,26 +115,21 @@ public class PlatformAdminController(
             .Where(e => e.Key is not (FeatureKeys.UsersMaxActive or FeatureKeys.FranchiseNetworkBranches))
             .ToDictionary(e => e.Key, e => e.Value);
         var terms = new PlanTerms(request.PriceMinor, request.IncludedSeats, request.AndroidUserPriceMinor, request.WindowsUserPriceMinor,
-            request.BothUserPriceMinor, features);
-        try
-        {
-            PlanVersionFactory.Validate(terms);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-
+            request.BothUserPriceMinor, features, request.SeatPrices);
         var productKey = products.RequiredKey(product);
+        var selected = await products.RequiredAsync(productKey, cancellationToken);
+        var definitions = await catalog.ProductFeatures.Where(f => f.ProductId == selected.Id).ToListAsync(cancellationToken);
+        try { PlanVersionFactory.Validate(terms, selected, definitions); }
+        catch (ValidationException ex) { return BadRequest(new { error = ex.Message }); }
         var plan = await catalog.Plans.Include(p => p.Versions)
-            .FirstOrDefaultAsync(p => p.Product!.Key == productKey && p.Code == code, cancellationToken);
+            .FirstOrDefaultAsync(p => p.ProductId == selected.Id && p.Code == code, cancellationToken);
         if (plan is null) return NotFound();
 
         var now = DateTime.UtcNow;
         var current = plan.Versions.Where(v => v.Interval == interval && v.EffectiveTo == null).ToList();
         foreach (var old in current) old.EffectiveTo = now;
 
-        var version = PlanVersionFactory.Create(plan, interval, terms, now, await catalog.ProductSeatTypes.Where(t => t.ProductId == plan.ProductId).ToListAsync(cancellationToken));
+        var version = PlanVersionFactory.Create(plan, interval, terms, now, await catalog.ProductSeatTypes.Where(t => t.ProductId == plan.ProductId).ToListAsync(cancellationToken), selected, definitions);
         catalog.PlanVersions.Add(version);
         await catalog.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync("plan.version_created", null,

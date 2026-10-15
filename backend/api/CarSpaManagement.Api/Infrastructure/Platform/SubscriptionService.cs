@@ -20,7 +20,7 @@ public sealed record SubscriptionChange(
     BillingInterval? Interval = null,
     IReadOnlyDictionary<string, int>? AddOns = null,
     int? ExtendTrialDays = null,
-    LicenceCounts? Licences = null);
+    LicenceCounts? Licences = null, IReadOnlyDictionary<string, int>? Seats = null);
 
 /// <summary>
 /// A company's subscription over its life: trial, paid periods, renewals, grace, read-only, suspension and
@@ -54,9 +54,7 @@ public sealed class SubscriptionService(
 
         var subscription = NewSubscription(company, account, version, SubscriptionStatus.Trialing, now, now, trialEnd);
         subscription.TrialEndsAt = trialEnd;
-        // SeatModel.None needs no Car Spa adapter rows when provisioning a trial (generic billing is Stage 3).
-        if (product.SeatModel != SeatModel.None)
-            subscription.Licences = new LicenceCounts(0, 0, effective.TrialLicences);
+        await ProductSeats.SetAsync(catalog, subscription, company.ProductId, null, null, cancellationToken, effective.TrialLicences);
         catalog.Subscriptions.Add(subscription);
         AddEvent(subscription, "trial_started", actor, new { plan = product.TrialPlanCode, trialEndsAt = trialEnd, licences = subscription.Licences });
         await catalog.SaveChangesAsync(cancellationToken);
@@ -70,15 +68,14 @@ public sealed class SubscriptionService(
     /// </summary>
     public async Task<Subscription> StartPaidAsync(PlatformCompany company, string planCode, BillingInterval interval,
         IReadOnlyDictionary<string, int> addOns, LicenceCounts licences, DateTime periodStart, DateTime periodEnd, SubscriptionActor actor,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, IReadOnlyDictionary<string, int>? seats = null)
     {
         if (periodEnd <= periodStart) throw new ValidationException("The paid period must end after it starts.");
 
         var version = await CurrentVersionAsync(company.ProductId, planCode, interval, cancellationToken);
-        RequireValid(licences, version);
         var account = await EnsureBillingAccountAsync(company, cancellationToken);
         var subscription = NewSubscription(company, account, version, SubscriptionStatus.Active, periodStart, periodStart, periodEnd);
-        subscription.Licences = licences;
+        await ProductSeats.SetAsync(catalog, subscription, company.ProductId, seats, licences, cancellationToken);
         catalog.Subscriptions.Add(subscription);
         await SetAddOnsAsync(subscription, version, company.ProductId, interval, addOns, periodStart, cancellationToken);
         AddEvent(subscription, "activated", actor, new { plan = planCode, interval = interval.ToString(), addOns, licences, periodStart, periodEnd });
@@ -110,15 +107,10 @@ public sealed class SubscriptionService(
             subscription.PlanVersion = version;
         }
 
-        if (change.Licences is { } licences)
-        {
-            RequireValid(licences, subscription.PlanVersion);
-            subscription.Licences = licences;
-        }
-        else if (planChanged)
-        {
-            RequireValid(subscription.Licences, subscription.PlanVersion);
-        }
+        if (change.Licences is not null || change.Seats is not null || planChanged || subscription.Seats.Count == 0)
+            await ProductSeats.SetAsync(catalog, subscription, company.ProductId,
+                change.Seats ?? (change.Licences is null && subscription.Seats.Count > 0 ? ProductSeats.Of(subscription) : null),
+                change.Licences, cancellationToken);
 
         if (change.AddOns is not null || planChanged)
         {
@@ -452,10 +444,12 @@ public sealed class SubscriptionService(
     /// plan's minimum licences, add-ons on sale, no add-on the plan already includes).
     /// </summary>
     public async Task<InvoiceTerms> TermsForAsync(Guid productId, string planCode, BillingInterval interval, LicenceCounts licences,
-        IReadOnlyDictionary<string, int> addOns, CancellationToken cancellationToken = default)
+        IReadOnlyDictionary<string, int> addOns, CancellationToken cancellationToken = default, IReadOnlyDictionary<string, int>? seats = null)
     {
         var version = await CurrentVersionAsync(productId, planCode, interval, cancellationToken);
-        RequireValid(licences, version);
+        var product = await catalog.Products.SingleAsync(p => p.Id == productId, cancellationToken);
+        var seatTypes = await catalog.ProductSeatTypes.Where(t => t.ProductId == productId).ToListAsync(cancellationToken);
+        var quantities = ProductSeats.Validate(product, version, seatTypes, seats, licences);
         var now = DateTime.UtcNow;
         var priced = new List<(AddOnPrice Price, int Quantity)>();
         foreach (var (code, quantity) in addOns.Where(a => a.Value > 0))
@@ -471,9 +465,11 @@ public sealed class SubscriptionService(
             {
                 throw new ValidationException($"The {version.Plan?.Name ?? "chosen"} plan already includes {price.AddOn!.Name}; it cannot be added again.");
             }
+            if (product.SeatModel != SeatModel.PerType && price.AddOn!.FeatureKey == FeatureKeys.UsersMaxActive)
+                throw new ValidationException("Legacy user packs are unavailable for this product.");
             priced.Add((price, quantity));
         }
-        return new InvoiceTerms(version, licences, priced);
+        return new InvoiceTerms(version, licences, priced, quantities);
     }
 
     /// <summary>The terms of a downgrade approved to start at or before <paramref name="periodStart"/>, or null.</summary>
@@ -485,8 +481,11 @@ public sealed class SubscriptionService(
             .FirstOrDefaultAsync(cancellationToken);
         if (scheduled is null) return null;
         var productId = await catalog.Companies.Where(c => c.Id == subscription.CompanyId).Select(c => c.ProductId).FirstAsync(cancellationToken);
-        return await TermsForAsync(productId, scheduled.PlanCode, scheduled.Interval, scheduled.Licences, AddOnsOf(scheduled), cancellationToken);
+        return await TermsForAsync(productId, scheduled.PlanCode, scheduled.Interval, scheduled.Licences, AddOnsOf(scheduled), cancellationToken, SeatsOf(scheduled));
     }
+
+    public static IReadOnlyDictionary<string, int>? SeatsOf(PlanChangeRequest request) =>
+        request.SeatsJson is null ? null : JsonSerializer.Deserialize<Dictionary<string, int>>(request.SeatsJson);
 
     public static IReadOnlyDictionary<string, int> AddOnsOf(PlanChangeRequest request) =>
         JsonSerializer.Deserialize<Dictionary<string, int>>(request.AddOnsJson) ?? new Dictionary<string, int>();
@@ -508,7 +507,7 @@ public sealed class SubscriptionService(
                 continue;
             }
             await ChangeAsync(request.CompanyId,
-                new SubscriptionChange(request.PlanCode, request.Interval, AddOnsOf(request), null, request.Licences),
+                new SubscriptionChange(request.PlanCode, request.Interval, AddOnsOf(request), null, request.Licences, SeatsOf(request)),
                 SubscriptionActor.System, cancellationToken);
             request.Status = PlanChangeStatus.Applied;
             request.AppliedAt = now;
@@ -617,10 +616,13 @@ public sealed class SubscriptionService(
             if (quantity < 0 || quantity > 100) throw new ValidationException($"Add-on '{code}': quantity must be 0 to 100.");
         }
 
+        var product = await catalog.Products.SingleAsync(p => p.Id == productId, cancellationToken);
         var wantedCodes = wanted.Where(w => w.Value > 0).Select(w => w.Key).ToList();
         var wantedAddOns = await catalog.AddOns.AsNoTracking()
             .Where(a => a.ProductId == productId && wantedCodes.Contains(a.Code))
             .ToListAsync(cancellationToken);
+        if (product.SeatModel != SeatModel.PerType && wantedAddOns.Any(a => a.FeatureKey == FeatureKeys.UsersMaxActive))
+            throw new ValidationException("Legacy user packs are unavailable for this product.");
         if (wantedAddOns.FirstOrDefault(a => PlanIncludes(version, a)) is { } duplicate)
         {
             throw new ValidationException($"The {version.Plan?.Name ?? "chosen"} plan already includes {duplicate.Name}; it cannot be added again.");
@@ -672,11 +674,6 @@ public sealed class SubscriptionService(
         var addOns = await catalog.AddOns.AsNoTracking().Where(a => a.ProductId == productId && codes.Contains(a.Code)).ToListAsync(cancellationToken);
         var drop = addOns.Where(a => PlanIncludes(version, a)).Select(a => a.Code).ToHashSet();
         return wanted.Where(w => !drop.Contains(w.Key)).ToDictionary(w => w.Key, w => w.Value);
-    }
-
-    private static void RequireValid(LicenceCounts licences, PlanVersion version)
-    {
-        if (licences.Problem(version.IncludedSeats) is { } problem) throw new ValidationException(problem);
     }
 
     private static Subscription NewSubscription(PlatformCompany company, BillingAccount account, PlanVersion version,

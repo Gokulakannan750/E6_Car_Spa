@@ -2,7 +2,7 @@ namespace CarSpaManagement.Api.Application.Interfaces;
 
 /// <summary>A plan, as the company's Owner sees it in a proposal.</summary>
 public sealed record PlanTermsSummaryDto(string PlanName, string Interval, int AndroidLicences, int WindowsLicences, int BothLicences,
-    IReadOnlyList<string> AddOns);
+    IReadOnlyList<string> AddOns, IReadOnlyList<CarSpaManagement.Api.Infrastructure.Platform.SeatDto>? Seats = null);
 
 /// <summary>
 /// A change to the company's plan that Trovo proposed (Status "Pending", waiting for the Owner), or that the Owner

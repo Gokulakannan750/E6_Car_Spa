@@ -30,7 +30,7 @@ public sealed class ExternalCommandProductModule(string key, ExternalProductOpti
                 {
                     Id = Guid.NewGuid(), PlanId = plan.Id, Version = 1, Interval = interval, Currency = seed.Currency,
                     PriceMinor = interval == BillingInterval.Month ? seed.MonthlyPriceMinor : seed.YearlyPriceMinor,
-                    IncludedSeats = seed.IncludedSeats, CreatedAt = now, EffectiveFrom = now
+                    IncludedSeats = SeatModel == SeatModel.None ? 0 : Math.Max(1, seed.IncludedSeats), CreatedAt = now, EffectiveFrom = now
                 };
                 foreach (var (code, price) in seed.SeatPrices)
                 {

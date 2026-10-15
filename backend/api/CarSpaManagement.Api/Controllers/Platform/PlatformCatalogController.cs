@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CarSpaManagement.Api.Controllers.Platform;
 
-public sealed record PlanTermsDto(long CompanyFeeMinor, long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor);
+public sealed record PlanTermsDto(long CompanyFeeMinor, long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor, Dictionary<string, long>? SeatPrices = null);
 public sealed record CreatePlanRequest(string Code, string Name, int MinimumLicences, PlanTermsDto Monthly, PlanTermsDto Yearly,
     Dictionary<string, string> Features, string Reason);
 public sealed record UpdatePlanRequest(string? Name, bool? IsActive, string Reason);
@@ -22,7 +22,7 @@ public sealed record UpdatePlatformSettingsRequest(int? TrialDays, int? GraceDay
 public sealed record SignupOrderListItem(Guid Id, DateTime CreatedAt, string Start, string Status, string BusinessName, string OwnerName,
     string Mobile, string Email, string City, string State, string? PlanCode, string? Interval, int Licences, long AmountMinor, string Currency,
     Guid? CompanyId, string? CompanyCode, string? PaymentProvider, string? PaymentReference, string? FailureReason, DateTime? CompletedAt,
-    DateTime ExpiresAt, string? FranchisorCode = null, bool FranchiseLinked = false, string? FranchiseProblem = null, string? ProductKey = null);
+    DateTime ExpiresAt, string? FranchisorCode = null, bool FranchiseLinked = false, string? FranchiseProblem = null, string? ProductKey = null, IReadOnlyList<SeatDto>? Seats = null);
 
 /// <summary>
 /// Trovo manages its own catalog from the admin portal: new plans and add-ons, renaming or stopping one, and the
@@ -49,7 +49,8 @@ public partial class PlatformCatalogController(
             RequireReason(request.Reason);
             var code = ValidCode(request.Code);
             var name = ValidName(request.Name);
-            var productId = (await products.RequiredAsync(product, cancellationToken)).Id;
+            var selected = await products.RequiredAsync(product, cancellationToken);
+            var productId = selected.Id;
             if (await catalog.Plans.AnyAsync(p => p.ProductId == productId && p.Code == code, cancellationToken))
             {
                 throw new ConflictException($"A plan with the code '{code}' already exists.");
@@ -63,7 +64,7 @@ public partial class PlatformCatalogController(
             };
             foreach (var (interval, terms) in new[] { (BillingInterval.Month, request.Monthly), (BillingInterval.Year, request.Yearly) })
             {
-                plan.Versions.Add(PlanVersionFactory.Create(plan, interval, ToTerms(terms, request.MinimumLicences, request.Features), now, await catalog.ProductSeatTypes.Where(t => t.ProductId == productId).ToListAsync(cancellationToken)));
+                plan.Versions.Add(PlanVersionFactory.Create(plan, interval, ToTerms(terms, request.MinimumLicences, request.Features), now, await catalog.ProductSeatTypes.Where(t => t.ProductId == productId).ToListAsync(cancellationToken), selected, await catalog.ProductFeatures.Where(f => f.ProductId == productId).ToListAsync(cancellationToken)));
             }
             catalog.Plans.Add(plan);
             await catalog.SaveChangesAsync(cancellationToken);
@@ -108,7 +109,10 @@ public partial class PlatformCatalogController(
             RequireReason(request.Reason);
             var code = ValidCode(request.Code);
             var name = ValidName(request.Name);
-            if (!FeatureKeys.All.TryGetValue(request.FeatureKey, out var type) || request.FeatureKey == FeatureKeys.UsersMaxActive)
+            var selected = await products.RequiredAsync(product, cancellationToken);
+            var definition = await catalog.ProductFeatures.SingleOrDefaultAsync(f => f.ProductId == selected.Id && f.Key == request.FeatureKey, cancellationToken);
+            var type = definition?.ValueType;
+            if (definition is null || request.FeatureKey == FeatureKeys.UsersMaxActive)
             {
                 throw new ValidationException("Choose one of the software's features for the add-on (user licences are part of the plan).");
             }
@@ -220,7 +224,7 @@ public partial class PlatformCatalogController(
             o.CompanyId is { } id && codes.TryGetValue(id, out var code) ? code : null,
             o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt,
             o.FranchiseSignupCodeId is { } fc && franchisors.TryGetValue(fc, out var franchisor) && codes.TryGetValue(franchisor, out var fcode) ? fcode : null,
-            o.FranchiseLinkId is not null, o.FranchiseProblem, productRows[o.ProductId])).ToList());
+            o.FranchiseLinkId is not null, o.FranchiseProblem, productRows[o.ProductId], ProductSeats.OrderSnapshot(o))).ToList());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -235,7 +239,7 @@ public partial class PlatformCatalogController(
 
     private static PlanTerms ToTerms(PlanTermsDto dto, int minimumLicences, IReadOnlyDictionary<string, string>? features) =>
         new(dto.CompanyFeeMinor, minimumLicences, dto.AndroidUserPriceMinor, dto.WindowsUserPriceMinor, dto.BothUserPriceMinor,
-            features ?? new Dictionary<string, string>());
+            features ?? new Dictionary<string, string>(), dto.SeatPrices);
 
     private static PlatformSettingsDto ToDto(EffectivePlatformSettings s) => new(s.TrialDays, s.GraceDays, s.TrialLicences, s.RenewalInvoiceDaysBefore, s.FranchiseCodeMinutes);
 

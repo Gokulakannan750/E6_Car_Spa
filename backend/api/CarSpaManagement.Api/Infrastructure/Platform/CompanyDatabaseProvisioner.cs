@@ -24,7 +24,7 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 /// both apps, and an adopted database one licence for both apps per active user (so nobody loses access).
 /// </summary>
 public sealed record CompanyPlan(string PlanCode, BillingInterval Interval, IReadOnlyDictionary<string, int> AddOns, DateTime PaidUntil,
-    LicenceCounts? Licences = null);
+    LicenceCounts? Licences = null, IReadOnlyDictionary<string, int>? Seats = null);
 
 /// <summary>A newly created company and the registration code to give the customer (shown only once).</summary>
 public sealed record CreatedCompany(PlatformCompany Company, string RegistrationCode, DateTime RegistrationCodeExpiresAt);
@@ -291,7 +291,7 @@ public sealed partial class CompanyDatabaseProvisioner(
 
         var now = DateTime.UtcNow;
         await subscriptions.StartPaidAsync(company, plan.PlanCode, plan.Interval, plan.AddOns, plan.Licences ?? new LicenceCounts(0, 0, 1),
-            now, plan.PaidUntil, SubscriptionActor.System, cancellationToken);
+            now, plan.PaidUntil, SubscriptionActor.System, cancellationToken, plan.Seats);
     }
 
     /// <summary>

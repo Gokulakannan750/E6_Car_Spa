@@ -7,7 +7,7 @@ using Serilog;
 namespace CarSpaManagement.Api.Infrastructure.Platform;
 
 /// <summary>The plan, interval, user licences and add-ons a change would move the company to.</summary>
-public sealed record PlanChangeTarget(string PlanCode, BillingInterval Interval, LicenceCounts Licences, IReadOnlyDictionary<string, int> AddOns);
+public sealed record PlanChangeTarget(string PlanCode, BillingInterval Interval, LicenceCounts Licences, IReadOnlyDictionary<string, int> AddOns, IReadOnlyDictionary<string, int>? Seats = null);
 
 /// <summary>What a change would cost and when it would take effect, worked out from today's prices and dates.</summary>
 public sealed record PlanChangePreview(
@@ -35,7 +35,7 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
     {
         var subscription = await subscriptions.CurrentAsync(companyId, cancellationToken);
         var productId = await catalog.Companies.Where(c => c.Id == companyId).Select(c => c.ProductId).FirstAsync(cancellationToken);
-        var newTerms = await subscriptions.TermsForAsync(productId, target.PlanCode, target.Interval, target.Licences, target.AddOns, cancellationToken);
+        var newTerms = await subscriptions.TermsForAsync(productId, target.PlanCode, target.Interval, target.Licences, target.AddOns, cancellationToken, target.Seats);
         var now = DateTime.UtcNow;
         var current = BillingInvoiceService.PeriodSubtotal(InvoiceTerms.Of(subscription, now));
         var next = BillingInvoiceService.PeriodSubtotal(newTerms);
@@ -84,6 +84,11 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
         if (IsCurrent(subscription, target)) throw new ValidationException("That is already the company's plan.");
 
         var preview = await PreviewAsync(companyId, target, cancellationToken);
+        var productId = await catalog.Companies.Where(c => c.Id == companyId).Select(c => c.ProductId).SingleAsync(cancellationToken);
+        var terms = await subscriptions.TermsForAsync(productId, target.PlanCode, target.Interval, target.Licences, target.AddOns, cancellationToken, target.Seats);
+        var seatModel = await catalog.Products.Where(p => p.Id == productId).Select(p => p.SeatModel).SingleAsync(cancellationToken);
+        target = target with { Seats = terms.Seats, Licences = seatModel == SeatModel.PerType
+            ? ProductSeats.LicenceView(terms.Seats!) : new LicenceCounts(0, 0, 0) };
         var now = DateTime.UtcNow;
         await catalog.PlanChangeRequests
             .Where(r => r.CompanyId == companyId && r.Status == PlanChangeStatus.Pending)
@@ -98,6 +103,7 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
             PlanCode = target.PlanCode,
             Interval = target.Interval,
             Licences = target.Licences,
+            SeatsJson = target.Seats is null ? null : JsonSerializer.Serialize(target.Seats),
             AddOnsJson = JsonSerializer.Serialize(target.AddOns.Where(a => a.Value > 0).ToDictionary(a => a.Key, a => a.Value)),
             Reason = reason.Trim().Length > 500 ? reason.Trim()[..500] : reason.Trim(),
             RequestedByAdminId = adminId,
@@ -129,6 +135,11 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
         if (IsCurrent(subscription, target)) throw new ValidationException("That is already your plan.");
 
         var preview = await PreviewAsync(companyId, target, cancellationToken);
+        var productId = await catalog.Companies.Where(c => c.Id == companyId).Select(c => c.ProductId).SingleAsync(cancellationToken);
+        var terms = await subscriptions.TermsForAsync(productId, target.PlanCode, target.Interval, target.Licences, target.AddOns, cancellationToken, target.Seats);
+        var seatModel = await catalog.Products.Where(p => p.Id == productId).Select(p => p.SeatModel).SingleAsync(cancellationToken);
+        target = target with { Seats = terms.Seats, Licences = seatModel == SeatModel.PerType
+            ? ProductSeats.LicenceView(terms.Seats!) : new LicenceCounts(0, 0, 0) };
         var now = DateTime.UtcNow;
         await catalog.PlanChangeRequests
             .Where(r => r.CompanyId == companyId && r.Status == PlanChangeStatus.Pending)
@@ -142,6 +153,7 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
             PlanCode = target.PlanCode,
             Interval = target.Interval,
             Licences = target.Licences,
+            SeatsJson = target.Seats is null ? null : JsonSerializer.Serialize(target.Seats),
             AddOnsJson = JsonSerializer.Serialize(target.AddOns.Where(a => a.Value > 0).ToDictionary(a => a.Key, a => a.Value)),
             Reason = "Changed by the Owner in the app",
             CreatedAt = now,
@@ -210,7 +222,7 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
             throw new ConflictException("The subscription has changed since this was proposed. Ask Trovo to send it again.");
         }
 
-        var target = new PlanChangeTarget(request.PlanCode, request.Interval, request.Licences, SubscriptionService.AddOnsOf(request));
+        var target = new PlanChangeTarget(request.PlanCode, request.Interval, request.Licences, SubscriptionService.AddOnsOf(request), SubscriptionService.SeatsOf(request));
         var preview = await PreviewAsync(companyId, target, cancellationToken);
         Fill(request, preview);
         request.DecidedAt = now;
@@ -233,7 +245,7 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
             var periodStart = subscription.CurrentPeriodStart;
             var periodEnd = subscription.CurrentPeriodEnd;
             await subscriptions.ChangeAsync(companyId,
-                new SubscriptionChange(target.PlanCode, target.Interval, target.AddOns, null, target.Licences), owner, cancellationToken);
+                new SubscriptionChange(target.PlanCode, target.Interval, target.AddOns, null, target.Licences, target.Seats), owner, cancellationToken);
             request.Status = PlanChangeStatus.Applied;
             request.AppliedAt = now;
             if (preview.Timing == PlanChangeTiming.NowWithCharge)
@@ -292,7 +304,8 @@ public sealed class PlanChangeService(PlatformDbContext catalog, SubscriptionSer
         var wanted = target.AddOns.Where(a => a.Value > 0).ToDictionary(a => a.Key, a => a.Value);
         return subscription.PlanVersion!.Plan!.Code == target.PlanCode
                && subscription.PlanVersion.Interval == target.Interval
-               && subscription.Licences == target.Licences
+               && (target.Seats is null ? subscription.Licences == target.Licences
+                   : ProductSeats.Of(subscription).Count == target.Seats.Count && target.Seats.All(s => ProductSeats.Of(subscription).GetValueOrDefault(s.Key) == s.Value))
                && addOns.Count == wanted.Count && addOns.All(a => wanted.TryGetValue(a.Key, out var q) && q == a.Value);
     }
 

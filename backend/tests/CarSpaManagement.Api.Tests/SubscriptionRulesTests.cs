@@ -50,7 +50,9 @@ public class SubscriptionRulesTests
     public void PerAppLicences_ReplaceTheOldUserLimit_AndAreReportedPerType()
     {
         var subscription = SubscriptionOn("starter", 1, SubscriptionStatus.Active);
-        subscription.Licences = new LicenceCounts(Android: 3, Windows: 0, Both: 2);
+        foreach (var price in subscription.PlanVersion!.SeatPrices)
+            subscription.Seats.Add(new SubscriptionSeat { SeatTypeId = price.SeatType!.Id, SeatType = price.SeatType,
+                Quantity = price.SeatType.Code == "android" ? 3 : price.SeatType.Code == "both" ? 2 : 0 });
         subscription.Items.Add(Item(FeatureKeys.UsersMaxActive, "5", 1)); // an old pack no longer adds anything
 
         var entitlements = PlatformEntitlementService.Build(subscription, Now);

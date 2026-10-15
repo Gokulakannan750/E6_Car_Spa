@@ -19,7 +19,8 @@ public sealed class ProductModuleRegistry : IProductModuleRegistry
                 throw new InvalidOperationException($"Product {section.Key} requires a migration command and a timeout of at most 300 seconds.");
             if (external.SeedPlans.All(p => p.Code != external.TrialPlanCode))
                 throw new InvalidOperationException($"Product {section.Key} requires its trial plan in SeedPlans.");
-            if (!Enum.IsDefined(external.SeatModel) || (external.SeatModel == SeatModel.None && external.SeatTypes.Count != 0))
+            if (!Enum.IsDefined(external.SeatModel) || (external.SeatModel == SeatModel.None && external.SeatTypes.Count != 0)
+                || (external.SeatModel == SeatModel.Counted && external.SeatTypes.Count != 1))
                 throw new InvalidOperationException($"Invalid seat model for product {section.Key}.");
             foreach (var plan in external.SeedPlans)
             {

@@ -60,52 +60,63 @@ public sealed class PlatformEntitlementService(PlatformDbContext catalog, ITenan
             return NoAccess();
         }
 
-        return Build(subscription, now);
+        var productId = subscription.PlanVersion.Plan!.ProductId;
+        var product = await catalog.Products.SingleAsync(p => p.Id == productId, cancellationToken);
+        var definitions = await catalog.ProductFeatures.Where(f => f.ProductId == productId).ToListAsync(cancellationToken);
+        return Build(subscription, now, product, definitions);
     }
 
     /// <summary>Turns a subscription into entitlements. Public so the rules can be tested without a database.</summary>
-    public static CompanyEntitlements Build(Subscription subscription, DateTime now)
+    public static CompanyEntitlements Build(Subscription subscription, DateTime now) =>
+        Build(subscription, now, new PlatformProduct { SeatModel = SeatModel.PerType, Capabilities = "franchise" },
+            Products.CarSpaProductModule.LegacyFeatureDefinitions());
+
+    public static CompanyEntitlements Build(Subscription subscription, DateTime now, PlatformProduct product,
+        IReadOnlyList<ProductFeature> definitions)
     {
         var version = subscription.PlanVersion!;
-        var features = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entitlement in version.Entitlements)
-        {
-            features[entitlement.FeatureKey] = entitlement.Value;
-        }
-
-        var seatLimit = version.IncludedSeats;
+        var known = definitions.ToDictionary(f => f.Key, f => f.ValueType, StringComparer.OrdinalIgnoreCase);
+        var features = version.Entitlements.Where(e => known.ContainsKey(e.FeatureKey))
+            .ToDictionary(e => e.FeatureKey, e => e.Value, StringComparer.OrdinalIgnoreCase);
+        var seats = ProductSeats.Of(subscription);
+        var franchiseEnabled = product.Capabilities.Split(',', StringSplitOptions.TrimEntries).Contains("franchise");
+        // Legacy Car Spa only: preserve pre-seat subscriptions and their active user packs until old fixtures are retired.
+        var legacy = product.SeatModel == SeatModel.PerType && subscription.Seats.Count == 0
+            && (version.IncludedSeats > 0 || features.ContainsKey(FeatureKeys.UsersMaxActive));
+        int? seatLimit = product.SeatModel == SeatModel.None ? null : seats.Values.Sum();
+        if (legacy) seatLimit = version.IncludedSeats;
         var extraFranchiseBranches = 0;
         foreach (var item in subscription.Items.Where(i => i.EffectiveFrom <= now && (i.EffectiveTo is null || i.EffectiveTo > now)))
         {
             var addOn = item.AddOnPrice?.AddOn;
-            if (addOn is null) continue;
-
-            if (!FeatureKeys.All.TryGetValue(addOn.FeatureKey, out var type)) continue;
-            if (type == EntitlementValueType.Bool)
-            {
-                features[addOn.FeatureKey] = "true";
-            }
+            if (addOn is null || !known.TryGetValue(addOn.FeatureKey, out var type)) continue;
+            if (type == EntitlementValueType.Bool) features[addOn.FeatureKey] = "true";
             else if (int.TryParse(addOn.Value, out var perUnit))
             {
-                if (addOn.FeatureKey == FeatureKeys.UsersMaxActive) seatLimit += perUnit * item.Quantity;
-                else if (addOn.FeatureKey == FeatureKeys.FranchiseNetworkBranches) extraFranchiseBranches += perUnit * item.Quantity;
+                if (legacy && addOn.FeatureKey == FeatureKeys.UsersMaxActive) seatLimit += perUnit * item.Quantity;
+                else if (franchiseEnabled && addOn.FeatureKey == FeatureKeys.FranchiseNetworkBranches) extraFranchiseBranches += perUnit * item.Quantity;
+                else if (addOn.FeatureKey != FeatureKeys.UsersMaxActive && addOn.FeatureKey != FeatureKeys.FranchiseNetworkBranches)
+                {
+                    var existing = features.TryGetValue(addOn.FeatureKey, out var value) && int.TryParse(value, out var parsed) ? parsed : 0;
+                    features[addOn.FeatureKey] = (existing + perUnit * item.Quantity).ToString();
+                }
             }
         }
-
-        // Per-app user licences replace the old "users included + 5-user packs" limit when a subscription has them.
-        LicenceCounts? licences = subscription.Licences.Total > 0 ? subscription.Licences : null;
+        LicenceCounts? licences = product.SeatModel == SeatModel.PerType && subscription.Seats.Count > 0 ? subscription.Licences : null;
         if (licences is { } bought)
         {
-            seatLimit = bought.Total;
-            features[FeatureKeys.LicencesAndroid] = bought.Android.ToString();
-            features[FeatureKeys.LicencesWindows] = bought.Windows.ToString();
-            features[FeatureKeys.LicencesBoth] = bought.Both.ToString();
+            if (known.ContainsKey(FeatureKeys.LicencesAndroid)) features[FeatureKeys.LicencesAndroid] = bought.Android.ToString();
+            if (known.ContainsKey(FeatureKeys.LicencesWindows)) features[FeatureKeys.LicencesWindows] = bought.Windows.ToString();
+            if (known.ContainsKey(FeatureKeys.LicencesBoth)) features[FeatureKeys.LicencesBoth] = bought.Both.ToString();
         }
-
-        features[FeatureKeys.UsersMaxActive] = seatLimit.ToString();
-        features[FeatureKeys.FranchiseNetworkBranches] = features.TryGetValue(FeatureKeys.FranchiseNetwork, out var franchise) && franchise == "true"
-            ? (IncludedFranchiseBranches + extraFranchiseBranches).ToString()
-            : "0";
+        if (known.ContainsKey(FeatureKeys.UsersMaxActive))
+        {
+            if (seatLimit is { } limit) features[FeatureKeys.UsersMaxActive] = limit.ToString();
+            else features.Remove(FeatureKeys.UsersMaxActive);
+        }
+        if (franchiseEnabled && known.ContainsKey(FeatureKeys.FranchiseNetworkBranches))
+            features[FeatureKeys.FranchiseNetworkBranches] = features.TryGetValue(FeatureKeys.FranchiseNetwork, out var franchise) && franchise == "true"
+                ? (IncludedFranchiseBranches + extraFranchiseBranches).ToString() : "0";
 
         return new CompanyEntitlements(
             Managed: true,
@@ -120,7 +131,7 @@ public sealed class PlatformEntitlementService(PlatformDbContext catalog, ITenan
             GraceEndsAt: subscription.GraceEndsAt,
             CurrentPeriodEnd: subscription.CurrentPeriodEnd,
             RetainUntil: subscription.RetainUntil,
-            Licences: licences);
+            Licences: licences, Seats: seats);
     }
 
     /// <summary>The access each subscription state gives (see the lifecycle table in docs/SAAS_PHASE2_PLAN.md §5).</summary>

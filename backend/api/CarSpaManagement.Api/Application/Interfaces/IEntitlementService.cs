@@ -30,7 +30,7 @@ public sealed record CompanyEntitlements(
     DateTime? GraceEndsAt,
     DateTime? CurrentPeriodEnd,
     DateTime? RetainUntil,
-    LicenceCounts? Licences = null)
+    LicenceCounts? Licences = null, IReadOnlyDictionary<string, int>? Seats = null)
 {
     /// <summary>Everything allowed: single-company servers, and tools that run without a subscription.</summary>
     public static readonly CompanyEntitlements Unmanaged = new(

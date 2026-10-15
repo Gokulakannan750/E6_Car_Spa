@@ -34,7 +34,7 @@ public sealed class PlatformPlanChangeApprovals(
         var request = await planChanges.OpenForCompanyAsync(Company, cancellationToken);
         if (request is null) return null;
         var subscription = await subscriptions.CurrentAsync(Company, cancellationToken);
-        var target = new PlanChangeTarget(request.PlanCode, request.Interval, request.Licences, SubscriptionService.AddOnsOf(request));
+        var target = new PlanChangeTarget(request.PlanCode, request.Interval, request.Licences, SubscriptionService.AddOnsOf(request), SubscriptionService.SeatsOf(request));
 
         // A proposal shows today's price and timing (the days left change every day); a scheduled one what was approved.
         var (timing, current, next, now, effective) =
@@ -60,9 +60,13 @@ public sealed class PlatformPlanChangeApprovals(
             .Select(p => p.Name).FirstOrDefaultAsync(cancellationToken) ?? request.PlanCode;
         var from = new PlanTermsSummaryDto(subscription.PlanVersion!.Plan!.Name, subscription.PlanVersion.Interval.ToString(),
             subscription.Licences.Android, subscription.Licences.Windows, subscription.Licences.Both,
-            subscription.Items.Where(i => i.EffectiveTo is null).Select(i => Named(i.AddOnPrice!.AddOn!.Name, i.Quantity)).ToList());
+            subscription.Items.Where(i => i.EffectiveTo is null).Select(i => Named(i.AddOnPrice!.AddOn!.Name, i.Quantity)).ToList(), ProductSeats.Describe(subscription.PlanVersion, ProductSeats.Of(subscription)));
+        // Display remains available after a plan stops being sold; approval still validates current sale terms.
+        var targetVersion = await catalog.PlanVersions.AsNoTracking()
+            .Where(v => v.Plan!.ProductId == productId && v.Plan.Code == target.PlanCode && v.Interval == target.Interval)
+            .OrderByDescending(v => v.Version).FirstOrDefaultAsync(cancellationToken);
         var to = new PlanTermsSummaryDto(planName, request.Interval.ToString(), request.AndroidLicences, request.WindowsLicences, request.BothLicences,
-            target.AddOns.Where(a => a.Value > 0).Select(a => Named(addOnNames.GetValueOrDefault(a.Key, a.Key), a.Value)).ToList());
+            target.AddOns.Where(a => a.Value > 0).Select(a => Named(addOnNames.GetValueOrDefault(a.Key, a.Key), a.Value)).ToList(), targetVersion is null ? [] : ProductSeats.Describe(targetVersion, target.Seats ?? ProductSeats.Legacy(target.Licences)));
         return new PlanChangeProposalDto(request.Id, request.Status.ToString(), timing.ToString(), from, to, current, next, now, request.Currency,
             effective, request.ExpiresAt, request.Reason);
     }
