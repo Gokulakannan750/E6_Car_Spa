@@ -25,7 +25,9 @@ public sealed class CarSpaProductModule(IConfiguration configuration, IOptions<P
     public string TrialPlanCode => "professional";
     public SeatModel SeatModel => SeatModel.PerType;
     public static IReadOnlyList<SeatTypeDefinition> SeatDefinitions { get; } =
-        [new("android", "Android only", 1), new("windows", "Windows only", 2), new("both", "Windows + Android", 3)];
+        [new("android", "Android only", 1, InvoiceLabel: "Android user licence"),
+         new("windows", "Windows only", 2, InvoiceLabel: "Windows user licence"),
+         new("both", "Windows + Android", 3, DefaultSeat: true, InvoiceLabel: "Windows + Android user licence")];
     public static IReadOnlyList<FeatureDefinition> FeatureDefinitions { get; } = FeatureKeys.All
         .Concat(new Dictionary<string, EntitlementValueType>
         {

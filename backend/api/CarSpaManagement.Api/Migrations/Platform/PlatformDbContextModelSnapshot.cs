@@ -1175,6 +1175,13 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<bool>("DefaultSeat")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("InvoiceLabel")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 

@@ -12,6 +12,8 @@ public class ProductSeatType
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool DefaultSeat { get; set; }
+    [MaxLength(200)] public string? InvoiceLabel { get; set; }
 }
 
 public class SubscriptionSeat

@@ -38,8 +38,10 @@ public static class ProductSeats
         seats ??= product.SeatModel == SeatModel.PerType && legacy is not null ? Legacy(legacy.Value) : null;
         if (seats is null)
         {
-            var defaultType = product.SeatModel == SeatModel.PerType
-                ? types.Single(t => t.Code == "both") : types.Single();
+            var defaults = types.Where(t => t.DefaultSeat && t.IsActive).ToList();
+            if (product.SeatModel == SeatModel.PerType && defaults.Count != 1)
+                throw new ValidationException("Choose explicit seats: this product must have exactly one active default seat type.");
+            var defaultType = product.SeatModel == SeatModel.PerType ? defaults[0] : types[0];
             seats = new Dictionary<string, int> { [defaultType.Code] = defaultQuantity ?? Math.Max(1, version.IncludedSeats) };
         }
         // Preserve Car Spa's existing validation messages for the compatibility request shape.
@@ -105,11 +107,6 @@ public static class ProductSeats
         version.SeatPrices.OrderBy(p => p.SeatType!.SortOrder).Select(p =>
             new SeatDto(p.SeatType!.Code, p.SeatType.Name, quantities?.GetValueOrDefault(p.SeatType.Code) ?? 0, p.PriceMinor)).ToList();
 
-    public static string InvoiceLabel(ProductSeatType type) => type.Code switch
-    {
-        "android" when type.Name == "Android only" => "Android user licence",
-        "windows" when type.Name == "Windows only" => "Windows user licence",
-        "both" when type.Name == "Windows + Android" => "Windows + Android user licence",
-        _ => $"{type.Name} seat"
-    };
+    public static string InvoiceLabel(ProductSeatType type) =>
+        string.IsNullOrWhiteSpace(type.InvoiceLabel) ? $"{type.Name} seat" : type.InvoiceLabel;
 }

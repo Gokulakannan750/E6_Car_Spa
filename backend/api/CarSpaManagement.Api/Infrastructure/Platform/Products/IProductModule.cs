@@ -2,7 +2,7 @@ using CarSpaManagement.Api.Domain.Platform;
 
 namespace CarSpaManagement.Api.Infrastructure.Platform.Products;
 
-public sealed record SeatTypeDefinition(string Code, string Name, int SortOrder);
+public sealed record SeatTypeDefinition(string Code, string Name, int SortOrder, bool DefaultSeat = false, string? InvoiceLabel = null);
 public sealed record FeatureDefinition(string Key, EntitlementValueType ValueType, string Label, int SortOrder);
 public sealed record ProvisionContext(Guid CompanyId, string Code, string Name, string DatabaseName,
     Func<string, string> AdminConnection);

@@ -12,7 +12,7 @@ internal static class ProductCatalogSeed
         var existingSeats = await catalog.ProductSeatTypes.Where(s => s.ProductId == product.Id).ToListAsync(ct);
         foreach (var seat in seats.Where(s => existingSeats.All(e => e.Code != s.Code)))
         {
-            var row = new ProductSeatType { Id = Guid.NewGuid(), ProductId = product.Id, Code = seat.Code, Name = seat.Name, SortOrder = seat.SortOrder };
+            var row = new ProductSeatType { Id = Guid.NewGuid(), ProductId = product.Id, Code = seat.Code, Name = seat.Name, SortOrder = seat.SortOrder, DefaultSeat = seat.DefaultSeat, InvoiceLabel = seat.InvoiceLabel };
             catalog.ProductSeatTypes.Add(row);
             existingSeats.Add(row);
         }
