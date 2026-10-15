@@ -19,6 +19,17 @@ public class PlatformProduct
 
     public bool IsActive { get; set; } = true;
 
+    [Required, MaxLength(50)]
+    public string TrialPlanCode { get; set; } = "professional";
+
+    [Required, MaxLength(30)]
+    public string DatabasePrefix { get; set; } = string.Empty;
+
+    public SeatModel SeatModel { get; set; }
+
+    [MaxLength(500)]
+    public string Capabilities { get; set; } = string.Empty;
+
     public DateTime CreatedAt { get; set; }
 }
 

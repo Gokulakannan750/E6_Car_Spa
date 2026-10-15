@@ -63,7 +63,7 @@ public partial class PlatformCatalogController(
             };
             foreach (var (interval, terms) in new[] { (BillingInterval.Month, request.Monthly), (BillingInterval.Year, request.Yearly) })
             {
-                plan.Versions.Add(PlanVersionFactory.Create(plan, interval, ToTerms(terms, request.MinimumLicences, request.Features), now));
+                plan.Versions.Add(PlanVersionFactory.Create(plan, interval, ToTerms(terms, request.MinimumLicences, request.Features), now, await catalog.ProductSeatTypes.Where(t => t.ProductId == productId).ToListAsync(cancellationToken)));
             }
             catalog.Plans.Add(plan);
             await catalog.SaveChangesAsync(cancellationToken);
@@ -215,7 +215,7 @@ public partial class PlatformCatalogController(
         return Ok(orders.Select(o => new SignupOrderListItem(o.Id, o.CreatedAt, o.Start.ToString(),
             (o.Status == SignupStatus.AwaitingPayment && o.ExpiresAt <= now ? SignupStatus.Expired : o.Status).ToString(),
             o.BusinessName, o.OwnerName, o.Mobile, o.Email, o.City, o.State, o.PlanCode, o.Interval?.ToString(),
-            o.AndroidLicences + o.WindowsLicences + o.BothLicences, o.AmountMinor, o.Currency, o.CompanyId,
+            o.Licences.Android + o.Licences.Windows + o.Licences.Both, o.AmountMinor, o.Currency, o.CompanyId,
             o.CompanyId is { } id && codes.TryGetValue(id, out var code) ? code : null,
             o.PaymentProvider, o.PaymentReference, o.FailureReason, o.CompletedAt, o.ExpiresAt,
             o.FranchiseSignupCodeId is { } fc && franchisors.TryGetValue(fc, out var franchisor) && codes.TryGetValue(franchisor, out var fcode) ? fcode : null,

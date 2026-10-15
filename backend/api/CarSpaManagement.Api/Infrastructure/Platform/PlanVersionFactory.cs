@@ -46,7 +46,7 @@ public static class PlanVersionFactory
         }
     }
 
-    public static PlanVersion Create(Plan plan, BillingInterval interval, PlanTerms terms, DateTime now)
+    public static PlanVersion Create(Plan plan, BillingInterval interval, PlanTerms terms, DateTime now, IReadOnlyList<ProductSeatType> seatTypes)
     {
         Validate(terms);
         var version = new PlanVersion
@@ -58,12 +58,14 @@ public static class PlanVersionFactory
             Currency = "INR",
             PriceMinor = terms.CompanyFeeMinor,
             IncludedSeats = terms.MinimumLicences,
-            AndroidUserPriceMinor = terms.AndroidUserPriceMinor,
-            WindowsUserPriceMinor = terms.WindowsUserPriceMinor,
-            BothUserPriceMinor = terms.BothUserPriceMinor,
             EffectiveFrom = now,
             CreatedAt = now
         };
+        foreach (var (code, price) in new[] { ("android", terms.AndroidUserPriceMinor), ("windows", terms.WindowsUserPriceMinor), ("both", terms.BothUserPriceMinor) })
+        {
+            var type = seatTypes.Single(t => t.ProductId == plan.ProductId && t.Code == code);
+            version.SeatPrices.Add(new PlanVersionSeatPrice { Id = Guid.NewGuid(), PlanVersionId = version.Id, SeatTypeId = type.Id, SeatType = type, PriceMinor = price });
+        }
         foreach (var (key, type) in FeatureKeys.All)
         {
             if (key == FeatureKeys.FranchiseNetworkBranches) continue; // comes from the Franchise network add-on

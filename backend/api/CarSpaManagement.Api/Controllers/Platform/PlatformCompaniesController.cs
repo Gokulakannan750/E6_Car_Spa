@@ -343,8 +343,8 @@ public class PlatformCompaniesController(
         s.Items.Where(i => i.EffectiveTo is null)
             .Select(i => new PlatformAddOnLine(i.AddOnPrice?.AddOn?.Code ?? string.Empty, i.AddOnPrice?.AddOn?.Name ?? string.Empty, i.Quantity))
             .ToList(),
-        new PlatformLicencesDto(s.AndroidLicences, s.WindowsLicences, s.BothLicences),
-        s.PlanVersion is null ? null : new PlatformLicencePricesDto(s.PlanVersion.AndroidUserPriceMinor, s.PlanVersion.WindowsUserPriceMinor, s.PlanVersion.BothUserPriceMinor));
+        new PlatformLicencesDto(s.Licences.Android, s.Licences.Windows, s.Licences.Both),
+        s.PlanVersion is null ? null : new PlatformLicencePricesDto(s.PlanVersion.UserPriceMinor(AppAccess.Android), s.PlanVersion.UserPriceMinor(AppAccess.Windows), s.PlanVersion.UserPriceMinor(AppAccess.Both)));
 
     private static LicenceCounts? ToCounts(PlatformLicencesDto? dto) => dto is null ? null : new LicenceCounts(dto.Android, dto.Windows, dto.Both);
 

@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Domain.Platform;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -45,7 +46,7 @@ public sealed class CatalogReader(
         var effective = await platformSettings.GetAsync(cancellationToken);
 
         static PublicPricesDto? Prices(PlanVersion? v) =>
-            v is null ? null : new PublicPricesDto(v.PriceMinor, v.AndroidUserPriceMinor, v.WindowsUserPriceMinor, v.BothUserPriceMinor);
+            v is null ? null : new PublicPricesDto(v.PriceMinor, v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both));
         long? AddOnPrice(AddOn a, BillingInterval interval) =>
             a.Prices.Where(p => p.Interval == interval && p.EffectiveFrom <= now && (p.EffectiveTo == null || p.EffectiveTo > now))
                 .OrderByDescending(p => p.Version).Select(p => (long?)p.UnitPriceMinor).FirstOrDefault();

@@ -33,16 +33,22 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
     };
 
     private const string CacheKey = "platform:settings";
+    private sealed record CachedSettings(Guid Revision, EffectivePlatformSettings Value);
 
-    public async Task<EffectivePlatformSettings> GetAsync(CancellationToken cancellationToken = default)
+    public async Task<EffectivePlatformSettings> GetAsync(CancellationToken cancellationToken = default, string? productKey = null)
     {
-        if (cache.TryGetValue(CacheKey, out EffectivePlatformSettings? cached) && cached is not null) return cached;
+        var scopedCacheKey = CacheKey + ":" + productKey;
+        var revision = cache.Get<Guid>(CacheKey + ":revision");
+        if (cache.TryGetValue(scopedCacheKey, out CachedSettings? cached) && cached?.Revision == revision) return cached.Value;
 
         var saved = await catalog.Settings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
-        int Read(string key, int fallback) =>
-            saved.TryGetValue(key, out var text) && int.TryParse(text, out var value) && value >= Limits[key].Min && value <= Limits[key].Max
-                ? value
-                : fallback;
+        int Read(string key, int fallback)
+        {
+            foreach (var candidate in productKey is null ? new[] { key } : new[] { $"{productKey}:{key}", key })
+                if (saved.TryGetValue(candidate, out var text) && int.TryParse(text, out var value)
+                    && value >= Limits[key].Min && value <= Limits[key].Max) return value;
+            return fallback;
+        }
 
         var defaults = options.Value;
         var effective = new EffectivePlatformSettings(
@@ -51,26 +57,28 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
             Read(TrialLicencesKey, defaults.TrialLicences),
             Read(RenewalInvoiceDaysKey, defaults.RenewalInvoiceDaysBefore),
             Read(FranchiseCodeMinutesKey, defaults.FranchiseCodeMinutes));
-        cache.Set(CacheKey, effective, TimeSpan.FromSeconds(30));
+        cache.Set(scopedCacheKey, new CachedSettings(revision, effective), TimeSpan.FromSeconds(30));
         return effective;
     }
 
     /// <summary>Saves the given settings (unknown keys and out-of-range values are refused). Returns the new values.</summary>
-    public async Task<EffectivePlatformSettings> SaveAsync(IReadOnlyDictionary<string, int> values, string? changedBy, CancellationToken cancellationToken = default)
+    public async Task<EffectivePlatformSettings> SaveAsync(IReadOnlyDictionary<string, int> values, string? changedBy, CancellationToken cancellationToken = default, string? productKey = null)
     {
         foreach (var (key, value) in values)
         {
             if (!Limits.TryGetValue(key, out var limit)) throw new ValidationException($"Unknown setting '{key}'.");
             if (value < limit.Min || value > limit.Max) throw new ValidationException($"'{key}' must be between {limit.Min} and {limit.Max}.");
+            if (productKey is not null && productKey.Length + 1 + key.Length > 60) throw new ValidationException("The product setting key is too long.");
         }
 
         var now = DateTime.UtcNow;
         foreach (var (key, value) in values)
         {
-            var row = await catalog.Settings.FirstOrDefaultAsync(s => s.Key == key, cancellationToken);
+            var savedKey = productKey is null ? key : $"{productKey}:{key}";
+            var row = await catalog.Settings.FirstOrDefaultAsync(s => s.Key == savedKey, cancellationToken);
             if (row is null)
             {
-                row = new PlatformSetting { Key = key };
+                row = new PlatformSetting { Key = savedKey };
                 catalog.Settings.Add(row);
             }
             row.Value = value.ToString();
@@ -78,7 +86,7 @@ public sealed class PlatformSettingsService(PlatformDbContext catalog, IOptions<
             row.UpdatedBy = changedBy;
         }
         await catalog.SaveChangesAsync(cancellationToken);
-        cache.Remove(CacheKey);
-        return await GetAsync(cancellationToken);
+        cache.Set(CacheKey + ":revision", Guid.NewGuid());
+        return await GetAsync(cancellationToken, productKey);
     }
 }

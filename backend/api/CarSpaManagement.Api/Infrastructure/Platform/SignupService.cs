@@ -134,7 +134,7 @@ public sealed partial class SignupService(
             order.Status = SignupStatus.Completed;
             order.CompanyId = created.Company.Id;
             order.CompletedAt = DateTime.UtcNow;
-            order.BothLicences = subscription.BothLicences;
+            order.SetLicences(subscription.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
             await catalog.SaveChangesAsync(cancellationToken);
             await audit.RecordAsync("signup.trial_started", created.Company.Id, null,
                 new { order.Id, created.Company.Code, business.Name, business.Email, trialEndsAt = subscription.TrialEndsAt }, "Public sign-up", cancellationToken);
@@ -152,9 +152,7 @@ public sealed partial class SignupService(
         order.Status = SignupStatus.AwaitingPayment;
         order.PlanCode = quote.PlanCode;
         order.Interval = quote.Interval;
-        order.AndroidLicences = quote.Licences.Android;
-        order.WindowsLicences = quote.Licences.Windows;
-        order.BothLicences = quote.Licences.Both;
+        order.SetLicences(quote.Licences, await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken));
         order.AddOnsJson = JsonSerializer.Serialize(quote.AddOns);
         order.AmountMinor = quote.TotalMinor;
         order.Currency = quote.Currency;
@@ -238,7 +236,7 @@ public sealed partial class SignupService(
             var now = DateTime.UtcNow;
             var paidUntil = interval == BillingInterval.Year ? now.AddYears(1) : now.AddMonths(1);
             var addOns = JsonSerializer.Deserialize<Dictionary<string, int>>(order.AddOnsJson ?? "{}") ?? new Dictionary<string, int>();
-            var licences = new LicenceCounts(order.AndroidLicences, order.WindowsLicences, order.BothLicences);
+            var licences = new LicenceCounts(order.Licences.Android, order.Licences.Windows, order.Licences.Both);
 
             var created = await provisioner.CreateCompanyAsync(order.BusinessName,
                 new CompanyPlan(order.PlanCode!, interval, addOns, paidUntil, licences), cancellationToken);
@@ -300,7 +298,7 @@ public sealed partial class SignupService(
         var lines = order.QuoteJson is null ? null : JsonSerializer.Deserialize<List<QuoteLine>>(order.QuoteJson);
         PriceQuote? quote = order.Start == SignupStart.Paid && lines is not null
             ? new PriceQuote(order.PlanCode!, order.PlanCode!, order.Interval ?? BillingInterval.Month,
-                new LicenceCounts(order.AndroidLicences, order.WindowsLicences, order.BothLicences),
+                new LicenceCounts(order.Licences.Android, order.Licences.Windows, order.Licences.Both),
                 JsonSerializer.Deserialize<Dictionary<string, int>>(order.AddOnsJson ?? "{}") ?? new Dictionary<string, int>(),
                 lines, lines.Sum(l => l.AmountMinor), order.AmountMinor - lines.Sum(l => l.AmountMinor), null, order.AmountMinor, order.Currency, null)
             : null;

@@ -15,6 +15,21 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 /// </summary>
 public static class PlatformCatalogSeeder
 {
+    public static readonly IReadOnlyDictionary<string, string> FeatureLabels = new Dictionary<string, string>
+    {
+        [FeatureKeys.UsersMaxActive] = "Active users",
+        [FeatureKeys.Showroom] = "Showroom / B2B",
+        [FeatureKeys.WhatsAppAutomation] = "WhatsApp automation",
+        [FeatureKeys.FranchiseNetwork] = "Franchise network",
+        [FeatureKeys.FranchiseNetworkBranches] = "Franchise branches",
+        [FeatureKeys.OutsideJobs] = "Outside jobs and vendors",
+        [FeatureKeys.StaffAdvances] = "Staff advances and salary",
+        [FeatureKeys.AdvancedReports] = "Advanced reports",
+        [FeatureKeys.AuditTrail] = "Audit trail",
+        [FeatureKeys.LicencesAndroid] = "Android only licences",
+        [FeatureKeys.LicencesWindows] = "Windows only licences",
+        [FeatureKeys.LicencesBoth] = "Windows + Android licences"
+    };
     private sealed record PlanSeed(string Code, string Name, int Sort, long AndroidMonth, long WindowsMonth, long BothMonth, string[] Features);
     private sealed record AddOnSeed(string Code, string Name, string FeatureKey, string Value, long MonthMinor);
 
@@ -53,6 +68,38 @@ public static class PlatformCatalogSeeder
         var now = DateTime.UtcNow;
         var added = 0;
 
+        product.SeatModel = SeatModel.PerType;
+        product.TrialPlanCode = "professional";
+        product.Capabilities = "franchise";
+        if (string.IsNullOrEmpty(product.DatabasePrefix)) product.DatabasePrefix = product.Key;
+        var seatTypes = await catalog.ProductSeatTypes.Where(t => t.ProductId == product.Id).ToListAsync(cancellationToken);
+        foreach (var (code, name, sort) in new[] { ("android", "Android only", 1), ("windows", "Windows only", 2), ("both", "Windows + Android", 3) })
+        {
+            if (seatTypes.Any(t => t.Code == code)) continue;
+            var type = new ProductSeatType { Id = Guid.NewGuid(), ProductId = product.Id, Code = code, Name = name, SortOrder = sort };
+            seatTypes.Add(type);
+            catalog.ProductSeatTypes.Add(type);
+        }
+        var features = FeatureKeys.All.Concat(new Dictionary<string, EntitlementValueType>
+        {
+            [FeatureKeys.LicencesAndroid] = EntitlementValueType.Int,
+            [FeatureKeys.LicencesWindows] = EntitlementValueType.Int,
+            [FeatureKeys.LicencesBoth] = EntitlementValueType.Int
+        });
+        var sortOrder = 0;
+        foreach (var (key, type) in features)
+        {
+            sortOrder++;
+            var existing = await catalog.ProductFeatures.SingleOrDefaultAsync(f => f.ProductId == product.Id && f.Key == key, cancellationToken);
+            if (existing is not null)
+            {
+                if (existing.Label == key) existing.Label = FeatureLabels[key];
+                continue;
+            }
+            catalog.ProductFeatures.Add(new ProductFeature { Id = Guid.NewGuid(), ProductId = product.Id, Key = key, ValueType = type, Label = FeatureLabels[key], SortOrder = sortOrder });
+        }
+        await catalog.SaveChangesAsync(cancellationToken);
+
         foreach (var seed in Plans)
         {
             if (await catalog.Plans.AnyAsync(p => p.ProductId == product.Id && p.Code == seed.Code, cancellationToken)) continue;
@@ -70,12 +117,14 @@ public static class PlatformCatalogSeeder
                     Currency = "INR",
                     PriceMinor = 0,
                     IncludedSeats = 1,
-                    AndroidUserPriceMinor = Price(seed.AndroidMonth),
-                    WindowsUserPriceMinor = Price(seed.WindowsMonth),
-                    BothUserPriceMinor = Price(seed.BothMonth),
                     EffectiveFrom = now,
                     CreatedAt = now
                 };
+                foreach (var (code, price) in new[] { ("android", Price(seed.AndroidMonth)), ("windows", Price(seed.WindowsMonth)), ("both", Price(seed.BothMonth)) })
+                {
+                    var type = seatTypes.Single(t => t.Code == code);
+                    version.SeatPrices.Add(new PlanVersionSeatPrice { Id = Guid.NewGuid(), PlanVersionId = version.Id, SeatTypeId = type.Id, SeatType = type, PriceMinor = price });
+                }
                 version.Entitlements.Add(new PlanEntitlement
                 {
                     Id = Guid.NewGuid(), PlanVersionId = version.Id, FeatureKey = FeatureKeys.UsersMaxActive,

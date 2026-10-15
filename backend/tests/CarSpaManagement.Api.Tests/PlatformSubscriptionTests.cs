@@ -300,7 +300,7 @@ public class PlatformSubscriptionTests : IAsyncLifetime
         var company = (await Env.CreateCompanyAsync("Long Trial")).Company;
         var subscription = await Env.WithCatalogAsync(c => c.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent));
         Assert.InRange(subscription.TrialEndsAt!.Value - DateTime.UtcNow, TimeSpan.FromDays(13.9), TimeSpan.FromDays(14));
-        Assert.Equal(5, subscription.BothLicences);
+        Assert.Equal(5, subscription.Licences.Both);
 
         // Grace after a paid period ends unpaid uses the saved 3 days.
         await Env.EditSubscriptionAsync(company.Id, s =>

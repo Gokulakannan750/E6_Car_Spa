@@ -60,7 +60,7 @@ public class OwnerSubscriptionController(
         if (!IsOwner) return Forbid();
         var subscription = await subscriptions.CurrentAsync(Company, cancellationToken);
         var current = new OwnerChoiceDto(subscription.PlanVersion!.Plan!.Code, subscription.PlanVersion.Interval.ToString(),
-            new PublicLicencesDto(subscription.AndroidLicences, subscription.WindowsLicences, subscription.BothLicences),
+            new PublicLicencesDto(subscription.Licences.Android, subscription.Licences.Windows, subscription.Licences.Both),
             subscription.Items.Where(i => i.EffectiveTo is null).ToDictionary(i => i.AddOnPrice!.AddOn!.Code, i => i.Quantity));
         var used = await InUseAsync(cancellationToken);
         return Ok(new OwnerSubscriptionDto(await catalogReader.ReadAsync(cancellationToken), current,

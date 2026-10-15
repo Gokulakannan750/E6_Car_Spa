@@ -60,6 +60,7 @@ public sealed partial class CompanyDatabaseProvisioner(
             {
                 Id = Guid.NewGuid(),
                 Key = Options.ProductKey,
+                DatabasePrefix = Options.ProductKey,
                 Name = Options.ProductName,
                 CreatedAt = DateTime.UtcNow
             };

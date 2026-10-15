@@ -9,6 +9,11 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : DbContext(options)
 {
     public DbSet<PlatformProduct> Products => Set<PlatformProduct>();
+    public DbSet<ProductSeatType> ProductSeatTypes => Set<ProductSeatType>();
+    public DbSet<ProductFeature> ProductFeatures => Set<ProductFeature>();
+    public DbSet<SubscriptionSeat> SubscriptionSeats => Set<SubscriptionSeat>();
+    public DbSet<PlanVersionSeatPrice> PlanVersionSeatPrices => Set<PlanVersionSeatPrice>();
+    public DbSet<SignupOrderSeat> SignupOrderSeats => Set<SignupOrderSeat>();
     public DbSet<PlatformCompany> Companies => Set<PlatformCompany>();
     public DbSet<PlatformRegistrationCode> RegistrationCodes => Set<PlatformRegistrationCode>();
 
@@ -53,6 +58,51 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
         {
             e.ToTable("Products");
             e.HasIndex(p => p.Key).IsUnique();
+            e.Property(p => p.SeatModel).HasConversion<string>().HasMaxLength(10).HasDefaultValue(SeatModel.None);
+            e.Property(p => p.TrialPlanCode).HasDefaultValue("professional");
+        });
+
+        modelBuilder.Entity<ProductSeatType>(e =>
+        {
+            e.ToTable("ProductSeatTypes", t => t.HasCheckConstraint("CK_ProductSeatTypes_Code", "\"Code\" = lower(\"Code\")"));
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.HasOne<PlatformProduct>().WithMany().HasForeignKey(s => s.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => new { s.ProductId, s.Code }).IsUnique();
+        });
+        modelBuilder.Entity<ProductFeature>(e =>
+        {
+            e.ToTable("ProductFeatures");
+            e.Property(f => f.Id).ValueGeneratedNever();
+            e.HasOne<PlatformProduct>().WithMany().HasForeignKey(f => f.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => new { f.ProductId, f.Key }).IsUnique();
+            e.Property(f => f.ValueType).HasConversion<string>().HasMaxLength(10);
+        });
+        modelBuilder.Entity<SubscriptionSeat>(e =>
+        {
+            e.ToTable("SubscriptionSeats");
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.HasOne<Subscription>().WithMany(s => s.Seats).HasForeignKey(s => s.SubscriptionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.SeatType).WithMany().HasForeignKey(s => s.SeatTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => new { s.SubscriptionId, s.SeatTypeId }).IsUnique();
+            e.Navigation(s => s.SeatType).AutoInclude();
+        });
+        modelBuilder.Entity<PlanVersionSeatPrice>(e =>
+        {
+            e.ToTable("PlanVersionSeatPrices");
+            e.Property(p => p.Id).ValueGeneratedNever();
+            e.HasOne<PlanVersion>().WithMany(v => v.SeatPrices).HasForeignKey(p => p.PlanVersionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.SeatType).WithMany().HasForeignKey(p => p.SeatTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => new { p.PlanVersionId, p.SeatTypeId }).IsUnique();
+            e.Navigation(p => p.SeatType).AutoInclude();
+        });
+        modelBuilder.Entity<SignupOrderSeat>(e =>
+        {
+            e.ToTable("SignupOrderSeats");
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.HasOne<SignupOrder>().WithMany(o => o.Seats).HasForeignKey(s => s.SignupOrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(s => s.SeatType).WithMany().HasForeignKey(s => s.SeatTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => new { s.SignupOrderId, s.SeatTypeId }).IsUnique();
+            e.Navigation(s => s.SeatType).AutoInclude();
         });
 
         modelBuilder.Entity<PlatformCompany>(e =>
@@ -82,6 +132,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
         modelBuilder.Entity<PlanVersion>(e =>
         {
             e.ToTable("PlanVersions");
+            e.Navigation(v => v.SeatPrices).AutoInclude();
             e.HasOne(v => v.Plan).WithMany(p => p.Versions).HasForeignKey(v => v.PlanId).OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(v => new { v.PlanId, v.Version, v.Interval }).IsUnique();
             e.Property(v => v.Interval).HasConversion<string>().HasMaxLength(10);
@@ -90,6 +141,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
         modelBuilder.Entity<SignupOrder>(e =>
         {
             e.ToTable("SignupOrders");
+            e.Navigation(o => o.Seats).AutoInclude();
             e.Property(o => o.Start).HasConversion<string>().HasMaxLength(10);
             e.Property(o => o.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(o => o.Interval).HasConversion<string>().HasMaxLength(10);
@@ -134,6 +186,7 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
         modelBuilder.Entity<Subscription>(e =>
         {
             e.ToTable("Subscriptions");
+            e.Navigation(s => s.Seats).AutoInclude();
             e.HasOne(s => s.Company).WithMany().HasForeignKey(s => s.CompanyId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(s => s.BillingAccount).WithMany().HasForeignKey(s => s.BillingAccountId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(s => s.PlanVersion).WithMany().HasForeignKey(s => s.PlanVersionId).OnDelete(DeleteBehavior.Restrict);

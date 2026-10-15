@@ -20,6 +20,8 @@ public class SubscriptionRulesTests
         };
         foreach (var (key, value) in planFeatures)
             version.Entitlements.Add(new PlanEntitlement { FeatureKey = key, Value = value });
+        foreach (var code in new[] { "android", "windows", "both" })
+            version.SeatPrices.Add(new PlanVersionSeatPrice { SeatType = new ProductSeatType { Id = Guid.NewGuid(), Code = code } });
         return new Subscription { Status = status, PlanVersion = version, CurrentPeriodEnd = Now.AddDays(10) };
     }
 
@@ -90,8 +92,13 @@ public class SubscriptionRulesTests
     {
         var version = new PlanVersion
         {
-            Interval = BillingInterval.Month, Currency = "INR", PriceMinor = 0, AndroidUserPriceMinor = 49_900, WindowsUserPriceMinor = 69_900,
-            BothUserPriceMinor = 99_900, Plan = new Plan { Name = "Starter" }
+            Interval = BillingInterval.Month, Currency = "INR", PriceMinor = 0, Plan = new Plan { Name = "Starter" },
+            SeatPrices =
+            [
+                new() { SeatType = new ProductSeatType { Code = "android" }, PriceMinor = 49_900 },
+                new() { SeatType = new ProductSeatType { Code = "windows" }, PriceMinor = 69_900 },
+                new() { SeatType = new ProductSeatType { Code = "both" }, PriceMinor = 99_900 }
+            ]
         };
         Assert.Equal(69_900, version.UserPriceMinor(Domain.Enums.AppAccess.Windows));
         Assert.Equal(99_900, version.UserPriceMinor(Domain.Enums.AppAccess.Both));

@@ -720,7 +720,7 @@ public sealed class SubscriptionService(
         interval = subscription.PlanVersion?.Interval.ToString(),
         status = subscription.Status.ToString(),
         trialEndsAt = subscription.TrialEndsAt,
-        licences = new { android = subscription.AndroidLicences, windows = subscription.WindowsLicences, both = subscription.BothLicences },
+        licences = new { android = subscription.Licences.Android, windows = subscription.Licences.Windows, both = subscription.Licences.Both },
         addOns = subscription.Items.Where(i => i.EffectiveTo is null).Select(i => new { code = i.AddOnPrice?.AddOn?.Code, i.Quantity })
     };
 

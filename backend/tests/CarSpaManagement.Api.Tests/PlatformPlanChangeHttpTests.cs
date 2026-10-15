@@ -141,7 +141,7 @@ public class PlatformPlanChangeHttpTests(PlatformApiHost host) : IClassFixture<P
         await host.InScopeAsync(async sp =>
         {
             var catalog = sp.GetRequiredService<PlatformDbContext>();
-            (await catalog.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent)).BothLicences = 2;
+            (await catalog.Subscriptions.SingleAsync(s => s.CompanyId == company.Id && s.IsCurrent)).Seats.Single(s => s.SeatType!.Code == "both").Quantity = 2;
             var saved = await catalog.SaveChangesAsync();
             sp.GetRequiredService<CarSpaManagement.Api.Application.Interfaces.IEntitlementService>().Invalidate(company.Id);
             return saved;

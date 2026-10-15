@@ -59,7 +59,7 @@ public sealed class PlatformPlanChangeApprovals(
         var planName = await catalog.Plans.AsNoTracking().Where(p => p.ProductId == productId && p.Code == request.PlanCode)
             .Select(p => p.Name).FirstOrDefaultAsync(cancellationToken) ?? request.PlanCode;
         var from = new PlanTermsSummaryDto(subscription.PlanVersion!.Plan!.Name, subscription.PlanVersion.Interval.ToString(),
-            subscription.AndroidLicences, subscription.WindowsLicences, subscription.BothLicences,
+            subscription.Licences.Android, subscription.Licences.Windows, subscription.Licences.Both,
             subscription.Items.Where(i => i.EffectiveTo is null).Select(i => Named(i.AddOnPrice!.AddOn!.Name, i.Quantity)).ToList());
         var to = new PlanTermsSummaryDto(planName, request.Interval.ToString(), request.AndroidLicences, request.WindowsLicences, request.BothLicences,
             target.AddOns.Where(a => a.Value > 0).Select(a => Named(addOnNames.GetValueOrDefault(a.Key, a.Key), a.Value)).ToList());

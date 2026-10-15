@@ -1,3 +1,4 @@
+using CarSpaManagement.Api.Domain.Enums;
 using CarSpaManagement.Api.Application.Common;
 using CarSpaManagement.Api.Domain.Platform;
 using CarSpaManagement.Api.Infrastructure.Platform;
@@ -60,8 +61,8 @@ public class PlatformAdminController(
                           .Sum(i => Monthly(i.AddOnPrice!.UnitPriceMinor * i.Quantity, i.AddOnPrice.Interval)));
 
         static long LicencesCost(Subscription s) =>
-            s.AndroidLicences * s.PlanVersion!.AndroidUserPriceMinor + s.WindowsLicences * s.PlanVersion.WindowsUserPriceMinor
-            + s.BothLicences * s.PlanVersion.BothUserPriceMinor;
+            s.Licences.Android * s.PlanVersion!.UserPriceMinor(AppAccess.Android) + s.Licences.Windows * s.PlanVersion.UserPriceMinor(AppAccess.Windows)
+            + s.Licences.Both * s.PlanVersion.UserPriceMinor(AppAccess.Both);
 
         return Ok(new PlatformDashboardDto(
             companies.Count,
@@ -89,7 +90,7 @@ public class PlatformAdminController(
                 p.Versions.OrderBy(v => v.Interval).ThenByDescending(v => v.Version).Select(v => new PlatformPlanVersionDto(
                     v.Id, v.Version, v.Interval.ToString(), v.Currency, v.PriceMinor, v.IncludedSeats, v.EffectiveFrom, v.EffectiveTo,
                     v.Entitlements.OrderBy(e => e.FeatureKey).Select(e => new PlatformEntitlementDto(e.FeatureKey, e.Value)).ToList(),
-                    v.AndroidUserPriceMinor, v.WindowsUserPriceMinor, v.BothUserPriceMinor)).ToList())).ToList(),
+                    v.UserPriceMinor(AppAccess.Android), v.UserPriceMinor(AppAccess.Windows), v.UserPriceMinor(AppAccess.Both))).ToList())).ToList(),
             addOns.Select(a => new PlatformAddOnDto(a.Id, a.Code, a.Name, a.FeatureKey, a.Value, a.IsActive,
                 a.Prices.OrderBy(p => p.Interval).ThenByDescending(p => p.Version).Select(p => new PlatformAddOnPriceDto(
                     p.Id, p.Version, p.Interval.ToString(), p.Currency, p.UnitPriceMinor, p.EffectiveFrom, p.EffectiveTo)).ToList())).ToList(),
@@ -129,15 +130,15 @@ public class PlatformAdminController(
         var current = plan.Versions.Where(v => v.Interval == interval && v.EffectiveTo == null).ToList();
         foreach (var old in current) old.EffectiveTo = now;
 
-        var version = PlanVersionFactory.Create(plan, interval, terms, now);
+        var version = PlanVersionFactory.Create(plan, interval, terms, now, await catalog.ProductSeatTypes.Where(t => t.ProductId == plan.ProductId).ToListAsync(cancellationToken));
         catalog.PlanVersions.Add(version);
         await catalog.SaveChangesAsync(cancellationToken);
         await audit.RecordAsync("plan.version_created", null,
-            current.Select(c => new { c.Version, c.PriceMinor, c.IncludedSeats, c.AndroidUserPriceMinor, c.WindowsUserPriceMinor, c.BothUserPriceMinor }),
+            current.Select(c => new { c.Version, c.PriceMinor, c.IncludedSeats, AndroidUserPriceMinor = c.UserPriceMinor(AppAccess.Android), WindowsUserPriceMinor = c.UserPriceMinor(AppAccess.Windows), BothUserPriceMinor = c.UserPriceMinor(AppAccess.Both) }),
             new
             {
                 plan = code, version.Version, interval = interval.ToString(), version.PriceMinor, version.IncludedSeats,
-                version.AndroidUserPriceMinor, version.WindowsUserPriceMinor, version.BothUserPriceMinor, request.Entitlements
+                AndroidUserPriceMinor = version.UserPriceMinor(AppAccess.Android), WindowsUserPriceMinor = version.UserPriceMinor(AppAccess.Windows), BothUserPriceMinor = version.UserPriceMinor(AppAccess.Both), request.Entitlements
             },
             request.Reason, cancellationToken);
         return StatusCode(StatusCodes.Status201Created);

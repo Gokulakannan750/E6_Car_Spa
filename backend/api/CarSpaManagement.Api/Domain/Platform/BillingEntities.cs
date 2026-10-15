@@ -62,21 +62,10 @@ public class PlanVersion
     /// <summary>The fewest user licences a subscription on this version may have (normally 1).</summary>
     public int IncludedSeats { get; set; }
 
-    /// <summary>Price per period of one user licence for the Android app only.</summary>
-    public long AndroidUserPriceMinor { get; set; }
+    public List<PlanVersionSeatPrice> SeatPrices { get; set; } = [];
 
-    /// <summary>Price per period of one user licence for the Windows app only.</summary>
-    public long WindowsUserPriceMinor { get; set; }
-
-    /// <summary>Price per period of one user licence for both apps.</summary>
-    public long BothUserPriceMinor { get; set; }
-
-    public long UserPriceMinor(AppAccess access) => access switch
-    {
-        AppAccess.Android => AndroidUserPriceMinor,
-        AppAccess.Windows => WindowsUserPriceMinor,
-        _ => BothUserPriceMinor
-    };
+    public long UserPriceMinor(AppAccess access) => SeatPrices
+        .SingleOrDefault(p => p.SeatType?.Code == LicenceCounts.CodeFor(access))?.PriceMinor ?? 0;
 
     public DateTime EffectiveFrom { get; set; }
     public DateTime? EffectiveTo { get; set; }
@@ -225,22 +214,31 @@ public class Subscription
     /// <summary>Until when a canceled company keeps read-only access to its data.</summary>
     public DateTime? RetainUntil { get; set; }
 
-    /// <summary>User licences bought: each active user needs one of their app type.</summary>
-    public int AndroidLicences { get; set; }
-    public int WindowsLicences { get; set; }
-    public int BothLicences { get; set; }
+    public List<SubscriptionSeat> Seats { get; set; } = [];
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public LicenceCounts Licences
     {
-        get => new(AndroidLicences, WindowsLicences, BothLicences);
+        get => new(Count("android"), Count("windows"), Count("both"));
         set
         {
-            AndroidLicences = value.Android;
-            WindowsLicences = value.Windows;
-            BothLicences = value.Both;
+            foreach (var access in new[] { AppAccess.Android, AppAccess.Windows, AppAccess.Both })
+            {
+                var code = LicenceCounts.CodeFor(access);
+                var row = Seats.SingleOrDefault(s => s.SeatType?.Code == code);
+                if (row is null)
+                {
+                    var type = PlanVersion?.SeatPrices.SingleOrDefault(p => p.SeatType?.Code == code)?.SeatType
+                        ?? throw new InvalidOperationException($"Load the plan's {code} seat type before setting licences.");
+                    row = new SubscriptionSeat { Id = Guid.NewGuid(), SubscriptionId = Id, SeatTypeId = type.Id, SeatType = type };
+                    Seats.Add(row);
+                }
+                row.Quantity = value.Of(access);
+            }
         }
     }
+
+    private int Count(string code) => Seats.SingleOrDefault(s => s.SeatType?.Code == code)?.Quantity ?? 0;
 
     [MaxLength(30)]
     public string? GatewayProvider { get; set; }
@@ -550,6 +548,11 @@ public class PlatformCounter
 /// <summary>How many user licences of each app type a subscription has.</summary>
 public readonly record struct LicenceCounts(int Android, int Windows, int Both)
 {
+    public static string CodeFor(AppAccess access) => access switch
+    {
+        AppAccess.Android => "android", AppAccess.Windows => "windows", _ => "both"
+    };
+
     public const int MaxPerType = 500;
 
     public int Total => Android + Windows + Both;
@@ -684,9 +687,27 @@ public class SignupOrder
     public string? PlanCode { get; set; }
 
     public BillingInterval? Interval { get; set; }
-    public int AndroidLicences { get; set; }
-    public int WindowsLicences { get; set; }
-    public int BothLicences { get; set; }
+    public List<SignupOrderSeat> Seats { get; set; } = [];
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public LicenceCounts Licences => new(Count("android"), Count("windows"), Count("both"));
+
+    private int Count(string code) => Seats.SingleOrDefault(s => s.SeatType?.Code == code)?.Quantity ?? 0;
+
+    public void SetLicences(LicenceCounts licences, IReadOnlyList<ProductSeatType> types)
+    {
+        foreach (var access in new[] { AppAccess.Android, AppAccess.Windows, AppAccess.Both })
+        {
+            var type = types.Single(t => t.Code == LicenceCounts.CodeFor(access));
+            var row = Seats.SingleOrDefault(s => s.SeatTypeId == type.Id);
+            if (row is null)
+            {
+                row = new SignupOrderSeat { Id = Guid.NewGuid(), SignupOrderId = Id, SeatTypeId = type.Id, SeatType = type };
+                Seats.Add(row);
+            }
+            row.Quantity = licences.Of(access);
+        }
+    }
 
     /// <summary>Add-on codes and quantities chosen (JSON object).</summary>
     [MaxLength(1000)]

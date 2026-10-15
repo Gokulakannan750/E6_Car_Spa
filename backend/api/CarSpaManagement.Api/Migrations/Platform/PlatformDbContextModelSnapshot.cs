@@ -758,12 +758,6 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<long>("AndroidUserPriceMinor")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("BothUserPriceMinor")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -795,15 +789,36 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
-                    b.Property<long>("WindowsUserPriceMinor")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasIndex("PlanId", "Version", "Interval")
                         .IsUnique();
 
                     b.ToTable("PlanVersions", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlanVersionSeatPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PlanVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("PriceMinor")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SeatTypeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeatTypeId");
+
+                    b.HasIndex("PlanVersionId", "SeatTypeId")
+                        .IsUnique();
+
+                    b.ToTable("PlanVersionSeatPrices", (string)null);
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlatformAdmin", b =>
@@ -1006,8 +1021,18 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Capabilities")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DatabasePrefix")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -1021,6 +1046,20 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SeatModel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("None");
+
+                    b.Property<string>("TrialPlanCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("professional");
 
                     b.HasKey("Id");
 
@@ -1089,6 +1128,75 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.ToTable("PlatformSettings", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.ProductFeature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ValueType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("ProductFeatures", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.ProductSeatType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("ProductSeatTypes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ProductSeatTypes_Code", "\"Code\" = lower(\"Code\")");
+                        });
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SignupOrder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1101,12 +1209,6 @@ namespace CarSpaManagement.Api.Migrations.Platform
 
                     b.Property<long>("AmountMinor")
                         .HasColumnType("bigint");
-
-                    b.Property<int>("AndroidLicences")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("BothLicences")
-                        .HasColumnType("integer");
 
                     b.Property<string>("BusinessName")
                         .IsRequired()
@@ -1218,9 +1320,6 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
-                    b.Property<int>("WindowsLicences")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
@@ -1232,20 +1331,38 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.ToTable("SignupOrders", (string)null);
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SignupOrderSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SeatTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SignupOrderId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeatTypeId");
+
+                    b.HasIndex("SignupOrderId", "SeatTypeId")
+                        .IsUnique();
+
+                    b.ToTable("SignupOrderSeats", (string)null);
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.Subscription", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("AndroidLicences")
-                        .HasColumnType("integer");
-
                     b.Property<Guid>("BillingAccountId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("BothLicences")
-                        .HasColumnType("integer");
 
                     b.Property<bool>("CancelAtPeriodEnd")
                         .HasColumnType("boolean");
@@ -1302,9 +1419,6 @@ namespace CarSpaManagement.Api.Migrations.Platform
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("WindowsLicences")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -1397,6 +1511,30 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.HasIndex("SubscriptionId");
 
                     b.ToTable("SubscriptionItems", (string)null);
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SubscriptionSeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SeatTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SeatTypeId");
+
+                    b.HasIndex("SubscriptionId", "SeatTypeId")
+                        .IsUnique();
+
+                    b.ToTable("SubscriptionSeats", (string)null);
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
@@ -1542,6 +1680,23 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlanVersionSeatPrice", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.PlanVersion", null)
+                        .WithMany("SeatPrices")
+                        .HasForeignKey("PlanVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.ProductSeatType", "SeatType")
+                        .WithMany()
+                        .HasForeignKey("SeatTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SeatType");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlatformCompany", b =>
                 {
                     b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformProduct", "Product")
@@ -1562,6 +1717,41 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .IsRequired();
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.ProductFeature", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformProduct", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.ProductSeatType", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.PlatformProduct", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SignupOrderSeat", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.ProductSeatType", "SeatType")
+                        .WithMany()
+                        .HasForeignKey("SeatTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.SignupOrder", null)
+                        .WithMany("Seats")
+                        .HasForeignKey("SignupOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SeatType");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.Subscription", b =>
@@ -1619,6 +1809,23 @@ namespace CarSpaManagement.Api.Migrations.Platform
                     b.Navigation("Subscription");
                 });
 
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SubscriptionSeat", b =>
+                {
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.ProductSeatType", "SeatType")
+                        .WithMany()
+                        .HasForeignKey("SeatTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CarSpaManagement.Api.Domain.Platform.Subscription", null)
+                        .WithMany("Seats")
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SeatType");
+                });
+
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Entities.FranchiseLink", b =>
                 {
                     b.Navigation("Scopes");
@@ -1642,11 +1849,20 @@ namespace CarSpaManagement.Api.Migrations.Platform
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.PlanVersion", b =>
                 {
                     b.Navigation("Entitlements");
+
+                    b.Navigation("SeatPrices");
+                });
+
+            modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.SignupOrder", b =>
+                {
+                    b.Navigation("Seats");
                 });
 
             modelBuilder.Entity("CarSpaManagement.Api.Domain.Platform.Subscription", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("Seats");
                 });
 #pragma warning restore 612, 618
         }

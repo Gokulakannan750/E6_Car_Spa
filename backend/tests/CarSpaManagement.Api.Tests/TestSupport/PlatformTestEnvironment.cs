@@ -26,7 +26,7 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
     public ServiceProvider Services { get; }
     public IReadOnlyDictionary<string, string?> Settings { get; }
 
-    public PlatformTestEnvironment()
+    public PlatformTestEnvironment(Action<DbContextOptionsBuilder>? configureCatalog = null)
     {
         var admin = PostgresTestEnvironment.AdminConnectionString
             ?? throw new InvalidOperationException("Platform tests need a PostgreSQL server.");
@@ -50,6 +50,7 @@ public sealed class PlatformTestEnvironment : IAsyncDisposable
         services.AddLogging();
         services.AddHttpContextAccessor();
         services.AddDatabase(configuration);
+        if (configureCatalog is not null) services.AddDbContext<PlatformDbContext>(configureCatalog);
         services.AddSingleton<IAesEncryptionService>(new AesEncryptionService(configuration));
         services.AddScoped<IPasswordHasherService, PasswordHasherService>();
         services.AddScoped<IAuditLogService, NullAuditLogService>();
