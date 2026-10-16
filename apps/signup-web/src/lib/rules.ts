@@ -1,10 +1,4 @@
-import type { Business, Interval, LicenceKey, Prices, PublicCatalog, PublicPlan } from './types';
-
-export const LICENCE_TYPES: { key: LicenceKey; label: string; description: string; price: (p: Prices) => number }[] = [
-	{ key: 'both', label: 'Windows + Android', description: 'One person on both apps (counter PC and phone)', price: (p) => p.bothUserPriceMinor },
-	{ key: 'windows', label: 'Windows only', description: 'Billing counter and office PCs', price: (p) => p.windowsUserPriceMinor },
-	{ key: 'android', label: 'Android only', description: 'Floor staff and supervisors on a phone', price: (p) => p.androidUserPriceMinor },
-];
+import type { Business, Interval, Prices, PublicCatalog, PublicPlan } from './types';
 
 export function pricesFor(plan: PublicPlan, interval: Interval): Prices | null {
 	return interval === 'Year' ? plan.yearly : plan.monthly;
@@ -13,7 +7,7 @@ export function pricesFor(plan: PublicPlan, interval: Interval): Prices | null {
 /** "from ₹… per user" uses the cheapest licence the plan sells. */
 export function cheapestLicence(prices: Prices | null): number | null {
 	if (!prices) return null;
-	const values = [prices.androidUserPriceMinor, prices.windowsUserPriceMinor, prices.bothUserPriceMinor].filter((v) => v > 0);
+	const values = prices.seats.map((s) => s.priceMinor).filter((v) => v > 0);
 	return values.length ? Math.min(...values) : null;
 }
 
@@ -27,9 +21,9 @@ export function yearlyFreeMonths(catalog: PublicCatalog): number {
 	let months = Infinity;
 	for (const plan of catalog.plans) {
 		if (!plan.monthly || !plan.yearly) continue;
-		for (const { price } of LICENCE_TYPES) {
-			const monthly = price(plan.monthly);
-			const yearly = price(plan.yearly);
+		for (const code of [...plan.monthly.seats.map((s) => s.code), '__company_fee']) {
+			const monthly = code === '__company_fee' ? plan.monthly.companyFeeMinor : (plan.monthly.seats.find((s) => s.code === code)?.priceMinor ?? 0);
+			const yearly = code === '__company_fee' ? plan.yearly.companyFeeMinor : (plan.yearly.seats.find((s) => s.code === code)?.priceMinor ?? 0);
 			if (monthly > 0 && yearly > 0) months = Math.min(months, Math.floor(12 - yearly / monthly + 1e-9));
 		}
 	}
@@ -39,11 +33,42 @@ export function yearlyFreeMonths(catalog: PublicCatalog): number {
 export const freeMonthsLabel = (months: number) => (months === 1 ? '1 month free' : `${months} months free`);
 
 export const INDIAN_STATES = [
-	'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chandigarh', 'Chhattisgarh',
-	'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir',
-	'Jharkhand', 'Karnataka', 'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
-	'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
-	'Uttarakhand', 'West Bengal',
+	'Andaman and Nicobar Islands',
+	'Andhra Pradesh',
+	'Arunachal Pradesh',
+	'Assam',
+	'Bihar',
+	'Chandigarh',
+	'Chhattisgarh',
+	'Dadra and Nagar Haveli and Daman and Diu',
+	'Delhi',
+	'Goa',
+	'Gujarat',
+	'Haryana',
+	'Himachal Pradesh',
+	'Jammu and Kashmir',
+	'Jharkhand',
+	'Karnataka',
+	'Kerala',
+	'Ladakh',
+	'Lakshadweep',
+	'Madhya Pradesh',
+	'Maharashtra',
+	'Manipur',
+	'Meghalaya',
+	'Mizoram',
+	'Nagaland',
+	'Odisha',
+	'Puducherry',
+	'Punjab',
+	'Rajasthan',
+	'Sikkim',
+	'Tamil Nadu',
+	'Telangana',
+	'Tripura',
+	'Uttar Pradesh',
+	'Uttarakhand',
+	'West Bengal',
 ];
 
 /** The same checks as the server (SignupService.Clean), so mistakes show at once under the field. */
@@ -64,3 +89,17 @@ export function validateBusiness(b: Business): Partial<Record<keyof Business, st
 }
 
 export const isBusinessComplete = (b: Business) => Object.keys(validateBusiness(b)).length === 0;
+
+export const totalSeats = (seats: Record<string, number>) => Object.values(seats).reduce((a, b) => a + b, 0);
+export function defaultChoice(catalog: PublicCatalog) {
+	const plan = catalog.plans.find((p) => p.code === catalog.trialPlanCode) ?? catalog.plans[0];
+	const type = catalog.seatModel === 'Counted' ? catalog.seatTypes[0] : catalog.seatTypes.find((t) => t.defaultSeat);
+	return {
+		planCode: plan?.code ?? '',
+		interval: (plan?.yearly ? 'Year' : 'Month') as Interval,
+		seats: catalog.seatModel === 'None' ? {} : Object.fromEntries(catalog.seatTypes.map((t) => [t.code, t.code === type?.code ? Math.max(1, plan?.minimumLicences ?? 1) : 0])),
+		addOns: {},
+	};
+}
+export const seatMinimum = (catalog: PublicCatalog, planCode: string) =>
+	catalog.seatModel === 'None' ? 0 : Math.max(1, catalog.plans.find((p) => p.code === planCode)?.minimumLicences ?? 1);

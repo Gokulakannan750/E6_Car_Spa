@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { cheapestLicence, freeMonthsLabel, isBusinessComplete, validateBusiness, yearlyFreeMonths } from './rules';
 import type { Business, Prices, PublicCatalog } from './types';
 
+const prices = (android: number, windows: number, both: number): Prices => ({
+	companyFeeMinor: 0,
+	seats: [
+		{ code: 'android', name: 'Android', quantity: 0, priceMinor: android },
+		{ code: 'windows', name: 'Windows', quantity: 0, priceMinor: windows },
+		{ code: 'both', name: 'Both', quantity: 0, priceMinor: both },
+	],
+});
+
 const good: Business = { name: 'Sunrise Detailing', ownerName: 'Arun Kumar', mobile: '98765 43210', email: 'arun@sunrise.in', city: 'Erode', state: 'Tamil Nadu', gstin: '' };
 
 describe('validateBusiness', () => {
@@ -23,13 +32,12 @@ describe('validateBusiness', () => {
 
 describe('cheapestLicence', () => {
 	it('ignores licence types that are not sold (price 0)', () => {
-		expect(cheapestLicence({ companyFeeMinor: 0, androidUserPriceMinor: 0, windowsUserPriceMinor: 69_900, bothUserPriceMinor: 99_900 })).toBe(69_900);
+		expect(cheapestLicence(prices(0, 69_900, 99_900))).toBe(69_900);
 		expect(cheapestLicence(null)).toBeNull();
 	});
 });
 
 describe('yearlyFreeMonths', () => {
-	const prices = (android: number, windows: number, both: number): Prices => ({ companyFeeMinor: 0, androidUserPriceMinor: android, windowsUserPriceMinor: windows, bothUserPriceMinor: both });
 	const catalog = (plans: { monthly: Prices | null; yearly: Prices | null }[]) =>
 		({ plans: plans.map((p, i) => ({ code: `p${i}`, name: `P${i}`, minimumLicences: 1, modules: [], ...p })) }) as unknown as PublicCatalog;
 

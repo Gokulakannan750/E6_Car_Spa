@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=mocked",
     "test:preflight": "node scripts/check-staging.test.mjs"
   },
   "dependencies": {

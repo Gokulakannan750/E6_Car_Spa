@@ -1,20 +1,13 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Business, Joining, PlanChoice, SignupResult } from '@/lib/types';
+import type { Business, Joining, PlanChoice, SignupResult, PublicCatalog } from '@/lib/types';
 
 // What the customer has entered so far. Kept in this browser tab only (sessionStorage), so a reload does not lose it
 // and closing the tab forgets it. The order token and the codes are needed to pay and to show the result.
 
-const STORAGE_KEY = 'trovo.signup';
+import { defaultChoice } from '@/lib/rules';
 
 export const EMPTY_BUSINESS: Business = { name: '', ownerName: '', mobile: '', email: '', city: '', state: '', gstin: '' };
-export const OWN_SPA: Joining = { kind: 'own', code: '', check: null, consent: false };
-export const DEFAULT_CHOICE: PlanChoice = {
-	planCode: 'professional',
-	interval: 'Year',
-	licences: { android: 0, windows: 0, both: 1 },
-	addOns: {},
-};
-
+export const OWN_BUSINESS: Joining = { kind: 'own', code: '', check: null, consent: false };
 interface SignupState {
 	business: Business;
 	joining: Joining;
@@ -36,14 +29,15 @@ interface SignupContextValue extends SignupState {
 
 const SignupContext = createContext<SignupContextValue | null>(null);
 
-function load(): SignupState {
+function load(STORAGE_KEY: string, catalog: PublicCatalog): SignupState {
+	const DEFAULT_CHOICE = defaultChoice(catalog);
 	try {
 		const raw = window.sessionStorage.getItem(STORAGE_KEY);
 		if (raw) {
 			const saved = JSON.parse(raw) as Partial<SignupState>;
 			return {
 				business: { ...EMPTY_BUSINESS, ...saved.business },
-				joining: { ...OWN_SPA, ...saved.joining },
+				joining: catalog.capabilities.includes('franchise') ? { ...OWN_BUSINESS, ...saved.joining } : OWN_BUSINESS,
 				choice: { ...DEFAULT_CHOICE, ...saved.choice },
 				order: saved.order ?? null,
 				result: saved.result ?? null,
@@ -52,10 +46,10 @@ function load(): SignupState {
 	} catch {
 		// Storage unavailable or damaged: start fresh.
 	}
-	return { business: EMPTY_BUSINESS, joining: OWN_SPA, choice: DEFAULT_CHOICE, order: null, result: null };
+	return { business: EMPTY_BUSINESS, joining: OWN_BUSINESS, choice: DEFAULT_CHOICE, order: null, result: null };
 }
 
-function save(state: SignupState) {
+function save(STORAGE_KEY: string, state: SignupState) {
 	try {
 		window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 	} catch {
@@ -63,16 +57,21 @@ function save(state: SignupState) {
 	}
 }
 
-export function SignupProvider({ children }: { children: ReactNode }) {
-	const [state, setState] = useState<SignupState>(load);
+export function SignupProvider({ children, catalog }: { children: ReactNode; catalog: PublicCatalog }) {
+	const STORAGE_KEY = `trovo.signup.${catalog.productKey}`;
+	const DEFAULT_CHOICE = defaultChoice(catalog);
+	const [state, setState] = useState<SignupState>(() => load(STORAGE_KEY, catalog));
 
-	const update = useCallback((patch: Partial<SignupState>) => {
-		setState((s) => {
-			const next = { ...s, ...patch };
-			save(next);
-			return next;
-		});
-	}, []);
+	const update = useCallback(
+		(patch: Partial<SignupState>) => {
+			setState((s) => {
+				const next = { ...s, ...patch };
+				save(STORAGE_KEY, next);
+				return next;
+			});
+		},
+		[STORAGE_KEY],
+	);
 
 	const value = useMemo<SignupContextValue>(
 		() => ({
@@ -85,8 +84,8 @@ export function SignupProvider({ children }: { children: ReactNode }) {
 			setOrder: (order) => update({ order }),
 			setResult: (result) => update({ result, order: null }),
 			reset: () => {
-				const fresh = { business: EMPTY_BUSINESS, joining: OWN_SPA, choice: DEFAULT_CHOICE, order: null, result: null };
-				save(fresh);
+				const fresh = { business: EMPTY_BUSINESS, joining: OWN_BUSINESS, choice: DEFAULT_CHOICE, order: null, result: null };
+				save(STORAGE_KEY, fresh);
 				setState(fresh);
 			},
 		}),

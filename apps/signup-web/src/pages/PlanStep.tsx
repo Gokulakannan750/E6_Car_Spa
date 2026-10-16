@@ -1,17 +1,16 @@
+import { useProduct, usePaths } from '@/state/product';
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Check, Info, Laptop, Lightbulb, Monitor, Smartphone } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Lightbulb } from 'lucide-react';
 import { Page, Steps } from '@/components/Frame';
 import { Alert, Button, Card, Quantity } from '@/components/ui';
-import { api } from '@/lib/api';
-import { FEATURES, PLAN_TAGLINES, featureName } from '@/lib/featureNames';
+
+import { featureName } from '@/lib/featureNames';
 import { money, moneyShort } from '@/lib/format';
-import { LICENCE_TYPES, cheapestLicence, freeMonthsLabel, isBusinessComplete, per, pricesFor, yearlyFreeMonths } from '@/lib/rules';
+import { totalSeats, seatMinimum, cheapestLicence, freeMonthsLabel, isBusinessComplete, per, pricesFor, yearlyFreeMonths } from '@/lib/rules';
 import type { Interval, PlanChoice, PublicCatalog, Quote } from '@/lib/types';
 import { useSignup } from '@/state/signup';
-
-const LICENCE_ICONS = { both: Laptop, windows: Monitor, android: Smartphone } as const;
 
 /** Waits until the customer stops clicking before asking the server for the price. */
 function useDebounced<T>(value: T, ms = 250): T {
@@ -24,15 +23,17 @@ function useDebounced<T>(value: T, ms = 250): T {
 }
 
 export function PlanStep() {
+	const { api, catalog: definition, brand: links } = useProduct();
+	const paths = usePaths();
 	const navigate = useNavigate();
 	const { business, joining, choice, setChoice, setResult } = useSignup();
-	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
+	const catalog = useQuery({ queryKey: ['catalog', definition.productKey], queryFn: api.catalog });
 	const debounced = useDebounced(choice);
-	const totalLicences = choice.licences.android + choice.licences.windows + choice.licences.both;
+	const totalLicences = totalSeats(choice.seats);
 	const quote = useQuery({
-		queryKey: ['quote', debounced],
+		queryKey: ['quote', definition.productKey, debounced],
 		queryFn: () => api.quote(debounced),
-		enabled: !!catalog.data && totalLicences > 0,
+		enabled: !!catalog.data && totalLicences >= seatMinimum(definition, choice.planCode) && !!choice.planCode,
 		retry: false,
 		placeholderData: (previous) => previous,
 	});
@@ -40,12 +41,12 @@ export function PlanStep() {
 		mutationFn: () => api.startTrial(business, joining),
 		onSuccess: (result) => {
 			setResult(result);
-			navigate('/signup/done');
+			navigate(paths.step('done'));
 		},
 	});
 
 	useEffect(() => {
-		document.title = 'Plan and users · Baylior sign-up';
+		document.title = 'Plan and users · ' + links.name;
 	}, []);
 
 	// Keep the choice valid for the catalog (a plan or add-on no longer sold is dropped).
@@ -61,21 +62,17 @@ export function PlanStep() {
 		}
 	}, [catalog.data, choice, setChoice]);
 
-	if (!isBusinessComplete(business)) return <Navigate to="/signup" replace />;
+	if (!isBusinessComplete(business)) return <Navigate to={paths.signup} replace />;
 
 	return (
 		<Page>
 			<Steps current={2} />
 			<div className="flex flex-wrap items-end justify-between gap-4">
 				<div>
-					<h1 className="text-headline font-semibold text-text-heading sm:text-display">Choose your plan and users</h1>
+					<h1 className="text-headline font-semibold text-text-heading sm:text-display">{definition.seatModel === 'None' ? 'Choose your plan' : 'Choose your plan and users'}</h1>
 					<p className="mt-1 text-body text-text-secondary">You can add users and modules later.</p>
 				</div>
-				<IntervalToggle
-					value={choice.interval}
-					freeMonths={catalog.data ? yearlyFreeMonths(catalog.data) : 0}
-					onChange={(interval) => setChoice({ ...choice, interval })}
-				/>
+				<IntervalToggle value={choice.interval} freeMonths={catalog.data ? yearlyFreeMonths(catalog.data) : 0} onChange={(interval) => setChoice({ ...choice, interval })} />
 			</div>
 
 			{catalog.isPending ? (
@@ -92,10 +89,16 @@ export function PlanStep() {
 							catalog={catalog.data}
 							choice={choice}
 							quote={quote.data}
-							loading={quote.isFetching}
-							error={totalLicences === 0 ? 'Add at least 1 user licence.' : quote.isError ? quote.error.message : null}
+							loading={quote.isFetching || choice !== debounced}
+							error={
+								totalLicences < seatMinimum(definition, choice.planCode)
+									? `At least ${seatMinimum(definition, choice.planCode)} seats are needed.`
+									: quote.isError
+										? quote.error.message
+										: null
+							}
 							onUpgrade={(planCode) => setChoice({ ...choice, planCode })}
-							onContinue={() => navigate('/signup/review')}
+							onContinue={() => navigate(paths.step('review'))}
 							onTrial={() => trial.mutate()}
 							trialBusy={trial.isPending}
 							trialError={trial.error?.message ?? null}
@@ -104,7 +107,7 @@ export function PlanStep() {
 				</div>
 			)}
 
-			<Button variant="ghost" className="mt-8" onClick={() => navigate('/signup')}>
+			<Button variant="ghost" className="mt-8" onClick={() => navigate(paths.signup)}>
 				<ArrowLeft className="size-4" aria-hidden /> Back to your business
 			</Button>
 		</Page>
@@ -135,8 +138,8 @@ function Choices({ catalog, choice, onChange }: { catalog: PublicCatalog; choice
 	const plans = catalog.plans.filter((p) => pricesFor(p, choice.interval));
 	const plan = plans.find((p) => p.code === choice.planCode);
 	const prices = plan ? pricesFor(plan, choice.interval) : null;
-	const total = choice.licences.android + choice.licences.windows + choice.licences.both;
-	const minimum = plan?.minimumLicences ?? 1;
+	const total = totalSeats(choice.seats);
+	const minimum = seatMinimum(catalog, choice.planCode);
 	const addOnPrice = (code: string) => {
 		const a = catalog.addOns.find((x) => x.code === code);
 		return a ? (choice.interval === 'Year' ? a.yearlyPriceMinor : a.monthlyPriceMinor) : null;
@@ -165,63 +168,44 @@ function Choices({ catalog, choice, onChange }: { catalog: PublicCatalog; choice
 										{selected && <Check className="size-3" aria-hidden />}
 									</span>
 								</div>
-								{PLAN_TAGLINES[p.code] && <div className="mt-0.5 text-label text-text-secondary">{PLAN_TAGLINES[p.code]}</div>}
+
 								{from !== null && (
 									<div className="tabular mt-3 text-body text-text-heading">
 										from <strong>{moneyShort(from)}</strong>
 										<span className="text-label text-text-muted"> / user{per(choice.interval)}</span>
 									</div>
 								)}
-								<div className="mt-2 text-label text-text-muted">
-									{p.modules.filter((m) => FEATURES[m]).map(featureName).join(' · ') || 'Billing, job cards, invoices, staff, reports'}
-								</div>
+								<div className="mt-2 text-label text-text-muted">{p.modules.map((m) => featureName(catalog, m)).join(' · ') || p.name}</div>
 							</button>
 						);
 					})}
 				</div>
 			</section>
 
-			<section>
-				<h2 className="text-title font-semibold text-text-heading">User licences</h2>
-				<p className="mt-1 text-body text-text-secondary">
-					Each person who uses the software needs one licence. A Windows + Android licence lets one person use both apps. At least {minimum}.
-				</p>
-				<ul className="mt-4 flex flex-col gap-3">
-					{LICENCE_TYPES.map((t) => {
-						const Icon = LICENCE_ICONS[t.key];
-						return (
-							<li key={t.key} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-card p-4">
-								<div className="flex min-w-0 items-center gap-3">
-									<span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-alt text-text-secondary">
-										<Icon className="size-5" aria-hidden />
-									</span>
-									<div className="min-w-0">
-										<div className="text-body font-semibold text-text-heading">{t.label}</div>
-										<div className="tabular text-label text-text-muted">
-											{t.description}
-											{prices && ` · ${moneyShort(t.price(prices))} / user${per(choice.interval)}`}
-										</div>
+			{catalog.seatModel === 'None' ? (
+				<p className="text-body text-text-secondary">No per-user charges</p>
+			) : (
+				<section>
+					<h2 className="text-title font-semibold text-text-heading">Seats</h2>
+					<p className="mt-1 text-body text-text-secondary">Each person needs one seat. At least {minimum}.</p>
+					<ul className="mt-4 flex flex-col gap-3">
+						{catalog.seatTypes.map((t) => (
+							<li key={t.code} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface-card p-4">
+								<div>
+									<div className="text-body font-semibold text-text-heading">{t.name}</div>
+									<div className="tabular text-label text-text-muted">
+										{moneyShort(prices?.seats.find((s) => s.code === t.code)?.priceMinor ?? 0)} / user{per(choice.interval)}
 									</div>
 								</div>
-								<Quantity
-									label={`${t.label} licences`}
-									value={choice.licences[t.key]}
-									onChange={(n) => onChange({ ...choice, licences: { ...choice.licences, [t.key]: n } })}
-								/>
+								<Quantity label={`${t.name} licences`} value={choice.seats[t.code] ?? 0} onChange={(n) => onChange({ ...choice, seats: { ...choice.seats, [t.code]: n } })} />
 							</li>
-						);
-					})}
-				</ul>
-				<p className="mt-3 flex items-center gap-2 text-label text-text-secondary">
-					<Info className="size-3.5 shrink-0 text-action" aria-hidden />
-					<span>
-						<strong className="text-text-heading">
-							{total} user{total === 1 ? '' : 's'} in total.
-						</strong>{' '}
-						You decide later which person gets which licence.
-					</span>
-				</p>
-			</section>
+						))}
+					</ul>
+					<p className="mt-3 text-label text-text-secondary">
+						{total} user{total === 1 ? '' : 's'} in total. You decide later who uses each seat.
+					</p>
+				</section>
+			)}
 
 			{catalog.addOns.length > 0 && (
 				<section>
@@ -238,7 +222,10 @@ function Choices({ catalog, choice, onChange }: { catalog: PublicCatalog; choice
 								onChange({ ...choice, addOns: next });
 							};
 							return (
-								<li key={a.code} className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-subtle p-4 ${included ? 'bg-surface-alt' : 'bg-surface-card'}`}>
+								<li
+									key={a.code}
+									className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border-subtle p-4 ${included ? 'bg-surface-alt' : 'bg-surface-card'}`}
+								>
 									<label className={`flex min-w-0 flex-1 items-start gap-3 ${included || a.isPack ? '' : 'cursor-pointer'}`}>
 										{included ? (
 											<Check className="mt-0.5 size-5 shrink-0 text-active" aria-hidden />
@@ -252,8 +239,8 @@ function Choices({ catalog, choice, onChange }: { catalog: PublicCatalog; choice
 											/>
 										)}
 										<span className="min-w-0">
-											<span className="block text-body font-semibold text-text-heading">{a.name}</span>
-											<span className="block text-label text-text-secondary">{FEATURES[a.featureKey]?.description}</span>
+											<span className="block text-body font-semibold text-text-heading">{a.name || featureName(catalog, a.featureKey)}</span>
+											<span className="block text-label text-text-secondary">{featureName(catalog, a.featureKey)}</span>
 										</span>
 									</label>
 									{included ? (
@@ -327,16 +314,14 @@ function Summary(props: {
 							<span className="text-body text-text-secondary">Total {choice.interval === 'Year' ? 'per year' : 'per month'}</span>
 							<span className="tabular text-headline font-bold text-text-heading">{money(quote.totalMinor, quote.currency)}</span>
 						</div>
-						<p className="mt-1 text-right text-label text-active">
-							{quote.taxMinor > 0 ? `Includes GST ${money(quote.taxMinor)}` : 'No GST charged'}
-						</p>
+						<p className="mt-1 text-right text-label text-active">{quote.taxMinor > 0 ? `Includes GST ${money(quote.taxMinor)}` : 'No GST charged'}</p>
 						{quote.cheaper && (
 							<div className="mt-4 rounded-md border border-active/30 bg-active-bg p-3 text-label text-text-primary">
 								<div className="flex items-start gap-2">
 									<Lightbulb className="mt-0.5 size-4 shrink-0 text-active" aria-hidden />
 									<span>
-										<strong>Tip:</strong> {quote.cheaper.planName} includes these modules and costs{' '}
-										<strong className="tabular">{money(quote.cheaper.totalMinor)}</strong> with the same users.
+										<strong>Tip:</strong> {quote.cheaper.planName} includes these modules and costs <strong className="tabular">{money(quote.cheaper.totalMinor)}</strong> with the
+										same users.
 									</span>
 								</div>
 								<button type="button" onClick={() => props.onUpgrade(quote.cheaper!.planCode)} className="mt-2 font-semibold text-active hover:underline">
@@ -357,7 +342,8 @@ function Summary(props: {
 					Start {catalog.trialDays}-day free trial instead
 				</Button>
 				<p className="text-center text-label text-text-muted">
-					Full {catalog.plans.find((p) => p.code === 'professional')?.name ?? 'Professional'} for {catalog.trialDays} days with {catalog.trialLicences} users. No payment now.
+					Full {catalog.plans.find((p) => p.code === catalog.trialPlanCode)?.name ?? catalog.productName} for {catalog.trialDays} days{' '}
+					{catalog.seatModel === 'None' ? 'with no per-user charges.' : `with ${catalog.trialLicences} users.`} No payment now.
 				</p>
 				{props.trialError && <Alert>{props.trialError}</Alert>}
 			</div>

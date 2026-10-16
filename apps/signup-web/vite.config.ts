@@ -15,7 +15,7 @@ function apiOriginInCsp(apiUrl: string | undefined): Plugin {
 	}
 	return {
 		name: 'api-origin-in-csp',
-		transformIndexHtml: (html, ctx) => html.replaceAll('%API_ORIGIN%', ctx.server ? `${origin} ws://localhost:5192`.trim() : origin),
+		transformIndexHtml: (html, ctx) => html.replaceAll('%API_ORIGIN%', ctx.server ? `${origin} ws://localhost:${ctx.server.config.server.port}`.trim() : origin),
 	};
 }
 

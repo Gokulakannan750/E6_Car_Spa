@@ -60,7 +60,7 @@ test('buys Professional yearly with mixed licences and an add-on, pays (test) an
 	await expect(page.getByText(/invoice TROVO\/2026-27\/0012/)).toBeVisible();
 
 	const order = api.calls.find((c) => c.path === '/signup')!.body as { plan: object; business: object; acceptTerms: boolean };
-	expect(order.plan).toEqual({ planCode: 'professional', interval: 'Year', licences: { android: 2, windows: 0, both: 1 }, addOns: { showroom: 1 } });
+	expect(order.plan).toEqual({ planCode: 'professional', interval: 'Year', seats: { android: 2, windows: 0, both: 1 }, addOns: { showroom: 1 } });
 	expect(order.business).toMatchObject({ name: 'Sunrise Detailing', mobile: '98765 43210', state: 'Tamil Nadu', gstin: null });
 	expect(order.acceptTerms).toBe(true);
 	expect(problems).toEqual([]);
@@ -147,7 +147,7 @@ for (const width of [320, 390, 768, 1366]) {
 
 test('payment-disabled mode offers contact help without creating an order', async ({ page }) => {
 	const { api, problems } = await setup(page);
-	await page.route('**/api/public/catalog', route => route.fulfill({ json: { ...catalog, testPayments: false } }));
+	await page.route('**/api/public/catalog?product=*', (route) => route.fulfill({ json: { ...catalog, testPayments: false } }));
 	await page.goto('/signup');
 	await fillBusiness(page);
 	await page.getByRole('button', { name: 'Continue' }).click();
@@ -156,7 +156,7 @@ test('payment-disabled mode offers contact help without creating an order', asyn
 	await expect(page.getByRole('button', { name: /Pay .*\(test\)/ })).toHaveCount(0);
 	await expect(page.getByText('Test mode — no real money is taken')).toHaveCount(0);
 	await page.getByRole('checkbox').check();
-	expect(api.calls.filter(call => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
+	expect(api.calls.filter((call) => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
 	expect(problems).toEqual([]);
 });
 
@@ -170,7 +170,7 @@ for (const route of ['/', '/signup', '/signup/plan', '/signup/review', '/signup/
 		expect(reloaded?.status()).toBe(200);
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 		await expect(page.getByRole('banner').getByRole('link', { name: 'About Baylior' })).toBeVisible();
-		expect(api.calls.filter(call => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
+		expect(api.calls.filter((call) => call.path === '/signup' || call.path.endsWith('/test-payment'))).toEqual([]);
 		expect(problems).toEqual([]);
 	});
 }

@@ -76,7 +76,8 @@ public sealed partial class SignupService(
         if (!request.AcceptTerms) throw new ValidationException("Please accept the Terms and the Refund policy.");
         var business = Clean(request.Business);
         var runtime = await provisioner.EnsureCatalogAsync(cancellationToken);
-        var product = productKey is null ? runtime : await catalog.Products.SingleAsync(p => p.Key == productKey, cancellationToken);
+        var product = productKey is null ? runtime : await catalog.Products.SingleOrDefaultAsync(p => p.Key == productKey, cancellationToken);
+        if (product is null || !product.IsActive) throw new NotFoundException("Product not found.");
         if (!string.IsNullOrWhiteSpace(request.FranchiseCode) && (product.Key != Settings.ProductKey || !product.Capabilities.Split(',').Contains("franchise")))
             throw new ValidationException("Franchise joining is unavailable for this product.");
         var now = DateTime.UtcNow;
@@ -204,10 +205,10 @@ public sealed partial class SignupService(
     /// The "Pay (test)" button: completes a paid order as if the payment had arrived. Refused unless test payments are
     /// allowed on this server.
     /// </summary>
-    public async Task<SignupResult> PayTestAsync(Guid orderId, string? token, CancellationToken cancellationToken = default)
+    public async Task<SignupResult> PayTestAsync(Guid orderId, string? token, CancellationToken cancellationToken = default, string? productKey = null)
     {
         if (!TestPaymentsAllowed) throw new NotFoundException("Test payments are not available on this server.");
-        var order = await FindAsync(orderId, token, cancellationToken);
+        var order = await FindAsync(orderId, token, cancellationToken, productKey);
         return await CompletePaidAsync(order, TestProvider, $"TEST-{order.Id:N}", order.AmountMinor, cancellationToken);
     }
 
@@ -290,9 +291,9 @@ public sealed partial class SignupService(
     }
 
     /// <summary>An order's state for the website (e.g. after a page reload). Codes are never shown again here.</summary>
-    public async Task<SignupResult> StatusAsync(Guid orderId, string? token, CancellationToken cancellationToken = default)
+    public async Task<SignupResult> StatusAsync(Guid orderId, string? token, CancellationToken cancellationToken = default, string? productKey = null)
     {
-        var order = await FindAsync(orderId, token, cancellationToken);
+        var order = await FindAsync(orderId, token, cancellationToken, productKey);
         if (order.Status == SignupStatus.AwaitingPayment && order.ExpiresAt <= DateTime.UtcNow)
         {
             order.Status = SignupStatus.Expired;
@@ -315,9 +316,10 @@ public sealed partial class SignupService(
 
     private static IReadOnlyList<SeatDto> ReadSeats(SignupOrder order) => ProductSeats.OrderSnapshot(order);
 
-    private async Task<SignupOrder> FindAsync(Guid orderId, string? token, CancellationToken cancellationToken)
+    private async Task<SignupOrder> FindAsync(Guid orderId, string? token, CancellationToken cancellationToken, string? productKey)
     {
-        var order = await catalog.SignupOrders.FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+        var order = await catalog.SignupOrders.FirstOrDefaultAsync(o => o.Id == orderId && catalog.Products.Any(p => p.Id == o.ProductId && p.IsActive
+            && (productKey == null || p.Key == productKey)), cancellationToken);
         // A wrong token looks exactly like a missing order.
         if (order is null || string.IsNullOrEmpty(token) || !CryptographicOperations.FixedTimeEquals(
                 Encoding.ASCII.GetBytes(order.TokenHash), Encoding.ASCII.GetBytes(Hash(token))))

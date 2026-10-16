@@ -25,6 +25,9 @@ try {
 
     & pnpm --dir apps/signup-web test
     if ($LASTEXITCODE -ne 0) { throw 'Sign-up unit tests failed.' }
+
+    & pnpm --dir apps/signup-web test:e2e
+    if ($LASTEXITCODE -ne 0) { throw 'Sign-up browser tests failed.' }
 }
 finally {
     Pop-Location

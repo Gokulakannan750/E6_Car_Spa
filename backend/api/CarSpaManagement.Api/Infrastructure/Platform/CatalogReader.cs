@@ -9,6 +9,8 @@ namespace CarSpaManagement.Api.Infrastructure.Platform;
 public sealed record PublicPricesDto(long CompanyFeeMinor, long AndroidUserPriceMinor, long WindowsUserPriceMinor, long BothUserPriceMinor, IReadOnlyList<SeatDto>? Seats = null);
 public sealed record PublicPlanDto(string Code, string Name, int MinimumLicences, IReadOnlyList<string> Modules, PublicPricesDto? Monthly, PublicPricesDto? Yearly);
 public sealed record PublicAddOnDto(string Code, string Name, string FeatureKey, bool IsPack, int PerUnit, long? MonthlyPriceMinor, long? YearlyPriceMinor);
+public sealed record PublicSeatTypeDto(string Code, string Name, int SortOrder, bool DefaultSeat);
+public sealed record PublicFeatureDto(string Key, string Label, string Type);
 public sealed record PublicCatalogDto(
     string ProductName,
     IReadOnlyList<PublicPlanDto> Plans,
@@ -21,7 +23,9 @@ public sealed record PublicCatalogDto(
     bool TestPayments,
     string SellerName,
     string SellerPhone,
-    string SellerEmail);
+    string SellerEmail,
+    string ProductKey, string SeatModel, IReadOnlyList<PublicSeatTypeDto> SeatTypes,
+    IReadOnlyList<PublicFeatureDto> Features, IReadOnlyList<string> Capabilities, string TrialPlanCode);
 
 /// <summary>
 /// The plans, licence prices and add-ons on sale now: for the public sign-up website and for the Owner's own
@@ -41,6 +45,10 @@ public sealed class CatalogReader(
     {
         await provisioner.EnsureCatalogAsync(cancellationToken);
         var product = await products.RequiredAsync(productKey, cancellationToken);
+        var seats = await catalog.ProductSeatTypes.AsNoTracking().Where(t => t.ProductId == product.Id && t.IsActive)
+            .OrderBy(t => t.SortOrder).ThenBy(t => t.Code).Select(t => new PublicSeatTypeDto(t.Code, t.Name, t.SortOrder, t.DefaultSeat)).ToListAsync(cancellationToken);
+        var features = await catalog.ProductFeatures.AsNoTracking().Where(f => f.ProductId == product.Id)
+            .OrderBy(f => f.SortOrder).Select(f => new PublicFeatureDto(f.Key, f.Label, f.ValueType.ToString())).ToListAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var plans = await catalog.Plans.AsNoTracking().Include(p => p.Versions).ThenInclude(v => v.Entitlements)
             .Where(p => p.ProductId == product.Id && p.IsActive).OrderBy(p => p.SortOrder).ToListAsync(cancellationToken);
@@ -75,6 +83,7 @@ public sealed class CatalogReader(
             signups.TestPaymentsAllowed,
             Settings.SellerName,
             Settings.SellerPhone,
-            Settings.SellerEmail);
+            Settings.SellerEmail, product.Key, product.SeatModel.ToString(), seats, features,
+            product.Capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), product.TrialPlanCode);
     }
 }

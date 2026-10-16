@@ -1,19 +1,27 @@
 // Shapes of the public sign-up API (docs/SIGNUP_API.md). Money is in paise.
 
 export type Interval = 'Month' | 'Year';
-export type LicenceKey = 'both' | 'windows' | 'android';
-
-export interface Licences {
-	android: number;
-	windows: number;
-	both: number;
+export interface SeatType {
+	code: string;
+	name: string;
+	sortOrder: number;
+	defaultSeat: boolean;
 }
-
+export interface Seat {
+	code: string;
+	name: string;
+	quantity: number;
+	priceMinor: number;
+}
+export interface PublicProduct {
+	key: string;
+	name: string;
+	seatModel: 'None' | 'Counted' | 'PerType';
+	capabilities: string[];
+}
 export interface Prices {
 	companyFeeMinor: number;
-	androidUserPriceMinor: number;
-	windowsUserPriceMinor: number;
-	bothUserPriceMinor: number;
+	seats: Seat[];
 }
 
 export interface PublicPlan {
@@ -36,6 +44,12 @@ export interface PublicAddOn {
 }
 
 export interface PublicCatalog {
+	productKey: string;
+	seatModel: PublicProduct['seatModel'];
+	seatTypes: SeatType[];
+	features: { key: string; label: string; type: string }[];
+	capabilities: string[];
+	trialPlanCode: string;
 	productName: string;
 	plans: PublicPlan[];
 	addOns: PublicAddOn[];
@@ -53,7 +67,7 @@ export interface PublicCatalog {
 export interface PlanChoice {
 	planCode: string;
 	interval: Interval;
-	licences: Licences;
+	seats: Record<string, number>;
 	addOns: Record<string, number>;
 }
 

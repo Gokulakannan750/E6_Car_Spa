@@ -1,4 +1,4 @@
-import type { Business, FranchiseCodeCheck, Joining, PlanChoice, PublicCatalog, Quote, SignupResult } from './types';
+import type { Business, FranchiseCodeCheck, Joining, PlanChoice, PublicCatalog, PublicProduct, Quote, SignupResult } from './types';
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
@@ -46,17 +46,20 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
 const toBody = (business: Business) => ({ ...business, gstin: business.gstin.trim() || null });
 
 /** The franchise code and consent go with the sign-up only for a checked code that the business consented to. */
-const franchise = (joining: Joining) =>
-	joining.kind === 'franchise' && joining.check ? { franchiseCode: joining.code.trim(), franchiseConsent: joining.consent } : {};
+const franchise = (joining: Joining) => (joining.kind === 'franchise' && joining.check ? { franchiseCode: joining.code.trim(), franchiseConsent: joining.consent } : {});
 
-export const api = {
-	catalog: () => request<PublicCatalog>('/catalog'),
-	quote: (choice: PlanChoice) => request<Quote>('/signup/quote', 'POST', choice),
-	checkFranchiseCode: (code: string) => request<FranchiseCodeCheck>('/signup/franchise-code', 'POST', { code: code.trim() }),
-	startTrial: (business: Business, joining: Joining) =>
-		request<SignupResult>('/signup', 'POST', { business: toBody(business), startTrial: true, acceptTerms: true, ...franchise(joining) }),
-	placeOrder: (business: Business, plan: PlanChoice, acceptTerms: boolean, joining: Joining) =>
-		request<SignupResult>('/signup', 'POST', { business: toBody(business), startTrial: false, plan, acceptTerms, ...franchise(joining) }),
-	payTest: (orderId: string, token: string) => request<SignupResult>(`/signup/${orderId}/test-payment`, 'POST', { token }),
-	status: (orderId: string, token: string) => request<SignupResult>(`/signup/${orderId}/status`, 'POST', { token }),
+export const products = () => request<PublicProduct[]>('/products');
+export const productApi = (productKey: string) => {
+	const scoped = <T>(path: string, method = 'GET', body?: unknown) => request<T>(`${path}?product=${encodeURIComponent(productKey)}`, method, body);
+	return {
+		catalog: () => scoped<PublicCatalog>('/catalog'),
+		quote: (choice: PlanChoice) => scoped<Quote>('/signup/quote', 'POST', choice),
+		checkFranchiseCode: (code: string) => scoped<FranchiseCodeCheck>('/signup/franchise-code', 'POST', { code: code.trim() }),
+		startTrial: (business: Business, joining: Joining) =>
+			scoped<SignupResult>('/signup', 'POST', { business: toBody(business), startTrial: true, acceptTerms: true, ...franchise(joining) }),
+		placeOrder: (business: Business, plan: PlanChoice, acceptTerms: boolean, joining: Joining) =>
+			scoped<SignupResult>('/signup', 'POST', { business: toBody(business), startTrial: false, plan, acceptTerms, ...franchise(joining) }),
+		payTest: (orderId: string, token: string) => scoped<SignupResult>(`/signup/${orderId}/test-payment`, 'POST', { token }),
+		status: (orderId: string, token: string) => scoped<SignupResult>(`/signup/${orderId}/status`, 'POST', { token }),
+	};
 };

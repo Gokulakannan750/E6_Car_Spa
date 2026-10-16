@@ -1,34 +1,36 @@
+import { useProduct, usePaths } from '@/state/product';
 import { useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Download, Info, KeyRound, Lock, Network, Printer, Smartphone } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Info, KeyRound, Lock, Network, Printer } from 'lucide-react';
 import { Page } from '@/components/Frame';
 import { Button, Card, CodeBox } from '@/components/ui';
-import { links } from '@/lib/config';
+
 import { date, money } from '@/lib/format';
 import { useSignup } from '@/state/signup';
 
 /** After the trial starts or the payment is confirmed: the two codes and what to do next. */
 export function DonePage() {
+	const { catalog: definition, brand: links } = useProduct();
+	const paths = usePaths();
 	const { result, business, choice } = useSignup();
 
 	useEffect(() => {
-		document.title = 'Your company is ready · Baylior';
+		document.title = 'Your company is ready · ' + links.name;
 	}, []);
 
-	if (!result?.companyCode) return <Navigate to="/" replace />;
+	if (!result?.companyCode) return <Navigate to={paths.pricing} replace />;
 	const trial = result.start === 'Trial';
 
 	return (
 		<Page narrow>
 			<div className="text-center">
 				<CheckCircle2 className="mx-auto size-16 text-active" aria-hidden />
-				<h1 className="mt-5 text-headline font-bold text-text-heading sm:text-display">
-					{trial ? 'Your free trial has started' : `${business.name} is ready`}
-				</h1>
+				<h1 className="mt-5 text-headline font-bold text-text-heading sm:text-display">{trial ? 'Your free trial has started' : `${business.name} is ready`}</h1>
 				<p className="mt-2 text-body text-text-secondary">
 					{trial ? (
 						<>
-							Full Professional until <strong className="text-text-heading">{date(result.trialEndsAt)}</strong>. <span className="text-active">No payment taken.</span>
+							{definition.plans.find((p) => p.code === definition.trialPlanCode)?.name ?? definition.productName} until{' '}
+							<strong className="text-text-heading">{date(result.trialEndsAt)}</strong>. <span className="text-active">No payment taken.</span>
 						</>
 					) : (
 						<>
@@ -51,8 +53,8 @@ export function DonePage() {
 				<div className="mt-6 flex items-start gap-3 rounded-lg border border-active/30 bg-active-bg p-4 text-body text-text-primary">
 					<Network className="mt-0.5 size-5 shrink-0 text-active" aria-hidden />
 					<span>
-						Linked to the franchise network of <strong className="text-text-heading">{result.franchisorName}</strong>. You can see and change what they
-						see in the app, under Franchise.
+						Linked to the franchise network of <strong className="text-text-heading">{result.franchisorName}</strong>. You can see and change what they see in the app, under
+						Franchise.
 					</span>
 				</div>
 			)}
@@ -71,7 +73,7 @@ export function DonePage() {
 					<KeyRound className="mt-0.5 size-5 shrink-0 text-action" aria-hidden />
 					<div>
 						<h2 className="text-title font-semibold text-text-heading">Your codes — save them now</h2>
-						<p className="text-label text-text-secondary">You need both when you open the Baylior app for the first time. They are not shown again.</p>
+						<p className="text-label text-text-secondary">You need both when you open the {links.name} app for the first time. They are not shown again.</p>
 					</div>
 				</div>
 				<div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -93,20 +95,25 @@ export function DonePage() {
 						<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-action/15 text-label font-semibold text-action">1</span>
 						<div>
 							<div className="text-body font-semibold text-text-heading">Install the app</div>
-							<p className="mt-1 text-label text-text-secondary">On your counter PC (Windows) and your phones (Android).</p>
+							<p className="mt-1 text-label text-text-secondary">Use the download links provided for {links.name}.</p>
 							<div className="mt-3 flex flex-wrap gap-3">
-								{links.windowsDownload ? (
-									<a href={links.windowsDownload} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-action px-4 text-body font-semibold text-white hover:bg-action-hover">
-										<Download className="size-4" aria-hidden /> Download for Windows
+								{links.downloads.map((download) => (
+									<a
+										key={download.url}
+										href={download.url}
+										className="inline-flex min-h-11 items-center gap-2 rounded-md bg-action px-4 text-body font-semibold text-white hover:bg-action-hover"
+									>
+										<Download className="size-4" aria-hidden />
+										{download.name}
 									</a>
-								) : null}
-								{links.androidDownload ? (
-									<a href={links.androidDownload} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border-subtle bg-surface-card px-4 text-body font-semibold text-text-heading hover:bg-surface-raised">
-										<Smartphone className="size-4" aria-hidden /> Get it on Android
-									</a>
-								) : null}
-								{!links.windowsDownload && !links.androidDownload && (
-									<p className="text-label text-text-secondary">Call +91 90426 72148 and Trovo sends you the installers.</p>
+								))}
+								{links.downloads.length === 0 && (
+									<p className="text-label text-text-secondary">
+										{links.downloadHelp}{' '}
+										<a className="text-action" href={links.product}>
+											About {links.name}
+										</a>
+									</p>
 								)}
 							</div>
 						</div>
@@ -125,8 +132,8 @@ export function DonePage() {
 						<div>
 							<div className="text-body font-semibold text-text-heading">Create your owner username and password</div>
 							<p className="mt-1 text-label text-text-secondary">
-								Then add your staff on the Users screen and give each one a licence (Windows + Android, Windows or Android).
-								{!trial && ` You have ${choice.licences.android + choice.licences.windows + choice.licences.both} licences.`}
+								{definition.seatModel === 'None' ? 'No per-user charges.' : 'Then add your staff and assign their purchased seats.'}
+								{!trial && definition.seatModel !== 'None' && ` You have ${Object.values(choice.seats).reduce((a, b) => a + b, 0)} seats.`}
 							</p>
 						</div>
 					</li>
@@ -138,13 +145,20 @@ export function DonePage() {
 					Print this page
 				</Button>
 				{trial && (
-					<Link to="/" className="inline-flex min-h-11 items-center justify-center rounded-md border border-border-subtle px-5 text-body font-semibold text-text-heading hover:bg-surface-raised">
+					<Link
+						to={paths.pricing}
+						className="inline-flex min-h-11 items-center justify-center rounded-md border border-border-subtle px-5 text-body font-semibold text-text-heading hover:bg-surface-raised"
+					>
 						See plans and prices
 					</Link>
 				)}
 			</div>
 			<p className="mt-8 text-center text-label text-text-muted">
-				Need help? Call <a href="tel:+919042672148" className="text-action">+91 90426 72148</a> or email{' '}
+				Need help? Call{' '}
+				<a href="tel:+919042672148" className="text-action">
+					+91 90426 72148
+				</a>{' '}
+				or email{' '}
 				<a href="mailto:info@trovotechsolutions.in" className="text-action">
 					info@trovotechsolutions.in
 				</a>

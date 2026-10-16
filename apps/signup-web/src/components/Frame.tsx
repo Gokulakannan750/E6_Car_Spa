@@ -1,27 +1,44 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Check, Download, Lock, Phone } from 'lucide-react';
-import { links } from '@/lib/config';
+import { useBrand } from '@/state/product';
 
 const PHONE = '+91 90426 72148';
 
 export function Header() {
+	const links = useBrand();
 	return (
 		<header className="no-print border-b border-border-hairline">
 			<div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6">
-				<Link to="/" className="flex shrink-0 items-center" aria-label="Baylior home">
-					<img src="/brand/baylior-lockup-on-dark.svg" alt="Baylior Business Suite" className="h-8 w-auto sm:h-10" />
+				<Link to="/" className="flex shrink-0 items-center" aria-label={`${links.name} home`}>
+					{links.logo ? (
+						<img src={links.logo} alt={`${links.name} Business Suite`} className="h-8 w-auto sm:h-10" />
+					) : (
+						<span className="max-w-32 truncate text-title text-text-heading">{links.name}</span>
+					)}
 				</Link>
 				<nav aria-label="Help" className="flex items-center gap-2 text-label sm:gap-4">
-					<a href={links.product} aria-label="About Baylior" className="inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap text-text-secondary hover:text-text-heading">
-						<ArrowLeft className="size-3.5" aria-hidden /> <span><span className="hidden sm:inline">About </span>Baylior</span>
+					<a
+						href={links.product}
+						aria-label={`About ${links.name}`}
+						className="inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap text-text-secondary hover:text-text-heading"
+					>
+						<ArrowLeft className="size-3.5" aria-hidden />{' '}
+						<span>
+							<span className="hidden sm:inline">About </span>
+							{links.name}
+						</span>
 					</a>
-					{(links.windowsDownload || links.androidDownload) && (
+					{links.downloads.length > 0 && (
 						<a href="#apps" className="hidden items-center gap-1.5 text-text-secondary hover:text-text-heading lg:inline-flex">
 							<Download className="size-3.5" aria-hidden /> Already registered? Download the app
 						</a>
 					)}
-					<a href={`tel:${PHONE.replace(/\s/g, '')}`} aria-label={`Call Trovo on ${PHONE}`} className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 text-text-secondary hover:text-text-heading">
+					<a
+						href={`tel:${PHONE.replace(/\s/g, '')}`}
+						aria-label={`Call Trovo on ${PHONE}`}
+						className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 text-text-secondary hover:text-text-heading"
+					>
 						<Phone className="size-3.5 text-action" aria-hidden />
 						<span className="hidden lg:inline">Contact: {PHONE}</span>
 					</a>
@@ -32,17 +49,32 @@ export function Header() {
 }
 
 export function Footer() {
+	const links = useBrand();
 	return (
 		<footer className="no-print mt-16 border-t border-border-hairline">
 			<div className="mx-auto flex max-w-[1120px] flex-col gap-3 px-4 py-6 text-label text-text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-				<span>© {new Date().getFullYear()} Baylior · by Trovo Tech Solutions, Erode, Tamil Nadu</span>
+				<span>
+					© {new Date().getFullYear()} {links.name} · by Trovo Tech Solutions, Erode, Tamil Nadu
+				</span>
 				<nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
-					<a href={links.product} className="hover:text-text-heading">About Baylior</a>
-					<a href={links.terms} className="hover:text-text-heading">Terms</a>
-					<a href={links.privacy} className="hover:text-text-heading">Privacy policy</a>
-					<a href={links.refund} className="hover:text-text-heading">Refund policy</a>
-					<a href={links.contact} className="hover:text-text-heading">Contact</a>
-					<a href="mailto:info@trovotechsolutions.in" className="text-text-secondary hover:text-text-heading">info@trovotechsolutions.in</a>
+					<a href={links.product} className="hover:text-text-heading">
+						About {links.name}
+					</a>
+					<a href={links.terms} className="hover:text-text-heading">
+						Terms
+					</a>
+					<a href={links.privacy} className="hover:text-text-heading">
+						Privacy policy
+					</a>
+					<a href={links.refund} className="hover:text-text-heading">
+						Refund policy
+					</a>
+					<a href={links.contact} className="hover:text-text-heading">
+						Contact
+					</a>
+					<a href="mailto:info@trovotechsolutions.in" className="text-text-secondary hover:text-text-heading">
+						info@trovotechsolutions.in
+					</a>
 				</nav>
 			</div>
 		</footer>
@@ -59,7 +91,7 @@ export function Page({ children, narrow = false }: { children: ReactNode; narrow
 	);
 }
 
-const STEPS = ['Your business', 'Plan & users', 'Review & pay'];
+const STEPS = ['Your business', 'Plan', 'Review & pay'];
 
 /** The 3-step indicator on the sign-up screens. */
 export function Steps({ current }: { current: 1 | 2 | 3 }) {
@@ -91,9 +123,10 @@ export function Steps({ current }: { current: 1 | 2 | 3 }) {
 }
 
 export function PrivacyNote() {
+	const links = useBrand();
 	return (
 		<p className="mt-4 flex items-center justify-center gap-2 text-label text-text-muted">
-			<Lock className="size-3.5 text-active" aria-hidden /> Your details are used only for your Baylior account and invoices.
+			<Lock className="size-3.5 text-active" aria-hidden /> Your details are used only for your {links.name} account and invoices.
 		</p>
 	);
 }

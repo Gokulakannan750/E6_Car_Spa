@@ -1,28 +1,31 @@
+import { useProduct, usePaths } from '@/state/product';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ArrowLeft, Loader2, Pencil, XCircle, Zap } from 'lucide-react';
 import { Page, Steps } from '@/components/Frame';
 import { Alert, Button, Card } from '@/components/ui';
-import { api, ApiError } from '@/lib/api';
-import { links } from '@/lib/config';
+import { ApiError } from '@/lib/api';
+
 import { date, money, moneyShort } from '@/lib/format';
-import { LICENCE_TYPES, isBusinessComplete } from '@/lib/rules';
+import { isBusinessComplete } from '@/lib/rules';
 import { useSignup } from '@/state/signup';
 
 type Phase = 'review' | 'processing' | 'failed';
 
 export function ReviewStep() {
+	const { api, catalog: definition, brand: links } = useProduct();
+	const paths = usePaths();
 	const navigate = useNavigate();
 	const { business, joining, choice, order, setOrder, setResult } = useSignup();
-	const catalog = useQuery({ queryKey: ['catalog'], queryFn: api.catalog });
-	const quote = useQuery({ queryKey: ['quote', choice], queryFn: () => api.quote(choice), retry: false });
+	const catalog = useQuery({ queryKey: ['catalog', definition.productKey], queryFn: api.catalog });
+	const quote = useQuery({ queryKey: ['quote', definition.productKey, choice], queryFn: () => api.quote(choice), retry: false });
 	const [accepted, setAccepted] = useState(false);
 	const [phase, setPhase] = useState<Phase>('review');
 	const [failure, setFailure] = useState<string | null>(null);
 
 	useEffect(() => {
-		document.title = 'Review and pay · Baylior sign-up';
+		document.title = 'Review and pay · ' + links.name;
 	}, []);
 
 	const pay = useMutation({
@@ -35,7 +38,7 @@ export function ReviewStep() {
 		},
 		onSuccess: (result) => {
 			setResult(result);
-			navigate('/signup/done');
+			navigate(paths.step('done'));
 		},
 		onError: (error) => {
 			const message = error instanceof Error ? error.message : 'The payment did not go through.';
@@ -50,7 +53,7 @@ export function ReviewStep() {
 		},
 	});
 
-	if (!isBusinessComplete(business)) return <Navigate to="/signup" replace />;
+	if (!isBusinessComplete(business)) return <Navigate to={paths.signup} replace />;
 
 	const testPayments = catalog.data?.testPayments ?? false;
 	const plan = catalog.data?.plans.find((p) => p.code === choice.planCode);
@@ -91,11 +94,9 @@ export function ReviewStep() {
 						>
 							Try again
 						</Button>
-						<Button onClick={() => navigate('/signup/plan')}>Change plan</Button>
+						<Button onClick={() => navigate(paths.step('plan'))}>Change plan</Button>
 					</div>
-					<p className="mt-6 text-label text-text-muted">
-						Money taken but this page failed? Call +91 90426 72148 with your mobile number — we'll sort it out.
-					</p>
+					<p className="mt-6 text-label text-text-muted">Money taken but this page failed? Call +91 90426 72148 with your mobile number — we'll sort it out.</p>
 				</Card>
 			</Page>
 		);
@@ -118,7 +119,7 @@ export function ReviewStep() {
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<h2 className="text-title font-semibold text-text-heading">Your business</h2>
-							<Link to="/signup" className="inline-flex items-center gap-1.5 text-label text-action hover:text-action-hover">
+							<Link to={paths.signup} className="inline-flex items-center gap-1.5 text-label text-action hover:text-action-hover">
 								<Pencil className="size-3.5" aria-hidden /> Edit
 							</Link>
 						</div>
@@ -162,7 +163,7 @@ export function ReviewStep() {
 					<Card className="p-6">
 						<div className="flex items-center justify-between">
 							<h2 className="text-title font-semibold text-text-heading">Your plan</h2>
-							<Link to="/signup/plan" className="inline-flex items-center gap-1.5 text-label text-action hover:text-action-hover">
+							<Link to={paths.step('plan')} className="inline-flex items-center gap-1.5 text-label text-action hover:text-action-hover">
 								<Pencil className="size-3.5" aria-hidden /> Edit
 							</Link>
 						</div>
@@ -170,14 +171,19 @@ export function ReviewStep() {
 							{plan?.name ?? choice.planCode} · {choice.interval === 'Year' ? 'Yearly' : 'Monthly'}
 						</p>
 						<p className="mt-1 text-label text-text-secondary">
-							{LICENCE_TYPES.filter((t) => choice.licences[t.key] > 0)
-								.map((t) => `${choice.licences[t.key]} ${t.label}`)
-								.join(', ')}{' '}
-							user licence{choice.licences.android + choice.licences.windows + choice.licences.both === 1 ? '' : 's'}
+							{definition.seatModel === 'None'
+								? 'No per-user charges'
+								: definition.seatTypes
+										.filter((t) => (choice.seats[t.code] ?? 0) > 0)
+										.map((t) => `${choice.seats[t.code]} ${t.name}`)
+										.join(', ') + ' seats'}
 						</p>
 						{Object.keys(choice.addOns).length > 0 && (
 							<p className="mt-1 text-label text-text-secondary">
-								Add-ons: {Object.keys(choice.addOns).map((code) => catalog.data?.addOns.find((a) => a.code === code)?.name ?? code).join(', ')}
+								Add-ons:{' '}
+								{Object.keys(choice.addOns)
+									.map((code) => catalog.data?.addOns.find((a) => a.code === code)?.name ?? code)
+									.join(', ')}
 							</p>
 						)}
 					</Card>
@@ -260,7 +266,7 @@ export function ReviewStep() {
 					</Card>
 				</aside>
 			</div>
-			<Button variant="ghost" className="mt-8" onClick={() => navigate('/signup/plan')}>
+			<Button variant="ghost" className="mt-8" onClick={() => navigate(paths.step('plan'))}>
 				<ArrowLeft className="size-4" aria-hidden /> Back to plan and users
 			</Button>
 		</Page>

@@ -62,3 +62,20 @@ API origin/CORS, staging payment mode, read-only preflight and isolation require
 into `dist/` for Apache/LiteSpeed SPA fallback; HTTPS and rewrite-module support still need verification on the chosen host.
 Do not run live signup tests against the shared development catalogue. The mocked suite covers payment-disabled behaviour
 and direct loading/refreshing of every route without real company creation; this does not verify a deployed server's rewrite rules.
+
+
+## Multi-product routes and branding
+
+`/` and `/signup` select the only active product automatically. With multiple products they show cards from `/api/public/products`. Use `/pricing/<key>` and `/signup/<key>`; subsequent steps remain under that product path. Catalog, quote, franchise check, signup, order status and test payment calls carry `?product=<key>`. Session storage and query caches are isolated by product.
+
+Seat controls, default quantities, minimums and feature labels come from public catalog metadata. None products have no seat controls or minimum. Counted products show one type; PerType products show the active types in configured order. Requests contain `seats`, never the old fixed licence object.
+
+`src/lib/config.ts` owns product branding and links. The `carspa` and `baylior` keys retain Baylior's existing URLs. Set `VITE_BAYLIOR_PRODUCT_KEY` for an isolated/runtime alias. Unknown products use their catalog name and generic Trovo links. `VITE_PRODUCT_CONFIG` is a JSON map keyed by product key, for example:
+
+```json
+{"demo":{"name":"Demo","product":"https://example.test/demo/","terms":"https://example.test/terms/","refund":"https://example.test/refund/","downloads":[{"name":"Open Demo","url":"https://example.test/app/"}]}}
+```
+
+Existing `VITE_PRODUCT_URL`, `VITE_TERMS_URL`, `VITE_REFUND_URL` and `VITE_PRIVACY_URL` remain global build-time overrides. Legacy `VITE_WINDOWS_DOWNLOAD_URL`/`VITE_ANDROID_DOWNLOAD_URL` become named download entries for Baylior aliases only; other products use the generic downloads array. Keep any custom logo in this site's assets so it respects the existing CSP.
+
+Run `pnpm --dir apps/signup-web test:e2e` for the mocked suite (now also in `scripts/test-platform-baseline.ps1`). The explicitly selected `--project=live` suite requires `SIGNUP_E2E_PRODUCT_KEY=pts6<isolated suffix>` and the local helper setup documented in `docs/platform-multi-product-stage-7.md`. It provisions real throwaway companies and writes desktop/phone report screenshots. Never run it against the owner's development databases.

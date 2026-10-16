@@ -37,13 +37,27 @@ public class PublicSignupController(
 {
     private PlatformOptions Settings => options.Value;
 
+    [HttpGet("products")]
+    [EnableRateLimiting("public-read")]
+    public async Task<IActionResult> Products(CancellationToken cancellationToken)
+    {
+        if (!Settings.SignupEnabled) return NotFound();
+        await provisioner.EnsureCatalogAsync(cancellationToken);
+        var active = await catalog.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Key).ToListAsync(cancellationToken);
+        return Ok(active.Select(p => new { p.Key, p.Name, seatModel = p.SeatModel.ToString(),
+            capabilities = p.Capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }));
+    }
+
     /// <summary>Plans, licence prices and add-ons on sale now, for the pricing page.</summary>
     [HttpGet("catalog")]
     [EnableRateLimiting("public-read")]
     public async Task<ActionResult<PublicCatalogDto>> Catalog(CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
-        return Ok(await catalogReader.ReadAsync(cancellationToken, products.RequiredKey(product)));
+        await provisioner.EnsureCatalogAsync(cancellationToken);
+        var selected = await products.RequiredAsync(product, cancellationToken);
+        if (!selected.IsActive) return NotFound(new { error = "Product not found." });
+        return Ok(await catalogReader.ReadAsync(cancellationToken, selected.Key));
     }
 
     /// <summary>The price of a choice, worked out by the server (the website shows it before the customer pays).</summary>
@@ -56,6 +70,7 @@ public class PublicSignupController(
         {
             await provisioner.EnsureCatalogAsync(cancellationToken);
             var selectedProduct = await products.RequiredAsync(product, cancellationToken);
+            if (!selectedProduct.IsActive) return NotFound(new { error = "Product not found." });
             return Ok(await quotes.QuoteAsync(selectedProduct.Id, ToChoice(request), Settings, cancellationToken));
         }
         catch (ValidationException ex)
@@ -93,7 +108,7 @@ public class PublicSignupController(
         {
             var key = products.RequiredKey(product);
             var selected = await products.RequiredAsync(key, cancellationToken);
-            if (key != Settings.ProductKey || !selected.Capabilities.Split(',').Contains("franchise")) return NotFound();
+            if (!selected.IsActive || key != Settings.ProductKey || !selected.Capabilities.Split(',').Contains("franchise")) return NotFound();
             return Ok((await franchiseCodes.CheckAsync(request.Code, cancellationToken)).Check);
         }
         catch (NotFoundException ex)
@@ -106,19 +121,19 @@ public class PublicSignupController(
     /// <summary>Test servers only: completes a paid order without taking money.</summary>
     [HttpPost("signup/{orderId:guid}/test-payment")]
     [EnableRateLimiting("public-signup")]
-    public async Task<ActionResult<SignupResult>> TestPayment(Guid orderId, [FromBody] PublicOrderTokenRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SignupResult>> TestPayment(Guid orderId, [FromBody] PublicOrderTokenRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
-        return await Guarded(async () => Ok(await signups.PayTestAsync(orderId, request.Token, cancellationToken)));
+        return await Guarded(async () => Ok(await signups.PayTestAsync(orderId, request.Token, cancellationToken, product is null ? null : products.RequiredKey(product))));
     }
 
     /// <summary>An order's state (for a page reload). The token travels in the body, never in the address.</summary>
     [HttpPost("signup/{orderId:guid}/status")]
     [EnableRateLimiting("public-read")]
-    public async Task<ActionResult<SignupResult>> Status(Guid orderId, [FromBody] PublicOrderTokenRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<SignupResult>> Status(Guid orderId, [FromBody] PublicOrderTokenRequest request, CancellationToken cancellationToken, [FromQuery] string? product = null)
     {
         if (!Settings.SignupEnabled) return NotFound();
-        return await Guarded(async () => Ok(await signups.StatusAsync(orderId, request.Token, cancellationToken)));
+        return await Guarded(async () => Ok(await signups.StatusAsync(orderId, request.Token, cancellationToken, product is null ? null : products.RequiredKey(product))));
     }
 
     private async Task<ActionResult<SignupResult>> Guarded(Func<Task<ActionResult<SignupResult>>> action)
