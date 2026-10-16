@@ -164,7 +164,6 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 				</>
 			}
 		>
-			{product.seatModel === 'None' && <p className="text-body text-text-secondary">Unlimited seats</p>}
 			<form id="new-company" onSubmit={submit} noValidate className="flex flex-col gap-5">
 				<TextField
 					label="Company name"

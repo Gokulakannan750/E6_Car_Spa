@@ -37,6 +37,56 @@ public class PlatformOwnerSubscriptionHttpTests(PlatformApiHost host) : IClassFi
     }
 
     [PostgresFact]
+    public async Task SeatsOnlyChange_UsesEffectiveQuantities_AndPreservesLegacyResponse()
+    {
+        var (_, owner) = await HalfWayAsync("Seats only owner", "starter", new LicenceCounts(0, 0, 1));
+        var response = await host.SendAsync(HttpMethod.Post, "/api/subscription/self/change", owner, new
+        {
+            planCode = "starter", interval = "Year", seats = new { android = 2, windows = 1, both = 3 }, addOns = new { }
+        });
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        Assert.Equal("Applied", (await Json(response)).GetProperty("status").GetString());
+        var page = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/self", owner));
+        Assert.Equal(6, page.GetProperty("seatLimit").GetInt32());
+        Assert.Equal(1, page.GetProperty("licencesInUse").GetProperty("both").GetInt32());
+        foreach (var (code, quantity) in new[] { ("android", 2), ("windows", 1), ("both", 3) })
+        {
+            Assert.Equal(quantity, page.GetProperty("seats").EnumerateArray().Single(s => s.GetProperty("code").GetString() == code).GetProperty("quantity").GetInt32());
+            Assert.Equal(quantity, page.GetProperty("current").GetProperty("licences").GetProperty(code).GetInt32());
+        }
+    }
+
+    [PostgresTheory]
+    [InlineData("both", "Windows + Android", false)]
+    [InlineData("both", "Windows + Android", true)]
+    [InlineData("windows", "Windows only", false)]
+    [InlineData("windows", "Windows only", true)]
+    [InlineData("android", "Android only", false)]
+    [InlineData("android", "Android only", true)]
+    public async Task SeatsOnlyChange_RefusesBelowUsage_EvenWhenLegacyCountsAreHigher(string code, string label, bool includeLegacy)
+    {
+        var (_, owner) = await HalfWayAsync("Seats usage " + code, "starter", new LicenceCounts(1, 1, 1));
+        if (code != "both")
+        {
+            var password = PlatformTestEnvironment.OwnerPassword;
+            Assert.Equal(HttpStatusCode.Created, (await host.SendAsync(HttpMethod.Post, "/api/users", owner, new
+            {
+                fullName = "Seat user", username = "seat-user", password, confirmPassword = password, role = "Staff",
+                appAccess = code == "android" ? "Android" : "Windows"
+            })).StatusCode);
+        }
+        var seats = new Dictionary<string, int> { ["android"] = 1, ["windows"] = 1, ["both"] = 1 };
+        seats[code] = 0;
+        var response = await host.SendAsync(HttpMethod.Post, "/api/subscription/self/change", owner, new
+        {
+            planCode = "professional", interval = "Year", seats, licences = includeLegacy ? new { android = 5, windows = 5, both = 5 } : null, addOns = new { }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal($"1 active users have a {label} licence. Deactivate users or change their app access in Users first.",
+            (await Json(response)).GetProperty("error").GetString());
+    }
+
+    [PostgresFact]
     public async Task TheOwner_UpgradesInTheApp_PaysTheInvoiceForTheRestOfThePeriod_AndSeesItPaid()
     {
         var (company, owner) = await HalfWayAsync("Self Upgrade Co", "starter", new LicenceCounts(0, 0, 1));

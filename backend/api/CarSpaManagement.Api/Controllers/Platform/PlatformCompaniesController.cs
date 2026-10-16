@@ -366,7 +366,7 @@ public class PlatformCompaniesController(
         if (string.IsNullOrWhiteSpace(body.PlanCode)) throw new ValidationException("Choose a plan.");
         var licences = body.Licences ?? new PlatformLicencesDto(0, 0, 0);
         return new PlanChangeTarget(body.PlanCode.Trim().ToLowerInvariant(), ParseInterval(body.Interval),
-            new LicenceCounts(licences.Android, licences.Windows, licences.Both), body.AddOns ?? new Dictionary<string, int>(), body.Seats);
+            body.Seats is not null ? ProductSeats.LicenceView(body.Seats) : new LicenceCounts(licences.Android, licences.Windows, licences.Both), body.AddOns ?? new Dictionary<string, int>(), body.Seats);
     }
 
     private async Task<PlanChangeRequestDto> ToDtoAsync(PlanChangeRequest r, CancellationToken cancellationToken)

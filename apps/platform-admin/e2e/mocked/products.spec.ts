@@ -53,7 +53,8 @@ test('None product uses scoped create and catalog calls with unlimited seats and
 	const api = await start(page, [carSpa, demo]);
 	await page.getByRole('combobox', { name: 'Product', exact: true }).selectOption('demo');
 	const dialog = await newPaid(page);
-	await expect(dialog.getByText('Unlimited seats').first()).toBeVisible();
+	await expect(dialog.getByText('Unlimited seats', { exact: true })).toHaveCount(1);
+	await expect(dialog.getByText('Unlimited seats', { exact: true })).toBeVisible();
 	await expect(dialog.locator('input[inputmode="numeric"]')).toHaveCount(0);
 	await expect(dialog.getByText('Project workspace', { exact: true })).toBeVisible();
 	await dialog.getByLabel('Company name').fill('Demo paid company');

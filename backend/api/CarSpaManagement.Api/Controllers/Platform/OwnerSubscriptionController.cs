@@ -97,13 +97,22 @@ public class OwnerSubscriptionController(
         {
             var target = ToTarget(choice);
             var productModel = await catalog.Companies.Where(c => c.Id == Company).Select(c => c.Product!.SeatModel).SingleAsync(cancellationToken);
-        var used = productModel == SeatModel.PerType ? await InUseAsync(cancellationToken) : new LicenceCounts(0, 0, 0);
-            foreach (var (access, label) in new[] { (AppAccess.Both, "Windows + Android"), (AppAccess.Windows, "Windows only"), (AppAccess.Android, "Android only") })
+            if (productModel == SeatModel.PerType)
             {
-                if (target.Licences.Of(access) < used.Of(access))
+                // The runtime usage reader exposes legacy app access; compare its projection by seat code.
+                // Explicit seats take precedence over the compatibility licences object on every path.
+                var used = ProductSeats.Legacy(await InUseAsync(cancellationToken));
+                var wanted = target.Seats ?? ProductSeats.Legacy(target.Licences);
+                var labels = await catalog.ProductSeatTypes.Where(t => t.ProductId == catalog.Companies
+                        .Where(c => c.Id == Company).Select(c => c.ProductId).First())
+                    .ToDictionaryAsync(t => t.Code, t => t.Name, cancellationToken);
+                foreach (var (code, quantity) in used)
                 {
-                    throw new ValidationException(
-                        $"{used.Of(access)} active users have a {label} licence. Deactivate users or change their app access in Users first.");
+                    if (wanted.GetValueOrDefault(code) < quantity)
+                    {
+                        throw new ValidationException(
+                            $"{quantity} active users have a {labels.GetValueOrDefault(code, code)} licence. Deactivate users or change their app access in Users first.");
+                    }
                 }
             }
 
@@ -220,7 +229,7 @@ public class OwnerSubscriptionController(
             throw new ValidationException("Choose monthly or yearly billing.");
         }
         var licences = choice.Licences ?? new PublicLicencesDto(0, 0, 0);
-        return new PlanChangeTarget(choice.PlanCode.Trim().ToLowerInvariant(), interval, new LicenceCounts(licences.Android, licences.Windows, licences.Both),
+        return new PlanChangeTarget(choice.PlanCode.Trim().ToLowerInvariant(), interval, choice.Seats is not null ? ProductSeats.LicenceView(choice.Seats) : new LicenceCounts(licences.Android, licences.Windows, licences.Both),
             choice.AddOns ?? new Dictionary<string, int>(), choice.Seats);
     }
 

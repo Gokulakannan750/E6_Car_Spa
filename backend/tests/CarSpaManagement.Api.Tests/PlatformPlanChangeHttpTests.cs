@@ -41,6 +41,32 @@ public class PlatformPlanChangeHttpTests(PlatformApiHost host) : IClassFixture<P
         .Include(s => s.PlanVersion!).ThenInclude(v => v.Plan).SingleAsync(s => s.CompanyId == companyId && s.IsCurrent));
 
     [PostgresFact]
+    public async Task SeatsOnlyProposalAndApproval_PreserveSeatQuantitiesAndLegacyProjection()
+    {
+        var (company, owner) = await HalfWayCompanyAsync("Seats proposal", "starter");
+        var billing = await host.AdminTokenAsync(PlatformAdminRole.Billing);
+        var response = await host.SendAsync(HttpMethod.Post, $"/api/platform/companies/{company.Id}/plan-change", billing, new
+        {
+            planCode = "professional", interval = "Year", seats = new { android = 2, windows = 1, both = 3 },
+            addOns = new { }, reason = "Customer requested more seats"
+        });
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var proposed = await Json(response);
+        var id = proposed.GetProperty("id").GetGuid();
+        Assert.Equal(3, proposed.GetProperty("licences").GetProperty("both").GetInt32());
+        var shown = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/plan-change", owner));
+        Assert.Equal(3, shown.GetProperty("to").GetProperty("bothLicences").GetInt32());
+        Assert.Equal(6, shown.GetProperty("to").GetProperty("seats").EnumerateArray().Sum(s => s.GetProperty("quantity").GetInt32()));
+        var approved = await host.SendAsync(HttpMethod.Post, $"/api/subscription/plan-change/{id}/approve", owner);
+        Assert.Equal(HttpStatusCode.NoContent, approved.StatusCode);
+        var page = await Json(await host.SendAsync(HttpMethod.Get, "/api/subscription/self", owner));
+        Assert.Equal("professional", page.GetProperty("current").GetProperty("planCode").GetString());
+        Assert.Equal(6, page.GetProperty("seatLimit").GetInt32());
+        foreach (var (code, quantity) in new[] { ("android", 2), ("windows", 1), ("both", 3) })
+            Assert.Equal(quantity, page.GetProperty("seats").EnumerateArray().Single(s => s.GetProperty("code").GetString() == code).GetProperty("quantity").GetInt32());
+    }
+
+    [PostgresFact]
     public async Task AnUpgrade_WaitsForTheOwner_ThenStartsAtOnce_WithAnInvoiceForTheRestOfThePeriod()
     {
         var (company, owner) = await HalfWayCompanyAsync("Upgrade Co", "starter");
