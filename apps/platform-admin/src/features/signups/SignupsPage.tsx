@@ -1,3 +1,5 @@
+import { seatQuantities, totalSeats } from '@/lib/catalog';
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -38,15 +40,17 @@ function StatusBadge({ status }: { status: SignupStatus }) {
 
 /** Orders placed on the public sign-up website: free trials and paid orders, with what happened to each. */
 export function SignupsPage() {
+	const { key: productKey, products } = useProducts();
 	useBreadcrumbs({ label: 'Sign-ups' });
 	const [params, setParams] = useSearchParams();
 	const status = (params.get('status') ?? '') as '' | SignupStatus;
 	const [selected, setSelected] = useState<SignupOrder | null>(null);
-	const orders = useQuery({ queryKey: ['signups', status], queryFn: () => api.signups(status || undefined) });
-	const attention = useQuery({ queryKey: ['signups', 'NeedsAttention'], queryFn: () => api.signups('NeedsAttention') });
+	const orders = useQuery({ queryKey: ['signups', productKey, status], queryFn: () => api.signups(status || undefined, productKey) });
+	const attention = useQuery({ queryKey: ['signups', productKey, 'NeedsAttention'], queryFn: () => api.signups('NeedsAttention', productKey) });
 
 	const columns = useMemo<ColumnDef<SignupOrder, unknown>[]>(
 		() => [
+			{ accessorKey: 'productKey', header: 'Product', cell: ({ row }) => <ProductBadge productKey={row.original.productKey} /> },
 			{ accessorKey: 'createdAt', header: 'When', cell: ({ row }) => <span className="tabular whitespace-nowrap text-text-secondary">{dateTime(row.original.createdAt)}</span> },
 			{
 				accessorKey: 'businessName',
@@ -71,7 +75,8 @@ export function SignupsPage() {
 						</Badge>
 					) : (
 						<span>
-							{planName(row.original.planCode)} · {intervalLabel(row.original.interval)} · {row.original.licences} user{row.original.licences === 1 ? '' : 's'}
+							{planName(row.original.planCode)} · {intervalLabel(row.original.interval)} ·{' '}
+							{products.find((p) => p.key === row.original.productKey)?.seatModel === 'None' ? 'Unlimited seats' : `${totalSeats(seatQuantities(row.original.seats))} seats`}
 						</span>
 					),
 			},
@@ -96,7 +101,7 @@ export function SignupsPage() {
 					),
 			},
 		],
-		[],
+		[products],
 	);
 
 	const attentionCount = attention.data?.length ?? 0;
@@ -108,8 +113,8 @@ export function SignupsPage() {
 				<div role="alert" className="mb-4 flex items-start gap-3 rounded-lg border border-danger-strong/40 bg-danger-strong/10 px-4 py-3 text-body text-text-primary">
 					<AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />
 					<span>
-						{attentionCount} paid order{attentionCount === 1 ? '' : 's'} could not create the company. Create it with <strong>New company → Already paid</strong> using the
-						order's choices, send the customer the codes, and call them.
+						{attentionCount} paid order{attentionCount === 1 ? '' : 's'} could not create the company. Create it with <strong>New company → Already paid</strong> using the order's
+						choices, send the customer the codes, and call them.
 					</span>
 				</div>
 			)}
@@ -146,7 +151,13 @@ export function SignupsPage() {
 				)}
 			</Card>
 
-			<Modal open={selected !== null} onClose={() => setSelected(null)} width="md" title={selected?.businessName ?? ''} description={selected ? dateTime(selected.createdAt) : undefined}>
+			<Modal
+				open={selected !== null}
+				onClose={() => setSelected(null)}
+				width="md"
+				title={selected?.businessName ?? ''}
+				description={selected ? dateTime(selected.createdAt) : undefined}
+			>
 				{selected && (
 					<div className="flex flex-col gap-4">
 						<DetailList
@@ -156,7 +167,7 @@ export function SignupsPage() {
 								{ label: 'Email', value: selected.email },
 								{ label: 'Place', value: `${selected.city}, ${selected.state}` },
 								{ label: 'Choice', value: selected.start === 'Trial' ? 'Free trial' : `${planName(selected.planCode)} · ${intervalLabel(selected.interval)}` },
-								{ label: 'User licences', value: selected.licences },
+								{ label: 'Seats', value: products.find((p) => p.key === selected.productKey)?.seatModel === 'None' ? 'Unlimited' : totalSeats(seatQuantities(selected.seats)) },
 								{ label: 'Amount', value: selected.start === 'Trial' ? '—' : money(selected.amountMinor, selected.currency) },
 								{ label: 'Status', value: <StatusBadge status={selected.status} /> },
 								{ label: 'Payment', value: selected.paymentProvider ? `${selected.paymentProvider} · ${selected.paymentReference ?? ''}` : '—' },

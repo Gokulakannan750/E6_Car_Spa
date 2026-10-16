@@ -1,20 +1,8 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-	ArrowLeft,
-	ArrowLeftRight,
-	Ban,
-	CheckCircle2,
-	CircleSlash,
-	FilePlus2,
-	KeyRound,
-	MoreHorizontal,
-	Pencil,
-	Printer,
-	RotateCcw,
-	XCircle,
-} from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Ban, CheckCircle2, CircleSlash, FilePlus2, KeyRound, MoreHorizontal, Pencil, Printer, RotateCcw, XCircle } from 'lucide-react';
 import { useBreadcrumbs } from '@/app/layout/Breadcrumbs';
 import { Button, IconButton } from '@/components/Button';
 import { CompanyStatusBadge, InvoiceStatusBadge } from '@/components/StatusBadge';
@@ -23,7 +11,7 @@ import { useToast } from '@/components/Toast';
 import { useAuth, BILLING_ROLES, SUPPORT_ROLES } from '@/features/auth/AuthProvider';
 import { RecordPaymentDialog, VoidInvoiceDialog, type InvoiceRef } from '@/features/invoices/InvoiceDialogs';
 import { api, ApiError } from '@/lib/api';
-import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel, totalLicences } from '@/lib/catalog';
+import { seatTypes, booleanFeatures, featureLabel, seatQuantities, totalSeats } from '@/lib/catalog';
 import { date, dateTime, daysUntil, intervalLabel, money, moneyShort, perInterval } from '@/lib/format';
 import type { CompanyDetail, Invoice, PlanChangeRequest, Subscription, SubscriptionEvent } from '@/lib/types';
 import { BillingAccountDialog, CancelDialog, ChangeSubscriptionDialog, isSuspended, RegistrationCodeDialog, SuspendDialog } from './CompanyDialogs';
@@ -46,7 +34,15 @@ export function CompanyDetailPage() {
 	if (company.isError) {
 		const notFound = company.error instanceof ApiError && company.error.status === 404;
 		return notFound ? (
-			<EmptyState title="Company not found" description="It may have been typed wrongly." action={<Link to="/companies" className="text-action">Back to companies</Link>} />
+			<EmptyState
+				title="Company not found"
+				description="It may have been typed wrongly."
+				action={
+					<Link to="/companies" className="text-action">
+						Back to companies
+					</Link>
+				}
+			/>
 		) : (
 			<ErrorState error={company.error} onRetry={() => company.refetch()} />
 		);
@@ -87,6 +83,7 @@ export function CompanyDetailPage() {
 							<span className="tabular font-mono">{c.code}</span>
 							<span className="text-text-muted">·</span>
 							<span className="truncate">{c.name}</span>
+							<ProductBadge productKey={c.productKey} />
 						</h1>
 						<div className="mt-1 flex flex-wrap items-center gap-2 text-label text-text-muted">
 							<CompanyStatusBadge companyStatus={c.companyStatus} subscriptionStatus={c.subscription?.status ?? null} />
@@ -101,7 +98,8 @@ export function CompanyDetailPage() {
 							Change plan
 						</Button>
 					)}
-					{c.subscription && can(...SUPPORT_ROLES) &&
+					{c.subscription &&
+						can(...SUPPORT_ROLES) &&
 						(suspended ? (
 							<Button variant="primary" icon={<RotateCcw className="size-4" />} onClick={() => setDialog('suspend')}>
 								Reactivate
@@ -203,8 +201,9 @@ function ActionsMenu({ items }: { items: MenuItem[] }) {
 }
 
 function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEditBilling?: () => void }) {
+	const { product } = useProducts(c.productKey);
+	const types = seatTypes(product);
 	const s = c.subscription;
-	const branches = c.features['franchise_network.max_branches'];
 
 	let periodNote: React.ReactNode = null;
 	if (s) {
@@ -221,7 +220,11 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 			periodNote = <span className="text-pastdue">Ends on {date(s.currentPeriodEnd)} (canceled)</span>;
 		} else if (s.status === 'Active') {
 			const left = daysUntil(s.currentPeriodEnd) ?? 0;
-			periodNote = <span className="text-active">Renews in {left} day{left === 1 ? '' : 's'}</span>;
+			periodNote = (
+				<span className="text-active">
+					Renews in {left} day{left === 1 ? '' : 's'}
+				</span>
+			);
 		}
 	}
 
@@ -269,50 +272,50 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 							)}
 						</div>
 
-						{s.licences && (
+						{product?.seatModel === 'None' ? (
+							<p className="text-body text-text-secondary">Unlimited seats</p>
+						) : (
 							<div className="rounded-lg border border-border-subtle bg-surface-alt">
 								<div className="flex items-center justify-between px-4 pt-3 text-body">
-									<span className="font-medium text-text-heading">User licences</span>
+									<span className="font-medium text-text-heading">Seats</span>
 									<span className="tabular text-label text-text-secondary">
-										{c.seatsUsed ?? '—'} of {totalLicences(s.licences)} in use
+										{c.seatsUsed ?? '—'} of {totalSeats(seatQuantities(s.seats))} in use
 									</span>
 								</div>
 								<table className="mt-2 w-full text-table">
 									<thead>
 										<tr className="text-left text-micro font-semibold tracking-[0.04em] text-text-muted uppercase">
-											<th className="px-4 py-1.5">App access</th>
+											<th className="px-4 py-1.5">Seat type</th>
 											<th className="px-4 py-1.5 text-right">Bought</th>
 											<th className="px-4 py-1.5 text-right">In use</th>
 											<th className="px-4 py-1.5 text-right">Price each</th>
 										</tr>
 									</thead>
 									<tbody className="tabular">
-										{APP_ACCESS.map((type) => {
-											const bought = s.licences![type.key];
-											const used = c.licencesUsed ? c.licencesUsed[type.key] : null;
+										{types.map((type) => {
+											const bought = s.seats.find((s) => s.code === type.code)?.quantity ?? 0;
+											const used = c.seatUsage?.find((s) => s.code === type.code)?.quantity ?? null;
 											const over = used !== null && used > bought;
 											return (
-												<tr key={type.key} className="border-t border-border-hairline">
-													<td className="px-4 py-2 text-text-primary">{type.label}</td>
+												<tr key={type.code} className="border-t border-border-hairline">
+													<td className="px-4 py-2 text-text-primary">{type.name}</td>
 													<td className="px-4 py-2 text-right text-text-heading">{bought}</td>
 													<td className={`px-4 py-2 text-right ${over ? 'text-pastdue' : 'text-text-secondary'}`}>{used ?? '—'}</td>
 													<td className="px-4 py-2 text-right text-text-secondary">
-														{s.licencePrices ? `${moneyShort(s.licencePrices[type.key], s.currency)}${perInterval(s.interval)}` : '—'}
+														{`${moneyShort(s.seats.find((s) => s.code === type.code)?.priceMinor ?? 0, s.currency)}${perInterval(s.interval)}`}
 													</td>
 												</tr>
 											);
 										})}
 									</tbody>
 								</table>
-								{c.licencesUsed === null ? (
+								{c.seatUsage === null ? (
 									<p className="px-4 pb-3 text-micro text-text-muted">
 										{c.registeredAt ? 'Users could not be counted right now (the company’s database did not answer).' : 'Users are counted after the company registers.'}
 									</p>
 								) : (
-									APP_ACCESS.some((t) => c.licencesUsed![t.key] > s.licences![t.key]) && (
-										<p className="px-4 pb-3 text-micro text-pastdue">
-											More users than licences of a type: the owner must change or deactivate users before adding more.
-										</p>
+									types.some((t) => (c.seatUsage?.find((s) => s.code === t.code)?.quantity ?? 0) > (s.seats.find((s) => s.code === t.code)?.quantity ?? 0)) && (
+										<p className="px-4 pb-3 text-micro text-pastdue">More users than licences of a type: the owner must change or deactivate users before adding more.</p>
 									)
 								)}
 								<div className="h-1" />
@@ -322,7 +325,7 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 						<div>
 							<div className="mb-2 text-micro font-medium tracking-wide text-text-muted uppercase">Features</div>
 							<ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-								{BOOLEAN_FEATURES.map((key) => {
+								{booleanFeatures(product).map((key) => {
 									const on = c.features[key] === 'true';
 									return (
 										<li
@@ -331,11 +334,9 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 										>
 											<span className="flex items-center gap-2">
 												{on ? <CheckCircle2 className="size-4 text-active" /> : <CircleSlash className="size-4" />}
-												{featureLabel(key)}
+												{featureLabel(key, product)}
 											</span>
-											<span className="text-micro text-text-muted">
-												{on ? (key === 'franchise_network.enabled' && branches ? `${branches} branches` : 'On') : 'Not included'}
-											</span>
+											<span className="text-micro text-text-muted">{on ? 'On' : 'Not included'}</span>
 										</li>
 									);
 								})}
@@ -401,6 +402,7 @@ function Overview({ company: c, onEditBilling }: { company: CompanyDetail; onEdi
 /** Company fee plus every licence at its price (add-ons are billed on top). */
 /** A change sent to the customer: waiting for the Owner, or approved to start at the period end. Billing can withdraw it. */
 function PlanChangeNotice({ company }: { company: CompanyDetail }) {
+	const { product } = useProducts(company.productKey);
 	const { can } = useAuth();
 	const toast = useToast();
 	const queryClient = useQueryClient();
@@ -419,7 +421,7 @@ function PlanChangeNotice({ company }: { company: CompanyDetail }) {
 	if (!open && !(last && (last.status === 'Declined' || last.status === 'Expired'))) return null;
 
 	const target = (r: PlanChangeRequest) =>
-		`${r.planCode} ${intervalLabel(r.interval).toLowerCase()}, ${totalLicences(r.licences)} user licence${totalLicences(r.licences) === 1 ? '' : 's'}`;
+		`${r.planCode} ${intervalLabel(r.interval).toLowerCase()}, ${product?.seatModel === 'None' ? 'unlimited seats' : `${totalSeats(seatQuantities(r.seats))} seats`}`;
 	return (
 		<div className="mx-5 mt-5 rounded-lg border border-action/40 bg-action/10 p-4 text-body text-text-primary" data-testid="plan-change-notice">
 			{open?.status === 'Pending' && (
@@ -460,14 +462,18 @@ function PlanChangeNotice({ company }: { company: CompanyDetail }) {
 }
 
 function subscriptionPrice(s: Subscription): number {
-	const licences = s.licences && s.licencePrices
-		? s.licences.android * s.licencePrices.android + s.licences.windows * s.licencePrices.windows + s.licences.both * s.licencePrices.both
-		: 0;
-	return s.priceMinor + licences;
+	return s.priceMinor + s.seats.reduce((sum, seat) => sum + seat.quantity * seat.priceMinor, 0);
 }
 
 function toRef(invoice: Invoice, company: CompanyDetail): InvoiceRef {
-	return { id: invoice.id, invoiceNumber: invoice.invoiceNumber, amountDueMinor: invoice.amountDueMinor, totalMinor: invoice.totalMinor, currency: invoice.currency, companyName: company.name };
+	return {
+		id: invoice.id,
+		invoiceNumber: invoice.invoiceNumber,
+		amountDueMinor: invoice.amountDueMinor,
+		totalMinor: invoice.totalMinor,
+		currency: invoice.currency,
+		companyName: company.name,
+	};
 }
 
 function InvoicesTab({ company, invoices, loading, error }: { company: CompanyDetail; invoices?: Invoice[]; loading: boolean; error: Error | null }) {
@@ -542,9 +548,7 @@ function InvoicesTab({ company, invoices, loading, error }: { company: CompanyDe
 											<td className="px-4 py-2">
 												<span className={`tabular font-mono ${inv.status === 'Void' ? 'line-through' : 'text-text-heading'}`}>{inv.invoiceNumber}</span>
 											</td>
-											<td className="tabular px-4 py-2 whitespace-nowrap text-text-secondary">
-												{inv.periodStart ? `${date(inv.periodStart)} – ${date(inv.periodEnd)}` : '—'}
-											</td>
+											<td className="tabular px-4 py-2 whitespace-nowrap text-text-secondary">{inv.periodStart ? `${date(inv.periodStart)} – ${date(inv.periodEnd)}` : '—'}</td>
 											<td className="tabular px-4 py-2 whitespace-nowrap">{date(inv.issuedAt)}</td>
 											<td className={`tabular px-4 py-2 whitespace-nowrap ${overdue ? 'text-danger' : ''}`}>{date(inv.dueAt)}</td>
 											<td className="tabular px-4 py-2 text-right">{money(inv.totalMinor, inv.currency)}</td>

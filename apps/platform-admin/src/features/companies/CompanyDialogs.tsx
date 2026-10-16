@@ -1,3 +1,4 @@
+import { useProducts } from '@/features/products/ProductProvider';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/Button';
@@ -7,8 +8,8 @@ import { Modal } from '@/components/Modal';
 import { ReasonDialog } from '@/components/ReasonDialog';
 import { InlineError, LoadingState } from '@/components/Surface';
 import { useToast } from '@/components/Toast';
-import { addOnsToBuy, ONE_BOTH_LICENCE, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
-import { totalLicences } from '@/lib/catalog';
+import { addOnsToBuy, minimumSeats, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { totalSeats, seatQuantities } from '@/lib/catalog';
 import { api } from '@/lib/api';
 import { date, dateTime, money } from '@/lib/format';
 import type { BillingAccount, CompanyDetail, PlanChangeBody, PlanChangePreview, RegistrationCodeResponse } from '@/lib/types';
@@ -117,14 +118,18 @@ export function CancelDialog({ company, open, onClose }: { company: CompanyDetai
 		>
 			<fieldset className="flex flex-col gap-2">
 				<legend className="mb-1 text-label font-medium text-text-primary">When</legend>
-				<label className={`flex cursor-pointer gap-3 rounded-md border p-3 ${atPeriodEnd ? 'border-action bg-action/10' : 'border-border-subtle bg-surface-alt'} ${trial ? 'opacity-50' : ''}`}>
+				<label
+					className={`flex cursor-pointer gap-3 rounded-md border p-3 ${atPeriodEnd ? 'border-action bg-action/10' : 'border-border-subtle bg-surface-alt'} ${trial ? 'opacity-50' : ''}`}
+				>
 					<input type="radio" name="when" checked={atPeriodEnd} disabled={trial} onChange={() => setAtPeriodEnd(true)} className="mt-1 accent-[#3b82f6]" />
 					<span>
 						<span className="block text-body font-medium text-text-heading">At the end of the paid period{periodEnd ? ` (${date(periodEnd)})` : ''}</span>
 						<span className="block text-label text-text-secondary">Recommended. They keep full use until then.</span>
 					</span>
 				</label>
-				<label className={`flex cursor-pointer gap-3 rounded-md border p-3 ${!atPeriodEnd ? 'border-danger-strong/60 bg-danger-strong/10' : 'border-border-subtle bg-surface-alt'}`}>
+				<label
+					className={`flex cursor-pointer gap-3 rounded-md border p-3 ${!atPeriodEnd ? 'border-danger-strong/60 bg-danger-strong/10' : 'border-border-subtle bg-surface-alt'}`}
+				>
 					<input type="radio" name="when" checked={!atPeriodEnd} onChange={() => setAtPeriodEnd(false)} className="mt-1 accent-[#ef4444]" />
 					<span>
 						<span className="block text-body font-medium text-text-heading">Now</span>
@@ -277,8 +282,22 @@ export function BillingAccountDialog({ company, open, onClose }: { company: Comp
 			}
 		>
 			<form id="billing-account" onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<TextField label="Billing name" containerClassName="sm:col-span-2" maxLength={150} value={form.billingName} onChange={(e) => set('billingName', e.target.value)} error={errors.billingName} />
-				<TextField label="Billing email" type="email" maxLength={150} value={form.billingEmail ?? ''} onChange={(e) => set('billingEmail', e.target.value)} error={errors.billingEmail} />
+				<TextField
+					label="Billing name"
+					containerClassName="sm:col-span-2"
+					maxLength={150}
+					value={form.billingName}
+					onChange={(e) => set('billingName', e.target.value)}
+					error={errors.billingName}
+				/>
+				<TextField
+					label="Billing email"
+					type="email"
+					maxLength={150}
+					value={form.billingEmail ?? ''}
+					onChange={(e) => set('billingEmail', e.target.value)}
+					error={errors.billingEmail}
+				/>
 				<TextField label="Billing phone" type="tel" maxLength={20} value={form.billingPhone ?? ''} onChange={(e) => set('billingPhone', e.target.value)} />
 				<TextField
 					label="GSTIN (optional)"
@@ -288,8 +307,22 @@ export function BillingAccountDialog({ company, open, onClose }: { company: Comp
 					error={errors.gstin}
 					className="font-mono uppercase"
 				/>
-				<TextField label="State code" maxLength={2} inputMode="numeric" value={form.stateCode ?? ''} onChange={(e) => set('stateCode', e.target.value)} error={errors.stateCode} hint="Taken from the GSTIN when left empty." />
-				<TextareaField label="Address" containerClassName="sm:col-span-2" maxLength={500} value={form.billingAddress ?? ''} onChange={(e) => set('billingAddress', e.target.value)} />
+				<TextField
+					label="State code"
+					maxLength={2}
+					inputMode="numeric"
+					value={form.stateCode ?? ''}
+					onChange={(e) => set('stateCode', e.target.value)}
+					error={errors.stateCode}
+					hint="Taken from the GSTIN when left empty."
+				/>
+				<TextareaField
+					label="Address"
+					containerClassName="sm:col-span-2"
+					maxLength={500}
+					value={form.billingAddress ?? ''}
+					onChange={(e) => set('billingAddress', e.target.value)}
+				/>
 				<div className="sm:col-span-2">
 					<InlineError message={mutation.error?.message} />
 				</div>
@@ -301,17 +334,18 @@ export function BillingAccountDialog({ company, open, onClose }: { company: Comp
 function selectionFrom(company: CompanyDetail): PlanSelection {
 	const s = company.subscription;
 	return {
-		planCode: s?.plan || 'professional',
+		planCode: s?.plan || '',
 		interval: s?.interval === 'Year' ? 'Year' : 'Month',
 		addOns: Object.fromEntries((s?.addOns ?? []).map((a) => [a.code, a.quantity])),
-		licences: s?.licences && totalLicences(s.licences) > 0 ? s.licences : ONE_BOTH_LICENCE,
+		seats: seatQuantities(s?.seats),
 	};
 }
 
 export function ChangeSubscriptionDialog({ company, open, onClose }: { company: CompanyDetail; open: boolean; onClose: () => void }) {
+	const { product } = useProducts(company.productKey);
 	const toast = useToast();
 	const refresh = useRefreshCompany(company.id);
-	const catalog = useQuery({ queryKey: ['plans'], queryFn: api.plans, enabled: open });
+	const catalog = useQuery({ queryKey: ['plans', company.productKey], queryFn: () => api.plans(company.productKey), enabled: open });
 	const [selection, setSelection] = useState<PlanSelection>(() => selectionFrom(company));
 	const [extendDays, setExtendDays] = useState('');
 	const [reason, setReason] = useState('');
@@ -323,14 +357,14 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 	const body = (): PlanChangeBody => ({
 		planCode: selection.planCode,
 		interval: selection.interval,
-		licences: selection.licences,
+		seats: selection.seats,
 		addOns: catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns,
 		reason: reason.trim(),
 	});
 	const preview = useQuery({
 		queryKey: ['plan-change-preview', company.id, selection],
 		queryFn: () => api.previewPlanChange(company.id, body()),
-		enabled: open && needsApproval && termsChanged && !!catalog.data && totalLicences(selection.licences) > 0,
+		enabled: open && needsApproval && termsChanged && !!catalog.data && totalSeats(selection.seats) >= minimumSeats(catalog.data, selection, product),
 		retry: false,
 	});
 	const mutation = useMutation({
@@ -345,7 +379,7 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 			const before = selectionFrom(company);
 			const wanted = catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns;
 			const addOnsChanged = JSON.stringify(Object.entries(before.addOns).sort()) !== JSON.stringify(Object.entries(wanted).sort());
-			const licencesChanged = JSON.stringify(before.licences) !== JSON.stringify(selection.licences);
+			const seatsChanged = JSON.stringify(before.seats) !== JSON.stringify(selection.seats);
 			// The API takes the complete set of add-ons wanted; anything left out ends.
 			const addOns = addOnsChanged ? wanted : null;
 			return api.changeSubscription(company.id, {
@@ -353,7 +387,7 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 				interval: selection.interval !== before.interval ? selection.interval : null,
 				addOns,
 				extendTrialDays: trial && extendDays ? Number(extendDays) : null,
-				licences: licencesChanged ? selection.licences : null,
+				seats: seatsChanged ? selection.seats : null,
 				reason: reason.trim(),
 			});
 		},
@@ -398,7 +432,13 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="submit" form="change-subscription" variant="primary" loading={mutation.isPending} disabled={!changed || !catalog.data || totalLicences(selection.licences) < 1}>
+					<Button
+						type="submit"
+						form="change-subscription"
+						variant="primary"
+						loading={mutation.isPending}
+						disabled={!changed || !catalog.data || totalSeats(selection.seats) < minimumSeats(catalog.data, selection, product)}
+					>
 						{needsApproval && termsChanged ? 'Send for approval' : 'Save changes'}
 					</Button>
 				</>
@@ -410,7 +450,7 @@ export function ChangeSubscriptionDialog({ company, open, onClose }: { company: 
 				<InlineError message={catalog.error.message} />
 			) : (
 				<form id="change-subscription" onSubmit={submit} noValidate className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_280px]">
-					<PlanPicker catalog={catalog.data} value={selection} onChange={setSelection} />
+					<PlanPicker product={product} catalog={catalog.data} value={selection} onChange={setSelection} />
 					<div className="flex flex-col gap-4">
 						<PriceSummary catalog={catalog.data} selection={selection} title="New price" />
 						{needsApproval ? (
@@ -458,15 +498,14 @@ function ChangeTiming({ preview, loading, error }: { preview?: PlanChangePreview
 			<p className="font-semibold text-text-heading">The customer's Owner approves it in the app (within 7 days).</p>
 			{preview.timing === 'NowWithCharge' && (
 				<p>
-					Upgrade: starts when approved. Invoiced then: <strong className="text-text-heading">{money(preview.amountNowMinor, preview.currency)}</strong>, the
-					price difference for the rest of the paid period (worked out again on the day they approve).
+					Upgrade: starts when approved. Invoiced then: <strong className="text-text-heading">{money(preview.amountNowMinor, preview.currency)}</strong>, the price difference for
+					the rest of the paid period (worked out again on the day they approve).
 				</p>
 			)}
 			{preview.timing === 'Now' && <p>Starts when approved. Nothing to pay now; the next invoice uses the new price.</p>}
 			{preview.timing === 'AtPeriodEnd' && (
 				<p>
-					Starts when the paid period ends, on <strong className="text-text-heading">{date(preview.effectiveAt)}</strong>. No refund; the renewal invoice
-					uses the new price.
+					Starts when the paid period ends, on <strong className="text-text-heading">{date(preview.effectiveAt)}</strong>. No refund; the renewal invoice uses the new price.
 				</p>
 			)}
 		</div>

@@ -13,7 +13,8 @@ import type {
 	Invoice,
 	InvoiceDetail,
 	InvoiceListItem,
-	Licences,
+	Product,
+	SeatQuantities,
 	LoginResponse,
 	MigrationStatus,
 	Payment,
@@ -132,10 +133,8 @@ const P = '/api/platform';
 
 export const api = {
 	// Sign-in
-	login: (email: string, password: string) =>
-		request<LoginResponse>(`${P}/auth/login`, { method: 'POST', body: { email, password }, anonymous: true }),
-	verify: (challengeToken: string, code: string) =>
-		request<SessionResponse>(`${P}/auth/verify`, { method: 'POST', body: { challengeToken, code }, anonymous: true }),
+	login: (email: string, password: string) => request<LoginResponse>(`${P}/auth/login`, { method: 'POST', body: { email, password }, anonymous: true }),
+	verify: (challengeToken: string, code: string) => request<SessionResponse>(`${P}/auth/verify`, { method: 'POST', body: { challengeToken, code }, anonymous: true }),
 	me: () => request<PlatformAdmin>(`${P}/auth/me`),
 	changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) =>
 		request<SessionResponse>(`${P}/auth/change-password`, {
@@ -143,17 +142,16 @@ export const api = {
 			body: { currentPassword, newPassword, confirmPassword },
 		}),
 
-	dashboard: () => request<Dashboard>(`${P}/dashboard`),
+	products: () => request<Product[]>(`${P}/products`),
+	dashboard: (product?: string) => request<Dashboard>(`${P}/dashboard${query({ product })}`),
 
 	// Companies
-	companies: (search?: string, status?: string) => request<CompanyListItem[]>(`${P}/companies${query({ search, status })}`),
+	companies: (search?: string, status?: string, product?: string) => request<CompanyListItem[]>(`${P}/companies${query({ search, status, product })}`),
 	company: (id: string) => request<CompanyDetail>(`${P}/companies/${id}`),
-	createCompany: (name: string, plan: PlanRequest | null) =>
-		request<CreateCompanyResponse>(`${P}/companies`, { method: 'POST', body: { name, plan } }),
-	newRegistrationCode: (id: string) =>
-		request<RegistrationCodeResponse>(`${P}/companies/${id}/registration-code`, { method: 'POST' }),
-	setCompanyStatus: (id: string, action: 'suspend' | 'reactivate', reason: string) =>
-		request<void>(`${P}/companies/${id}/status`, { method: 'PUT', body: { action, reason } }),
+	createCompany: (name: string, plan: PlanRequest | null, product: string) =>
+		request<CreateCompanyResponse>(`${P}/companies${query({ product })}`, { method: 'POST', body: { name, plan } }),
+	newRegistrationCode: (id: string) => request<RegistrationCodeResponse>(`${P}/companies/${id}/registration-code`, { method: 'POST' }),
+	setCompanyStatus: (id: string, action: 'suspend' | 'reactivate', reason: string) => request<void>(`${P}/companies/${id}/status`, { method: 'PUT', body: { action, reason } }),
 	changeSubscription: (
 		id: string,
 		body: {
@@ -161,85 +159,82 @@ export const api = {
 			interval?: string | null;
 			addOns?: Record<string, number> | null;
 			extendTrialDays?: number | null;
-			licences?: Licences | null;
+			seats?: SeatQuantities | null;
 			reason: string;
 		},
 	) => request<void>(`${P}/companies/${id}/subscription`, { method: 'PUT', body }),
-	previewPlanChange: (id: string, body: PlanChangeBody) =>
-		request<PlanChangePreview>(`${P}/companies/${id}/plan-change/preview`, { method: 'POST', body }),
-	proposePlanChange: (id: string, body: PlanChangeBody) =>
-		request<PlanChangeRequest>(`${P}/companies/${id}/plan-change`, { method: 'POST', body }),
+	previewPlanChange: (id: string, body: PlanChangeBody) => request<PlanChangePreview>(`${P}/companies/${id}/plan-change/preview`, { method: 'POST', body }),
+	proposePlanChange: (id: string, body: PlanChangeBody) => request<PlanChangeRequest>(`${P}/companies/${id}/plan-change`, { method: 'POST', body }),
 	planChanges: (id: string) => request<PlanChangeRequest[]>(`${P}/companies/${id}/plan-changes`),
-	withdrawPlanChange: (id: string, requestId: string) =>
-		request<void>(`${P}/companies/${id}/plan-change/${requestId}/cancel`, { method: 'POST' }),
-	cancelSubscription: (id: string, atPeriodEnd: boolean, reason: string) =>
-		request<void>(`${P}/companies/${id}/cancel`, { method: 'POST', body: { atPeriodEnd, reason } }),
-	updateBillingAccount: (id: string, body: BillingAccount) =>
-		request<void>(`${P}/companies/${id}/billing-account`, { method: 'PUT', body }),
+	withdrawPlanChange: (id: string, requestId: string) => request<void>(`${P}/companies/${id}/plan-change/${requestId}/cancel`, { method: 'POST' }),
+	cancelSubscription: (id: string, atPeriodEnd: boolean, reason: string) => request<void>(`${P}/companies/${id}/cancel`, { method: 'POST', body: { atPeriodEnd, reason } }),
+	updateBillingAccount: (id: string, body: BillingAccount) => request<void>(`${P}/companies/${id}/billing-account`, { method: 'PUT', body }),
 	companyBilling: (id: string) => request<CompanyBilling>(`${P}/companies/${id}/billing`),
 	issueInvoice: (id: string) => request<Invoice>(`${P}/companies/${id}/invoices`, { method: 'POST' }),
 
 	// Invoices
-	invoices: (filters: { status?: string; companyId?: string; search?: string } = {}) =>
-		request<InvoiceListItem[]>(`${P}/invoices${query(filters)}`),
+	invoices: (filters: { status?: string; companyId?: string; search?: string; product?: string } = {}) => request<InvoiceListItem[]>(`${P}/invoices${query(filters)}`),
 	invoice: (id: string) => request<InvoiceDetail>(`${P}/invoices/${id}`),
 	recordPayment: (id: string, amountMinor: number, reference: string, paidAt: string | null) =>
 		request<Payment>(`${P}/invoices/${id}/payments`, { method: 'POST', body: { amountMinor, reference, paidAt } }),
 	voidInvoice: (id: string, reason: string) => request<void>(`${P}/invoices/${id}/void`, { method: 'POST', body: { reason } }),
 
 	// Plans and prices
-	plans: () => request<Catalog>(`${P}/plans`),
+	plans: (product: string) => request<Catalog>(`${P}/plans${query({ product })}`),
 	newPlanVersion: (
 		code: string,
 		body: {
 			interval: string;
 			priceMinor: number;
 			includedSeats: number;
-			androidUserPriceMinor: number;
-			windowsUserPriceMinor: number;
-			bothUserPriceMinor: number;
+			seatPrices: Record<string, number>;
 			entitlements: Record<string, string>;
 			reason: string;
 		},
-	) => request<void>(`${P}/plans/${code}/versions`, { method: 'POST', body }),
-	createPlan: (body: {
-		code: string;
-		name: string;
-		minimumLicences: number;
-		monthly: PlanTermsInput;
-		yearly: PlanTermsInput;
-		features: Record<string, string>;
-		reason: string;
-	}) => request<void>(`${P}/plans`, { method: 'POST', body }),
-	updatePlan: (code: string, body: { name?: string; isActive?: boolean; reason: string }) =>
-		request<void>(`${P}/plans/${code}`, { method: 'PUT', body }),
-	createAddOn: (body: {
-		code: string;
-		name: string;
-		featureKey: string;
-		value: string;
-		monthlyPriceMinor: number;
-		yearlyPriceMinor: number;
-		reason: string;
-	}) => request<void>(`${P}/addons`, { method: 'POST', body }),
-	updateAddOn: (code: string, body: { name?: string; isActive?: boolean; reason: string }) =>
-		request<void>(`${P}/addons/${code}`, { method: 'PUT', body }),
-	signups: (status?: string) => request<SignupOrder[]>(`${P}/signups${query({ status })}`),
-	settings: () => request<PlatformSettings>(`${P}/settings`),
-	updateSettings: (body: Partial<PlatformSettings> & { reason: string }) =>
-		request<PlatformSettings>(`${P}/settings`, { method: 'PUT', body }),
-	newAddOnPrice: (code: string, body: { interval: string; unitPriceMinor: number; reason: string }) =>
-		request<void>(`${P}/addons/${code}/prices`, { method: 'POST', body }),
+		product: string,
+	) => request<void>(`${P}/plans/${code}/versions${query({ product })}`, { method: 'POST', body }),
+	createPlan: (
+		body: {
+			code: string;
+			name: string;
+			minimumLicences: number;
+			monthly: PlanTermsInput;
+			yearly: PlanTermsInput;
+			features: Record<string, string>;
+			reason: string;
+		},
+		product: string,
+	) => request<void>(`${P}/plans${query({ product })}`, { method: 'POST', body }),
+	updatePlan: (code: string, body: { name?: string; isActive?: boolean; reason: string }, product: string) =>
+		request<void>(`${P}/plans/${code}${query({ product })}`, { method: 'PUT', body }),
+	createAddOn: (
+		body: {
+			code: string;
+			name: string;
+			featureKey: string;
+			value: string;
+			monthlyPriceMinor: number;
+			yearlyPriceMinor: number;
+			reason: string;
+		},
+		product: string,
+	) => request<void>(`${P}/addons${query({ product })}`, { method: 'POST', body }),
+	updateAddOn: (code: string, body: { name?: string; isActive?: boolean; reason: string }, product: string) =>
+		request<void>(`${P}/addons/${code}${query({ product })}`, { method: 'PUT', body }),
+	signups: (status?: string, product?: string) => request<SignupOrder[]>(`${P}/signups${query({ status, product })}`),
+	settings: (product: string) => request<PlatformSettings>(`${P}/settings${query({ product })}`),
+	updateSettings: (body: Partial<PlatformSettings> & { reason: string }, product: string) =>
+		request<PlatformSettings>(`${P}/settings${query({ product })}`, { method: 'PUT', body }),
+	newAddOnPrice: (code: string, body: { interval: string; unitPriceMinor: number; reason: string }, product: string) =>
+		request<void>(`${P}/addons/${code}/prices${query({ product })}`, { method: 'POST', body }),
 
 	// Owner only
-	auditLogs: (companyId?: string, page = 1) => request<AuditEntry[]>(`${P}/audit-logs${query({ companyId, page })}`),
+	auditLogs: (companyId?: string, page = 1, product?: string) => request<AuditEntry[]>(`${P}/audit-logs${query({ companyId, page, product })}`),
 	admins: () => request<AdminListItem[]>(`${P}/admins`),
 	createAdmin: (email: string, name: string, role: AdminRole) =>
 		request<{ admin: AdminListItem; oneTimePassword: string }>(`${P}/admins`, { method: 'POST', body: { email, name, role } }),
-	updateAdmin: (id: string, body: { role?: AdminRole; isActive?: boolean; reason: string }) =>
-		request<AdminListItem>(`${P}/admins/${id}`, { method: 'PUT', body }),
-	resetAdmin: (id: string, reason: string) =>
-		request<{ oneTimePassword: string }>(`${P}/admins/${id}/reset`, { method: 'POST', body: { reason } }),
-	migrations: () => request<MigrationStatus[]>(`${P}/migrations`),
-	runMigrations: () => request<MigrationStatus[]>(`${P}/migrations/run`, { method: 'POST' }),
+	updateAdmin: (id: string, body: { role?: AdminRole; isActive?: boolean; reason: string }) => request<AdminListItem>(`${P}/admins/${id}`, { method: 'PUT', body }),
+	resetAdmin: (id: string, reason: string) => request<{ oneTimePassword: string }>(`${P}/admins/${id}/reset`, { method: 'POST', body: { reason } }),
+	migrations: (product?: string) => request<MigrationStatus[]>(`${P}/migrations${query({ product })}`),
+	runMigrations: (product?: string) => request<MigrationStatus[]>(`${P}/migrations/run${query({ product })}`, { method: 'POST' }),
 };

@@ -57,3 +57,27 @@ minutes. Without the three `PLATFORM_E2E_OWNER_*` variables the live tests are s
 ## The mocked suite
 
 `pnpm --dir apps/platform-admin test:e2e` runs `e2e/mocked/` against an in-memory fake API (no database). It runs in CI.
+
+## Stage 6 isolated multi-product check (Windows)
+
+`start-test-api.ps1` uses `CARSPA_TEST_PG_CONNECTION` only from the process environment. It accepts only a fresh `pts6` test product key and localhost PostgreSQL, creates a separate `<key>_catalog`, and gives both runtime and demo companies distinct test database prefixes. It never uses `carspa_platform` or port 5298. The demo module runs the existing external-product test script with PowerShell and psql, and seeds an unlimited workspace plan.
+
+```powershell
+# Set CARSPA_TEST_PG_CONNECTION securely in this shell; do not put it in a file.
+# Pick a NEW key for each isolated setup (example format: pts6 + 8 random hex characters).
+$testKey = 'pts6' + [Guid]::NewGuid().ToString('N').Substring(0,8)
+& apps/platform-admin/e2e/live/start-test-api.ps1 -ProductKey $testKey -CreateOwner
+# Capture the generated one-time password in memory. In another shell with the same PG environment:
+& apps/platform-admin/e2e/live/start-test-api.ps1 -ProductKey $testKey -Port 5321
+# A different free port can be supplied when 5321 belongs to another process.
+
+# In another shell:
+$env:PLATFORM_API_PROXY = 'http://localhost:5321'
+pnpm --dir apps/platform-admin exec vite --port 5190 --strictPort
+```
+
+Set `PLATFORM_E2E_OWNER_EMAIL=stage6-owner@trovo.test`, `PLATFORM_E2E_BOOTSTRAP_PASSWORD` to the generated password, `PLATFORM_E2E_OWNER_PASSWORD` to a new test password, and `PLATFORM_E2E_API_URL` to the throwaway API. Run `node apps/platform-admin/e2e/live/bootstrap-owner.mjs`; capture its returned authenticator secret in memory as `PLATFORM_E2E_OWNER_TOTP_SECRET`. The helper completes setup and the forced password change through the real auth endpoints. Do not save passwords or authenticator secrets to files.
+
+Set `PLATFORM_E2E_PRODUCT_KEY` to `$testKey` and `PLATFORM_E2E_PORTAL_URL` to the portal URL, then run `pnpm --dir apps/platform-admin test:e2e:live`. The original nine Car Spa scenarios preserve their totals and access assertions; the registered customer now approves the admin's plan proposal through the owner API. Registration attempts and password changes are included in the rate-limit budget. A cold run waits out an earlier authentication window.
+
+`pnpm --dir apps/platform-admin exec playwright test --project=live-products` runs `product-review.spec.ts` separately after the nine Car Spa scenarios. It adds a paid demo company through the portal, runs the confirmed all-product migration, verifies `demo-v1`, and captures six views at 1366×768 and 390×844 in `docs/platform-multi-product-stage-6-screenshots`. Override the output with `PLATFORM_E2E_SCREENSHOTS` if needed. Run this after the Car Spa flow so the mixed company list contains both products. The test does not register a demo business user or extend token trust.

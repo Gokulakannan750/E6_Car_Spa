@@ -90,7 +90,7 @@ test('creates an already-paid company and shows its codes once', async ({ page }
 
 	await expect(page.getByRole('cell', { name: 'Sunrise Detailing' })).toBeVisible();
 	const created = api.requests.find((r) => r.method === 'POST' && r.path === '/companies')!.body as { plan: object };
-	expect(created.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, licences: { android: 1, windows: 0, both: 1 } });
+	expect(created.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, seats: { android: 1, windows: 0, both: 1 } });
 	expect(problems).toEqual([]);
 });
 

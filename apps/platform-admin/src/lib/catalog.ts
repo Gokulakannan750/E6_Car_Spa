@@ -1,47 +1,32 @@
-import type { AppAccess, Licences } from './types';
+import type { Product, Seat, SeatQuantities } from './types';
 
-// Names for the feature keys the API uses (Domain/Platform FeatureKeys) and small helpers for plan codes.
+export function featureLabel(key: string, product?: Product): string {
+	return product?.features.find((f) => f.key === key)?.label ?? key;
+}
 
-export const FEATURE_LABELS: Record<string, string> = {
-	'users.max_active': 'Users',
-	'whatsapp_automation.enabled': 'WhatsApp automation',
-	'outside_jobs.enabled': 'Outside jobs',
-	'staff_advances.enabled': 'Staff advances',
-	'reports.advanced': 'Advanced reports',
-	'audit_trail.enabled': 'Audit trail',
-	'showroom.enabled': 'Showroom / B2B',
-	'franchise_network.enabled': 'Franchise network',
-	'franchise_network.max_branches': 'Franchise branches',
-};
+export function booleanFeatures(product?: Product): string[] {
+	return (product?.features ?? [])
+		.filter((f) => f.type === 'Bool')
+		.sort((a, b) => a.sortOrder - b.sortOrder)
+		.map((f) => f.key);
+}
 
-/** Feature keys shown as on/off rows, in display order. */
-export const BOOLEAN_FEATURES = [
-	'whatsapp_automation.enabled',
-	'outside_jobs.enabled',
-	'staff_advances.enabled',
-	'reports.advanced',
-	'audit_trail.enabled',
-	'showroom.enabled',
-	'franchise_network.enabled',
-];
+export function seatTypes(product?: Product) {
+	return product?.seatModel === 'None' ? [] : (product?.seatTypes ?? []).filter((s) => s.isActive).sort((a, b) => a.sortOrder - b.sortOrder);
+}
 
-export function featureLabel(key: string): string {
-	return FEATURE_LABELS[key] ?? key;
+export function seatQuantities(seats: Seat[] | undefined): SeatQuantities {
+	return Object.fromEntries((seats ?? []).map((s) => [s.code, s.quantity]));
+}
+
+export function totalSeats(seats: SeatQuantities | null | undefined): number {
+	return Object.values(seats ?? {}).reduce((sum, n) => sum + n, 0);
 }
 
 export function planName(code: string | null | undefined): string {
 	if (!code) return '—';
+
 	return code.charAt(0).toUpperCase() + code.slice(1).replace(/_/g, ' ');
 }
 
 export const SUBSCRIPTION_STATUSES = ['Trialing', 'Active', 'PastDue', 'ReadOnly', 'Suspended', 'Canceled'] as const;
-
-export const APP_ACCESS: { key: keyof Licences; access: AppAccess; label: string; short: string }[] = [
-	{ key: 'both', access: 'Both', label: 'Windows + Android', short: 'Both apps' },
-	{ key: 'windows', access: 'Windows', label: 'Windows only', short: 'Windows' },
-	{ key: 'android', access: 'Android', label: 'Android only', short: 'Android' },
-];
-
-export function totalLicences(l: Licences | null | undefined): number {
-	return l ? l.android + l.windows + l.both : 0;
-}

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { companyLogin, liveConfig, signIn, signOut, stamp } from './helpers';
+import { authBudget, assumeBudgetUsed, companyLogin, liveConfig, signIn, signOut, stamp } from './helpers';
 
 /**
  * The whole SaaS flow against a running API and PostgreSQL, through the real portal:
@@ -24,6 +24,7 @@ let invoiceNumber = '';
 let page: Page;
 
 test.beforeAll(async ({ browser }) => {
+	assumeBudgetUsed(); // A bootstrap or previous run may have used the server’s authentication window.
 	page = await browser.newPage();
 });
 
@@ -39,6 +40,8 @@ async function openCompany() {
 
 test('Trovo creates a company on a free trial and gets its codes', async () => {
 	await signIn(page, config.owner.email, config.owner.password, config.owner.totpSecret);
+	if (await page.getByRole('combobox', { name: 'Product', exact: true }).count())
+		await page.getByRole('combobox', { name: 'Product', exact: true }).selectOption(process.env.PLATFORM_E2E_PRODUCT_KEY ?? 'carspa');
 	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Companies' }).click();
 	await page.getByRole('button', { name: 'New company' }).click();
 
@@ -57,6 +60,7 @@ test('Trovo creates a company on a free trial and gets its codes', async () => {
 });
 
 test('the customer registers with the two codes and signs in on a trial', async ({ request }) => {
+	await authBudget(2); // Registration and deliberate code-reuse attempt both count.
 	const registered = await request.post(`${config.api}/api/auth/register`, {
 		data: { companyCode, registrationCode, ...customer, confirmPassword: customer.password },
 	});
@@ -89,8 +93,18 @@ test('Trovo moves it to Starter yearly, invoices it and records the bank payment
 	await change.getByRole('checkbox', { name: 'Include Outside jobs & vendors' }).check();
 	await expect(change.getByText('₹17,970.00')).toBeVisible(); // ₹9,990 + ₹4,990 + ₹2,990 (placeholder prices)
 	await change.getByLabel('Reason (recorded in the audit log)').fill('E2E: customer chose Starter yearly');
-	await change.getByRole('button', { name: 'Save changes' }).click();
-	await expect(page.getByText('Subscription updated.')).toBeVisible();
+	await change.getByRole('button', { name: 'Send for approval' }).click();
+	await expect(page.getByText('Sent to the customer. Their Owner approves it in the app.')).toBeVisible();
+	const ownerLogin = await companyLogin(request, config.api, companyCode, customer.username, customer.password);
+	expect(ownerLogin.status(), await ownerLogin.text()).toBe(200);
+	const ownerHeaders = { Authorization: `Bearer ${(await ownerLogin.json()).token}` };
+	const proposalResponse = await request.get(`${config.api}/api/subscription/plan-change`, { headers: ownerHeaders });
+	expect(proposalResponse.status(), await proposalResponse.text()).toBe(200);
+	const proposal = await proposalResponse.json();
+	expect(proposal.to.planName).toBe('Starter');
+	const approval = await request.post(`${config.api}/api/subscription/plan-change/${proposal.id}/approve`, { headers: ownerHeaders });
+	expect(approval.status(), await approval.text()).toBe(204);
+	await page.reload();
 	await expect(page.getByText('Starter', { exact: true }).first()).toBeVisible();
 
 	await page.getByRole('tab', { name: /Invoices/ }).click();
@@ -143,7 +157,7 @@ test('a user with an Android licence signs in only from Android', async ({ reque
 
 	// The portal sees the licences in use.
 	await openCompany();
-	const licences = page.getByRole('table').filter({ hasText: 'App access' });
+	const licences = page.getByRole('table').filter({ hasText: 'Seat type' });
 	await expect(licences.getByRole('row', { name: /Android only 1 1/ })).toBeVisible();
 });
 
@@ -192,10 +206,10 @@ test('CSV exports include the company and its paid invoice', async () => {
 test('the audit log shows every step with its reason', async () => {
 	await page.goto('/audit-log');
 	await page.getByLabel('Company').selectOption({ label: `${companyCode} · ${companyName}` });
-	for (const action of ['Company created', 'Subscription changed', 'Invoice issued', 'Payment recorded', 'Company suspended', 'Company reactivated']) {
+	for (const action of ['Company created', 'Plan change proposed', 'Invoice issued', 'Payment recorded', 'Company suspended', 'Company reactivated']) {
 		await expect(page.getByRole('cell', { name: action, exact: true }).first()).toBeVisible();
 	}
-	await page.getByRole('cell', { name: 'Subscription changed', exact: true }).first().click();
+	await page.getByRole('cell', { name: 'Plan change proposed', exact: true }).first().click();
 	await expect(page.getByRole('dialog').getByText('E2E: customer chose Starter yearly')).toBeVisible();
 	await page.keyboard.press('Escape');
 });
@@ -219,6 +233,7 @@ test('a new Support admin signs in for the first time, and is switched off', asy
 	await page.getByLabel('Current password').fill(oneTime);
 	await page.getByLabel('New password', { exact: true }).fill(`Support pass ${run}`);
 	await page.getByLabel('Confirm new password').fill(`Support pass ${run}`);
+	await authBudget(1);
 	await page.getByRole('button', { name: 'Save and continue' }).click();
 	await expect(page.getByRole('heading', { name: 'Operations overview' })).toBeVisible();
 	await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Admins' })).toHaveCount(0);

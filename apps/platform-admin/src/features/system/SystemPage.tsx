@@ -1,3 +1,4 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Database, Play, XCircle } from 'lucide-react';
@@ -12,42 +13,54 @@ import { PlatformSettingsCard } from './PlatformSettingsCard';
 
 export function SystemPage() {
 	useBreadcrumbs({ label: 'System' });
+	const { product, key: productKey } = useProducts();
 	const toast = useToast();
 	const queryClient = useQueryClient();
-	const [confirming, setConfirming] = useState(false);
-	const status = useQuery({ queryKey: ['migrations'], queryFn: api.migrations });
+	const [confirming, setConfirming] = useState<'selected' | 'all' | null>(null);
+	const status = useQuery({ queryKey: ['migrations', productKey], queryFn: () => api.migrations(productKey) });
 	const run = useMutation({
-		mutationFn: api.runMigrations,
+		mutationFn: () => api.runMigrations(confirming === 'all' ? undefined : productKey),
 		onSuccess: (result) => {
-			queryClient.setQueryData(['migrations'], result);
+			queryClient.invalidateQueries({ queryKey: ['migrations'] });
 			queryClient.invalidateQueries({ queryKey: ['companies'] });
 			queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 			const failed = result.filter((r) => r.migrationError).length;
 			if (failed > 0) toast.error(`${failed} of ${result.length} company databases failed to update.`);
 			else toast.success(`All ${result.length} company databases are up to date.`);
-			setConfirming(false);
+			setConfirming(null);
 		},
 	});
 
 	const rows = status.data ?? [];
 	const failed = rows.filter((r) => r.migrationError).length;
 	const versions = new Set(rows.map((r) => r.schemaVersion).filter(Boolean));
+	const versionsByProduct = new Map<string, Set<string>>();
+	for (const row of rows) {
+		if (!row.schemaVersion) continue;
+		const productVersions = versionsByProduct.get(row.productKey) ?? new Set<string>();
+		productVersions.add(row.schemaVersion);
+		versionsByProduct.set(row.productKey, productVersions);
+	}
+	const versionsDifferWithinProduct = [...versionsByProduct.values()].some((versions) => versions.size > 1);
 
 	return (
 		<>
 			<PageHeader
 				title="System"
-				description="Subscription settings, and each company's own database (the API updates them when it starts; run the update here after a failure)."
+				description="Product settings and company database migrations. Startup updates the runtime product only."
 				actions={
-					<Button variant="primary" icon={<Play className="size-4" />} onClick={() => setConfirming(true)}>
-						Update all databases
-					</Button>
+					<>
+						<Button disabled={!product} variant="primary" icon={<Play className="size-4" />} onClick={() => setConfirming('selected')}>
+							Run migrations{product ? ` · ${product.name}` : ''}
+						</Button>
+						<Button onClick={() => setConfirming('all')}>Run for all products</Button>
+					</>
 				}
 			/>
 			<PlatformSettingsCard />
 			<div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Stat label="Company databases" value={rows.length} />
-				<Stat label="Schema versions in use" value={versions.size} note={versions.size > 1 ? 'Some databases are behind' : undefined} />
+				<Stat label="Schema versions in use" value={versions.size} note={versionsDifferWithinProduct ? 'Different versions within a product' : undefined} />
 				<Stat label="Failed updates" value={failed} danger={failed > 0} />
 			</div>
 			<Card>
@@ -63,6 +76,7 @@ export function SystemPage() {
 						<table className="w-full text-table">
 							<thead>
 								<tr className="border-b border-border-subtle text-left text-label font-semibold tracking-[0.04em] whitespace-nowrap text-text-muted uppercase">
+									<th className="h-10 px-4">Product</th>
 									<th className="h-10 px-4">Company</th>
 									<th className="h-10 px-4">Schema version</th>
 									<th className="h-10 px-4">Last updated</th>
@@ -71,7 +85,10 @@ export function SystemPage() {
 							</thead>
 							<tbody>
 								{rows.map((r) => (
-									<tr key={r.code} className="border-b border-border-hairline align-top last:border-b-0">
+									<tr key={`${r.productKey}:${r.code}`} className="border-b border-border-hairline align-top last:border-b-0">
+										<td className="px-4 py-3">
+											<ProductBadge productKey={r.productKey} />
+										</td>
 										<td className="px-4 py-3">
 											<span className="tabular mr-2 font-mono text-text-muted">{r.code}</span>
 											<span className="text-text-heading">{r.name}</span>
@@ -99,18 +116,18 @@ export function SystemPage() {
 			</Card>
 
 			<Modal
-				open={confirming}
-				onClose={() => !run.isPending && setConfirming(false)}
+				open={confirming !== null}
+				onClose={() => !run.isPending && setConfirming(null)}
 				dismissable={!run.isPending}
 				width="sm"
 				title={
 					<span className="flex items-center gap-2">
-						<Database className="size-5 text-action" /> Update all company databases?
+						<Database className="size-5 text-action" /> {confirming === 'all' ? 'Run for all products?' : `Run migrations for ${product?.name}?`}
 					</span>
 				}
 				footer={
 					<>
-						<Button variant="ghost" disabled={run.isPending} onClick={() => setConfirming(false)}>
+						<Button variant="ghost" disabled={run.isPending} onClick={() => setConfirming(null)}>
 							Cancel
 						</Button>
 						<Button variant="primary" loading={run.isPending} onClick={() => run.mutate()}>
@@ -120,8 +137,8 @@ export function SystemPage() {
 				}
 			>
 				<p className="text-body text-text-secondary">
-					Applies any pending database changes to every company, one after another. Companies already up to date are not changed. This can take a few minutes with
-					many companies.
+					{confirming === 'all' ? 'Updates every product, one company at a time.' : `Updates only ${product?.name} companies, one at a time.`} External product commands will run.
+					This can take a few minutes.
 				</p>
 				<div className="mt-3">
 					<InlineError message={run.error?.message} />

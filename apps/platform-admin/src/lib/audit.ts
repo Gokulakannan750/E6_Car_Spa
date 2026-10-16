@@ -6,6 +6,8 @@ const ACTIONS: Record<string, string> = {
 	'company.suspend': 'Company suspended',
 	'company.reactivate': 'Company reactivated',
 	'subscription.changed': 'Subscription changed',
+	'subscription.change_proposed': 'Plan change proposed',
+	'subscription.change_withdrawn': 'Plan change withdrawn',
 	'subscription.canceled': 'Subscription canceled',
 	'billing_account.updated': 'Billing details updated',
 	'invoice.issued': 'Invoice issued',

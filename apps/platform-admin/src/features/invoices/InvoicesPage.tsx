@@ -1,3 +1,4 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -24,6 +25,7 @@ const STATUSES = [
 ];
 
 export function InvoicesPage() {
+	const { key: productKey } = useProducts();
 	useBreadcrumbs({ label: 'Invoices' });
 	const { can } = useAuth();
 	const [params, setParams] = useSearchParams();
@@ -33,7 +35,7 @@ export function InvoicesPage() {
 	const billingRole = can(...BILLING_ROLES);
 
 	// Status is filtered by the API (it knows what is overdue); the search box filters the loaded rows.
-	const invoices = useQuery({ queryKey: ['invoices', status], queryFn: () => api.invoices({ status: status || undefined }) });
+	const invoices = useQuery({ queryKey: ['invoices', productKey, status], queryFn: () => api.invoices({ status: status || undefined, product: productKey }) });
 
 	function setParam(key: string, value: string) {
 		const next = new URLSearchParams(params);
@@ -45,18 +47,19 @@ export function InvoicesPage() {
 	const rows = useMemo(() => {
 		const term = search.trim().toLowerCase();
 		const all = invoices.data ?? [];
-		return term
-			? all.filter((i) => i.invoiceNumber.toLowerCase().includes(term) || i.companyCode.toLowerCase().includes(term) || i.companyName.toLowerCase().includes(term))
-			: all;
+		return term ? all.filter((i) => i.invoiceNumber.toLowerCase().includes(term) || i.companyCode.toLowerCase().includes(term) || i.companyName.toLowerCase().includes(term)) : all;
 	}, [invoices.data, search]);
 	const dueTotal = rows.filter((i) => i.status === 'Open').reduce((s, i) => s + i.amountDueMinor, 0);
 
 	const columns = useMemo<ColumnDef<InvoiceListItem, unknown>[]>(
 		() => [
+			{ accessorKey: 'productKey', header: 'Product', cell: ({ row }) => <ProductBadge productKey={row.original.productKey} /> },
 			{
 				accessorKey: 'invoiceNumber',
 				header: 'Invoice',
-				cell: ({ row }) => <span className={`tabular font-mono ${row.original.status === 'Void' ? 'text-text-muted line-through' : 'text-text-heading'}`}>{row.original.invoiceNumber}</span>,
+				cell: ({ row }) => (
+					<span className={`tabular font-mono ${row.original.status === 'Void' ? 'text-text-muted line-through' : 'text-text-heading'}`}>{row.original.invoiceNumber}</span>
+				),
 			},
 			{
 				id: 'company',
@@ -119,7 +122,14 @@ export function InvoicesPage() {
 									size="sm"
 									variant="primary"
 									onClick={() =>
-										setPaying({ id: i.id, invoiceNumber: i.invoiceNumber, amountDueMinor: i.amountDueMinor, totalMinor: i.totalMinor, currency: i.currency, companyName: i.companyName })
+										setPaying({
+											id: i.id,
+											invoiceNumber: i.invoiceNumber,
+											amountDueMinor: i.amountDueMinor,
+											totalMinor: i.totalMinor,
+											currency: i.currency,
+											companyName: i.companyName,
+										})
 									}
 								>
 									Record payment

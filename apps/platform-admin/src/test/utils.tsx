@@ -1,3 +1,4 @@
+import { carSpa } from './products';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 import { App, createQueryClient } from '@/app/App';
@@ -27,7 +28,7 @@ export function fakeApi(routes: FakeRoute[]): FakeApi {
 		const headers = (init?.headers ?? {}) as Record<string, string>;
 		api.calls.push({ method, url, body, auth: headers.Authorization ?? null });
 		const path = url.split('?')[0]!;
-		const route = routes.find(
+		const route = [...routes, { path: '/api/platform/products', body: [carSpa] }].find(
 			(r) => (r.method ?? 'GET') === method && (typeof r.path === 'string' ? r.path === path : r.path.test(path)),
 		);
 		if (!route) throw new Error(`Unexpected request ${method} ${url}`);

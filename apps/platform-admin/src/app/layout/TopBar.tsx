@@ -1,3 +1,4 @@
+import { ProductSelector } from '@/features/products/ProductProvider';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronRight, Search } from 'lucide-react';
@@ -27,7 +28,7 @@ export function TopBar() {
 		.join('');
 
 	return (
-		<header className="no-print flex h-16 shrink-0 items-center gap-4 border-b border-border-subtle bg-canvas/80 px-6 backdrop-blur">
+		<header className="no-print flex h-16 shrink-0 items-center gap-2 border-b border-border-subtle bg-canvas/80 px-3 sm:px-6 backdrop-blur">
 			<nav aria-label="Breadcrumb" className="flex min-w-0 flex-1 items-center gap-1.5 text-body">
 				{crumbs.map((crumb, index) => {
 					const last = index === crumbs.length - 1;
@@ -48,6 +49,7 @@ export function TopBar() {
 				})}
 			</nav>
 
+			<ProductSelector />
 			<form role="search" onSubmit={submit} className="relative hidden w-72 md:block">
 				<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-text-muted" aria-hidden />
 				<input
@@ -62,14 +64,14 @@ export function TopBar() {
 
 			{admin && (
 				<Link to="/account" className="flex items-center gap-3 rounded-md px-2 py-1 hover:bg-surface-raised">
-					<span className="flex size-8 items-center justify-center rounded-full bg-surface-container text-label font-semibold text-text-heading">
-						{initials}
-					</span>
+					<span className="flex size-8 items-center justify-center rounded-full bg-surface-container text-label font-semibold text-text-heading">{initials}</span>
 					<span className="hidden text-right leading-tight lg:block">
 						<span className="block text-body font-medium text-text-heading">{admin.name || admin.email}</span>
 						<span className="block text-micro text-text-muted">{admin.email}</span>
 					</span>
-					<RoleBadge role={admin.role} />
+					<span className="hidden sm:inline">
+						<RoleBadge role={admin.role} />
+					</span>
 				</Link>
 			)}
 		</header>

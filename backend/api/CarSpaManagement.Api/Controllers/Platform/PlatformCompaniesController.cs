@@ -31,7 +31,7 @@ public sealed record PlatformCompanyDetail(
     DateTime CreatedAt, DateTime? RegisteredAt, bool RegistrationCodeOpen,
     PlatformSubscriptionDto? Subscription, PlatformBillingAccountDto? BillingAccount,
     IReadOnlyDictionary<string, string> Features, int? SeatLimit, int? SeatsUsed,
-    PlatformLicencesDto? LicencesUsed = null);
+    PlatformLicencesDto? LicencesUsed = null, string? ProductKey = null, IReadOnlyList<SeatDto>? SeatUsage = null);
 
 public sealed record PlatformSubscriptionDto(
     Guid Id, string Status, string Plan, string PlanName, string Interval, long PriceMinor, string Currency,
@@ -128,7 +128,10 @@ public class PlatformCompaniesController(
             entitlements?.Features ?? new Dictionary<string, string>(),
             entitlements?.SeatLimit,
             usage?.Total,
-            usage is null ? null : new PlatformLicencesDto(usage.Value.Android, usage.Value.Windows, usage.Value.Both)));
+            usage is null ? null : new PlatformLicencesDto(usage.Value.Android, usage.Value.Windows, usage.Value.Both),
+            company.Product.Key,
+            usage is null ? null : (await catalog.ProductSeatTypes.Where(t => t.ProductId == company.ProductId).OrderBy(t => t.SortOrder).ToListAsync(cancellationToken))
+                .Select(t => new SeatDto(t.Code, t.Name, ProductSeats.Legacy(usage.Value).GetValueOrDefault(t.Code), 0)).ToList()));
     }
 
     [HttpPost]

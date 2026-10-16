@@ -19,7 +19,7 @@ public sealed class PlatformProductsController(PlatformDbContext catalog) : Cont
         return Ok(products.Select(p => new
         {
             p.Key, p.Name, seatModel = p.SeatModel.ToString(), p.TrialPlanCode, p.DatabasePrefix, p.IsActive,
-            seatTypes = seats.Where(s => s.ProductId == p.Id).Select(s => new { s.Code, s.Name, s.SortOrder, s.IsActive }),
+            seatTypes = seats.Where(s => s.ProductId == p.Id).Select(s => new { s.Code, s.Name, s.SortOrder, s.IsActive, s.DefaultSeat }),
             features = features.Where(f => f.ProductId == p.Id).Select(f => new { f.Key, f.Label, type = f.ValueType.ToString(), f.SortOrder }),
             capabilities = p.Capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         }));

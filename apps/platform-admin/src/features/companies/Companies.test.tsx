@@ -17,7 +17,8 @@ const company = (over: Partial<CompanyListItem>): CompanyListItem => ({
 	trialEndsAt: null,
 	migrationFailed: false,
 	createdAt: '2026-10-01T00:00:00Z',
-	licences: 1,
+	productKey: 'carspa',
+	seats: [{ code: 'both', name: 'Windows + Android', quantity: 1, priceMinor: 0 }],
 	...over,
 });
 
@@ -42,9 +43,7 @@ const catalog: Catalog = {
 				currency: 'INR',
 				priceMinor: 0,
 				includedSeats: 1,
-				androidUserPriceMinor: prices[0]! * k,
-				windowsUserPriceMinor: prices[1]! * k,
-				bothUserPriceMinor: prices[2]! * k,
+				seats: ['android', 'windows', 'both'].map((code, index) => ({ code, name: code, quantity: 0, priceMinor: prices[index]! * k })),
 				effectiveFrom: '2026-10-01T00:00:00Z',
 				effectiveTo: null,
 				entitlements: index ? [{ featureKey: 'whatsapp_automation.enabled', value: 'true' }] : [],
@@ -103,7 +102,14 @@ describe('companies', () => {
 				method: 'POST',
 				path: '/api/platform/companies',
 				status: 201,
-				body: { id: 'new-id', code: '0005', name: 'Glow Spa', registrationCode: 'K7QM-4RTX-9PWD', registrationCodeExpiresAt: '2026-10-19T00:00:00Z', databaseName: 'carspa_t_0005' },
+				body: {
+					id: 'new-id',
+					code: '0005',
+					name: 'Glow Spa',
+					registrationCode: 'K7QM-4RTX-9PWD',
+					registrationCodeExpiresAt: '2026-10-19T00:00:00Z',
+					databaseName: 'carspa_t_0005',
+				},
 			},
 		]);
 		const user = userEvent.setup();
@@ -154,7 +160,7 @@ describe('companies', () => {
 
 		await screen.findByText('Paid Spa is ready');
 		const body = api.calls.find((c) => c.method === 'POST')?.body as { plan: Record<string, unknown> };
-		expect(body.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, licences: { android: 2, windows: 0, both: 1 } });
+		expect(body.plan).toMatchObject({ planCode: 'starter', interval: 'Year', addOns: { showroom: 1 }, seats: { android: 2, windows: 0, both: 1 } });
 		expect(new Date(String(body.plan.paidUntil)).getTime()).toBeGreaterThan(Date.now() + 300 * 86_400_000);
 	});
 

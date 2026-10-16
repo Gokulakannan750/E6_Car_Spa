@@ -1,34 +1,43 @@
+import { useProducts } from '@/features/products/ProductProvider';
 import { Lightbulb, Minus, Plus } from 'lucide-react';
-import { APP_ACCESS, featureLabel, totalLicences } from '@/lib/catalog';
+import { seatTypes, featureLabel, totalSeats } from '@/lib/catalog';
 import { money, moneyShort, perInterval } from '@/lib/format';
-import type { AddOn, AddOnPrice, Catalog, Licences, PlanVersion } from '@/lib/types';
+import type { AddOn, AddOnPrice, Catalog, Product, SeatQuantities, PlanVersion } from '@/lib/types';
 
 export interface PlanSelection {
 	planCode: string;
 	interval: 'Month' | 'Year';
 	addOns: Record<string, number>;
-	licences: Licences;
+	seats: SeatQuantities;
 }
 
-export const ONE_BOTH_LICENCE: Licences = { android: 0, windows: 0, both: 1 };
+export function initialSeats(product?: Product): SeatQuantities {
+	// The portal sends explicit choices; no implicit product-specific seat codes.
+	const types = seatTypes(product);
+	return Object.fromEntries(types.map((t, index) => [t.code, (types.some((t) => t.defaultSeat) ? t.defaultSeat : index === 0) ? 1 : 0]));
+}
 
 /** The price version in force now (no end date) for an interval. */
 export function currentVersion(versions: PlanVersion[], interval: string): PlanVersion | undefined {
 	return versions.filter((v) => v.interval === interval && !v.effectiveTo).sort((a, b) => b.version - a.version)[0];
 }
 
+export function minimumSeats(catalog: Catalog | undefined, selection: PlanSelection, product?: Product): number {
+	if (product?.seatModel === 'None') return 0;
+	const plan = catalog?.plans.find((p) => p.code === selection.planCode);
+	return Math.max(1, plan ? (currentVersion(plan.versions, selection.interval)?.includedSeats ?? 1) : 1);
+}
+
 export function currentAddOnPrice(prices: AddOnPrice[], interval: string): AddOnPrice | undefined {
 	return prices.filter((p) => p.interval === interval && !p.effectiveTo).sort((a, b) => b.version - a.version)[0];
 }
 
-export function licencePrice(version: PlanVersion, key: keyof Licences): number {
-	return key === 'android' ? version.androidUserPriceMinor : key === 'windows' ? version.windowsUserPriceMinor : version.bothUserPriceMinor;
+export function seatPrice(version: PlanVersion, code: string): number {
+	return version.seats.find((s) => s.code === code)?.priceMinor ?? 0;
 }
-
-/** The cheapest licence of a version (for "from ₹… per user"), ignoring types that have no price. */
-function cheapestLicence(version: PlanVersion): number | null {
-	const prices = [version.androidUserPriceMinor, version.windowsUserPriceMinor, version.bothUserPriceMinor].filter((p) => p > 0);
-	return prices.length > 0 ? Math.min(...prices) : null;
+function cheapestSeat(version: PlanVersion): number | null {
+	const prices = version.seats.map((s) => s.priceMinor).filter((p) => p > 0);
+	return prices.length ? Math.min(...prices) : null;
 }
 
 /** Whether a plan version already includes what a module add-on would switch on (it cannot be bought again). */
@@ -48,11 +57,11 @@ export function priceLines(catalog: Catalog, selection: PlanSelection): { lines:
 	const lines: PriceLine[] = [];
 	if (plan && version) {
 		if (version.priceMinor > 0) lines.push({ label: `${plan.name} company fee`, amountMinor: version.priceMinor });
-		for (const type of APP_ACCESS) {
-			const count = selection.licences[type.key];
+		for (const type of version.seats) {
+			const count = selection.seats[type.code] ?? 0;
 			if (count > 0) {
-				const unit = licencePrice(version, type.key);
-				lines.push({ label: `${type.label} user licence`, detail: `${count} × ${moneyShort(unit)} · ${plan.name}`, amountMinor: unit * count });
+				const unit = seatPrice(version, type.code);
+				lines.push({ label: `${type.name} seat`, detail: `${count} × ${moneyShort(unit)} · ${plan.name}`, amountMinor: unit * count });
 			}
 		}
 	}
@@ -67,7 +76,7 @@ export function priceLines(catalog: Catalog, selection: PlanSelection): { lines:
 }
 
 /**
- * When another active plan includes some of the chosen module add-ons and would cost less with the same licences,
+ * When another active plan includes some of the chosen module add-ons and would cost less with the same seats,
  * that plan and its total; otherwise null. Used for the "upgrading is cheaper" hint.
  */
 export function cheaperPlan(catalog: Catalog, selection: PlanSelection): { name: string; code: string; totalMinor: number } | null {
@@ -127,12 +136,15 @@ function Stepper({ label, value, onChange, min = 0, max = 500 }: { label: string
 	);
 }
 
-export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; value: PlanSelection; onChange: (v: PlanSelection) => void }) {
+export function PlanPicker({ catalog, value, onChange, product: supplied }: { catalog: Catalog; value: PlanSelection; onChange: (v: PlanSelection) => void; product?: Product }) {
+	const { product: selected } = useProducts();
+	const product = supplied ?? selected;
+	const types = seatTypes(product);
 	const plans = catalog.plans.filter((p) => p.isActive || p.code === value.planCode);
 	const plan = catalog.plans.find((p) => p.code === value.planCode);
 	const version = plan ? currentVersion(plan.versions, value.interval) : undefined;
 	const addOns = catalog.addOns.filter((a) => a.isActive || (value.addOns[a.code] ?? 0) > 0);
-	const minimum = Math.max(1, version?.includedSeats ?? 1);
+	const minimum = product?.seatModel === 'None' ? 0 : Math.max(1, version?.includedSeats ?? 1);
 
 	function setQty(code: string, qty: number) {
 		const next = { ...value.addOns };
@@ -167,8 +179,8 @@ export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; val
 					{plans.map((p) => {
 						const v = currentVersion(p.versions, value.interval);
 						const selected = value.planCode === p.code;
-						const from = v ? cheapestLicence(v) : null;
-						const features = v?.entitlements.filter((e) => e.value === 'true').map((e) => featureLabel(e.featureKey)) ?? [];
+						const from = v ? cheapestSeat(v) : null;
+						const features = v?.entitlements.filter((e) => e.value === 'true').map((e) => featureLabel(e.featureKey, product)) ?? [];
 						return (
 							<button
 								key={p.code}
@@ -193,39 +205,41 @@ export function PlanPicker({ catalog, value, onChange }: { catalog: Catalog; val
 										)}
 									</span>
 								</div>
-								<div className="mt-2 text-micro text-text-muted">{features.length > 0 ? features.join(' · ') : 'Billing, job cards, customers, staff'}</div>
+								<div className="mt-2 text-micro text-text-muted">{features.length > 0 ? features.join(' · ') : 'No additional features'}</div>
 							</button>
 						);
 					})}
 				</div>
 			</fieldset>
 
-			<fieldset>
-				<legend className="mb-1 text-label font-medium text-text-primary">User licences</legend>
-				<p className="mb-2 text-micro text-text-muted">Each user needs one. A Windows + Android licence lets one person use both apps. At least {minimum}.</p>
-				<ul className="flex flex-col divide-y divide-border-hairline rounded-lg border border-border-subtle bg-surface-alt">
-					{APP_ACCESS.map((type) => (
-						<li key={type.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
-							<div className="min-w-0">
-								<div className="text-body text-text-heading">{type.label}</div>
-								<div className="tabular text-label text-text-muted">
-									{version ? `${moneyShort(licencePrice(version, type.key))} per user${perInterval(value.interval)}` : 'No price for this billing period'}
-								</div>
-							</div>
-							<Stepper
-								label={`${type.label} licences`}
-								value={value.licences[type.key]}
-								onChange={(n) => onChange({ ...value, licences: { ...value.licences, [type.key]: n } })}
-							/>
-						</li>
-					))}
-				</ul>
-				{totalLicences(value.licences) < minimum && (
-					<p role="alert" className="mt-2 text-label text-danger">
-						Add at least {minimum} user licence{minimum === 1 ? '' : 's'}.
+			{product?.seatModel === 'None' ? (
+				<p className="text-body text-text-secondary">Unlimited seats</p>
+			) : (
+				<fieldset>
+					<legend className="mb-1 text-label font-medium text-text-primary">Seats</legend>
+					<p className="mb-2 text-micro text-text-muted">
+						Choose at least {minimum} seat{minimum === 1 ? '' : 's'}.
 					</p>
-				)}
-			</fieldset>
+					<ul className="flex flex-col divide-y divide-border-hairline rounded-lg border border-border-subtle bg-surface-alt">
+						{types.map((type) => (
+							<li key={type.code} className="flex items-center justify-between gap-3 px-4 py-2.5">
+								<div className="min-w-0">
+									<div className="text-body text-text-heading">{type.name}</div>
+									<div className="tabular text-label text-text-muted">
+										{version ? `${moneyShort(seatPrice(version, type.code))} per user${perInterval(value.interval)}` : 'No price for this billing period'}
+									</div>
+								</div>
+								<Stepper label={`${type.name} licences`} value={value.seats[type.code] ?? 0} onChange={(n) => onChange({ ...value, seats: { ...value.seats, [type.code]: n } })} />
+							</li>
+						))}
+					</ul>
+					{totalSeats(value.seats) < minimum && (
+						<p role="alert" className="mt-2 text-label text-danger">
+							Add at least {minimum} seat{minimum === 1 ? '' : 's'}.
+						</p>
+					)}
+				</fieldset>
+			)}
 
 			{addOns.length > 0 && (
 				<fieldset>
@@ -305,9 +319,7 @@ export function PriceSummary({ catalog, selection, title = 'Summary' }: { catalo
 				))}
 			</ul>
 			<div className="mt-3 flex items-baseline justify-between border-t border-border-subtle pt-3">
-				<span className="text-label font-semibold tracking-[0.04em] text-text-muted uppercase">
-					Total {selection.interval === 'Year' ? 'per year' : 'per month'}
-				</span>
+				<span className="text-label font-semibold tracking-[0.04em] text-text-muted uppercase">Total {selection.interval === 'Year' ? 'per year' : 'per month'}</span>
 				<span className="tabular text-headline font-bold text-text-heading">{money(totalMinor, currency)}</span>
 			</div>
 			{!catalog.chargesGst && <p className="mt-1 text-right text-micro text-text-muted">No GST charged</p>}
@@ -315,8 +327,7 @@ export function PriceSummary({ catalog, selection, title = 'Summary' }: { catalo
 				<p role="status" className="mt-3 flex items-start gap-2 rounded-md border border-active/30 bg-active-bg px-3 py-2 text-label text-text-primary">
 					<Lightbulb className="mt-px size-3.5 shrink-0 text-active" aria-hidden />
 					<span>
-						{cheaper.name} includes these modules and would cost <span className="tabular font-semibold">{money(cheaper.totalMinor, currency)}</span> with the same
-						licences.
+						{cheaper.name} includes these modules and would cost <span className="tabular font-semibold">{money(cheaper.totalMinor, currency)}</span> with the same seats.
 					</span>
 				</p>
 			)}

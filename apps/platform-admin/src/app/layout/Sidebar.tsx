@@ -1,17 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import {
-	Building2,
-	FileText,
-	History,
-	LayoutDashboard,
-	LogOut,
-	Server,
-	Tags,
-	UserCircle,
-	UserPlus,
-	Users,
-	type LucideIcon,
-} from 'lucide-react';
+import { Building2, FileText, History, LayoutDashboard, LogOut, Server, Tags, UserCircle, UserPlus, Users, type LucideIcon } from 'lucide-react';
 import { useAuth, OWNER_ROLES } from '@/features/auth/AuthProvider';
 import type { AdminRole } from '@/lib/types';
 
@@ -47,34 +35,36 @@ export function Sidebar() {
 	const items = NAV.filter((item) => !item.roles || (role && item.roles.includes(role)));
 
 	return (
-		<aside className="no-print flex w-60 shrink-0 flex-col border-r border-border-subtle bg-surface-alt">
-			<div className="flex h-16 items-center gap-3 border-b border-border-subtle px-4">
+		<aside className="no-print flex w-14 sm:w-60 shrink-0 flex-col border-r border-border-subtle bg-surface-alt">
+			<div className="flex h-16 items-center gap-3 border-b border-border-subtle px-3 sm:px-4">
 				<img src="/trovo-logo.webp" alt="" className="size-8 rounded-md" />
-				<div className="leading-tight">
+				<div className="hidden sm:block leading-tight">
 					<div className="text-body font-semibold text-text-heading">Trovo Platform</div>
 					<div className="text-micro font-medium tracking-wider text-text-muted uppercase">Admin console</div>
 				</div>
 			</div>
-			<nav aria-label="Main" className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+			<nav aria-label="Main" className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-1 sm:p-3">
 				{items.map(({ to, label, icon: Icon }) => (
-					<NavLink key={to} to={to} className={itemClass}>
+					<NavLink key={to} to={to} className={itemClass} aria-label={label} title={label}>
 						<Icon className="size-4 shrink-0" aria-hidden />
-						{label}
+						<span className="hidden sm:inline">{label}</span>
 					</NavLink>
 				))}
 			</nav>
-			<div className="flex flex-col gap-0.5 border-t border-border-subtle p-3">
-				<NavLink to="/account" className={itemClass}>
+			<div className="flex flex-col gap-0.5 border-t border-border-subtle p-1 sm:p-3">
+				<NavLink to="/account" className={itemClass} aria-label="My account" title="My account">
 					<UserCircle className="size-4 shrink-0" aria-hidden />
-					My account
+					<span className="hidden sm:inline">My account</span>
 				</NavLink>
 				<button
 					type="button"
+					aria-label="Sign out"
+					title="Sign out"
 					onClick={() => signOut()}
 					className="flex h-9 items-center gap-3 rounded-md px-3 text-body text-danger transition-colors hover:bg-danger-strong/10"
 				>
 					<LogOut className="size-4 shrink-0" aria-hidden />
-					Sign out
+					<span className="hidden sm:inline">Sign out</span>
 				</button>
 			</div>
 		</aside>

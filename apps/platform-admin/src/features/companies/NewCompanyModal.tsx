@@ -1,3 +1,4 @@
+import { useProducts, ChooseProduct } from '@/features/products/ProductProvider';
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, CheckCircle2 } from 'lucide-react';
@@ -6,8 +7,8 @@ import { OneTimeValue } from '@/components/CopyButton';
 import { TextField } from '@/components/Field';
 import { Modal } from '@/components/Modal';
 import { InlineError, LoadingState } from '@/components/Surface';
-import { addOnsToBuy, ONE_BOTH_LICENCE, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
-import { totalLicences } from '@/lib/catalog';
+import { addOnsToBuy, minimumSeats, initialSeats, PlanPicker, PriceSummary, type PlanSelection } from '@/features/plans/PlanPicker';
+import { totalSeats } from '@/lib/catalog';
 import { api } from '@/lib/api';
 import { dateTime } from '@/lib/format';
 import type { CreateCompanyResponse } from '@/lib/types';
@@ -23,13 +24,14 @@ function defaultPaidUntil(interval: 'Month' | 'Year'): string {
 
 export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolean; onClose: () => void; onOpenCompany: (id: string) => void }) {
 	const queryClient = useQueryClient();
+	const { product } = useProducts();
 	const [name, setName] = useState('');
 	const [start, setStart] = useState<Start>('trial');
-	const [selection, setSelection] = useState<PlanSelection>({ planCode: 'professional', interval: 'Month', addOns: {}, licences: ONE_BOTH_LICENCE });
+	const [selection, setSelection] = useState<PlanSelection>({ planCode: product?.trialPlanCode ?? '', interval: 'Month', addOns: {}, seats: initialSeats(product) });
 	const [paidUntil, setPaidUntil] = useState(defaultPaidUntil('Month'));
 	const [nameError, setNameError] = useState<string | null>(null);
 	const [created, setCreated] = useState<CreateCompanyResponse | null>(null);
-	const catalog = useQuery({ queryKey: ['plans'], queryFn: api.plans, enabled: open && start === 'paid' });
+	const catalog = useQuery({ queryKey: ['plans', product?.key], queryFn: () => api.plans(product!.key), enabled: open && start === 'paid' && !!product });
 
 	const create = useMutation({
 		mutationFn: () =>
@@ -40,10 +42,11 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 							planCode: selection.planCode,
 							interval: selection.interval,
 							addOns: catalog.data ? addOnsToBuy(catalog.data, selection) : selection.addOns,
-							licences: selection.licences,
+							seats: selection.seats,
 							paidUntil: new Date(`${paidUntil}T23:59:59+05:30`).toISOString(),
 						}
 					: null,
+				product!.key,
 			),
 		onSuccess: (result) => {
 			setCreated(result);
@@ -55,7 +58,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 	function reset() {
 		setName('');
 		setStart('trial');
-		setSelection({ planCode: 'professional', interval: 'Month', addOns: {}, licences: ONE_BOTH_LICENCE });
+		setSelection({ planCode: product?.trialPlanCode ?? '', interval: 'Month', addOns: {}, seats: initialSeats(product) });
 		setPaidUntil(defaultPaidUntil('Month'));
 		setNameError(null);
 		setCreated(null);
@@ -85,6 +88,13 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 		setNameError(null);
 		create.mutate();
 	}
+
+	if (!product)
+		return (
+			<Modal open={open} onClose={onClose} title="New company">
+				<ChooseProduct />
+			</Modal>
+		);
 
 	if (created) {
 		return (
@@ -120,8 +130,8 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 					<OneTimeValue label="Company code" value={created.code} />
 					<OneTimeValue label="One-time registration code" value={created.registrationCode} />
 					<p className="text-label text-text-secondary">
-						The registration code works once and expires on <span className="tabular text-text-heading">{dateTime(created.registrationCodeExpiresAt)}</span>.
-						It is shown only now; if it is lost, issue a new one from the company page.
+						The registration code works once and expires on <span className="tabular text-text-heading">{dateTime(created.registrationCodeExpiresAt)}</span>. It is shown only now;
+						if it is lost, issue a new one from the company page.
 					</p>
 				</div>
 			</Modal>
@@ -142,12 +152,19 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 					<Button variant="ghost" onClick={close}>
 						Cancel
 					</Button>
-					<Button type="submit" form="new-company" variant="primary" loading={create.isPending} disabled={start === 'paid' && (!catalog.data || paidUntilInvalid || totalLicences(selection.licences) < 1)}>
+					<Button
+						type="submit"
+						form="new-company"
+						variant="primary"
+						loading={create.isPending}
+						disabled={start === 'paid' && (!catalog.data || paidUntilInvalid || totalSeats(selection.seats) < minimumSeats(catalog.data, selection, product))}
+					>
 						Create company
 					</Button>
 				</>
 			}
 		>
+			{product.seatModel === 'None' && <p className="text-body text-text-secondary">Unlimited seats</p>}
 			<form id="new-company" onSubmit={submit} noValidate className="flex flex-col gap-5">
 				<TextField
 					label="Company name"
@@ -167,7 +184,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 							selected={start === 'trial'}
 							onSelect={() => setStart('trial')}
 							title="Free trial"
-							subtitle="Full Professional"
+							subtitle={`Trial plan: ${product.trialPlanCode}`}
 							detail="No payment now. Users and trial length come from the platform settings. After the trial it needs a paid plan, then the grace days before it becomes read-only."
 						/>
 						<StartOption
@@ -175,7 +192,7 @@ export function NewCompanyModal({ open, onClose, onOpenCompany }: { open: boolea
 							onSelect={() => setStart('paid')}
 							title="Already paid"
 							subtitle="Paid by bank transfer or UPI"
-							detail="Choose the plan, user licences and add-ons it paid for, and the date it is paid until."
+							detail="Choose the plan, seats and add-ons it paid for, and the date it is paid until."
 						/>
 					</div>
 				</fieldset>

@@ -23,16 +23,10 @@ export interface SessionResponse {
 	admin: PlatformAdmin;
 }
 
-export type SubscriptionStatus =
-	| 'Trialing'
-	| 'Active'
-	| 'PastDue'
-	| 'ReadOnly'
-	| 'Suspended'
-	| 'Canceled'
-	| 'Incomplete';
+export type SubscriptionStatus = 'Trialing' | 'Active' | 'PastDue' | 'ReadOnly' | 'Suspended' | 'Canceled' | 'Incomplete';
 
 export interface AuditEntry {
+	productKey: string | null;
 	id: string;
 	createdAt: string;
 	administratorEmail: string | null;
@@ -68,16 +62,8 @@ export interface CompanyListItem {
 	migrationFailed: boolean;
 	createdAt: string;
 	/** Total user licences on the subscription. */
-	licences: number;
-}
-
-export type AppAccess = 'Both' | 'Windows' | 'Android';
-
-/** User licences per app type. */
-export interface Licences {
-	android: number;
-	windows: number;
-	both: number;
+	seats: Seat[];
+	productKey: string;
 }
 
 export interface AddOnLine {
@@ -102,9 +88,7 @@ export interface Subscription {
 	cancelAtPeriodEnd: boolean;
 	retainUntil: string | null;
 	addOns: AddOnLine[];
-	licences: Licences | null;
-	/** Price per user licence per period, by app type. */
-	licencePrices: Licences | null;
+	seats: Seat[];
 }
 
 export interface BillingAccount {
@@ -133,7 +117,8 @@ export interface CompanyDetail {
 	seatLimit: number | null;
 	seatsUsed: number | null;
 	/** Active users per app access in the company's database (null when it could not be read). */
-	licencesUsed: Licences | null;
+	seatUsage: Seat[] | null;
+	productKey: string;
 }
 
 /** When an approved plan change takes effect: at once (nothing or the rest of the period to pay) or at the period end. */
@@ -142,7 +127,7 @@ export type PlanChangeTiming = 'Now' | 'NowWithCharge' | 'AtPeriodEnd';
 export interface PlanChangeBody {
 	planCode: string;
 	interval: string;
-	licences: Licences;
+	seats: SeatQuantities;
 	addOns: Record<string, number>;
 	reason?: string;
 }
@@ -164,7 +149,7 @@ export interface PlanChangeRequest extends PlanChangePreview {
 	status: PlanChangeStatus;
 	planCode: string;
 	interval: string;
-	licences: Licences;
+	seats: Seat[];
 	addOns: Record<string, number>;
 	expiresAt: string;
 	reason: string | null;
@@ -180,7 +165,7 @@ export interface PlanRequest {
 	interval: string;
 	addOns?: Record<string, number> | null;
 	paidUntil: string;
-	licences?: Licences | null;
+	seats?: SeatQuantities | null;
 }
 
 export interface CreateCompanyResponse {
@@ -249,6 +234,7 @@ export interface CompanyBilling {
 }
 
 export interface InvoiceListItem {
+	productKey: string;
 	id: string;
 	invoiceNumber: string;
 	companyId: string;
@@ -300,9 +286,7 @@ export interface PlanVersion {
 	effectiveFrom: string;
 	effectiveTo: string | null;
 	entitlements: Entitlement[];
-	androidUserPriceMinor: number;
-	windowsUserPriceMinor: number;
-	bothUserPriceMinor: number;
+	seats: Seat[];
 }
 
 export interface Plan {
@@ -341,6 +325,7 @@ export interface Catalog {
 }
 
 export interface MigrationStatus {
+	productKey: string;
 	code: string;
 	name: string;
 	schemaVersion: string | null;
@@ -371,9 +356,7 @@ export interface PlatformSettings {
 
 export interface PlanTermsInput {
 	companyFeeMinor: number;
-	androidUserPriceMinor: number;
-	windowsUserPriceMinor: number;
-	bothUserPriceMinor: number;
+	seatPrices: Record<string, number>;
 }
 
 export type SignupStatus = 'AwaitingPayment' | 'Completed' | 'Expired' | 'NeedsAttention' | 'Processing';
@@ -392,7 +375,8 @@ export interface SignupOrder {
 	state: string;
 	planCode: string | null;
 	interval: string | null;
-	licences: number;
+	seats: Seat[];
+	productKey: string;
 	amountMinor: number;
 	currency: string;
 	companyId: string | null;
@@ -406,4 +390,37 @@ export interface SignupOrder {
 	franchisorCode?: string | null;
 	franchiseLinked?: boolean;
 	franchiseProblem?: string | null;
+}
+
+export type SeatModel = 'None' | 'Counted' | 'PerType';
+export type SeatQuantities = Record<string, number>;
+export interface Seat {
+	code: string;
+	name: string;
+	quantity: number;
+	priceMinor: number;
+}
+export interface SeatType {
+	code: string;
+	name: string;
+	sortOrder: number;
+	isActive: boolean;
+	defaultSeat?: boolean;
+}
+export interface ProductFeature {
+	key: string;
+	label: string;
+	type: string;
+	sortOrder: number;
+}
+export interface Product {
+	key: string;
+	name: string;
+	seatModel: SeatModel;
+	trialPlanCode: string;
+	databasePrefix: string;
+	isActive: boolean;
+	seatTypes: SeatType[];
+	features: ProductFeature[];
+	capabilities: string[];
 }

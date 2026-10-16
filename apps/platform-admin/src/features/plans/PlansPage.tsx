@@ -1,3 +1,4 @@
+import { useProducts, ChooseProduct } from '@/features/products/ProductProvider';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, CircleSlash, History, Plus, Tag } from 'lucide-react';
@@ -11,19 +12,20 @@ import { Card, CardHeader, ErrorState, InlineError, LoadingState, PageHeader } f
 import { useToast } from '@/components/Toast';
 import { useAuth, BILLING_ROLES } from '@/features/auth/AuthProvider';
 import { api } from '@/lib/api';
-import { APP_ACCESS, BOOLEAN_FEATURES, featureLabel } from '@/lib/catalog';
+import { seatTypes, booleanFeatures, featureLabel } from '@/lib/catalog';
 import { date, intervalLabel, moneyShort, parseRupees } from '@/lib/format';
 import type { AddOn, Plan, PlanVersion } from '@/lib/types';
-import { currentAddOnPrice, currentVersion, licencePrice } from './PlanPicker';
+import { currentAddOnPrice, currentVersion, seatPrice } from './PlanPicker';
 
 type Toggle = { kind: 'plan'; plan: Plan } | { kind: 'addon'; addOn: AddOn } | null;
 
 export function PlansPage() {
+	const { product } = useProducts();
 	useBreadcrumbs({ label: 'Plans & Prices' });
 	const { can } = useAuth();
 	const toast = useToast();
 	const queryClient = useQueryClient();
-	const catalog = useQuery({ queryKey: ['plans'], queryFn: api.plans });
+	const catalog = useQuery({ queryKey: ['plans', product?.key], queryFn: () => api.plans(product!.key), enabled: !!product });
 	const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 	const [editingAddOn, setEditingAddOn] = useState<AddOn | null>(null);
 	const [creatingPlan, setCreatingPlan] = useState(false);
@@ -34,8 +36,8 @@ export function PlansPage() {
 	const toggleMutation = useMutation({
 		mutationFn: (reason: string) =>
 			toggle!.kind === 'plan'
-				? api.updatePlan(toggle!.plan.code, { isActive: !toggle!.plan.isActive, reason })
-				: api.updateAddOn(toggle!.addOn.code, { isActive: !toggle!.addOn.isActive, reason }),
+				? api.updatePlan(toggle!.plan.code, { isActive: !toggle!.plan.isActive, reason }, product!.key)
+				: api.updateAddOn(toggle!.addOn.code, { isActive: !toggle!.addOn.isActive, reason }, product!.key),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['plans'] });
 			toast.success('Saved.');
@@ -46,6 +48,8 @@ export function PlansPage() {
 		toggleMutation.reset();
 	}, [toggle]);
 
+	if (!product) return <ChooseProduct />;
+
 	const selling = toggle ? (toggle.kind === 'plan' ? toggle.plan.isActive : toggle.addOn.isActive) : false;
 	const toggleName = toggle ? (toggle.kind === 'plan' ? toggle.plan.name : toggle.addOn.name) : '';
 
@@ -53,7 +57,7 @@ export function PlansPage() {
 		<>
 			<PageHeader
 				title="Plans & Prices"
-				description="Prices are per user licence (Android, Windows, or both apps). A new price applies to new subscriptions and to existing ones from their next renewal; old prices stay in the history."
+				description="Prices follow each product’s seat definitions. A new price applies to new subscriptions and to existing ones from their next renewal; old prices stay in the history."
 				actions={
 					billingRole && (
 						<>
@@ -95,7 +99,7 @@ export function PlansPage() {
 										<th className="h-10 px-4 text-right">Monthly</th>
 										<th className="h-10 px-4 text-right">Yearly</th>
 										<th className="h-10 px-4">Status</th>
-										<th className="h-10 px-5 text-right">
+										<th className="relative h-10 px-5 text-right">
 											<span className="sr-only">Actions</span>
 										</th>
 									</tr>
@@ -111,7 +115,7 @@ export function PlansPage() {
 													<div className="font-mono text-micro text-text-muted">{addOn.code}</div>
 												</td>
 												<td className="px-4 py-2 text-text-secondary">
-													{featureLabel(addOn.featureKey)}
+													{featureLabel(addOn.featureKey, product)}
 													{addOn.value !== 'true' && <span className="ml-1">+{addOn.value}</span>}
 												</td>
 												<td className="tabular px-4 py-2 text-right">{month ? moneyShort(month.unitPriceMinor, month.currency) : '—'}</td>
@@ -156,9 +160,7 @@ export function PlansPage() {
 				onConfirm={(reason) => toggleMutation.mutate(reason)}
 			>
 				<p className="text-body text-text-secondary">
-					{selling
-						? 'It can no longer be chosen for new or changed subscriptions. Companies that already have it keep it.'
-						: 'It can be chosen again for subscriptions.'}
+					{selling ? 'It can no longer be chosen for new or changed subscriptions. Companies that already have it keep it.' : 'It can be chosen again for subscriptions.'}
 				</p>
 			</ReasonDialog>
 		</>
@@ -166,6 +168,7 @@ export function PlansPage() {
 }
 
 function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () => void; onToggle?: () => void }) {
+	const { product } = useProducts();
 	const [showHistory, setShowHistory] = useState(false);
 	const month = currentVersion(plan.versions, 'Month');
 	const year = currentVersion(plan.versions, 'Year');
@@ -201,17 +204,17 @@ function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () 
 				<table className="w-full text-table">
 					<thead>
 						<tr className="text-left text-micro font-semibold tracking-[0.04em] text-text-muted uppercase">
-							<th className="pb-2">Per user licence</th>
+							<th className="pb-2">{product?.seatModel === 'None' ? 'Price' : 'Per seat'}</th>
 							<th className="pb-2 text-right">Monthly</th>
 							<th className="pb-2 text-right">Yearly</th>
 						</tr>
 					</thead>
 					<tbody className="tabular">
-						{APP_ACCESS.map((type) => (
-							<tr key={type.key} className="border-t border-border-hairline">
-								<td className="py-2 text-text-primary">{type.label}</td>
-								<td className="py-2 text-right text-text-heading">{month ? moneyShort(licencePrice(month, type.key)) : '—'}</td>
-								<td className="py-2 text-right text-text-heading">{year ? moneyShort(licencePrice(year, type.key)) : '—'}</td>
+						{seatTypes(product).map((type) => (
+							<tr key={type.code} className="border-t border-border-hairline">
+								<td className="py-2 text-text-primary">{type.name}</td>
+								<td className="py-2 text-right text-text-heading">{month ? moneyShort(seatPrice(month, type.code)) : '—'}</td>
+								<td className="py-2 text-right text-text-heading">{year ? moneyShort(seatPrice(year, type.code)) : '—'}</td>
 							</tr>
 						))}
 						{(month?.priceMinor ?? 0) + (year?.priceMinor ?? 0) > 0 && (
@@ -228,17 +231,19 @@ function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () 
 						<div className="mt-5 mb-2 text-micro font-medium tracking-wide text-text-muted uppercase">Includes</div>
 						<ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
 							<li className="flex items-center gap-2 text-body text-text-heading">
-								<CheckCircle2 className="size-4 text-active" /> At least {reference.includedSeats} user licence{reference.includedSeats === 1 ? '' : 's'}
+								<CheckCircle2 className="size-4 text-active" /> {product?.seatModel === 'None' ? 'Unlimited seats' : `At least ${reference.includedSeats} seats`}
 							</li>
-							{BOOLEAN_FEATURES.filter((k) => reference.entitlements.some((e) => e.featureKey === k)).map((key) => {
-								const on = reference.entitlements.find((e) => e.featureKey === key)?.value === 'true';
-								return (
-									<li key={key} className={`flex items-center gap-2 text-body ${on ? 'text-text-heading' : 'text-text-muted'}`}>
-										{on ? <CheckCircle2 className="size-4 text-active" /> : <CircleSlash className="size-4" />}
-										{featureLabel(key)}
-									</li>
-								);
-							})}
+							{booleanFeatures(product)
+								.filter((k) => reference.entitlements.some((e) => e.featureKey === k))
+								.map((key) => {
+									const on = reference.entitlements.find((e) => e.featureKey === key)?.value === 'true';
+									return (
+										<li key={key} className={`flex items-center gap-2 text-body ${on ? 'text-text-heading' : 'text-text-muted'}`}>
+											{on ? <CheckCircle2 className="size-4 text-active" /> : <CircleSlash className="size-4" />}
+											{featureLabel(key, product)}
+										</li>
+									);
+								})}
 						</ul>
 					</>
 				)}
@@ -251,7 +256,7 @@ function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () 
 							<tr className="border-b border-border-subtle text-left text-micro font-semibold tracking-[0.04em] text-text-muted uppercase">
 								<th className="h-8 pr-3">Version</th>
 								<th className="h-8 pr-3">Billing</th>
-								<th className="h-8 pr-3 text-right">Both / Win / Android</th>
+								<th className="h-8 pr-3 text-right">Seat prices</th>
 								<th className="h-8">In force</th>
 							</tr>
 						</thead>
@@ -261,7 +266,7 @@ function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () 
 									<td className="pr-3">v{v.version}</td>
 									<td className="pr-3">{intervalLabel(v.interval)}</td>
 									<td className="pr-3 text-right">
-										{moneyShort(v.bothUserPriceMinor)} / {moneyShort(v.windowsUserPriceMinor)} / {moneyShort(v.androidUserPriceMinor)}
+										{v.seats.map((s) => `${s.name}: ${moneyShort(s.priceMinor)}`).join(' / ')}
 										{v.priceMinor > 0 && ` + ${moneyShort(v.priceMinor)} fee`}
 									</td>
 									<td>
@@ -279,55 +284,52 @@ function PlanCard({ plan, onNewPrice, onToggle }: { plan: Plan; onNewPrice?: () 
 
 interface PriceFields {
 	fee: string;
-	android: string;
-	windows: string;
-	both: string;
+	seats: Record<string, string>;
 }
-
 const rupees = (minor: number) => (minor / 100).toString();
-
 function pricesFrom(v: PlanVersion | undefined): PriceFields {
-	return v
-		? { fee: rupees(v.priceMinor), android: rupees(v.androidUserPriceMinor), windows: rupees(v.windowsUserPriceMinor), both: rupees(v.bothUserPriceMinor) }
-		: { fee: '0', android: '', windows: '', both: '' };
+	return { fee: rupees(v?.priceMinor ?? 0), seats: Object.fromEntries((v?.seats ?? []).map((s) => [s.code, rupees(s.priceMinor)])) };
 }
-
-/** Reads the four price boxes; returns paise or an error per box. */
-function readPrices(fields: PriceFields): { values?: { fee: number; android: number; windows: number; both: number }; errors: Partial<Record<keyof PriceFields, string>> } {
-	const errors: Partial<Record<keyof PriceFields, string>> = {};
-	const read = (key: keyof PriceFields) => {
-		const value = parseRupees(fields[key] || '0');
+function readPrices(fields: PriceFields): { values?: { fee: number; seatPrices: Record<string, number> }; errors: Record<string, string> } {
+	const errors: Record<string, string> = {};
+	const read = (text: string, key: string) => {
+		const value = parseRupees(text || '0');
 		if (value === null) errors[key] = 'Enter rupees, e.g. 999.';
 		return value ?? 0;
 	};
-	const values = { fee: read('fee'), android: read('android'), windows: read('windows'), both: read('both') };
-	if (Object.keys(errors).length === 0 && values.fee + values.android + values.windows + values.both === 0) {
-		errors.both = 'Give the plan a price.';
-	}
-	return Object.keys(errors).length > 0 ? { errors } : { values, errors };
+	const values = { fee: read(fields.fee, 'fee'), seatPrices: Object.fromEntries(Object.entries(fields.seats).map(([code, text]) => [code, read(text, `seat:${code}`)])) };
+	if (!Object.keys(errors).length && values.fee + Object.values(values.seatPrices).reduce((sum, n) => sum + n, 0) === 0) errors.fee = 'Give the plan a price.';
+	return Object.keys(errors).length ? { errors } : { values, errors };
 }
-
-function PriceBoxes({ value, onChange, errors, prefix = '' }: { value: PriceFields; onChange: (v: PriceFields) => void; errors: Partial<Record<keyof PriceFields, string>>; prefix?: string }) {
-	const set = (key: keyof PriceFields) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [key]: e.target.value });
+function PriceBoxes({ value, onChange, errors }: { value: PriceFields; onChange: (v: PriceFields) => void; errors: Record<string, string | undefined> }) {
+	const { product } = useProducts();
 	return (
 		<div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-			<TextField label={`${prefix}Windows + Android (₹)`} inputMode="decimal" value={value.both} onChange={set('both')} error={errors.both} className="tabular" />
-			<TextField label={`${prefix}Windows only (₹)`} inputMode="decimal" value={value.windows} onChange={set('windows')} error={errors.windows} className="tabular" />
-			<TextField label={`${prefix}Android only (₹)`} inputMode="decimal" value={value.android} onChange={set('android')} error={errors.android} className="tabular" />
-			<TextField label={`${prefix}Company fee (₹)`} inputMode="decimal" value={value.fee} onChange={set('fee')} error={errors.fee} hint="Usually 0" className="tabular" />
+			{seatTypes(product).map((t) => (
+				<TextField
+					key={t.code}
+					label={`${t.name} (₹)`}
+					inputMode="decimal"
+					value={value.seats[t.code] ?? ''}
+					onChange={(e) => onChange({ ...value, seats: { ...value.seats, [t.code]: e.target.value } })}
+					error={errors[`seat:${t.code}`]}
+				/>
+			))}
+			<TextField label="Company fee (₹)" inputMode="decimal" value={value.fee} onChange={(e) => onChange({ ...value, fee: e.target.value })} error={errors.fee} />
 		</div>
 	);
 }
 
 function FeatureTicks({ value, onChange }: { value: Record<string, boolean>; onChange: (v: Record<string, boolean>) => void }) {
+	const { product } = useProducts();
 	return (
 		<fieldset>
 			<legend className="mb-2 text-label font-medium text-text-primary">Modules included</legend>
 			<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-				{BOOLEAN_FEATURES.map((key) => (
+				{booleanFeatures(product).map((key) => (
 					<label key={key} className="flex items-center gap-2 rounded-md border border-border-subtle bg-surface-alt px-3 py-2 text-body text-text-primary">
 						<input type="checkbox" checked={!!value[key]} onChange={(e) => onChange({ ...value, [key]: e.target.checked })} className="size-4 accent-[#3b82f6]" />
-						{featureLabel(key)}
+						{featureLabel(key, product)}
 					</label>
 				))}
 			</div>
@@ -336,6 +338,7 @@ function FeatureTicks({ value, onChange }: { value: Record<string, boolean>; onC
 }
 
 function PlanPriceDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void }) {
+	const { product } = useProducts();
 	const toast = useToast();
 	const queryClient = useQueryClient();
 	const [interval, setInterval] = useState<'Month' | 'Year'>('Month');
@@ -343,17 +346,17 @@ function PlanPriceDialog({ plan, onClose }: { plan: Plan | null; onClose: () => 
 	const [minimum, setMinimum] = useState('1');
 	const [features, setFeatures] = useState<Record<string, boolean>>({});
 	const [reason, setReason] = useState('');
-	const [errors, setErrors] = useState<Partial<Record<keyof PriceFields | 'minimum' | 'reason', string>>>({});
+	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	function load(p: Plan, i: 'Month' | 'Year') {
 		const v = currentVersion(p.versions, i);
 		setPrices(pricesFrom(v));
 		setMinimum(String(v?.includedSeats ?? 1));
-		setFeatures(Object.fromEntries(BOOLEAN_FEATURES.map((k) => [k, v?.entitlements.find((e) => e.featureKey === k)?.value === 'true'])));
+		setFeatures(Object.fromEntries(booleanFeatures(product).map((k) => [k, v?.entitlements.find((e) => e.featureKey === k)?.value === 'true'])));
 	}
 
 	const mutation = useMutation({
-		mutationFn: (body: Parameters<typeof api.newPlanVersion>[1]) => api.newPlanVersion(plan!.code, body),
+		mutationFn: (body: Parameters<typeof api.newPlanVersion>[1]) => api.newPlanVersion(plan!.code, body, product!.key),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['plans'] });
 			toast.success(`New ${interval === 'Month' ? 'monthly' : 'yearly'} price saved for ${plan!.name}.`);
@@ -375,18 +378,16 @@ function PlanPriceDialog({ plan, onClose }: { plan: Plan | null; onClose: () => 
 		event.preventDefault();
 		const read = readPrices(prices);
 		const next: typeof errors = { ...read.errors };
-		if (!/^\d+$/.test(minimum) || Number(minimum) < 1 || Number(minimum) > 100) next.minimum = 'A whole number from 1 to 100.';
+		if (product?.seatModel !== 'None' && (!/^\d+$/.test(minimum) || Number(minimum) < 1 || Number(minimum) > 100)) next.minimum = 'A whole number from 1 to 100.';
 		if (!reason.trim()) next.reason = 'A reason is required.';
 		setErrors(next);
 		if (Object.keys(next).length > 0 || !read.values) return;
 		mutation.mutate({
 			interval,
-			priceMinor: read.values.fee,
-			includedSeats: Number(minimum),
-			androidUserPriceMinor: read.values.android,
-			windowsUserPriceMinor: read.values.windows,
-			bothUserPriceMinor: read.values.both,
-			entitlements: Object.fromEntries(BOOLEAN_FEATURES.map((k) => [k, features[k] ? 'true' : 'false'])),
+			priceMinor: read.values.fee ?? 0,
+			includedSeats: product?.seatModel === 'None' ? 0 : Number(minimum),
+			seatPrices: Object.fromEntries(seatTypes(product).map((t) => [t.code, read.values!.seatPrices[t.code] ?? 0])),
+			entitlements: Object.fromEntries(booleanFeatures(product).map((k) => [k, features[k] ? 'true' : 'false'])),
 			reason: reason.trim(),
 		});
 	}
@@ -423,11 +424,20 @@ function PlanPriceDialog({ plan, onClose }: { plan: Plan | null; onClose: () => 
 						<option value="Month">Monthly</option>
 						<option value="Year">Yearly</option>
 					</SelectField>
-					<TextField label="Minimum user licences" inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value.replace(/\D/g, ''))} error={errors.minimum} />
+					{product?.seatModel !== 'None' && (
+						<TextField label="Minimum seats" inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value.replace(/\D/g, ''))} error={errors.minimum} />
+					)}
 				</div>
 				<PriceBoxes value={prices} onChange={setPrices} errors={errors} />
 				<FeatureTicks value={features} onChange={setFeatures} />
-				<TextareaField label="Reason (recorded in the audit log)" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} error={errors.reason} placeholder="e.g. Price revision for 2027" />
+				<TextareaField
+					label="Reason (recorded in the audit log)"
+					maxLength={500}
+					value={reason}
+					onChange={(e) => setReason(e.target.value)}
+					error={errors.reason}
+					placeholder="e.g. Price revision for 2027"
+				/>
 				<InlineError message={mutation.error?.message} />
 			</form>
 		</Modal>
@@ -435,6 +445,7 @@ function PlanPriceDialog({ plan, onClose }: { plan: Plan | null; onClose: () => 
 }
 
 function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+	const { product } = useProducts();
 	const toast = useToast();
 	const queryClient = useQueryClient();
 	const [name, setName] = useState('');
@@ -448,7 +459,7 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	const mutation = useMutation({
-		mutationFn: api.createPlan,
+		mutationFn: (body: Parameters<typeof api.createPlan>[0]) => api.createPlan(body, product!.key),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['plans'] });
 			toast.success(`Plan ${name.trim()} created.`);
@@ -486,31 +497,33 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 		const next: Record<string, string> = {};
 		if (name.trim().length < 2) next.name = 'Enter the plan name.';
 		if (!/^[a-z][a-z0-9_]{1,38}$/.test(finalCode)) next.code = 'Lowercase letters, digits and _ only, starting with a letter.';
-		if (!/^\d+$/.test(minimum) || Number(minimum) < 1 || Number(minimum) > 100) next.minimum = 'A whole number from 1 to 100.';
+		if (product?.seatModel !== 'None' && (!/^\d+$/.test(minimum) || Number(minimum) < 1 || Number(minimum) > 100)) next.minimum = 'A whole number from 1 to 100.';
 		for (const [k, v] of Object.entries(m.errors)) next[`m_${k}`] = v!;
 		for (const [k, v] of Object.entries(y.errors)) next[`y_${k}`] = v!;
 		if (!reason.trim()) next.reason = 'A reason is required.';
 		setErrors(next);
 		if (Object.keys(next).length > 0 || !m.values || !y.values) return;
 		const terms = (v: NonNullable<typeof m.values>) => ({
-			companyFeeMinor: v.fee,
-			androidUserPriceMinor: v.android,
-			windowsUserPriceMinor: v.windows,
-			bothUserPriceMinor: v.both,
+			companyFeeMinor: v.fee ?? 0,
+			seatPrices: Object.fromEntries(seatTypes(product).map((t) => [t.code, v.seatPrices[t.code] ?? 0])),
 		});
 		mutation.mutate({
 			code: finalCode,
 			name: name.trim(),
-			minimumLicences: Number(minimum),
+			minimumLicences: product?.seatModel === 'None' ? 0 : Number(minimum),
 			monthly: terms(m.values),
 			yearly: terms(y.values),
-			features: Object.fromEntries(BOOLEAN_FEATURES.map((k) => [k, features[k] ? 'true' : 'false'])),
+			features: Object.fromEntries(booleanFeatures(product).map((k) => [k, features[k] ? 'true' : 'false'])),
 			reason: reason.trim(),
 		});
 	}
 
 	const pick = (prefix: string) =>
-		Object.fromEntries(Object.entries(errors).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => [k.slice(prefix.length), v])) as Partial<Record<keyof PriceFields, string>>;
+		Object.fromEntries(
+			Object.entries(errors)
+				.filter(([k]) => k.startsWith(prefix))
+				.map(([k, v]) => [k.slice(prefix.length), v]),
+		) as Record<string, string>;
 
 	return (
 		<Modal
@@ -518,7 +531,7 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 			onClose={onClose}
 			width="lg"
 			title="New plan"
-			description="Offered for new and changed subscriptions straight away. Prices are per user licence."
+			description="Offered for new and changed subscriptions straight away. Prices follow the product’s seat model."
 			footer={
 				<>
 					<Button variant="ghost" onClick={onClose}>
@@ -545,7 +558,9 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 						hint="Fixed once created"
 						className="font-mono"
 					/>
-					<TextField label="Minimum user licences" inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value.replace(/\D/g, ''))} error={errors.minimum} />
+					{product?.seatModel !== 'None' && (
+						<TextField label="Minimum seats" inputMode="numeric" value={minimum} onChange={(e) => setMinimum(e.target.value.replace(/\D/g, ''))} error={errors.minimum} />
+					)}
 				</div>
 				<div>
 					<div className="mb-2 text-label font-semibold text-text-heading">Monthly prices</div>
@@ -562,7 +577,7 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 									const minor = parseRupees(v || '0');
 									return minor === null ? v : rupees(minor * 10);
 								};
-								setYearly({ fee: times10(monthly.fee), android: times10(monthly.android), windows: times10(monthly.windows), both: times10(monthly.both) });
+								setYearly({ fee: times10(monthly.fee), seats: Object.fromEntries(Object.entries(monthly.seats).map(([key, value]) => [key, times10(value)])) });
 							}}
 						>
 							Fill as 10 × monthly
@@ -578,18 +593,14 @@ function NewPlanDialog({ open, onClose }: { open: boolean; onClose: () => void }
 	);
 }
 
-/** Features a new add-on can unlock: the modules, plus more franchise branches (a pack). */
-const ADD_ON_FEATURES: { key: string; label: string; pack?: boolean }[] = [
-	...BOOLEAN_FEATURES.map((key) => ({ key, label: featureLabel(key) })),
-	{ key: 'franchise_network.max_branches', label: 'More franchise branches (pack)', pack: true },
-];
-
 function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+	const { product } = useProducts();
 	const toast = useToast();
 	const queryClient = useQueryClient();
 	const [name, setName] = useState('');
 	const [code, setCode] = useState('');
-	const [feature, setFeature] = useState(ADD_ON_FEATURES[0]!.key);
+	const ADD_ON_FEATURES = (product?.features ?? []).filter((f) => f.type === 'Bool' || f.type === 'Int').map((f) => ({ ...f, pack: f.type === 'Int' }));
+	const [feature, setFeature] = useState(ADD_ON_FEATURES[0]?.key ?? '');
 	const [perUnit, setPerUnit] = useState('10');
 	const [monthly, setMonthly] = useState('');
 	const [yearly, setYearly] = useState('');
@@ -598,7 +609,7 @@ function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void 
 	const pack = ADD_ON_FEATURES.find((f) => f.key === feature)?.pack ?? false;
 
 	const mutation = useMutation({
-		mutationFn: api.createAddOn,
+		mutationFn: (body: Parameters<typeof api.createAddOn>[0]) => api.createAddOn(body, product!.key),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['plans'] });
 			toast.success(`Add-on ${name.trim()} created.`);
@@ -610,7 +621,7 @@ function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void 
 		if (open) {
 			setName('');
 			setCode('');
-			setFeature(ADD_ON_FEATURES[0]!.key);
+			setFeature(ADD_ON_FEATURES[0]?.key ?? '');
 			setPerUnit('10');
 			setMonthly('');
 			setYearly('');
@@ -630,6 +641,7 @@ function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void 
 		if (pack && (!/^\d+$/.test(perUnit) || Number(perUnit) < 1 || Number(perUnit) > 1000)) next.perUnit = 'A whole number from 1 to 1000.';
 		if (m === null) next.monthly = 'Enter rupees, e.g. 299.';
 		if (y === null) next.yearly = 'Enter rupees, e.g. 2990.';
+		if (!ADD_ON_FEATURES.some((f) => f.key === feature)) next.feature = 'Choose a feature from this product.';
 		if (!reason.trim()) next.reason = 'A reason is required.';
 		setErrors(next);
 		if (Object.keys(next).length > 0 || m === null || y === null) return;
@@ -655,18 +667,33 @@ function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void 
 		>
 			<form id="new-addon" onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<TextField label="Name" maxLength={100} value={name} onChange={(e) => setName(e.target.value)} error={errors.name} containerClassName="sm:col-span-2" />
-				<TextField label="Code" maxLength={39} value={code} onChange={(e) => setCode(e.target.value.toLowerCase())} error={errors.code} hint="Fixed once created" className="font-mono" />
-				<SelectField label="Unlocks" value={feature} onChange={(e) => setFeature(e.target.value)}>
+				<TextField
+					label="Code"
+					maxLength={39}
+					value={code}
+					onChange={(e) => setCode(e.target.value.toLowerCase())}
+					error={errors.code}
+					hint="Fixed once created"
+					className="font-mono"
+				/>
+				<SelectField error={errors.feature} label="Unlocks" value={feature} onChange={(e) => setFeature(e.target.value)}>
 					{ADD_ON_FEATURES.map((f) => (
 						<option key={f.key} value={f.key}>
 							{f.label}
 						</option>
 					))}
 				</SelectField>
-				{pack && <TextField label="Branches per pack" inputMode="numeric" value={perUnit} onChange={(e) => setPerUnit(e.target.value)} error={errors.perUnit} />}
+				{pack && <TextField label="Quantity per pack" inputMode="numeric" value={perUnit} onChange={(e) => setPerUnit(e.target.value)} error={errors.perUnit} />}
 				<TextField label="Monthly price (₹)" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} error={errors.monthly} className="tabular" />
 				<TextField label="Yearly price (₹)" inputMode="decimal" value={yearly} onChange={(e) => setYearly(e.target.value)} error={errors.yearly} className="tabular" />
-				<TextareaField label="Reason (recorded in the audit log)" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} error={errors.reason} containerClassName="sm:col-span-2" />
+				<TextareaField
+					label="Reason (recorded in the audit log)"
+					maxLength={500}
+					value={reason}
+					onChange={(e) => setReason(e.target.value)}
+					error={errors.reason}
+					containerClassName="sm:col-span-2"
+				/>
 				<div className="sm:col-span-2">
 					<InlineError message={mutation.error?.message} />
 				</div>
@@ -676,6 +703,7 @@ function NewAddOnDialog({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 function AddOnPriceDialog({ addOn, onClose }: { addOn: AddOn | null; onClose: () => void }) {
+	const { product } = useProducts();
 	const toast = useToast();
 	const queryClient = useQueryClient();
 	const [interval, setInterval] = useState<'Month' | 'Year'>('Month');
@@ -689,7 +717,7 @@ function AddOnPriceDialog({ addOn, onClose }: { addOn: AddOn | null; onClose: ()
 	}
 
 	const mutation = useMutation({
-		mutationFn: (body: Parameters<typeof api.newAddOnPrice>[1]) => api.newAddOnPrice(addOn!.code, body),
+		mutationFn: (body: Parameters<typeof api.newAddOnPrice>[1]) => api.newAddOnPrice(addOn!.code, body, product!.key),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ['plans'] });
 			toast.success(`New price saved for ${addOn!.name}.`);
@@ -749,7 +777,14 @@ function AddOnPriceDialog({ addOn, onClose }: { addOn: AddOn | null; onClose: ()
 					<option value="Month">Monthly</option>
 					<option value="Year">Yearly</option>
 				</SelectField>
-				<TextField label={addOn?.value !== 'true' ? 'Price per pack (₹)' : 'Price (₹)'} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} error={errors.price} className="tabular" />
+				<TextField
+					label={addOn?.value !== 'true' ? 'Price per pack (₹)' : 'Price (₹)'}
+					inputMode="decimal"
+					value={price}
+					onChange={(e) => setPrice(e.target.value)}
+					error={errors.price}
+					className="tabular"
+				/>
 				<TextareaField label="Reason (recorded in the audit log)" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} error={errors.reason} />
 				<InlineError message={mutation.error?.message} />
 			</form>

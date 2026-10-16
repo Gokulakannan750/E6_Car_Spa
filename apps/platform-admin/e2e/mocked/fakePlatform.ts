@@ -1,3 +1,5 @@
+import { carSpa } from '../../src/test/products';
+import type { AuditEntry, Product, Seat, SignupOrder } from '../../src/lib/types';
 import type { Page, Route } from '@playwright/test';
 
 /**
@@ -7,6 +9,7 @@ import type { Page, Route } from '@playwright/test';
 export interface FakeOptions {
 	role?: 'Owner' | 'Billing' | 'Support' | 'ReadOnly';
 	firstSignIn?: boolean;
+	products?: Product[];
 }
 
 const now = Date.now();
@@ -25,6 +28,7 @@ const version = (code: string, interval: 'Month' | 'Year', monthly: [number, num
 		androidUserPriceMinor: monthly[0] * k,
 		windowsUserPriceMinor: monthly[1] * k,
 		bothUserPriceMinor: monthly[2] * k,
+		seats: ['android', 'windows', 'both'].map((code, index) => ({ code, name: carSpa.seatTypes[index]!.name, quantity: 0, priceMinor: monthly[index]! * k })),
 		effectiveFrom: iso(-10),
 		effectiveTo: null,
 		entitlements: [
@@ -38,7 +42,13 @@ export const catalog = {
 	chargesGst: false,
 	gstRatePercent: 0,
 	plans: [
-		{ id: 'p1', code: 'starter', name: 'Starter', isActive: true, versions: [version('starter', 'Month', [49_900, 69_900, 99_900]), version('starter', 'Year', [49_900, 69_900, 99_900])] },
+		{
+			id: 'p1',
+			code: 'starter',
+			name: 'Starter',
+			isActive: true,
+			versions: [version('starter', 'Month', [49_900, 69_900, 99_900]), version('starter', 'Year', [49_900, 69_900, 99_900])],
+		},
 		{
 			id: 'p2',
 			code: 'professional',
@@ -76,6 +86,8 @@ interface Company {
 	migrationFailed: boolean;
 	createdAt: string;
 	licences: number;
+	productKey: string;
+	seats: Seat[];
 }
 
 interface Invoice {
@@ -91,8 +103,10 @@ interface Invoice {
 }
 
 export class FakePlatform {
-	readonly requests: { method: string; path: string; body: unknown }[] = [];
+	readonly requests: { method: string; path: string; body: unknown; product: string | null }[] = [];
 	mustChangePassword: boolean;
+	signupOrders: SignupOrder[] = [];
+	auditEntries: AuditEntry[] = [];
 	companies: Company[] = [
 		{
 			id: 'c1',
@@ -107,10 +121,22 @@ export class FakePlatform {
 			migrationFailed: false,
 			createdAt: iso(-30),
 			licences: 4,
+			productKey: 'carspa',
+			seats: [{ code: 'both', name: 'Windows + Android', quantity: 4, priceMinor: 149900 }],
 		},
 	];
 	invoices: Invoice[] = [
-		{ id: 'i1', invoiceNumber: 'TROVO/2026-27/0001', companyId: 'c1', status: 'Open', totalMinor: 199_900, amountDueMinor: 199_900, issuedAt: iso(-8), dueAt: iso(-1), paidAt: null },
+		{
+			id: 'i1',
+			invoiceNumber: 'TROVO/2026-27/0001',
+			companyId: 'c1',
+			status: 'Open',
+			totalMinor: 199_900,
+			amountDueMinor: 199_900,
+			issuedAt: iso(-8),
+			dueAt: iso(-1),
+			paidAt: null,
+		},
 	];
 
 	constructor(private readonly options: FakeOptions = {}) {
@@ -130,6 +156,7 @@ export class FakePlatform {
 		return {
 			...i,
 			companyCode: c.code,
+			productKey: c.productKey,
 			companyName: c.name,
 			currency: 'INR',
 			overdue: i.status === 'Open' && new Date(i.dueAt).getTime() < Date.now(),
@@ -148,14 +175,18 @@ export class FakePlatform {
 		const path = url.pathname.replace('/api/platform', '');
 		const method = request.method();
 		const body = request.postData() ? JSON.parse(request.postData()!) : undefined;
-		this.requests.push({ method, path, body });
-		const json = (status: number, data?: unknown) =>
-			route.fulfill({ status, contentType: 'application/json', body: data === undefined ? '' : JSON.stringify(data) });
+		this.requests.push({ method, path, body, product: url.searchParams.get('product') });
+		const json = (status: number, data?: unknown) => route.fulfill({ status, contentType: 'application/json', body: data === undefined ? '' : JSON.stringify(data) });
 
 		if (method === 'POST' && path === '/auth/login') {
 			if (body.password !== 'correct horse battery') return json(401, { error: 'Invalid email or password.' });
 			return this.options.firstSignIn
-				? json(200, { stage: 'totp-setup', challengeToken: 'ch', totpSecret: 'JBSWY3DPEHPK3PXP', authenticatorUri: 'otpauth://totp/Trovo:owner?secret=JBSWY3DPEHPK3PXP&issuer=Trovo' })
+				? json(200, {
+						stage: 'totp-setup',
+						challengeToken: 'ch',
+						totpSecret: 'JBSWY3DPEHPK3PXP',
+						authenticatorUri: 'otpauth://totp/Trovo:owner?secret=JBSWY3DPEHPK3PXP&issuer=Trovo',
+					})
 				: json(200, { stage: 'totp', challengeToken: 'ch', totpSecret: null, authenticatorUri: null });
 		}
 		if (method === 'POST' && path === '/auth/verify') {
@@ -167,22 +198,29 @@ export class FakePlatform {
 		}
 		if (this.mustChangePassword) return json(403, { error: 'Change your password first.', code: 'PASSWORD_CHANGE_REQUIRED' });
 
+		if (method === 'GET' && path === '/products') return json(200, this.options.products ?? [carSpa]);
+
 		if (method === 'GET' && path === '/dashboard') {
+			const filteredCompanies = this.companies.filter((c) => !url.searchParams.get('product') || c.productKey === url.searchParams.get('product'));
 			const by: Record<string, number> = {};
-			for (const c of this.companies) by[c.subscriptionStatus] = (by[c.subscriptionStatus] ?? 0) + 1;
+			for (const c of filteredCompanies) by[c.subscriptionStatus] = (by[c.subscriptionStatus] ?? 0) + 1;
 			const open = this.invoices.filter((i) => i.status === 'Open');
 			return json(200, {
-				companies: this.companies.length,
+				companies: filteredCompanies.length,
 				subscriptionsByStatus: by,
 				monthlyRecurringRevenueMinor: 199_900,
 				openInvoices: open.length,
 				amountDueMinor: open.reduce((s, i) => s + i.amountDueMinor, 0),
-				awaitingRegistration: this.companies.filter((c) => c.companyStatus === 'AwaitingRegistration').length,
+				awaitingRegistration: filteredCompanies.filter((c) => c.companyStatus === 'AwaitingRegistration').length,
 				migrationFailures: 0,
 				recentActivity: [],
 			});
 		}
-		if (method === 'GET' && path === '/companies') return json(200, this.companies);
+		if (method === 'GET' && path === '/companies')
+			return json(
+				200,
+				this.companies.filter((c) => !url.searchParams.get('product') || c.productKey === url.searchParams.get('product')),
+			);
 		if (method === 'POST' && path === '/companies') {
 			const code = String(this.companies.length + 1).padStart(4, '0');
 			const company: Company = {
@@ -197,16 +235,72 @@ export class FakePlatform {
 				trialEndsAt: body.plan ? null : iso(7),
 				migrationFailed: false,
 				createdAt: iso(0),
-				licences: body.plan ? body.plan.licences.android + body.plan.licences.windows + body.plan.licences.both : 3,
+				licences: 0,
+				productKey: url.searchParams.get('product') ?? 'carspa',
+				seats: Object.entries((body.plan?.seats ?? { both: 3 }) as Record<string, number>).map(([code, quantity]) => ({ code, name: code, quantity, priceMinor: 0 })),
 			};
 			this.companies.push(company);
 			return json(201, { id: company.id, code, name: company.name, registrationCode: 'K7QM-4RTX-9PWD', registrationCodeExpiresAt: iso(7), databaseName: `carspa_t_${code}` });
 		}
-		if (method === 'GET' && path === '/plans') return json(200, catalog);
+		if (method === 'GET' && path === '/plans') {
+			const product = (this.options.products ?? [carSpa]).find((p) => p.key === url.searchParams.get('product')) ?? carSpa;
+			if (product.key === carSpa.key) return json(200, catalog);
+			return json(200, {
+				...catalog,
+				addOns: [],
+				plans: [
+					{
+						id: 'demo-plan',
+						code: product.trialPlanCode,
+						name: 'Basic',
+						isActive: true,
+						versions: ['Month', 'Year'].map((interval) => ({
+							id: interval,
+							version: 1,
+							interval,
+							currency: 'INR',
+							priceMinor: 1000,
+							includedSeats: product.seatModel === 'None' ? 0 : 1,
+							effectiveFrom: iso(-10),
+							effectiveTo: null,
+							seats: product.seatTypes.map((s) => ({ code: s.code, name: s.name, quantity: 0, priceMinor: 250 })),
+							entitlements: product.features.map((f) => ({ featureKey: f.key, value: 'true' })),
+						})),
+					},
+				],
+			});
+		}
+		if (method === 'POST' && (path === '/plans' || path === '/addons' || path.endsWith('/versions') || path.endsWith('/prices'))) return json(201, {});
+		if (method === 'GET' && path === '/settings') return json(200, { trialDays: 7, trialLicences: 3, graceDays: 7, renewalInvoiceDaysBefore: 7, franchiseCodeMinutes: 60 });
+		if (method === 'PUT' && path === '/settings') return json(200, body);
+		if (path === '/migrations' || path === '/migrations/run')
+			return json(
+				200,
+				this.companies
+					.filter((c) => !url.searchParams.get('product') || c.productKey === url.searchParams.get('product'))
+					.map((c) => ({ ...c, schemaVersion: c.productKey === 'demo' ? 'demo-v1' : 'runtime-v1', lastMigratedAt: iso(0), migrationError: null })),
+			);
+		if (method === 'GET' && path === '/signups')
+			return json(
+				200,
+				this.signupOrders.filter(
+					(r) =>
+						(!url.searchParams.get('product') || r.productKey === url.searchParams.get('product')) &&
+						(!url.searchParams.get('status') || r.status === url.searchParams.get('status')),
+				),
+			);
+		if (method === 'GET' && path === '/audit-logs')
+			return json(
+				200,
+				this.auditEntries.filter((r) => !url.searchParams.get('product') || r.productKey === url.searchParams.get('product')),
+			);
 		if (method === 'GET' && path === '/invoices') {
 			const status = url.searchParams.get('status');
 			const rows = this.invoices.map((i) => this.invoiceRow(i)).filter((i) => !status || i.status.toLowerCase() === status || (status === 'overdue' && i.overdue));
-			return json(200, rows);
+			return json(
+				200,
+				rows.filter((r) => !url.searchParams.get('product') || r.productKey === url.searchParams.get('product')),
+			);
 		}
 		const pay = path.match(/^\/invoices\/([^/]+)\/payments$/);
 		if (method === 'POST' && pay) {

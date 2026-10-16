@@ -1,3 +1,4 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -11,7 +12,7 @@ import { CompanyStatusBadge } from '@/components/StatusBadge';
 import { Card, EmptyState, ErrorState, LoadingState, PageHeader } from '@/components/Surface';
 import { useAuth, SUPPORT_ROLES } from '@/features/auth/AuthProvider';
 import { api } from '@/lib/api';
-import { planName } from '@/lib/catalog';
+import { planName, seatQuantities, totalSeats } from '@/lib/catalog';
 import { csvDate, downloadCsv, todayStamp } from '@/lib/csv';
 import { date, daysUntil, intervalLabel } from '@/lib/format';
 import type { CompanyListItem } from '@/lib/types';
@@ -36,6 +37,7 @@ function statusText(c: CompanyListItem): string {
 }
 
 export function CompaniesPage() {
+	const { key: productKey, products } = useProducts();
 	useBreadcrumbs({ label: 'Companies' });
 	const { can } = useAuth();
 	const navigate = useNavigate();
@@ -46,7 +48,7 @@ export function CompaniesPage() {
 	const [creating, setCreating] = useState(false);
 
 	// The whole list is small (one row per customer), so it is loaded once and filtered here.
-	const companies = useQuery({ queryKey: ['companies', '', ''], queryFn: () => api.companies() });
+	const companies = useQuery({ queryKey: ['companies', productKey], queryFn: () => api.companies(undefined, undefined, productKey) });
 
 	function setParam(key: string, value: string, empty: string) {
 		const next = new URLSearchParams(params);
@@ -59,15 +61,14 @@ export function CompaniesPage() {
 	const plans = useMemo(() => Array.from(new Set(all.map((c) => c.plan).filter((p): p is string => !!p))).sort(), [all]);
 	const searched = useMemo(() => {
 		const term = search.trim().toLowerCase();
-		return all.filter(
-			(c) => (!term || c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term)) && (plan === 'all' || c.plan === plan),
-		);
+		return all.filter((c) => (!term || c.code.toLowerCase().includes(term) || c.name.toLowerCase().includes(term)) && (plan === 'all' || c.plan === plan));
 	}, [all, search, plan]);
 	const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[0]!;
 	const rows = useMemo(() => searched.filter(activeFilter.match), [searched, activeFilter]);
 
 	const columns = useMemo<ColumnDef<CompanyListItem, unknown>[]>(
 		() => [
+			{ accessorKey: 'productKey', header: 'Product', cell: ({ row }) => <ProductBadge productKey={row.original.productKey} /> },
 			{
 				accessorKey: 'code',
 				header: 'Code',
@@ -98,10 +99,14 @@ export function CompaniesPage() {
 					),
 			},
 			{
-				accessorKey: 'licences',
-				header: 'Users',
+				id: 'seats',
+				header: 'Seats',
 				meta: { align: 'right' },
-				cell: ({ row }) => <span className="tabular text-text-secondary">{row.original.licences || '—'}</span>,
+				cell: ({ row }) => (
+					<span className="tabular text-text-secondary">
+						{products.find((p) => p.key === row.original.productKey)?.seatModel === 'None' ? 'Unlimited' : totalSeats(seatQuantities(row.original.seats))}
+					</span>
+				),
 			},
 			{
 				id: 'status',
@@ -137,13 +142,13 @@ export function CompaniesPage() {
 				cell: ({ row }) => <span className="tabular text-text-secondary">{date(row.original.createdAt)}</span>,
 			},
 		],
-		[],
+		[products],
 	);
 
 	function exportCsv() {
 		downloadCsv(
 			`trovo-companies-${todayStamp()}.csv`,
-			['Code', 'Company', 'Company status', 'Subscription status', 'Plan', 'Billing', 'User licences', 'Renews / ends', 'Trial ends', 'Created', 'Database update failed'],
+			['Code', 'Company', 'Company status', 'Subscription status', 'Plan', 'Billing', 'Seats', 'Renews / ends', 'Trial ends', 'Created', 'Database update failed', 'Product'],
 			rows.map((c) => [
 				c.code,
 				c.name,
@@ -151,11 +156,12 @@ export function CompaniesPage() {
 				c.subscriptionStatus ?? '',
 				c.plan ? planName(c.plan) : '',
 				c.interval ? intervalLabel(c.interval) : '',
-				c.licences,
+				products.find((p) => p.key === c.productKey)?.seatModel === 'None' ? 'Unlimited' : totalSeats(seatQuantities(c.seats)),
 				csvDate(c.currentPeriodEnd),
 				csvDate(c.trialEndsAt),
 				csvDate(c.createdAt),
 				c.migrationFailed ? 'Yes' : 'No',
+				c.productKey,
 			]),
 		);
 	}
@@ -164,7 +170,7 @@ export function CompaniesPage() {
 		<>
 			<PageHeader
 				title="Companies"
-				description={companies.data ? `${all.length} car spa businesses on Trovo` : 'Car spa businesses on Trovo'}
+				description={companies.data ? `${all.length} companies on Trovo` : 'Companies on Trovo'}
 				actions={
 					<>
 						<Button icon={<Download className="size-4" />} onClick={exportCsv} disabled={rows.length === 0}>

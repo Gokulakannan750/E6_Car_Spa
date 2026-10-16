@@ -1,3 +1,4 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -24,12 +25,13 @@ const DISTRIBUTION: { key: string; label: string; color: string }[] = [
 ];
 
 export function DashboardPage() {
+	const { key: productKey, products } = useProducts();
 	useBreadcrumbs({ label: 'Dashboard' });
 	const { can } = useAuth();
 	const navigate = useNavigate();
 	const [creating, setCreating] = useState(false);
-	const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: api.dashboard });
-	const companies = useQuery({ queryKey: ['companies', '', ''], queryFn: () => api.companies() });
+	const dashboard = useQuery({ queryKey: ['dashboard', productKey], queryFn: () => api.dashboard(products.length === 1 ? undefined : productKey) });
+	const companies = useQuery({ queryKey: ['companies', productKey], queryFn: () => api.companies(undefined, undefined, productKey) });
 
 	return (
 		<>
@@ -67,7 +69,19 @@ export function DashboardPage() {
 	);
 }
 
-function Kpi({ label, value, detail, icon, tone = 'text-text-heading' }: { label: string; value: React.ReactNode; detail?: React.ReactNode; icon: React.ReactNode; tone?: string }) {
+function Kpi({
+	label,
+	value,
+	detail,
+	icon,
+	tone = 'text-text-heading',
+}: {
+	label: string;
+	value: React.ReactNode;
+	detail?: React.ReactNode;
+	icon: React.ReactNode;
+	tone?: string;
+}) {
 	return (
 		<Card className="p-5">
 			<div className="flex items-start justify-between gap-3">
@@ -117,13 +131,7 @@ function Kpis({ data }: { data: Dashboard }) {
 				icon={<Clock className="size-4" />}
 				value={by.Trialing ?? 0}
 				tone="text-trial"
-				detail={
-					data.migrationFailures > 0 ? (
-						<span className="text-danger">{data.migrationFailures} company databases failed to update</span>
-					) : (
-						'7-day Professional trial'
-					)
-				}
+				detail={data.migrationFailures > 0 ? <span className="text-danger">{data.migrationFailures} company databases failed to update</span> : 'Product trial'}
 			/>
 		</div>
 	);
@@ -174,6 +182,7 @@ function Attention({ companies, loading }: { companies: CompanyListItem[]; loadi
 				<table className="w-full text-table">
 					<thead>
 						<tr className="border-b border-border-subtle text-left text-label font-semibold tracking-[0.04em] text-text-muted uppercase">
+							<th className="h-10 px-4">Product</th>
 							<th className="h-10 px-5">Company</th>
 							<th className="h-10 px-4">Status</th>
 							<th className="h-10 px-4">Issue</th>
@@ -189,6 +198,9 @@ function Attention({ companies, loading }: { companies: CompanyListItem[]; loadi
 								onKeyDown={(e) => e.key === 'Enter' && navigate(`/companies/${company.id}`)}
 								className="h-11 cursor-pointer border-b border-border-hairline last:border-b-0 hover:bg-surface-raised/60"
 							>
+								<td className="px-4 py-2">
+									<ProductBadge productKey={company.productKey} />
+								</td>
 								<td className="px-5 py-2">
 									<div className="font-medium text-text-heading">{company.name}</div>
 									<div className="tabular font-mono text-micro text-text-muted">
@@ -275,7 +287,9 @@ function RecentActivity({ data }: { data: Dashboard }) {
 					{data.recentActivity.map((entry) => (
 						<li key={entry.id} className="relative border-l border-border-subtle py-2 pl-4">
 							<span className="absolute top-3.5 -left-[4.5px] size-2 rounded-full bg-action" aria-hidden />
-							<div className="text-label font-medium text-text-heading">{actionLabel(entry.action)}</div>
+							<div className="text-label font-medium text-text-heading">
+								{actionLabel(entry.action)} <ProductBadge productKey={entry.productKey} />
+							</div>
 							<div className="text-micro text-text-muted">
 								{entry.administratorEmail ?? 'System'} · {dateTime(entry.createdAt)}
 							</div>

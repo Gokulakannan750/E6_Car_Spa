@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-	flexRender,
-	getCoreRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
-	type ColumnDef,
-	type SortingState,
-} from '@tanstack/react-table';
+import { flexRender, getCoreRowModel, getPaginationRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface DataTableProps<T> {
@@ -22,16 +14,7 @@ interface DataTableProps<T> {
 }
 
 /** The dense list table from the design: 44px rows, uppercase headers, sortable columns, simple paging. */
-export function DataTable<T>({
-	data,
-	columns,
-	onRowClick,
-	pageSize = 25,
-	initialSorting = [],
-	empty,
-	rowLabel,
-	noun = 'rows',
-}: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, onRowClick, pageSize = 25, initialSorting = [], empty, rowLabel, noun = 'rows' }: DataTableProps<T>) {
 	const [sorting, setSorting] = useState<SortingState>(initialSorting);
 	const table = useReactTable({
 		data,
@@ -67,14 +50,10 @@ export function DataTable<T>({
 											key={header.id}
 											scope="col"
 											aria-sort={sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : undefined}
-											className={`h-10 px-4 text-label font-semibold tracking-[0.04em] whitespace-nowrap text-text-muted uppercase ${align}`}
+											className={`relative h-10 px-4 text-label font-semibold tracking-[0.04em] whitespace-nowrap text-text-muted uppercase ${align}`}
 										>
 											{header.isPlaceholder ? null : sortable ? (
-												<button
-													type="button"
-													onClick={header.column.getToggleSortingHandler()}
-													className="inline-flex items-center gap-1 uppercase hover:text-text-heading"
-												>
+												<button type="button" onClick={header.column.getToggleSortingHandler()} className="inline-flex items-center gap-1 uppercase hover:text-text-heading">
 													{flexRender(header.column.columnDef.header, header.getContext())}
 													{sorted === 'asc' ? <ArrowUp className="size-3" /> : sorted === 'desc' ? <ArrowDown className="size-3" /> : null}
 												</button>

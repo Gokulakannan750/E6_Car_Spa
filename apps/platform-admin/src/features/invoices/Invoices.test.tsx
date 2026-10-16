@@ -7,6 +7,7 @@ import { adminWith, fakeApi, renderApp, signIn } from '@/test/utils';
 
 const invoice: InvoiceListItem = {
 	id: 'inv-1',
+	productKey: 'carspa',
 	invoiceNumber: 'TROVO/2026-27/0007',
 	companyId: 'c2',
 	companyCode: '0002',
@@ -66,6 +67,20 @@ describe('invoices', () => {
 		expect(screen.queryByRole('button', { name: 'Record payment' })).not.toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: 'Export CSV' }));
 		const [, , rows] = download.mock.calls[0]!;
-		expect(rows[0]).toEqual(['TROVO/2026-27/0007', '0002', 'Sunrise Detailing', 'Open', 'Yes', '2026-10-12', '2026-11-11', '2026-10-05', '2026-10-10', '', 'INR', '2998.00', '2998.00']);
+		expect(rows[0]).toEqual([
+			'TROVO/2026-27/0007',
+			'0002',
+			'Sunrise Detailing',
+			'Open',
+			'Yes',
+			'2026-10-12',
+			'2026-11-11',
+			'2026-10-05',
+			'2026-10-10',
+			'',
+			'INR',
+			'2998.00',
+			'2998.00',
+		]);
 	});
 });

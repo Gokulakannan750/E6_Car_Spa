@@ -69,6 +69,12 @@ public class PlatformLicenceHttpTests(PlatformApiHost host) : IClassFixture<Plat
         Assert.Equal(1, detail.GetProperty("licencesUsed").GetProperty("windows").GetInt32());
         Assert.Equal(1, detail.GetProperty("subscription").GetProperty("licences").GetProperty("android").GetInt32());
         Assert.Equal(49_900, detail.GetProperty("subscription").GetProperty("licencePrices").GetProperty("android").GetInt64());
+        var genericUsage = detail.GetProperty("seatUsage").EnumerateArray().ToDictionary(s => s.GetProperty("code").GetString()!, s => s.GetProperty("quantity").GetInt32());
+        Assert.Equal(new Dictionary<string, int> { ["android"] = 0, ["windows"] = 1, ["both"] = 1 }, genericUsage);
+        Assert.False(string.IsNullOrWhiteSpace(detail.GetProperty("productKey").GetString()));
+        var products = await Json(await host.SendAsync(HttpMethod.Get, "/api/platform/products", billing));
+        var seatDefinitions = products.EnumerateArray().Single(p => p.GetProperty("key").GetString() == detail.GetProperty("productKey").GetString()).GetProperty("seatTypes");
+        Assert.Equal("both", seatDefinitions.EnumerateArray().Single(s => s.GetProperty("defaultSeat").GetBoolean()).GetProperty("code").GetString());
     }
 
     [PostgresFact]

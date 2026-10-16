@@ -1,6 +1,7 @@
+import { useProducts, ProductBadge } from '@/features/products/ProductProvider';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBreadcrumbs } from '@/app/layout/Breadcrumbs';
 import { Button } from '@/components/Button';
@@ -15,6 +16,7 @@ import type { AuditEntry } from '@/lib/types';
 const PAGE_SIZE = 50;
 
 export function AuditLogPage() {
+	const { key: productKey } = useProducts();
 	useBreadcrumbs({ label: 'Audit Log' });
 	const [params, setParams] = useSearchParams();
 	const companyId = params.get('company') ?? '';
@@ -22,11 +24,10 @@ export function AuditLogPage() {
 	const page = Math.max(1, Number(params.get('page')) || 1);
 	const [selected, setSelected] = useState<AuditEntry | null>(null);
 
-	const companies = useQuery({ queryKey: ['companies', '', ''], queryFn: () => api.companies() });
+	const companies = useQuery({ queryKey: ['companies', productKey], queryFn: () => api.companies(undefined, undefined, productKey) });
 	const log = useQuery({
-		queryKey: ['audit', companyId, page],
-		queryFn: () => api.auditLogs(companyId || undefined, page),
-		placeholderData: keepPreviousData,
+		queryKey: ['audit', productKey, companyId, page],
+		queryFn: () => api.auditLogs(companyId || undefined, page, productKey),
 	});
 	const companyById = useMemo(() => new Map((companies.data ?? []).map((c) => [c.id, c])), [companies.data]);
 	// The API pages by company; the action filter narrows the page shown.
@@ -73,6 +74,7 @@ export function AuditLogPage() {
 						<table className="w-full text-table">
 							<thead>
 								<tr className="border-b border-border-subtle text-left text-label font-semibold tracking-[0.04em] whitespace-nowrap text-text-muted uppercase">
+									<th className="h-10 px-4">Product</th>
 									<th className="h-10 px-4">When</th>
 									<th className="h-10 px-4">Who</th>
 									<th className="h-10 px-4">Action</th>
@@ -92,6 +94,9 @@ export function AuditLogPage() {
 											onKeyDown={(k) => k.key === 'Enter' && setSelected(e)}
 											className="h-11 cursor-pointer border-b border-border-hairline last:border-b-0 hover:bg-surface-raised/60"
 										>
+											<td className="px-4 py-2">
+												<ProductBadge productKey={e.productKey} />
+											</td>
 											<td className="tabular px-4 py-2 whitespace-nowrap text-text-secondary">{dateTime(e.createdAt)}</td>
 											<td className="px-4 py-2">{e.administratorEmail ?? <span className="text-text-muted">System</span>}</td>
 											<td className="px-4 py-2 font-medium text-text-heading">{actionLabel(e.action)}</td>

@@ -1,3 +1,4 @@
+import { useProducts, ChooseProduct } from '@/features/products/ProductProvider';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/Button';
@@ -9,35 +10,39 @@ import type { PlatformSettings } from '@/lib/types';
 
 /** Same limits as the API (PlatformSettingsService.Limits). */
 const FIELDS: { key: keyof PlatformSettings; label: string; hint: string; min: number; max: number }[] = [
-	{ key: 'trialDays', label: 'Free trial (days)', hint: 'Full Professional for a new company.', min: 1, max: 60 },
-	{ key: 'trialLicences', label: 'Users during the trial', hint: 'Windows + Android licences a trial company gets.', min: 1, max: 50 },
+	{ key: 'trialDays', label: 'Free trial (days)', hint: 'The product’s configured trial plan for a new company.', min: 1, max: 60 },
+	{ key: 'trialLicences', label: 'Users during the trial', hint: 'Seat quantity for a trial company.', min: 1, max: 50 },
 	{ key: 'graceDays', label: 'Grace after an unpaid period (days)', hint: 'Full access with a warning, then read-only.', min: 0, max: 60 },
 	{ key: 'renewalInvoiceDaysBefore', label: 'Renewal invoice (days before)', hint: 'When the next invoice is issued.', min: 1, max: 30 },
 	{ key: 'franchiseCodeMinutes', label: 'Franchise code lifetime (minutes)', hint: 'How long a franchise sign-up code works. 60 = 1 hour.', min: 10, max: 10080 },
 ];
 
 export function PlatformSettingsCard() {
+	const { product } = useProducts();
+	const fields = FIELDS.filter(
+		(f) => (f.key !== 'trialLicences' || product?.seatModel !== 'None') && (f.key !== 'franchiseCodeMinutes' || product?.capabilities.includes('franchise')),
+	).map((f) => (f.key === 'trialLicences' ? { ...f, label: `Trial ${product?.seatModel === 'Counted' ? (product.seatTypes[0]?.name ?? 'seats') : 'seats'}` } : f));
 	const toast = useToast();
 	const queryClient = useQueryClient();
-	const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+	const settings = useQuery({ queryKey: ['settings', product?.key], queryFn: () => api.settings(product!.key), enabled: !!product });
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [reason, setReason] = useState('');
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	useEffect(() => {
-		if (settings.data) setValues(Object.fromEntries(FIELDS.map((f) => [f.key, String(settings.data[f.key])])));
+		if (settings.data) setValues(Object.fromEntries(fields.map((f) => [f.key, String(settings.data[f.key])])));
 	}, [settings.data]);
 
 	const save = useMutation({
-		mutationFn: api.updateSettings,
+		mutationFn: (body: Parameters<typeof api.updateSettings>[0]) => api.updateSettings(body, product!.key),
 		onSuccess: (saved) => {
-			queryClient.setQueryData(['settings'], saved);
+			queryClient.setQueryData(['settings', product?.key], saved);
 			setReason('');
 			toast.success('Settings saved. They apply to new trials and the next checks.');
 		},
 	});
 
-	const changed = settings.data ? FIELDS.filter((f) => values[f.key] !== String(settings.data[f.key])) : [];
+	const changed = settings.data ? fields.filter((f) => values[f.key] !== String(settings.data[f.key])) : [];
 
 	function submit(event: FormEvent) {
 		event.preventDefault();
@@ -53,16 +58,17 @@ export function PlatformSettingsCard() {
 		if (Object.keys(next).length === 0) save.mutate({ ...body, reason: reason.trim() });
 	}
 
+	if (!product) return <ChooseProduct />;
 	return (
 		<Card className="mb-6">
-			<CardHeader title="Subscription settings" subtitle="Changes apply to new trials and to the next lifecycle checks; existing trials keep their end date." />
+			<CardHeader title={`Subscription settings · ${product.name}`} subtitle="Changes apply to new trials and to the next lifecycle checks; existing trials keep their end date." />
 			{settings.isPending ? (
 				<LoadingState />
 			) : settings.isError ? (
 				<ErrorState error={settings.error} onRetry={() => settings.refetch()} />
 			) : (
 				<form onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
-					{FIELDS.map((f) => (
+					{fields.map((f) => (
 						<TextField
 							key={f.key}
 							label={f.label}
@@ -84,7 +90,7 @@ export function PlatformSettingsCard() {
 								error={errors.reason}
 							/>
 							<div className="flex items-end gap-2">
-								<Button variant="ghost" onClick={() => settings.data && setValues(Object.fromEntries(FIELDS.map((f) => [f.key, String(settings.data[f.key])])))}>
+								<Button variant="ghost" onClick={() => settings.data && setValues(Object.fromEntries(fields.map((f) => [f.key, String(settings.data[f.key])])))}>
 									Undo
 								</Button>
 								<Button type="submit" variant="primary" loading={save.isPending}>
