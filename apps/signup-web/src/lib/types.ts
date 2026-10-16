@@ -13,11 +13,23 @@ export interface Seat {
 	quantity: number;
 	priceMinor: number;
 }
+export interface StartingPrice {
+	amountMinor: number;
+	interval: 'Month' | 'Year' | string;
+	currency: string;
+	perSeat: boolean;
+}
+
 export interface PublicProduct {
 	key: string;
 	name: string;
 	seatModel: 'None' | 'Counted' | 'PerType';
 	capabilities: string[];
+	publicTagline?: string | null;
+	publicDescription?: string | null;
+	learnMoreUrl?: string | null;
+	startingPrice?: StartingPrice | null;
+	hasTrial?: boolean;
 }
 export interface Prices {
 	companyFeeMinor: number;

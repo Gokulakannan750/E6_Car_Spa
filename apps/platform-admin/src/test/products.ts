@@ -16,6 +16,9 @@ export const carSpa: Product = {
 		{ key: 'showroom.enabled', label: 'Showroom / B2B', type: 'Bool', sortOrder: 2 },
 	],
 	capabilities: ['franchise'],
+	publicTagline: 'Billing, jobs and staff for car spas',
+	publicDescription: 'Complete auto detailing software with billing, job cards, staff commissions and WhatsApp.',
+	learnMoreUrl: 'https://trovotechsolutions.in/products/baylior/',
 };
 export const demo: Product = {
 	key: 'demo',
@@ -27,4 +30,7 @@ export const demo: Product = {
 	seatTypes: [],
 	features: [{ key: 'demo.enabled', label: 'Project workspace', type: 'Bool', sortOrder: 1 }],
 	capabilities: [],
+	publicTagline: 'Project management for modern teams',
+	publicDescription: 'A clean and simple way to organize your work.',
+	learnMoreUrl: 'https://trovotechsolutions.in/',
 };

@@ -200,6 +200,30 @@ export class FakePlatform {
 
 		if (method === 'GET' && path === '/products') return json(200, this.options.products ?? [carSpa]);
 
+		if (method === 'PUT' && path.startsWith('/products/') && path.endsWith('/public-listing')) {
+			const productKey = path.split('/')[2];
+			const list = this.options.products ?? [carSpa];
+			const product = list.find((p) => p.key === productKey);
+			if (!product) return json(404, { error: 'Product not found.' });
+			const before = { publicTagline: product.publicTagline, publicDescription: product.publicDescription, learnMoreUrl: product.learnMoreUrl };
+			product.publicTagline = body.publicTagline;
+			product.publicDescription = body.publicDescription;
+			product.learnMoreUrl = body.learnMoreUrl;
+			this.auditEntries.push({
+				id: `audit-${Date.now()}`,
+				createdAt: new Date().toISOString(),
+				administratorEmail: 'owner@trovo.test',
+				action: 'product.public_listing_updated',
+				targetCompanyId: null,
+				beforeValues: JSON.stringify(before),
+				afterValues: JSON.stringify({ publicTagline: product.publicTagline, publicDescription: product.publicDescription, learnMoreUrl: product.learnMoreUrl }),
+				reason: body.reason,
+				ipAddress: '127.0.0.1',
+				productKey: product.key,
+			});
+			return json(200, product);
+		}
+
 		if (method === 'GET' && path === '/dashboard') {
 			const filteredCompanies = this.companies.filter((c) => !url.searchParams.get('product') || c.productKey === url.searchParams.get('product'));
 			const by: Record<string, number> = {};

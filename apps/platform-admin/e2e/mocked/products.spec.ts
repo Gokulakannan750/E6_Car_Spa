@@ -152,6 +152,26 @@ test('settings and migrations scope calls and all-product migration requires con
 	expect(api.requests.filter((r) => r.path === '/migrations/run')[1]?.product).toBeNull();
 });
 
+test('public listing card edits fields with reason dialog and records audit log', async ({ page }) => {
+	const api = await start(page, [carSpa, demo]);
+	await page.getByRole('combobox', { name: 'Product', exact: true }).selectOption('carspa');
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'System', exact: true }).click();
+	await expect(page.getByText('Public listing · Car Spa')).toBeVisible();
+	const tagline = page.getByLabel('Public tagline');
+	await expect(tagline).toHaveValue(carSpa.publicTagline!);
+	await tagline.fill('Updated Tagline for Auto Spa');
+	await page.getByRole('button', { name: 'Save changes' }).click();
+	const dialog = page.getByRole('dialog');
+	await expect(dialog.getByText('Update public listing · Car Spa')).toBeVisible();
+	await dialog.getByLabel('Reason (recorded in the audit log)').fill('Marketing update for Stage 7');
+	await dialog.getByRole('button', { name: 'Save changes' }).click();
+	await expect(page.getByText('Public listing updated · Car Spa')).toBeVisible();
+	const audit = api.auditEntries.find((a) => a.action === 'product.public_listing_updated');
+	expect(audit).toBeDefined();
+	expect(audit?.reason).toBe('Marketing update for Stage 7');
+	expect(audit?.productKey).toBe('carspa');
+});
+
 test('product filters reach every list and mixed sign-up, invoice, audit and migration rows carry badges', async ({ page }) => {
 	const api = await start(page, [carSpa, demo], (api) => {
 		api.companies.push({ ...api.companies[0]!, id: 'demo-c1', productKey: 'demo', name: 'Demo company', seats: [] });

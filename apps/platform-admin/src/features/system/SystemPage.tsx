@@ -10,6 +10,7 @@ import { useToast } from '@/components/Toast';
 import { api } from '@/lib/api';
 import { dateTime } from '@/lib/format';
 import { PlatformSettingsCard } from './PlatformSettingsCard';
+import { PublicListingCard } from './PublicListingCard';
 
 export function SystemPage() {
 	useBreadcrumbs({ label: 'System' });
@@ -58,6 +59,7 @@ export function SystemPage() {
 				}
 			/>
 			<PlatformSettingsCard />
+			<PublicListingCard />
 			<div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 				<Stat label="Company databases" value={rows.length} />
 				<Stat label="Schema versions in use" value={versions.size} note={versionsDifferWithinProduct ? 'Different versions within a product' : undefined} />

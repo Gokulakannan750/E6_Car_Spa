@@ -70,7 +70,7 @@ export function PlanStep() {
 			<div className="flex flex-wrap items-end justify-between gap-4">
 				<div>
 					<h1 className="text-headline font-semibold text-text-heading sm:text-display">{definition.seatModel === 'None' ? 'Choose your plan' : 'Choose your plan and users'}</h1>
-					<p className="mt-1 text-body text-text-secondary">You can add users and modules later.</p>
+					{definition.seatModel !== 'None' && <p className="mt-1 text-body text-text-secondary">You can add users and modules later.</p>}
 				</div>
 				<IntervalToggle value={choice.interval} freeMonths={catalog.data ? yearlyFreeMonths(catalog.data) : 0} onChange={(interval) => setChoice({ ...choice, interval })} />
 			</div>

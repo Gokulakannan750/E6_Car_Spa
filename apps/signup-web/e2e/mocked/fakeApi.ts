@@ -154,7 +154,58 @@ export class FakeSignupApi {
 		if (path === '/products')
 			return json(
 				200,
-				this.catalogs.map((c) => ({ key: c.productKey, name: c.productName, seatModel: c.seatModel, capabilities: c.capabilities })),
+				this.catalogs.map((c) => {
+					let startingPrice = null;
+					if (c.plans && c.plans.length > 0) {
+						if (c.seatModel === 'None') {
+							const fees: { amountMinor: number; interval: 'Month' | 'Year'; currency: string; perSeat: boolean }[] = [];
+							for (const p of c.plans) {
+								if (p.monthly && p.monthly.companyFeeMinor > 0) {
+									fees.push({ amountMinor: p.monthly.companyFeeMinor, interval: 'Month', currency: 'INR', perSeat: false });
+								}
+								if (p.yearly && p.yearly.companyFeeMinor > 0) {
+									fees.push({ amountMinor: p.yearly.companyFeeMinor, interval: 'Year', currency: 'INR', perSeat: false });
+								}
+							}
+							if (fees.length > 0) {
+								fees.sort((a, b) => a.amountMinor - b.amountMinor);
+								startingPrice = fees[0];
+							}
+						} else {
+							const seats: { amountMinor: number; interval: 'Month' | 'Year'; currency: string; perSeat: boolean }[] = [];
+							for (const p of c.plans) {
+								if (p.monthly) {
+									for (const s of p.monthly.seats) {
+										if (s.priceMinor > 0) {
+											seats.push({ amountMinor: s.priceMinor, interval: 'Month', currency: 'INR', perSeat: true });
+										}
+									}
+								}
+								if (p.yearly) {
+									for (const s of p.yearly.seats) {
+										if (s.priceMinor > 0) {
+											seats.push({ amountMinor: s.priceMinor, interval: 'Year', currency: 'INR', perSeat: true });
+										}
+									}
+								}
+							}
+							if (seats.length > 0) {
+								seats.sort((a, b) => a.amountMinor - b.amountMinor);
+								startingPrice = seats[0];
+							}
+						}
+					}
+					return {
+						key: c.productKey,
+						name: c.productName,
+						seatModel: c.seatModel,
+						capabilities: c.capabilities,
+						publicTagline: (c as any).publicTagline ?? (c.productKey === 'carspa' ? 'Car spa management made simple' : c.productKey === 'demo' ? 'Demo product for testing' : null),
+						publicDescription: (c as any).publicDescription ?? (c.productKey === 'carspa' ? 'Everything you need to run a detailing and car spa business.' : c.productKey === 'demo' ? 'Try out Trovo platform capabilities.' : null),
+						learnMoreUrl: (c as any).learnMoreUrl ?? (c.productKey === 'carspa' ? 'https://trovotechsolutions.in/carspa' : null),
+						startingPrice: (c as any).startingPrice !== undefined ? (c as any).startingPrice : startingPrice,
+					};
+				}),
 			);
 		const selected = this.catalogs.find((c) => c.productKey === product);
 		if (!selected) return json(404, { error: 'Product not found.' });

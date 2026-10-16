@@ -44,8 +44,26 @@ public class PublicSignupController(
         if (!Settings.SignupEnabled) return NotFound();
         await provisioner.EnsureCatalogAsync(cancellationToken);
         var active = await catalog.Products.AsNoTracking().Where(p => p.IsActive).OrderBy(p => p.Key).ToListAsync(cancellationToken);
-        return Ok(active.Select(p => new { p.Key, p.Name, seatModel = p.SeatModel.ToString(),
-            capabilities = p.Capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) }));
+        var productIds = active.Select(p => p.Id).ToList();
+        var now = DateTime.UtcNow;
+        var plans = await catalog.Plans.AsNoTracking()
+            .Include(p => p.Versions)
+                .ThenInclude(v => v.SeatPrices)
+                    .ThenInclude(sp => sp.SeatType)
+            .Where(p => productIds.Contains(p.ProductId) && p.IsActive)
+            .ToListAsync(cancellationToken);
+
+        return Ok(active.Select(p => new
+        {
+            p.Key,
+            p.Name,
+            seatModel = p.SeatModel.ToString(),
+            capabilities = p.Capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            publicTagline = p.PublicTagline,
+            publicDescription = p.PublicDescription,
+            learnMoreUrl = p.LearnMoreUrl,
+            startingPrice = ComputeStartingPrice(p, plans.Where(plan => plan.ProductId == p.Id), now)
+        }));
     }
 
     /// <summary>Plans, licence prices and add-ons on sale now, for the pricing page.</summary>
@@ -154,5 +172,49 @@ public class PublicSignupController(
         var licences = dto.Licences ?? new PublicLicencesDto(0, 0, 0);
         return new PlanChoice(dto.PlanCode.Trim().ToLowerInvariant(), interval, new LicenceCounts(licences.Android, licences.Windows, licences.Both),
             dto.AddOns ?? new Dictionary<string, int>(), dto.Seats);
+    }
+
+    private static object? ComputeStartingPrice(PlatformProduct product, IEnumerable<Plan> productPlans, DateTime now)
+    {
+        var candidatePrices = new List<(long amount, BillingInterval interval, string currency, bool perSeat)>();
+
+        foreach (var plan in productPlans.Where(p => p.IsActive))
+        {
+            var activeVersions = plan.Versions
+                .Where(v => v.EffectiveFrom <= now && (v.EffectiveTo == null || v.EffectiveTo > now))
+                .GroupBy(v => v.Interval)
+                .Select(g => g.OrderByDescending(v => v.Version).First());
+
+            foreach (var v in activeVersions)
+            {
+                if (product.SeatModel == SeatModel.None)
+                {
+                    candidatePrices.Add((v.PriceMinor, v.Interval, v.Currency, false));
+                }
+                else
+                {
+                    var activeSeatPrices = v.SeatPrices
+                        .Where(sp => sp.SeatType == null || sp.SeatType.IsActive)
+                        .Select(sp => sp.PriceMinor)
+                        .ToList();
+
+                    if (activeSeatPrices.Count > 0)
+                    {
+                        candidatePrices.Add((activeSeatPrices.Min(), v.Interval, v.Currency, true));
+                    }
+                }
+            }
+        }
+
+        if (candidatePrices.Count == 0) return null;
+
+        var cheapest = candidatePrices.OrderBy(c => c.amount).First();
+        return new
+        {
+            amountMinor = cheapest.amount,
+            interval = cheapest.interval.ToString(),
+            currency = cheapest.currency,
+            perSeat = cheapest.perSeat
+        };
     }
 }

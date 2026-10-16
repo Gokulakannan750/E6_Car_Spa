@@ -68,6 +68,14 @@ internal static class CarSpaCatalogSeed
         var now = DateTime.UtcNow;
         var added = 0;
 
+        if (product.PublicTagline is null)
+        {
+            product.PublicTagline = "Billing, jobs and staff for car spas";
+            product.PublicDescription = "Complete auto detailing software with billing, job cards, staff commissions and WhatsApp.";
+            product.LearnMoreUrl = "https://trovotechsolutions.in/products/baylior/";
+            added++;
+        }
+
         var seatTypes = await ProductCatalogSeed.EnsureDefinitionsAsync(catalog, product,
             CarSpaProductModule.SeatDefinitions, CarSpaProductModule.FeatureDefinitions, cancellationToken);
 

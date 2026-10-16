@@ -423,4 +423,7 @@ export interface Product {
 	seatTypes: SeatType[];
 	features: ProductFeature[];
 	capabilities: string[];
+	publicTagline?: string | null;
+	publicDescription?: string | null;
+	learnMoreUrl?: string | null;
 }

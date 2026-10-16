@@ -143,6 +143,10 @@ export const api = {
 		}),
 
 	products: () => request<Product[]>(`${P}/products`),
+	updateProductPublicListing: (
+		key: string,
+		body: { publicTagline?: string | null; publicDescription?: string | null; learnMoreUrl?: string | null; reason: string },
+	) => request<Product>(`${P}/products/${key}/public-listing`, { method: 'PUT', body }),
 	dashboard: (product?: string) => request<Dashboard>(`${P}/dashboard${query({ product })}`),
 
 	// Companies

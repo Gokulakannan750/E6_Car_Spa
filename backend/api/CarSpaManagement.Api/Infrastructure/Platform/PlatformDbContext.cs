@@ -60,6 +60,9 @@ public class PlatformDbContext(DbContextOptions<PlatformDbContext> options) : Db
             e.HasIndex(p => p.Key).IsUnique();
             e.Property(p => p.SeatModel).HasConversion<string>().HasMaxLength(10).HasDefaultValue(SeatModel.None);
             e.Property(p => p.TrialPlanCode).HasDefaultValue("professional");
+            e.Property(p => p.PublicTagline).HasMaxLength(140);
+            e.Property(p => p.PublicDescription).HasMaxLength(400);
+            e.Property(p => p.LearnMoreUrl).HasMaxLength(300);
         });
 
         modelBuilder.Entity<ProductSeatType>(e =>

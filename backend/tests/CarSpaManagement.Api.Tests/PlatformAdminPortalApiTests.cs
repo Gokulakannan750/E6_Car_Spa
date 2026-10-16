@@ -185,6 +185,80 @@ public class PlatformAdminPortalApiTests(PlatformApiHost host) : IClassFixture<P
         Assert.Equal("https://admin.trovo.test", await AllowedOriginFor("https://admin.trovo.test"));
         Assert.Null(await AllowedOriginFor("https://evil.example"));
     }
+
+    [PostgresFact]
+    public async Task PublicListing_CanBeUpdatedByOwner_ValidatesUrlAndLengths_AndRecordsAudit()
+    {
+        var owner = await ReadyAdminAsync(PlatformAdminRole.Owner);
+        var ownerToken = await TokenAsync(owner);
+        var support = await ReadyAdminAsync(PlatformAdminRole.Support);
+        var supportToken = await TokenAsync(support);
+
+        // 1. Forbidden for non-Owner
+        var forbidden = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", supportToken,
+            new { reason = "Unauthorized change", publicTagline = "New tagline" });
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+
+        // 2. Requires reason
+        var noReason = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "", publicTagline = "New tagline" });
+        Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
+        Assert.Contains("reason", (await Json(noReason)).GetProperty("error").GetString()!, StringComparison.OrdinalIgnoreCase);
+
+        // 3. Tagline length limit (> 140)
+        var longTagline = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "Testing limits", publicTagline = new string('x', 141) });
+        Assert.Equal(HttpStatusCode.BadRequest, longTagline.StatusCode);
+        Assert.Contains("tagline", (await Json(longTagline)).GetProperty("error").GetString()!, StringComparison.OrdinalIgnoreCase);
+
+        // 4. Description length limit (> 400)
+        var longDesc = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "Testing limits", publicDescription = new string('x', 401) });
+        Assert.Equal(HttpStatusCode.BadRequest, longDesc.StatusCode);
+        Assert.Contains("description", (await Json(longDesc)).GetProperty("error").GetString()!, StringComparison.OrdinalIgnoreCase);
+
+        // 5. URL must be HTTPS only
+        var httpUrl = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "Testing limits", learnMoreUrl = "http://insecure.example.com" });
+        Assert.Equal(HttpStatusCode.BadRequest, httpUrl.StatusCode);
+        Assert.Contains("https", (await Json(httpUrl)).GetProperty("error").GetString()!, StringComparison.OrdinalIgnoreCase);
+
+        var invalidUrl = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "Testing limits", learnMoreUrl = "not a valid url" });
+        Assert.Equal(HttpStatusCode.BadRequest, invalidUrl.StatusCode);
+
+        var longUrl = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new { reason = "Testing limits", learnMoreUrl = "https://example.com/" + new string('a', 300) });
+        Assert.Equal(HttpStatusCode.BadRequest, longUrl.StatusCode);
+
+        // 6. Valid update succeeds
+        var valid = await host.SendAsync(HttpMethod.Put, $"/api/platform/products/{host.ProductKey}/public-listing", ownerToken,
+            new
+            {
+                reason = "Marketing refresh for Stage 7",
+                publicTagline = "Updated Tagline for Car Spa",
+                publicDescription = "Updated Description with comprehensive features.",
+                learnMoreUrl = "https://trovotechsolutions.in/products/baylior/details"
+            });
+        Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+        var updated = await Json(valid);
+        Assert.Equal("Updated Tagline for Car Spa", updated.GetProperty("publicTagline").GetString());
+        Assert.Equal("Updated Description with comprehensive features.", updated.GetProperty("publicDescription").GetString());
+        Assert.Equal("https://trovotechsolutions.in/products/baylior/details", updated.GetProperty("learnMoreUrl").GetString());
+
+        // 7. Verify audit log entry
+        await host.InScopeAsync(async sp =>
+        {
+            var db = sp.GetRequiredService<PlatformDbContext>();
+            var auditEntry = await db.AuditLogs.OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(a => a.Action == "product.public_listing_updated");
+            Assert.NotNull(auditEntry);
+            Assert.Equal(owner.Email, auditEntry.AdministratorEmail);
+            Assert.Equal("Marketing refresh for Stage 7", auditEntry.Reason);
+            Assert.Contains("Updated Tagline", auditEntry.AfterValues);
+            return true;
+        });
+    }
 }
 
 /// <summary>The admin account rules, on their own catalog (so the Owner count is known).</summary>

@@ -6,6 +6,7 @@ import { DonePage } from '@/pages/DonePage';
 import { PlanStep } from '@/pages/PlanStep';
 import { PricingPage } from '@/pages/PricingPage';
 import { ReviewStep } from '@/pages/ReviewStep';
+import { ChooserPage } from '@/pages/ChooserPage';
 import { useQuery } from '@tanstack/react-query';
 import { products, productApi } from '@/lib/api';
 import { branding } from '@/lib/config';
@@ -49,15 +50,7 @@ function ProductRoute({ view }: { view: View }) {
 	if (!key)
 		return (
 			<Page>
-				<h1 className="text-display text-text-heading">Choose your product</h1>
-				<div className="mt-8 grid gap-5 sm:grid-cols-2">
-					{listing.data.map((p) => (
-						<Link className="rounded-lg border border-border-subtle bg-surface-card p-6 text-title text-text-heading" key={p.key} to={`/pricing/${p.key}`}>
-							{p.name}
-							<span className="mt-2 block text-body text-action">View plans and sign up</span>
-						</Link>
-					))}
-				</div>
+				<ChooserPage products={listing.data} />
 			</Page>
 		);
 	if (!listing.data.some((p) => p.key === key) || catalog.isError)

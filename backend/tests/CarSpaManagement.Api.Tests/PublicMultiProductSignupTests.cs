@@ -31,7 +31,23 @@ public class PublicMultiProductSignupTests
         var products = await Read(await host.SendAsync(HttpMethod.Get, "/api/public/products", null), HttpStatusCode.OK);
         Assert.Equal(2, products.GetArrayLength());
         foreach (var product in products.EnumerateArray())
-            Assert.Equal(new[] { "capabilities", "key", "name", "seatModel" }, product.EnumerateObject().Select(p => p.Name).Order().ToArray());
+            Assert.Equal(new[] { "capabilities", "key", "learnMoreUrl", "name", "publicDescription", "publicTagline", "seatModel", "startingPrice" }, product.EnumerateObject().Select(p => p.Name).Order().ToArray());
+
+        var demoProduct = products.EnumerateArray().Single(p => p.GetProperty("key").GetString() == "demo");
+        var carspaProduct = products.EnumerateArray().Single(p => p.GetProperty("key").GetString() == host.ProductKey);
+
+        var demoStarting = demoProduct.GetProperty("startingPrice");
+        Assert.Equal(1234, demoStarting.GetProperty("amountMinor").GetInt64());
+        Assert.Equal("Month", demoStarting.GetProperty("interval").GetString());
+        Assert.Equal("INR", demoStarting.GetProperty("currency").GetString());
+        Assert.False(demoStarting.GetProperty("perSeat").GetBoolean());
+
+        var carspaStarting = carspaProduct.GetProperty("startingPrice");
+        Assert.Equal(49900, carspaStarting.GetProperty("amountMinor").GetInt64());
+        Assert.Equal("Month", carspaStarting.GetProperty("interval").GetString());
+        Assert.Equal("INR", carspaStarting.GetProperty("currency").GetString());
+        Assert.True(carspaStarting.GetProperty("perSeat").GetBoolean());
+
         foreach (var demo in new[] { false, true })
         {
             var key = demo ? "demo" : host.ProductKey;

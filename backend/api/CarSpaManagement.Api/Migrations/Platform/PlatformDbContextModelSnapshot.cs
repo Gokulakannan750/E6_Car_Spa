@@ -1045,10 +1045,22 @@ namespace CarSpaManagement.Api.Migrations.Platform
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("LearnMoreUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PublicDescription")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)");
+
+                    b.Property<string>("PublicTagline")
+                        .HasMaxLength(140)
+                        .HasColumnType("character varying(140)");
 
                     b.Property<string>("SeatModel")
                         .IsRequired()

@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { catalog, demoCatalog, countedCatalog, FakeSignupApi } from './fakeApi';
 import type { PublicCatalog } from '../../src/lib/types';
@@ -142,3 +143,57 @@ test('switching products never carries business, plans or seats into the other p
 	const quotes = api.calls.filter((c) => c.path === '/signup/quote');
 	expect(quotes.every((c) => (c.product === 'demo' ? (c.body as any).planCode === 'basic' : (c.body as any).planCode !== 'basic'))).toBe(true);
 });
+test('chooser renders cards with public listing fields, starting price, action buttons and links, responsive at 390px and 1366px', async ({ page }) => {
+	const api = new FakeSignupApi([catalog, demoCatalog]);
+	await api.install(page);
+
+	for (const viewport of [{ width: 1366, height: 768, name: 'desktop' }, { width: 390, height: 844, name: 'phone' }]) {
+		await page.setViewportSize({ width: viewport.width, height: viewport.height });
+		await page.goto('/');
+
+		await expect(page.getByRole('heading', { name: 'Choose your product' })).toBeVisible();
+		await expect(page.getByText('Pick the software you want to try. Every product starts with a free trial.')).toBeVisible();
+
+		const screenshotDir = path.resolve(process.cwd(), '../../docs/platform-multi-product-stage-7-screenshots');
+		await page.screenshot({ path: path.join(screenshotDir, `${viewport.name}-chooser.png`), fullPage: true });
+
+		// Baylior card
+		await expect(page.getByRole('heading', { name: 'Baylior' })).toBeVisible();
+		await expect(page.getByText('Car spa management made simple')).toBeVisible();
+		await expect(page.getByText('Everything you need to run a detailing and car spa business.')).toBeVisible();
+		await expect(page.getByText('from ₹499/mo / user')).toBeVisible();
+		await expect(page.getByRole('link', { name: /Baylior Start free trial/ })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Baylior View plans/ })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Baylior Learn more/ })).toHaveAttribute('href', 'https://trovotechsolutions.in/carspa');
+
+		// Demo card
+		await expect(page.getByRole('heading', { name: 'Demo' })).toBeVisible();
+		await expect(page.getByText('Demo product for testing')).toBeVisible();
+		await expect(page.getByText('Try out Trovo platform capabilities.')).toBeVisible();
+		await expect(page.getByText('from ₹12.34/mo')).toBeVisible();
+		await expect(page.getByRole('link', { name: /Demo Start free trial/ })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Demo View plans/ })).toBeVisible();
+		await expect(page.getByRole('link', { name: /Demo Learn more/ })).toHaveCount(0);
+	}
+
+	// Clicking Start free trial goes to signup
+	await page.getByRole('link', { name: /Demo Start free trial/ }).click();
+	await expect(page).toHaveURL(/\/signup\/demo$/);
+});
+test('copy nit: products without seats do not show add users and modules copy', async ({ page }) => {
+	const api = new FakeSignupApi([catalog, demoCatalog]);
+	await api.install(page);
+
+	// Seatless product (demo)
+	await page.goto('/signup/demo');
+	await fill(page);
+	await expect(page.getByRole('heading', { name: 'Choose your plan' })).toBeVisible();
+	await expect(page.getByText('You can add users and modules later.')).toHaveCount(0);
+
+	// Seat product (carspa)
+	await page.goto('/signup/carspa');
+	await fill(page);
+	await expect(page.getByRole('heading', { name: 'Choose your plan and users' })).toBeVisible();
+	await expect(page.getByText('You can add users and modules later.')).toBeVisible();
+});
+

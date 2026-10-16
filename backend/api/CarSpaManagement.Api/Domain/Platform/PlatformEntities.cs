@@ -30,6 +30,15 @@ public class PlatformProduct
     [MaxLength(500)]
     public string Capabilities { get; set; } = string.Empty;
 
+    [MaxLength(140)]
+    public string? PublicTagline { get; set; }
+
+    [MaxLength(400)]
+    public string? PublicDescription { get; set; }
+
+    [MaxLength(300)]
+    public string? LearnMoreUrl { get; set; }
+
     public DateTime CreatedAt { get; set; }
 }
 
