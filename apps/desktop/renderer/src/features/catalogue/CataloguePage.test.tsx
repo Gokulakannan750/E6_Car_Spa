@@ -12,11 +12,45 @@ vi.mock('../../lib/api', async (importOriginal) => {
 		getServices: vi.fn(),
 		getServiceCategories: vi.fn(),
 		createService: vi.fn(),
+		createServiceCategory: vi.fn(),
 		updateService: vi.fn(),
 	};
 });
 
 describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)', () => {
+	it('creates an empty category and shows its tab after the server reload', async () => {
+		vi.mocked(api.getServices).mockResolvedValue({ items: [], totalCount: 0 });
+		vi.mocked(api.getServiceCategories).mockResolvedValue([]);
+		vi.mocked(api.createServiceCategory).mockImplementation(async (name) => {
+			vi.mocked(api.getServiceCategories).mockResolvedValue([name]);
+			return { name };
+		});
+		renderWithProviders(<CataloguePage />, { initialEntries: ['/catalogue'], authUser: {
+			id: 'owner', username: 'owner', fullName: 'Owner', role: 'Owner', isOwner: true,
+			permissions: ['catalogue.view', 'catalogue.create'],
+		} });
+		fireEvent.click(screen.getByRole('button', { name: /^Add Category$/i }));
+		fireEvent.change(screen.getByLabelText('Category name'), { target: { value: '  Car Wash  ' } });
+		fireEvent.click(screen.getByRole('button', { name: /^Create Category$/i }));
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Car Wash (0)' })).toBeInTheDocument());
+		expect(api.createServiceCategory).toHaveBeenCalledWith('Car Wash');
+		expect(api.createService).not.toHaveBeenCalled();
+	});
+
+	it('shows duplicate category errors without closing the form', async () => {
+		vi.mocked(api.getServices).mockResolvedValue({ items: [], totalCount: 0 });
+		vi.mocked(api.getServiceCategories).mockResolvedValue([]);
+		vi.mocked(api.createServiceCategory).mockRejectedValue(new Error('A category with this name already exists.'));
+		renderWithProviders(<CataloguePage />, { authUser: {
+			id: 'owner', username: 'owner', fullName: 'Owner', role: 'Owner', isOwner: true,
+			permissions: ['catalogue.view', 'catalogue.create'],
+		} });
+		fireEvent.click(screen.getByRole('button', { name: /^Add Category$/i }));
+		fireEvent.change(screen.getByLabelText('Category name'), { target: { value: 'Car Wash' } });
+		fireEvent.click(screen.getByRole('button', { name: /^Create Category$/i }));
+		expect(await screen.findByRole('alert')).toHaveTextContent('already exists');
+		expect(screen.getByLabelText('Category name')).toHaveValue('Car Wash');
+	});
 	const dynamicBackendService: api.ServiceDto = {
 		id: 'svc-dynamic-1',
 		name: 'Brand New Dynamic Ceramic Service',
@@ -124,7 +158,7 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 		});
 	});
 
-	it('5. Existing four categories remain available in category filters', async () => {
+	it('5. An empty company has no preset category tabs', async () => {
 		vi.mocked(api.getServices).mockResolvedValue({
 			items: [],
 			totalCount: 0,
@@ -135,7 +169,7 @@ describe('CataloguePage Dynamic Service & Category Tests (Step 6 Verification)',
 
 		// Verify the 4 fixed categories are all present as tabs
 		for (const cat of CATALOGUE_CATEGORIES) {
-			expect(screen.getByRole('button', { name: new RegExp(cat, 'i') })).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: new RegExp(cat, 'i') })).not.toBeInTheDocument();
 		}
 	});
 
@@ -292,9 +326,9 @@ describe('Catalogue Category Rename ("General Services") Tests', () => {
 
 		await waitFor(() => {
 			expect(screen.getByRole('button', { name: /Exterior Detailing/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /Interior Care/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /Protection Packages/i })).toBeInTheDocument();
-			expect(screen.getByRole('button', { name: /Others/i })).toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /Interior Care/i })).not.toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /Protection Packages/i })).not.toBeInTheDocument();
+			expect(screen.queryByRole('button', { name: /Others/i })).not.toBeInTheDocument();
 			expect(screen.getByRole('button', { name: /General Services/i })).toBeInTheDocument();
 		});
 	});

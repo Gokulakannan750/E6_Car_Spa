@@ -17,10 +17,7 @@ import {
 	type VehicleDto,
 	type ServiceDto,
 	type JobCardDto,
-	previewJobCard,
-	type JobCardEstimateDto,
 } from '../../lib/api';
-import { taxRows } from '../../lib/gstDisplay';
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { capitalizeSentence } from '../../utils/text';
@@ -65,11 +62,8 @@ interface ServiceItem {
 	serviceId: string;
 	name: string;
 	category: string | null;
-	unitPrice: number;
 	quantity: number;
-	taxPercentage: number;
 	discountAmount: number;
-	lineTotal: number;
 }
 
 interface NewCustomerForm {
@@ -90,9 +84,7 @@ interface NewVehicleForm {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatCurrency(amount: number): string {
-	return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+
 
 const STEPS = ['Customer & Vehicle', 'Services', 'Review'] as const;
 
@@ -162,9 +154,6 @@ export default function NewJobCard() {
 
 	// ── Services ──────────────────────────────────────────────────────────────
 	const [services, setServices] = useState<ServiceItem[]>([]);
-	// Server-calculated estimate for the review step (same calculator and rules as job-card creation).
-	const [estimate, setEstimate] = useState<JobCardEstimateDto | null>(null);
-	const [estimateError, setEstimateError] = useState<string | null>(null);
 	const [serviceSearch, setServiceSearch] = useState('');
 	const [searchResults, setSearchResults] = useState<ServiceDto[]>([]);
 	const [showNewService, setShowNewService] = useState(false);
@@ -173,7 +162,7 @@ export default function NewJobCard() {
 
 	const [isCreatingJobCard, setIsCreatingJobCard] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
-	const [success, setSuccess] = useState<{ id: string; number: string; customerName: string; vehicleLabel: string; total: number } | null>(null);
+	const [success, setSuccess] = useState<{ id: string; number: string; customerName: string; vehicleLabel: string } | null>(null);
 	const [createdJobCard, setCreatedJobCard] = useState<JobCardDto | null>(null);
 	const [showPrintPreview, setShowPrintPreview] = useState(false);
 
@@ -223,31 +212,9 @@ export default function NewJobCard() {
 		}
 	}, [success?.id, createdJobCard]);
 
-	useEffect(() => {
-		if (step !== 2 || services.length === 0) return;
-		setEstimate(null);
-		setEstimateError(null);
-		let cancelled = false;
-		const timer = setTimeout(async () => {
-			try {
-				const result = await previewJobCard(
-					services.map((s) => ({ serviceId: s.serviceId, quantity: s.quantity, discountAmount: s.discountAmount })),
-					true,
-				);
-				if (!cancelled) setEstimate(result);
-			} catch (err) {
-				if (!cancelled) setEstimateError(err instanceof Error ? err.message : 'Unable to calculate the estimate.');
-			}
-		}, 150);
-		return () => {
-			cancelled = true;
-			clearTimeout(timer);
-		};
-	}, [step, services]);
+
 
 	// ── Derived ───────────────────────────────────────────────────────────────
-	// Running subtotal (price × qty) while picking services; GST and the total come only from the server estimate.
-	const calcSubtotal = services.reduce((s, svc) => s + svc.unitPrice * svc.quantity, 0);
 	const canProceedToServices = customer !== null && selectedVehicle !== null;
 	const canCreate = canProceedToServices && services.length > 0 && !isCreatingJobCard;
 
@@ -652,7 +619,7 @@ export default function NewJobCard() {
 			setServices((prev) =>
 				prev.map((s) =>
 					s.serviceId === svc.id
-						? { ...s, quantity: s.quantity + 1, lineTotal: s.unitPrice * (s.quantity + 1) - s.discountAmount }
+						? { ...s, quantity: s.quantity + 1 }
 						: s
 				)
 			);
@@ -664,11 +631,11 @@ export default function NewJobCard() {
 					serviceId: svc.id,
 					name: svc.name,
 					category: svc.category,
-					unitPrice: svc.price,
+
 					quantity: 1,
-					taxPercentage: svc.taxPercentage,
+
 					discountAmount: 0,
-					lineTotal: svc.price,
+
 				},
 			]);
 		}
@@ -682,7 +649,7 @@ export default function NewJobCard() {
 	const updateQuantity = (id: string, quantity: number) => {
 		if (quantity < 1) return;
 		setServices((prev) =>
-			prev.map((s) => (s.id === id ? { ...s, quantity, lineTotal: s.unitPrice * quantity } : s))
+			prev.map((s) => (s.id === id ? { ...s, quantity } : s))
 		);
 	};
 
@@ -725,7 +692,6 @@ export default function NewJobCard() {
 				number: result.jobCardNumber,
 				customerName: customer.name,
 				vehicleLabel: `${selectedVehicle.registrationNumber} — ${selectedVehicle.make} ${selectedVehicle.model}`,
-				total: result.totalAmount,
 			});
 		} catch (err: unknown) {
 			console.error('Failed to create Job Card on backend:', err);
@@ -813,10 +779,7 @@ export default function NewJobCard() {
 									<span className="text-on-surface-variant">Vehicle</span>
 									<span className="font-medium text-on-surface">{success.vehicleLabel}</span>
 								</div>
-								<div className="flex justify-between pt-2 border-t border-outline-variant/60">
-									<span className="text-on-surface-variant font-medium">Total Amount</span>
-									<span className="font-bold text-secondary text-base">{formatCurrency(success.total)}</span>
-								</div>
+
 							</div>
 							<div className="flex gap-3">
 								<Button
@@ -1458,7 +1421,7 @@ export default function NewJobCard() {
 													</p>
 												</div>
 												<div className="text-right">
-													<span className="text-sm font-bold text-secondary">{formatCurrency(svc.price)}</span>
+
 													<p className="text-[11px] text-on-surface-variant">+ Add</p>
 												</div>
 											</div>
@@ -1484,12 +1447,7 @@ export default function NewJobCard() {
 										<label className="block text-sm font-semibold text-on-surface">
 											Selected Services ({services.length})
 										</label>
-										<span className="text-xs text-on-surface-variant font-medium">
-											Subtotal:{' '}
-											<strong className="text-secondary font-mono text-sm">
-												{formatCurrency(calcSubtotal)}
-											</strong>
-										</span>
+
 									</div>
 
 									<div className="app-card overflow-hidden">
@@ -1500,9 +1458,9 @@ export default function NewJobCard() {
 														<th className="w-12 text-center">#</th>
 														<th>Service</th>
 														<th>Category</th>
-														<th className="text-right">Unit Price</th>
+
 														<th className="text-center w-36">Quantity</th>
-														<th className="text-right">Total</th>
+
 														<th className="text-right w-16">Action</th>
 													</tr>
 												</thead>
@@ -1520,9 +1478,7 @@ export default function NewJobCard() {
 																	{svc.category || 'General Services'}
 																</span>
 															</td>
-															<td className="py-3.5 px-4 text-right font-medium text-on-surface">
-																{formatCurrency(svc.unitPrice)}
-															</td>
+
 															<td className="py-3.5 px-4 text-center">
 																<div className="inline-flex items-center justify-center gap-1.5 bg-surface-container-low border border-outline-variant rounded-lg p-0.5">
 																	<button
@@ -1551,9 +1507,7 @@ export default function NewJobCard() {
 																	</button>
 																</div>
 															</td>
-															<td className="py-3.5 px-4 text-right font-bold text-secondary">
-																{formatCurrency(svc.unitPrice * svc.quantity)}
-															</td>
+
 															<td className="py-3.5 px-4 text-right">
 																<button
 																	type="button"
@@ -1590,7 +1544,7 @@ export default function NewJobCard() {
 						<div className="app-card p-6 space-y-5">
 							<div className="pb-3 border-b border-outline-variant">
 								<h3 className="text-base font-semibold text-on-surface">Review &amp; Summary</h3>
-								<p className="text-xs text-on-surface-variant mt-0.5">Verify customer, vehicle, and service charges before creating</p>
+								<p className="text-xs text-on-surface-variant mt-0.5">Verify customer, vehicle, and services before creating</p>
 							</div>
 
 							<div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -1632,45 +1586,14 @@ export default function NewJobCard() {
 												<span className="text-on-surface">
 													{svc.name} {svc.quantity > 1 ? `(x${svc.quantity})` : ''}
 												</span>
-												<span className="font-semibold text-on-surface">{formatCurrency(svc.lineTotal)}</span>
+
 											</div>
 										))}
 									</div>
 								</div>
 							</div>
 
-							{/* Totals */}
-							<div className="app-card p-4 bg-white border-2 border-outline-variant/60">
-								<div className="space-y-1.5 text-sm">
-									<div className="flex justify-between text-on-surface-variant">
-										<span>Items Subtotal ({services.length} items)</span>
-										<span>{formatCurrency(estimate?.subtotal ?? calcSubtotal)}</span>
-									</div>
-									{estimate && estimate.discountAmount > 0 && (
-										<div className="flex justify-between text-success">
-											<span>Discount</span>
-											<span>-{formatCurrency(estimate.discountAmount)}</span>
-										</div>
-									)}
-									{estimate &&
-										taxRows(estimate.taxBreakdown).map((row) => (
-											<div key={row.key} className="flex justify-between text-on-surface-variant" data-testid="estimate-tax-row">
-												<span>
-													Estimated {row.label}
-													{row.taxableAmount !== null && <span className="text-xs"> on {formatCurrency(row.taxableAmount)}</span>}
-												</span>
-												<span>{formatCurrency(row.amount)}</span>
-											</div>
-										))}
-									{estimateError && (
-										<p className="text-xs text-error" role="alert">{estimateError}</p>
-									)}
-									<div className="flex justify-between text-base font-bold text-secondary pt-2.5 mt-1.5 border-t border-outline-variant">
-										<span>Final Total Estimate</span>
-										<span data-testid="estimate-total">{estimate ? formatCurrency(estimate.totalAmount) : 'Calculating…'}</span>
-									</div>
-								</div>
-							</div>
+
 						</div>
 					)}
 

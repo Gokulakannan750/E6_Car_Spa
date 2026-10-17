@@ -12,9 +12,7 @@ export interface ServicePickerDialogProps {
 	initialCatalog?: ServiceDto[];
 }
 
-function formatCurrency(amount: number): string {
-	return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+
 
 export function ServicePickerDialog({
 	open,
@@ -229,14 +227,11 @@ export function ServicePickerDialog({
 										</p>
 										<div className="flex items-center gap-2 text-xs text-on-surface-variant">
 											<span className="font-medium text-secondary">{svc.category || 'General Services'}</span>
-											<span>·</span>
-											<span>{svc.taxPercentage}% GST</span>
+
 										</div>
 									</div>
 									<div className="text-right flex items-center gap-3">
-										<span className="text-sm font-bold text-secondary font-mono">
-											{formatCurrency(svc.price)}
-										</span>
+
 										<Button
 											type="button"
 											variant="secondary"

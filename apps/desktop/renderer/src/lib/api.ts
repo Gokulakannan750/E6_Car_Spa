@@ -1388,6 +1388,12 @@ export async function getServiceCategories() {
  return request<string[]>('/api/services/categories', {}, 'view catalogue');
 }
 
+export async function createServiceCategory(name: string) {
+ return request<{ name: string }>('/api/services/categories', {
+ method: 'POST', body: JSON.stringify({ name }),
+ }, 'create catalogue categories');
+}
+
 export async function getCatalogueServices(params?: { category?: string; search?: string }) {
  const qs = new URLSearchParams();
  if (params?.category) qs.set('category', params.category);

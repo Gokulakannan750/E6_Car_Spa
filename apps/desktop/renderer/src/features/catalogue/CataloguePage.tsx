@@ -2,14 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, Edit3, ChevronDown, PlusCircle, Info, Wrench } from 'lucide-react';
-import { getServices, getServiceCategories, createService, updateService, type ServiceDto, type CreateServiceInput } from '../../lib/api';
+import { getServices, getServiceCategories, createServiceCategory, createService, updateService, type ServiceDto, type CreateServiceInput } from '../../lib/api';
 import { useApiMutation } from '../../lib/hooks';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { Combobox } from '../../components/ui/Combobox';
 import { useAuth } from '../auth/auth-context';
-import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
 import { capitalizeSentence } from '../../utils/text';
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -67,6 +66,8 @@ export function CataloguePage() {
 	const [viewingService, setViewingService] = useState<ServiceDto | null>(null);
 	const [form, setForm] = useState<ServiceFormData>(emptyForm);
 	const [showSortDropdown, setShowSortDropdown] = useState(false);
+	const [showCategoryDialog, setShowCategoryDialog] = useState(false);
+	const [categoryName, setCategoryName] = useState('');
 
 	// ── Queries ────────────────────────────────────────────────────────────────
 	const {
@@ -88,7 +89,7 @@ export function CataloguePage() {
 
 	// ── Established Categories + Dynamic backend categories + loaded service categories ──
 	const dynamicCategories = useMemo(() => {
-		const set = new Set<string>(CATALOGUE_CATEGORIES);
+		const set = new Set<string>();
 		backendCategories.forEach((c) => {
 			if (c && c.trim()) set.add(c.trim());
 		});
@@ -100,6 +101,19 @@ export function CataloguePage() {
 
 	// ── Available Categories for Combobox (uses same authoritative source) ────
 	const categoryOptions = dynamicCategories;
+	const categoryMutation = useApiMutation<{ name: string }, string>(
+		(name) => createServiceCategory(name), { invalidateKey: ['services'] }
+	);
+	const saveCategory = (e?: React.FormEvent) => {
+		e?.preventDefault();
+		if (!categoryName.trim() || categoryMutation.isPending) return;
+		categoryMutation.mutate(categoryName.trim(), { onSuccess: ({ name }) => {
+			setForm((previous) => ({ ...previous, category: name }));
+			if (!showCreateDialog) setActiveCategory(name);
+			setShowCategoryDialog(false);
+			setCategoryName('');
+		} });
+	};
 
 	// ── Mutations ──────────────────────────────────────────────────────────────
 	const createMutation = useApiMutation<ServiceDto, CreateServiceInput>(
@@ -178,7 +192,7 @@ export function CataloguePage() {
 		createMutation.mutate(
 			{
 				name: capitalizeSentence(form.name.trim()),
-				category: capitalizeSentence(form.category.trim()) || 'General Services',
+				category: form.category.trim() || 'General Services',
 				description: form.description.trim() ? capitalizeSentence(form.description.trim()) : undefined,
 				price: parseFloat(form.price) || 0,
 				taxPercentage: 18,
@@ -201,7 +215,7 @@ export function CataloguePage() {
 				id: editingService.id,
 				data: {
 					name: capitalizeSentence(form.name.trim()),
-					category: capitalizeSentence(form.category.trim()) || 'General Services',
+					category: form.category.trim() || 'General Services',
 					description: form.description.trim() ? capitalizeSentence(form.description.trim()) : undefined,
 					price: parseFloat(form.price) || 0,
 					taxPercentage: editingService.taxPercentage ?? 18,
@@ -272,6 +286,13 @@ export function CataloguePage() {
 						)}
 					</div>
 
+					{canCreate && (
+						<Button variant="secondary" icon={<Plus className="w-4 h-4" />} onClick={() => {
+							categoryMutation.reset(); setCategoryName(''); setShowCategoryDialog(true);
+						}}>
+							Add Category
+						</Button>
+					)}
 					{canCreate && (
 						<Button icon={<Plus className="w-4 h-4" />} onClick={openCreateDialog}>
 							Create Service
@@ -475,6 +496,7 @@ export function CataloguePage() {
 						</div>
 
 						<div className="grid grid-cols-2 gap-3">
+							<div>
 							<Combobox
 								label="Category"
 								required
@@ -483,6 +505,10 @@ export function CataloguePage() {
 								options={categoryOptions}
 								placeholder="e.g. Exterior Detailing, Protection"
 							/>
+							{canCreate && <button type="button" className="text-xs text-secondary mt-1" onClick={() => {
+								categoryMutation.reset(); setCategoryName(''); setShowCategoryDialog(true);
+							}}>+ Add category</button>}
+							</div>
 							<div>
 								<label className="block text-xs font-semibold text-on-surface mb-1">
 									Price (INR) <span className="text-error">*</span>
@@ -575,6 +601,24 @@ export function CataloguePage() {
 					</div>
 				</Dialog>
 			)}
+            <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}
+                title="Add Service Category"
+                description="Group related services under a menu tab, such as Car Wash or Ceramic Coating."
+                size="md"
+                footer={<>
+                    <Button variant="secondary" onClick={() => setShowCategoryDialog(false)}>Cancel</Button>
+                    <Button onClick={() => saveCategory()} loading={categoryMutation.isPending}
+                        disabled={!categoryName.trim() || categoryMutation.isPending}>Create Category</Button>
+                </>}>
+                <form onSubmit={saveCategory} className="space-y-3">
+                    <label htmlFor="category-name" className="block text-sm font-semibold">Category name</label>
+                    <input id="category-name" autoFocus required maxLength={50} value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        placeholder="e.g. Car Wash" className="form-input w-full" />
+                    {categoryMutation.error && <p role="alert" className="text-sm text-error">{categoryMutation.error.message}</p>}
+                </form>
+            </Dialog>
+
 		</div>
 	);
 }

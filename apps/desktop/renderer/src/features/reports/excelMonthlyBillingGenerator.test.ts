@@ -207,6 +207,13 @@ describe('excelMonthlyBillingGenerator (ExcelJS) — Executive Styling & Workboo
 		expect(values).toContain('Full Wash');
 		expect(values).toContain('Teflon Coating');
 		expect(values).toContain('TOTAL JOB CARDS');
+		expect(ws.getCell('A5').value).toBe('Job Cards: 1');
+		expect(values).not.toContain('Job Card Total (INR)');
+		expect(ws.getCell('H8').value).toBeNull();
+		expect(ws.getCell('H9').value).toBeNull();
+		expect(ws.getCell('H10').value).toBeNull();
+		expect(ws.getCell('G10').value).toBe(2);
+		expect(values).toContain('Invoice Total (INR)');
 		expect(values).toContain('TOTAL INVOICES');
 		expect(values).toContain('TOTAL SERVICES');
 	});

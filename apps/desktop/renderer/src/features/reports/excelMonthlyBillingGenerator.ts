@@ -611,7 +611,7 @@ export function buildDailySheet(
 
 	// Block 1: Job Cards (Col A-B)
 	ws.mergeCells(`A${r}:B${r}`);
-	sumRow.getCell(1).value = `Job Cards: ${sheet.totals.jobCardCount} (Total: ₹${sheet.totals.jobCardTotal.toFixed(2)})`;
+	sumRow.getCell(1).value = `Job Cards: ${sheet.totals.jobCardCount}`;
 	styleCell(sumRow.getCell(1), {
 		fillColor: ARGB.SECONDARY_LIGHT_BLUE,
 		fontColor: ARGB.PRIMARY_DARK,
@@ -662,7 +662,7 @@ export function buildDailySheet(
 	// ── SECTION 1: JOB CARDS ────────────────────────────────────────────────
 	const jcSec = ws.getRow(r);
 	jcSec.height = 24;
-	ws.mergeCells(`A${r}:H${r}`);
+	ws.mergeCells(`A${r}:G${r}`);
 	jcSec.getCell(1).value = `SECTION 1: JOB CARDS (${sheet.jobCards.length} records)`;
 	styleCell(jcSec.getCell(1), {
 		fillColor: ARGB.PRIMARY_DARK,
@@ -682,7 +682,6 @@ export function buildDailySheet(
 		'Vehicle',
 		'Job Card Status',
 		'Total Services',
-		'Job Card Total (INR)',
 	];
 
 	const jcHeaderRow = ws.getRow(r);
@@ -694,7 +693,7 @@ export function buildDailySheet(
 			fillColor: ARGB.PRIMARY_BLUE,
 			fontColor: ARGB.WHITE,
 			bold: true,
-			hAlign: idx === 7 || idx === 6 ? 'right' : idx === 2 || idx === 4 ? 'left' : 'center',
+			hAlign: idx === 6 ? 'right' : idx === 2 || idx === 4 ? 'left' : 'center',
 		});
 	});
 	r++;
@@ -702,7 +701,7 @@ export function buildDailySheet(
 	if (sheet.jobCards.length === 0) {
 		const noJcRow = ws.getRow(r);
 		noJcRow.height = 20;
-		ws.mergeCells(`A${r}:H${r}`);
+		ws.mergeCells(`A${r}:G${r}`);
 		noJcRow.getCell(1).value = 'No job cards created on this date.';
 		styleCell(noJcRow.getCell(1), {
 			fillColor: ARGB.LIGHT_GRAY_FILL,
@@ -756,14 +755,6 @@ export function buildDailySheet(
 				fillColor: altBg,
 			});
 
-			// Col 8: Total Amount
-			row.getCell(8).value = jc.jobCardTotal ?? 0;
-			styleCell(row.getCell(8), {
-				hAlign: 'right',
-				bold: true,
-				numFmt: NUM_FORMATS.CURRENCY,
-				fillColor: altBg,
-			});
 
 			r++;
 		}
@@ -794,7 +785,7 @@ export function buildDailySheet(
 			hAlign: 'center',
 			border: totalRowBorder,
 		});
-		jcTotalRow.getCell(7).value = sheet.totals.jobCardCount;
+		jcTotalRow.getCell(7).value = sheet.jobCards.reduce((total, jobCard) => total + (jobCard.totalServices ?? 0), 0);
 		styleCell(jcTotalRow.getCell(7), {
 			fillColor: ARGB.SECONDARY_LIGHT_BLUE,
 			fontColor: ARGB.PRIMARY_DARK,
@@ -803,15 +794,7 @@ export function buildDailySheet(
 			numFmt: NUM_FORMATS.INTEGER,
 			border: totalRowBorder,
 		});
-		jcTotalRow.getCell(8).value = sheet.totals.jobCardTotal;
-		styleCell(jcTotalRow.getCell(8), {
-			fillColor: ARGB.SECONDARY_LIGHT_BLUE,
-			fontColor: ARGB.PRIMARY_DARK,
-			bold: true,
-			hAlign: 'right',
-			numFmt: NUM_FORMATS.CURRENCY,
-			border: totalRowBorder,
-		});
+
 		r++;
 	}
 

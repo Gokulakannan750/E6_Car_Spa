@@ -1,11 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import electron from 'vite-plugin-electron/simple'
 import renderer from 'vite-plugin-electron-renderer'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+ const env = loadEnv(mode, path.resolve(__dirname, 'renderer'), '')
+ return {
  root: 'renderer',
  publicDir: 'public',
  plugins: [
@@ -33,6 +35,13 @@ export default defineConfig({
  server: {
  port: 5173,
  strictPort: true,
+ proxy: {
+ '/api': {
+ target: env.DESKTOP_API_PROXY || 'http://localhost:5298',
+ changeOrigin: true,
+ secure: true,
+ },
+ },
  },
  build: {
  outDir: 'dist-renderer',
@@ -45,4 +54,5 @@ export default defineConfig({
  },
  },
  },
+ }
 })

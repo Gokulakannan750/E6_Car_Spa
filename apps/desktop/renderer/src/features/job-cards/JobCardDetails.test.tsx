@@ -627,7 +627,7 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		await waitFor(() => {
 			expect(screen.getByRole('heading', { name: 'Create Custom Service' })).toBeInTheDocument();
 			expect(screen.getByPlaceholderText(/e\.g\. Custom Scratch Removal/i)).toBeInTheDocument();
-			expect(screen.getByPlaceholderText('0.00')).toBeInTheDocument();
+			expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument();
 		});
 
 		const submitBtn = screen.getByRole('button', { name: /create service/i });
@@ -639,7 +639,7 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 			id: 'custom-svc-new-guid',
 			name: 'Underbody Anti-Rust Coating',
 			category: 'Protection',
-			price: 2500,
+			price: 0,
 			taxPercentage: 18,
 			durationMinutes: 45,
 			description: 'Underbody protective sealant',
@@ -673,9 +673,7 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		fireEvent.change(screen.getByPlaceholderText(/e\.g\. Custom Scratch Removal/i), {
 			target: { value: 'Underbody Anti-Rust Coating' },
 		});
-		fireEvent.change(screen.getByPlaceholderText('0.00'), {
-			target: { value: '2500' },
-		});
+		expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument();
 
 		// Click Create Service
 		const submitBtn = screen.getByRole('button', { name: /create service/i });
@@ -687,7 +685,7 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 			expect(api.createService).toHaveBeenCalledWith(
 				expect.objectContaining({
 					name: 'Underbody Anti-Rust Coating',
-					price: 2500,
+					price: 0,
 					isActive: true,
 					taxPercentage: 18,
 				})
@@ -697,11 +695,11 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		// Verified the newly created custom service was automatically added to job card table without manual search!
 		await waitFor(() => {
 			expect(screen.getByText('Underbody Anti-Rust Coating')).toBeInTheDocument();
-			expect(screen.getAllByText('₹2,500.00').length).toBeGreaterThan(0);
+			expect(screen.queryByText('₹2,500.00')).not.toBeInTheDocument();
 		});
 	});
 
-	it('7. shows the server estimate (not a client calculation) while editing and persists complete list on save', async () => {
+	it('7. edits services and saves quantities without displaying or requesting prices', async () => {
 		// Stand-in for POST /api/job-cards/preview: 1000/service-1 and 5000/service-2, both 18% in this fixture.
 		vi.mocked(api.previewJobCard).mockImplementation(async (services) => {
 			const prices: Record<string, number> = { 'svc-1': 1000, 'svc-2': 5000 };
@@ -731,11 +729,7 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		});
 		fireEvent.click(screen.getByRole('button', { name: /edit/i }));
 
-		// Initial estimate from the server: 1000 subtotal, CGST 90 + SGST 90, 1180 total
-		await waitFor(() => {
-			expect(screen.getByText('₹1,180.00')).toBeInTheDocument();
-			expect(screen.getAllByText('₹90.00')).toHaveLength(2);
-		});
+		expect(screen.queryByText(/₹|Subtotal|GST/)).not.toBeInTheDocument();
 
 		// Add new service
 		fireEvent.click(screen.getByTestId('btn-add-service-bottom'));
@@ -748,20 +742,8 @@ describe('Edit Job Card — Add Service & Create Custom Service Workflow', () =>
 		const qtyInputs = screen.getAllByRole('spinbutton');
 		fireEvent.change(qtyInputs[0], { target: { value: '2' } });
 
-		// The edited lines are sent to the server and its result is what is shown.
-		await waitFor(() => {
-			expect(api.previewJobCard).toHaveBeenLastCalledWith(
-				[
-					expect.objectContaining({ serviceId: 'svc-1', quantity: 2 }),
-					expect.objectContaining({ serviceId: 'svc-2', quantity: 1 }),
-				],
-				true,
-			);
-			expect(screen.getByText('₹7,000.00')).toBeInTheDocument();
-			expect(screen.getAllByText('₹630.00')).toHaveLength(2);
-			expect(screen.getByText('₹8,260.00')).toBeInTheDocument();
-		});
-		expect(screen.queryByText(/Tax \(18%\)/)).not.toBeInTheDocument();
+		expect(api.previewJobCard).not.toHaveBeenCalled();
+		expect(screen.queryByText(/₹|Subtotal|GST/)).not.toBeInTheDocument();
 
 		// Save changes
 		fireEvent.click(screen.getByRole('button', { name: /save changes/i }));

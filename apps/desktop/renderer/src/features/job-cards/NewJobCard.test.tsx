@@ -266,7 +266,7 @@ describe('NewJobCard Component Workflow', () => {
 		});
 	});
 
-	it('review step shows the server estimate per GST rate, not a flat 18%', async () => {
+	it('review lists the work without prices or requesting a financial estimate', async () => {
 		// Server result for an ₹800 service at 5% (a flat 18% screen would show ₹944).
 		vi.mocked(api.previewJobCard).mockResolvedValue({
 			lines: [],
@@ -291,11 +291,10 @@ describe('NewJobCard Component Workflow', () => {
 		fireEvent.click(screen.getByText('Full Body Foam Wash'));
 		fireEvent.click(screen.getByRole('button', { name: /next/i }));
 
-		await waitFor(() => expect(screen.getByTestId('estimate-total')).toHaveTextContent('840.00'));
-		expect(api.previewJobCard).toHaveBeenCalledWith([{ serviceId: 'svc-1', quantity: 1, discountAmount: 0 }], true);
-		const rows = screen.getAllByTestId('estimate-tax-row').map((r) => r.textContent ?? '');
-		expect(rows.some((t) => t.includes('CGST @ 2.5%') && t.includes('20.00'))).toBe(true);
-		expect(screen.queryByText(/18%/)).not.toBeInTheDocument();
+		expect(screen.getByText('Full Body Foam Wash')).toBeInTheDocument();
+		expect(screen.queryByTestId('estimate-total')).not.toBeInTheDocument();
+		expect(screen.queryByText(/₹|Subtotal|Estimated CGST/)).not.toBeInTheDocument();
+		expect(api.previewJobCard).not.toHaveBeenCalled();
 	});
 
 	it('displays submit error message when backend job card creation fails', async () => {

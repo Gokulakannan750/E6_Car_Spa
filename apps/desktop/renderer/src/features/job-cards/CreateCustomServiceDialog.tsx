@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Dialog } from '../../components/ui/Dialog';
 import { Button } from '../../components/ui/Button';
-import { CATALOGUE_CATEGORIES } from '../../constants/catalogue';
 import { capitalizeSentence } from '../../utils/text';
-import { createService, type ServiceDto } from '../../lib/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { createService, getServiceCategories, type ServiceDto } from '../../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
 
 export interface CreateCustomServiceDialogProps {
@@ -25,19 +24,18 @@ export function CreateCustomServiceDialog({
 	submitLabel = 'Create Service',
 }: CreateCustomServiceDialogProps) {
 	const queryClient = useQueryClient();
+	const { data: categories = [] } = useQuery({ queryKey: ['services', 'categories'], queryFn: getServiceCategories });
 	const [name, setName] = useState('');
-	const [category, setCategory] = useState<string>(CATALOGUE_CATEGORIES[0]);
+	const [category, setCategory] = useState<string>('General Services');
 	const [description, setDescription] = useState('');
-	const [price, setPrice] = useState('');
 	const [isActive, setIsActive] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const resetForm = () => {
 		setName('');
-		setCategory(CATALOGUE_CATEGORIES[0]);
+		setCategory('General Services');
 		setDescription('');
-		setPrice('');
 		setIsActive(true);
 		setError(null);
 	};
@@ -53,19 +51,14 @@ export function CreateCustomServiceDialog({
 			setError('Service name is required.');
 			return;
 		}
-		const parsedPrice = parseFloat(price);
-		if (!price.trim() || isNaN(parsedPrice) || parsedPrice < 0) {
-			setError('Please enter a valid price (0 or greater).');
-			return;
-		}
 
 		setIsSubmitting(true);
 		setError(null);
 		try {
 			const created = await createService({
 				name: capitalizeSentence(name.trim()),
-				category: category || CATALOGUE_CATEGORIES[0],
-				price: parsedPrice,
+				category: category || 'General Services',
+				price: 0,
 				taxPercentage: 18,
 				description: description.trim() ? capitalizeSentence(description.trim()) : undefined,
 				isActive,
@@ -104,7 +97,7 @@ export function CreateCustomServiceDialog({
 					<Button
 						type="button"
 						onClick={() => handleSubmit()}
-						disabled={isSubmitting || !name.trim() || !price.trim()}
+						disabled={isSubmitting || !name.trim()}
 						loading={isSubmitting}
 					>
 						{submitLabel}
@@ -142,7 +135,7 @@ export function CreateCustomServiceDialog({
 						onChange={(e) => setCategory(e.target.value)}
 						className="form-input w-full"
 					>
-						{CATALOGUE_CATEGORIES.map((cat) => (
+						{Array.from(new Set([category, ...categories])).map((cat) => (
 							<option key={cat} value={cat}>
 								{cat}
 							</option>
@@ -159,22 +152,6 @@ export function CreateCustomServiceDialog({
 						onBlur={() => setDescription((d) => (d.trim() ? capitalizeSentence(d) : ''))}
 						className="form-input w-full resize-none"
 						placeholder="Service details, warranty, or scope of work (optional)..."
-					/>
-				</div>
-
-				<div>
-					<label className="block text-sm font-medium text-on-surface mb-1">
-						Price (₹) <span className="text-error">*</span>
-					</label>
-					<input
-						required
-						type="number"
-						step="0.01"
-						min="0"
-						value={price}
-						onChange={(e) => setPrice(e.target.value)}
-						className="form-input w-full"
-						placeholder="0.00"
 					/>
 				</div>
 

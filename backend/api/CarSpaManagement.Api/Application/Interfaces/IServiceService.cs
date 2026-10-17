@@ -8,6 +8,7 @@ public interface IServiceService
  Task<IReadOnlyList<ServiceDto>> GetAllAsync(bool? isActive = null, int page = 1, int pageSize = 50, string? search = null, string? category = null, CancellationToken cancellationToken = default);
  Task<int> GetTotalCountAsync(bool? isActive = null, string? search = null, string? category = null, CancellationToken cancellationToken = default);
  Task<IReadOnlyList<string>> GetCategoriesAsync(CancellationToken cancellationToken = default);
+ Task<string?> CreateCategoryAsync(string name, CancellationToken cancellationToken = default);
  Task<ServiceDto> CreateAsync(CreateServiceRequest request, CancellationToken cancellationToken = default);
  Task<ServiceDto?> UpdateAsync(Guid id, UpdateServiceRequest request, CancellationToken cancellationToken = default);
  Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);

@@ -85,8 +85,24 @@ public class ServiceService : IServiceService
 
 	public async Task<IReadOnlyList<string>> GetCategoriesAsync(CancellationToken cancellationToken = default)
 	{
-		return await _db.Services.Where(s => !s.IsDeleted && !string.IsNullOrEmpty(s.Category)).Select(s => s.Category!).Distinct().OrderBy(c => c).ToListAsync(cancellationToken);
+		var existing = await _db.Services.Where(s => !string.IsNullOrEmpty(s.Category)).Select(s => s.Category!).Distinct().ToListAsync(cancellationToken);
+		var saved = await _db.ServiceCategories.Select(c => c.Name).ToListAsync(cancellationToken);
+		return saved.Concat(existing).Select(c => c.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(c => c).ToList();
 	}
+
+    public async Task<string?> CreateCategoryAsync(string name, CancellationToken cancellationToken = default)
+    {
+        name = name.Trim();
+        var categories = await GetCategoriesAsync(cancellationToken);
+        if (categories.Contains(name, StringComparer.OrdinalIgnoreCase)) return null;
+        var category = new ServiceCategory { Name = name, NormalizedName = name.ToUpperInvariant() };
+        _db.ServiceCategories.Add(category);
+        await _db.SaveChangesAsync(cancellationToken);
+        await _auditLogService.RecordAsync(action: "catalogue.create", module: "Catalogue",
+            description: $"Service category '{name}' created.", entityType: "ServiceCategory",
+            entityId: category.Id, entityReference: name, outcome: "Success", cancellationToken: cancellationToken);
+        return name;
+    }
 
 	public async Task<ServiceDto> CreateAsync(CreateServiceRequest request, CancellationToken cancellationToken = default)
 	{

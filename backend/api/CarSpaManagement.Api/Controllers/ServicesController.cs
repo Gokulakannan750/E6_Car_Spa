@@ -28,6 +28,24 @@ public class ServicesController : ControllerBase
  public async Task<IActionResult> GetCategories(CancellationToken ct)
  => Ok(await _service.GetCategoriesAsync(ct));
 
+ [HttpPost("categories")]
+ [RequirePermission("catalogue.create")]
+ public async Task<IActionResult> CreateCategory([FromBody] CreateServiceCategoryRequest request, CancellationToken ct)
+ {
+     if (string.IsNullOrWhiteSpace(request.Name)) return BadRequest(new { message = "Category name is required." });
+     try
+     {
+         var name = await _service.CreateCategoryAsync(request.Name, ct);
+         return name is null ? Conflict(new { message = "A category with this name already exists." })
+             : StatusCode(201, new { name });
+     }
+     catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+         when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+     {
+         return Conflict(new { message = "A category with this name already exists." });
+     }
+ }
+
  [HttpGet]
  [RequirePermission("catalogue.view")]
  public async Task<IActionResult> GetAll([FromQuery] bool? isActive = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null, [FromQuery] string? category = null, CancellationToken ct = default)

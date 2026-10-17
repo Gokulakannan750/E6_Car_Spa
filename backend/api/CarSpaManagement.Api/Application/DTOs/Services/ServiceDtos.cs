@@ -27,3 +27,8 @@ public record UpdateServiceRequest
 }
 
 public record ServiceListResponse(IReadOnlyList<ServiceDto> Items, int TotalCount, int Page, int PageSize);
+
+public record CreateServiceCategoryRequest
+{
+    [Required, MaxLength(50)] public string Name { get; init; } = string.Empty;
+}

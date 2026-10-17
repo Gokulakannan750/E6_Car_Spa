@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<ServiceCategory> ServiceCategories => Set<ServiceCategory>();
     public DbSet<JobCard> JobCards => Set<JobCard>();
     public DbSet<JobCardService> JobCardServices => Set<JobCardService>();
     public DbSet<OutsideJob> OutsideJobs => Set<OutsideJob>();
