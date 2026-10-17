@@ -7,6 +7,7 @@ import { PlanStep } from '@/pages/PlanStep';
 import { PricingPage } from '@/pages/PricingPage';
 import { ReviewStep } from '@/pages/ReviewStep';
 import { ChooserPage } from '@/pages/ChooserPage';
+import { ProductShowcasePage } from '@/pages/ProductShowcasePage';
 import { useQuery } from '@tanstack/react-query';
 import { products, productApi } from '@/lib/api';
 import { branding } from '@/lib/config';
@@ -28,7 +29,7 @@ function ScrollToTop() {
 	return null;
 }
 
-type View = 'pricing' | 'business' | 'plan' | 'review' | 'done';
+type View = 'pricing' | 'business' | 'plan' | 'review' | 'done' | 'showcase';
 function ProductRoute({ view }: { view: View }) {
 	const { productKey } = useParams();
 	const listing = useQuery({ queryKey: ['products'], queryFn: products });
@@ -70,7 +71,14 @@ function ProductRoute({ view }: { view: View }) {
 			</Page>
 		);
 	const data = { ...catalog.data, seatTypes: [...catalog.data.seatTypes].sort((a, b) => a.sortOrder - b.sortOrder || a.code.localeCompare(b.code)) };
-	const content = { pricing: <PricingPage />, business: <BusinessStep />, plan: <PlanStep />, review: <ReviewStep />, done: <DonePage /> }[view];
+	const content = {
+		pricing: <PricingPage />,
+		business: <BusinessStep />,
+		plan: <PlanStep />,
+		review: <ReviewStep />,
+		done: <DonePage />,
+		showcase: <ProductShowcasePage />,
+	}[view];
 	return (
 		<ProductContext.Provider value={{ catalog: data, api, brand: branding(data) }}>
 			<SignupProvider key={key} catalog={data}>
@@ -85,6 +93,10 @@ export function AppRoutes() {
 			<ScrollToTop />
 			<Routes>
 				<Route path="/" element={<ProductRoute view="pricing" />} />
+				<Route path="/product" element={<ProductRoute view="showcase" />} />
+				<Route path="/products" element={<ProductRoute view="showcase" />} />
+				<Route path="/product/:productKey" element={<ProductRoute view="showcase" />} />
+				<Route path="/products/:productKey" element={<ProductRoute view="showcase" />} />
 				<Route path="/pricing/:productKey" element={<ProductRoute view="pricing" />} />
 				<Route path="/signup" element={<ProductRoute view="business" />} />
 				{(['plan', 'review', 'done'] as const).map((view) => (
